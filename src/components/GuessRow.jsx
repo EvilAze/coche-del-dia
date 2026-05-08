@@ -21,15 +21,39 @@ function Cell({ label, value, status }) {
 
   return (
     <div
-      className={`flex min-h-[38px] min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-sm animate-pop ${s.cell}`}
+      className={`
+        flex min-w-0 items-center gap-1 rounded-md border
+        px-1.5 py-1.5 min-h-[34px]
+        sm:gap-2 sm:rounded-lg sm:px-2.5 sm:py-2 sm:min-h-[38px]
+        animate-pop ${s.cell}
+      `}
     >
-      <span className={`shrink-0 text-base font-bold ${s.icon}`}>{s.symbol}</span>
+      <span
+        className={`
+          shrink-0 text-xs font-bold leading-none
+          sm:text-base
+          ${s.icon}
+        `}
+      >
+        {s.symbol}
+      </span>
 
       <div className="min-w-0 overflow-hidden">
-        <span className="mb-0.5 block text-[10px] uppercase tracking-widest text-muted">
+        <span
+          className="
+            mb-0.5 block truncate text-[8px] uppercase tracking-[0.08em] text-muted
+            sm:text-[10px] sm:tracking-widest
+          "
+        >
           {label}
         </span>
-        <span className="block truncate text-xs font-medium text-white">
+
+        <span
+          className="
+            block truncate text-[10px] font-medium leading-tight text-white
+            sm:text-xs
+          "
+        >
           {value}
         </span>
       </div>
@@ -41,8 +65,9 @@ export default function GuessRow({ guess, index }) {
   return (
     <div
       className="
-        grid w-full min-w-0 grid-cols-1 gap-1.5 animate-slide-up
-        sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_76px]
+        grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_64px]
+        gap-1 animate-slide-up
+        sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_76px] sm:gap-1.5
       "
       style={{
         animationDelay: `${index * 60}ms`,
@@ -55,3 +80,4 @@ export default function GuessRow({ guess, index }) {
     </div>
   );
 }
+

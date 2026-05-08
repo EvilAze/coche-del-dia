@@ -26,12 +26,13 @@ export default function Autocomplete({
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  // Filtrar opciones según lo escrito (máx. 8 sugerencias)
-  const filtered = value.trim()
-    ? options
-        .filter((o) => o.toLowerCase().includes(value.trim().toLowerCase()))
-        .slice(0, 8)
-    : options.slice(0, 8);
+  // Filtrar opciones según lo escrito.
+// No recortamos la lista: el scroll del dropdown debe permitir llegar a todas.
+const filtered = value.trim()
+  ? options.filter((o) =>
+      o.toLowerCase().includes(value.trim().toLowerCase())
+    )
+  : options;
 
   // Cerrar al hacer clic fuera
   useEffect(() => {
@@ -115,10 +116,12 @@ export default function Autocomplete({
           ref={listRef}
           role="listbox"
           className="
-            absolute left-0 right-0 z-50 mt-1 max-h-52 overflow-y-auto
-            rounded-lg border border-border-strong
-            bg-bg-secondary shadow-xl shadow-black/50
-          "
+  absolute left-0 right-0 z-[9999] mt-1
+  max-h-[min(18rem,45vh)] overflow-y-auto overscroll-contain
+  scroll-py-2 rounded-lg border border-border-strong
+  bg-bg-secondary pb-2 shadow-xl shadow-black/50
+  [-webkit-overflow-scrolling:touch]
+"
         >
           {filtered.map((option, i) => {
             // Resaltar la parte del texto que coincide con la búsqueda

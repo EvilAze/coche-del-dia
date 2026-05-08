@@ -1,6 +1,7 @@
 // src/hooks/useGame.js
 import { useState, useEffect } from "react";
 import { getCarOfDay } from "../data/cars";
+import { recordWin } from "./useStats";
 
 const MAX_ATTEMPTS = 5;
 const ZOOM_LEVELS = [2.8, 2.2, 1.7, 1.3, 1.0];
@@ -89,6 +90,13 @@ export function useGame() {
     setGuesses(newGuesses);
     setStatus(newStatus);
     saveState({ guesses: newGuesses, status: newStatus });
+    
+    if (result.win) {
+  recordWin().catch((error) => {
+    console.error("No se pudieron actualizar las estadísticas:", error);
+  });
+}
+
     return result;
   }
 

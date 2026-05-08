@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
+import Ranking from "./Ranking";
+import MyStats from "./MyStats";
 
 function MenuIcon() {
   return (
@@ -50,6 +52,12 @@ export default function Header() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const menuRef = useRef(null);
+  const [activeModal, setActiveModal] = useState(null);
+
+  function openModal(name) {
+  setOpen(false);
+  setActiveModal(name);
+}
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -111,122 +119,136 @@ export default function Header() {
     user?.user_metadata?.picture;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
-      <div className="mx-auto grid h-14 w-full max-w-md grid-cols-[44px_1fr_44px] items-center px-3">
-        <div />
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
+        <div className="mx-auto grid h-14 w-full max-w-md grid-cols-[44px_1fr_44px] items-center px-3">
+          <div />
 
-        <div className="text-center font-display text-2xl font-bold tracking-[0.2em] text-white">
-          CARGUESSR
-        </div>
+          <div className="text-center font-display text-2xl font-bold tracking-[0.2em] text-white">
+            CARGUESSR
+          </div>
 
-        <div ref={menuRef} className="relative flex justify-end">
-          <button
-            type="button"
-            onClick={() => setOpen((value) => !value)}
-            className="
-              flex h-10 w-10 items-center justify-center rounded-full
-              border border-white/10 bg-white/[0.04] text-white
-              transition hover:border-accent/60 hover:bg-accent/10
-              active:scale-95
-            "
-            aria-label="Abrir menú"
-            aria-expanded={open}
-          >
-            <MenuIcon />
-          </button>
-
-          {open && (
-            <div
+          <div ref={menuRef} className="relative flex justify-end">
+            <button
+              type="button"
+              onClick={() => setOpen((value) => !value)}
               className="
-                absolute right-0 top-12 w-[min(19rem,calc(100vw-1.5rem))]
-                overflow-hidden rounded-2xl border border-white/10
-                bg-[#111113]/95 shadow-2xl shadow-black/40 backdrop-blur-xl
-                animate-fade-in
+                flex h-10 w-10 items-center justify-center rounded-full
+                border border-white/10 bg-white/[0.04] text-white
+                transition hover:border-accent/60 hover:bg-accent/10
+                active:scale-95
               "
+              aria-label="Abrir menú"
+              aria-expanded={open}
             >
-              <div className="border-b border-white/10 p-3">
-                {loading ? (
-                  <p className="text-sm text-muted">Cargando...</p>
-                ) : user ? (
-                  <div className="flex items-center gap-3">
-                    {avatar && (
-                      <img
-                        src={avatar}
-                        alt={nombre}
-                        className="h-10 w-10 shrink-0 rounded-full border border-white/10 object-cover"
-                      />
-                    )}
+              <MenuIcon />
+            </button>
 
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-white">
-                        {nombre}
-                      </p>
-                      <p className="text-xs text-muted">Sesión iniciada</p>
+            {open && (
+              <div
+                className="
+                  absolute right-0 top-12 w-[min(19rem,calc(100vw-1.5rem))]
+                  overflow-hidden rounded-2xl border border-white/10
+                  bg-[#111113]/95 shadow-2xl shadow-black/40 backdrop-blur-xl
+                  animate-fade-in
+                "
+              >
+                <div className="border-b border-white/10 p-3">
+                  {loading ? (
+                    <p className="text-sm text-muted">Cargando...</p>
+                  ) : user ? (
+                    <div className="flex items-center gap-3">
+                      {avatar && (
+                        <img
+                          src={avatar}
+                          alt={nombre}
+                          className="h-10 w-10 shrink-0 rounded-full border border-white/10 object-cover"
+                        />
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-white">
+                          {nombre}
+                        </p>
+                        <p className="text-xs text-muted">Sesión iniciada</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={cerrarSesion}
+                        className="
+                          shrink-0 rounded-lg border border-white/10 px-3 py-2
+                          text-[10px] uppercase tracking-widest text-muted
+                          transition hover:border-red-400/70 hover:text-red-300
+                        "
+                      >
+                        Salir
+                      </button>
                     </div>
-
+                  ) : (
                     <button
                       type="button"
-                      onClick={cerrarSesion}
+                      onClick={loginConGoogle}
                       className="
-                        shrink-0 rounded-lg border border-white/10 px-3 py-2
-                        text-[10px] uppercase tracking-widest text-muted
-                        transition hover:border-red-400/70 hover:text-red-300
+                        flex w-full items-center justify-center gap-2 rounded-xl
+                        bg-white px-4 py-3 text-sm font-semibold text-black
+                        transition hover:bg-zinc-100 active:scale-[0.98]
                       "
                     >
-                      Salir
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full border border-zinc-300 text-sm font-bold text-blue-600">
+                        G
+                      </span>
+                      Iniciar sesión con Google
                     </button>
-                  </div>
-                ) : (
+                  )}
+                </div>
+
+                <nav className="p-2">
                   <button
                     type="button"
-                    onClick={loginConGoogle}
+                    onClick={() => openModal("ranking")}
                     className="
-                      flex w-full items-center justify-center gap-2 rounded-xl
-                      bg-white px-4 py-3 text-sm font-semibold text-black
-                      transition hover:bg-zinc-100 active:scale-[0.98]
+                      flex w-full items-center gap-3 rounded-xl px-3 py-3
+                      text-left text-sm text-white transition
+                      hover:bg-white/[0.06]
                     "
                   >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-zinc-300 text-sm font-bold text-blue-600">
-                      G
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                      <TrophyIcon />
                     </span>
-                    Iniciar sesión con Google
+                    Ranking Global
                   </button>
-                )}
+
+                  <button
+                    type="button"
+                    onClick={() => openModal("stats")}
+                    className="
+                      flex w-full items-center gap-3 rounded-xl px-3 py-3
+                      text-left text-sm text-white transition
+                      hover:bg-white/[0.06]
+                    "
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                      <ChartIcon />
+                    </span>
+                    Mis Estadísticas
+                  </button>
+                </nav>
               </div>
-
-              <nav className="p-2">
-                <button
-                  type="button"
-                  className="
-                    flex w-full items-center gap-3 rounded-xl px-3 py-3
-                    text-left text-sm text-white transition
-                    hover:bg-white/[0.06]
-                  "
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                    <TrophyIcon />
-                  </span>
-                  Ranking Global
-                </button>
-
-                <button
-                  type="button"
-                  className="
-                    flex w-full items-center gap-3 rounded-xl px-3 py-3
-                    text-left text-sm text-white transition
-                    hover:bg-white/[0.06]
-                  "
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                    <ChartIcon />
-                  </span>
-                  Mis Estadísticas
-                </button>
-              </nav>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <Ranking
+        open={activeModal === "ranking"}
+        onClose={() => setActiveModal(null)}
+      />
+
+      <MyStats
+        open={activeModal === "stats"}
+        onClose={() => setActiveModal(null)}
+      />
+    </>
   );
 }

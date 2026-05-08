@@ -1,5 +1,3 @@
-// src/components/GuessRow.jsx
-
 const STATUS_STYLES = {
   correct: {
     cell: "bg-[#1a2f1a] border-[#2d5a2d]",
@@ -14,22 +12,26 @@ const STATUS_STYLES = {
   wrong: {
     cell: "bg-[#2a1a1a] border-[#5a2d2d]",
     icon: "text-red-400",
-    symbol: "✗",
+    symbol: "✕",
   },
 };
 
 function Cell({ label, value, status }) {
   const s = STATUS_STYLES[status];
+
   return (
     <div
-      className={`flex items-center gap-2 rounded-lg px-2.5 py-2 border text-sm min-h-[38px] animate-pop ${s.cell}`}
+      className={`flex min-h-[38px] min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-sm animate-pop ${s.cell}`}
     >
-      <span className={`text-base flex-shrink-0 font-bold ${s.icon}`}>{s.symbol}</span>
-      <div className="overflow-hidden">
-        <span className="block text-[10px] tracking-widest uppercase text-muted mb-0.5">
+      <span className={`shrink-0 text-base font-bold ${s.icon}`}>{s.symbol}</span>
+
+      <div className="min-w-0 overflow-hidden">
+        <span className="mb-0.5 block text-[10px] uppercase tracking-widest text-muted">
           {label}
         </span>
-        <span className="block text-white font-medium text-xs truncate">{value}</span>
+        <span className="block truncate text-xs font-medium text-white">
+          {value}
+        </span>
       </div>
     </div>
   );
@@ -38,9 +40,11 @@ function Cell({ label, value, status }) {
 export default function GuessRow({ guess, index }) {
   return (
     <div
-      className="grid gap-1.5 animate-slide-up"
+      className="
+        grid w-full min-w-0 grid-cols-1 gap-1.5 animate-slide-up
+        sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_76px]
+      "
       style={{
-        gridTemplateColumns: "1fr 1fr 76px",
         animationDelay: `${index * 60}ms`,
         animationFillMode: "both",
       }}

@@ -93,14 +93,23 @@ export function useGame() {
   }
 
   function buildShareText() {
-    const lines = guesses.map((g) => {
-      const m = g.marca.status === "correct" ? "✅" : "❌";
-      const mo = g.modelo.status === "correct" ? "✅" : "❌";
-      const a = g.anio.status === "correct" ? "✅" : "❌";
-      return m + mo + a;
-    });
-    return `🚗 Coche del Día\n${getTodayKey()}\n${attempts}/${MAX_ATTEMPTS}\n\n${lines.join("\n")}`;
+    const webUrl = "https://carguessr.org";
+
+  const lines = guesses.map((g) => {
+    const m = g.marca.status === "correct" ? "✅" : "❌";
+    const mo = g.modelo.status === "correct" ? "✅" : "❌";
+    const a = g.anio.status === "correct" ? "✅" : "❌";
+    return m + mo + a;
+  });
+
+  const baseText = `🚗 Coche del Día\n${getTodayKey()}\n${attempts}/${MAX_ATTEMPTS}\n\n${lines.join("\n")}`;
+
+  if (status === "won") {
+    return `${baseText}\n\nJuega tú también: ${webUrl}`;
   }
+
+  return baseText;
+}
 
   return {
     car,

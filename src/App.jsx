@@ -1,12 +1,11 @@
-// src/App.jsx
 import CarImage from "./components/CarImage";
 import AttemptDots from "./components/AttemptDots";
 import HintLegend from "./components/HintLegend";
 import GuessRow from "./components/GuessRow";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
+import Header from "./components/Header";
 import { useGame } from "./hooks/useGame";
-import Login from "./components/Login";
 
 export default function App() {
   const {
@@ -28,59 +27,63 @@ export default function App() {
   });
 
   return (
-    <><Login />
-    <div className="min-h-screen bg-bg-primary text-white font-body flex flex-col items-center">
-      {/* Header */}
-      <header className="w-full max-w-md border-b border-border px-4 py-4 flex justify-between items-end">
-        <div>
-          <h1 className="font-display text-4xl text-accent tracking-widest leading-none">
-            Coche del día
-          </h1>
-          <p className="text-[10px] tracking-[0.22em] uppercase text-muted mt-1">{today}</p>
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary text-white font-body">
+      <Header />
+
+      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 sm:px-4">
+        <div className="w-full min-w-0 py-2">
         </div>
-        <div className="text-right">
-          <div className="font-display text-2xl text-accent leading-none">
-            {maxAttempts - attempts}
+
+        <header className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-b border-border py-4">
+          <div className="min-w-0">
+            <h1 className="font-display text-[1.8rem] leading-none tracking-[0.12em] text-accent min-[380px]:text-4xl min-[380px]:tracking-widest">
+              Coche del Día
+            </h1>
+            <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted">
+              {today}
+            </p>
           </div>
-          <div className="text-[10px] tracking-widest uppercase text-muted">intentos</div>
-        </div>
-      </header>
 
-      {/* Main */}
-      <main className="w-full max-w-md px-4 pb-10">
-        {/* Car image */}
-        <CarImage src={car.img} zoom={zoom} zoomLabel={zoomLabel} />
-
-        {/* Attempt dots */}
-        <AttemptDots attempts={attempts} max={maxAttempts} />
-
-        {/* Legend */}
-        <HintLegend />
-
-        {/* Guess history */}
-        {guesses.length > 0 && (
-          <div className="flex flex-col gap-2 mt-3 mb-4">
-            {guesses.map((g, i) => (
-              <GuessRow key={i} guess={g} index={i} />
-            ))}
+          <div className="shrink-0 text-right">
+            <div className="font-display text-2xl leading-none text-accent">
+              {maxAttempts - attempts}
+            </div>
+            <div className="text-[10px] uppercase tracking-widest text-muted">
+              intentos
+            </div>
           </div>
-        )}
+        </header>
 
-        {/* Divider */}
-        {guesses.length > 0 && <div className="h-px bg-border my-4" />}
+        <main className="w-full min-w-0">
+          <CarImage src={car.img} zoom={zoom} zoomLabel={zoomLabel} />
 
-        {/* Form or Result */}
-        {status === "playing" ? (
-          <GuessForm onSubmit={submitGuess} disabled={status !== "playing"} />
-        ) : (
-          <ResultPanel
-            status={status}
-            car={car}
-            attempts={attempts}
-            maxAttempts={maxAttempts}
-            shareText={buildShareText()} />
-        )}
-      </main>
-    </div></>
+          <AttemptDots attempts={attempts} max={maxAttempts} />
+
+          <HintLegend />
+
+          {guesses.length > 0 && (
+            <div className="mt-3 mb-4 flex w-full min-w-0 flex-col gap-2">
+              {guesses.map((g, i) => (
+                <GuessRow key={i} guess={g} index={i} />
+              ))}
+            </div>
+          )}
+
+          {guesses.length > 0 && <div className="my-4 h-px bg-border" />}
+
+          {status === "playing" ? (
+            <GuessForm onSubmit={submitGuess} disabled={status !== "playing"} />
+          ) : (
+            <ResultPanel
+              status={status}
+              car={car}
+              attempts={attempts}
+              maxAttempts={maxAttempts}
+              shareText={buildShareText()}
+            />
+          )}
+        </main>
+      </div>
+    </div>
   );
 }

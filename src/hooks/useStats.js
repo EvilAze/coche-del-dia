@@ -9,7 +9,12 @@ const EMPTY_STATS = {
 
 export async function getCurrentUser() {
   const { data, error } = await supabase.auth.getUser();
-  if (error) throw error;
+  
+  // Si hay error (ej: no estás logueado) o no hay usuario, devolvemos null tranquilamente
+  if (error || !data?.user) {
+    return null;
+  }
+  
   return data.user;
 }
 
@@ -28,19 +33,12 @@ export async function getMyStats() {
 
   if (error) throw error;
 
+  // Si hay datos, los devolvemos. Si no hay datos, devolvemos los contadores a cero sin forzar un insert que rompa la app.
   if (data) {
     return { user, stats: data };
+  } else {
+    return { user, stats: EMPTY_STATS };
   }
-
-  const { data: created, error: insertError } = await supabase
-    .from("stats")
-    .insert({ user_id: user.id })
-    .select("current_streak, max_streak, total_wins, last_played_date")
-    .single();
-
-  if (insertError) throw insertError;
-
-  return { user, stats: created || EMPTY_STATS };
 }
 
 export async function getLeaderboard() {

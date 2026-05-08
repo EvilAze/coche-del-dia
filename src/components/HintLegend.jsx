@@ -1,20 +1,21 @@
-// src/components/HintLegend.jsx
-
-const items = [
-  { color: "bg-green-400", label: "Correcto" },
-  { color: "bg-red-400", label: "Incorrecto" },
-  { color: "bg-yellow-400", label: "Año cerca (±3)" },
-];
-
 export default function HintLegend() {
   return (
-    <div className="flex justify-center gap-5 py-2">
-      {items.map(({ color, label }) => (
-        <div key={label} className="flex items-center gap-1.5">
-          <div className={`w-2 h-2 rounded-full ${color}`} />
-          <span className="text-[10px] tracking-widest uppercase text-muted">{label}</span>
-        </div>
-      ))}
+    <div className="my-3 flex w-full min-w-0 flex-wrap justify-center gap-x-3 gap-y-2 px-1 text-[10px] uppercase tracking-wider text-muted sm:text-[11px]">
+      <span className="whitespace-nowrap">
+        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-green-400" />
+        Correcto
+      </span>
+
+      <span className="whitespace-nowrap">
+        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-red-400" />
+        Incorrecto
+      </span>
+
+      <span className="whitespace-nowrap">
+        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-yellow-400" />
+        Año cerca
+      </span>
     </div>
   );
 }
+

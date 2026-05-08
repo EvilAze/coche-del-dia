@@ -24,12 +24,11 @@ export default function GuessForm({ onSubmit, disabled }) {
     .filter((v, i, a) => a.indexOf(v) === i)
     .sort();
 
-  // Si cambia la marca y el modelo actual ya no pertenece a ella
-  useEffect(() => {
-    if (modelo && !modelOptions.includes(modelo)) {
-      setModelo("");
-    }
-  }, [marca, modelo, modelOptions]);
+  // Si cambia la marca, reiniciamos el modelo.
+// Importante: no dependas de "modelo", porque si no se borra mientras escribes.
+useEffect(() => {
+  setModelo("");
+}, [marca]);
 
   function handleSubmit(e) {
     e.preventDefault();

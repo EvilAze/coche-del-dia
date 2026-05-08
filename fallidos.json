@@ -1,0 +1,67 @@
+[
+  {
+    "marca": "Mitsubishi",
+    "modelo": "Eclipse GSX",
+    "anio": 1995
+  },
+  {
+    "marca": "Volkswagen",
+    "modelo": "Corrado VR6",
+    "anio": 1992
+  },
+  {
+    "marca": "Ford",
+    "modelo": "Focus RS Mk1",
+    "anio": 2002
+  },
+  {
+    "marca": "Renault",
+    "modelo": "Megane RS R26.R",
+    "anio": 2008
+  },
+  {
+    "marca": "Seat",
+    "modelo": "Cordoba WRC",
+    "anio": 1998
+  },
+  {
+    "marca": "Volvo",
+    "modelo": "240 Turbo",
+    "anio": 1981
+  },
+  {
+    "marca": "Lancia",
+    "modelo": "Thema 8.32",
+    "anio": 1986
+  },
+  {
+    "marca": "Koenigsegg",
+    "modelo": "Agera RS",
+    "anio": 2015
+  },
+  {
+    "marca": "Lotus",
+    "modelo": "Evija",
+    "anio": 2020
+  },
+  {
+    "marca": "Kia",
+    "modelo": "ProCeed GT",
+    "anio": 2013
+  },
+  {
+    "marca": "Seat",
+    "modelo": "Leon Cupra 290",
+    "anio": 2016
+  },
+  {
+    "marca": "Skoda",
+    "modelo": "Superb V6",
+    "anio": 2001
+  },
+  {
+    "marca": "GMC",
+    "modelo": "Syclone",
+    "anio": 1991
+  }
+]

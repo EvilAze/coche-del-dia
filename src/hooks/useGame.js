@@ -4,7 +4,7 @@ import { getCarOfDay } from "../data/cars";
 import { recordWin } from "./useStats";
 
 const MAX_ATTEMPTS = 5;
-const ZOOM_LEVELS = [2.8, 2.2, 1.7, 1.3, 1.0];
+const ZOOM_LEVELS = [3.0, 2.7, 2.2, 1.5, 1.0];
 const ZOOM_LABELS = [
   "🔍 Muy cerca",
   "🔍 Cerca",
@@ -18,7 +18,10 @@ const ANIO_CORRECT_MARGIN = 2; // ±2 años → verde (acierto total)
 const ANIO_PARTIAL_MARGIN = 5; // ±3–5 años → amarillo (cerca)
 
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
+  // Genera la fecha YYYY-MM-DD según la hora de España
+  const options = { timeZone: "Europe/Madrid", year: 'numeric', month: '2-digit', day: '2-digit' };
+  const formatter = new Intl.DateTimeFormat('en-CA', options); 
+  return formatter.format(new Date()); 
 }
 
 function loadState() {
@@ -102,22 +105,24 @@ export function useGame() {
 
   function buildShareText() {
     const webUrl = "https://carguessr.org";
+    const [year, month, day] = getTodayKey().split("-");
+    const shareDate = `${day}/${month}/${year}`;
 
-  const lines = guesses.map((g) => {
-    const m = g.marca.status === "correct" ? "✅" : "❌";
-    const mo = g.modelo.status === "correct" ? "✅" : "❌";
-    const a = g.anio.status === "correct" ? "✅" : "❌";
-    return m + mo + a;
-  });
+    const lines = guesses.map((g) => {
+      const m = g.marca.status === "correct" ? "✅" : "❌";
+      const mo = g.modelo.status === "correct" ? "✅" : "❌";
+      const a = g.anio.status === "correct" ? "✅" : "❌";
+      return m + mo + a;
+    });
 
-  const baseText = `🚗 Coche del Día\n${getTodayKey()}\n${attempts}/${MAX_ATTEMPTS}\n\n${lines.join("\n")}`;
+    const baseText = `🚗 Coche del Día\n${shareDate}\n${attempts}/${MAX_ATTEMPTS}\n\n${lines.join("\n")}`;
 
-  if (status === "won") {
-    return `${baseText}\n\nJuega tú también: ${webUrl}`;
+    if (status === "won") {
+      return `${baseText}\n\nJuega tú también: ${webUrl}`;
+    }
+
+    return baseText;
   }
-
-  return baseText;
-}
 
   return {
     car,

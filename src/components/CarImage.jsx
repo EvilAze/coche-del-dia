@@ -11,19 +11,29 @@ export default function CarImage({ src, zoom, zoomLabel }) {
   }, [zoom]);
 
   return (
-    <div className="relative w-full rounded-xl overflow-hidden bg-bg-tertiary border border-border mb-3"
-         style={{ aspectRatio: "16/9" }}>
+    <div 
+      className="relative w-full rounded-xl overflow-hidden bg-bg-tertiary border border-border mb-3"
+      onContextMenu={(e) => e.preventDefault()}
+      style={{ aspectRatio: "16/9" }}
+    >
       <img
-        ref={imgRef}
-        src={src}
-        alt="Coche a adivinar"
-        className="w-full h-full object-cover"
-        style={{
-          transform: `scale(${zoom})`,
-          transition: "transform 0.75s cubic-bezier(0.4,0,0.2,1)",
-          transformOrigin: "center center",
-        }}
-      />
+  ref={imgRef}
+  src={src}
+  alt="Coche a adivinar"
+  draggable={false}
+  onContextMenu={(event) => event.preventDefault()}
+  onDragStart={(event) => event.preventDefault()}
+  className="h-full w-full select-none object-cover pointer-events-none"
+  style={{
+    transform: `scale(${zoom})`,
+    transition: "transform 0.75s cubic-bezier(0.4,0,0.2,1)",
+    transformOrigin: "center center",
+    WebkitUserSelect: "none",
+    userSelect: "none",
+    WebkitTouchCallout: "none",
+  }}
+/>
+
       {/* Vignette */}
       <div
         className="absolute inset-0 pointer-events-none"

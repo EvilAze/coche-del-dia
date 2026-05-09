@@ -12,8 +12,8 @@ export default function HintLegend() {
       </span>
 
       <span className="whitespace-nowrap">
-        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-yellow-400" />
-        Año cerca
+        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-blue-400" />
+        País correcto
       </span>
     </div>
   );

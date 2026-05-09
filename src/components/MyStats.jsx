@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getMyStats } from "../hooks/useStats";
+import { supabase } from "../supabaseClient";
 
 function StatCard({ label, value }) {
   return (
@@ -12,8 +13,13 @@ function StatCard({ label, value }) {
   );
 }
 
-export default function MyStats({ open, onClose }) {
-  const [state, setState] = useState({ loading: true, user: null, stats: null, error: "" });
+export default function MyStats({ open, onClose, onSignedOut }) {
+  const [state, setState] = useState({
+    loading: true,
+    user: null,
+    stats: null,
+    error: "",
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -31,6 +37,21 @@ export default function MyStats({ open, onClose }) {
         })
       );
   }, [open]);
+
+  async function handleSignOut() {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setState((current) => ({
+        ...current,
+        error: "No se pudo cerrar sesión.",
+      }));
+      return;
+    }
+
+    onSignedOut?.();
+    onClose?.();
+  }
 
   if (!open) return null;
 
@@ -57,11 +78,23 @@ export default function MyStats({ open, onClose }) {
             Inicia sesión para guardar tus rachas y estadísticas.
           </p>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
-            <StatCard label="Racha" value={stats.current_streak} />
-            <StatCard label="Máxima" value={stats.max_streak} />
-            <StatCard label="Aciertos" value={stats.total_wins} />
-          </div>
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <StatCard label="Racha" value={stats.current_streak} />
+              <StatCard label="Máxima" value={stats.max_streak} />
+              <StatCard label="Aciertos" value={stats.total_wins} />
+            </div>
+
+            <div className="mt-5 flex justify-center">
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-xs uppercase tracking-widest text-muted transition hover:text-red-500"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

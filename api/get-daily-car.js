@@ -8,12 +8,10 @@ export default function handler(req, res) {
   const oneDay = 1000 * 60 * 60 * 24;
   const dayOfYear = Math.floor(diff / oneDay);
 
-  // Usamos CARS en mayúsculas
   const carIndex = dayOfYear % CARS.length;
-  const carOfDay = CARS[carIndex];
 
   res.status(200).json({
     id: carIndex,
-    img: carOfDay.img 
+    img: `/coches/${carIndex}.jpg` 
   });
 }

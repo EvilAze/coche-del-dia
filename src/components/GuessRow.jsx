@@ -9,6 +9,11 @@ const STATUS_STYLES = {
     icon: "text-yellow-400",
     symbol: "≈",
   },
+  country: {
+    cell: "bg-[#142532] border-[#2f6f95]",
+    icon: "text-sky-300",
+    symbol: "🌍",
+  },
   wrong: {
     cell: "bg-[#2a1a1a] border-[#5a2d2d]",
     icon: "text-red-400",
@@ -17,7 +22,8 @@ const STATUS_STYLES = {
 };
 
 function Cell({ label, value, status }) {
-  const s = STATUS_STYLES[status];
+  const isCountryPartial = label === "Marca" && status === "partial";
+  const s = isCountryPartial ? STATUS_STYLES.country : STATUS_STYLES[status];
 
   return (
     <div
@@ -45,7 +51,7 @@ function Cell({ label, value, status }) {
             sm:text-[10px] sm:tracking-widest
           "
         >
-          {label}
+          {isCountryPartial ? "País ok" : label}
         </span>
 
         <span
@@ -80,4 +86,5 @@ export default function GuessRow({ guess, index }) {
     </div>
   );
 }
+
 

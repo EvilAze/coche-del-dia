@@ -2,7 +2,89 @@
 // AUTOGENERADO POR SYNC.JS - 7/5/2026
 // Total coches detectados: 185
 
-export const CARS = [
+export const MARCA_PAIS = {
+  Acura: "Japón",
+  Alfa: "Italia",
+  Alpine: "Francia",
+  Ariel: "Reino Unido",
+  Aston: "Reino Unido",
+  Audi: "Alemania",
+  Austin: "Reino Unido",
+  Autozam: "Japón",
+  Bac: "Reino Unido",
+  Bentley: "Reino Unido",
+  Bmw: "Alemania",
+  Bugatti: "Francia",
+  Cadillac: "EE.UU.",
+  Caterham: "Reino Unido",
+  Chevrolet: "EE.UU.",
+  Citroen: "Francia",
+  Dacia: "Rumanía",
+  Daihatsu: "Japón",
+  De: "Italia",
+  Delorean: "EE.UU.",
+  Dodge: "EE.UU.",
+  Ferrari: "Italia",
+  Fiat: "Italia",
+  Ford: "EE.UU.",
+  Hennessey: "EE.UU.",
+  Honda: "Japón",
+  Hummer: "EE.UU.",
+  Hyundai: "Corea del Sur",
+  Jaguar: "Reino Unido",
+  Jeep: "EE.UU.",
+  Koenigsegg: "Suecia",
+  Ktm: "Austria",
+  Lada: "Rusia",
+  Lamborghini: "Italia",
+  Lancia: "Italia",
+  Land: "Reino Unido",
+  Lexus: "Japón",
+  Lotus: "Reino Unido",
+  Maserati: "Italia",
+  Mazda: "Japón",
+  Mclaren: "Reino Unido",
+  Mercedes: "Alemania",
+  Mg: "Reino Unido",
+  Mini: "Reino Unido",
+  Mitsubishi: "Japón",
+  Morgan: "Reino Unido",
+  Nissan: "Japón",
+  Noble: "Reino Unido",
+  Opel: "Alemania",
+  Pagani: "Italia",
+  Peugeot: "Francia",
+  Pininfarina: "Italia",
+  Plymouth: "EE.UU.",
+  Polestar: "Suecia",
+  Pontiac: "EE.UU.",
+  Porsche: "Alemania",
+  Radical: "Reino Unido",
+  Range: "Reino Unido",
+  Renault: "Francia",
+  Rimac: "Croacia",
+  Rolls: "Reino Unido",
+  Saab: "Suecia",
+  Saleen: "EE.UU.",
+  Seat: "España",
+  Shelby: "EE.UU.",
+  Skoda: "República Checa",
+  Spyker: "Países Bajos",
+  Ssc: "EE.UU.",
+  Subaru: "Japón",
+  Suzuki: "Japón",
+  Tesla: "EE.UU.",
+  Toyota: "Japón",
+  Triumph: "Reino Unido",
+  Tvr: "Reino Unido",
+  Uaz: "Rusia",
+  Vauxhall: "Reino Unido",
+  Volkswagen: "Alemania",
+  Volvo: "Suecia",
+};
+
+
+const RAW_CARS = [
   {
     "id": 1,
     "marca": "Lancia",
@@ -1299,6 +1381,12 @@ export const CARS = [
     "img": "/coches/ssc_tuatara_2020.jpg"
   }
 ];
+
+export const CARS = RAW_CARS.map((car) => ({
+  ...car,
+  pais: MARCA_PAIS[car.marca] ?? "Desconocido",
+}));
+
 
 export const MARCAS = [
   "Acura",

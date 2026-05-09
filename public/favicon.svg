@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="96" fill="#111" stroke="#000" stroke-width="4"/>
+  
+  <circle cx="100" cy="100" r="70" fill="#333" stroke="#444" stroke-width="2"/>
+  
+  <path d="M 35 100 A 65 65 0 0 1 80 40 L 90 55 A 50 50 0 0 0 50 100 Z" fill="#D4AF37"/>
+  
+  <g stroke="#ccc" stroke-width="14" stroke-linecap="round">
+    <line x1="100" y1="100" x2="100" y2="25" />
+    <line x1="100" y1="100" x2="171" y2="76" />
+    <line x1="100" y1="100" x2="144" y2="159" />
+    <line x1="100" y1="100" x2="56" y2="159" />
+    <line x1="100" y1="100" x2="29" y2="76" />
+  </g>
+  
+  <circle cx="100" cy="100" r="75" fill="none" stroke="#aaa" stroke-width="8"/>
+  
+  <circle cx="100" cy="100" r="24" fill="#111" stroke="#888" stroke-width="3"/>
+  
+  <text x="100" y="108" font-family="'Arial Black', sans-serif" font-weight="900" font-size="20" fill="#D4AF37" text-anchor="middle">CG</text>
+</svg>

@@ -21,17 +21,20 @@ function loadState() {
   try {
     const raw = localStorage.getItem("cocheDia_state");
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed.date !== getTodayKey()) return null;
-    return parsed;
+    return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 
-function saveState(state) {
+// ¡CLAVE! Ahora guardamos también el carId
+function saveState(state, carId) {
   try {
-    localStorage.setItem("cocheDia_state", JSON.stringify({ ...state, date: getTodayKey() }));
+    localStorage.setItem("cocheDia_state", JSON.stringify({ 
+      ...state, 
+      date: getTodayKey(),
+      carId: carId 
+    }));
   } catch {}
 }
 
@@ -45,17 +48,20 @@ export function useGame() {
   useEffect(() => {
     const saved = loadState();
 
-    // 1. Pedir la foto de hoy a la API invisible
     fetch('/api/get-daily-car')
       .then((res) => res.json())
       .then((data) => {
-        if (saved) {
+        // EL CORTAFUEGOS: Solo cargamos la partida si la fecha coincide Y el ID del coche es el mismo
+        if (saved && saved.date === getTodayKey() && saved.carId === data.id) {
           setGuesses(saved.guesses || []);
           setStatus(saved.status || "playing");
-          // Si ya había terminado, guardamos el coche completo. Si no, solo el ID y la foto.
           setCar(saved.carData || data);
         } else {
+          // Si es un coche nuevo (o si ha cambiado a mitad de día), reseteamos todo
+          setGuesses([]);
+          setStatus("playing");
           setCar(data);
+          localStorage.removeItem("cocheDia_state"); 
         }
         setIsLoading(false);
       })
@@ -70,7 +76,6 @@ export function useGame() {
   const zoom = status === "won" ? 1 : ZOOM_LEVELS[zoomIndex];
   const zoomLabel = ZOOM_LABELS[zoomIndex];
 
-  // 2. Comprobar la respuesta en el servidor (Asíncrono)
   async function submitGuess(marca, modelo, anio) {
     if (status !== "playing" || isSubmitting) return;
     setIsSubmitting(true);
@@ -97,23 +102,20 @@ export function useGame() {
 
       setGuesses(newGuesses);
       setStatus(newStatus);
+      if (carData) setCar(carData);
 
-      // Si ha ganado o perdido, guardamos la info real para mostrarla en ResultPanel
-      if (carData) {
-        setCar(carData);
-      }
-
+      // Guardamos la partida pasando el ID del coche
       saveState({ 
         guesses: newGuesses, 
         status: newStatus, 
         carData: carData || null 
-      });
+      }, car.id);
       
       if (result.win) recordWin().catch(console.error);
 
     } catch (error) {
       console.error("Error al comprobar:", error);
-      alert("Hubo un error de conexión, inténtalo de nuevo.");
+      alert("Hubo un error de conexión.");
     } finally {
       setIsSubmitting(false);
     }

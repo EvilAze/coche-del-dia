@@ -136,24 +136,33 @@ export function useGame() {
       setStatus(newStatus);
       if (carData) setCar(carData);
 
-      const stateToSave = {
-        guesses:  newGuesses,
-        status:   newStatus,
-        carData:  carData || null,
-        date:     getTodayKey(),
-        carId:    car.id,
+      // 4. GUARDADO SINCRONIZADO
+      const stateToSave = { 
+        guesses: newGuesses, 
+        status: newStatus, 
+        carData: carData || null,
+        date: getTodayKey(),
+        carId: car.id
       };
 
       if (user) {
-        await supabase.from("user_guesses").upsert({
-          user_id:  user.id,
-          car_id:   car.id,
-          date:     stateToSave.date,
-          guesses:  newGuesses,
-          status:   newStatus,
-          car_data: stateToSave.carData,
+        // Guardar en la nube (Supabase)
+        const { error } = await supabase.from('user_guesses').upsert({
+          user_id: user.id,
+          car_id: car.id,
+          date: stateToSave.date,
+          guesses: newGuesses,
+          status: newStatus,
+          car_data: stateToSave.carData
+        }, {
+          onConflict: 'user_id,car_id,date' // <--- ¡ESTA ES LA LLAVE MAESTRA!
         });
+        
+        // Chivato por si hay más errores en el futuro
+        if (error) console.error("Error guardando partida:", error);
+        
       } else {
+        // Guardar solo en local
         localStorage.setItem("cocheDia_state", JSON.stringify(stateToSave));
       }
 

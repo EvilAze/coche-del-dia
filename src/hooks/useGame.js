@@ -3,8 +3,8 @@ import { supabase } from "../supabaseClient";
 import { recordWin } from "./useStats";
 
 const MAX_ATTEMPTS = 5;
-const ZOOM_LEVELS = [3.2, 2.9, 2.5, 2.1, 1.8];
-const ZOOM_LABELS = ["🔍 x3", "🔍 x2.5", "🔎 x2", "🔭 x2.5"];
+const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
+const ZOOM_LABELS = ["🔍 x3.5", "🔍 x3", "🔍 x2.5", "🔍 x2", "🔍 x1.5"];
 
 function getTodayKey() {
   const options = {

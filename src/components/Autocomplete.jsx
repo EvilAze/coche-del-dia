@@ -1,14 +1,4 @@
 // src/components/Autocomplete.jsx
-// Componente de buscador predictivo reutilizable con tema oscuro.
-// Props:
-//   value        — string: valor actual del input
-//   onChange     — fn(string): se llama al escribir
-//   onSelect     — fn(string): se llama al elegir una opción de la lista
-//   options      — string[]: lista completa de opciones posibles
-//   placeholder  — string
-//   disabled     — bool
-//   id           — string (para el label htmlFor)
-
 import { useEffect, useRef, useState } from "react";
 
 export default function Autocomplete({
@@ -23,34 +13,35 @@ export default function Autocomplete({
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const containerRef = useRef(null);
-  const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  // Filtrar opciones según lo escrito.
-// No recortamos la lista: el scroll del dropdown debe permitir llegar a todas.
-const filtered = value.trim()
-  ? options.filter((o) =>
-      o.toLowerCase().includes(value.trim().toLowerCase())
-    )
-  : options;
+  const filtered = value.trim()
+    ? options.filter((o) =>
+        o.toLowerCase().includes(value.trim().toLowerCase())
+      )
+    : options;
 
-  // Cerrar al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
-  // Hacer scroll al item resaltado
   useEffect(() => {
-    if (listRef.current) {
-      const item = listRef.current.children[highlighted];
-      item?.scrollIntoView({ block: "nearest" });
-    }
+    if (!listRef.current) return;
+
+    const item = listRef.current.children[highlighted];
+    item?.scrollIntoView({ block: "nearest" });
   }, [highlighted]);
 
   function handleInputChange(e) {
@@ -66,9 +57,12 @@ const filtered = value.trim()
 
   function handleKeyDown(e) {
     if (!open) {
-      if (e.key === "ArrowDown" || e.key === "Enter") setOpen(true);
+      if (e.key === "ArrowDown" || e.key === "Enter") {
+        setOpen(true);
+      }
       return;
     }
+
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setHighlighted((h) => Math.min(h + 1, filtered.length - 1));
@@ -86,20 +80,21 @@ const filtered = value.trim()
   const inputClass = `
     h-11 w-full min-w-0 rounded-lg border border-border-strong
     bg-bg-secondary px-3 text-sm text-white outline-none transition-colors
-    placeholder:text-muted
-    focus:border-accent
+    placeholder:text-muted focus:border-accent
     disabled:cursor-not-allowed disabled:opacity-40
   `;
 
   return (
     <div ref={containerRef} className="relative w-full min-w-0">
       <input
-        ref={inputRef}
         id={id}
         type="text"
         value={value}
         onChange={handleInputChange}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setHighlighted(0);
+          setOpen(true);
+        }}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
@@ -110,21 +105,20 @@ const filtered = value.trim()
         className={inputClass}
       />
 
-      {/* Dropdown */}
       {open && filtered.length > 0 && (
         <ul
           ref={listRef}
           role="listbox"
           className="
-  absolute left-0 right-0 z-[9999] mt-1
-  max-h-[min(18rem,45vh)] overflow-y-auto overscroll-contain
-  scroll-py-2 rounded-lg border border-border-strong
-  bg-bg-secondary pb-2 shadow-xl shadow-black/50
-  [-webkit-overflow-scrolling:touch]
-"
+            absolute left-0 right-0 z-[9999] mt-1
+            max-h-[40dvh] overflow-y-auto overscroll-contain touch-pan-y
+            scroll-py-2 rounded-lg border border-border-strong
+            bg-bg-secondary pb-2 shadow-xl shadow-black/50
+            sm:max-h-72
+            [-webkit-overflow-scrolling:touch]
+          "
         >
           {filtered.map((option, i) => {
-            // Resaltar la parte del texto que coincide con la búsqueda
             const query = value.trim();
             const idx = option.toLowerCase().indexOf(query.toLowerCase());
             const before = option.slice(0, idx);
@@ -137,7 +131,10 @@ const filtered = value.trim()
                 role="option"
                 aria-selected={i === highlighted}
                 onMouseDown={(e) => {
-                  // mousedown en vez de click para que no dispare onBlur antes
+                  e.preventDefault();
+                  handleSelect(option);
+                }}
+                onTouchStart={(e) => {
                   e.preventDefault();
                   handleSelect(option);
                 }}

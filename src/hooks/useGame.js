@@ -174,6 +174,9 @@ export function useGame() {
       }
 
       if (result.win) recordWin().catch(console.error);
+
+      return result;
+      
     } catch (error) {
       alert("Error de conexión.");
     } finally {

@@ -12,27 +12,43 @@ export default function GuessForm({ onSubmit, disabled }) {
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
 
+  const marcaValidaSeleccionada = MARCAS.includes(marca);
+
   const modelOptions = CARS
     .filter((c) => {
-      if (!marca.trim()) return true;
-      return c.marca.toLowerCase() === marca.trim().toLowerCase();
+      if (!marcaValidaSeleccionada) return true;
+      return c.marca === marca;
     })
     .map((c) => c.modelo)
     .filter((v, i, a) => a.indexOf(v) === i)
     .sort();
 
   useEffect(() => {
-    setModelo("");
+    if (!modelo || !marcaValidaSeleccionada) return;
+
+    const modeloPerteneceAMarca = CARS.some(
+      (c) => c.marca === marca && c.modelo === modelo
+    );
+
+    if (!modeloPerteneceAMarca) {
+      setModelo("");
+    }
+    // Solo debe reaccionar a cambios de marca. Si depende de "modelo",
+    // se borraría mientras el usuario escribe texto parcial.
   }, [marca]);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
-    const marcaValida = MARCAS.includes(marca);
+    const submittedMarca = marca;
+    const submittedModelo = modelo;
+    const submittedAnio = anio;
+
+    const marcaValida = MARCAS.includes(submittedMarca);
     const modeloValido = CARS.some(
-      (c) => c.modelo === modelo && c.marca === marca
+      (c) => c.modelo === submittedModelo && c.marca === submittedMarca
     );
-    const anioNum = parseInt(anio);
+    const anioNum = parseInt(submittedAnio);
     const anioValido =
       !isNaN(anioNum) && anioNum >= MIN_YEAR && anioNum <= CURRENT_YEAR;
 
@@ -42,10 +58,13 @@ export default function GuessForm({ onSubmit, disabled }) {
       return;
     }
 
-    onSubmit(marca, modelo, anio);
-    setMarca("");
-    setModelo("");
-    setAnio("");
+    const result = await onSubmit(submittedMarca, submittedModelo, submittedAnio);
+
+    if (!result) return;
+
+    setMarca(result.marca.status === "correct" ? submittedMarca : "");
+    setModelo(result.modelo.status === "correct" ? submittedModelo : "");
+    setAnio(result.anio.status === "correct" ? submittedAnio : "");
   }
 
   return (
@@ -83,11 +102,11 @@ export default function GuessForm({ onSubmit, disabled }) {
             onSelect={setModelo}
             options={modelOptions}
             placeholder={
-              marca && MARCAS.includes(marca)
+              marcaValidaSeleccionada
                 ? "Escribe un modelo..."
-                : "Elige marca primero"
+                : "Escribe una marca primero..."
             }
-            disabled={disabled || !MARCAS.includes(marca)}
+            disabled={disabled}
           />
         </label>
 

@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
+import { Analytics } from "@vercel/analytics/react";
 
 import CarImage    from "./components/CarImage";
 import AttemptDots from "./components/AttemptDots";
@@ -78,6 +79,7 @@ export default function App() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
+      <Analytics />
 
       {/* Header recibe user y la función onOpenLogin conectada */}
       <Header

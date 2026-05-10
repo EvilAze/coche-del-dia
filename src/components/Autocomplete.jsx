@@ -13,6 +13,7 @@ export default function Autocomplete({
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const containerRef = useRef(null);
+  const inputRef = useRef(null);
   const listRef = useRef(null);
   const closeTimeoutRef = useRef(null);
 
@@ -63,6 +64,7 @@ export default function Autocomplete({
     cancelScheduledClose();
     onSelect(option);
     setOpen(false);
+    inputRef.current?.blur();
   }
 
   function handleKeyDown(e) {
@@ -94,6 +96,7 @@ export default function Autocomplete({
       onClick={(e) => e.stopPropagation()}
     >
       <input
+        ref={inputRef}
         id={id}
         type="text"
         value={value}
@@ -123,7 +126,6 @@ export default function Autocomplete({
         <ul
           ref={listRef}
           role="listbox"
-          onMouseDown={cancelScheduledClose}
           className="
             absolute left-0 right-0 z-[9999] mt-1
             max-h-[40dvh] overflow-y-auto overscroll-contain touch-pan-y

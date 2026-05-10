@@ -1,7 +1,7 @@
 /// src/components/Header.jsx
 // Props:
 //   onOpenRanking  — fn(): abre el modal de ranking
-//   onOpenProfile  — fn(): abre el modal de perfil / login
+//   onOpenProfile  — fn(): abre el modal de perfil
 //   onOpenLogin    — fn(): abre el modal para iniciar sesión con Google
 //   user           — objeto de usuario de Supabase (null si no hay sesión)
 
@@ -64,50 +64,18 @@ function TrophyIcon() {
 }
 
 const iconBtn = `
-  flex h-9 w-9 items-center justify-center rounded-full
+  flex h-10 w-10 items-center justify-center rounded-full
   text-muted transition-colors duration-200
-  hover:text-accent hover:bg-accent/10
+  hover:bg-accent/10 hover:text-accent
   active:scale-90
 `;
 
 export default function Header({ onOpenRanking, onOpenProfile, onOpenLogin, user }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
-      <div className="mx-auto grid h-14 w-full max-w-md grid-cols-[44px_1fr_44px] items-center px-3">
-
-        {/* ── Izquierda: login (si no hay sesión) o vacío (si hay sesión) ── */}
-        <div className="flex justify-start">
-          {!user && (
-            <button
-              type="button"
-              onClick={onOpenLogin} // <--- AHORA SÍ LLAMA A onOpenLogin
-              aria-label="Iniciar sesión"
-              title="Iniciar sesión"
-              className={iconBtn}
-            >
-              <LoginIcon />
-            </button>
-          )}
-        </div>
-
-        {/* ── Centro: título ── */}
-        <div className="text-center font-display text-2xl tracking-[0.2em] text-white select-none">
-          CARGUESSR
-        </div>
-
-        {/* ── Derecha: ranking + perfil (solo si hay sesión) ── */}
-        <div className="flex items-center justify-end gap-1">
-          <button
-            type="button"
-            onClick={onOpenRanking}
-            aria-label="Ranking global"
-            title="Ranking global"
-            className={iconBtn}
-          >
-            <TrophyIcon />
-          </button>
-
-          {user && (
+      <div className="mx-auto grid h-14 w-full max-w-md grid-cols-3 items-center px-3">
+        <div className="flex min-w-0 justify-start">
+          {user ? (
             <button
               type="button"
               onClick={onOpenProfile}
@@ -117,9 +85,36 @@ export default function Header({ onOpenRanking, onOpenProfile, onOpenLogin, user
             >
               <UserIcon />
             </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenLogin}
+              aria-label="Iniciar sesión"
+              title="Iniciar sesión"
+              className={iconBtn}
+            >
+              <LoginIcon />
+            </button>
           )}
         </div>
 
+        <div className="flex min-w-0 justify-center">
+          <div className="select-none truncate text-center font-display text-2xl tracking-[0.2em] text-white">
+            CARGUESSR
+          </div>
+        </div>
+
+        <div className="flex min-w-0 justify-end">
+          <button
+            type="button"
+            onClick={onOpenRanking}
+            aria-label="Ranking global"
+            title="Ranking global"
+            className={iconBtn}
+          >
+            <TrophyIcon />
+          </button>
+        </div>
       </div>
     </header>
   );

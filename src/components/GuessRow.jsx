@@ -1,3 +1,21 @@
+const COUNTRY_FLAGS = {
+  Japón: "🇯🇵",
+  Alemania: "🇩🇪",
+  Italia: "🇮🇹",
+  "EE.UU.": "🇺🇸",
+  Francia: "🇫🇷",
+  "Reino Unido": "🇬🇧",
+  "Corea del Sur": "🇰🇷",
+  Suecia: "🇸🇪",
+  España: "🇪🇸",
+  Austria: "🇦🇹",
+  Croacia: "🇭🇷",
+  Rumanía: "🇷🇴",
+  Rusia: "🇷🇺",
+  "República Checa": "🇨🇿",
+  "Países Bajos": "🇳🇱",
+};
+
 const STATUS_STYLES = {
   correct: {
     cell: "bg-[#1a2f1a] border-[#2d5a2d]",
@@ -21,9 +39,10 @@ const STATUS_STYLES = {
   },
 };
 
-function Cell({ label, value, status }) {
+function Cell({ label, value, status, pais }) {
   const isCountryPartial = label === "Marca" && status === "partial";
   const s = isCountryPartial ? STATUS_STYLES.country : STATUS_STYLES[status];
+  const flag = isCountryPartial ? COUNTRY_FLAGS[pais] || s.symbol : s.symbol;
 
   return (
     <div
@@ -40,8 +59,9 @@ function Cell({ label, value, status }) {
           sm:text-base
           ${s.icon}
         `}
+        title={isCountryPartial && pais ? `País correcto: ${pais}` : undefined}
       >
-        {s.symbol}
+        {flag}
       </span>
 
       <div className="min-w-0 overflow-hidden">
@@ -80,11 +100,17 @@ export default function GuessRow({ guess, index }) {
         animationFillMode: "both",
       }}
     >
-      <Cell label="Marca" value={guess.marca.val} status={guess.marca.status} />
+      <Cell
+        label="Marca"
+        value={guess.marca.val}
+        status={guess.marca.status}
+        pais={guess.marca.pais}
+      />
       <Cell label="Modelo" value={guess.modelo.val} status={guess.modelo.status} />
       <Cell label="Año" value={guess.anio.val} status={guess.anio.status} />
     </div>
   );
 }
+
 
 

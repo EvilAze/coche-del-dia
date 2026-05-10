@@ -4,7 +4,7 @@ import { CARS, MARCAS } from "../data/cars";
 import Autocomplete from "./Autocomplete";
 
 const CURRENT_YEAR = new Date().getFullYear();
-const MIN_YEAR = 1886; // Karl Benz patenta el primer automóvil
+const MIN_YEAR = 1886;
 
 export default function GuessForm({ onSubmit, disabled }) {
   const [marca, setMarca] = useState("");
@@ -12,28 +12,22 @@ export default function GuessForm({ onSubmit, disabled }) {
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
 
-  // Opciones de modelo filtradas según la marca escrita
   const modelOptions = CARS
     .filter((c) => {
       if (!marca.trim()) return true;
-      // Filtrar si la marca escrita coincide exactamente con alguna del array
-      // (ya que el usuario puede haber escrito solo parte)
       return c.marca.toLowerCase() === marca.trim().toLowerCase();
     })
     .map((c) => c.modelo)
     .filter((v, i, a) => a.indexOf(v) === i)
     .sort();
 
-  // Si cambia la marca, reiniciamos el modelo.
-// Importante: no dependas de "modelo", porque si no se borra mientras escribes.
-useEffect(() => {
-  setModelo("");
-}, [marca]);
+  useEffect(() => {
+    setModelo("");
+  }, [marca]);
 
   function handleSubmit(e) {
     e.preventDefault();
 
-    // Validar que los valores sean exactos (no texto a medias)
     const marcaValida = MARCAS.includes(marca);
     const modeloValido = CARS.some(
       (c) => c.modelo === modelo && c.marca === marca
@@ -56,7 +50,6 @@ useEffect(() => {
 
   return (
     <form onSubmit={handleSubmit} className="w-full min-w-0">
-      {/* Campos — apilados en móvil, en fila en md+ */}
       <div
         className={`
           flex w-full min-w-0 flex-col gap-y-3
@@ -64,7 +57,6 @@ useEffect(() => {
           ${shake ? "animate-shake" : ""}
         `}
       >
-        {/* ── MARCA ──────────────────────────────────────────────── */}
         <label className="flex w-full min-w-0 flex-col gap-1 md:flex-1">
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
             Marca
@@ -72,15 +64,14 @@ useEffect(() => {
           <Autocomplete
             id="input-marca"
             value={marca}
-            onChange={(val) => setMarca(val)}
-            onSelect={(val) => setMarca(val)}
+            onChange={setMarca}
+            onSelect={setMarca}
             options={MARCAS}
-            placeholder="Escribe una marca…"
+            placeholder="Escribe una marca..."
             disabled={disabled}
           />
         </label>
 
-        {/* ── MODELO ─────────────────────────────────────────────── */}
         <label className="flex w-full min-w-0 flex-col gap-1 md:flex-1">
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
             Modelo
@@ -88,19 +79,18 @@ useEffect(() => {
           <Autocomplete
             id="input-modelo"
             value={modelo}
-            onChange={(val) => setModelo(val)}
-            onSelect={(val) => setModelo(val)}
+            onChange={setModelo}
+            onSelect={setModelo}
             options={modelOptions}
             placeholder={
               marca && MARCAS.includes(marca)
-                ? "Escribe un modelo…"
+                ? "Escribe un modelo..."
                 : "Elige marca primero"
             }
             disabled={disabled || !MARCAS.includes(marca)}
           />
         </label>
 
-        {/* ── AÑO ────────────────────────────────────────────────── */}
         <label className="flex w-full min-w-0 flex-col gap-1 md:w-24 md:shrink-0">
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
             Año
@@ -127,7 +117,6 @@ useEffect(() => {
         </label>
       </div>
 
-      {/* ── BOTÓN ──────────────────────────────────────────────────── */}
       <button
         type="submit"
         disabled={disabled}

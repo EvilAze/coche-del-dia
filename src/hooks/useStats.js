@@ -62,8 +62,17 @@ export async function saveDisplayName(displayName) {
     .single();
 
   if (error) {
-    if (error.code === "23505") {
-      throw new Error("Ese nickname ya está en uso.");
+    const errorText = `${error.code || ""} ${error.message || ""} ${error.details || ""}`.toLowerCase();
+
+    const isDuplicate =
+      error.code === "23505" ||
+      errorText.includes("duplicate") ||
+      errorText.includes("unique");
+
+    if (isDuplicate) {
+      const duplicateError = new Error("Este nombre ya está en uso. Elige otro.");
+      duplicateError.code = "DUPLICATE_DISPLAY_NAME";
+      throw duplicateError;
     }
 
     throw error;

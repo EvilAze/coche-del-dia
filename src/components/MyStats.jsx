@@ -43,6 +43,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -56,6 +57,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
     });
     setEditingName(false);
     setDraftName("");
+    setNameError("");
 
     getMyStats()
       .then(({ user, profile, stats }) => {
@@ -76,24 +78,19 @@ export default function MyStats({ open, onClose, onSignedOut }) {
   async function handleSaveName() {
     const cleanName = draftName.trim();
 
+    setNameError("");
+
     if (!cleanName) {
-      setState((current) => ({
-        ...current,
-        error: "El nickname no puede estar vacío.",
-      }));
+      setNameError("El nickname no puede estar vacío.");
       return;
     }
 
     if (!/^[A-Za-z0-9]{1,12}$/.test(cleanName)) {
-      setState((current) => ({
-        ...current,
-        error: "Usa solo letras y números, máximo 12 caracteres.",
-      }));
+      setNameError("Usa solo letras y números, máximo 12 caracteres.");
       return;
     }
 
     setSavingName(true);
-    setState((current) => ({ ...current, error: "" }));
 
     try {
       const nextProfile = await saveDisplayName(cleanName);
@@ -103,13 +100,15 @@ export default function MyStats({ open, onClose, onSignedOut }) {
         profile: nextProfile,
         error: "",
       }));
+
       setEditingName(false);
       setDraftName(nextProfile.display_name || "");
     } catch (error) {
-      setState((current) => ({
-        ...current,
-        error: error.message || "No se pudo guardar el nickname.",
-      }));
+      setNameError(
+        error.code === "DUPLICATE_DISPLAY_NAME"
+          ? "Este nombre ya está en uso. Elige otro."
+          : error.message || "No se pudo guardar el nickname."
+      );
     } finally {
       setSavingName(false);
     }
@@ -166,9 +165,10 @@ export default function MyStats({ open, onClose, onSignedOut }) {
                       <input
                         value={draftName}
                         maxLength={12}
-                        onChange={(e) =>
-                          setDraftName(e.target.value.replace(/[^A-Za-z0-9]/g, ""))
-                        }
+                        onChange={(e) => {
+                          setDraftName(e.target.value.replace(/[^A-Za-z0-9]/g, ""));
+                          setNameError("");
+                        }}
                         className="
                           h-10 min-w-0 flex-1 rounded-lg border border-white/10
                           bg-black/30 px-3 text-sm font-semibold text-white
@@ -200,6 +200,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
                           setDraftName(state.profile?.display_name || "");
                           setEditingName(true);
                           setState((current) => ({ ...current, error: "" }));
+                          setNameError("");
                         }}
                         className="shrink-0 text-muted transition hover:text-accent"
                         aria-label="Editar nickname"
@@ -218,9 +219,17 @@ export default function MyStats({ open, onClose, onSignedOut }) {
               )}
 
               {editingName && (
-                <p className="mt-2 text-[10px] uppercase tracking-widest text-muted">
-                  Letras y números, máximo 12
-                </p>
+                <div>
+                  <p className="mt-2 text-[10px] uppercase tracking-widest text-muted">
+                    Letras y números, máximo 12
+                  </p>
+
+                  {nameError && (
+                    <p className="mt-2 text-left text-xs text-red-400">
+                      {nameError}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

@@ -14,6 +14,7 @@ export default function Autocomplete({
   const [highlighted, setHighlighted] = useState(0);
   const containerRef = useRef(null);
   const listRef = useRef(null);
+  const closeTimeoutRef = useRef(null);
 
   const filtered = value.trim()
     ? options.filter((o) =>
@@ -23,26 +24,34 @@ export default function Autocomplete({
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false);
+      if (!containerRef.current?.contains(e.target)) {
+        window.setTimeout(() => setOpen(false), 180);
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
+      window.clearTimeout(closeTimeoutRef.current);
     };
   }, []);
 
   useEffect(() => {
-    if (!listRef.current) return;
-
-    const item = listRef.current.children[highlighted];
+    const item = listRef.current?.children[highlighted];
     item?.scrollIntoView({ block: "nearest" });
   }, [highlighted]);
+
+  function scheduleClose() {
+    window.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setOpen(false);
+    }, 180);
+  }
+
+  function cancelScheduledClose() {
+    window.clearTimeout(closeTimeoutRef.current);
+  }
 
   function handleInputChange(e) {
     onChange(e.target.value);
@@ -51,6 +60,7 @@ export default function Autocomplete({
   }
 
   function handleSelect(option) {
+    cancelScheduledClose();
     onSelect(option);
     setOpen(false);
   }
@@ -77,24 +87,23 @@ export default function Autocomplete({
     }
   }
 
-  const inputClass = `
-    h-11 w-full min-w-0 rounded-lg border border-border-strong
-    bg-bg-secondary px-3 text-sm text-white outline-none transition-colors
-    placeholder:text-muted focus:border-accent
-    disabled:cursor-not-allowed disabled:opacity-40
-  `;
-
   return (
-    <div ref={containerRef} className="relative w-full min-w-0">
+    <div
+      ref={containerRef}
+      className="relative w-full min-w-0"
+      onClick={(e) => e.stopPropagation()}
+    >
       <input
         id={id}
         type="text"
         value={value}
         onChange={handleInputChange}
         onFocus={() => {
+          cancelScheduledClose();
           setHighlighted(0);
           setOpen(true);
         }}
+        onBlur={scheduleClose}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
@@ -102,13 +111,19 @@ export default function Autocomplete({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
-        className={inputClass}
+        className="
+          h-11 w-full min-w-0 rounded-lg border border-border-strong
+          bg-bg-secondary px-3 text-sm text-white outline-none transition-colors
+          placeholder:text-muted focus:border-accent
+          disabled:cursor-not-allowed disabled:opacity-40
+        "
       />
 
       {open && filtered.length > 0 && (
         <ul
           ref={listRef}
           role="listbox"
+          onMouseDown={cancelScheduledClose}
           className="
             absolute left-0 right-0 z-[9999] mt-1
             max-h-[40dvh] overflow-y-auto overscroll-contain touch-pan-y
@@ -130,20 +145,15 @@ export default function Autocomplete({
                 key={option}
                 role="option"
                 aria-selected={i === highlighted}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleSelect(option);
-                }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  handleSelect(option);
-                }}
+                onClick={() => handleSelect(option)}
                 onMouseEnter={() => setHighlighted(i)}
                 className={`
                   cursor-pointer px-3 py-2.5 text-sm transition-colors
-                  ${i === highlighted
-                    ? "bg-accent/15 text-white"
-                    : "text-muted hover:bg-white/5 hover:text-white"
+                  touch-pan-y select-none
+                  ${
+                    i === highlighted
+                      ? "bg-accent/15 text-white"
+                      : "text-muted hover:bg-white/5 hover:text-white"
                   }
                   ${i < filtered.length - 1 ? "border-b border-border" : ""}
                 `}

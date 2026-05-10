@@ -164,22 +164,22 @@ const RAW_CARS = [
   },
   {
     "id": 12,
-    "marca": "Aston",
-    "modelo": "MARTIN V12 VANTAGE",
+    "marca": "Aston Martin",
+    "modelo": "V12 VANTAGE",
     "anio": 2009,
     "img": "/coches/aston_martin_v12_vantage_2009.jpg"
   },
   {
     "id": 13,
     "marca": "Autozam",
-    "modelo": "AZ 1",
+    "modelo": "AZ-1",
     "anio": 1992,
     "img": "/coches/autozam_az_1_1992.jpg"
   },
   {
     "id": 14,
-    "marca": "Mercedes",
-    "modelo": "BENZ SLR MCLAREN",
+    "marca": "Mercedes-Benz",
+    "modelo": "SLR MCLAREN",
     "anio": 2003,
     "img": "/coches/mercedes_benz_slr_mclaren_2003.jpg"
   },
@@ -318,8 +318,8 @@ const RAW_CARS = [
   },
   {
     "id": 34,
-    "marca": "Mercedes",
-    "modelo": "BENZ 300 SL",
+    "marca": "Mercedes-Benz",
+    "modelo": "300 SL",
     "anio": 1954,
     "img": "/coches/mercedes_benz_300_sl_1954.jpg"
   },
@@ -332,15 +332,15 @@ const RAW_CARS = [
   },
   {
     "id": 36,
-    "marca": "Land",
-    "modelo": "ROVER RANGE ROVER EVOQUE",
+    "marca": "Land Rover",
+    "modelo": "RANGE ROVER EVOQUE",
     "anio": 2011,
     "img": "/coches/land_rover_range_rover_evoque_2011.jpg"
   },
   {
     "id": 37,
     "marca": "Mazda",
-    "modelo": "RX 7 FD",
+    "modelo": "RX-7",
     "anio": 1992,
     "img": "/coches/mazda_rx_7_fd_1992.jpg"
   },
@@ -354,7 +354,7 @@ const RAW_CARS = [
   {
     "id": 39,
     "marca": "Bmw",
-    "modelo": "M5 E39",
+    "modelo": "M5",
     "anio": 1998,
     "img": "/coches/bmw_m5_e39_1998.jpg"
   },
@@ -374,15 +374,15 @@ const RAW_CARS = [
   },
   {
     "id": 42,
-    "marca": "Mercedes",
-    "modelo": "BENZ SLS AMG",
+    "marca": "Mercedes-Benz",
+    "modelo": "SLS AMG",
     "anio": 2010,
     "img": "/coches/mercedes_benz_sls_amg_2010.jpg"
   },
   {
     "id": 43,
     "marca": "Mazda",
-    "modelo": "MX 5 MIATA NA",
+    "modelo": "MX 5 MIATA",
     "anio": 1989,
     "img": "/coches/mazda_mx_5_miata_na_1989.jpg"
   },
@@ -410,7 +410,7 @@ const RAW_CARS = [
   {
     "id": 47,
     "marca": "Honda",
-    "modelo": "CR X SI",
+    "modelo": "CR-X",
     "anio": 1989,
     "img": "/coches/honda_cr_x_si_1989.jpg"
   },
@@ -466,7 +466,7 @@ const RAW_CARS = [
   {
     "id": 55,
     "marca": "Volkswagen",
-    "modelo": "GOLF GTI MK1",
+    "modelo": "GOLF GTI",
     "anio": 1976,
     "img": "/coches/volkswagen_golf_gti_mk1_1976.jpg"
   },
@@ -494,14 +494,14 @@ const RAW_CARS = [
   {
     "id": 59,
     "marca": "Audi",
-    "modelo": "RS E TRON GT",
+    "modelo": "RS E-TRON GT",
     "anio": 2021,
     "img": "/coches/audi_rs_e_tron_gt_2021.jpg"
   },
   {
     "id": 60,
-    "marca": "Aston",
-    "modelo": "MARTIN DB5",
+    "marca": "Aston Martin",
+    "modelo": "DB5",
     "anio": 1963,
     "img": "/coches/aston_martin_db5_1963.jpg"
   },
@@ -528,10 +528,10 @@ const RAW_CARS = [
   },
   {
     "id": 64,
-    "marca": "Vauxhall",
+    "marca": "Opel",
     "modelo": "LOTUS CARLTON",
     "anio": 1990,
-    "img": "/coches/vauxhall_lotus_carlton_1990.jpg"
+    "img": "/coches/opel_lotus_carlton_1990.jpg"
   },
   {
     "id": 65,
@@ -612,8 +612,8 @@ const RAW_CARS = [
   },
   {
     "id": 76,
-    "marca": "Alfa",
-    "modelo": "ROMEO 8C COMPETIZIONE",
+    "marca": "Alfa Romeo",
+    "modelo": "8C COMPETIZIONE",
     "anio": 2007,
     "img": "/coches/alfa_romeo_8c_competizione_2007.jpg"
   },
@@ -626,8 +626,8 @@ const RAW_CARS = [
   },
   {
     "id": 78,
-    "marca": "Alfa",
-    "modelo": "ROMEO 155 V6 TI",
+    "marca": "Alfa Romeo",
+    "modelo": "155 V6 TI",
     "anio": 1993,
     "img": "/coches/alfa_romeo_155_v6_ti_1993.jpg"
   },
@@ -710,15 +710,15 @@ const RAW_CARS = [
   },
   {
     "id": 90,
-    "marca": "Rolls",
-    "modelo": "ROYCE PHANTOM",
+    "marca": "Rolls-Royce",
+    "modelo": "PHANTOM",
     "anio": 2003,
     "img": "/coches/rolls_royce_phantom_2003.jpg"
   },
   {
     "id": 91,
     "marca": "Opel",
-    "modelo": "OMEGA B",
+    "modelo": "OMEGA",
     "anio": 1994,
     "img": "/coches/opel_omega_b_1994.jpg"
   },
@@ -760,7 +760,7 @@ const RAW_CARS = [
   {
     "id": 97,
     "marca": "Nissan",
-    "modelo": "SKYLINE GT R R34",
+    "modelo": "SKYLINE GT-R",
     "anio": 1999,
     "img": "/coches/nissan_skyline_gt_r_r34_1999.jpg"
   },
@@ -773,17 +773,17 @@ const RAW_CARS = [
   },
   {
     "id": 99,
-    "marca": "Mercedes",
-    "modelo": "BENZ 190E EVOLUTION II",
+    "marca": "Mercedes-Benz",
+    "modelo": "190E EVOLUTION II",
     "anio": 1990,
     "img": "/coches/mercedes_benz_190e_evolution_ii_1990.jpg"
   },
   {
     "id": 100,
-    "marca": "Alfa",
-    "modelo": "ROMEO GTV6",
-    "anio": 1980,
-    "img": "/coches/alfa_romeo_gtv6_1980.jpg"
+    "marca": "Alfa Romeo",
+    "modelo": "8C COMPETIZIONE",
+    "anio": 2007,
+    "img": "/coches/alfa_romeo_8c_competizione_2007.jpg"
   },
   {
     "id": 101,
@@ -850,8 +850,8 @@ const RAW_CARS = [
   },
   {
     "id": 110,
-    "marca": "De",
-    "modelo": "TOMASO PANTERA",
+    "marca": "De Tomaso",
+    "modelo": "PANTERA",
     "anio": 1971,
     "img": "/coches/de_tomaso_pantera_1971.jpg"
   },
@@ -865,7 +865,7 @@ const RAW_CARS = [
   {
     "id": 112,
     "marca": "Nissan",
-    "modelo": "300ZX TWIN TURBO",
+    "modelo": "300ZX",
     "anio": 1989,
     "img": "/coches/nissan_300zx_twin_turbo_1989.jpg"
   },
@@ -879,14 +879,14 @@ const RAW_CARS = [
   {
     "id": 114,
     "marca": "Nissan",
-    "modelo": "GT R R35",
+    "modelo": "GT-R",
     "anio": 2007,
     "img": "/coches/nissan_gt_r_r35_2007.jpg"
   },
   {
     "id": 115,
     "marca": "Toyota",
-    "modelo": "LAND CRUISER J40",
+    "modelo": "LAND CRUISER",
     "anio": 1960,
     "img": "/coches/toyota_land_cruiser_j40_1960.jpg"
   },
@@ -956,7 +956,7 @@ const RAW_CARS = [
   {
     "id": 125,
     "marca": "Tesla",
-    "modelo": "MODEL S P100D",
+    "modelo": "MODEL S",
     "anio": 2016,
     "img": "/coches/tesla_model_s_p100d_2016.jpg"
   },
@@ -984,7 +984,7 @@ const RAW_CARS = [
   {
     "id": 129,
     "marca": "Bmw",
-    "modelo": "M3 E30",
+    "modelo": "M3",
     "anio": 1986,
     "img": "/coches/bmw_m3_e30_1986.jpg"
   },
@@ -998,7 +998,7 @@ const RAW_CARS = [
   {
     "id": 131,
     "marca": "Nissan",
-    "modelo": "SILVIA S15",
+    "modelo": "SILVIA",
     "anio": 1999,
     "img": "/coches/nissan_silvia_s15_1999.jpg"
   },
@@ -1026,7 +1026,7 @@ const RAW_CARS = [
   {
     "id": 135,
     "marca": "Toyota",
-    "modelo": "MR2 SW20",
+    "modelo": "MR2",
     "anio": 1989,
     "img": "/coches/toyota_mr2_sw20_1989.jpg"
   },
@@ -1053,8 +1053,8 @@ const RAW_CARS = [
   },
   {
     "id": 139,
-    "marca": "Range",
-    "modelo": "ROVER CLASSIC",
+    "marca": "Range Rover",
+    "modelo": "CLASSIC",
     "anio": 1970,
     "img": "/coches/range_rover_classic_1970.jpg"
   },
@@ -1103,7 +1103,7 @@ const RAW_CARS = [
   {
     "id": 146,
     "marca": "Porsche",
-    "modelo": "TAYCAN TURBO S",
+    "modelo": "TAYCAN",
     "anio": 2019,
     "img": "/coches/porsche_taycan_turbo_s_2019.jpg"
   },
@@ -1207,8 +1207,8 @@ const RAW_CARS = [
   },
   {
     "id": 161,
-    "marca": "Alfa",
-    "modelo": "ROMEO GIULIA SPRINT GTA",
+    "marca": "Alfa Romeo",
+    "modelo": "GIULIA SPRINT GTA",
     "anio": 1965,
     "img": "/coches/alfa_romeo_giulia_sprint_gta_1965.jpg"
   },
@@ -1257,7 +1257,7 @@ const RAW_CARS = [
   {
     "id": 168,
     "marca": "Audi",
-    "modelo": "RS4 AVANT B5",
+    "modelo": "RS4 AVANT",
     "anio": 2000,
     "img": "/coches/audi_rs4_avant_b5_2000.jpg"
   },
@@ -1277,8 +1277,8 @@ const RAW_CARS = [
   },
   {
     "id": 171,
-    "marca": "Land",
-    "modelo": "ROVER DEFENDER",
+    "marca": "Land Rover",
+    "modelo": "DEFENDER",
     "anio": 1990,
     "img": "/coches/land_rover_defender_1990.jpg"
   },
@@ -1334,21 +1334,21 @@ const RAW_CARS = [
   {
     "id": 179,
     "marca": "Dodge",
-    "modelo": "CHARGER R T",
+    "modelo": "CHARGER R/T",
     "anio": 1969,
     "img": "/coches/dodge_charger_r_t_1969.jpg"
   },
   {
     "id": 180,
     "marca": "Fiat",
-    "modelo": "UNO TURBO I E",
+    "modelo": "UNO TURBO I.E",
     "anio": 1985,
     "img": "/coches/fiat_uno_turbo_i_e_1985.jpg"
   },
   {
     "id": 181,
-    "marca": "Rolls",
-    "modelo": "ROYCE GHOST",
+    "marca": "Rolls Royce",
+    "modelo": "GHOST",
     "anio": 2009,
     "img": "/coches/rolls_royce_ghost_2009.jpg"
   },
@@ -1390,10 +1390,10 @@ export const CARS = RAW_CARS.map((car) => ({
 
 export const MARCAS = [
   "Acura",
-  "Alfa",
+  "Alfa Romeo",
   "Alpine",
   "Ariel",
-  "Aston",
+  "Aston Martin",
   "Audi",
   "Austin",
   "Autozam",
@@ -1407,7 +1407,7 @@ export const MARCAS = [
   "Citroen",
   "Dacia",
   "Daihatsu",
-  "De",
+  "De Tomaso",
   "Delorean",
   "Dodge",
   "Ferrari",
@@ -1424,13 +1424,13 @@ export const MARCAS = [
   "Lada",
   "Lamborghini",
   "Lancia",
-  "Land",
+  "Land Rover",
   "Lexus",
   "Lotus",
   "Maserati",
   "Mazda",
   "Mclaren",
-  "Mercedes",
+  "Mercedes-Benz",
   "Mg",
   "Mini",
   "Mitsubishi",
@@ -1446,10 +1446,10 @@ export const MARCAS = [
   "Pontiac",
   "Porsche",
   "Radical",
-  "Range",
+  "Range Rover",
   "Renault",
   "Rimac",
-  "Rolls",
+  "Rolls Royce",
   "Saab",
   "Saleen",
   "Seat",

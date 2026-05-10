@@ -73,8 +73,8 @@ const iconBtn = `
 export default function Header({ onOpenRanking, onOpenProfile, onOpenLogin, user }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
-      <div className="mx-auto grid h-14 w-full max-w-md grid-cols-3 items-center px-3">
-        <div className="flex min-w-0 justify-start">
+      <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
+        <div className="z-10 flex min-w-0 items-center justify-start">
           {user ? (
             <button
               type="button"
@@ -98,13 +98,19 @@ export default function Header({ onOpenRanking, onOpenProfile, onOpenLogin, user
           )}
         </div>
 
-        <div className="flex min-w-0 justify-center">
-          <div className="select-none truncate text-center font-display text-2xl tracking-[0.2em] text-white">
-            CARGUESSR
-          </div>
+        <div
+          className="
+            pointer-events-none absolute left-1/2 top-1/2
+            -translate-x-1/2 -translate-y-1/2
+            select-none whitespace-nowrap text-center font-display
+            text-lg tracking-[0.18em] text-white
+            min-[360px]:text-xl sm:text-2xl sm:tracking-[0.2em]
+          "
+        >
+          CARGUESSR
         </div>
 
-        <div className="flex min-w-0 justify-end">
+        <div className="z-10 flex min-w-0 items-center justify-end">
           <button
             type="button"
             onClick={onOpenRanking}

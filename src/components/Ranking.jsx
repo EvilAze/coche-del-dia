@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { getLeaderboard } from "../hooks/useStats";
 
 export default function Ranking({ open, onClose }) {
-  const [state, setState] = useState({ loading: true, players: [], error: "" });
+  const [state, setState] = useState({
+    loading: true,
+    players: [],
+    error: "",
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -23,63 +27,76 @@ export default function Ranking({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-2xl tracking-widest text-white">
-            Ranking Global
-          </h2>
-          <button onClick={onClose} className="text-xl text-muted hover:text-white">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
+              Arcade Board
+            </p>
+            <h2 className="font-display text-3xl tracking-widest text-white">
+              Ranking
+            </h2>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="text-2xl leading-none text-muted hover:text-white"
+          >
             ×
           </button>
         </div>
 
         {state.loading ? (
-          <p className="text-sm text-muted">Cargando...</p>
+          <p className="text-sm text-muted">Cargando ranking...</p>
         ) : state.error ? (
           <p className="text-sm text-red-400">{state.error}</p>
+        ) : state.players.length === 0 ? (
+          <p className="text-sm text-muted">
+            Todavía no hay pilotos con nickname.
+          </p>
         ) : (
-          <div className="flex flex-col gap-2">
-            {state.players.map((player) => (
-              <div
-                key={player.userId}
-                className="grid grid-cols-[2rem_2.5rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3"
-              >
-                <div className="font-display text-xl text-accent">
-                  {player.rank}
-                </div>
+          <div className="overflow-hidden rounded-xl border border-white/10">
+            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_5rem] bg-white/[0.04] px-3 py-2 text-[10px] uppercase tracking-widest text-muted">
+              <span>#</span>
+              <span>Piloto</span>
+              <span className="text-right">Wins</span>
+            </div>
 
-                {player.avatarUrl ? (
-                  <img
-                    src={player.avatarUrl}
-                    alt={player.username}
-                    className="h-10 w-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent">
-                    {player.username.slice(0, 1).toUpperCase()}
+            <div className="divide-y divide-white/10">
+              {state.players.map((player) => (
+                <div
+                  key={player.userId}
+                  className="
+                    grid grid-cols-[2.5rem_minmax(0,1fr)_5rem]
+                    items-center px-3 py-3
+                    bg-black/10
+                  "
+                >
+                  <div className="font-display text-2xl text-accent">
+                    {player.rank}
                   </div>
-                )}
 
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-white">
-                    {player.username}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {player.totalWins} aciertos
-                  </p>
-                </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-xl uppercase tracking-wider text-white">
+                      {player.displayName}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      Mejor racha: {player.maxStreak} 🔥
+                    </p>
+                  </div>
 
-                <div className="text-right">
-                  <div className="font-display text-2xl text-white">
-                    {player.maxStreak}
-                  </div>
-                  <div className="text-[9px] uppercase tracking-widest text-muted">
-                    racha
+                  <div className="text-right">
+                    <div className="font-display text-3xl leading-none text-white">
+                      {player.totalWins}
+                    </div>
+                    <div className="text-[9px] uppercase tracking-widest text-muted">
+                      aciertos
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

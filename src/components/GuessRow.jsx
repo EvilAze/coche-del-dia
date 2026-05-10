@@ -39,32 +39,54 @@ const STATUS_STYLES = {
   },
 };
 
-function Cell({ label, value, status, pais }) {
+function YearDirection({ direction }) {
+  if (!direction) return null;
+
+  return (
+    <span
+      className="
+        inline-flex h-4 w-4 shrink-0 items-center justify-center
+        rounded-full bg-white/5 text-[10px] leading-none text-muted
+      "
+      title={direction === "up" ? "El año correcto es mayor" : "El año correcto es menor"}
+    >
+      {direction === "up" ? "↑" : "↓"}
+    </span>
+  );
+}
+
+function Cell({ label, value, status, pais, direction }) {
+  const isYear = label === "Año";
   const isCountryPartial = label === "Marca" && status === "partial";
   const s = isCountryPartial ? STATUS_STYLES.country : STATUS_STYLES[status];
   const flag = isCountryPartial ? COUNTRY_FLAGS[pais] || s.symbol : s.symbol;
+  const showYearDirection = isYear && status !== "correct";
 
   return (
     <div
       className={`
-        flex min-w-0 items-center gap-1 rounded-md border
-        px-1.5 py-1.5 min-h-[34px]
-        sm:gap-2 sm:rounded-lg sm:px-2.5 sm:py-2 sm:min-h-[38px]
+        flex min-w-0 items-center rounded-md border
+        px-1 py-1.5 min-h-[34px]
+        ${isYear ? "justify-center gap-1" : "gap-1"}
+        sm:rounded-lg sm:px-2 sm:py-2 sm:min-h-[38px]
+        ${!isYear ? "sm:gap-2" : "sm:gap-1"}
         animate-pop ${s.cell}
       `}
     >
-      <span
-        className={`
-          shrink-0 text-xs font-bold leading-none
-          sm:text-base
-          ${s.icon}
-        `}
-        title={isCountryPartial && pais ? `País correcto: ${pais}` : undefined}
-      >
-        {flag}
-      </span>
+      {!isYear && (
+        <span
+          className={`
+            shrink-0 text-xs font-bold leading-none
+            sm:text-base
+            ${s.icon}
+          `}
+          title={isCountryPartial && pais ? `País correcto: ${pais}` : undefined}
+        >
+          {flag}
+        </span>
+      )}
 
-      <div className="min-w-0 overflow-hidden">
+      <div className={isYear ? "min-w-0 text-center" : "min-w-0 overflow-hidden"}>
         <span
           className="
             mb-0.5 block truncate text-[8px] uppercase tracking-[0.08em] text-muted
@@ -74,14 +96,16 @@ function Cell({ label, value, status, pais }) {
           {isCountryPartial ? "País ok" : label}
         </span>
 
-        <span
-          className="
-            block truncate text-[10px] font-medium leading-tight text-white
-            sm:text-xs
-          "
-        >
-          {value}
-        </span>
+        {isYear ? (
+          <span className="flex items-center justify-center gap-1 text-[10px] font-medium leading-tight text-white sm:text-xs">
+            <span className="shrink-0 tabular-nums">{value}</span>
+            {showYearDirection && <YearDirection direction={direction} />}
+          </span>
+        ) : (
+          <span className="block truncate text-[10px] font-medium leading-tight text-white sm:text-xs">
+            {value}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -91,9 +115,9 @@ export default function GuessRow({ guess, index }) {
   return (
     <div
       className="
-        grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_64px]
+        grid w-full min-w-0 grid-cols-[0.85fr_minmax(0,1fr)_82px]
         gap-1 animate-slide-up
-        sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_76px] sm:gap-1.5
+        sm:grid-cols-[0.9fr_minmax(0,1fr)_96px] sm:gap-1.5
       "
       style={{
         animationDelay: `${index * 60}ms`,
@@ -107,10 +131,12 @@ export default function GuessRow({ guess, index }) {
         pais={guess.marca.pais}
       />
       <Cell label="Modelo" value={guess.modelo.val} status={guess.modelo.status} />
-      <Cell label="Año" value={guess.anio.val} status={guess.anio.status} />
+      <Cell
+        label="Año"
+        value={guess.anio.val}
+        status={guess.anio.status}
+        direction={guess.anio.direction}
+      />
     </div>
   );
 }
-
-
-

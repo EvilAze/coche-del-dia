@@ -3,62 +3,71 @@ import { supabase } from "../supabaseClient";
 import { recordWin } from "./useStats";
 
 const MAX_ATTEMPTS = 5;
-const ZOOM_LEVELS = [3.2, 2.9, 2.5, 2.1, 1.8]; // El zoom va disminuyendo a medida que se acercan al coche, hasta llegar a 1x en la victoria
-const ZOOM_LABELS = [
-  "🔍 x3",
-  "🔍 x2.5",
-  "🔎 x2",
-  "🔭 x2.5",
-];
+const ZOOM_LEVELS = [3.2, 2.9, 2.5, 2.1, 1.8];
+const ZOOM_LABELS = ["🔍 x3", "🔍 x2.5", "🔎 x2", "🔭 x2.5"];
 
 function getTodayKey() {
-  const options = { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" };
+  const options = {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  };
   const formatter = new Intl.DateTimeFormat("en-CA", options);
   return formatter.format(new Date());
 }
 
-function buildShareText(guesses, attempts, status) {
+function getShareDate() {
+  const [year, month, day] = getTodayKey().split("-");
+  return `${day}/${month}/${year.slice(-2)}`;
+}
+
+function buildShareText(guesses) {
   const webUrl = "https://carguessr.org";
+
   const lines = guesses.map((g) => {
-    const m  = g.marca.status  === "correct" ? "✅" : "❌";
+    const m = g.marca.status === "correct" ? "✅" : "❌";
     const mo = g.modelo.status === "correct" ? "✅" : "❌";
-    const a  = g.anio.status   === "correct" ? "✅" : g.anio.status === "partial" ? "🟨" : "❌";
+    const a =
+      g.anio.status === "correct" ? "✅" : g.anio.status === "partial" ? "🟨" : "❌";
+
     return m + mo + a;
   });
-  const base = `🚗 Coche del Día\n${getTodayKey()}\n${attempts}/${MAX_ATTEMPTS}\n\n${lines.join("\n")}`;
-  return status === "won" ? `${base}\n\nJuega tú también: ${webUrl}` : base;
+
+  return `Carguessr 🚗 ${getShareDate()}\n${lines.join("\n")}\n${webUrl}`;
 }
 
 export function useGame() {
-  const [car, setCar]               = useState(null);
-  const [isLoading, setIsLoading]   = useState(true);
+  const [car, setCar] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [guesses, setGuesses]       = useState([]);
-  const [status, setStatus]         = useState("playing");
-  const [user, setUser]             = useState(null);
+  const [guesses, setGuesses] = useState([]);
+  const [status, setStatus] = useState("playing");
+  const [user, setUser] = useState(null);
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
+
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
+
     return () => authListener.subscription.unsubscribe();
   }, []);
 
-  // ── Inicializar juego ─────────────────────────────────────────────────────
   useEffect(() => {
     async function initGame() {
       setIsLoading(true);
       const today = getTodayKey();
+
       try {
         const res = await fetch("/api/get-daily-car");
         const dailyCar = await res.json();
 
         let initialGuesses = [];
-        let initialStatus  = "playing";
+        let initialStatus = "playing";
         let initialCarData = dailyCar;
 
         if (user) {
@@ -72,16 +81,18 @@ export function useGame() {
 
           if (dbState) {
             initialGuesses = dbState.guesses;
-            initialStatus  = dbState.status;
+            initialStatus = dbState.status;
             initialCarData = dbState.car_data || dailyCar;
           }
         } else {
           const raw = localStorage.getItem("cocheDia_state");
+
           if (raw) {
             const saved = JSON.parse(raw);
+
             if (saved.date === today && saved.carId === dailyCar.id) {
               initialGuesses = saved.guesses;
-              initialStatus  = saved.status;
+              initialStatus = saved.status;
               initialCarData = saved.carData || dailyCar;
             }
           }
@@ -100,17 +111,14 @@ export function useGame() {
     initGame();
   }, [user]);
 
-  // ── Zoom ──────────────────────────────────────────────────────────────────
   const attempts = guesses.length;
   const zoomIndex = Math.min(attempts, ZOOM_LEVELS.length - 1);
-  
-  // Si el juego ha terminado (status !== "playing"), el zoom es 1.0 y la etiqueta es null
   const zoom = status === "playing" ? ZOOM_LEVELS[zoomIndex] : 1.0;
   const zoomLabel = status === "playing" ? ZOOM_LABELS[zoomIndex] : null;
 
-  // ── Enviar intento ────────────────────────────────────────────────────────
   async function submitGuess(marca, modelo, anio) {
     if (status !== "playing" || isSubmitting) return;
+
     setIsSubmitting(true);
 
     try {
@@ -129,40 +137,39 @@ export function useGame() {
 
       const newGuesses = [...guesses, result];
       let newStatus = "playing";
-      if (result.win)                          newStatus = "won";
+
+      if (result.win) newStatus = "won";
       else if (newGuesses.length >= MAX_ATTEMPTS) newStatus = "lost";
 
       setGuesses(newGuesses);
       setStatus(newStatus);
       if (carData) setCar(carData);
 
-      // 4. GUARDADO SINCRONIZADO
-      const stateToSave = { 
-        guesses: newGuesses, 
-        status: newStatus, 
+      const stateToSave = {
+        guesses: newGuesses,
+        status: newStatus,
         carData: carData || null,
         date: getTodayKey(),
-        carId: car.id
+        carId: car.id,
       };
 
       if (user) {
-        // Guardar en la nube (Supabase)
-        const { error } = await supabase.from('user_guesses').upsert({
-          user_id: user.id,
-          car_id: car.id,
-          date: stateToSave.date,
-          guesses: newGuesses,
-          status: newStatus,
-          car_data: stateToSave.carData
-        }, {
-          onConflict: 'user_id,car_id,date' // <--- ¡ESTA ES LA LLAVE MAESTRA!
-        });
-        
-        // Chivato por si hay más errores en el futuro
+        const { error } = await supabase.from("user_guesses").upsert(
+          {
+            user_id: user.id,
+            car_id: car.id,
+            date: stateToSave.date,
+            guesses: newGuesses,
+            status: newStatus,
+            car_data: stateToSave.carData,
+          },
+          {
+            onConflict: "user_id,car_id,date",
+          }
+        );
+
         if (error) console.error("Error guardando partida:", error);
-        
       } else {
-        // Guardar solo en local
         localStorage.setItem("cocheDia_state", JSON.stringify(stateToSave));
       }
 
@@ -174,18 +181,17 @@ export function useGame() {
     }
   }
 
-  // ── Return COMPLETO ───────────────────────────────────────────────────────
   return {
     car,
     isLoading,
     isSubmitting,
     guesses,
-    attempts,                          // número de intentos usados
+    attempts,
     status,
     zoom,
     zoomLabel,
-    maxAttempts: MAX_ATTEMPTS,         // ← esto es lo que faltaba y causaba NaN
+    maxAttempts: MAX_ATTEMPTS,
     submitGuess,
-    buildShareText: () => buildShareText(guesses, attempts, status),
+    buildShareText: () => buildShareText(guesses),
   };
 }

@@ -1,24 +1,8 @@
 // src/components/ResultPanel.jsx
 
-function buildCarDescription(car) {
-  if (car.descripcion) return car.descripcion;
-
-  const fullName = `${car.marca} ${car.modelo}`.replace(/\s+/g, " ").trim();
-  const era =
-    car.anio < 1970
-      ? "un clásico de otra época, marcado por unas proporciones muy reconocibles y una presencia que todavía lo hace especial."
-      : car.anio < 1990
-      ? "un modelo con sabor analógico, de esos que se recuerdan por su silueta y por el carácter de su generación."
-      : car.anio < 2010
-      ? "uno de esos coches que dejó huella entre los aficionados por su mezcla de diseño, prestaciones y personalidad."
-      : "una máquina moderna con identidad propia, pensada para destacar tanto por su imagen como por su rendimiento.";
-
-  return `El ${fullName} de ${car.anio} es ${era}`;
-}
-
 export default function ResultPanel({ status, car, attempts, maxAttempts, shareText }) {
   const won = status === "won";
-  const carDescription = buildCarDescription(car);
+  const carDescription = car?.description?.trim();
 
   function handleShare() {
     if (navigator.share) {
@@ -50,20 +34,24 @@ export default function ResultPanel({ status, car, attempts, maxAttempts, shareT
       <p className="text-white font-medium text-base mb-1">
         {car.marca} {car.modelo}
       </p>
-      <p className="text-accent font-display text-xl tracking-wider mb-4">{car.anio}</p>
+      <p className="text-accent font-display text-xl tracking-wider mb-4">
+        {car.anio}
+      </p>
 
       {won && (
         <>
-          <p className="text-muted text-sm leading-relaxed mb-4 text-left">
-            {carDescription}
-          </p>
+          {carDescription && (
+            <p className="text-muted text-sm leading-relaxed mb-4 text-left">
+              {carDescription}
+            </p>
+          )}
+
           <p className="text-muted text-xs tracking-wider uppercase mb-4">
             Conseguido en {attempts} intento{attempts !== 1 ? "s" : ""}
           </p>
         </>
       )}
 
-      {/* Share grid */}
       <div className="bg-bg-secondary rounded-lg p-3 mb-4 font-mono text-sm whitespace-pre-wrap text-left text-muted leading-relaxed">
         {shareText}
       </div>

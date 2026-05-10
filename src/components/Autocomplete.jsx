@@ -16,6 +16,7 @@ export default function Autocomplete({
   const inputRef = useRef(null);
   const listRef = useRef(null);
   const closeTimeoutRef = useRef(null);
+  const selectingRef = useRef(false);
 
   const filtered = value.trim()
     ? options.filter((o) =>
@@ -26,7 +27,10 @@ export default function Autocomplete({
   useEffect(() => {
     function handleClickOutside(e) {
       if (!containerRef.current?.contains(e.target)) {
-        window.setTimeout(() => setOpen(false), 180);
+        window.clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = window.setTimeout(() => {
+          if (!selectingRef.current) setOpen(false);
+        }, 180);
       }
     }
 
@@ -46,7 +50,7 @@ export default function Autocomplete({
   function scheduleClose() {
     window.clearTimeout(closeTimeoutRef.current);
     closeTimeoutRef.current = window.setTimeout(() => {
-      setOpen(false);
+      if (!selectingRef.current) setOpen(false);
     }, 180);
   }
 
@@ -55,16 +59,25 @@ export default function Autocomplete({
   }
 
   function handleInputChange(e) {
+    selectingRef.current = false;
     onChange(e.target.value);
     setHighlighted(0);
     setOpen(true);
   }
 
   function handleSelect(option) {
+    selectingRef.current = true;
     cancelScheduledClose();
+
     onSelect(option);
     setOpen(false);
-    inputRef.current?.blur();
+    setHighlighted(0);
+
+    requestAnimationFrame(() => {
+      setOpen(false);
+      inputRef.current?.blur();
+      selectingRef.current = false;
+    });
   }
 
   function handleKeyDown(e) {
@@ -102,6 +115,7 @@ export default function Autocomplete({
         value={value}
         onChange={handleInputChange}
         onFocus={() => {
+          if (selectingRef.current) return;
           cancelScheduledClose();
           setHighlighted(0);
           setOpen(true);

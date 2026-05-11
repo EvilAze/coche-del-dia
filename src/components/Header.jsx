@@ -5,30 +5,11 @@
 //   onOpenLogin    — fn(): abre el modal para iniciar sesión con Google
 //   user           — objeto de usuario de Supabase (null si no hay sesión)
 
-function LoginIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-      <polyline points="10 17 15 12 10 7" />
-      <line x1="15" y1="12" x2="3" y2="12" />
-    </svg>
-  );
-}
-
 function UserIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-5 w-5"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -46,7 +27,7 @@ function TrophyIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-5 w-5"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -64,7 +45,7 @@ function TrophyIcon() {
 }
 
 const iconBtn = `
-  flex h-10 w-10 items-center justify-center rounded-full
+  flex h-11 w-11 items-center justify-center rounded-full
   text-muted transition-colors duration-200
   hover:bg-accent/10 hover:text-accent
   active:scale-90
@@ -93,18 +74,18 @@ export default function Header({ onOpenRanking, onOpenProfile, onOpenLogin, user
               title="Iniciar sesión"
               className={iconBtn}
             >
-              <LoginIcon />
+              <UserIcon />
             </button>
           )}
         </div>
 
         <div
           className="
-            pointer-events-none absolute left-1/2 top-1/2
-            -translate-x-1/2 -translate-y-1/2
+            pointer-events-none absolute inset-0
+            flex translate-y-[1px] items-center justify-center
             select-none whitespace-nowrap text-center font-display
-            text-lg tracking-[0.18em] text-white
-            min-[360px]:text-xl sm:text-2xl sm:tracking-[0.2em]
+            text-[1.75rem] tracking-widest text-white
+            min-[360px]:text-[1.95rem] sm:text-[2.2rem]
           "
         >
           CARGUESSR

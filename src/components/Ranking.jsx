@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getLeaderboard } from "../hooks/useStats";
 
-export default function Ranking({ open, onClose }) {
+export default function Ranking({ open, onClose, user, onOpenLogin }) {
   const [state, setState] = useState({
     loading: true,
     players: [],
@@ -63,15 +63,30 @@ export default function Ranking({ open, onClose }) {
               <span className="text-right">Wins</span>
             </div>
 
-            <div className="divide-y divide-white/10">
-              {state.players.map((player) => (
+            <div
+              className={`
+                relative
+                ${user ? "divide-y divide-white/10" : ""}
+                ${!user && state.players.length > 3 ? "max-h-[17.9rem] overflow-hidden sm:max-h-[19rem]" : ""}
+              `}
+            >
+              {state.players.map((player, index) => (
                 <div
                   key={player.userId}
-                  className="
+                  className={`
                     grid grid-cols-[2.5rem_minmax(0,1fr)_5rem]
-                    items-center px-3 py-3
-                    bg-black/10
-                  "
+                    items-center px-3 py-3 bg-black/10
+                    ${!user && index < 2 ? "border-b border-white/10" : ""}
+                    ${!user && index === 3 ? "border-t border-white/20" : ""}
+                  `}
+                  style={
+                    !user && index > 2
+                      ? {
+                          filter: "blur(1.2px)",
+                          opacity: 0.62,
+                        }
+                      : undefined
+                  }
                 >
                   <div className="font-display text-2xl text-accent">
                     {player.rank}
@@ -96,7 +111,36 @@ export default function Ranking({ open, onClose }) {
                   </div>
                 </div>
               ))}
+
+              {!user && state.players.length > 3 && (
+                <>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[#101014]/80 to-[#101014]" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#101014]/88 to-[#101014] sm:hidden" />
+                </>
+              )}
             </div>
+
+            {!user && state.players.length > 3 && (
+              <div className="bg-gradient-to-b from-black/5 to-black/40 p-4">
+                <p className="text-center text-sm text-muted">
+                  Inicia sesion para ver la tabla completa y tu posicion actual.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenLogin?.();
+                  }}
+                  className="
+                    mt-3 w-full rounded-lg border border-accent/60 bg-accent/10 px-4 py-2.5
+                    text-xs font-semibold uppercase tracking-[0.12em] text-accent
+                    transition hover:bg-accent/20 active:scale-[0.98]
+                  "
+                >
+                  Unirme a la competicion
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

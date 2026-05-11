@@ -1,6 +1,14 @@
 // src/components/ResultPanel.jsx
 
-export default function ResultPanel({ status, car, attempts, maxAttempts, shareText }) {
+export default function ResultPanel({
+  status,
+  car,
+  attempts,
+  maxAttempts,
+  shareText,
+  user,
+  onOpenLogin,
+}) {
   const won = status === "won";
   const carDescription = car?.description?.trim();
 
@@ -66,6 +74,29 @@ export default function ResultPanel({ status, car, attempts, maxAttempts, shareT
       >
         Compartir resultado
       </button>
+
+      {!user && (
+        <div className="mt-5 rounded-xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 text-left">
+          <p className="font-display text-sm uppercase tracking-[0.14em] text-accent">
+            🔥 Menuda racha
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-white/90">
+            No pierdas tus estadisticas. Registrate para guardar tus victorias y competir en
+            el ranking.
+          </p>
+          <button
+            type="button"
+            onClick={onOpenLogin}
+            className="
+              mt-4 w-full rounded-lg bg-accent px-4 py-2.5
+              text-xs font-semibold uppercase tracking-[0.12em] text-black
+              transition hover:brightness-110 active:scale-[0.98]
+            "
+          >
+            Guardar mi progreso
+          </button>
+        </div>
+      )}
     </div>
   );
 }

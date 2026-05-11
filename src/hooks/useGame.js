@@ -28,8 +28,7 @@ function buildShareText(guesses) {
   const lines = guesses.map((g) => {
     const m = g.marca.status === "correct" ? "✅" : "❌";
     const mo = g.modelo.status === "correct" ? "✅" : "❌";
-    const a =
-      g.anio.status === "correct" ? "✅" : g.anio.status === "partial" ? "🟨" : "❌";
+    const a = g.anio.status === "correct" ? "✅" : "❌";
 
     return m + mo + a;
   });

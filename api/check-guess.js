@@ -1,7 +1,6 @@
 import { CARS, MARCA_PAIS } from "../src/data/cars";
 
 const ANIO_CORRECT_MARGIN = 2;
-const ANIO_PARTIAL_MARGIN = 5;
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
@@ -33,7 +32,6 @@ export default function handler(req, res) {
   const anioNum = parseInt(anio);
   const diff = Math.abs(anioNum - realCar.anio);
   const anioCorrect = diff <= ANIO_CORRECT_MARGIN;
-  const anioPartial = diff <= ANIO_PARTIAL_MARGIN;
 
   const marcaOk = normalize(marca) === normalize(realCar.marca);
   const modeloOk = normalize(modelo) === normalize(realCar.modelo);
@@ -54,7 +52,7 @@ export default function handler(req, res) {
     },
     anio: {
       val: anio,
-      status: anioCorrect ? "correct" : anioPartial ? "partial" : "wrong",
+      status: anioCorrect ? "correct" : "wrong",
       direction: anioCorrect ? null : anioNum < realCar.anio ? "up" : "down",
     },
     win: marcaOk && modeloOk && anioCorrect,

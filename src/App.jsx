@@ -176,6 +176,8 @@ export default function App() {
               attempts={attempts}
               maxAttempts={maxAttempts}
               shareText={buildShareText()}
+              user={user}
+              onOpenLogin={openLogin}
             />
           )}
         </main>
@@ -216,7 +218,12 @@ export default function App() {
         </div>
       )}
 
-      <Ranking open={activeModal === "ranking"} onClose={closeModal} />
+      <Ranking
+        open={activeModal === "ranking"}
+        onClose={closeModal}
+        user={user}
+        onOpenLogin={openLogin}
+      />
 
       <MyStats
         open={activeModal === "profile"}

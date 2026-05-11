@@ -150,7 +150,7 @@ export default function App() {
         <main className="w-full min-w-0">
           <CarImage src={car.img} zoom={zoom} zoomLabel={zoomLabel} />
 
-          <AttemptDots attempts={attempts} max={maxAttempts} />
+          <AttemptDots attempts={attempts} max={maxAttempts} won={status === "won"} />
 
           <HintLegend />
 

@@ -86,7 +86,7 @@ export default function GuessForm({ onSubmit, disabled }) {
             onChange={setMarca}
             onSelect={setMarca}
             options={MARCAS}
-            placeholder="Escribe una marca..."
+            placeholder=""
             disabled={disabled}
           />
         </label>
@@ -101,11 +101,7 @@ export default function GuessForm({ onSubmit, disabled }) {
             onChange={setModelo}
             onSelect={setModelo}
             options={modelOptions}
-            placeholder={
-              marcaValidaSeleccionada
-                ? "Escribe un modelo..."
-                : "Escribe una marca primero..."
-            }
+            placeholder=""
             disabled={disabled}
           />
         </label>
@@ -119,7 +115,7 @@ export default function GuessForm({ onSubmit, disabled }) {
             value={anio}
             onChange={(e) => setAnio(e.target.value)}
             disabled={disabled}
-            placeholder="Año"
+            placeholder=""
             min={MIN_YEAR}
             max={CURRENT_YEAR}
             className="

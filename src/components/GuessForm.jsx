@@ -76,7 +76,6 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
     }
     // Solo debe reaccionar a cambios de marca. Si depende de "modelo",
     // se borraría mientras el usuario escribe texto parcial.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [marca]);
 
   async function handleSubmit(e) {

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
+import { useToast } from "../components/Toast";
 
 const MAX_ATTEMPTS = 5;
 const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
-const ZOOM_LABELS = ["🔍 x3.5", "🔍 x3", "🔍 x2.5", "🔍 x2", "🔍 x1.5"];
 
 function getTodayKey() {
   const options = {
@@ -19,6 +19,12 @@ function getTodayKey() {
 function getShareDate() {
   const [year, month, day] = getTodayKey().split("-");
   return `${day}/${month}/${year.slice(-2)}`;
+}
+
+function triggerHaptic(pattern) {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(pattern);
+  }
 }
 
 function buildShareText(guesses) {
@@ -43,6 +49,7 @@ export function useGame() {
   const [status, setStatus] = useState("playing");
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -113,7 +120,8 @@ export function useGame() {
   const attempts = guesses.length;
   const zoomIndex = Math.min(attempts, ZOOM_LEVELS.length - 1);
   const zoom = status === "playing" ? ZOOM_LEVELS[zoomIndex] : 1.0;
-  const zoomLabel = status === "playing" ? ZOOM_LABELS[zoomIndex] : null;
+  const hintIndex = status === "playing" ? zoomIndex : null;
+  const totalHints = ZOOM_LEVELS.length;
 
   async function submitGuess(marca, modelo, anio) {
     if (status !== "playing" || isSubmitting) return;
@@ -145,6 +153,12 @@ export function useGame() {
 
       if (result.win) newStatus = "won";
       else if (newGuesses.length >= MAX_ATTEMPTS) newStatus = "lost";
+
+      if (newStatus === "won") {
+        triggerHaptic(200);
+      } else if (newStatus === "lost") {
+        triggerHaptic([100, 50, 100]);
+      }
 
       setGuesses(newGuesses);
       setStatus(newStatus);
@@ -182,7 +196,8 @@ export function useGame() {
       return result;
 
     } catch (error) {
-      alert("Error de conexión.");
+      triggerHaptic([60, 40, 60]);
+      toast.push("Error de conexión. Comprueba tu red.", { type: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -196,7 +211,8 @@ export function useGame() {
     attempts,
     status,
     zoom,
-    zoomLabel,
+    hintIndex,
+    totalHints,
     score,
     maxAttempts: MAX_ATTEMPTS,
     submitGuess,

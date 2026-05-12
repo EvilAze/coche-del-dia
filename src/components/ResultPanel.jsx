@@ -1,4 +1,8 @@
 // src/components/ResultPanel.jsx
+import Confetti from "./Confetti";
+import ScoreBreakdown from "./ScoreBreakdown";
+import { useToast } from "./Toast";
+import { useCountdown } from "../hooks/useCountdown";
 
 export default function ResultPanel({
   status,
@@ -6,22 +10,38 @@ export default function ResultPanel({
   attempts,
   maxAttempts,
   shareText,
+  score,
   user,
   onOpenLogin,
 }) {
   const won = status === "won";
   const carDescription = car?.description?.trim();
+  const toast = useToast();
+  const { formatted: countdown } = useCountdown();
 
-  function handleShare() {
-    if (navigator.share) {
-      navigator.share({ text: shareText }).catch(() => {});
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareText).then(() => alert("¡Copiado al portapapeles!"));
+  async function handleShare() {
+    try {
+      if (navigator.share) {
+        await navigator.share({ text: shareText });
+        return;
+      }
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareText);
+        toast.push("Resultado copiado al portapapeles", { type: "success" });
+        return;
+      }
+      toast.push("No se pudo compartir desde este navegador", { type: "error" });
+    } catch (err) {
+      // El usuario canceló el share nativo: no es un error real.
+      if (err?.name === "AbortError") return;
+      toast.push("No se pudo compartir", { type: "error" });
     }
   }
 
   return (
     <div className="rounded-xl border border-border bg-bg-tertiary p-6 text-center animate-fade-in">
+      <Confetti active={won} />
+
       {won ? (
         <>
           <div className="font-display text-3xl tracking-widest text-green-400 mb-1">
@@ -42,23 +62,32 @@ export default function ResultPanel({
       <p className="text-white font-medium text-base mb-1">
         {car.marca} {car.modelo}
       </p>
-      <p className="text-accent font-display text-xl tracking-wider mb-4">
+      <p className="text-accent font-display text-xl tracking-wider mb-2">
         {car.anio}
       </p>
 
       {won && (
-        <>
-          {carDescription && (
-            <p className="text-muted text-sm leading-relaxed mb-4 text-left">
-              {carDescription}
-            </p>
-          )}
-
-          <p className="text-muted text-xs tracking-wider uppercase mb-4">
-            Conseguido en {attempts} intento{attempts !== 1 ? "s" : ""}
-          </p>
-        </>
+        <p className="text-muted text-xs tracking-wider uppercase mb-3">
+          Conseguido en {attempts} intento{attempts !== 1 ? "s" : ""}
+        </p>
       )}
+
+      <ScoreBreakdown score={score} won={won} />
+
+      {carDescription && (
+        <p className="text-muted text-sm leading-relaxed mb-4 text-left">
+          {carDescription}
+        </p>
+      )}
+
+      <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">
+        <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
+          Próximo coche en
+        </p>
+        <p className="mt-1 font-display text-2xl tabular-nums tracking-[0.18em] text-white">
+          {countdown}
+        </p>
+      </div>
 
       <div className="bg-bg-secondary rounded-lg p-3 mb-4 font-mono text-sm whitespace-pre-wrap text-left text-muted leading-relaxed">
         {shareText}

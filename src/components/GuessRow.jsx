@@ -89,20 +89,20 @@ function Cell({ label, value, status, pais, direction }) {
       <div className={isYear ? "min-w-0 text-center" : "min-w-0 overflow-hidden"}>
         <span
           className="
-            mb-0.5 block truncate text-[8px] uppercase tracking-[0.08em] text-muted
-            sm:text-[10px] sm:tracking-widest
+            mb-0.5 block truncate text-[10px] uppercase tracking-[0.08em] text-muted
+            sm:text-[11px] sm:tracking-widest
           "
         >
           {isCountryPartial ? "País ok" : label}
         </span>
 
         {isYear ? (
-          <span className="flex items-center justify-center gap-1 text-[10px] font-medium leading-tight text-white sm:text-xs">
+          <span className="flex items-center justify-center gap-1 text-[11px] font-medium leading-tight text-white sm:text-xs">
             <span className="shrink-0 tabular-nums">{value}</span>
             {showYearDirection && <YearDirection direction={direction} />}
           </span>
         ) : (
-          <span className="block truncate text-[10px] font-medium leading-tight text-white sm:text-xs">
+          <span className="block truncate text-[11px] font-medium leading-tight text-white sm:text-xs">
             {value}
           </span>
         )}

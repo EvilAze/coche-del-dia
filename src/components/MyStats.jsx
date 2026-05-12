@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getMyStats, saveDisplayName } from "../hooks/useStats";
 import { supabase } from "../supabaseClient";
+import { useEscape } from "../hooks/useEscape";
+import CloseButton from "./CloseButton";
 
 function StatCard({ label, value }) {
   return (
@@ -129,6 +131,8 @@ export default function MyStats({ open, onClose, onSignedOut }) {
     onClose?.();
   }
 
+  useEscape(open, onClose);
+
   if (!open) return null;
 
   const stats = state.stats;
@@ -136,15 +140,19 @@ export default function MyStats({ open, onClose, onSignedOut }) {
   const email = state.user?.email || "";
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-widest text-white">
             Mi Perfil
           </h2>
-          <button onClick={onClose} className="text-xl text-muted hover:text-white">
-            ×
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {state.loading ? (

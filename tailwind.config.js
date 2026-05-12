@@ -22,7 +22,7 @@ module.exports = {
           dark: "#c4a455",
           glow: "rgba(232,200,122,0.15)",
         },
-        muted: "#7a7a8a",
+        muted: "#9a9aab",
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease forwards",
@@ -30,6 +30,9 @@ module.exports = {
         "zoom-out": "zoomOut 0.7s cubic-bezier(0.4,0,0.2,1) forwards",
         "shake": "shake 0.4s ease",
         "pop": "pop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",
+        "hint-flash": "hintFlash 0.55s ease-out forwards",
+        "reveal-win": "revealWin 1s cubic-bezier(0.34,1.56,0.64,1) forwards",
+        "toast-in": "toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards",
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -41,6 +44,20 @@ module.exports = {
           "40%,80%": { transform: "translateX(5px)" },
         },
         pop: { from: { opacity: 0, transform: "scale(0.85)" }, to: { opacity: 1, transform: "scale(1)" } },
+        hintFlash: {
+          "0%":   { opacity: 0 },
+          "25%":  { opacity: 1 },
+          "100%": { opacity: 0 },
+        },
+        revealWin: {
+          "0%":   { transform: "scale(var(--zoom-from, 2.4))" },
+          "65%":  { transform: "scale(1.06)" },
+          "100%": { transform: "scale(1)" },
+        },
+        toastIn: {
+          from: { opacity: 0, transform: "translateY(20px) scale(0.95)" },
+          to:   { opacity: 1, transform: "translateY(0) scale(1)" },
+        },
       },
     },
   },

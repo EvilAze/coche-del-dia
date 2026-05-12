@@ -40,6 +40,26 @@
   .font-body {
     font-family: 'DM Sans', sans-serif;
   }
+
+  .scrollbar-premium {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(232, 200, 122, 0.35) transparent;
+    scrollbar-gutter: stable;
+  }
+  .scrollbar-premium::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-premium::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px 0;
+  }
+  .scrollbar-premium::-webkit-scrollbar-thumb {
+    background-color: rgba(232, 200, 122, 0.35);
+    border-radius: 9999px;
+  }
+  .scrollbar-premium::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(232, 200, 122, 0.6);
+  }
 }
 
 html,

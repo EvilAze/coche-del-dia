@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
-import { recordWin } from "./useStats";
 
 const MAX_ATTEMPTS = 5;
 const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
@@ -43,6 +42,7 @@ export function useGame() {
   const [guesses, setGuesses] = useState([]);
   const [status, setStatus] = useState("playing");
   const [user, setUser] = useState(null);
+  const [score, setScore] = useState(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -121,9 +121,15 @@ export function useGame() {
     setIsSubmitting(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      const headers = { "Content-Type": "application/json" };
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
       const response = await fetch("/api/check-guess", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           guess: { marca, modelo, anio },
           carId: car.id,
@@ -132,7 +138,7 @@ export function useGame() {
       });
 
       const data = await response.json();
-      const { result, carData } = data;
+      const { result, carData, score: scoreBreakdown } = data;
 
       const newGuesses = [...guesses, result];
       let newStatus = "playing";
@@ -143,6 +149,7 @@ export function useGame() {
       setGuesses(newGuesses);
       setStatus(newStatus);
       if (carData) setCar(carData);
+      if (scoreBreakdown && newStatus !== "playing") setScore(scoreBreakdown);
 
       const stateToSave = {
         guesses: newGuesses,
@@ -172,10 +179,8 @@ export function useGame() {
         localStorage.setItem("cocheDia_state", JSON.stringify(stateToSave));
       }
 
-      if (result.win) recordWin().catch(console.error);
-
       return result;
-      
+
     } catch (error) {
       alert("Error de conexión.");
     } finally {
@@ -192,6 +197,7 @@ export function useGame() {
     status,
     zoom,
     zoomLabel,
+    score,
     maxAttempts: MAX_ATTEMPTS,
     submitGuess,
     buildShareText: () => buildShareText(guesses),

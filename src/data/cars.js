@@ -4,10 +4,10 @@
 
 export const MARCA_PAIS = {
   Acura: "Japón",
-  Alfa: "Italia",
+  "Alfa Romeo": "Italia",
   Alpine: "Francia",
   Ariel: "Reino Unido",
-  Aston: "Reino Unido",
+  "Aston Martin": "Reino Unido",
   Audi: "Alemania",
   Austin: "Reino Unido",
   Autozam: "Japón",
@@ -21,8 +21,8 @@ export const MARCA_PAIS = {
   Citroen: "Francia",
   Dacia: "Rumanía",
   Daihatsu: "Japón",
-  De: "Italia",
-  Delorean: "EE.UU.",
+  "De Tomaso": "Italia",
+  DMC: "EE.UU.",
   Dodge: "EE.UU.",
   Ferrari: "Italia",
   Fiat: "Italia",
@@ -44,7 +44,7 @@ export const MARCA_PAIS = {
   Maserati: "Italia",
   Mazda: "Japón",
   Mclaren: "Reino Unido",
-  Mercedes: "Alemania",
+  "Mercedes-Benz": "Alemania",
   Mg: "Reino Unido",
   Mini: "Reino Unido",
   Mitsubishi: "Japón",
@@ -63,7 +63,7 @@ export const MARCA_PAIS = {
   Range: "Reino Unido",
   Renault: "Francia",
   Rimac: "Croacia",
-  Rolls: "Reino Unido",
+  "Rolls Royce": "Reino Unido",
   Saab: "Suecia",
   Saleen: "EE.UU.",
   Seat: "España",
@@ -151,8 +151,8 @@ const RAW_CARS = [
   },
   {
     "id": 9,
-    "marca": "Mercedes",
-    "modelo": "Benz G Class W463",
+    "marca": "Mercedes-Benz",
+    "modelo": "G Class W463",
     "anio": 1990,
     "img": "/coches/mercedes_benz_g_class_w463_1990.jpg",
     "description": "Nació como vehículo militar y terminó siendo el rey del lujo todoterreno. Incombustible, cuadrado e indestructible."
@@ -1231,8 +1231,8 @@ const RAW_CARS = [
   },
   {
     "id": 144,
-    "marca": "Delorean",
-    "modelo": "Dmc 12",
+    "marca": "DMC",
+    "modelo": "DeLorean",
     "anio": 1981,
     "img": "/coches/delorean_dmc_12_1981.jpg",
     "description": "Cuerpo de acero inoxidable cepillado, motor anémico pero famoso eternamente por llevar a Marty McFly al pasado a 88 millas por hora."

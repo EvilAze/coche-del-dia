@@ -1,6 +1,6 @@
 // src/components/GuessForm.jsx
-import { useEffect, useState } from "react";
-import { CARS, MARCAS } from "../data/cars";
+import { useEffect, useMemo, useState } from "react";
+import { useCatalog } from "../data/catalog";
 import Autocomplete from "./Autocomplete";
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -40,6 +40,10 @@ function Spinner() {
 }
 
 export default function GuessForm({ onSubmit, isSubmitting = false }) {
+  const { data: catalog } = useCatalog();
+  const CARS = catalog?.cars ?? [];
+  const MARCAS = catalog?.marcas ?? [];
+
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
@@ -47,14 +51,18 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
 
   const marcaValidaSeleccionada = MARCAS.includes(marca);
 
-  const modelOptions = CARS
-    .filter((c) => {
-      if (!marcaValidaSeleccionada) return true;
-      return c.marca === marca;
-    })
-    .map((c) => c.modelo)
-    .filter((v, i, a) => a.indexOf(v) === i)
-    .sort();
+  const modelOptions = useMemo(
+    () =>
+      CARS
+        .filter((c) => {
+          if (!marcaValidaSeleccionada) return true;
+          return c.marca === marca;
+        })
+        .map((c) => c.modelo)
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .sort(),
+    [CARS, marca, marcaValidaSeleccionada]
+  );
 
   useEffect(() => {
     if (!modelo || !marcaValidaSeleccionada) return;
@@ -68,12 +76,15 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
     }
     // Solo debe reaccionar a cambios de marca. Si depende de "modelo",
     // se borraría mientras el usuario escribe texto parcial.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [marca]);
 
   async function handleSubmit(e) {
     e.preventDefault();
 
     if (isSubmitting) return;
+    // Si el catálogo aún no ha llegado, no aceptamos intentos.
+    if (!catalog) return;
 
     const submittedMarca = marca;
     const submittedModelo = modelo;
@@ -105,6 +116,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
     setAnio(result.anio.status === "correct" ? submittedAnio : "");
   }
 
+  const formDisabled = isSubmitting || !catalog;
+
   return (
     <form onSubmit={handleSubmit} className="w-full min-w-0">
       <div
@@ -125,7 +138,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
             onSelect={setMarca}
             options={MARCAS}
             placeholder=""
-            disabled={isSubmitting}
+            disabled={formDisabled}
           />
         </label>
 
@@ -140,7 +153,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
             onSelect={setModelo}
             options={modelOptions}
             placeholder=""
-            disabled={isSubmitting}
+            disabled={formDisabled}
           />
         </label>
 
@@ -154,7 +167,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
             pattern="\d*"
             value={anio}
             onChange={(e) => setAnio(e.target.value)}
-            disabled={isSubmitting}
+            disabled={formDisabled}
             placeholder=""
             min={MIN_YEAR}
             max={CURRENT_YEAR}
@@ -174,7 +187,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={formDisabled}
         aria-busy={isSubmitting}
         aria-live="polite"
         className={`

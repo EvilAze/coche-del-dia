@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import CarImage from "./components/CarImage";
-import { CARS } from "./data/cars";
+import { useCatalog } from "./data/catalog";
 
 // Mismos valores que useGame.js — duplicados a propósito para que la sala de
 // pruebas sea independiente y no rompa si algún día cambian en el juego.
@@ -26,6 +26,9 @@ function zoomFromStep(step) {
 }
 
 export default function Preview() {
+  const { data: catalog, loading: catalogLoading } = useCatalog();
+  const CARS = catalog?.cars ?? [];
+
   const [step, setStep] = useState(1);
   const [urlInput, setUrlInput] = useState("");
   const [selectedCarId, setSelectedCarId] = useState("");
@@ -49,12 +52,12 @@ export default function Preview() {
       [...CARS].sort((a, b) =>
         `${a.marca} ${a.modelo}`.localeCompare(`${b.marca} ${b.modelo}`)
       ),
-    []
+    [CARS]
   );
 
   const selectedCar = useMemo(
     () => CARS.find((c) => String(c.id) === selectedCarId) || null,
-    [selectedCarId]
+    [CARS, selectedCarId]
   );
 
   // La URL pegada manualmente tiene prioridad sobre el desplegable.
@@ -87,16 +90,20 @@ export default function Preview() {
           </label>
 
           <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted">
-            …o elige un coche del catálogo ({CARS.length})
+            …o elige un coche del catálogo (
+            {catalogLoading ? "cargando…" : CARS.length})
             <select
               value={selectedCarId}
               onChange={(e) => {
                 setSelectedCarId(e.target.value);
                 setUrlInput("");
               }}
-              className="rounded-md border border-border bg-bg-secondary px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-accent focus:outline-none"
+              disabled={catalogLoading || CARS.length === 0}
+              className="rounded-md border border-border bg-bg-secondary px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">— Selecciona —</option>
+              <option value="">
+                {catalogLoading ? "Cargando catálogo…" : "— Selecciona —"}
+              </option>
               {carsSorted.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.marca} {c.modelo} ({c.anio})

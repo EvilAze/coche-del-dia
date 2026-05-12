@@ -1,10 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
-import { CARS, MARCA_PAIS } from "../src/data/cars";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
 
 const BASE_POINTS_BY_ATTEMPT = { 1: 10, 2: 6, 3: 4, 4: 3, 5: 2, 6: 1 };
+
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 function basePointsFor(attemptNumber, won) {
   if (!won) return 0;
@@ -15,13 +23,29 @@ function normalize(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function getPaisByMarca(marca) {
-  const normalized = normalize(marca);
-  const canonicalMarca = Object.keys(MARCA_PAIS).find(
-    (m) => normalize(m) === normalized
-  );
+async function fetchCarById(id) {
+  const { data, error } = await supabase
+    .from("cars")
+    .select("id, make, model, year, pais, image_url")
+    .eq("id", id)
+    .single();
+  if (error || !data) return null;
+  return data;
+}
 
-  return canonicalMarca ? MARCA_PAIS[canonicalMarca] : null;
+// Devuelve el país asociado a una marca consultando cualquier coche
+// del catálogo que la lleve. Si la marca no existe, devuelve null.
+async function fetchPaisForMarca(marca) {
+  const normalized = normalize(marca);
+  if (!normalized) return null;
+  const { data, error } = await supabase
+    .from("cars")
+    .select("pais")
+    .ilike("make", normalized)
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data.pais ?? null;
 }
 
 function extractAccessToken(req) {
@@ -31,14 +55,9 @@ function extractAccessToken(req) {
 }
 
 async function persistDailyResult({ accessToken, won, attemptNumber }) {
-  const url =
-    process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-  const anonKey =
-    process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !accessToken) return null;
 
-  if (!url || !anonKey || !accessToken) return null;
-
-  const client = createClient(url, anonKey, {
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -60,11 +79,19 @@ export default async function handler(req, res) {
   const { guess, carId, attemptNumber } = req.body;
   const { marca, modelo, anio } = guess;
 
-  const realCar = CARS[carId];
-
-  if (!realCar) {
+  const realRow = await fetchCarById(carId);
+  if (!realRow) {
     return res.status(404).json({ message: "Car not found" });
   }
+
+  const realCar = {
+    id: realRow.id,
+    marca: realRow.make,
+    modelo: realRow.model,
+    anio: realRow.year,
+    pais: realRow.pais,
+    img: realRow.image_url,
+  };
 
   const anioNum = parseInt(anio);
   const diff = Math.abs(anioNum - realCar.anio);
@@ -73,9 +100,12 @@ export default async function handler(req, res) {
   const marcaOk = normalize(marca) === normalize(realCar.marca);
   const modeloOk = normalize(modelo) === normalize(realCar.modelo);
 
-  const guessedPais = getPaisByMarca(marca);
-  const realPais = realCar.pais || getPaisByMarca(realCar.marca);
-  const paisOk = !marcaOk && guessedPais && realPais && guessedPais === realPais;
+  // País del coche real ya viene en la fila. Para el del intento del
+  // usuario hace falta otra query (excepto si la marca coincide).
+  const realPais = realCar.pais;
+  const guessedPais = marcaOk ? realPais : await fetchPaisForMarca(marca);
+  const paisOk =
+    !marcaOk && guessedPais && realPais && guessedPais === realPais;
 
   const result = {
     marca: {
@@ -99,10 +129,7 @@ export default async function handler(req, res) {
 
   let finalCarData = null;
   if (isGameOver) {
-    finalCarData = {
-      ...realCar,
-      img: `/coches/${carId}.jpg`,
-    };
+    finalCarData = realCar;
   }
 
   const basePoints = basePointsFor(attemptNumber, result.win);

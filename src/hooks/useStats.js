@@ -120,6 +120,7 @@ export async function getLeaderboard() {
         display_name
       )
     `)
+    .gt("total_points", 0)
     .order("total_points", { ascending: false })
     .order("max_streak", { ascending: false })
     .limit(50);

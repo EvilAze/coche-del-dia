@@ -85,7 +85,13 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
           </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-white/10">
-            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_5rem] bg-white/[0.04] px-3 py-2 text-[10px] uppercase tracking-widest text-muted">
+            <div
+              className={`
+                grid grid-cols-[2.5rem_minmax(0,1fr)_5rem] bg-white/[0.04]
+                px-3 py-2 text-[10px] uppercase tracking-widest text-muted
+                ${user && state.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : ""}
+              `}
+            >
               <span>#</span>
               <span>Piloto</span>
               <span className="text-right">Pts</span>
@@ -95,6 +101,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
               className={`
                 relative
                 ${user ? "divide-y divide-white/10" : ""}
+                ${user && state.players.length > 5 ? "scrollbar-premium max-h-[22rem] overflow-y-auto" : ""}
                 ${!user && state.players.length > 3 ? "max-h-[17.9rem] overflow-hidden sm:max-h-[19rem]" : ""}
               `}
             >

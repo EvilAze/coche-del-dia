@@ -2,6 +2,39 @@ import { useEffect, useState } from "react";
 import { getLeaderboard } from "../hooks/useStats";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
+import ScoringHelpModal from "./ScoringHelpModal";
+
+function HelpButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Cómo se puntúa"
+      title="Cómo se puntúa"
+      className="
+        flex h-7 w-7 shrink-0 items-center justify-center
+        rounded-full border border-white/15 bg-white/[0.04]
+        text-muted transition
+        hover:border-accent/60 hover:bg-accent/10 hover:text-accent
+        active:scale-90
+      "
+    >
+      <svg
+        className="h-3.5 w-3.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2.5-3 4.5" />
+        <path d="M12 18h.01" />
+      </svg>
+    </button>
+  );
+}
 
 function getStreakDisplay(streak) {
   if (!streak || streak < 2) return null;
@@ -37,6 +70,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
     players: [],
     error: "",
   });
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -54,7 +88,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
       );
   }, [open]);
 
-  useEscape(open, onClose);
+  useEscape(open && !helpOpen, onClose);
 
   if (!open) return null;
 
@@ -72,9 +106,12 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             <p className="text-[11px] uppercase tracking-[0.28em] text-accent">
               Arcade Board
             </p>
-            <h2 className="font-display text-3xl tracking-widest text-white">
-              Ranking
-            </h2>
+            <div className="flex items-center gap-2.5">
+              <h2 className="font-display text-3xl tracking-widest text-white">
+                Ranking
+              </h2>
+              <HelpButton onClick={() => setHelpOpen(true)} />
+            </div>
           </div>
 
           <CloseButton onClick={onClose} />
@@ -187,6 +224,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
           </div>
         )}
       </div>
+
+      <ScoringHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

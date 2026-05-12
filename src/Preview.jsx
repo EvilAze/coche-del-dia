@@ -13,15 +13,16 @@ import { CARS } from "./data/cars";
 // Mismos valores que useGame.js — duplicados a propósito para que la sala de
 // pruebas sea independiente y no rompa si algún día cambian en el juego.
 const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
-const ZOOM_LABELS = ["🔍 x3.5", "🔍 x3", "🔍 x2.5", "🔍 x2", "🔍 x1.5"];
 
 // Slider 1..6 -> mismo recorrido visual que vive un jugador real:
-//   1..5 = los cinco niveles de zoom de cada intento
-//   6    = revelado final (zoom 1.0, sin etiqueta)
+//   1..5 = las cinco pistas progresivas
+//   6    = revelado final (zoom 1.0, animación de victoria)
 function zoomFromStep(step) {
-  if (step >= 6) return { zoom: 1.0, label: null };
+  if (step >= 6) {
+    return { zoom: 1.0, hintIndex: null, status: "won" };
+  }
   const idx = step - 1;
-  return { zoom: ZOOM_LEVELS[idx], label: ZOOM_LABELS[idx] };
+  return { zoom: ZOOM_LEVELS[idx], hintIndex: idx, status: "playing" };
 }
 
 export default function Preview() {
@@ -59,7 +60,7 @@ export default function Preview() {
   // La URL pegada manualmente tiene prioridad sobre el desplegable.
   const activeSrc = urlInput.trim() || selectedCar?.img || "";
 
-  const { zoom, label } = zoomFromStep(step);
+  const { zoom, hintIndex, status } = zoomFromStep(step);
 
   return (
     <div className="min-h-screen w-full bg-bg-primary font-body text-white">
@@ -106,7 +107,13 @@ export default function Preview() {
         </section>
 
         {activeSrc ? (
-          <CarImage src={activeSrc} zoom={zoom} zoomLabel={label} />
+          <CarImage
+            src={activeSrc}
+            zoom={zoom}
+            hintIndex={hintIndex}
+            totalHints={ZOOM_LEVELS.length}
+            status={status}
+          />
         ) : (
           <div className="flex aspect-[4/3] w-full items-center justify-center rounded-xl border border-dashed border-border bg-bg-tertiary text-sm text-muted">
             Pega una URL o elige un coche

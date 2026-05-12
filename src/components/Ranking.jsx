@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { getLeaderboard } from "../hooks/useStats";
+import { useEscape } from "../hooks/useEscape";
+import CloseButton from "./CloseButton";
 
 function getStreakDisplay(streak) {
   if (!streak || streak < 2) return null;
@@ -52,14 +54,22 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
       );
   }, [open]);
 
+  useEscape(open, onClose);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between">
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
+            <p className="text-[11px] uppercase tracking-[0.28em] text-accent">
               Arcade Board
             </p>
             <h2 className="font-display text-3xl tracking-widest text-white">
@@ -67,12 +77,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             </h2>
           </div>
 
-          <button
-            onClick={onClose}
-            className="text-2xl leading-none text-muted hover:text-white"
-          >
-            ×
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {state.loading ? (
@@ -88,7 +93,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             <div
               className={`
                 grid grid-cols-[2.5rem_minmax(0,1fr)_5rem] bg-white/[0.04]
-                px-3 py-2 text-[10px] uppercase tracking-widest text-muted
+                px-3 py-2 text-[11px] uppercase tracking-widest text-muted
                 ${user && state.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : ""}
               `}
             >
@@ -143,7 +148,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     <div className="font-display text-3xl leading-none text-white">
                       {player.totalPoints}
                     </div>
-                    <div className="text-[9px] uppercase tracking-widest text-muted">
+                    <div className="text-[10px] uppercase tracking-widest text-muted">
                       puntos
                     </div>
                   </div>

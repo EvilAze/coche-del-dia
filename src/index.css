@@ -69,3 +69,44 @@ body,
   max-width: 100%;
   overflow-x: hidden;
 }
+
+/* Confetti: keyframe global porque se referencia desde inline `animation`,
+   no desde una clase animate-* de Tailwind. */
+@keyframes confettiBurst {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0);
+    opacity: 0;
+  }
+  12% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(calc(var(--rot, 0deg) * 0.1)) scale(1);
+    opacity: 1;
+  }
+  55% {
+    transform:
+      translate(-50%, -50%)
+      translate(var(--tx, 0), var(--ty, 0))
+      rotate(var(--rot, 0deg))
+      scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform:
+      translate(-50%, -50%)
+      translate(calc(var(--tx, 0px) * 1.15), calc(var(--ty, 0px) + 520px))
+      rotate(calc(var(--rot, 0deg) * 1.4))
+      scale(0.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hint-flash,
+  .animate-reveal-win,
+  .animate-toast-in,
+  .animate-slide-up,
+  .animate-fade-in,
+  .animate-pop,
+  .animate-shake {
+    animation: none !important;
+  }
+}

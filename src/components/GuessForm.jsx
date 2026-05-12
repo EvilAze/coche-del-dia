@@ -6,7 +6,40 @@ import Autocomplete from "./Autocomplete";
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
 
-export default function GuessForm({ onSubmit, disabled }) {
+function triggerHaptic(pattern) {
+  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+    navigator.vibrate(pattern);
+  }
+}
+
+function Spinner() {
+  return (
+    <svg
+      className="h-5 w-5 animate-spin"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="3"
+        className="opacity-25"
+      />
+      <path
+        d="M22 12a10 10 0 0 1-10 10"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        className="opacity-90"
+      />
+    </svg>
+  );
+}
+
+export default function GuessForm({ onSubmit, isSubmitting = false }) {
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
@@ -40,6 +73,8 @@ export default function GuessForm({ onSubmit, disabled }) {
   async function handleSubmit(e) {
     e.preventDefault();
 
+    if (isSubmitting) return;
+
     const submittedMarca = marca;
     const submittedModelo = modelo;
     const submittedAnio = anio;
@@ -53,10 +88,13 @@ export default function GuessForm({ onSubmit, disabled }) {
       !isNaN(anioNum) && anioNum >= MIN_YEAR && anioNum <= CURRENT_YEAR;
 
     if (!marcaValida || !modeloValido || !anioValido) {
+      triggerHaptic(30);
       setShake(true);
       setTimeout(() => setShake(false), 500);
       return;
     }
+
+    triggerHaptic(50);
 
     const result = await onSubmit(submittedMarca, submittedModelo, submittedAnio);
 
@@ -87,7 +125,7 @@ export default function GuessForm({ onSubmit, disabled }) {
             onSelect={setMarca}
             options={MARCAS}
             placeholder=""
-            disabled={disabled}
+            disabled={isSubmitting}
           />
         </label>
 
@@ -102,7 +140,7 @@ export default function GuessForm({ onSubmit, disabled }) {
             onSelect={setModelo}
             options={modelOptions}
             placeholder=""
-            disabled={disabled}
+            disabled={isSubmitting}
           />
         </label>
 
@@ -112,9 +150,11 @@ export default function GuessForm({ onSubmit, disabled }) {
           </span>
           <input
             type="number"
+            inputMode="numeric"
+            pattern="\d*"
             value={anio}
             onChange={(e) => setAnio(e.target.value)}
-            disabled={disabled}
+            disabled={isSubmitting}
             placeholder=""
             min={MIN_YEAR}
             max={CURRENT_YEAR}
@@ -134,15 +174,26 @@ export default function GuessForm({ onSubmit, disabled }) {
 
       <button
         type="submit"
-        disabled={disabled}
-        className="
+        disabled={isSubmitting}
+        aria-busy={isSubmitting}
+        aria-live="polite"
+        className={`
           mt-3 h-12 w-full rounded-lg bg-accent
           font-display text-lg tracking-widest text-bg-primary
-          transition-all duration-150 hover:bg-accent-dark active:scale-[0.98]
-          disabled:cursor-not-allowed disabled:bg-border-strong disabled:text-muted
-        "
+          transition-all duration-150 active:scale-[0.98]
+          ${isSubmitting
+            ? "cursor-wait opacity-80"
+            : "hover:bg-accent-dark"}
+        `}
       >
-        ADIVINAR
+        {isSubmitting ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <Spinner />
+            COMPROBANDO
+          </span>
+        ) : (
+          "ADIVINAR"
+        )}
       </button>
     </form>
   );

@@ -1,21 +1,31 @@
+// Leyenda sincronizada con los símbolos reales que aparecen en GuessRow:
+// ✓ correcto · 🌍 país correcto (marca distinta) · ✕ incorrecto.
+const ITEMS = [
+  { symbol: "✓", label: "Correcto", color: "text-green-400", bg: "bg-[#1a2f1a] border-[#2d5a2d]" },
+  { symbol: "🌍", label: "País", color: "text-sky-300", bg: "bg-[#142532] border-[#2f6f95]" },
+  { symbol: "✕", label: "Incorrecto", color: "text-red-400", bg: "bg-[#2a1a1a] border-[#5a2d2d]" },
+];
+
 export default function HintLegend() {
   return (
-    <div className="my-3 flex w-full min-w-0 flex-wrap justify-center gap-x-3 gap-y-2 px-1 text-[10px] uppercase tracking-wider text-muted sm:text-[11px]">
-      <span className="whitespace-nowrap">
-        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-green-400" />
-        Correcto
-      </span>
-
-      <span className="whitespace-nowrap">
-        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-red-400" />
-        Incorrecto
-      </span>
-
-      <span className="whitespace-nowrap">
-        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-blue-400" />
-        País correcto
-      </span>
+    <div className="my-3 flex w-full min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-2 px-1">
+      {ITEMS.map((item) => (
+        <span
+          key={item.label}
+          className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] uppercase tracking-wider text-muted"
+        >
+          <span
+            className={`
+              inline-flex h-5 w-5 items-center justify-center rounded
+              border text-[11px] leading-none ${item.bg} ${item.color}
+            `}
+            aria-hidden="true"
+          >
+            {item.symbol}
+          </span>
+          {item.label}
+        </span>
+      ))}
     </div>
   );
 }
-

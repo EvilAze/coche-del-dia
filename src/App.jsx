@@ -14,7 +14,9 @@ import Header from "./components/Header";
 import Ranking from "./components/Ranking";
 import MyStats from "./components/MyStats";
 import NicknameModal from "./components/NicknameModal";
+import CloseButton from "./components/CloseButton";
 import { useGame } from "./hooks/useGame";
+import { useEscape } from "./hooks/useEscape";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -81,6 +83,8 @@ export default function App() {
     setActiveModal(null);
   }
 
+  useEscape(activeModal === "login", closeModal);
+
   const {
     car,
     isLoading,
@@ -89,7 +93,9 @@ export default function App() {
     attempts,
     status,
     zoom,
-    zoomLabel,
+    hintIndex,
+    totalHints,
+    score,
     maxAttempts,
     submitGuess,
     buildShareText,
@@ -148,7 +154,13 @@ export default function App() {
         </header>
 
         <main className="w-full min-w-0">
-          <CarImage src={car.img} zoom={zoom} zoomLabel={zoomLabel} />
+          <CarImage
+            src={car.img}
+            zoom={zoom}
+            hintIndex={hintIndex}
+            totalHints={totalHints}
+            status={status}
+          />
 
           <AttemptDots attempts={attempts} max={maxAttempts} won={status === "won"} />
 
@@ -167,7 +179,7 @@ export default function App() {
           {status === "playing" ? (
             <GuessForm
               onSubmit={submitGuess}
-              disabled={status !== "playing" || isSubmitting}
+              isSubmitting={isSubmitting}
             />
           ) : (
             <ResultPanel
@@ -176,6 +188,7 @@ export default function App() {
               attempts={attempts}
               maxAttempts={maxAttempts}
               shareText={buildShareText()}
+              score={score}
               user={user}
               onOpenLogin={openLogin}
             />
@@ -184,16 +197,17 @@ export default function App() {
       </div>
 
       {activeModal === "login" && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-sm rounded-2xl border border-border bg-bg-primary p-6 text-center shadow-2xl">
-            <button
-              onClick={closeModal}
-              className="absolute right-4 top-4 text-muted hover:text-white"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={closeModal}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-2xl border border-border bg-bg-primary p-6 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute right-2 top-2">
+              <CloseButton onClick={closeModal} />
+            </div>
 
             <h2 className="mb-4 font-display text-2xl tracking-widest text-accent">
               INICIAR SESIÓN

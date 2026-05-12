@@ -4,6 +4,7 @@ const EMPTY_STATS = {
   current_streak: 0,
   max_streak: 0,
   total_wins: 0,
+  total_points: 0,
   last_played_date: null,
 };
 
@@ -91,7 +92,7 @@ export async function getMyStats() {
   const [{ data: stats, error: statsError }, profile] = await Promise.all([
     supabase
       .from("stats")
-      .select("current_streak, max_streak, total_wins, last_played_date")
+      .select("current_streak, max_streak, total_wins, total_points, last_played_date")
       .eq("user_id", user.id)
       .maybeSingle(),
     getMyProfile(user.id),
@@ -114,11 +115,12 @@ export async function getLeaderboard() {
       current_streak,
       max_streak,
       total_wins,
+      total_points,
       profile:profiles (
         display_name
       )
     `)
-    .order("total_wins", { ascending: false })
+    .order("total_points", { ascending: false })
     .order("max_streak", { ascending: false })
     .limit(50);
 
@@ -134,19 +136,6 @@ export async function getLeaderboard() {
       currentStreak: row.current_streak || 0,
       maxStreak: row.max_streak || 0,
       totalWins: row.total_wins || 0,
+      totalPoints: row.total_points || 0,
     }));
-}
-
-export async function recordWin() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    return null;
-  }
-
-  const { data, error } = await supabase.rpc("record_daily_win");
-
-  if (error) throw error;
-
-  return data;
 }

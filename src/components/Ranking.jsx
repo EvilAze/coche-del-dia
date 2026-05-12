@@ -1,6 +1,34 @@
 import { useEffect, useState } from "react";
 import { getLeaderboard } from "../hooks/useStats";
 
+function getStreakDisplay(streak) {
+  if (!streak || streak < 2) return null;
+  if (streak >= 4) return { fires: "🔥🔥🔥", bonus: "+3", onFire: true };
+  if (streak === 3) return { fires: "🔥🔥", bonus: "+2", onFire: false };
+  return { fires: "🔥", bonus: "+1", onFire: false };
+}
+
+function StreakBadge({ streak }) {
+  const display = getStreakDisplay(streak);
+  if (!display) return null;
+
+  return (
+    <span
+      className={`
+        inline-flex shrink-0 items-center gap-1 leading-none
+        ${display.onFire ? "animate-pulse" : ""}
+      `}
+      title={`Racha de ${streak} días`}
+      aria-label={`Racha de ${streak} días, bonus ${display.bonus}`}
+    >
+      <span className="text-sm tracking-tighter">{display.fires}</span>
+      <span className="text-xs font-semibold text-amber-400">
+        {display.bonus}
+      </span>
+    </span>
+  );
+}
+
 export default function Ranking({ open, onClose, user, onOpenLogin }) {
   const [state, setState] = useState({
     loading: true,
@@ -60,7 +88,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_5rem] bg-white/[0.04] px-3 py-2 text-[10px] uppercase tracking-widest text-muted">
               <span>#</span>
               <span>Piloto</span>
-              <span className="text-right">Wins</span>
+              <span className="text-right">Pts</span>
             </div>
 
             <div
@@ -93,20 +121,23 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                   </div>
 
                   <div className="min-w-0">
-                    <p className="truncate font-display text-xl uppercase tracking-wider text-white">
-                      {player.displayName}
-                    </p>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="truncate font-display text-xl uppercase tracking-wider text-white">
+                        {player.displayName}
+                      </p>
+                      <StreakBadge streak={player.currentStreak} />
+                    </div>
                     <p className="mt-0.5 text-xs text-muted">
-                      Mejor racha: {player.maxStreak} 🔥
+                      Mejor racha: {player.maxStreak}
                     </p>
                   </div>
 
                   <div className="text-right">
                     <div className="font-display text-3xl leading-none text-white">
-                      {player.totalWins}
+                      {player.totalPoints}
                     </div>
                     <div className="text-[9px] uppercase tracking-widest text-muted">
-                      aciertos
+                      puntos
                     </div>
                   </div>
                 </div>

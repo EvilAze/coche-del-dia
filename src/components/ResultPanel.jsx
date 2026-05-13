@@ -15,6 +15,9 @@ export default function ResultPanel({
   onOpenLogin,
 }) {
   const won = status === "won";
+  // Si el jugador no ha ganado, el servidor NO nos da marca/modelo/año por
+  // diseño (anti-trampas vía DevTools). Renderizamos en consecuencia.
+  const hasReveal = Boolean(car?.marca && car?.modelo && car?.anio);
   const carDescription = car?.description?.trim();
   const toast = useToast();
   const { formatted: countdown } = useCountdown();
@@ -58,13 +61,24 @@ export default function ResultPanel({
         </>
       )}
 
-      <p className="text-muted text-sm mb-1">Era el</p>
-      <p className="text-white font-medium text-base mb-1">
-        {car.marca} {car.modelo}
-      </p>
-      <p className="text-accent font-display text-xl tracking-wider mb-2">
-        {car.anio}
-      </p>
+      {hasReveal ? (
+        <>
+          <p className="text-muted text-sm mb-1">Era el</p>
+          <p className="text-white font-medium text-base mb-1">
+            {car.marca} {car.modelo}
+          </p>
+          <p className="text-accent font-display text-xl tracking-wider mb-2">
+            {car.anio}
+          </p>
+        </>
+      ) : (
+        // Anónimo que ha perdido: el coche queda oculto aquí; la imagen de
+        // arriba ya muestra el overlay con el CTA de login, así que no
+        // duplicamos la llamada a la acción.
+        <p className="text-muted text-sm mb-3">
+          La respuesta está bloqueada. Inicia sesión para verla.
+        </p>
+      )}
 
       {won && (
         <p className="text-muted text-xs tracking-wider uppercase mb-3">
@@ -104,7 +118,7 @@ export default function ResultPanel({
         Compartir resultado
       </button>
 
-      {!user && (
+      {!user && won && (
         <div className="mt-5 rounded-xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 text-left">
           <p className="font-display text-sm uppercase tracking-[0.14em] text-accent">
             🔥 Menuda racha

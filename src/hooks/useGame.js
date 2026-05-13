@@ -41,6 +41,19 @@ function buildShareText(guesses) {
   return `Carguessr 🚗 ${getShareDate()}\n${lines.join("\n")}\n${webUrl}`;
 }
 
+// El estado del coche ahora solo contiene lo mínimo para pintar la UI: la
+// imagen (siempre vía proxy) y, opcionalmente, marca/modelo/año cuando el
+// servidor decide revelarlos (solo en victoria).
+function buildCarState({ img, reveal }) {
+  return {
+    img,
+    marca: reveal?.marca ?? null,
+    modelo: reveal?.modelo ?? null,
+    anio: reveal?.anio ?? null,
+    pais: reveal?.pais ?? null,
+  };
+}
+
 export function useGame() {
   const [car, setCar] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,44 +82,44 @@ export function useGame() {
       const today = getTodayKey();
 
       try {
-        const res = await fetch("/api/get-daily-car");
-        const dailyCar = await res.json();
+        // Para anónimos, hacemos la primera lectura desde localStorage para
+        // pintar instantáneamente y luego pedimos al servidor (que no nos
+        // dirá nada que no sepamos). Para logueados, /api/get-daily-car ya
+        // nos devuelve los intentos guardados.
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
 
-        let initialGuesses = [];
-        let initialStatus = "playing";
-        let initialCarData = dailyCar;
+        const headers = {};
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-        if (user) {
-          const { data: dbState } = await supabase
-            .from("user_guesses")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("car_id", dailyCar.id)
-            .eq("date", today)
-            .single();
+        const res = await fetch("/api/get-daily-car", { headers });
+        const daily = await res.json();
+        // daily = { date, img, guesses, status, reveal }
 
-          if (dbState) {
-            initialGuesses = dbState.guesses;
-            initialStatus = dbState.status;
-            initialCarData = dbState.car_data || dailyCar;
-          }
-        } else {
+        let initialGuesses = Array.isArray(daily.guesses) ? daily.guesses : [];
+        let initialStatus = daily.status || "playing";
+        let initialReveal = daily.reveal || null;
+
+        // Anónimos: completamos con localStorage si no había estado server.
+        if (!session && initialGuesses.length === 0 && initialStatus === "playing") {
           const raw = localStorage.getItem("cocheDia_state");
-
           if (raw) {
-            const saved = JSON.parse(raw);
-
-            if (saved.date === today && saved.carId === dailyCar.id) {
-              initialGuesses = saved.guesses;
-              initialStatus = saved.status;
-              initialCarData = saved.carData || dailyCar;
+            try {
+              const saved = JSON.parse(raw);
+              if (saved.date === daily.date) {
+                initialGuesses = Array.isArray(saved.guesses) ? saved.guesses : [];
+                initialStatus = saved.status || "playing";
+                initialReveal = saved.reveal || null;
+              }
+            } catch {
+              // ignore: estado corrupto, jugamos limpio.
             }
           }
         }
 
         setGuesses(initialGuesses);
         setStatus(initialStatus);
-        setCar(initialCarData);
+        setCar(buildCarState({ img: daily.img, reveal: initialReveal }));
       } catch (err) {
         console.error("Error al inicializar:", err);
       } finally {
@@ -123,8 +136,9 @@ export function useGame() {
   const hintIndex = status === "playing" ? zoomIndex : null;
   const totalHints = ZOOM_LEVELS.length;
 
-  async function submitGuess(marca, modelo, anio) {
+  async function submitGuess({ guessCarId, anio }) {
     if (status !== "playing" || isSubmitting) return;
+    if (!Number.isInteger(guessCarId)) return;
 
     setIsSubmitting(true);
 
@@ -135,18 +149,24 @@ export function useGame() {
       const headers = { "Content-Type": "application/json" };
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-      const response = await fetch("/api/check-guess", {
+      const response = await fetch("/api/validate-guess", {
         method: "POST",
         headers,
         body: JSON.stringify({
-          guess: { marca, modelo, anio },
-          carId: car.id,
+          guessCarId,
+          anio,
           attemptNumber: guesses.length + 1,
         }),
       });
 
+      if (!response.ok) {
+        triggerHaptic([60, 40, 60]);
+        toast.push("No se pudo validar el intento.", { type: "error" });
+        return;
+      }
+
       const data = await response.json();
-      const { result, carData, score: scoreBreakdown } = data;
+      const { result, reveal, score: scoreBreakdown } = data;
 
       const newGuesses = [...guesses, result];
       let newStatus = "playing";
@@ -162,20 +182,30 @@ export function useGame() {
 
       setGuesses(newGuesses);
       setStatus(newStatus);
-      if (carData) setCar(carData);
+
+      // El servidor solo manda `reveal` cuando el usuario gana. Si pierde,
+      // reveal=null y el coche del día permanece oculto: el atacante del
+      // Network ya no tiene de dónde sacarlo.
+      if (reveal) {
+        setCar((prev) => ({
+          ...(prev || {}),
+          marca: reveal.marca,
+          modelo: reveal.modelo,
+          anio: reveal.anio,
+          pais: reveal.pais,
+        }));
+      }
+
       if (scoreBreakdown && newStatus !== "playing") setScore(scoreBreakdown);
 
-      // Para usuarios logueados, la persistencia en user_guesses ya la hizo
-      // /api/check-guess de forma autoritativa (server-side). No escribimos
-      // desde el cliente para evitar que se manipulen el conteo de intentos
-      // o el estado win/lost.
+      // Persistencia local SOLO para anónimos. Para logueados, /api/validate-guess
+      // ya escribió en user_guesses con valores server-validated.
       if (!user) {
         const stateToSave = {
+          date: getTodayKey(),
           guesses: newGuesses,
           status: newStatus,
-          carData: carData || null,
-          date: getTodayKey(),
-          carId: car.id,
+          reveal: reveal || null,
         };
         localStorage.setItem("cocheDia_state", JSON.stringify(stateToSave));
       }

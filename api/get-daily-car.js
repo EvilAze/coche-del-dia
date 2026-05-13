@@ -1,7 +1,15 @@
 // api/get-daily-car.js
-// Devuelve el coche del día. La elección queda fijada en la tabla
-// `daily_cars` la primera vez que se consulta cada día, así que añadir
-// coches nuevos al catálogo a mitad del día NO cambia el resultado.
+// Devuelve el estado del juego de HOY sin filtrar ningún dato cruzable con
+// el catálogo público:
+//   - NO se devuelve `id` del coche del día (antes permitía cruzarlo con
+//     /api/list-cars y deducir marca/modelo/año).
+//   - NO se devuelve la URL real del CDN (antes contenía el nombre del coche
+//     en el filename). En su lugar apuntamos al proxy /api/daily-image, que
+//     sirve los bytes desde nuestro servidor.
+//
+// Para usuarios logueados también devolvemos el estado guardado (intentos,
+// status, score si ganó/perdió) leyéndolo server-side de user_guesses, para
+// que el frontend no tenga que conocer el car_id para hacer esa consulta.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -9,16 +17,8 @@ const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-// service_role bypassea RLS. NO usar en el navegador, solo en este proceso
-// serverless. Necesario porque revocamos SELECT(image_url) a anon.
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Cliente anon: para RPC pick_daily_car (granted a anon).
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
-// Cliente service_role: para leer columnas restringidas (image_url).
 const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -26,53 +26,109 @@ const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
   : null;
 
 function todayInMadrid() {
-  // Formatea la fecha actual en Europe/Madrid como YYYY-MM-DD.
-  // Usar Intl en vez de Date.toLocaleString para evitar parsing ambiguo.
-  const parts = new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Madrid",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
-  return parts; // "YYYY-MM-DD"
+}
+
+function extractAccessToken(req) {
+  const header = req.headers?.authorization || "";
+  if (header.startsWith("Bearer ")) return header.slice(7);
+  return null;
+}
+
+async function authClientAndUser(accessToken) {
+  if (!accessToken) return { client: null, user: null };
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await client.auth.getUser();
+  if (error || !data?.user) return { client: null, user: null };
+  return { client, user: data.user };
 }
 
 export default async function handler(req, res) {
-  const today = todayInMadrid();
-
-  // 1) Pedir el coche del día. La RPC inserta en daily_cars la primera
-  //    vez y devuelve el id fijado en todas las llamadas posteriores.
-  //    Llamamos con service_role: pick_daily_car está revocado de
-  //    anon/authenticated para que el cliente no pueda obtener el id
-  //    de hoy y cruzarlo con la tabla cars (catálogo público).
   if (!supabaseAdmin) {
     console.error("[get-daily-car] missing SUPABASE_SERVICE_ROLE_KEY");
     return res.status(500).json({ message: "Server misconfigured" });
   }
-  const { data: carId, error: rpcErr } = await supabaseAdmin.rpc(
+
+  const today = todayInMadrid();
+
+  // Resolvemos el coche del día solo para verificar que existe y para que la
+  // RPC haga su trabajo de fijarlo en daily_cars. NO devolvemos el id.
+  const { data: todayCarId, error: rpcErr } = await supabaseAdmin.rpc(
     "pick_daily_car",
     { p_date: today }
   );
-
-  if (rpcErr || !carId) {
-    console.error("[get-daily-car] pick_daily_car error:", rpcErr);
+  if (rpcErr || !todayCarId) {
+    console.error("[get-daily-car] pick_daily_car:", rpcErr);
     return res.status(500).json({ message: "Failed to pick daily car" });
   }
 
-  // 2) Cargar la imagen del coche elegido (columna privilegiada).
-  const { data: row, error: fetchErr } = await supabaseAdmin
-    .from("cars")
-    .select("id, image_url")
-    .eq("id", carId)
-    .single();
+  const accessToken = extractAccessToken(req);
+  const { client: authClient, user } = await authClientAndUser(accessToken);
 
-  if (fetchErr || !row) {
-    console.error("[get-daily-car] fetch car error:", fetchErr);
-    return res.status(500).json({ message: "Failed to load daily car" });
+  // Estado base que vale para anónimos.
+  // Cache-buster para que el navegador no reutilice la imagen entre días si
+  // el CDN intermedio se confunde.
+  const base = {
+    date: today,
+    img: `/api/daily-image?d=${today}`,
+    guesses: [],
+    status: "playing",
+    reveal: null,
+  };
+
+  if (!user) {
+    // No queremos que un CDN cachee el estado del usuario, pero la respuesta
+    // anónima es estable durante el día. Aun así, dejamos no-store para no
+    // arriesgar contaminación cruzada con cabeceras Auth.
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(base);
   }
 
-  res.status(200).json({
-    id: row.id,
-    img: row.image_url,
+  // Usuario logueado: leemos su fila de user_guesses (RLS exige auth.uid()).
+  const { data: row, error: rowErr } = await authClient
+    .from("user_guesses")
+    .select("guesses, status, car_data")
+    .eq("user_id", user.id)
+    .eq("car_id", todayCarId)
+    .eq("date", today)
+    .maybeSingle();
+
+  if (rowErr) {
+    console.error("[get-daily-car] read user_guesses:", rowErr);
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(base);
+  }
+
+  const status = row?.status || "playing";
+  const guesses = Array.isArray(row?.guesses) ? row.guesses : [];
+
+  // Revelamos marca/modelo/año si el usuario ganó o si perdió. user_guesses
+  // está protegido por RLS (auth.uid()), así que para llegar a este punto el
+  // servidor ya verificó que la partida está realmente cerrada.
+  let reveal = null;
+  if ((status === "won" || status === "lost") && row?.car_data) {
+    reveal = {
+      marca: row.car_data.marca,
+      modelo: row.car_data.modelo,
+      anio: row.car_data.anio,
+      pais: row.car_data.pais,
+    };
+  }
+
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(200).json({
+    date: today,
+    img: `/api/daily-image?d=${today}`,
+    guesses,
+    status,
+    reveal,
   });
 }

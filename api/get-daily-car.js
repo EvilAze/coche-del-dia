@@ -42,7 +42,14 @@ export default async function handler(req, res) {
 
   // 1) Pedir el coche del día. La RPC inserta en daily_cars la primera
   //    vez y devuelve el id fijado en todas las llamadas posteriores.
-  const { data: carId, error: rpcErr } = await supabase.rpc(
+  //    Llamamos con service_role: pick_daily_car está revocado de
+  //    anon/authenticated para que el cliente no pueda obtener el id
+  //    de hoy y cruzarlo con la tabla cars (catálogo público).
+  if (!supabaseAdmin) {
+    console.error("[get-daily-car] missing SUPABASE_SERVICE_ROLE_KEY");
+    return res.status(500).json({ message: "Server misconfigured" });
+  }
+  const { data: carId, error: rpcErr } = await supabaseAdmin.rpc(
     "pick_daily_car",
     { p_date: today }
   );
@@ -53,10 +60,6 @@ export default async function handler(req, res) {
   }
 
   // 2) Cargar la imagen del coche elegido (columna privilegiada).
-  if (!supabaseAdmin) {
-    console.error("[get-daily-car] missing SUPABASE_SERVICE_ROLE_KEY");
-    return res.status(500).json({ message: "Server misconfigured" });
-  }
   const { data: row, error: fetchErr } = await supabaseAdmin
     .from("cars")
     .select("id, image_url")

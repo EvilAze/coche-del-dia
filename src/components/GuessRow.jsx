@@ -65,28 +65,14 @@ function Cell({ label, value, status, pais, direction }) {
   return (
     <div
       className={`
-        flex min-w-0 items-center rounded-md border
-        px-1 py-1.5 min-h-[34px]
-        ${isYear ? "justify-center gap-1" : "gap-1"}
-        sm:rounded-lg sm:px-2 sm:py-2 sm:min-h-[38px]
-        ${!isYear ? "sm:gap-2" : "sm:gap-1"}
+        flex min-w-0 items-center justify-between gap-2
+        rounded-md border px-2 py-1.5 min-h-[36px]
+        sm:rounded-lg sm:px-2.5 sm:py-2 sm:min-h-[42px]
         animate-pop ${s.cell}
       `}
     >
-      {!isYear && (
-        <span
-          className={`
-            shrink-0 text-xs font-bold leading-none
-            sm:text-base
-            ${s.icon}
-          `}
-          title={isCountryPartial && pais ? `País correcto: ${pais}` : undefined}
-        >
-          {flag}
-        </span>
-      )}
-
-      <div className={isYear ? "min-w-0 text-center" : "min-w-0 overflow-hidden"}>
+      {/* Bloque de texto a la izquierda: label arriba, valor justo debajo. */}
+      <div className="min-w-0 overflow-hidden">
         <span
           className="
             mb-0.5 block truncate text-[10px] uppercase tracking-[0.08em] text-muted
@@ -96,17 +82,32 @@ function Cell({ label, value, status, pais, direction }) {
           {isCountryPartial ? "País ok" : label}
         </span>
 
-        {isYear ? (
-          <span className="flex items-center justify-center gap-1 text-[11px] font-medium leading-tight text-white sm:text-xs">
-            <span className="shrink-0 tabular-nums">{value}</span>
-            {showYearDirection && <YearDirection direction={direction} />}
-          </span>
-        ) : (
-          <span className="block truncate text-[11px] font-medium leading-tight text-white sm:text-xs">
-            {value}
-          </span>
-        )}
+        <span
+          className={`
+            block truncate font-medium leading-tight text-white
+            text-xs sm:text-sm
+            ${isYear ? "tabular-nums" : ""}
+          `}
+        >
+          {value}
+        </span>
       </div>
+
+      {/* Indicador a la derecha. items-center del padre lo centra verticalmente. */}
+      {isYear ? (
+        showYearDirection && <YearDirection direction={direction} />
+      ) : (
+        <span
+          className={`
+            shrink-0 text-sm font-bold leading-none sm:text-base
+            ${s.icon}
+          `}
+          title={isCountryPartial && pais ? `País correcto: ${pais}` : undefined}
+          aria-hidden="true"
+        >
+          {flag}
+        </span>
+      )}
     </div>
   );
 }

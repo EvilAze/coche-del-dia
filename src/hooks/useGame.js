@@ -138,10 +138,24 @@ export function useGame() {
 
   async function submitGuess({ guessCarId, anio }) {
     if (status !== "playing" || isSubmitting) return;
-    if (!Number.isInteger(guessCarId)) return;
+    // Los ids del catálogo son UUIDs (string). Solo exigimos que venga algo.
+    if (typeof guessCarId !== "string" || !guessCarId) {
+      console.error("[submitGuess] guessCarId inválido:", guessCarId);
+      toast.push("Selecciona un coche del listado.", { type: "error" });
+      return;
+    }
 
     setIsSubmitting(true);
 
+    // Construimos el payload UNA sola vez y lo reutilizamos en logs y en
+    // el fetch — así si algo falla podemos ver exactamente qué se mandó.
+    const payload = {
+      guessCarId,
+      anio,
+      attemptNumber: guesses.length + 1,
+    };
+
+    let response;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
@@ -149,24 +163,74 @@ export function useGame() {
       const headers = { "Content-Type": "application/json" };
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-      const response = await fetch("/api/validate-guess", {
+      response = await fetch("/api/validate-guess", {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          guessCarId,
-          anio,
-          attemptNumber: guesses.length + 1,
-        }),
+        body: JSON.stringify(payload),
       });
+    } catch (networkErr) {
+      // Aquí solo llegan errores de red puros: DNS, CORS, offline, abort.
+      console.error("[submitGuess] fetch falló a nivel de red", {
+        payload,
+        error: networkErr,
+        message: networkErr?.message,
+      });
+      triggerHaptic([60, 40, 60]);
+      toast.push("Error de conexión. Comprueba tu red.", { type: "error" });
+      setIsSubmitting(false);
+      return;
+    }
 
-      if (!response.ok) {
-        triggerHaptic([60, 40, 60]);
-        toast.push("No se pudo validar el intento.", { type: "error" });
+    // A partir de aquí el servidor respondió algo (200, 4xx o 5xx).
+    // Intentamos parsear JSON, pero protegemos contra HTML de Vercel.
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      // Servidor devolvió algo que no es JSON: probablemente HTML de error
+      // de Vercel. Loguear el texto crudo es clave para depurar en prod.
+      let rawText = "";
+      try {
+        rawText = await response.clone().text();
+      } catch {}
+      console.error("[submitGuess] respuesta no-JSON del servidor", {
+        status: response.status,
+        statusText: response.statusText,
+        rawBody: rawText.slice(0, 500),
+        parseError: parseErr?.message,
+      });
+      triggerHaptic([60, 40, 60]);
+      toast.push("Respuesta inválida del servidor.", { type: "error" });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!response.ok) {
+      console.error("[submitGuess] el servidor devolvió un error", {
+        status: response.status,
+        statusText: response.statusText,
+        body: data,
+        payload,
+      });
+      triggerHaptic([60, 40, 60]);
+      toast.push(
+        data?.error
+          ? `Error: ${data.error}`
+          : "No se pudo validar el intento.",
+        { type: "error" }
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const { result, reveal, score: scoreBreakdown } = data;
+      if (!result) {
+        console.error("[submitGuess] respuesta sin `result`", data);
+        toast.push("Respuesta inesperada del servidor.", { type: "error" });
+        setIsSubmitting(false);
         return;
       }
-
-      const data = await response.json();
-      const { result, reveal, score: scoreBreakdown } = data;
 
       const newGuesses = [...guesses, result];
       let newStatus = "playing";
@@ -213,8 +277,16 @@ export function useGame() {
       return result;
 
     } catch (error) {
+      // Solo se entra aquí si algo casca DESPUÉS de tener la respuesta JSON
+      // válida del servidor: un setState, un parseo de reveal, etc.
+      console.error("[submitGuess] error procesando respuesta válida", {
+        error,
+        message: error?.message,
+        stack: error?.stack,
+        data,
+      });
       triggerHaptic([60, 40, 60]);
-      toast.push("Error de conexión. Comprueba tu red.", { type: "error" });
+      toast.push("Error procesando la respuesta.", { type: "error" });
     } finally {
       setIsSubmitting(false);
     }

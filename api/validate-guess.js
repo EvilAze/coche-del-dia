@@ -1,15 +1,15 @@
 // api/validate-guess.js
-// Validación server-side de un intento. El cliente envía SOLO el id del coche
-// que ha elegido en el autocompletado (más el año tecleado). El servidor:
-//   - Resuelve el coche del día por su cuenta (pick_daily_car con service_role).
-//   - Carga marca/modelo/pais/año reales del coche-guess y del coche-real.
-//   - Compara y devuelve únicamente los colores + win.
-//   - Persiste user_guesses de forma autoritativa para usuarios logueados.
+// Validación server-side del intento.
 //
-// REGLA: jamás se devuelven los datos reales del coche del día si el usuario
-// no ha ganado. La imagen sigue accesible vía /api/daily-image (proxy), así
-// que la pantalla de fin de partida puede seguir mostrando la foto sin saber
-// marca/modelo/año.
+// REGLAS DE BLINDAJE (para que jamás se caiga en silencio en prod):
+//   - SOLO POST. Cualquier otro método → 405 con JSON.
+//   - Todo el handler va envuelto en try/catch. Cualquier excepción → 500
+//     con `{ error: "..." }` y un log con etiqueta clara en server logs.
+//   - req.body se parsea defensivamente (Vercel a veces no auto-parsea si el
+//     Content-Type llega mal, o si el runtime cambia).
+//   - Las llamadas a Supabase nunca tiran: comprobamos `error` en el tuple.
+//   - Las RPCs (record_daily_result_v2) sí pueden tirar; van en su propio
+//     try/catch para no romper el flujo principal.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -23,11 +23,14 @@ const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  : null;
+// Cliente service_role: bypassea RLS y puede leer columnas privilegiadas
+// (image_url, pick_daily_car). NUNCA debe filtrarse al cliente.
+const supabaseAdmin =
+  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    : null;
 
 function todayInMadrid() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -53,15 +56,43 @@ function extractAccessToken(req) {
   return null;
 }
 
+// Vercel suele auto-parsear JSON, pero si el Content-Type viene mal el body
+// puede llegar como string o como Buffer. Lo normalizamos a objeto.
+function parseBody(req) {
+  const raw = req.body;
+  if (raw == null) return {};
+  if (typeof raw === "object" && !Buffer.isBuffer(raw)) return raw;
+  if (Buffer.isBuffer(raw)) {
+    try {
+      return JSON.parse(raw.toString("utf8"));
+    } catch {
+      return {};
+    }
+  }
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 async function authClientAndUser(accessToken) {
   if (!accessToken) return { client: null, user: null };
-  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await client.auth.getUser();
-  if (error || !data?.user) return { client: null, user: null };
-  return { client, user: data.user };
+  try {
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await client.auth.getUser();
+    if (error || !data?.user) return { client: null, user: null };
+    return { client, user: data.user };
+  } catch (err) {
+    console.error("[validate-guess] authClientAndUser:", err);
+    return { client: null, user: null };
+  }
 }
 
 async function fetchCarById(id) {
@@ -89,216 +120,229 @@ async function persistDailyResult({ accessToken, won, attemptNumber }) {
 }
 
 export default async function handler(req, res) {
+  // -------- 0. Método -----------------------------------------------------
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Only POST allowed" });
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!supabaseAdmin) {
-    console.error("[validate-guess] missing SUPABASE_SERVICE_ROLE_KEY");
-    return res.status(500).json({ message: "Server misconfigured" });
-  }
-
-  // -------- 1. Input validation -------------------------------------------
-  const body = req.body || {};
-  const guessCarId = Number(body.guessCarId);
-  const guessAnio = body.anio;
-
-  if (!Number.isInteger(guessCarId) || guessCarId <= 0) {
-    return res.status(400).json({ message: "Invalid guessCarId" });
-  }
-  if (guessAnio === undefined || guessAnio === null) {
-    return res.status(400).json({ message: "Invalid anio" });
-  }
-
-  const today = todayInMadrid();
-  const accessToken = extractAccessToken(req);
-  const { client: authClient, user } = await authClientAndUser(accessToken);
-
-  // -------- 2. El servidor decide cuál es el coche del día ----------------
-  const { data: todayCarId, error: pickErr } = await supabaseAdmin.rpc(
-    "pick_daily_car",
-    { p_date: today }
-  );
-  if (pickErr || !todayCarId) {
-    console.error("[validate-guess] pick_daily_car:", pickErr);
-    return res.status(500).json({ message: "Failed to resolve daily car" });
-  }
-
-  // -------- 3. Cargar coche-real y coche-guess ----------------------------
-  const [realRow, guessRow] = await Promise.all([
-    fetchCarById(todayCarId),
-    fetchCarById(guessCarId),
-  ]);
-  if (!realRow) {
-    return res.status(500).json({ message: "Daily car missing in catalog" });
-  }
-  if (!guessRow) {
-    return res.status(400).json({ message: "Unknown guess car" });
-  }
-
-  const realCar = {
-    marca: realRow.make,
-    modelo: realRow.model,
-    anio: realRow.year,
-    pais: realRow.pais,
-  };
-
-  // -------- 4. Server decide el número de intento -------------------------
-  let attemptNumber;
-  let serverKnowsAttempts;
-  let existingGuesses = [];
-  if (user) {
-    const { data: row, error: rowErr } = await authClient
-      .from("user_guesses")
-      .select("guesses, status")
-      .eq("user_id", user.id)
-      .eq("car_id", todayCarId)
-      .eq("date", today)
-      .maybeSingle();
-    if (rowErr) {
-      console.error("[validate-guess] read user_guesses:", rowErr);
-      return res.status(500).json({ message: "Failed to read attempts" });
+  // -------- TRY/CATCH GLOBAL ---------------------------------------------
+  try {
+    // -------- 1. Sanity de configuración ---------------------------------
+    if (!supabaseAdmin) {
+      console.error("[validate-guess] missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL");
+      return res.status(500).json({ error: "Server misconfigured" });
     }
-    if (row?.status === "won" || row?.status === "lost") {
-      return res.status(403).json({ message: "Game already finished" });
+
+    // -------- 2. Parseo y validación de input ----------------------------
+    const body = parseBody(req);
+    // Los ids de `cars` son UUIDs (string). Validamos forma básica para
+    // evitar inyección en la query de Supabase: solo hex + guiones.
+    const guessCarId =
+      typeof body.guessCarId === "string" ? body.guessCarId.trim() : "";
+    const guessAnio = body.anio;
+
+    const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (!guessCarId || !UUID_RE.test(guessCarId)) {
+      return res.status(400).json({ error: "Invalid guessCarId" });
     }
-    existingGuesses = Array.isArray(row?.guesses) ? row.guesses : [];
-    if (existingGuesses.length >= MAX_ATTEMPTS) {
-      return res.status(403).json({ message: "Max attempts reached" });
+    if (guessAnio === undefined || guessAnio === null) {
+      return res.status(400).json({ error: "Invalid anio" });
     }
-    attemptNumber = existingGuesses.length + 1;
-    serverKnowsAttempts = true;
-  } else {
-    const claimed = Number(body.attemptNumber);
-    if (!Number.isInteger(claimed) || claimed < 1 || claimed > MAX_ATTEMPTS) {
-      return res.status(400).json({ message: "Invalid attemptNumber" });
-    }
-    attemptNumber = claimed;
-    serverKnowsAttempts = false;
-  }
 
-  // -------- 5. Comparación -------------------------------------------------
-  const anioNum = parseInt(guessAnio, 10);
-  const anioCorrect =
-    Number.isFinite(anioNum) &&
-    Math.abs(anioNum - realCar.anio) <= ANIO_CORRECT_MARGIN;
+    const today = todayInMadrid();
+    const accessToken = extractAccessToken(req);
+    const { client: authClient, user } = await authClientAndUser(accessToken);
 
-  const marcaOk = normalize(guessRow.make) === normalize(realCar.marca);
-  const modeloOk = normalize(guessRow.model) === normalize(realCar.modelo);
-  const paisOk =
-    !marcaOk && guessRow.pais && realCar.pais && guessRow.pais === realCar.pais;
-
-  // El campo `val` que se pinta en GuessRow viene de la fila DEL CATÁLOGO,
-  // no del texto que mandó el cliente. Así no nos comemos cualquier basura
-  // que un atacante intente colar en marca/modelo.
-  const result = {
-    marca: {
-      val: guessRow.make,
-      status: marcaOk ? "correct" : paisOk ? "partial" : "wrong",
-      pais: guessRow.pais,
-    },
-    modelo: {
-      val: guessRow.model,
-      status: modeloOk ? "correct" : "wrong",
-    },
-    anio: {
-      val: String(guessAnio),
-      status: anioCorrect ? "correct" : "wrong",
-      direction: anioCorrect ? null : anioNum < realCar.anio ? "up" : "down",
-    },
-    win: marcaOk && modeloOk && anioCorrect,
-  };
-
-  const isGameOver = result.win || attemptNumber >= MAX_ATTEMPTS;
-  const newStatus = result.win
-    ? "won"
-    : isGameOver
-    ? "lost"
-    : "playing";
-
-  // -------- 6. Persistencia autoritativa (solo logueados) -----------------
-  if (user && authClient) {
-    const newGuesses = [...existingGuesses, result];
-    const { error: saveErr } = await authClient.from("user_guesses").upsert(
-      {
-        user_id: user.id,
-        car_id: todayCarId,
-        date: today,
-        guesses: newGuesses,
-        status: newStatus,
-        // Guardamos car_data para que sirva de histórico server-side, pero
-        // jamás lo devolvemos al cliente si no ganó.
-        car_data: isGameOver
-          ? { ...realCar, id: todayCarId }
-          : null,
-      },
-      { onConflict: "user_id,car_id,date" }
+    // -------- 3. Coche del día (resuelto en servidor) --------------------
+    const { data: todayCarId, error: pickErr } = await supabaseAdmin.rpc(
+      "pick_daily_car",
+      { p_date: today }
     );
-    if (saveErr) {
-      console.error("[validate-guess] save user_guesses:", saveErr);
+    if (pickErr || !todayCarId) {
+      console.error("[validate-guess] pick_daily_car:", pickErr);
+      return res.status(500).json({ error: "Failed to resolve daily car" });
     }
-  }
 
-  // -------- 7. Score + record_daily_result_v2 -----------------------------
-  const basePoints = basePointsFor(attemptNumber, result.win);
-  let score = {
-    basePoints,
-    streakBonus: 0,
-    totalPoints: basePoints,
-    currentStreak: null,
-    maxStreak: null,
-    totalScore: null,
-    persisted: false,
-  };
-
-  if (isGameOver && user && accessToken) {
-    try {
-      const persisted = await persistDailyResult({
-        accessToken,
-        won: result.win,
-        attemptNumber,
-      });
-      if (persisted) {
-        score = {
-          basePoints: persisted.basePoints,
-          streakBonus: persisted.streakBonus,
-          totalPoints: persisted.totalPoints,
-          currentStreak: persisted.currentStreak,
-          maxStreak: persisted.maxStreak,
-          totalScore: persisted.totalScore,
-          alreadyRecorded: persisted.alreadyRecorded === true,
-          persisted: true,
-        };
-      }
-    } catch (err) {
-      console.error("[validate-guess] persistDailyResult:", err);
+    // -------- 4. Cargar coche-real y coche-guess -------------------------
+    const [realRow, guessRow] = await Promise.all([
+      fetchCarById(todayCarId),
+      fetchCarById(guessCarId),
+    ]);
+    if (!realRow) {
+      console.error("[validate-guess] daily car not in catalog:", todayCarId);
+      return res.status(500).json({ error: "Daily car missing in catalog" });
     }
-  }
+    if (!guessRow) {
+      return res.status(400).json({ error: "Unknown guess car" });
+    }
 
-  // -------- 8. Política de revelado ---------------------------------------
-  // Revelamos marca/modelo/año si:
-  //   - El usuario ha ganado (siempre, anónimo o logueado).
-  //   - El usuario ha perdido Y está logueado: el servidor ha verificado los
-  //     intentos contra user_guesses, así que no se puede saltar la partida
-  //     mandando attemptNumber:5 sin jugar.
-  // Anónimos que pierden NO reciben reveal: tienen que iniciar sesión para
-  // ver el coche, lo que cierra el bypass de DevTools.
-  let reveal = null;
-  if (result.win || (isGameOver && serverKnowsAttempts)) {
-    reveal = {
-      marca: realCar.marca,
-      modelo: realCar.modelo,
-      anio: realCar.anio,
-      pais: realCar.pais,
+    const realCar = {
+      marca: realRow.make,
+      modelo: realRow.model,
+      anio: realRow.year,
+      pais: realRow.pais,
     };
-  }
 
-  return res.status(200).json({
-    result,
-    win: result.win,
-    status: serverKnowsAttempts ? newStatus : isGameOver ? newStatus : "playing",
-    attemptNumber,
-    reveal,
-    score,
-  });
+    // -------- 5. attemptNumber server-side (logueados) -------------------
+    let attemptNumber;
+    let serverKnowsAttempts;
+    let existingGuesses = [];
+    if (user) {
+      const { data: row, error: rowErr } = await authClient
+        .from("user_guesses")
+        .select("guesses, status")
+        .eq("user_id", user.id)
+        .eq("car_id", todayCarId)
+        .eq("date", today)
+        .maybeSingle();
+      if (rowErr) {
+        console.error("[validate-guess] read user_guesses:", rowErr);
+        return res.status(500).json({ error: "Failed to read attempts" });
+      }
+      if (row?.status === "won" || row?.status === "lost") {
+        return res.status(403).json({ error: "Game already finished" });
+      }
+      existingGuesses = Array.isArray(row?.guesses) ? row.guesses : [];
+      if (existingGuesses.length >= MAX_ATTEMPTS) {
+        return res.status(403).json({ error: "Max attempts reached" });
+      }
+      attemptNumber = existingGuesses.length + 1;
+      serverKnowsAttempts = true;
+    } else {
+      const claimed = Number(body.attemptNumber);
+      if (!Number.isInteger(claimed) || claimed < 1 || claimed > MAX_ATTEMPTS) {
+        return res.status(400).json({ error: "Invalid attemptNumber" });
+      }
+      attemptNumber = claimed;
+      serverKnowsAttempts = false;
+    }
+
+    // -------- 6. Comparación ---------------------------------------------
+    const anioNum = parseInt(guessAnio, 10);
+    const anioCorrect =
+      Number.isFinite(anioNum) &&
+      Math.abs(anioNum - realCar.anio) <= ANIO_CORRECT_MARGIN;
+
+    const marcaOk = normalize(guessRow.make) === normalize(realCar.marca);
+    const modeloOk = normalize(guessRow.model) === normalize(realCar.modelo);
+    const paisOk =
+      !marcaOk &&
+      guessRow.pais &&
+      realCar.pais &&
+      guessRow.pais === realCar.pais;
+
+    const result = {
+      marca: {
+        val: guessRow.make,
+        status: marcaOk ? "correct" : paisOk ? "partial" : "wrong",
+        pais: guessRow.pais,
+      },
+      modelo: {
+        val: guessRow.model,
+        status: modeloOk ? "correct" : "wrong",
+      },
+      anio: {
+        val: String(guessAnio),
+        status: anioCorrect ? "correct" : "wrong",
+        direction: anioCorrect ? null : anioNum < realCar.anio ? "up" : "down",
+      },
+      win: marcaOk && modeloOk && anioCorrect,
+    };
+
+    const isGameOver = result.win || attemptNumber >= MAX_ATTEMPTS;
+    const newStatus = result.win
+      ? "won"
+      : isGameOver
+      ? "lost"
+      : "playing";
+
+    // -------- 7. Persistencia autoritativa (logueados) -------------------
+    if (user && authClient) {
+      const newGuesses = [...existingGuesses, result];
+      const { error: saveErr } = await authClient.from("user_guesses").upsert(
+        {
+          user_id: user.id,
+          car_id: todayCarId,
+          date: today,
+          guesses: newGuesses,
+          status: newStatus,
+          car_data: isGameOver ? { ...realCar, id: todayCarId } : null,
+        },
+        { onConflict: "user_id,car_id,date" }
+      );
+      if (saveErr) {
+        console.error("[validate-guess] save user_guesses:", saveErr);
+        // No abortamos: el cliente recibe el resultado igualmente.
+      }
+    }
+
+    // -------- 8. Score + record_daily_result_v2 --------------------------
+    const basePoints = basePointsFor(attemptNumber, result.win);
+    let score = {
+      basePoints,
+      streakBonus: 0,
+      totalPoints: basePoints,
+      currentStreak: null,
+      maxStreak: null,
+      totalScore: null,
+      persisted: false,
+    };
+
+    if (isGameOver && user && accessToken) {
+      try {
+        const persisted = await persistDailyResult({
+          accessToken,
+          won: result.win,
+          attemptNumber,
+        });
+        if (persisted) {
+          score = {
+            basePoints: persisted.basePoints,
+            streakBonus: persisted.streakBonus,
+            totalPoints: persisted.totalPoints,
+            currentStreak: persisted.currentStreak,
+            maxStreak: persisted.maxStreak,
+            totalScore: persisted.totalScore,
+            alreadyRecorded: persisted.alreadyRecorded === true,
+            persisted: true,
+          };
+        }
+      } catch (err) {
+        // No reventamos la respuesta principal: solo logueamos.
+        console.error("[validate-guess] persistDailyResult:", err);
+      }
+    }
+
+    // -------- 9. Política de revelado ------------------------------------
+    let reveal = null;
+    if (result.win || (isGameOver && serverKnowsAttempts)) {
+      reveal = {
+        marca: realCar.marca,
+        modelo: realCar.modelo,
+        anio: realCar.anio,
+        pais: realCar.pais,
+      };
+    }
+
+    return res.status(200).json({
+      result,
+      win: result.win,
+      status: serverKnowsAttempts ? newStatus : isGameOver ? newStatus : "playing",
+      attemptNumber,
+      reveal,
+      score,
+    });
+  } catch (err) {
+    // Cualquier excepción no manejada arriba aterriza aquí: la convertimos
+    // en una respuesta JSON 500 en vez de dejar que Vercel devuelva HTML.
+    console.error("[validate-guess] UNCAUGHT:", err && err.stack ? err.stack : err);
+    return res.status(500).json({
+      error: "Internal error",
+      detail:
+        process.env.NODE_ENV === "production"
+          ? undefined
+          : String(err?.message || err),
+    });
+  }
 }

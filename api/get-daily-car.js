@@ -1,6 +1,7 @@
 // api/get-daily-car.js
-// Devuelve el coche del día. Rotación determinista: dayOfYear % count.
-// Lee la tabla `cars` de Supabase ordenada por id ascendente.
+// Devuelve el coche del día. La elección queda fijada en la tabla
+// `daily_cars` la primera vez que se consulta cada día, así que añadir
+// coches nuevos al catálogo a mitad del día NO cambia el resultado.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -13,40 +14,44 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+function todayInMadrid() {
+  // Formatea la fecha actual en Europe/Madrid como YYYY-MM-DD.
+  // Usar Intl en vez de Date.toLocaleString para evitar parsing ambiguo.
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return parts; // "YYYY-MM-DD"
+}
+
 export default async function handler(req, res) {
-  const now = new Date();
-  const spainTime = new Date(
-    now.toLocaleString("en-US", { timeZone: "Europe/Madrid" })
+  const today = todayInMadrid();
+
+  // 1) Pedir el coche del día. La RPC inserta en daily_cars la primera
+  //    vez y devuelve el id fijado en todas las llamadas posteriores.
+  const { data: carId, error: rpcErr } = await supabase.rpc(
+    "pick_daily_car",
+    { p_date: today }
   );
-  const start = new Date(spainTime.getFullYear(), 0, 0);
-  const diff = spainTime - start;
-  const oneDay = 1000 * 60 * 60 * 24;
-  const dayOfYear = Math.floor(diff / oneDay);
 
-  // Contar coches para calcular el offset rotatorio.
-  const { count, error: countErr } = await supabase
-    .from("cars")
-    .select("id", { count: "exact", head: true });
-
-  if (countErr || !count) {
-    console.error("[get-daily-car] count error:", countErr);
-    return res.status(500).json({ message: "No cars available" });
+  if (rpcErr || !carId) {
+    console.error("[get-daily-car] pick_daily_car error:", rpcErr);
+    return res.status(500).json({ message: "Failed to pick daily car" });
   }
 
-  const offset = dayOfYear % count;
-
-  const { data, error } = await supabase
+  // 2) Cargar la imagen del coche elegido.
+  const { data: row, error: fetchErr } = await supabase
     .from("cars")
     .select("id, image_url")
-    .order("id", { ascending: true })
-    .range(offset, offset);
+    .eq("id", carId)
+    .single();
 
-  if (error || !data || data.length === 0) {
-    console.error("[get-daily-car] fetch error:", error);
-    return res.status(500).json({ message: "Failed to fetch daily car" });
+  if (fetchErr || !row) {
+    console.error("[get-daily-car] fetch car error:", fetchErr);
+    return res.status(500).json({ message: "Failed to load daily car" });
   }
-
-  const row = data[0];
 
   res.status(200).json({
     id: row.id,

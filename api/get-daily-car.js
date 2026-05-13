@@ -95,7 +95,7 @@ export default async function handler(req, res) {
   // Usuario logueado: leemos su fila de user_guesses (RLS exige auth.uid()).
   const { data: row, error: rowErr } = await authClient
     .from("user_guesses")
-    .select("guesses, status, car_data")
+    .select("guesses, status")
     .eq("user_id", user.id)
     .eq("car_id", todayCarId)
     .eq("date", today)
@@ -110,17 +110,28 @@ export default async function handler(req, res) {
   const status = row?.status || "playing";
   const guesses = Array.isArray(row?.guesses) ? row.guesses : [];
 
-  // Revelamos marca/modelo/año si el usuario ganó o si perdió. user_guesses
-  // está protegido por RLS (auth.uid()), así que para llegar a este punto el
-  // servidor ya verificó que la partida está realmente cerrada.
+  // Revelamos marca/modelo/año si el usuario ganó o si perdió. Leemos los
+  // datos LIVE desde `cars` (no desde la copia congelada en user_guesses)
+  // para que las correcciones que haga el admin en /admin/edit-car se
+  // reflejen al instante en pantalla — hot-swap real.
   let reveal = null;
-  if ((status === "won" || status === "lost") && row?.car_data) {
-    reveal = {
-      marca: row.car_data.marca,
-      modelo: row.car_data.modelo,
-      anio: row.car_data.anio,
-      pais: row.car_data.pais,
-    };
+  if (status === "won" || status === "lost") {
+    const { data: liveCar, error: liveErr } = await supabaseAdmin
+      .from("cars")
+      .select("make, model, year, pais, description")
+      .eq("id", todayCarId)
+      .maybeSingle();
+    if (liveErr) {
+      console.error("[get-daily-car] read cars (live):", liveErr);
+    } else if (liveCar) {
+      reveal = {
+        marca: liveCar.make,
+        modelo: liveCar.model,
+        anio: liveCar.year,
+        pais: liveCar.pais,
+        description: liveCar.description ?? null,
+      };
+    }
   }
 
   res.setHeader("Cache-Control", "no-store");

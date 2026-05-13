@@ -4,6 +4,7 @@ import "./index.css";
 import App from "./App";
 import Preview from "./Preview";
 import AddCar from "./admin/AddCar";
+import EditCar from "./admin/EditCar";
 import { ToastProvider } from "./components/Toast";
 
 // Sala de pruebas interna y oculta. No enlazada en ningún menú.
@@ -18,7 +19,13 @@ const isAdminAddCar =
   pathname.startsWith("/admin/add-car") ||
   /(\?|&)admin-add-car(=|&|$)/.test(search);
 
+// Herramienta interna para editar coches existentes (hot-swap). Requiere sesión.
+const isAdminEditCar =
+  pathname.startsWith("/admin/edit-car") ||
+  /(\?|&)admin-edit-car(=|&|$)/.test(search);
+
 function pickRoute() {
+  if (isAdminEditCar) return <EditCar />;
   if (isAdminAddCar) return <AddCar />;
   if (isPreview) return <Preview />;
   return <App />;

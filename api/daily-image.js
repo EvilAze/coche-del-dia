@@ -82,14 +82,14 @@ export default async function handler(req, res) {
   const contentType = upstream.headers.get("content-type") || "image/jpeg";
   const buffer = Buffer.from(await upstream.arrayBuffer());
 
-  // Cacheamos en CDN hasta media noche aprox (cambia el coche del día a las 00:00
-  // hora Madrid). 1 h es suficiente para amortizar y no servir imagen vieja
-  // demasiado tiempo si hay rotación manual.
+  // Cache corta (60 s) para que el hot-swap desde /admin/edit-car se
+  // refleje rápido si se cambia la imagen del coche del día. Sigue
+  // amortizando el grueso del tráfico vía CDN.
   res.setHeader("Content-Type", contentType);
   res.setHeader("Content-Length", String(buffer.length));
   res.setHeader(
     "Cache-Control",
-    "public, s-maxage=3600, stale-while-revalidate=60"
+    "public, s-maxage=60, stale-while-revalidate=30"
   );
   // Por si acaso algún proxy intermedio mira el Content-Disposition:
   // forzamos inline sin filename, evitando filtrar el original del CDN.

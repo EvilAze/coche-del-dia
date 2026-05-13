@@ -20,6 +20,7 @@ const initialForm = {
   model: "",
   year: "",
   pais: "",
+  description: "",
   file: null,
 };
 
@@ -128,6 +129,7 @@ export default function AddCar() {
     const make = form.make.trim();
     const model = form.model.trim();
     const pais = form.pais.trim();
+    const description = form.description.trim();
     const yearNum = Number(form.year);
     const file = form.file;
 
@@ -185,6 +187,9 @@ export default function AddCar() {
         model,
         year: yearNum,
         pais,
+        // Descripción opcional: mandamos null si está vacía para que la
+        // columna admita el `is null` natural en lugar de strings vacíos.
+        description: description ? description : null,
         image_url: imageUrl,
       });
       if (insertError) {
@@ -369,6 +374,30 @@ export default function AddCar() {
                 <option key={p} value={p} />
               ))}
             </datalist>
+          </Field>
+
+          <Field
+            label={
+              <>
+                Descripción
+                <span className="ml-2 normal-case tracking-normal text-muted">
+                  · opcional
+                </span>
+              </>
+            }
+          >
+            <textarea
+              value={form.description}
+              onChange={(e) => updateField("description", e.target.value)}
+              placeholder="Un párrafo corto sobre el coche: anécdotas, datos curiosos, contexto histórico..."
+              maxLength={600}
+              rows={4}
+              disabled={isSubmitting}
+              className={`${inputClass} h-auto resize-y py-3 leading-relaxed`}
+            />
+            <span className="text-[10px] uppercase tracking-widest text-muted">
+              {form.description.length} / 600
+            </span>
           </Field>
 
           <Field label="Foto del coche">

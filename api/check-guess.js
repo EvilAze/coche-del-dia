@@ -138,7 +138,12 @@ export default async function handler(req, res) {
   //   Ahora: lo resolvemos de daily_cars vía pick_daily_car. El carId del
   //   body se ignora a propósito; solo lo aceptamos como sanity check
   //   opcional para detectar clientes desincronizados.
-  const { data: todayCarId, error: pickErr } = await supabase.rpc(
+  //   service_role: pick_daily_car está revocado de anon/authenticated.
+  if (!supabaseAdmin) {
+    console.error("[check-guess] missing SUPABASE_SERVICE_ROLE_KEY");
+    return res.status(500).json({ message: "Server misconfigured" });
+  }
+  const { data: todayCarId, error: pickErr } = await supabaseAdmin.rpc(
     "pick_daily_car",
     { p_date: today }
   );

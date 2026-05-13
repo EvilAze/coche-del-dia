@@ -7,6 +7,8 @@ export default function CarImage({
   hintIndex,
   totalHints,
   status,
+  blurred = false,
+  overlay = null,
 }) {
   const [loaded, setLoaded] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
@@ -58,6 +60,7 @@ export default function CarImage({
           transition: isWinReveal
             ? undefined
             : "transform 0.75s cubic-bezier(0.4,0,0.2,1)",
+          filter: blurred ? "blur(18px) saturate(0.85)" : undefined,
           "--zoom-from": zoomFrom,
         }}
       />
@@ -81,6 +84,15 @@ export default function CarImage({
               "radial-gradient(ellipse at center, transparent 40%, rgba(10,10,11,0.6) 100%)",
           }}
         />
+      )}
+
+      {/* Overlay opcional (p.ej. CTA de login cuando un anónimo pierde) */}
+      {overlay && loaded && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3">
+          <div className="pointer-events-auto w-full max-w-[20rem]">
+            {overlay}
+          </div>
+        </div>
       )}
 
       {/* Etiqueta narrativa de pista con mini progress bar */}

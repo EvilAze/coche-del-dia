@@ -90,9 +90,10 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
     const submittedAnio = anio;
 
     const marcaValida = MARCAS.includes(submittedMarca);
-    const modeloValido = CARS.some(
+    const guessCar = CARS.find(
       (c) => c.modelo === submittedModelo && c.marca === submittedMarca
     );
+    const modeloValido = Boolean(guessCar);
     const anioNum = parseInt(submittedAnio);
     const anioValido =
       !isNaN(anioNum) && anioNum >= MIN_YEAR && anioNum <= CURRENT_YEAR;
@@ -106,7 +107,13 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
 
     triggerHaptic(50);
 
-    const result = await onSubmit(submittedMarca, submittedModelo, submittedAnio);
+    // Enviamos el id del coche elegido en el autocompletado en vez del par
+    // marca/modelo en texto: así el servidor valida directamente contra una
+    // fila concreta del catálogo y no tiene que confiar en strings cliente.
+    const result = await onSubmit({
+      guessCarId: guessCar.id,
+      anio: submittedAnio,
+    });
 
     if (!result) return;
 

@@ -64,7 +64,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await supabaseAdmin
     .from("cars")
-    .select("id, make, model, year, pais, image_url")
+    .select("id, make, model, year, pais, description, image_url")
     .eq("id", id)
     .maybeSingle();
   if (error) {
@@ -79,6 +79,7 @@ export default async function handler(req, res) {
     modelo: data.model,
     anio: data.year,
     pais: data.pais,
+    description: data.description ?? null,
     img: data.image_url,
   });
 }

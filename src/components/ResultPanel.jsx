@@ -89,9 +89,14 @@ export default function ResultPanel({
       <ScoreBreakdown score={score} won={won} />
 
       {carDescription && (
-        <p className="text-muted text-sm leading-relaxed mb-4 text-left">
-          {carDescription}
-        </p>
+        <div className="mb-4 rounded-lg border border-border/60 bg-bg-secondary/50 px-4 py-3 text-left">
+          <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
+            Ficha
+          </p>
+          <p className="text-sm leading-relaxed text-white/90">
+            {carDescription}
+          </p>
+        </div>
       )}
 
       <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">

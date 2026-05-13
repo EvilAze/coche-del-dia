@@ -98,7 +98,7 @@ async function authClientAndUser(accessToken) {
 async function fetchCarById(id) {
   const { data, error } = await supabaseAdmin
     .from("cars")
-    .select("id, make, model, year, pais")
+    .select("id, make, model, year, pais, description")
     .eq("id", id)
     .single();
   if (error || !data) return null;
@@ -182,6 +182,7 @@ export default async function handler(req, res) {
       modelo: realRow.model,
       anio: realRow.year,
       pais: realRow.pais,
+      description: realRow.description ?? null,
     };
 
     // -------- 5. attemptNumber server-side (logueados) -------------------
@@ -322,6 +323,7 @@ export default async function handler(req, res) {
         modelo: realCar.modelo,
         anio: realCar.anio,
         pais: realCar.pais,
+        description: realCar.description,
       };
     }
 

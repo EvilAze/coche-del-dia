@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CarImage from "./components/CarImage";
 import { useCatalog } from "./data/catalog";
+import { supabase } from "./supabaseClient";
 
 // Mismos valores que useGame.js — duplicados a propósito para que la sala de
 // pruebas sea independiente y no rompa si algún día cambian en el juego.
@@ -60,8 +61,53 @@ export default function Preview() {
     [CARS, selectedCarId]
   );
 
+  // Lazy-fetch del image_url cuando cambia el coche seleccionado.
+  // Va via /api/admin/get-car (gateado por email admin) porque image_url
+  // ya no es legible con anon key tras el hardening RLS.
+  const [selectedImg, setSelectedImg] = useState("");
+  const [selectedImgError, setSelectedImgError] = useState("");
+  useEffect(() => {
+    if (!selectedCarId) {
+      setSelectedImg("");
+      setSelectedImgError("");
+      return;
+    }
+    let cancelled = false;
+    setSelectedImgError("");
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        if (!cancelled) {
+          setSelectedImg("");
+          setSelectedImgError("Inicia sesión como admin para previsualizar.");
+        }
+        return;
+      }
+      const res = await fetch(
+        `/api/admin/get-car?id=${encodeURIComponent(selectedCarId)}`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
+      if (cancelled) return;
+      if (res.ok) {
+        const row = await res.json();
+        setSelectedImg(row?.img || "");
+      } else if (res.status === 403) {
+        setSelectedImg("");
+        setSelectedImgError("Cuenta sin permisos de admin.");
+      } else {
+        setSelectedImg("");
+        setSelectedImgError("No se pudo cargar la imagen.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCarId]);
+
   // La URL pegada manualmente tiene prioridad sobre el desplegable.
-  const activeSrc = urlInput.trim() || selectedCar?.img || "";
+  const activeSrc = urlInput.trim() || selectedImg;
 
   const { zoom, hintIndex, status } = zoomFromStep(step);
 
@@ -110,6 +156,11 @@ export default function Preview() {
                 </option>
               ))}
             </select>
+            {selectedImgError && (
+              <span className="text-xs normal-case tracking-normal text-red-400">
+                {selectedImgError}
+              </span>
+            )}
           </label>
         </section>
 

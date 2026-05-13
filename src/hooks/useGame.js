@@ -165,31 +165,18 @@ export function useGame() {
       if (carData) setCar(carData);
       if (scoreBreakdown && newStatus !== "playing") setScore(scoreBreakdown);
 
-      const stateToSave = {
-        guesses: newGuesses,
-        status: newStatus,
-        carData: carData || null,
-        date: getTodayKey(),
-        carId: car.id,
-      };
-
-      if (user) {
-        const { error } = await supabase.from("user_guesses").upsert(
-          {
-            user_id: user.id,
-            car_id: car.id,
-            date: stateToSave.date,
-            guesses: newGuesses,
-            status: newStatus,
-            car_data: stateToSave.carData,
-          },
-          {
-            onConflict: "user_id,car_id,date",
-          }
-        );
-
-        if (error) console.error("Error guardando partida:", error);
-      } else {
+      // Para usuarios logueados, la persistencia en user_guesses ya la hizo
+      // /api/check-guess de forma autoritativa (server-side). No escribimos
+      // desde el cliente para evitar que se manipulen el conteo de intentos
+      // o el estado win/lost.
+      if (!user) {
+        const stateToSave = {
+          guesses: newGuesses,
+          status: newStatus,
+          carData: carData || null,
+          date: getTodayKey(),
+          carId: car.id,
+        };
         localStorage.setItem("cocheDia_state", JSON.stringify(stateToSave));
       }
 

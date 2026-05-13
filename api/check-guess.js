@@ -128,7 +128,10 @@ export default async function handler(req, res) {
 
   const today = todayInMadrid();
   const accessToken = extractAccessToken(req);
-  const { user } = await authClientAndUser(accessToken);
+  // authClient lleva el Bearer del usuario y satisface las policies RLS
+  // de user_guesses (auth.uid() = user_id). Lo reutilizamos para todas
+  // las operaciones contextualizadas al usuario.
+  const { client: authClient, user } = await authClientAndUser(accessToken);
 
   // -------- 2. [C2] Servidor decide cuál es el coche del día ---------------
   //   Antes: el cliente mandaba carId en el body y se aceptaba sin más.
@@ -174,7 +177,10 @@ export default async function handler(req, res) {
   let serverKnowsAttempts;
   let existingGuesses = [];
   if (user) {
-    const { data: row, error: rowErr } = await supabase
+    // Lectura con authClient: la policy SELECT exige auth.uid() = user_id.
+    // Si usáramos `supabase` (anon) aquí la query devolvería 0 filas y
+    // attemptNumber sería siempre 1.
+    const { data: row, error: rowErr } = await authClient
       .from("user_guesses")
       .select("guesses, status")
       .eq("user_id", user.id)
@@ -268,7 +274,7 @@ export default async function handler(req, res) {
   //   El cliente ya no escribe en user_guesses; lo hacemos aquí con los
   //   valores que el servidor ha validado. Sin esto, un atacante podría
   //   nunca llamar al upsert del cliente y "reintentar" infinitas veces.
-  if (user && accessToken) {
+  if (user && authClient) {
     const newGuesses = [...existingGuesses, result];
     const newStatus = result.win
       ? "won"
@@ -276,12 +282,8 @@ export default async function handler(req, res) {
       ? "lost"
       : "playing";
 
-    // Usamos el cliente autenticado (Bearer del usuario). La RLS debe
-    // permitir UPSERT solo en filas donde user_id = auth.uid().
-    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    // Reutilizamos el authClient creado al principio. La policy RLS de
+    // INSERT/UPDATE exige auth.uid() = user_id, y user_id = user.id.
     const { error: saveErr } = await authClient.from("user_guesses").upsert(
       {
         user_id: user.id,

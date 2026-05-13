@@ -19,7 +19,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { useCatalog, loadCatalog } from "../data/catalog";
+import { useCatalog } from "../data/catalog";
 
 const STORAGE_BUCKET = "cars_images";
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
@@ -105,11 +105,13 @@ export default function EditCar() {
   }, [previewUrl]);
 
   // Cuando cambia el coche seleccionado, carga sus datos completos.
+  // Nota: no leemos `previewUrl` aquí a propósito. El revoke del object URL
+  // anterior lo hace el useEffect con dep `[previewUrl]` cuando llamamos a
+  // `setPreviewUrl(null)`. Mantenemos este efecto con dep única `[selectedId]`.
   useEffect(() => {
     if (!selectedId) {
       setForm(initialForm);
       setOriginalForm(initialForm);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
       setFeedback(null);
       return;
@@ -148,7 +150,6 @@ export default function EditCar() {
         };
         setForm(next);
         setOriginalForm(next);
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
       } catch (err) {
         if (!cancelled) {
@@ -166,7 +167,6 @@ export default function EditCar() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
   function updateField(field, value) {
@@ -277,19 +277,10 @@ export default function EditCar() {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
 
-      // Refrescamos el catálogo en caché para que el dropdown muestre los
-      // nuevos valores si el admin cambia de coche y vuelve.
-      loadCatalog.bind(null)();
-      // Forzamos recarga limpia del cache local:
-      try {
-        const fresh = await fetch("/api/list-cars", { cache: "no-store" });
-        if (fresh.ok) {
-          // useCatalog ya está montado; en un siguiente mount leerá lo nuevo.
-        }
-      } catch {}
-
       // Sincronizamos estado local: el coche editado pasa a ser el nuevo
-      // "original".
+      // "original". El catálogo en caché (useCatalog) seguirá con los datos
+      // viejos hasta que se recargue la página; aceptable para una herramienta
+      // de admin de uso puntual.
       const updated = data.car;
       const nextForm = {
         marca: updated.marca || "",

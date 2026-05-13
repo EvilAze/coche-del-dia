@@ -20,9 +20,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Only GET allowed" });
   }
 
+  // NOTA: image_url se omite a propósito. Si lo expusiéramos aquí, cualquiera
+  // podría cruzarlo con la URL que devuelve /api/get-daily-car y deducir
+  // marca/modelo/año del coche del día. Para mostrar imágenes en herramientas
+  // internas (Preview), hay endpoints separados con auth.
   const { data, error } = await supabase
     .from("cars")
-    .select("id, make, model, year, pais, image_url")
+    .select("id, make, model, year, pais")
     .order("id", { ascending: true });
 
   if (error) {
@@ -37,7 +41,6 @@ export default async function handler(req, res) {
     modelo: row.model,
     anio: row.year,
     pais: row.pais,
-    img: row.image_url,
   }));
 
   const marcas = [...new Set(cars.map((c) => c.marca))].sort((a, b) =>

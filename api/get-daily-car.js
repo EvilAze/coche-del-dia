@@ -9,10 +9,21 @@ const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
+// service_role bypassea RLS. NO usar en el navegador, solo en este proceso
+// serverless. Necesario porque revocamos SELECT(image_url) a anon.
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Cliente anon: para RPC pick_daily_car (granted a anon).
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+
+// Cliente service_role: para leer columnas restringidas (image_url).
+const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : null;
 
 function todayInMadrid() {
   // Formatea la fecha actual en Europe/Madrid como YYYY-MM-DD.
@@ -41,8 +52,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: "Failed to pick daily car" });
   }
 
-  // 2) Cargar la imagen del coche elegido.
-  const { data: row, error: fetchErr } = await supabase
+  // 2) Cargar la imagen del coche elegido (columna privilegiada).
+  if (!supabaseAdmin) {
+    console.error("[get-daily-car] missing SUPABASE_SERVICE_ROLE_KEY");
+    return res.status(500).json({ message: "Server misconfigured" });
+  }
+  const { data: row, error: fetchErr } = await supabaseAdmin
     .from("cars")
     .select("id, image_url")
     .eq("id", carId)

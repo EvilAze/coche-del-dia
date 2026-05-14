@@ -10,7 +10,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
-import { codeFor } from "../data/countries";
 import CloseButton from "./CloseButton";
 
 // Imagen estática que cubre los coches sin desbloquear. Debe existir en
@@ -210,61 +209,48 @@ function CountryCard({ country, onClick }) {
       type="button"
       onClick={onClick}
       className="
-        group relative aspect-square w-full overflow-hidden rounded-xl
-        border border-white/10 bg-[#1a1a20] shadow-md shadow-black/40
-        transition
-        hover:border-accent/60 hover:shadow-accent/10
-        active:scale-[0.97]
+        group relative aspect-square w-full overflow-hidden
+        rounded-xl border border-gray-800 bg-[#0d0d10]
+        shadow-md shadow-black/40
+        transition-transform duration-300 ease-out
+        hover:scale-105 hover:border-accent/40
+        active:scale-[0.98]
       "
-      // Tres capas de fondo:
-      //   1. Gradient oscuro arriba (asegura legibilidad del texto)
-      //   2. Imagen de la bandera (cover; puede 404 sin romper la card)
-      //   3. Color base (fallback si la imagen no existe)
-      style={{
-        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.75) 100%), url('${flagImagePath(country.pais)}')`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
     >
-      {/* Badge ISO en esquina superior derecha: se ve igual en todas las
-          plataformas (no depende de glifos de emoji). */}
-      <div
-        className="
-          absolute right-2 top-2 rounded-md
-          border border-white/25 bg-black/45 px-1.5 py-0.5
-          font-display text-[10px] font-bold tracking-widest text-white/90
-          backdrop-blur-sm
-        "
+      {/* Bandera: <img> con object-cover/object-center para que NO se
+          deforme nunca. Si el archivo 404, el onError la oculta y queda
+          el bg base del botón. */}
+      <img
+        src={flagImagePath(country.pais)}
+        alt=""
         aria-hidden="true"
-      >
-        {codeFor(country.pais)}
-      </div>
+        draggable={false}
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+        }}
+      />
 
-      {/* Marcador de país completado */}
+      {/* Gradiente: transparente arriba → negro abajo. Mejora legibilidad
+          del texto sin tapar la mitad superior de la bandera. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+
+      {/* Badge "Completo" solo cuando el país está 100% — útil como
+          incentivo visual, no satura porque solo aparece al terminar. */}
       {completed && (
-        <div className="absolute left-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
+        <div className="absolute right-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
           ★ Completo
         </div>
       )}
 
-      {/* Texto frontal centrado, con sombra densa para legibilidad sobre
-          cualquier bandera (incluidas las blancas/amarillas). */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
-        <p
-          className="
-            font-display text-xl font-bold uppercase tracking-wider text-white
-            sm:text-2xl
-          "
-          style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)" }}
-        >
+      {/* Texto en la franja inferior, donde el gradiente es sólido. */}
+      <div className="absolute inset-x-0 bottom-0 px-3 pb-3 text-center">
+        <p className="font-display text-base font-bold uppercase tracking-wider text-white sm:text-lg">
           {country.pais}
         </p>
-        <p
-          className="mt-2 font-display text-sm tabular-nums tracking-wider"
-          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.95)" }}
-        >
-          <span className="text-accent">{country.unlocked}</span>
-          <span className="text-white/80"> / {country.total}</span>
+        <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
+          {country.unlocked} / {country.total}
         </p>
       </div>
     </button>
@@ -282,35 +268,38 @@ function Showroom({ country, onSelectCar }) {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Banda con bandera de fondo (oscurecida) + progreso */}
-      <div
-        className="relative border-b border-white/10 px-4 py-5 text-center"
-        style={{
-          backgroundImage: `linear-gradient(rgba(10,10,12,0.7), rgba(10,10,12,0.9)), url('${flagImagePath(country.pais)}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div
-          className="
-            mx-auto inline-flex items-center justify-center
-            rounded-lg border border-white/20 bg-black/40
-            px-3 py-1 font-display text-lg font-bold tracking-[0.3em] text-white/95
-            backdrop-blur-sm
-          "
+      {/* Cabecera: bloque h-40 con la bandera al fondo y un overlay
+          fuerte con blur. La bandera aporta color y "lugar", el blur
+          la convierte en textura para que el texto sea el protagonista. */}
+      <div className="relative h-40 w-full overflow-hidden border-b border-white/10">
+        <img
+          src={flagImagePath(country.pais)}
+          alt=""
           aria-hidden="true"
-        >
-          {codeFor(country.pais)}
-        </div>
-        <p className="mt-3 text-[10px] uppercase tracking-[0.22em] text-muted">
-          Descubiertos {country.unlocked} / Total {country.total}
-        </p>
-        {/* Barra de progreso */}
-        <div className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-accent transition-[width] duration-700"
-            style={{ width: `${progressPct}%` }}
-          />
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
+        {/* Overlay negro fuerte con blur sutil del fondo. */}
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+        {/* Texto centrado vertical y horizontalmente */}
+        <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-gray-400">
+            Descubiertos {country.unlocked} / {country.total}
+          </p>
+          <h3 className="mt-2 font-display text-3xl font-bold uppercase tracking-wider text-white sm:text-4xl">
+            {country.pais}
+          </h3>
+          {/* Barra de progreso justo debajo */}
+          <div className="mt-3 h-1.5 w-40 overflow-hidden rounded-full bg-white/15">
+            <div
+              className="h-full rounded-full bg-accent transition-[width] duration-700"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
         </div>
       </div>
 
@@ -340,35 +329,38 @@ function UnlockedCard({ car, onClick }) {
       type="button"
       onClick={onClick}
       className="
-        group relative aspect-[4/5] w-full overflow-hidden rounded-lg
-        border border-accent/40 bg-bg-secondary
-        shadow-md shadow-black/40 transition
-        hover:border-accent hover:shadow-accent/20
-        active:scale-[0.97]
+        group relative aspect-[4/5] w-full overflow-hidden
+        rounded-lg border border-gray-800 bg-[#0d0d10]
+        shadow-md shadow-black/40
+        transition-transform duration-300 ease-out
+        hover:scale-105 hover:border-accent/50
+        active:scale-[0.98]
       "
     >
-      <div className="absolute inset-0 overflow-hidden">
-        <img
-          src={car.img}
-          alt={`${car.marca} ${car.modelo}`}
-          draggable={false}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      </div>
+      {/* Foto del coche */}
+      <img
+        src={car.img}
+        alt={`${car.marca} ${car.modelo}`}
+        draggable={false}
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover object-center"
+      />
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
+      {/* Gradiente coherente con el resto: transparente arriba → negro abajo */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/55 to-transparent" />
 
-      <div className="absolute inset-x-0 bottom-0 p-2 text-left">
-        <p className="truncate font-display text-[11px] uppercase tracking-widest text-accent">
+      {/* Etiqueta con jerarquía clara: marca en accent pequeño,
+          modelo en blanco bold, año sutil para no competir. */}
+      <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2.5 text-left">
+        <p className="truncate text-xs font-medium uppercase tracking-wider text-accent">
           {car.marca}
         </p>
-        <p className="truncate text-xs text-white">{car.modelo}</p>
-        <p className="text-[10px] tabular-nums text-muted">{car.anio}</p>
-      </div>
-
-      <div className="absolute right-1.5 top-1.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
-        ✓
+        <p className="truncate text-sm font-bold text-white">
+          {car.modelo}
+        </p>
+        <p className="mt-0.5 text-[10px] tabular-nums text-gray-400">
+          {car.anio}
+        </p>
       </div>
     </button>
   );
@@ -378,38 +370,36 @@ function LockedCard() {
   return (
     <div
       className="
-        relative aspect-[4/5] w-full overflow-hidden rounded-lg
-        border border-white/5 bg-[#15151a]
+        relative aspect-[4/5] w-full overflow-hidden
+        rounded-lg border border-gray-800 bg-[#0d0d10]
       "
       aria-label="Cromo bloqueado"
-      // Mismo patrón de doble capa que la CountryCard: gradient siempre
-      // visible + foto de la lona detrás. Si /images/lona.jpg no existe,
-      // queda el gradient sobre el bg-[#15151a] → aspecto intencional.
-      style={{
-        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%), url('${LONA_IMG}')`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
     >
-      {/* Textura diagonal sutil (siempre visible aunque la lona cargue),
-          para que se sienta "tapado" incluso con la foto debajo. */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-25"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 6px, transparent 6px 12px)",
+      {/* Foto de la lona: `object-contain` para que se vea entero el
+          coche cubierto (zoom out respecto al cover anterior) y
+          `object-top` para que quede anclado a la parte alta del cromo,
+          dejando el pie libre para el candado y el texto sin solaparse. */}
+      <img
+        src={LONA_IMG}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-contain object-top"
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
         }}
       />
 
-      {/* Texto + candado centrados */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-        <div className="rounded-full border border-white/15 bg-black/55 p-1.5 backdrop-blur-sm">
-          <LockIcon className="h-4 w-4 text-white/70" />
-        </div>
-        <p
-          className="font-display text-[11px] uppercase tracking-[0.18em] text-white/85"
-          style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
-        >
+      {/* Gradiente desde abajo, igual que en la UnlockedCard, para
+          coherencia visual entre estados. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-transparent" />
+
+      {/* Candado pequeño + texto sutil, agrupados abajo. Ya no dominan
+          el centro de la foto — quedan como un pie de página discreto. */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pb-3">
+        <LockIcon className="mb-1 h-3.5 w-3.5 text-gray-400" />
+        <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400">
           Desconocido
         </p>
       </div>

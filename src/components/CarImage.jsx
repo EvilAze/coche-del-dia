@@ -1,6 +1,10 @@
 // src/components/CarImage.jsx
 import { useEffect, useRef, useState } from "react";
 
+// Aspect ratio por defecto mientras la imagen aún no ha cargado.
+// Se reemplaza por el natural (img.naturalWidth/Height) al onLoad.
+const DEFAULT_ASPECT = 4 / 3;
+
 export default function CarImage({
   src,
   zoom,
@@ -12,6 +16,10 @@ export default function CarImage({
 }) {
   const [loaded, setLoaded] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
+  // Ratio real de la foto (width/height). Se usa solo cuando el juego termina
+  // para devolver al contenedor su forma natural. Mientras se juega siempre
+  // forzamos 1:1.
+  const [naturalRatio, setNaturalRatio] = useState(DEFAULT_ASPECT);
 
   // Capturamos el zoom previo DURANTE el render para que la primera vez
   // que cambia el status a "won" la keyframe revealWin parta del zoom
@@ -19,7 +27,7 @@ export default function CarImage({
   const prevZoomRef = useRef(zoom);
   const prevZoom = prevZoomRef.current;
 
-  // Si cambia la foto (nuevo coche), volvemos a mostrar el skeleton
+  // Si cambia la foto (nuevo coche), volvemos a mostrar el skeleton.
   useEffect(() => {
     setLoaded(false);
   }, [src]);
@@ -33,24 +41,60 @@ export default function CarImage({
   }, [zoom, status, loaded]);
 
   const isWinReveal = status === "won";
+  // Estado "revelado": el juego ha terminado, por victoria o derrota.
+  // El contenedor abandona el cuadrado 1:1 y vuelve a su aspecto natural.
+  const isRevealed = status === "won" || status === "lost";
   const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
   const showLabel = status === "playing" && hintIndex != null && totalHints;
 
+  function handleImageLoad(e) {
+    const img = e.currentTarget;
+    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+      setNaturalRatio(img.naturalWidth / img.naturalHeight);
+    }
+    setLoaded(true);
+  }
+
+  // Aspect-ratio del contenedor:
+  //   - Mientras juega: 1:1 estricto. La imagen ampliada llena con object-cover,
+  //     recortando lo que sobre para no dejar huecos.
+  //   - Revelado: aspecto natural de la foto. Como el contenedor coincide
+  //     con la imagen, object-cover y object-contain dan el mismo resultado
+  //     (foto entera, sin recortes).
+  // Antes de que la imagen cargue mantenemos 1:1 para que el skeleton del
+  // estado "playing" sea cuadrado y la transición a "revelado" anime hacia
+  // el aspecto correcto.
+  const containerAspect = isRevealed && loaded ? naturalRatio : 1;
+
   return (
     <div
-      className="relative mb-3 mt-4 w-full overflow-hidden rounded-xl border border-border bg-bg-tertiary shadow-md shadow-black/40"
+      className={`
+        relative mb-3 mt-4 mx-auto w-full overflow-hidden rounded-xl
+        border border-border bg-bg-tertiary shadow-md shadow-black/40
+        ${!isRevealed ? "max-w-[18rem]" : "max-w-full"}
+        sm:max-w-full
+      `}
       onContextMenu={(e) => e.preventDefault()}
+      style={{
+        aspectRatio: containerAspect,
+        // Animación coreografiada al revelar: el aspect-ratio sale del 1:1
+        // hacia el natural, y el max-width pasa del cap móvil al 100% del
+        // contenedor padre, ambos sobre la misma curva y duración para que
+        // se sienta como un único movimiento.
+        transition:
+          "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1), max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
     >
       {!loaded && (
-        <div className="aspect-[4/3] w-full animate-pulse bg-bg-secondary/60" />
+        <div className="absolute inset-0 animate-pulse bg-bg-secondary/60" />
       )}
 
       <img
         src={src}
         alt="Coche del día"
         draggable={false}
-        onLoad={() => setLoaded(true)}
-        className={`w-full h-auto ${isWinReveal && loaded ? "animate-reveal-win" : ""}`}
+        onLoad={handleImageLoad}
+        className={`absolute inset-0 h-full w-full object-cover ${isWinReveal && loaded ? "animate-reveal-win" : ""}`}
         style={{
           display: loaded ? "block" : "none",
           transformOrigin: "center center",

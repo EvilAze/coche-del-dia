@@ -1,23 +1,40 @@
 // src/components/Garage.jsx
-// Álbum de cromos del usuario: catálogo entero agrupado por país, con
-// los coches que ha desbloqueado mostrados a color y los que faltan
-// cubiertos con una "lona" estilo cromo sin abrir.
+// Álbum de cromos del usuario, modelo "Concesionario por Secciones":
+//   Vista 1 (Menú) → grid de tarjetas, una por país, con bandera de fondo.
+//   Vista 2 (Showroom) → coches del país seleccionado.
+//   Detail (overlay) → ficha completa de un cromo desbloqueado.
 //
-// Estructura:
-//   - Modal fullscreen estilo Ranking.
-//   - Si no hay sesión → auth wall con CTA de login.
-//   - Si hay sesión → fetch a /api/garage, render del swiper horizontal
-//     con CSS scroll-snap (sin librerías externas).
-//
-// Swiper: usamos `overflow-x-auto + snap-x snap-mandatory` para que cada
-// "pantalla" del álbum encaje exactamente en el viewport del modal. En
-// móvil el dedo basta; en desktop hay flechas laterales.
+// Navegación: estado local `selectedCountry`. ESC y el botón ⬅ Volver
+// llevan al usuario un nivel arriba en la jerarquía.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import { flagFor } from "../data/countries";
 import CloseButton from "./CloseButton";
+
+// Imagen estática que cubre los coches sin desbloquear. Debe existir en
+// public/images/lona.jpg. Si falta, el fallback es la textura gris+silueta.
+const LONA_IMG = "/images/lona.jpg";
+
+// Convierte el nombre de un país a un slug compatible con el filesystem.
+//   "Reino Unido"     → "reino-unido"
+//   "Países Bajos"    → "paises-bajos"
+//   "República Checa" → "republica-checa"
+//   "EE.UU."          → "eeuu"
+function slugifyCountry(pais) {
+  return String(pais || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // quita acentos
+    .replace(/\./g, "")               // quita puntos
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+function flagImagePath(pais) {
+  return `/flags/${slugifyCountry(pais)}.jpg`;
+}
 
 export default function Garage({ open, onClose, user, onOpenLogin }) {
   const [state, setState] = useState({
@@ -25,14 +42,28 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     data: null,
     error: "",
   });
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [detailCar, setDetailCar] = useState(null); // cromo abierto en zoom
-  const swiperRef = useRef(null);
+  const [selectedCountry, setSelectedCountry] = useState(null);
+  const [detailCar, setDetailCar] = useState(null);
 
-  // Cierra con ESC, salvo cuando hay un detail abierto (deja que el
-  // detail capture su propio ESC).
-  useEscape(open && !detailCar, onClose);
-  useEscape(Boolean(detailCar), () => setDetailCar(null));
+  // ESC: tres niveles en orden de prioridad.
+  useEscape(open && Boolean(detailCar), () => setDetailCar(null));
+  useEscape(
+    open && !detailCar && Boolean(selectedCountry),
+    () => setSelectedCountry(null)
+  );
+  useEscape(
+    open && !detailCar && !selectedCountry,
+    onClose
+  );
+
+  // Al cerrar el modal, reset de navegación interna para que la próxima
+  // apertura empiece en la vista menú.
+  useEffect(() => {
+    if (!open) {
+      setSelectedCountry(null);
+      setDetailCar(null);
+    }
+  }, [open]);
 
   // Fetch al abrir, solo si hay sesión.
   useEffect(() => {
@@ -65,28 +96,12 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     })();
   }, [open, user]);
 
-  // Track manual swipe → update dot indicator.
-  useEffect(() => {
-    const el = swiperRef.current;
-    if (!el) return;
-    function onScroll() {
-      const w = el.clientWidth || 1;
-      const idx = Math.round(el.scrollLeft / w);
-      setActiveIdx(idx);
-    }
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [state.data]);
-
-  // Cuando se abre el modal, reset al primer país.
-  useEffect(() => {
-    if (open && swiperRef.current) {
-      swiperRef.current.scrollTo({ left: 0, behavior: "auto" });
-      setActiveIdx(0);
-    }
-  }, [open]);
-
   if (!open) return null;
+
+  const currentCountry =
+    selectedCountry && state.data
+      ? state.data.countries.find((c) => c.pais === selectedCountry) || null
+      : null;
 
   return (
     <div
@@ -96,25 +111,29 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       <div
         className="
           relative flex w-full max-w-md flex-col overflow-hidden
-          border-x border-white/10 bg-[#0a0a0c]
-          shadow-2xl
+          border-x border-white/10 bg-[#0a0a0c] shadow-2xl
         "
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
-              Tu colección
-            </p>
-            <h2 className="font-display text-2xl tracking-widest text-white">
-              Garaje
-            </h2>
+        {/* Header del modal con back-button condicional */}
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="flex items-center gap-2">
+            {currentCountry && (
+              <BackButton onClick={() => setSelectedCountry(null)} />
+            )}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
+                {currentCountry ? "País" : "Tu colección"}
+              </p>
+              <h2 className="font-display text-2xl tracking-widest text-white">
+                {currentCountry ? currentCountry.pais : "Garaje"}
+              </h2>
+            </div>
           </div>
           <CloseButton onClick={onClose} />
         </div>
 
-        {/* Cuerpo */}
+        {/* Cuerpo según estado de auth, carga y vista */}
         {!user ? (
           <AuthWall
             onLogin={() => {
@@ -123,32 +142,20 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
             }}
           />
         ) : state.loading ? (
-          <div className="flex flex-1 items-center justify-center p-6">
-            <p className="animate-pulse text-sm uppercase tracking-widest text-muted">
-              Abriendo el garaje...
-            </p>
-          </div>
+          <CenterMessage text="Abriendo el garaje..." pulse />
         ) : state.error ? (
-          <div className="flex flex-1 items-center justify-center p-6">
-            <p className="text-sm text-red-400">{state.error}</p>
-          </div>
+          <CenterMessage text={state.error} tone="error" />
         ) : !state.data || state.data.countries.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center p-6 text-center">
-            <p className="text-sm text-muted">
-              El catálogo está vacío. Vuelve cuando haya coches que coleccionar.
-            </p>
-          </div>
-        ) : (
-          <GarageContent
-            data={state.data}
-            swiperRef={swiperRef}
-            activeIdx={activeIdx}
+          <CenterMessage text="El catálogo está vacío. Vuelve cuando haya coches que coleccionar." />
+        ) : currentCountry ? (
+          <Showroom
+            country={currentCountry}
             onSelectCar={setDetailCar}
-            onJumpTo={(idx) => {
-              const el = swiperRef.current;
-              if (!el) return;
-              el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
-            }}
+          />
+        ) : (
+          <CountriesMenu
+            data={state.data}
+            onSelectCountry={setSelectedCountry}
           />
         )}
       </div>
@@ -161,42 +168,11 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   );
 }
 
-// ---- Subcomponentes ----
+// ============================================================================
+// Vista 1: Menú de países
+// ============================================================================
 
-function AuthWall({ onLogin }) {
-  return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-white/10 bg-bg-secondary/60 p-6 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
-          <LockIcon className="h-9 w-9 text-accent" />
-        </div>
-        <div>
-          <p className="font-display text-xl tracking-widest text-white">
-            Garaje cerrado
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Inicia sesión para coleccionar tus aciertos, completar el álbum
-            por países y guardar tu progreso.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onLogin}
-          className="
-            flex w-full items-center justify-center gap-3
-            rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black
-            transition-transform hover:scale-[1.02] active:scale-[0.98]
-          "
-        >
-          <GoogleIcon className="h-4 w-4" />
-          Continuar con Google
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function GarageContent({ data, swiperRef, activeIdx, onSelectCar, onJumpTo }) {
+function CountriesMenu({ data, onSelectCountry }) {
   return (
     <>
       {/* Resumen global */}
@@ -210,102 +186,122 @@ function GarageContent({ data, swiperRef, activeIdx, onSelectCar, onJumpTo }) {
         </p>
       </div>
 
-      {/* Swiper horizontal: contenedor con overflow + flex; cada hijo ocupa
-          el 100% del CONTENEDOR (no del flex interno), con flex-shrink:0
-          para que no se compriman entre sí. Así 15 países = 15 slides
-          apiladas horizontalmente, cada una del ancho del modal.
-          `[&::-webkit-scrollbar]:hidden` + scrollbarWidth ocultan la barra. */}
-      <div
-        ref={swiperRef}
-        className="
-          flex flex-1 overflow-x-auto overflow-y-hidden
-          snap-x snap-mandatory scroll-smooth
-          [&::-webkit-scrollbar]:hidden
-        "
-        style={{
-          WebkitOverflowScrolling: "touch",
-          scrollbarWidth: "none",
-        }}
-      >
-        {data.countries.map((country) => (
-          <CountryPage
-            key={country.pais}
-            country={country}
-            onSelectCar={onSelectCar}
-          />
-        ))}
-      </div>
-
-      {/* Footer: dots de navegación */}
-      <div className="flex items-center justify-center gap-2 border-t border-white/10 bg-[#08080a] px-4 py-3">
-        {data.countries.map((c, i) => (
-          <button
-            key={c.pais}
-            type="button"
-            onClick={() => onJumpTo(i)}
-            aria-label={`Ir a ${c.pais}`}
-            className={`
-              h-2 rounded-full transition-all
-              ${i === activeIdx ? "w-6 bg-accent" : "w-2 bg-white/20 hover:bg-white/40"}
-            `}
-          />
-        ))}
+      {/* Grid de países */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {data.countries.map((c) => (
+            <CountryCard
+              key={c.pais}
+              country={c}
+              onClick={() => onSelectCountry(c.pais)}
+            />
+          ))}
+        </div>
       </div>
     </>
   );
 }
 
-function CountryPage({ country, onSelectCar }) {
-  const flag = flagFor(country.pais);
+function CountryCard({ country, onClick }) {
+  const completed = country.unlocked === country.total && country.total > 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="
+        group relative aspect-square w-full overflow-hidden rounded-xl
+        border border-white/10 bg-[#1a1a20] shadow-md shadow-black/40
+        transition
+        hover:border-accent/60 hover:shadow-accent/10
+        active:scale-[0.97]
+      "
+      // Doble capa: gradient oscuro fijo + imagen de la bandera (puede 404).
+      // Si la imagen no carga, solo se ve el gradient sobre el color base.
+      style={{
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('${flagImagePath(country.pais)}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      {/* Bandera emoji en esquina como fallback visual (siempre se ve) */}
+      <div className="absolute right-2 top-2 text-2xl opacity-80 drop-shadow-lg" aria-hidden="true">
+        {flagFor(country.pais)}
+      </div>
+
+      {/* Marcador de país completado */}
+      {completed && (
+        <div className="absolute left-2 top-2 rounded-full bg-accent/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
+          ★ Completo
+        </div>
+      )}
+
+      {/* Texto frontal centrado */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
+        <p className="font-display text-xl font-bold uppercase tracking-wider text-white drop-shadow-lg sm:text-2xl">
+          {country.pais}
+        </p>
+        <p className="mt-2 font-display text-sm tabular-nums tracking-wider text-white/90 drop-shadow-md">
+          <span className="text-accent">{country.unlocked}</span>
+          <span className="text-white/60"> / {country.total}</span>
+        </p>
+      </div>
+    </button>
+  );
+}
+
+// ============================================================================
+// Vista 2: Showroom (coches del país)
+// ============================================================================
+
+function Showroom({ country, onSelectCar }) {
   const progressPct = country.total
     ? Math.round((country.unlocked / country.total) * 100)
     : 0;
 
   return (
-    <section
-      className="
-        w-full shrink-0 snap-center overflow-y-auto
-        px-4 py-4
-        [&::-webkit-scrollbar]:hidden
-      "
-      style={{
-        flex: "0 0 100%",
-        scrollbarWidth: "none",
-      }}
-    >
-      <header className="mb-4 text-center">
+    <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Banda con bandera grande + progreso */}
+      <div
+        className="relative border-b border-white/10 px-4 py-4 text-center"
+        style={{
+          backgroundImage: `linear-gradient(rgba(10,10,12,0.85), rgba(10,10,12,0.95)), url('${flagImagePath(country.pais)}')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
         <div className="text-5xl leading-none" aria-hidden="true">
-          {flag}
+          {flagFor(country.pais)}
         </div>
-        <h3 className="mt-2 font-display text-2xl tracking-widest text-white">
-          {country.pais}
-        </h3>
-        <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-muted">
+        <p className="mt-2 text-[10px] uppercase tracking-[0.22em] text-muted">
           Descubiertos {country.unlocked} / Total {country.total}
         </p>
-        {/* Barra de progreso del país */}
+        {/* Barra de progreso */}
         <div className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-white/10">
           <div
             className="h-full rounded-full bg-accent transition-[width] duration-700"
             style={{ width: `${progressPct}%` }}
           />
         </div>
-      </header>
-
-      <div className="grid grid-cols-2 gap-3 pb-3 sm:grid-cols-3">
-        {country.cars.map((car) =>
-          car.unlocked ? (
-            <UnlockedCard
-              key={car.id}
-              car={car}
-              onClick={() => onSelectCar(car)}
-            />
-          ) : (
-            <LockedCard key={car.id} />
-          )
-        )}
       </div>
-    </section>
+
+      {/* Grid de coches */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="grid grid-cols-2 gap-3 pb-3 sm:grid-cols-3">
+          {country.cars.map((car) =>
+            car.unlocked ? (
+              <UnlockedCard
+                key={car.id}
+                car={car}
+                onClick={() => onSelectCar(car)}
+              />
+            ) : (
+              <LockedCard key={car.id} />
+            )
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -322,7 +318,6 @@ function UnlockedCard({ car, onClick }) {
         active:scale-[0.97]
       "
     >
-      {/* Imagen */}
       <div className="absolute inset-0 overflow-hidden">
         <img
           src={car.img}
@@ -333,21 +328,16 @@ function UnlockedCard({ car, onClick }) {
         />
       </div>
 
-      {/* Gradient inferior para legibilidad */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/55 to-transparent" />
 
-      {/* Etiqueta */}
       <div className="absolute inset-x-0 bottom-0 p-2 text-left">
         <p className="truncate font-display text-[11px] uppercase tracking-widest text-accent">
           {car.marca}
         </p>
-        <p className="truncate text-xs text-white">
-          {car.modelo}
-        </p>
+        <p className="truncate text-xs text-white">{car.modelo}</p>
         <p className="text-[10px] tabular-nums text-muted">{car.anio}</p>
       </div>
 
-      {/* Esquina decorativa estilo cromo */}
       <div className="absolute right-1.5 top-1.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
         ✓
       </div>
@@ -364,34 +354,35 @@ function LockedCard() {
       "
       aria-label="Cromo bloqueado"
     >
-      {/* Textura de líneas diagonales */}
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 6px, transparent 6px 12px)",
-        }}
+      {/* Foto estática del coche tapado con una lona */}
+      <img
+        src={LONA_IMG}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover opacity-90"
       />
 
-      {/* Silueta de coche */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <CarSilhouette className="h-12 w-12 text-white/10" />
-      </div>
+      {/* Oscurecido para que destaque el texto sobre la lona */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30" />
 
-      {/* Etiqueta */}
-      <div className="absolute inset-x-0 bottom-0 p-2 text-center">
-        <p className="font-display text-[10px] uppercase tracking-[0.18em] text-muted">
-          Bloqueado
+      {/* Texto + candado centrados */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <div className="rounded-full border border-white/15 bg-black/50 p-1.5 backdrop-blur-sm">
+          <LockIcon className="h-4 w-4 text-white/70" />
+        </div>
+        <p className="font-display text-[11px] uppercase tracking-[0.18em] text-white/80">
+          Desconocido
         </p>
-      </div>
-
-      {/* Candado decorativo */}
-      <div className="absolute right-1.5 top-1.5 rounded-full bg-white/5 p-1">
-        <LockIcon className="h-3 w-3 text-white/30" />
       </div>
     </div>
   );
 }
+
+// ============================================================================
+// Detail del cromo (modal sobre modal)
+// ============================================================================
 
 function CarDetail({ car, onClose }) {
   return (
@@ -450,7 +441,88 @@ function CarDetail({ car, onClose }) {
   );
 }
 
-// ---- Icons ----
+// ============================================================================
+// Subcomponentes auxiliares
+// ============================================================================
+
+function BackButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Volver a países"
+      title="Volver a países"
+      className="
+        flex h-9 w-9 shrink-0 items-center justify-center rounded-full
+        border border-white/10 bg-white/[0.04] text-white/80
+        transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent
+        active:scale-90
+      "
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+    </button>
+  );
+}
+
+function CenterMessage({ text, pulse = false, tone = "default" }) {
+  const toneClass =
+    tone === "error" ? "text-red-400" : "text-muted";
+  return (
+    <div className="flex flex-1 items-center justify-center p-6 text-center">
+      <p className={`text-sm ${toneClass} ${pulse ? "animate-pulse uppercase tracking-widest" : ""}`}>
+        {text}
+      </p>
+    </div>
+  );
+}
+
+function AuthWall({ onLogin }) {
+  return (
+    <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-white/10 bg-bg-secondary/60 p-6 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
+          <LockIcon className="h-9 w-9 text-accent" />
+        </div>
+        <div>
+          <p className="font-display text-xl tracking-widest text-white">
+            Garaje cerrado
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Inicia sesión para coleccionar tus aciertos, completar el álbum
+            por países y guardar tu progreso.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onLogin}
+          className="
+            flex w-full items-center justify-center gap-3
+            rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black
+            transition-transform hover:scale-[1.02] active:scale-[0.98]
+          "
+        >
+          <GoogleIcon className="h-4 w-4" />
+          Continuar con Google
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Icons
+// ============================================================================
 
 function LockIcon({ className = "" }) {
   return (
@@ -466,19 +538,6 @@ function LockIcon({ className = "" }) {
     >
       <rect x="4" y="11" width="16" height="9" rx="2" />
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-    </svg>
-  );
-}
-
-function CarSilhouette({ className = "" }) {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      className={className}
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M52 36h-2.4l-3.2-9.6A4 4 0 0 0 42.6 24H21.4a4 4 0 0 0-3.8 2.4L14.4 36H12a4 4 0 0 0-4 4v6h4a4 4 0 0 0 8 0h24a4 4 0 0 0 8 0h4v-6a4 4 0 0 0-4-4Zm-31.7-7.6.6-1.4h20.2l.6 1.4 2.5 7.6H17.8l2.5-7.6ZM16 46a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm32 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" />
     </svg>
   );
 }

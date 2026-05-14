@@ -375,17 +375,18 @@ function LockedCard() {
       "
       aria-label="Cromo bloqueado"
     >
-      {/* Foto de la lona: `object-contain` para que se vea entero el
-          coche cubierto (zoom out respecto al cover anterior) y
-          `object-top` para que quede anclado a la parte alta del cromo,
-          dejando el pie libre para el candado y el texto sin solaparse. */}
+      {/* Foto de la lona: `object-cover` llena el cromo entero (sin
+          huecos negros) y `object-top` ancla el encuadre a la parte
+          superior. Si la foto es más ancha que el cromo se recortan
+          los lados; si más alta, se recorta el pie — aceptable según
+          la indicación del usuario. */}
       <img
         src={LONA_IMG}
         alt=""
         aria-hidden="true"
         draggable={false}
         loading="lazy"
-        className="absolute inset-0 h-full w-full object-contain object-top"
+        className="absolute inset-0 h-full w-full object-cover object-top"
         onError={(e) => {
           e.currentTarget.style.display = "none";
         }}

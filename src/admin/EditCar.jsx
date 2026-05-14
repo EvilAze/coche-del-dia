@@ -19,7 +19,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { useCatalog } from "../data/catalog";
+import { useFreshCatalog } from "../data/catalog";
 
 const STORAGE_BUCKET = "cars_images";
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
@@ -47,7 +47,10 @@ const initialForm = {
 };
 
 export default function EditCar() {
-  const { data: catalog } = useCatalog();
+  // useFreshCatalog en vez de useCatalog: bypassea el CDN cache (5 min) y
+  // la caché de memoria, así un coche que acabes de añadir desde AddCar
+  // aparece en el dropdown de inmediato.
+  const { data: catalog, reload: reloadCatalog } = useFreshCatalog();
   const CARS = catalog?.cars ?? [];
   const MARCAS = catalog?.marcas ?? [];
   const PAISES = catalog?.paises ?? [];
@@ -277,10 +280,15 @@ export default function EditCar() {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
 
+      // Refresca el dropdown con la versión recién guardada del coche,
+      // por si el admin cambió marca/modelo/año y luego quiere volver a
+      // seleccionarlo. Se ejecuta en background; no bloqueamos el flujo.
+      reloadCatalog().catch((err) =>
+        console.warn("[EditCar] reloadCatalog post-save:", err)
+      );
+
       // Sincronizamos estado local: el coche editado pasa a ser el nuevo
-      // "original". El catálogo en caché (useCatalog) seguirá con los datos
-      // viejos hasta que se recargue la página; aceptable para una herramienta
-      // de admin de uso puntual.
+      // "original".
       const updated = data.car;
       const nextForm = {
         marca: updated.marca || "",

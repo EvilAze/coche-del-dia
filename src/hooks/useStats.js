@@ -108,6 +108,11 @@ export async function getMyStats() {
 }
 
 export async function getLeaderboard() {
+  // Devolvemos a TODOS los jugadores con puntos > 0 y nickname puesto.
+  // El `.limit(1000)` es solo un techo de seguridad para no traer la BD
+  // entera si algún día crece mucho; Supabase devuelve por defecto 1000,
+  // así que esto es el cap real. La UI (Ranking.jsx) ya hace scroll
+  // interno cuando hay más de 5 entradas.
   const { data, error } = await supabase
     .from("stats")
     .select(`
@@ -123,13 +128,12 @@ export async function getLeaderboard() {
     .gt("total_points", 0)
     .order("total_points", { ascending: false })
     .order("max_streak", { ascending: false })
-    .limit(50);
+    .limit(1000);
 
   if (error) throw error;
 
   return data
     .filter((row) => row.profile?.display_name)
-    .slice(0, 10)
     .map((row, index) => ({
       rank: index + 1,
       userId: row.user_id,

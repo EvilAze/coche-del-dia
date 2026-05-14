@@ -1,0 +1,172 @@
+// api/garage.js
+// Devuelve el "Garaje" (álbum de cromos) del usuario autenticado:
+// catálogo entero agrupado por país, marcando cuáles ha desbloqueado.
+//
+// Reglas:
+//   - Solo usuarios autenticados. El garaje es un beneficio de registrarse.
+//   - Cromo desbloqueado = el usuario tiene una fila en user_guesses con
+//     status='won' para ese car_id (no importa la fecha; un coche que ya
+//     no es el del día sigue contando en el álbum).
+//   - Cromos bloqueados se devuelven con id solamente (sin marca/modelo
+//     /año/imagen): no queremos filtrar pistas sobre el coche del día.
+//   - Cromos desbloqueados llevan info completa incluida la URL pública
+//     de la imagen, que el frontend muestra directo (las imágenes son
+//     públicas; lo restringido era el cruce con el coche-del-día, ya
+//     mitigado por el sistema de proxy + RPC).
+
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabaseAdmin =
+  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    : null;
+
+function extractAccessToken(req) {
+  const header = req.headers?.authorization || "";
+  if (header.startsWith("Bearer ")) return header.slice(7);
+  return null;
+}
+
+async function authClientAndUser(accessToken) {
+  if (!accessToken) return { client: null, user: null };
+  try {
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await client.auth.getUser();
+    if (error || !data?.user) return { client: null, user: null };
+    return { client, user: data.user };
+  } catch (err) {
+    console.error("[garage] authClientAndUser:", err);
+    return { client: null, user: null };
+  }
+}
+
+export default async function handler(req, res) {
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Server misconfigured" });
+    }
+
+    const accessToken = extractAccessToken(req);
+    const { client: authClient, user } = await authClientAndUser(accessToken);
+    if (!user || !authClient) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // 1) Catálogo completo (con image_url y description, columnas
+    //    privilegiadas → service_role).
+    const { data: cars, error: carsErr } = await supabaseAdmin
+      .from("cars")
+      .select("id, make, model, year, pais, description, image_url")
+      .order("year", { ascending: true });
+    if (carsErr) {
+      console.error("[garage] read cars:", carsErr);
+      return res.status(500).json({ error: "Failed to read catalog" });
+    }
+
+    // 2) Coches que el usuario ha ganado (status='won').
+    //    user_guesses tiene RLS (auth.uid()=user_id), authClient incluye
+    //    el bearer del usuario, así que la query devuelve solo SU historial.
+    const { data: wins, error: winsErr } = await authClient
+      .from("user_guesses")
+      .select("car_id")
+      .eq("user_id", user.id)
+      .eq("status", "won");
+    if (winsErr) {
+      console.error("[garage] read user_guesses:", winsErr);
+      return res.status(500).json({ error: "Failed to read wins" });
+    }
+
+    const unlockedIds = new Set((wins || []).map((w) => w.car_id));
+
+    // 3) Agrupar por país. Sin clase de coche → "Sin país" como cubo
+    //    fallback (en la práctica no debería pasar porque pais es required
+    //    en /admin/add-car, pero defensivo).
+    const byCountry = new Map();
+    for (const c of cars || []) {
+      const pais = c.pais || "Sin país";
+      if (!byCountry.has(pais)) {
+        byCountry.set(pais, { pais, cars: [] });
+      }
+      const unlocked = unlockedIds.has(c.id);
+      byCountry.get(pais).cars.push(
+        unlocked
+          ? {
+              id: c.id,
+              marca: c.make,
+              modelo: c.model,
+              anio: c.year,
+              description: c.description ?? null,
+              img: c.image_url,
+              unlocked: true,
+            }
+          : {
+              id: c.id,
+              unlocked: false,
+            }
+      );
+    }
+
+    // 4) Salida ordenada: países por progreso desc (más desbloqueados primero)
+    //    y, dentro de cada país, desbloqueados antes que bloqueados.
+    //    Esto da una primera impresión más satisfactoria al abrir el álbum.
+    const countries = Array.from(byCountry.values())
+      .map((c) => {
+        const unlocked = c.cars.filter((x) => x.unlocked).length;
+        return {
+          pais: c.pais,
+          total: c.cars.length,
+          unlocked,
+          cars: c.cars.sort((a, b) => {
+            if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+            if (a.unlocked && b.unlocked) {
+              // dentro de desbloqueados, ordena por año ascendente
+              return (a.anio || 0) - (b.anio || 0);
+            }
+            return 0;
+          }),
+        };
+      })
+      .sort((a, b) => {
+        // Primero los países donde el usuario tenga más progreso absoluto.
+        if (b.unlocked !== a.unlocked) return b.unlocked - a.unlocked;
+        // Empate: alfabético.
+        return a.pais.localeCompare(b.pais, "es");
+      });
+
+    const totalCatalog = (cars || []).length;
+    const totalUnlocked = unlockedIds.size;
+
+    // Sin cache: el album es por-usuario y cambia tras cada victoria.
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json({
+      totalCatalog,
+      totalUnlocked,
+      countries,
+    });
+  } catch (err) {
+    console.error("[garage] UNCAUGHT:", err && err.stack ? err.stack : err);
+    return res.status(500).json({
+      error: "Internal error",
+      detail:
+        process.env.NODE_ENV === "production"
+          ? undefined
+          : String(err?.message || err),
+    });
+  }
+}

@@ -12,6 +12,7 @@ import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import Header from "./components/Header";
 import Ranking from "./components/Ranking";
+import Garage from "./components/Garage";
 import MyStats from "./components/MyStats";
 import NicknameModal from "./components/NicknameModal";
 import CloseButton from "./components/CloseButton";
@@ -118,6 +119,10 @@ export default function App() {
     setActiveModal("ranking");
   }
 
+  function openGarage() {
+    setActiveModal("garage");
+  }
+
   function openProfile() {
     setActiveModal("profile");
   }
@@ -182,6 +187,7 @@ export default function App() {
       <Header
         user={user}
         onOpenRanking={openRanking}
+        onOpenGarage={openGarage}
         onOpenProfile={openProfile}
         onOpenLogin={openLogin}
       />
@@ -294,6 +300,13 @@ export default function App() {
 
       <Ranking
         open={activeModal === "ranking"}
+        onClose={closeModal}
+        user={user}
+        onOpenLogin={openLogin}
+      />
+
+      <Garage
+        open={activeModal === "garage"}
         onClose={closeModal}
         user={user}
         onOpenLogin={openLogin}

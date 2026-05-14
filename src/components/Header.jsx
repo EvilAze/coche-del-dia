@@ -1,6 +1,7 @@
 /// src/components/Header.jsx
 // Props:
 //   onOpenRanking  — fn(): abre el modal de ranking
+//   onOpenGarage   — fn(): abre el modal del garaje (álbum)
 //   onOpenProfile  — fn(): abre el modal de perfil
 //   onOpenLogin    — fn(): abre el modal para iniciar sesión con Google
 //   user           — objeto de usuario de Supabase (null si no hay sesión)
@@ -44,6 +45,32 @@ function TrophyIcon() {
   );
 }
 
+function GarageIcon() {
+  // Silueta tipo "garage door" con un coche dentro. Stroke fino para
+  // armonizar con UserIcon y TrophyIcon.
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-6 w-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* Tejado del garaje */}
+      <path d="M3 10 12 4l9 6" />
+      {/* Pilares laterales */}
+      <path d="M4 10v10" />
+      <path d="M20 10v10" />
+      {/* Puerta del garaje (silueta de coche interior) */}
+      <path d="M7 20v-6h10v6" />
+      <path d="M9 17h6" />
+    </svg>
+  );
+}
+
 const iconBtn = `
   flex h-11 w-11 items-center justify-center rounded-full
   text-muted transition-colors duration-200
@@ -51,7 +78,13 @@ const iconBtn = `
   active:scale-90
 `;
 
-export default function Header({ onOpenRanking, onOpenProfile, onOpenLogin, user }) {
+export default function Header({
+  onOpenRanking,
+  onOpenGarage,
+  onOpenProfile,
+  onOpenLogin,
+  user,
+}) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
       <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
@@ -91,7 +124,16 @@ export default function Header({ onOpenRanking, onOpenProfile, onOpenLogin, user
           CARGUESSR
         </div>
 
-        <div className="z-10 flex min-w-0 items-center justify-end">
+        <div className="z-10 flex min-w-0 items-center justify-end gap-0.5">
+          <button
+            type="button"
+            onClick={onOpenGarage}
+            aria-label="Mi garaje"
+            title="Mi garaje"
+            className={iconBtn}
+          >
+            <GarageIcon />
+          </button>
           <button
             type="button"
             onClick={onOpenRanking}

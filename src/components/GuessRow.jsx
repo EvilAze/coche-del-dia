@@ -1,20 +1,4 @@
-const COUNTRY_FLAGS = {
-  Japón: "🇯🇵",
-  Alemania: "🇩🇪",
-  Italia: "🇮🇹",
-  "EE.UU.": "🇺🇸",
-  Francia: "🇫🇷",
-  "Reino Unido": "🇬🇧",
-  "Corea del Sur": "🇰🇷",
-  Suecia: "🇸🇪",
-  España: "🇪🇸",
-  Austria: "🇦🇹",
-  Croacia: "🇭🇷",
-  Rumanía: "🇷🇴",
-  Rusia: "🇷🇺",
-  "República Checa": "🇨🇿",
-  "Países Bajos": "🇳🇱",
-};
+import { COUNTRY_FLAGS } from "../data/countries";
 
 const STATUS_STYLES = {
   correct: {

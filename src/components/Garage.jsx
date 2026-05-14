@@ -10,7 +10,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
-import { flagFor } from "../data/countries";
+import { codeFor } from "../data/countries";
 import CloseButton from "./CloseButton";
 
 // Imagen estática que cubre los coches sin desbloquear. Debe existir en
@@ -216,34 +216,55 @@ function CountryCard({ country, onClick }) {
         hover:border-accent/60 hover:shadow-accent/10
         active:scale-[0.97]
       "
-      // Doble capa: gradient oscuro fijo + imagen de la bandera (puede 404).
-      // Si la imagen no carga, solo se ve el gradient sobre el color base.
+      // Tres capas de fondo:
+      //   1. Gradient oscuro arriba (asegura legibilidad del texto)
+      //   2. Imagen de la bandera (cover; puede 404 sin romper la card)
+      //   3. Color base (fallback si la imagen no existe)
       style={{
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('${flagImagePath(country.pais)}')`,
+        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.75) 100%), url('${flagImagePath(country.pais)}')`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      {/* Bandera emoji en esquina como fallback visual (siempre se ve) */}
-      <div className="absolute right-2 top-2 text-2xl opacity-80 drop-shadow-lg" aria-hidden="true">
-        {flagFor(country.pais)}
+      {/* Badge ISO en esquina superior derecha: se ve igual en todas las
+          plataformas (no depende de glifos de emoji). */}
+      <div
+        className="
+          absolute right-2 top-2 rounded-md
+          border border-white/25 bg-black/45 px-1.5 py-0.5
+          font-display text-[10px] font-bold tracking-widest text-white/90
+          backdrop-blur-sm
+        "
+        aria-hidden="true"
+      >
+        {codeFor(country.pais)}
       </div>
 
       {/* Marcador de país completado */}
       {completed && (
-        <div className="absolute left-2 top-2 rounded-full bg-accent/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
+        <div className="absolute left-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
           ★ Completo
         </div>
       )}
 
-      {/* Texto frontal centrado */}
+      {/* Texto frontal centrado, con sombra densa para legibilidad sobre
+          cualquier bandera (incluidas las blancas/amarillas). */}
       <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
-        <p className="font-display text-xl font-bold uppercase tracking-wider text-white drop-shadow-lg sm:text-2xl">
+        <p
+          className="
+            font-display text-xl font-bold uppercase tracking-wider text-white
+            sm:text-2xl
+          "
+          style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)" }}
+        >
           {country.pais}
         </p>
-        <p className="mt-2 font-display text-sm tabular-nums tracking-wider text-white/90 drop-shadow-md">
+        <p
+          className="mt-2 font-display text-sm tabular-nums tracking-wider"
+          style={{ textShadow: "0 1px 4px rgba(0,0,0,0.95)" }}
+        >
           <span className="text-accent">{country.unlocked}</span>
-          <span className="text-white/60"> / {country.total}</span>
+          <span className="text-white/80"> / {country.total}</span>
         </p>
       </div>
     </button>
@@ -261,19 +282,27 @@ function Showroom({ country, onSelectCar }) {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Banda con bandera grande + progreso */}
+      {/* Banda con bandera de fondo (oscurecida) + progreso */}
       <div
-        className="relative border-b border-white/10 px-4 py-4 text-center"
+        className="relative border-b border-white/10 px-4 py-5 text-center"
         style={{
-          backgroundImage: `linear-gradient(rgba(10,10,12,0.85), rgba(10,10,12,0.95)), url('${flagImagePath(country.pais)}')`,
+          backgroundImage: `linear-gradient(rgba(10,10,12,0.7), rgba(10,10,12,0.9)), url('${flagImagePath(country.pais)}')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="text-5xl leading-none" aria-hidden="true">
-          {flagFor(country.pais)}
+        <div
+          className="
+            mx-auto inline-flex items-center justify-center
+            rounded-lg border border-white/20 bg-black/40
+            px-3 py-1 font-display text-lg font-bold tracking-[0.3em] text-white/95
+            backdrop-blur-sm
+          "
+          aria-hidden="true"
+        >
+          {codeFor(country.pais)}
         </div>
-        <p className="mt-2 text-[10px] uppercase tracking-[0.22em] text-muted">
+        <p className="mt-3 text-[10px] uppercase tracking-[0.22em] text-muted">
           Descubiertos {country.unlocked} / Total {country.total}
         </p>
         {/* Barra de progreso */}
@@ -353,26 +382,34 @@ function LockedCard() {
         border border-white/5 bg-[#15151a]
       "
       aria-label="Cromo bloqueado"
+      // Mismo patrón de doble capa que la CountryCard: gradient siempre
+      // visible + foto de la lona detrás. Si /images/lona.jpg no existe,
+      // queda el gradient sobre el bg-[#15151a] → aspecto intencional.
+      style={{
+        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.7) 100%), url('${LONA_IMG}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
-      {/* Foto estática del coche tapado con una lona */}
-      <img
-        src={LONA_IMG}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        loading="lazy"
-        className="absolute inset-0 h-full w-full object-cover opacity-90"
+      {/* Textura diagonal sutil (siempre visible aunque la lona cargue),
+          para que se sienta "tapado" incluso con la foto debajo. */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-25"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 6px, transparent 6px 12px)",
+        }}
       />
-
-      {/* Oscurecido para que destaque el texto sobre la lona */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/30" />
 
       {/* Texto + candado centrados */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-        <div className="rounded-full border border-white/15 bg-black/50 p-1.5 backdrop-blur-sm">
+        <div className="rounded-full border border-white/15 bg-black/55 p-1.5 backdrop-blur-sm">
           <LockIcon className="h-4 w-4 text-white/70" />
         </div>
-        <p className="font-display text-[11px] uppercase tracking-[0.18em] text-white/80">
+        <p
+          className="font-display text-[11px] uppercase tracking-[0.18em] text-white/85"
+          style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
+        >
           Desconocido
         </p>
       </div>

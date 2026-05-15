@@ -136,8 +136,13 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: "Already unlocked" });
     }
 
-    // 3) Estado de la repesca actual del usuario.
-    const { data: statsRow, error: statsErr } = await authClient
+    // 3) Estado de la repesca actual del usuario. Lectura con service_role:
+    //    `stats` solo tiene policies de SELECT públicas en este proyecto, y
+    //    las escrituras desde el cliente están deliberadamente bloqueadas
+    //    (no hay policy INSERT/UPDATE para authenticated). Toda mutación
+    //    sobre stats pasa por endpoints server-side, igual que hace el RPC
+    //    record_daily_result_v2 con SECURITY DEFINER.
+    const { data: statsRow, error: statsErr } = await supabaseAdmin
       .from("stats")
       .select("last_repesca_at, last_repesca_car_id")
       .eq("user_id", user.id)
@@ -165,9 +170,11 @@ export default async function handler(req, res) {
     }
 
     // 4) Consumir la repesca: marcar fecha y car_id en stats.
-    //    Usamos upsert porque algunos usuarios pueden no tener fila en
-    //    stats todavía (la fila se crea al primer record_daily_result_v2).
-    const { error: upsertErr } = await authClient
+    //    Usamos upsert con service_role para saltar RLS — el cliente no
+    //    tiene permisos de INSERT/UPDATE sobre stats por diseño (ver nota
+    //    en el paso 3). El usuario no puede manipular estos campos desde
+    //    DevTools porque sus credenciales no pueden tocar la tabla.
+    const { error: upsertErr } = await supabaseAdmin
       .from("stats")
       .upsert(
         {
@@ -178,8 +185,20 @@ export default async function handler(req, res) {
         { onConflict: "user_id" }
       );
     if (upsertErr) {
-      console.error("[repesca/start] upsert stats:", upsertErr);
-      return res.status(500).json({ error: "Failed to consume repesca" });
+      // Logueamos TODO lo que devuelve Supabase: en logs de Vercel queda
+      // el message + code + details + hint. Devolvemos en `detail` el
+      // mensaje + código para que la modal del frontend lo muestre y
+      // podamos diagnosticar en producción sin tener que abrir logs.
+      console.error("[repesca/start] upsert stats:", {
+        message: upsertErr.message,
+        code: upsertErr.code,
+        details: upsertErr.details,
+        hint: upsertErr.hint,
+      });
+      return res.status(500).json({
+        error: "Failed to consume repesca",
+        detail: `${upsertErr.message}${upsertErr.code ? ` (code ${upsertErr.code})` : ""}`,
+      });
     }
 
     return res.status(200).json({

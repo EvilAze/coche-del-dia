@@ -135,7 +135,10 @@ export default async function handler(req, res) {
     const today = todayInMadrid();
 
     // 1) Gate: el usuario debe tener una repesca activa HOY para este carId.
-    const { data: statsRow, error: statsErr } = await authClient
+    //    Lectura con service_role: stats solo expone SELECT públicas en
+    //    este proyecto y todas las mutaciones pasan por endpoints server-
+    //    side. Mantenemos la disciplina aquí también.
+    const { data: statsRow, error: statsErr } = await supabaseAdmin
       .from("stats")
       .select(
         "last_repesca_at, last_repesca_car_id, total_points, total_wins"
@@ -270,7 +273,11 @@ export default async function handler(req, res) {
     if (result.win && points > 0) {
       const nextTotal = (statsRow?.total_points || 0) + points;
       const nextWins = (statsRow?.total_wins || 0) + 1;
-      const { error: pointsErr } = await authClient
+      // Update con service_role: igual que en /api/repesca/start, las
+      // mutaciones sobre stats viven server-side. Esto bloquea desde la
+      // raíz que un usuario manipule sus propios puntos/wins desde el
+      // navegador llamando a Supabase directamente con su bearer.
+      const { error: pointsErr } = await supabaseAdmin
         .from("stats")
         .upsert(
           {

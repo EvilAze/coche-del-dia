@@ -31,15 +31,6 @@ function triggerHaptic(pattern) {
   }
 }
 
-function todayInMadrid() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
 function getCarIdFromUrl() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -119,7 +110,13 @@ export default function Repesca() {
         } = await supabase.auth.getSession();
         if (!session?.access_token) throw new Error("Sin sesión");
 
-        // 1) Validar/consumir repesca (idempotente).
+        // /api/repesca/start es idempotente: si la repesca ya está
+        // activa para este carId, no consume otra — solo devuelve el
+        // estado actual. Además ahora nos manda el `state` con los
+        // intentos previos, status y reveal (si aplica), así que no
+        // necesitamos leer user_guesses por nuestra cuenta. Lo cual es
+        // importante porque `carId` aquí es un PSEUDO opaco, no el
+        // cars.id real — desde el cliente no podríamos hacer la query.
         const startRes = await fetch("/api/repesca/start", {
           method: "POST",
           headers: {
@@ -132,39 +129,16 @@ export default function Repesca() {
         if (!startRes.ok) {
           throw new Error(startBody?.detail || startBody?.error || `HTTP ${startRes.status}`);
         }
-
-        // 2) Estado actual en user_guesses para esta repesca.
-        const today = todayInMadrid();
-        const { data: stateRow, error: stateErr } = await supabase
-          .from("user_guesses")
-          .select("guesses, status, car_data")
-          .eq("user_id", user.id)
-          .eq("car_id", carId)
-          .eq("date", today)
-          .maybeSingle();
         if (cancelled) return;
-        if (stateErr) {
-          console.error("[Repesca] read user_guesses:", stateErr);
-        }
 
-        const existingGuesses = Array.isArray(stateRow?.guesses)
-          ? stateRow.guesses
-          : [];
-        const existingStatus = stateRow?.status || "playing";
+        const state = startBody.state || { guesses: [], status: "playing", reveal: null };
+        const existingGuesses = Array.isArray(state.guesses) ? state.guesses : [];
+        const existingStatus = state.status || "playing";
+
         setGuesses(existingGuesses);
-
         if (existingStatus === "won" || existingStatus === "lost") {
           setPhase(existingStatus);
-          // Si la partida está terminada, car_data tiene el reveal.
-          if (stateRow?.car_data) {
-            setReveal({
-              marca: stateRow.car_data.marca,
-              modelo: stateRow.car_data.modelo,
-              anio: stateRow.car_data.anio,
-              pais: stateRow.car_data.pais,
-              description: stateRow.car_data.description ?? null,
-            });
-          }
+          if (state.reveal) setReveal(state.reveal);
         } else {
           setPhase("playing");
         }

@@ -11,6 +11,7 @@
 //     directamente sobre `stats`.
 
 import { createClient } from "@supabase/supabase-js";
+import { resolveRealCarId } from "../_lib/repesca-token.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
@@ -117,19 +118,43 @@ export default async function handler(req, res) {
     }
 
     const body = parseBody(req);
-    const carId = typeof body.carId === "string" ? body.carId.trim() : "";
+    // `carId` del body es el PSEUDO del coche-objetivo de la repesca
+    // (el coche que el usuario eligió rescatar desde el Garaje). El
+    // `guessCarId` es el cars.id REAL del coche que el usuario teclea
+    // como respuesta en el GuessForm — viene del autocomplete con
+    // /api/list-cars, donde los ids son reales (no hace falta ocultarlos
+    // porque el atacante ya sabe qué marca/modelo/año eligió él mismo).
+    const pseudoCarId =
+      typeof body.carId === "string" ? body.carId.trim() : "";
     const guessCarId =
       typeof body.guessCarId === "string" ? body.guessCarId.trim() : "";
     const guessAnio = body.anio;
 
-    if (!UUID_RE.test(carId)) {
-      return res.status(400).json({ error: "Invalid carId (target)" });
+    if (!pseudoCarId) {
+      return res.status(400).json({ error: "Missing carId (target)" });
     }
     if (!UUID_RE.test(guessCarId)) {
       return res.status(400).json({ error: "Invalid guessCarId" });
     }
     if (guessAnio === undefined || guessAnio === null) {
       return res.status(400).json({ error: "Invalid anio" });
+    }
+
+    // Resolver pseudo → cars.id real del objetivo.
+    const { data: allCarRows, error: allCarsErr } = await supabaseAdmin
+      .from("cars")
+      .select("id");
+    if (allCarsErr) {
+      console.error("[repesca/validate] read cars:", allCarsErr);
+      return res.status(500).json({ error: "Failed to load catalog" });
+    }
+    const carId = resolveRealCarId(
+      pseudoCarId,
+      user.id,
+      (allCarRows || []).map((c) => c.id)
+    );
+    if (!carId) {
+      return res.status(400).json({ error: "Invalid carId (target)" });
     }
 
     const today = todayInMadrid();

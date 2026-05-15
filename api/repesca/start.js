@@ -13,6 +13,7 @@
 //       - Si era para otro → 409 "Repesca ya consumida hoy".
 
 import { createClient } from "@supabase/supabase-js";
+import { pseudoIdFor, resolveRealCarId } from "../_lib/repesca-token.js";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
@@ -58,6 +59,42 @@ function parseBody(req) {
   return {};
 }
 
+// Lee el estado actual de una partida de repesca (user_guesses) y lo
+// formatea para que el cliente lo pinte directamente sin necesitar el
+// cars.id real. Usa authClient para que RLS confirme que la fila es del
+// usuario (defensa en profundidad — ya validamos auth.uid arriba).
+async function readRepescaState(authClient, userId, carId, today) {
+  const { data: row, error } = await authClient
+    .from("user_guesses")
+    .select("guesses, status, car_data")
+    .eq("user_id", userId)
+    .eq("car_id", carId)
+    .eq("date", today)
+    .maybeSingle();
+  if (error) {
+    console.error("[repesca/start] readRepescaState:", error);
+    return { guesses: [], status: "playing", reveal: null };
+  }
+  const status = row?.status || "playing";
+  let reveal = null;
+  // Solo exponemos reveal cuando la partida está cerrada: en repesca
+  // se revela tanto al ganar como al perder (igual que daily logueado).
+  if ((status === "won" || status === "lost") && row?.car_data) {
+    reveal = {
+      marca: row.car_data.marca,
+      modelo: row.car_data.modelo,
+      anio: row.car_data.anio,
+      pais: row.car_data.pais,
+      description: row.car_data.description ?? null,
+    };
+  }
+  return {
+    guesses: Array.isArray(row?.guesses) ? row.guesses : [],
+    status,
+    reveal,
+  };
+}
+
 async function authClientAndUser(accessToken) {
   if (!accessToken) return { client: null, user: null };
   try {
@@ -92,8 +129,27 @@ export default async function handler(req, res) {
     }
 
     const body = parseBody(req);
-    const carId = typeof body.carId === "string" ? body.carId.trim() : "";
-    if (!UUID_RE.test(carId)) {
+    const pseudoCarId =
+      typeof body.carId === "string" ? body.carId.trim() : "";
+    if (!pseudoCarId) {
+      return res.status(400).json({ error: "Missing carId" });
+    }
+
+    // Resolver pseudo → cars.id real. El cliente nunca conoce el id real
+    // de un coche bloqueado; nos envía el pseudo y aquí lo traducimos.
+    const { data: allCarRows, error: allCarsErr } = await supabaseAdmin
+      .from("cars")
+      .select("id");
+    if (allCarsErr) {
+      console.error("[repesca/start] read cars:", allCarsErr);
+      return res.status(500).json({ error: "Failed to load catalog" });
+    }
+    const carId = resolveRealCarId(
+      pseudoCarId,
+      user.id,
+      (allCarRows || []).map((c) => c.id)
+    );
+    if (!carId) {
       return res.status(400).json({ error: "Invalid carId" });
     }
 
@@ -156,16 +212,25 @@ export default async function handler(req, res) {
     if (alreadyConsumedToday) {
       if (statsRow.last_repesca_car_id === carId) {
         // Reanudación legítima: idempotente, no consumimos de nuevo.
+        // Incluimos también el estado actual de la partida para que el
+        // cliente no necesite leer user_guesses por su cuenta (lo cual
+        // exigiría conocer el carId real, justo lo que queremos ocultar).
+        const resumeState = await readRepescaState(authClient, user.id, carId, today);
         return res.status(200).json({
           ok: true,
-          carId,
+          // Devolvemos el pseudo, no el real. El cliente nos lo envió;
+          // se lo eco-respondemos para que pueda usarlo en image/validate
+          // sin guardarlo en algún state extra.
+          carId: pseudoCarId,
           resume: true,
+          state: resumeState,
         });
       }
-      // Repesca ya gastada en otro coche.
+      // Repesca ya gastada en otro coche. Convertimos el carId activo
+      // también a pseudo antes de exponerlo.
       return res.status(409).json({
         error: "Repesca already used today",
-        activeCarId: statsRow.last_repesca_car_id,
+        activeCarId: pseudoIdFor(statsRow.last_repesca_car_id, user.id),
       });
     }
 
@@ -201,10 +266,13 @@ export default async function handler(req, res) {
       });
     }
 
+    // Primer arranque tras consumir: state nuevo, sin intentos previos.
+    const freshState = await readRepescaState(authClient, user.id, carId, today);
     return res.status(200).json({
       ok: true,
-      carId,
+      carId: pseudoCarId,   // eco del pseudo, nunca exponemos el real
       resume: false,
+      state: freshState,
     });
   } catch (err) {
     console.error("[repesca/start] UNCAUGHT:", err && err.stack ? err.stack : err);

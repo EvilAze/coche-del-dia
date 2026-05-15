@@ -84,6 +84,7 @@ export default function Header({
   onOpenProfile,
   onOpenLogin,
   user,
+  repescaAlert = false,
 }) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
@@ -128,11 +129,30 @@ export default function Header({
           <button
             type="button"
             onClick={onOpenGarage}
-            aria-label="Mi garaje"
+            aria-label={
+              repescaAlert
+                ? "Mi garaje · tienes una repesca disponible"
+                : "Mi garaje"
+            }
             title="Mi garaje"
-            className={iconBtn}
+            className={`relative ${iconBtn}`}
           >
             <GarageIcon />
+            {repescaAlert && (
+              // Puntito ámbar pulsante. `ring-2 ring-[#08080a]` lo separa
+              // visualmente del icono cuando el botón está sobre el header
+              // semi-transparente. `pointer-events-none` para que el click
+              // pase al botón aunque caiga sobre el dot.
+              <span
+                aria-hidden="true"
+                className="
+                  pointer-events-none absolute -right-0.5 -top-0.5
+                  h-3 w-3 rounded-full bg-amber-500
+                  ring-2 ring-[#08080a]
+                  animate-pulse
+                "
+              />
+            )}
           </button>
           <button
             type="button"

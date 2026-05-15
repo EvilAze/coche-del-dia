@@ -40,6 +40,17 @@ function brandLogoPath(marca) {
   return `/brands/${brandSlug(marca)}.png`;
 }
 
+// Cuenta coches "missed" en un array: ya fue coche del día y el usuario
+// no lo ha ganado. Es la cifra que muestra el indicador ámbar y la que
+// usa el filtro "Solo pendientes" para decidir qué tarjetas aparecen.
+function countMissed(cars) {
+  let n = 0;
+  for (const c of cars || []) {
+    if (!c.unlocked && c.wasDaily) n++;
+  }
+  return n;
+}
+
 // Agrupa el array de coches de un país por marca, devolviendo una lista
 // ordenada por progreso (desbloqueados desc) y luego alfabético.
 function groupCarsByBrand(cars) {
@@ -54,6 +65,7 @@ function groupCarsByBrand(cars) {
       ...b,
       unlocked: b.cars.filter((c) => c.unlocked).length,
       total: b.cars.length,
+      missed: countMissed(b.cars),
     }))
     .sort((a, b) => {
       if (b.unlocked !== a.unlocked) return b.unlocked - a.unlocked;
@@ -75,6 +87,9 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   // Estado del POST a /api/repesca/start mientras está pulsando "Sí".
   const [repescaStarting, setRepescaStarting] = useState(false);
   const [repescaError, setRepescaError] = useState("");
+  // Filtro "Solo pendientes": vive en el padre para que se preserve al
+  // navegar de Vista 1 a Vista 2 y viceversa. No tiene efecto en Vista 3.
+  const [showOnlyPending, setShowOnlyPending] = useState(false);
 
   // ESC: cinco niveles encadenados, de más interno a más externo.
   useEscape(open && Boolean(repescaTarget), () => setRepescaTarget(null));
@@ -100,6 +115,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       setDetailCar(null);
       setRepescaTarget(null);
       setRepescaError("");
+      setShowOnlyPending(false);
     }
   }, [open]);
 
@@ -244,11 +260,15 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
             country={currentCountry}
             brands={brandsInCountry}
             onSelectBrand={setSelectedBrand}
+            showOnlyPending={showOnlyPending}
+            onToggleOnlyPending={() => setShowOnlyPending((v) => !v)}
           />
         ) : (
           <CountriesMenu
             data={state.data}
             onSelectCountry={setSelectedCountry}
+            showOnlyPending={showOnlyPending}
+            onToggleOnlyPending={() => setShowOnlyPending((v) => !v)}
           />
         )}
       </div>
@@ -310,7 +330,29 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
 // Vista 1: Menú de países
 // ============================================================================
 
-function CountriesMenu({ data, onSelectCountry }) {
+function CountriesMenu({
+  data,
+  onSelectCountry,
+  showOnlyPending,
+  onToggleOnlyPending,
+}) {
+  // Decoramos cada país con su `missed` (no `unlocked` && wasDaily). Lo
+  // memoizamos para no recalcular en cada cambio de filtro.
+  const countriesWithMissed = useMemo(() => {
+    return (data.countries || []).map((c) => ({
+      ...c,
+      missed: countMissed(c.cars),
+    }));
+  }, [data.countries]);
+
+  const visibleCountries = useMemo(() => {
+    return showOnlyPending
+      ? countriesWithMissed.filter((c) => c.missed > 0)
+      : countriesWithMissed;
+  }, [countriesWithMissed, showOnlyPending]);
+
+  const hasAnyMissed = countriesWithMissed.some((c) => c.missed > 0);
+
   return (
     <>
       <div className="border-b border-white/10 bg-white/[0.02] px-4 py-2.5 text-center">
@@ -321,18 +363,33 @@ function CountriesMenu({ data, onSelectCountry }) {
           <span className="text-accent">{data.totalUnlocked}</span>
           <span className="text-muted"> / {data.totalCatalog}</span>
         </p>
+
+        {hasAnyMissed && (
+          <div className="mt-2 flex justify-center">
+            <PendingToggle
+              active={showOnlyPending}
+              onToggle={onToggleOnlyPending}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {data.countries.map((c) => (
-            <CountryCard
-              key={c.pais}
-              country={c}
-              onClick={() => onSelectCountry(c.pais)}
-            />
-          ))}
-        </div>
+        {visibleCountries.length === 0 ? (
+          <p className="mt-6 text-center text-sm text-muted">
+            No quedan países con coches pendientes. ¡Buen trabajo!
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {visibleCountries.map((c) => (
+              <CountryCard
+                key={c.pais}
+                country={c}
+                onClick={() => onSelectCountry(c.pais)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
@@ -340,6 +397,12 @@ function CountriesMenu({ data, onSelectCountry }) {
 
 function CountryCard({ country, onClick }) {
   const completed = country.unlocked === country.total && country.total > 0;
+  // `missed` lo precalcula CountriesMenu; defensivo por si entra otro
+  // consumidor que no lo añada.
+  const missed =
+    typeof country.missed === "number"
+      ? country.missed
+      : countMissed(country.cars);
 
   return (
     <button
@@ -374,6 +437,16 @@ function CountryCard({ country, onClick }) {
         <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
           {country.unlocked} / {country.total}
         </p>
+        {missed > 0 && (
+          <p
+            className="mt-1 text-[10px] font-medium tabular-nums text-amber-500"
+            style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
+            aria-label={`${missed} pendientes de repesca`}
+          >
+            <span aria-hidden="true">🎯</span> {missed} pendiente
+            {missed > 1 ? "s" : ""}
+          </p>
+        )}
       </div>
     </button>
   );
@@ -383,7 +456,20 @@ function CountryCard({ country, onClick }) {
 // Vista 2: Menú de marcas dentro del país
 // ============================================================================
 
-function BrandsMenu({ country, brands, onSelectBrand }) {
+function BrandsMenu({
+  country,
+  brands,
+  onSelectBrand,
+  showOnlyPending,
+  onToggleOnlyPending,
+}) {
+  const visibleBrands = useMemo(() => {
+    return showOnlyPending
+      ? (brands || []).filter((b) => b.missed > 0)
+      : brands || [];
+  }, [brands, showOnlyPending]);
+
+  const hasAnyMissed = (brands || []).some((b) => b.missed > 0);
   return (
     <>
       {/* Banda con bandera de fondo y progreso del país.
@@ -420,15 +506,30 @@ function BrandsMenu({ country, brands, onSelectBrand }) {
           no da para acomodar nombres largos (VOLKSWAGEN, MERCEDES-BENZ)
           con tipografía premium y tracking ancho. */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="grid grid-cols-2 gap-3">
-          {brands.map((brand) => (
-            <BrandCard
-              key={brand.marca}
-              brand={brand}
-              onClick={() => onSelectBrand(brand.marca)}
+        {hasAnyMissed && (
+          <div className="mb-3 flex justify-center">
+            <PendingToggle
+              active={showOnlyPending}
+              onToggle={onToggleOnlyPending}
             />
-          ))}
-        </div>
+          </div>
+        )}
+
+        {visibleBrands.length === 0 ? (
+          <p className="mt-6 text-center text-sm text-muted">
+            No quedan marcas con coches pendientes en {country.pais}.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {visibleBrands.map((brand) => (
+              <BrandCard
+                key={brand.marca}
+                brand={brand}
+                onClick={() => onSelectBrand(brand.marca)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
@@ -491,9 +592,19 @@ function BrandCard({ brand, onClick }) {
         {/* Línea separadora sutil entre el nombre y el contador */}
         <div className="mt-3 h-px w-10 bg-neutral-700" aria-hidden="true" />
 
-        <p className="mt-3 text-sm font-medium tabular-nums text-neutral-500 drop-shadow-md">
-          {brand.unlocked} / {brand.total}
-        </p>
+        <div className="mt-3 flex items-baseline justify-center gap-2">
+          <p className="text-sm font-medium tabular-nums text-neutral-500 drop-shadow-md">
+            {brand.unlocked} / {brand.total}
+          </p>
+          {brand.missed > 0 && (
+            <p
+              className="text-xs font-medium tabular-nums text-amber-500 drop-shadow-md"
+              aria-label={`${brand.missed} pendientes de repesca`}
+            >
+              <span aria-hidden="true">🎯</span> {brand.missed}
+            </p>
+          )}
+        </div>
       </div>
     </button>
   );
@@ -820,6 +931,35 @@ function CarDetail({ car, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================================
+// Toggle "Solo pendientes" (Vista 1 y Vista 2)
+// ============================================================================
+
+function PendingToggle({ active, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      role="switch"
+      aria-checked={active}
+      aria-label="Mostrar solo coches pendientes de repesca"
+      className={`
+        inline-flex items-center gap-1.5 rounded-full border px-3 py-1
+        text-[10px] font-semibold uppercase tracking-[0.16em]
+        transition-colors active:scale-95
+        ${
+          active
+            ? "border-amber-500/60 bg-amber-500/15 text-amber-300 hover:bg-amber-500/20"
+            : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/30 hover:text-white"
+        }
+      `}
+    >
+      <span aria-hidden="true">🎯</span>
+      <span>{active ? "Viendo pendientes" : "Solo pendientes"}</span>
+    </button>
   );
 }
 

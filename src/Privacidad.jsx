@@ -13,7 +13,7 @@ import { useEffect } from "react";
 
 // Dirección de contacto para solicitudes (borrado, dudas, etc.). Si
 // cambias el correo del admin, sustitúyelo aquí.
-const ADMIN_CONTACT_EMAIL = "ievilaze@gmail.com";
+const ADMIN_CONTACT_EMAIL = "carguessrorg@gmail.com";
 
 // Fecha de última actualización del documento, en formato humano.
 const LAST_UPDATED = "16 de mayo de 2026";

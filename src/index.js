@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import Preview from "./Preview";
+import Repesca from "./Repesca";
 import AddCar from "./admin/AddCar";
 import EditCar from "./admin/EditCar";
 import { ToastProvider } from "./components/Toast";
@@ -24,9 +25,15 @@ const isAdminEditCar =
   pathname.startsWith("/admin/edit-car") ||
   /(\?|&)admin-edit-car(=|&|$)/.test(search);
 
+// Modo Repesca: el usuario llega aquí desde el Garaje tras confirmar el
+// uso de su repesca diaria. La página recoge ?id=<carId> de la query.
+const isRepesca =
+  pathname.startsWith("/repesca") || /(\?|&)repesca(=|&|$)/.test(search);
+
 function pickRoute() {
   if (isAdminEditCar) return <EditCar />;
   if (isAdminAddCar) return <AddCar />;
+  if (isRepesca) return <Repesca />;
   if (isPreview) return <Preview />;
   return <App />;
 }

@@ -63,6 +63,12 @@ export default function Repesca() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reveal, setReveal] = useState(null);
   const [score, setScore] = useState(null);
+  // La imagen del coche se sirve vía /api/repesca/image, que requiere
+  // Bearer token. Como los <img> nativos NO mandan headers custom, no
+  // podemos usar la URL del endpoint directa. Hacemos fetch en JS con
+  // Authorization, convertimos la respuesta a Blob, y le pasamos al <img>
+  // una blob: URL local. Bonus: la URL es opaca (no filtra filename).
+  const [imgBlobUrl, setImgBlobUrl] = useState(null);
 
   // noindex + título de pestaña.
   useEffect(() => {
@@ -175,23 +181,71 @@ export default function Repesca() {
     };
   }, [checkingUser, user, carId]);
 
+  // Carga la imagen del coche en repesca como blob: hacemos GET con
+  // Authorization (cosa que <img> no puede), convertimos a Blob, y
+  // generamos una blob: URL local que el navegador renderiza sin
+  // necesidad de headers. Cleanup revoca la URL al desmontar / cambiar.
+  // Solo arrancamos cuando estamos seguros de que la repesca está
+  // activa (phase != "loading" && != "error").
+  useEffect(() => {
+    if (!user || !carId) return;
+    if (phase === "loading" || phase === "error") return;
+
+    let cancelled = false;
+    let blobUrl = null;
+
+    (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
+        const res = await fetch(
+          `/api/repesca/image?carId=${encodeURIComponent(carId)}`,
+          { headers: { Authorization: `Bearer ${session.access_token}` } }
+        );
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error || `HTTP ${res.status}`);
+        }
+        const blob = await res.blob();
+        if (cancelled) return;
+        blobUrl = URL.createObjectURL(blob);
+        setImgBlobUrl(blobUrl);
+      } catch (err) {
+        console.error("[Repesca] image load:", err);
+        // Dejamos imgBlobUrl en null: el skeleton de CarImage seguirá
+        // visible. No es bloqueante — el usuario puede teclear su intento
+        // aunque la foto no se vea (aunque sería loca).
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [user, carId, phase]);
+
   const attempts = guesses.length;
   const zoomIndex = Math.min(attempts, ZOOM_LEVELS.length - 1);
   const zoom = phase === "playing" ? ZOOM_LEVELS[zoomIndex] : 1.0;
   const hintIndex = phase === "playing" ? zoomIndex : null;
   const totalHints = ZOOM_LEVELS.length;
 
-  // Estado tipo `car` que espera CarImage / ResultPanel.
+  // Estado tipo `car` que espera CarImage / ResultPanel. `img` arranca
+  // como null y se rellena cuando la blob: URL está lista — CarImage ya
+  // muestra su skeleton mientras tanto.
   const car = useMemo(
     () => ({
-      img: `/api/repesca/image?carId=${encodeURIComponent(carId)}`,
+      img: imgBlobUrl,
       marca: reveal?.marca ?? null,
       modelo: reveal?.modelo ?? null,
       anio: reveal?.anio ?? null,
       pais: reveal?.pais ?? null,
       description: reveal?.description ?? null,
     }),
-    [carId, reveal]
+    [imgBlobUrl, reveal]
   );
 
   async function submitGuess({ guessCarId, anio }) {

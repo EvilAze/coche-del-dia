@@ -78,6 +78,10 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
+  // Badge ámbar del icono del Garaje: true cuando hay repesca disponible
+  // hoy y al menos un coche "missed" (ya fue coche del día y no se ganó).
+  // Lo calculamos con una llamada ligera a /api/garage tras login.
+  const [repescaAlert, setRepescaAlert] = useState(false);
 
   useEffect(() => {
     async function syncUser(session) {
@@ -114,6 +118,49 @@ export default function App() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  // Radar de repesca: tras login, miramos si hay repesca disponible Y
+  // al menos un coche "missed" en el catálogo. Una sola petición ligera;
+  // se refresca cuando cambia el `user.id` (login/logout) y cuando se
+  // cierra el modal del Garaje (por si acaba de jugarse una repesca).
+  useEffect(() => {
+    if (!user) {
+      setRepescaAlert(false);
+      return;
+    }
+    let cancelled = false;
+    async function checkAlert() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const res = await fetch("/api/garage", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) return;
+        const body = await res.json();
+        if (cancelled) return;
+        // missed = ya fue coche del día Y el usuario no lo ha ganado.
+        let missed = 0;
+        for (const c of body.countries || []) {
+          for (const car of c.cars || []) {
+            if (!car.unlocked && car.wasDaily) missed++;
+          }
+        }
+        setRepescaAlert(Boolean(body.repescaAvailable) && missed > 0);
+      } catch (err) {
+        // Fallar silenciosamente: el badge es decorativo, no crítico.
+        console.error("[App] repesca alert check:", err);
+      }
+    }
+    checkAlert();
+    return () => {
+      cancelled = true;
+    };
+    // Re-check cuando se cierra el modal del Garaje: el usuario puede haber
+    // navegado a /repesca, jugado, y vuelto. activeModal === null tras eso.
+  }, [user, activeModal]);
 
   function openRanking() {
     setActiveModal("ranking");
@@ -190,6 +237,7 @@ export default function App() {
         onOpenGarage={openGarage}
         onOpenProfile={openProfile}
         onOpenLogin={openLogin}
+        repescaAlert={repescaAlert}
       />
 
       <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 sm:px-4">

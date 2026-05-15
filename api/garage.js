@@ -15,6 +15,7 @@
 //     mitigado por el sistema de proxy + RPC).
 
 import { createClient } from "@supabase/supabase-js";
+import { pseudoIdFor } from "./_lib/repesca-token.js";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
@@ -152,6 +153,8 @@ export default async function handler(req, res) {
       byCountry.get(pais).cars.push(
         unlocked
           ? {
+              // Cromo desbloqueado: id real. El usuario ya ganó este
+              // coche, conoce todos sus datos, no hay nada que ocultar.
               id: c.id,
               marca: c.make,
               modelo: c.model,
@@ -162,15 +165,16 @@ export default async function handler(req, res) {
               wasDaily,
             }
           : {
-              // Devolvemos marca también para los bloqueados, porque el
-              // garaje agrupa por país→marca. Sigue sin leakear info
-              // sensible: la lista de marcas ya es pública vía /api/list-cars.
-              // Lo que NO devolvemos es modelo/año/descripción/imagen.
-              id: c.id,
+              // Cromo bloqueado: id OPACO (pseudo HMAC por usuario). Si
+              // devolviésemos el cars.id real aquí, cualquier atacante
+              // podría cruzarlo con /api/list-cars y obtener marca/
+              // modelo/año del coche objetivo de repesca antes de jugar.
+              // Con el pseudo, esa correlación queda rota: list-cars
+              // sigue exponiendo ids reales, pero estos ids opacos no
+              // matchean con nada de allí.
+              id: pseudoIdFor(c.id, user.id),
               marca: c.make,
               unlocked: false,
-              // wasDaily marca si el coche ya ha sido coche del día en
-              // alguna fecha anterior. Solo estos son elegibles para repesca.
               wasDaily,
             }
       );
@@ -221,7 +225,12 @@ export default async function handler(req, res) {
       //                          pero sin terminar), aquí va el car_id que
       //                          el usuario eligió. Permite "Continuar".
       repescaAvailable,
-      repescaActiveCarId,
+      // Convertimos también el carId de la repesca activa a pseudo para
+      // que el frontend pueda hacer `car.id === repescaActiveCarId` y
+      // detectar la card "Continuar" sin necesidad de conocer el id real.
+      repescaActiveCarId: repescaActiveCarId
+        ? pseudoIdFor(repescaActiveCarId, user.id)
+        : null,
     });
   } catch (err) {
     console.error("[garage] UNCAUGHT:", err && err.stack ? err.stack : err);

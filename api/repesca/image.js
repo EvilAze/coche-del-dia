@@ -8,6 +8,7 @@
 // carId=<X> y obtener la imagen de un coche al que aún no juega.
 
 import { createClient } from "@supabase/supabase-js";
+import { resolveRealCarId } from "../_lib/repesca-token.js";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
@@ -73,14 +74,32 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const carId = String(req.query?.carId || "").trim();
-    if (!UUID_RE.test(carId)) {
+    // El cliente nos pasa el PSEUDO (lo recibió de /api/garage). Lo
+    // resolvemos al cars.id real antes de cualquier otra operación.
+    const pseudoCarId = String(req.query?.carId || "").trim();
+    if (!pseudoCarId) {
+      return res.status(400).json({ error: "Missing carId" });
+    }
+    const { data: allCarRows, error: allCarsErr } = await supabaseAdmin
+      .from("cars")
+      .select("id");
+    if (allCarsErr) {
+      console.error("[repesca/image] read cars:", allCarsErr);
+      return res.status(500).json({ error: "Failed to load catalog" });
+    }
+    const carId = resolveRealCarId(
+      pseudoCarId,
+      user.id,
+      (allCarRows || []).map((c) => c.id)
+    );
+    if (!carId) {
       return res.status(400).json({ error: "Invalid carId" });
     }
 
-    // Gate: ¿el usuario tiene una repesca activa hoy para este carId?
+    // Gate: ¿el usuario tiene una repesca activa hoy para ESE carId real?
+    // Read con service_role (mismo motivo que en start/validate).
     const today = todayInMadrid();
-    const { data: statsRow, error: statsErr } = await authClient
+    const { data: statsRow, error: statsErr } = await supabaseAdmin
       .from("stats")
       .select("last_repesca_at, last_repesca_car_id")
       .eq("user_id", user.id)

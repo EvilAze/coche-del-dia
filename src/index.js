@@ -4,6 +4,7 @@ import "./index.css";
 import App from "./App";
 import Preview from "./Preview";
 import Repesca from "./Repesca";
+import Privacidad from "./Privacidad";
 import AddCar from "./admin/AddCar";
 import EditCar from "./admin/EditCar";
 import { ToastProvider } from "./components/Toast";
@@ -30,11 +31,21 @@ const isAdminEditCar =
 const isRepesca =
   pathname.startsWith("/repesca") || /(\?|&)repesca(=|&|$)/.test(search);
 
+// Página pública de Política de Privacidad. Requerida para la pantalla
+// de consentimiento de Google OAuth y para conformidad básica.
+// Aceptamos también /privacy y /politica-de-privacidad como aliases por
+// si los enlaza desde fuera con esos slugs.
+const isPrivacy =
+  pathname.startsWith("/privacidad") ||
+  pathname.startsWith("/privacy") ||
+  pathname.startsWith("/politica-de-privacidad");
+
 function pickRoute() {
   if (isAdminEditCar) return <EditCar />;
   if (isAdminAddCar) return <AddCar />;
   if (isRepesca) return <Repesca />;
   if (isPreview) return <Preview />;
+  if (isPrivacy) return <Privacidad />;
   return <App />;
 }
 

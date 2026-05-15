@@ -1,31 +1,26 @@
 // src/components/Garage.jsx
-// Álbum de cromos del usuario, modelo "Concesionario por Secciones":
-//   Vista 1 (Menú) → grid de tarjetas, una por país, con bandera de fondo.
-//   Vista 2 (Showroom) → coches del país seleccionado.
-//   Detail (overlay) → ficha completa de un cromo desbloqueado.
+// Álbum de cromos con navegación de 3 niveles:
+//   Vista 1 (Países)  → tarjetas con bandera de fondo.
+//   Vista 2 (Marcas)  → tarjetas con logo de la marca dentro del país.
+//   Vista 3 (Coches)  → cromos de la marca seleccionada (lona / desbloqueado).
+//   Detail (overlay) → ficha completa al hacer click en un cromo.
 //
-// Navegación: estado local `selectedCountry`. ESC y el botón ⬅ Volver
-// llevan al usuario un nivel arriba en la jerarquía.
+// Estado: `selectedCountry` + `selectedBrand`. Si los dos son null → Vista 1;
+// solo país → Vista 2; país + marca → Vista 3. ESC y BackButton siempre
+// suben un nivel en la jerarquía.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
 
-// Imagen estática que cubre los coches sin desbloquear. Debe existir en
-// public/images/lona.jpg. Si falta, el fallback es la textura gris+silueta.
 const LONA_IMG = "/images/lona.jpg";
 
-// Convierte el nombre de un país a un slug compatible con el filesystem.
-//   "Reino Unido"     → "reino-unido"
-//   "Países Bajos"    → "paises-bajos"
-//   "República Checa" → "republica-checa"
-//   "EE.UU."          → "eeuu"
 function slugifyCountry(pais) {
   return String(pais || "")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // quita acentos
-    .replace(/\./g, "")               // quita puntos
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\./g, "")
     .toLowerCase()
     .trim()
     .replace(/\s+/g, "-");
@@ -35,6 +30,37 @@ function flagImagePath(pais) {
   return `/flags/${slugifyCountry(pais)}.jpg`;
 }
 
+// Slug de marca según especificación del usuario: simple lowercase + spaces→-.
+// No quitamos acentos a propósito (es como el usuario nombra los .png).
+function brandSlug(marca) {
+  return String(marca || "").toLowerCase().replace(/\s+/g, "-");
+}
+
+function brandLogoPath(marca) {
+  return `/brands/${brandSlug(marca)}.png`;
+}
+
+// Agrupa el array de coches de un país por marca, devolviendo una lista
+// ordenada por progreso (desbloqueados desc) y luego alfabético.
+function groupCarsByBrand(cars) {
+  const map = new Map();
+  for (const car of cars || []) {
+    const m = car.marca || "Sin marca";
+    if (!map.has(m)) map.set(m, { marca: m, cars: [] });
+    map.get(m).cars.push(car);
+  }
+  return Array.from(map.values())
+    .map((b) => ({
+      ...b,
+      unlocked: b.cars.filter((c) => c.unlocked).length,
+      total: b.cars.length,
+    }))
+    .sort((a, b) => {
+      if (b.unlocked !== a.unlocked) return b.unlocked - a.unlocked;
+      return a.marca.localeCompare(b.marca, "es");
+    });
+}
+
 export default function Garage({ open, onClose, user, onOpenLogin }) {
   const [state, setState] = useState({
     loading: false,
@@ -42,29 +68,48 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     error: "",
   });
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const [selectedBrand, setSelectedBrand] = useState(null);
   const [detailCar, setDetailCar] = useState(null);
+  // Coche que el usuario quiere repescar: dispara el modal de confirmación.
+  const [repescaTarget, setRepescaTarget] = useState(null);
+  // Estado del POST a /api/repesca/start mientras está pulsando "Sí".
+  const [repescaStarting, setRepescaStarting] = useState(false);
+  const [repescaError, setRepescaError] = useState("");
 
-  // ESC: tres niveles en orden de prioridad.
-  useEscape(open && Boolean(detailCar), () => setDetailCar(null));
+  // ESC: cinco niveles encadenados, de más interno a más externo.
+  useEscape(open && Boolean(repescaTarget), () => setRepescaTarget(null));
+  useEscape(open && !repescaTarget && Boolean(detailCar), () => setDetailCar(null));
   useEscape(
-    open && !detailCar && Boolean(selectedCountry),
+    open && !repescaTarget && !detailCar && Boolean(selectedBrand),
+    () => setSelectedBrand(null)
+  );
+  useEscape(
+    open && !repescaTarget && !detailCar && !selectedBrand && Boolean(selectedCountry),
     () => setSelectedCountry(null)
   );
   useEscape(
-    open && !detailCar && !selectedCountry,
+    open && !repescaTarget && !detailCar && !selectedBrand && !selectedCountry,
     onClose
   );
 
-  // Al cerrar el modal, reset de navegación interna para que la próxima
-  // apertura empiece en la vista menú.
+  // Reset interno al cerrar.
   useEffect(() => {
     if (!open) {
       setSelectedCountry(null);
+      setSelectedBrand(null);
       setDetailCar(null);
+      setRepescaTarget(null);
+      setRepescaError("");
     }
   }, [open]);
 
-  // Fetch al abrir, solo si hay sesión.
+  // Si cambia el país elegido, deselecciona la marca (que pertenecía al
+  // país anterior).
+  useEffect(() => {
+    setSelectedBrand(null);
+  }, [selectedCountry]);
+
+  // Fetch al abrir, solo logueado.
   useEffect(() => {
     if (!open || !user) return;
 
@@ -95,12 +140,48 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     })();
   }, [open, user]);
 
-  if (!open) return null;
-
+  // Resolución del país y la marca activos.
   const currentCountry =
     selectedCountry && state.data
       ? state.data.countries.find((c) => c.pais === selectedCountry) || null
       : null;
+
+  // Agrupación cars→marca por país. Memoizado para no recalcular al
+  // abrir un detail o cambiar de vista.
+  const brandsInCountry = useMemo(() => {
+    if (!currentCountry) return null;
+    return groupCarsByBrand(currentCountry.cars);
+  }, [currentCountry]);
+
+  const currentBrand =
+    selectedBrand && brandsInCountry
+      ? brandsInCountry.find((b) => b.marca === selectedBrand) || null
+      : null;
+
+  if (!open) return null;
+
+  // ¿Qué vista estamos pintando?
+  //   "countries" → Vista 1
+  //   "brands"    → Vista 2 (país elegido, sin marca)
+  //   "cars"      → Vista 3 (país + marca)
+  const view = currentBrand ? "cars" : currentCountry ? "brands" : "countries";
+
+  // Datos del header (label + título) y back button según vista.
+  let headerLabel = "Tu colección";
+  let headerTitle = "Garaje";
+  let backLabel = null;
+  let onBack = null;
+  if (view === "brands") {
+    headerLabel = "País";
+    headerTitle = currentCountry.pais;
+    backLabel = "Países";
+    onBack = () => setSelectedCountry(null);
+  } else if (view === "cars") {
+    headerLabel = "Marca";
+    headerTitle = currentBrand.marca;
+    backLabel = currentCountry.pais;
+    onBack = () => setSelectedBrand(null);
+  }
 
   return (
     <div
@@ -114,25 +195,25 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         "
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header del modal con back-button condicional */}
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2">
-            {currentCountry && (
-              <BackButton onClick={() => setSelectedCountry(null)} />
-            )}
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
-                {currentCountry ? "País" : "Tu colección"}
+        {/* Header */}
+        <div className="border-b border-white/10 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              {backLabel && (
+                <BackButton onClick={onBack} label={backLabel} />
+              )}
+              <p className={`text-[10px] uppercase tracking-[0.28em] text-accent ${backLabel ? "mt-2" : ""}`}>
+                {headerLabel}
               </p>
-              <h2 className="font-display text-2xl tracking-widest text-white">
-                {currentCountry ? currentCountry.pais : "Garaje"}
+              <h2 className="truncate font-display text-2xl tracking-widest text-white">
+                {headerTitle}
               </h2>
             </div>
+            <CloseButton onClick={onClose} />
           </div>
-          <CloseButton onClick={onClose} />
         </div>
 
-        {/* Cuerpo según estado de auth, carga y vista */}
+        {/* Body */}
         {!user ? (
           <AuthWall
             onLogin={() => {
@@ -146,10 +227,23 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
           <CenterMessage text={state.error} tone="error" />
         ) : !state.data || state.data.countries.length === 0 ? (
           <CenterMessage text="El catálogo está vacío. Vuelve cuando haya coches que coleccionar." />
-        ) : currentCountry ? (
-          <Showroom
+        ) : view === "cars" ? (
+          <BrandShowroom
             country={currentCountry}
+            brand={currentBrand}
+            repescaAvailable={!!state.data?.repescaAvailable}
+            repescaActiveCarId={state.data?.repescaActiveCarId || null}
             onSelectCar={setDetailCar}
+            onSelectRepesca={(car) => {
+              setRepescaError("");
+              setRepescaTarget(car);
+            }}
+          />
+        ) : view === "brands" ? (
+          <BrandsMenu
+            country={currentCountry}
+            brands={brandsInCountry}
+            onSelectBrand={setSelectedBrand}
           />
         ) : (
           <CountriesMenu
@@ -159,9 +253,54 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         )}
       </div>
 
-      {/* Detail del cromo (modal sobre modal) */}
       {detailCar && (
         <CarDetail car={detailCar} onClose={() => setDetailCar(null)} />
+      )}
+
+      {repescaTarget && (
+        <RepescaConfirm
+          car={repescaTarget}
+          country={currentCountry}
+          brand={currentBrand}
+          starting={repescaStarting}
+          error={repescaError}
+          onCancel={() => {
+            if (repescaStarting) return;
+            setRepescaTarget(null);
+            setRepescaError("");
+          }}
+          onAccept={async () => {
+            if (repescaStarting) return;
+            setRepescaStarting(true);
+            setRepescaError("");
+            try {
+              const {
+                data: { session },
+              } = await supabase.auth.getSession();
+              if (!session?.access_token) throw new Error("Sin sesión");
+
+              const res = await fetch("/api/repesca/start", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ carId: repescaTarget.id }),
+              });
+              const body = await res.json().catch(() => ({}));
+              if (!res.ok) {
+                throw new Error(body?.detail || body?.error || `HTTP ${res.status}`);
+              }
+              // Repesca consumida (o reanudada). Redirigimos al flujo de
+              // juego específico.
+              window.location.href = `/repesca?id=${encodeURIComponent(repescaTarget.id)}`;
+            } catch (err) {
+              console.error("[Garage] /api/repesca/start:", err);
+              setRepescaError(err?.message || "No se pudo iniciar la repesca.");
+              setRepescaStarting(false);
+            }
+          }}
+        />
       )}
     </div>
   );
@@ -174,7 +313,6 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
 function CountriesMenu({ data, onSelectCountry }) {
   return (
     <>
-      {/* Resumen global */}
       <div className="border-b border-white/10 bg-white/[0.02] px-4 py-2.5 text-center">
         <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
           Progreso total
@@ -185,7 +323,6 @@ function CountriesMenu({ data, onSelectCountry }) {
         </p>
       </div>
 
-      {/* Grid de países */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {data.countries.map((c) => (
@@ -209,44 +346,29 @@ function CountryCard({ country, onClick }) {
       type="button"
       onClick={onClick}
       className="
-        group relative aspect-square w-full overflow-hidden
-        rounded-xl border border-gray-800 bg-[#0d0d10]
-        shadow-md shadow-black/40
-        transition-transform duration-300 ease-out
-        hover:scale-105 hover:border-accent/40
-        active:scale-[0.98]
+        group relative aspect-square w-full overflow-hidden rounded-xl
+        border border-gray-800 bg-[#1a1a20] shadow-md shadow-black/40
+        transition-transform duration-200
+        hover:scale-105 hover:border-accent/60
+        active:scale-[0.97]
       "
+      style={{
+        backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 55%, transparent 100%), url('${flagImagePath(country.pais)}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
-      {/* Bandera: <img> con object-cover/object-center para que NO se
-          deforme nunca. Si el archivo 404, el onError la oculta y queda
-          el bg base del botón. */}
-      <img
-        src={flagImagePath(country.pais)}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        loading="lazy"
-        className="absolute inset-0 h-full w-full object-cover object-center"
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-      />
-
-      {/* Gradiente: transparente arriba → negro abajo. Mejora legibilidad
-          del texto sin tapar la mitad superior de la bandera. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-
-      {/* Badge "Completo" solo cuando el país está 100% — útil como
-          incentivo visual, no satura porque solo aparece al terminar. */}
       {completed && (
-        <div className="absolute right-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
+        <div className="absolute left-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
           ★ Completo
         </div>
       )}
 
-      {/* Texto en la franja inferior, donde el gradiente es sólido. */}
-      <div className="absolute inset-x-0 bottom-0 px-3 pb-3 text-center">
-        <p className="font-display text-base font-bold uppercase tracking-wider text-white sm:text-lg">
+      <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pt-6 text-center">
+        <p
+          className="font-display text-lg font-bold uppercase tracking-wider text-white sm:text-xl"
+          style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
+        >
           {country.pais}
         </p>
         <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
@@ -258,43 +380,178 @@ function CountryCard({ country, onClick }) {
 }
 
 // ============================================================================
-// Vista 2: Showroom (coches del país)
+// Vista 2: Menú de marcas dentro del país
 // ============================================================================
 
-function Showroom({ country, onSelectCar }) {
-  const progressPct = country.total
-    ? Math.round((country.unlocked / country.total) * 100)
+function BrandsMenu({ country, brands, onSelectBrand }) {
+  return (
+    <>
+      {/* Banda con bandera de fondo y progreso del país.
+          - SIN `border-b` blanco: en oscuro renderiza como una línea
+            "más clara" en el filo inferior.
+          - Gradient terminado a opacidad 1 (mismo color que el fondo
+            del modal `#0a0a0c`): así el corte con la zona inferior es
+            invisible, en lugar de dejar pasar un 10% de la bandera
+            (bordes blancos de Union Jack/Países Bajos delataban el corte). */}
+      <div
+        className="relative h-40"
+        style={{
+          backgroundImage: `linear-gradient(rgba(10,10,12,0.7), rgba(10,10,12,1)), url('${flagImagePath(country.pais)}')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 backdrop-blur-sm" />
+        <div className="relative flex h-full flex-col items-center justify-center px-4 text-center">
+          <p
+            className="font-display text-3xl font-bold uppercase tracking-widest text-white"
+            style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
+          >
+            {country.pais}
+          </p>
+          <p className="mt-2 text-xs font-medium tabular-nums text-gray-300">
+            {country.unlocked} / {country.total} coches
+          </p>
+        </div>
+      </div>
+
+      {/* Grid de marcas. Forzado a 2 columnas siempre: el modal queda
+          a max-w-md (448px) y 3 columnas dejan cada card ~130px, que
+          no da para acomodar nombres largos (VOLKSWAGEN, MERCEDES-BENZ)
+          con tipografía premium y tracking ancho. */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="grid grid-cols-2 gap-3">
+          {brands.map((brand) => (
+            <BrandCard
+              key={brand.marca}
+              brand={brand}
+              onClick={() => onSelectBrand(brand.marca)}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function BrandCard({ brand, onClick }) {
+  // Vista 2 — Ghost Logo (marca de agua): el nombre en tipografía noble
+  // sigue siendo el protagonista, pero el logo de la marca aparece detrás
+  // como textura casi imperceptible. Al hover el logo crece y sube su
+  // opacidad, dando la sensación de que la card "respira".
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="
+        group relative flex min-h-[120px] w-full flex-col items-center justify-center
+        overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900
+        p-6 text-center transition-colors
+        hover:border-neutral-500
+        active:scale-[0.97]
+      "
+    >
+      {/* Ghost logo de fondo: posición absoluta cubriendo toda la card,
+          desaturado y casi transparente. Al pasar por encima crece y se
+          intensifica un pelín. `pointer-events-none` para que el click
+          siga golpeando al botón, no a la <img>. Si el .png no existe el
+          onError la oculta y la card queda solo con el fondo neutro. */}
+      <img
+        src={brandLogoPath(brand.marca)}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        loading="lazy"
+        className="
+          pointer-events-none absolute inset-0 h-full w-full
+          scale-110 object-contain p-2 opacity-10 grayscale
+          transition-all duration-500
+          group-hover:scale-125 group-hover:opacity-20
+        "
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+        }}
+      />
+
+      {/* Contenido de primer plano: relative + z-10 para apilarse sobre el
+          ghost logo. `drop-shadow-md` da algo de cuerpo al texto sin perder
+          el look minimalista. */}
+      <div className="relative z-10 flex flex-col items-center">
+        <p
+          className="
+            w-full break-words text-center font-bold uppercase text-neutral-200
+            text-base sm:text-lg
+            tracking-[0.1em] sm:tracking-[0.18em]
+            drop-shadow-md
+          "
+        >
+          {brand.marca}
+        </p>
+
+        {/* Línea separadora sutil entre el nombre y el contador */}
+        <div className="mt-3 h-px w-10 bg-neutral-700" aria-hidden="true" />
+
+        <p className="mt-3 text-sm font-medium tabular-nums text-neutral-500 drop-shadow-md">
+          {brand.unlocked} / {brand.total}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+// ============================================================================
+// Vista 3: Showroom de una marca
+// ============================================================================
+
+function BrandShowroom({
+  country,
+  brand,
+  repescaAvailable,
+  repescaActiveCarId,
+  onSelectCar,
+  onSelectRepesca,
+}) {
+  const progressPct = brand.total
+    ? Math.round((brand.unlocked / brand.total) * 100)
     : 0;
+  const [logoFailed, setLogoFailed] = useState(false);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Cabecera: bloque h-40 con la bandera al fondo y un overlay
-          fuerte con blur. La bandera aporta color y "lugar", el blur
-          la convierte en textura para que el texto sea el protagonista. */}
-      <div className="relative h-40 w-full overflow-hidden border-b border-white/10">
-        <img
-          src={flagImagePath(country.pais)}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-          className="absolute inset-0 h-full w-full object-cover object-center"
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-          }}
-        />
-        {/* Overlay negro fuerte con blur sutil del fondo. */}
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-
-        {/* Texto centrado vertical y horizontalmente */}
-        <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-gray-400">
-            Descubiertos {country.unlocked} / {country.total}
+      {/* Cabecera con logo de marca + barra de progreso. La bandera del país
+          va de fondo, muy oscurecida, como guiño de contexto.
+          Mismas precauciones que la Vista 2: sin border-b blanco y gradient
+          terminado a opacidad 1 para fundir limpio con el bg del modal. */}
+      <div
+        className="relative px-4 py-5 text-center"
+        style={{
+          backgroundImage: `linear-gradient(rgba(10,10,12,0.78), rgba(10,10,12,1)), url('${flagImagePath(country.pais)}')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 backdrop-blur-sm" />
+        <div className="relative flex flex-col items-center">
+          {!logoFailed ? (
+            <img
+              src={brandLogoPath(brand.marca)}
+              alt={brand.marca}
+              draggable={false}
+              className="mb-2 h-12 w-auto object-contain"
+              onError={() => setLogoFailed(true)}
+            />
+          ) : (
+            <p
+              className="font-display text-2xl font-bold uppercase tracking-widest text-white"
+              style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
+            >
+              {brand.marca}
+            </p>
+          )}
+          <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
+            {brand.unlocked} / {brand.total} desbloqueados
           </p>
-          <h3 className="mt-2 font-display text-3xl font-bold uppercase tracking-wider text-white sm:text-4xl">
-            {country.pais}
-          </h3>
-          {/* Barra de progreso justo debajo */}
-          <div className="mt-3 h-1.5 w-40 overflow-hidden rounded-full bg-white/15">
+          <div className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full bg-accent transition-[width] duration-700"
               style={{ width: `${progressPct}%` }}
@@ -303,20 +560,52 @@ function Showroom({ country, onSelectCar }) {
         </div>
       </div>
 
-      {/* Grid de coches */}
+      {/* Grid de coches de la marca: 3 estados posibles
+            A — Desbloqueado: foto a color, click → ficha
+            B — Repescable: lona interactiva con badge "🎯 Recuperar"
+            C — Bloqueado: lona oscurecida + "Vuelve mañana" o "No disponible" */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="grid grid-cols-2 gap-3 pb-3 sm:grid-cols-3">
-          {country.cars.map((car) =>
-            car.unlocked ? (
-              <UnlockedCard
+          {brand.cars.map((car) => {
+            // Estado A: ganado.
+            if (car.unlocked) {
+              return (
+                <UnlockedCard
+                  key={car.id}
+                  car={car}
+                  onClick={() => onSelectCar(car)}
+                />
+              );
+            }
+            // Estado B: repescable AHORA. Tres condiciones:
+            //   1) El coche ya ha sido coche del día en el pasado (wasDaily).
+            //   2) El usuario no ha consumido repesca hoy
+            //      → repescaAvailable, O...
+            //   3) ...la repesca activa de hoy es justo este coche
+            //      → repescaActiveCarId === car.id (caso "Continuar").
+            const isActiveRepesca = repescaActiveCarId === car.id;
+            const canStartRepesca = repescaAvailable || isActiveRepesca;
+            if (car.wasDaily && canStartRepesca) {
+              return (
+                <RepescaCard
+                  key={car.id}
+                  resume={isActiveRepesca}
+                  onClick={() => onSelectRepesca(car)}
+                />
+              );
+            }
+            // Estado C: bloqueado. Texto contextual según motivo.
+            return (
+              <LockedCard
                 key={car.id}
-                car={car}
-                onClick={() => onSelectCar(car)}
+                reason={
+                  !car.wasDaily
+                    ? "future" // todavía no ha sido coche del día
+                    : "used" // ya gastó repesca hoy en otro coche
+                }
               />
-            ) : (
-              <LockedCard key={car.id} />
-            )
-          )}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -329,57 +618,55 @@ function UnlockedCard({ car, onClick }) {
       type="button"
       onClick={onClick}
       className="
-        group relative aspect-[4/5] w-full overflow-hidden
-        rounded-lg border border-gray-800 bg-[#0d0d10]
-        shadow-md shadow-black/40
-        transition-transform duration-300 ease-out
-        hover:scale-105 hover:border-accent/50
-        active:scale-[0.98]
+        group relative aspect-[4/5] w-full overflow-hidden rounded-lg
+        border border-accent/40 bg-bg-secondary
+        shadow-md shadow-black/40 transition
+        hover:border-accent hover:shadow-accent/20
+        active:scale-[0.97]
       "
     >
-      {/* Foto del coche */}
-      <img
-        src={car.img}
-        alt={`${car.marca} ${car.modelo}`}
-        draggable={false}
-        loading="lazy"
-        className="absolute inset-0 h-full w-full object-cover object-center"
-      />
+      <div className="absolute inset-0 overflow-hidden">
+        <img
+          src={car.img}
+          alt={`${car.marca} ${car.modelo}`}
+          draggable={false}
+          loading="lazy"
+          className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+        />
+      </div>
 
-      {/* Gradiente coherente con el resto: transparente arriba → negro abajo */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/55 to-transparent" />
+      {/* Gradient elegante de abajo hacia arriba */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
-      {/* Etiqueta con jerarquía clara: marca en accent pequeño,
-          modelo en blanco bold, año sutil para no competir. */}
-      <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2.5 text-left">
-        <p className="truncate text-xs font-medium uppercase tracking-wider text-accent">
+      {/* Etiqueta con jerarquía: marca pequeña amarilla, modelo blanco bold */}
+      <div className="absolute inset-x-0 bottom-0 p-2.5 text-left">
+        <p className="truncate text-xs font-medium uppercase tracking-widest text-yellow-500">
           {car.marca}
         </p>
         <p className="truncate text-sm font-bold text-white">
           {car.modelo}
         </p>
-        <p className="mt-0.5 text-[10px] tabular-nums text-gray-400">
-          {car.anio}
-        </p>
+        <p className="text-[10px] tabular-nums text-gray-400">{car.anio}</p>
+      </div>
+
+      <div className="absolute right-1.5 top-1.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
+        ✓
       </div>
     </button>
   );
 }
 
-function LockedCard() {
+function LockedCard({ reason = "future" }) {
+  const label = reason === "used" ? "Vuelve mañana" : "Bloqueado";
   return (
     <div
       className="
-        relative aspect-[4/5] w-full overflow-hidden
-        rounded-lg border border-gray-800 bg-[#0d0d10]
+        relative aspect-[4/5] w-full overflow-hidden rounded-lg
+        border border-white/5 bg-[#0d0d10]
+        opacity-50 grayscale
       "
-      aria-label="Cromo bloqueado"
+      aria-label={`Cromo bloqueado: ${label}`}
     >
-      {/* Foto de la lona: `object-cover` llena el cromo entero (sin
-          huecos negros) y `object-top` ancla el encuadre a la parte
-          superior. Si la foto es más ancha que el cromo se recortan
-          los lados; si más alta, se recorta el pie — aceptable según
-          la indicación del usuario. */}
       <img
         src={LONA_IMG}
         alt=""
@@ -392,24 +679,91 @@ function LockedCard() {
         }}
       />
 
-      {/* Gradiente desde abajo, igual que en la UnlockedCard, para
-          coherencia visual entre estados. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-transparent" />
+      {/* Gradient elegante de abajo hacia arriba */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
-      {/* Candado pequeño + texto sutil, agrupados abajo. Ya no dominan
-          el centro de la foto — quedan como un pie de página discreto. */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pb-3">
-        <LockIcon className="mb-1 h-3.5 w-3.5 text-gray-400" />
-        <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400">
-          Desconocido
+      {/* Candado pequeño + texto sutil al pie. */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-2 pb-2.5">
+        <LockIcon className="h-3.5 w-3.5 text-gray-400" />
+        <p
+          className="text-[10px] font-medium uppercase tracking-widest text-gray-400"
+          style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
+        >
+          {label}
         </p>
       </div>
     </div>
   );
 }
 
+// Estado B: coche que el usuario perdió en su día pero todavía tiene
+// repesca disponible. Visualmente similar a Locked (lona + gradient) pero:
+//   - SIN opacity-50 / grayscale (más vivo, llama a la acción)
+//   - Es un <button>: clickeable, con hover, ring-accent
+//   - Badge "🎯 Recuperar" arriba derecha (o "Continuar" si es la repesca
+//     en curso del usuario, para que sepa que retomar es lo que pasa).
+function RepescaCard({ resume = false, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="
+        group relative aspect-[4/5] w-full overflow-hidden rounded-lg
+        border border-accent/40 bg-[#0d0d10]
+        transition-all
+        hover:border-accent hover:shadow-lg hover:shadow-accent/20
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-accent
+        active:scale-[0.97]
+      "
+      aria-label={resume ? "Continuar repesca" : "Intentar repesca"}
+    >
+      <img
+        src={LONA_IMG}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        loading="lazy"
+        className="
+          absolute inset-0 h-full w-full object-cover object-top
+          transition-transform duration-500 group-hover:scale-105
+        "
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+        }}
+      />
+
+      {/* Gradient inferior y aura accent muy sutil arriba */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/60 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-accent/10 to-transparent" />
+
+      {/* Badge superior: diana o continuar */}
+      <div
+        className="
+          absolute left-1.5 top-1.5 inline-flex items-center gap-1
+          rounded-full bg-accent/25 px-2 py-0.5
+          text-[9px] font-semibold uppercase tracking-widest text-accent
+          backdrop-blur-sm
+        "
+      >
+        <span aria-hidden="true">{resume ? "⟳" : "🎯"}</span>
+        <span>{resume ? "Continuar" : "Recuperar"}</span>
+      </div>
+
+      {/* Pie: texto invitando a la acción */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-2 pb-2.5">
+        <p
+          className="text-[10px] font-medium uppercase tracking-widest text-accent"
+          style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
+        >
+          {resume ? "Continuar partida" : "Intentar repesca"}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 // ============================================================================
-// Detail del cromo (modal sobre modal)
+// Detail del cromo
 // ============================================================================
 
 function CarDetail({ car, onClose }) {
@@ -439,13 +793,13 @@ function CarDetail({ car, onClose }) {
         </div>
 
         <div className="p-4">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-accent">
-            Desbloqueado
+          <p className="text-xs font-medium uppercase tracking-widest text-yellow-500">
+            {car.marca}
           </p>
-          <h3 className="mt-1 font-display text-2xl tracking-wider text-white">
-            {car.marca} {car.modelo}
+          <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-white">
+            {car.modelo}
           </h3>
-          <p className="mt-0.5 font-display text-base tabular-nums text-accent">
+          <p className="mt-0.5 font-display text-base tabular-nums text-gray-400">
             {car.anio}
           </p>
 
@@ -470,26 +824,122 @@ function CarDetail({ car, onClose }) {
 }
 
 // ============================================================================
+// Modal de confirmación de repesca
+// ============================================================================
+
+function RepescaConfirm({
+  car,
+  country,
+  brand,
+  starting,
+  error,
+  onCancel,
+  onAccept,
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <div
+        className="
+          relative w-full max-w-sm overflow-hidden rounded-2xl
+          border border-accent/40 bg-[#0a0a0c] shadow-2xl
+          animate-fade-in
+        "
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 py-5 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
+            <span className="text-2xl" aria-hidden="true">🎯</span>
+          </div>
+          <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-accent">
+            Repesca diaria
+          </p>
+          <h3 className="mt-1 font-display text-xl tracking-wider text-white">
+            ¿Gastar tu repesca de hoy?
+          </h3>
+
+          {(country || brand) && (
+            <p className="mt-3 text-sm text-muted">
+              Vas a intentar un coche de{" "}
+              {brand ? <span className="text-white">{brand.marca}</span> : null}
+              {brand && country ? " · " : null}
+              {country ? <span className="text-white">{country.pais}</span> : null}.
+            </p>
+          )}
+
+          <ul className="mt-4 space-y-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-xs text-muted">
+            <li>· Solo tienes <span className="text-white">una</span> repesca cada 24 h.</li>
+            <li>· La puntuación es la <span className="text-white">mitad</span> que en una partida normal.</li>
+            <li>· <span className="text-white">No</span> afecta a tu racha (streak).</li>
+          </ul>
+
+          {error && (
+            <p
+              role="alert"
+              className="mt-3 rounded-lg border border-red-400/40 bg-red-400/10 px-3 py-2 text-xs text-red-300"
+            >
+              {error}
+            </p>
+          )}
+
+          <div className="mt-5 flex gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={starting}
+              className="
+                flex-1 rounded-lg border border-white/10 bg-white/[0.04]
+                px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/80
+                transition hover:border-white/30 hover:text-white
+                disabled:cursor-not-allowed disabled:opacity-50
+              "
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={starting}
+              className="
+                flex-1 rounded-lg bg-accent
+                px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-bg-primary
+                transition hover:brightness-110
+                disabled:cursor-not-allowed disabled:opacity-60
+              "
+              aria-busy={starting}
+            >
+              {starting ? "Iniciando..." : "Sí, repescar"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // Subcomponentes auxiliares
 // ============================================================================
 
-function BackButton({ onClick }) {
+function BackButton({ onClick, label }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Volver a países"
-      title="Volver a países"
+      aria-label={`Volver a ${label}`}
       className="
-        flex h-9 w-9 shrink-0 items-center justify-center rounded-full
-        border border-white/10 bg-white/[0.04] text-white/80
+        inline-flex max-w-full items-center gap-1.5
+        rounded-md border border-white/10 bg-white/[0.04]
+        px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-white/80
         transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent
-        active:scale-90
+        active:scale-95
       "
     >
       <svg
         viewBox="0 0 24 24"
-        className="h-4 w-4"
+        className="h-3.5 w-3.5 shrink-0"
         fill="none"
         stroke="currentColor"
         strokeWidth="2.4"
@@ -499,13 +949,13 @@ function BackButton({ onClick }) {
       >
         <path d="M15 18l-6-6 6-6" />
       </svg>
+      <span className="truncate">Volver a {label}</span>
     </button>
   );
 }
 
 function CenterMessage({ text, pulse = false, tone = "default" }) {
-  const toneClass =
-    tone === "error" ? "text-red-400" : "text-muted";
+  const toneClass = tone === "error" ? "text-red-400" : "text-muted";
   return (
     <div className="flex flex-1 items-center justify-center p-6 text-center">
       <p className={`text-sm ${toneClass} ${pulse ? "animate-pulse uppercase tracking-widest" : ""}`}>

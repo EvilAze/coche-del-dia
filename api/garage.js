@@ -35,6 +35,15 @@ function extractAccessToken(req) {
   return null;
 }
 
+function todayInMadrid() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 async function authClientAndUser(accessToken) {
   if (!accessToken) return { client: null, user: null };
   try {
@@ -94,6 +103,41 @@ export default async function handler(req, res) {
 
     const unlockedIds = new Set((wins || []).map((w) => w.car_id));
 
+    // 3) Coches que YA han sido coche del día (fecha < hoy). Solo estos son
+    //    repescables. Usamos service_role: pick_daily_car y daily_cars están
+    //    revocados para anon/authenticated por hardening previo.
+    const todayDate = todayInMadrid();
+    const { data: pastDailies, error: dailiesErr } = await supabaseAdmin
+      .from("daily_cars")
+      .select("car_id")
+      .lt("date", todayDate);
+    if (dailiesErr) {
+      console.error("[garage] read daily_cars:", dailiesErr);
+      return res.status(500).json({ error: "Failed to read history" });
+    }
+    const pastDailyIds = new Set((pastDailies || []).map((d) => d.car_id));
+
+    // 4) Estado de la repesca del usuario: si hay una activa hoy, no puede
+    //    iniciar otra. Si la activa coincide con un coche concreto, podemos
+    //    indicarlo para que el frontend ofrezca "Continuar" en lugar de
+    //    "Iniciar".
+    const { data: statsRow, error: statsErr } = await authClient
+      .from("stats")
+      .select("last_repesca_at, last_repesca_car_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (statsErr) {
+      console.error("[garage] read stats:", statsErr);
+      // No abortamos: si stats no se puede leer, asumimos repesca disponible
+      // como degradación segura (la verificación real ocurre en /start).
+    }
+    const lastRepescaAt = statsRow?.last_repesca_at || null;
+    const repescaConsumedToday = lastRepescaAt === todayDate;
+    const repescaAvailable = !repescaConsumedToday;
+    const repescaActiveCarId = repescaConsumedToday
+      ? statsRow?.last_repesca_car_id || null
+      : null;
+
     // 3) Agrupar por país. Sin clase de coche → "Sin país" como cubo
     //    fallback (en la práctica no debería pasar porque pais es required
     //    en /admin/add-car, pero defensivo).
@@ -104,6 +148,7 @@ export default async function handler(req, res) {
         byCountry.set(pais, { pais, cars: [] });
       }
       const unlocked = unlockedIds.has(c.id);
+      const wasDaily = pastDailyIds.has(c.id);
       byCountry.get(pais).cars.push(
         unlocked
           ? {
@@ -114,10 +159,19 @@ export default async function handler(req, res) {
               description: c.description ?? null,
               img: c.image_url,
               unlocked: true,
+              wasDaily,
             }
           : {
+              // Devolvemos marca también para los bloqueados, porque el
+              // garaje agrupa por país→marca. Sigue sin leakear info
+              // sensible: la lista de marcas ya es pública vía /api/list-cars.
+              // Lo que NO devolvemos es modelo/año/descripción/imagen.
               id: c.id,
+              marca: c.make,
               unlocked: false,
+              // wasDaily marca si el coche ya ha sido coche del día en
+              // alguna fecha anterior. Solo estos son elegibles para repesca.
+              wasDaily,
             }
       );
     }
@@ -158,6 +212,16 @@ export default async function handler(req, res) {
       totalCatalog,
       totalUnlocked,
       countries,
+      // Repesca (sistema "una al día"):
+      //   repescaAvailable     → true si el usuario no ha consumido repesca
+      //                          hoy. El frontend usa este flag para decidir
+      //                          si las cards repescables son interactivas
+      //                          (Estado B) o solo decorativas (Estado C).
+      //   repescaActiveCarId   → si hay una repesca en curso (consumida hoy
+      //                          pero sin terminar), aquí va el car_id que
+      //                          el usuario eligió. Permite "Continuar".
+      repescaAvailable,
+      repescaActiveCarId,
     });
   } catch (err) {
     console.error("[garage] UNCAUGHT:", err && err.stack ? err.stack : err);

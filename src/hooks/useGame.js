@@ -28,8 +28,14 @@ function triggerHaptic(pattern) {
 }
 
 function buildShareText(guesses) {
-  const webUrl = "https://carguessr.org";
-
+  // Formato compacto: dominio + emoji + fecha en una sola cabecera, sin
+  // URL repetida al final. Pros vs el formato Wordle clásico:
+  //   - Ahorra una línea (la URL final).
+  //   - La mayoría de clientes (Telegram/WhatsApp) NO renderizan tarjeta
+  //     de preview cuando la URL está mezclada con texto en la misma línea,
+  //     así que el mensaje no se infla con el "card" de OpenGraph.
+  //   - "Carguessr.org" sigue siendo clicable: los autodetectores de URL
+  //     reconocen el dominio aunque no lleve https://.
   const lines = guesses.map((g) => {
     const m = g.marca.status === "correct" ? "✅" : "❌";
     const mo = g.modelo.status === "correct" ? "✅" : "❌";
@@ -38,7 +44,7 @@ function buildShareText(guesses) {
     return m + mo + a;
   });
 
-  return `Carguessr 🚗 ${getShareDate()}\n${lines.join("\n")}\n${webUrl}`;
+  return `Carguessr.org 🚗 ${getShareDate()}\n${lines.join("\n")}`;
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la

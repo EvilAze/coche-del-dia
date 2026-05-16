@@ -259,9 +259,16 @@ export default async function handler(req, res) {
       : "playing";
 
     // -------- 7. Persistencia autoritativa (logueados) -------------------
-    if (user && authClient) {
+    //   IMPORTANTE: usamos supabaseAdmin (service_role), NO authClient.
+    //   Las policies de user_guesses se han endurecido para revocar
+    //   INSERT/UPDATE/DELETE al rol `authenticated` — el cliente ya no puede
+    //   escribir directamente desde el navegador. Esto bloquea dos cheats:
+    //     - Pre-poblar `user_guesses` con guesses ganadoras para TODOS los
+    //       car_id y llamar a record_daily_result_v2 → auto-win.
+    //     - DELETE de la fila tras perder + recarga → replay ilimitado.
+    if (user) {
       const newGuesses = [...existingGuesses, result];
-      const { error: saveErr } = await authClient.from("user_guesses").upsert(
+      const { error: saveErr } = await supabaseAdmin.from("user_guesses").upsert(
         {
           user_id: user.id,
           car_id: todayCarId,

@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
+import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
 
 function slugifyCountry(pais) {
@@ -72,6 +73,7 @@ function groupCarsByBrand(cars) {
 }
 
 export default function Garage({ open, onClose, user, onOpenLogin }) {
+  const toast = useToast();
   const [state, setState] = useState({
     loading: false,
     data: null,
@@ -80,28 +82,34 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [detailCar, setDetailCar] = useState(null);
-  // Coche que el usuario quiere repescar: dispara el modal de confirmación.
-  const [repescaTarget, setRepescaTarget] = useState(null);
-  // Estado del POST a /api/repesca/start mientras está pulsando "Sí".
+  // Modal de confirmación de repesca aleatoria: se abre tras pulsar el CTA
+  // y antes de tocar el backend, para que el usuario revise las reglas
+  // (una al día, mitad de puntos, no afecta a la racha).
+  const [confirmRepesca, setConfirmRepesca] = useState(false);
+  // Modal "¿Cómo funciona la repesca?" (icono ? del header).
+  const [helpOpen, setHelpOpen] = useState(false);
+  // Estado del POST a /api/repesca/start mientras se sortea un coche.
   const [repescaStarting, setRepescaStarting] = useState(false);
-  const [repescaError, setRepescaError] = useState("");
-  // Filtro "Solo pendientes": vive en el padre para que se preserve al
-  // navegar de Vista 1 a Vista 2 y viceversa. No tiene efecto en Vista 3.
-  const [showOnlyPending, setShowOnlyPending] = useState(false);
 
-  // ESC: cinco niveles encadenados, de más interno a más externo.
-  useEscape(open && Boolean(repescaTarget), () => setRepescaTarget(null));
-  useEscape(open && !repescaTarget && Boolean(detailCar), () => setDetailCar(null));
+  // ESC: seis niveles encadenados, de más interno a más externo.
+  useEscape(open && helpOpen, () => setHelpOpen(false));
+  useEscape(open && !helpOpen && confirmRepesca, () => {
+    if (!repescaStarting) setConfirmRepesca(false);
+  });
   useEscape(
-    open && !repescaTarget && !detailCar && Boolean(selectedBrand),
+    open && !helpOpen && !confirmRepesca && Boolean(detailCar),
+    () => setDetailCar(null)
+  );
+  useEscape(
+    open && !helpOpen && !confirmRepesca && !detailCar && Boolean(selectedBrand),
     () => setSelectedBrand(null)
   );
   useEscape(
-    open && !repescaTarget && !detailCar && !selectedBrand && Boolean(selectedCountry),
+    open && !helpOpen && !confirmRepesca && !detailCar && !selectedBrand && Boolean(selectedCountry),
     () => setSelectedCountry(null)
   );
   useEscape(
-    open && !repescaTarget && !detailCar && !selectedBrand && !selectedCountry,
+    open && !helpOpen && !confirmRepesca && !detailCar && !selectedBrand && !selectedCountry,
     onClose
   );
 
@@ -111,9 +119,8 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       setSelectedCountry(null);
       setSelectedBrand(null);
       setDetailCar(null);
-      setRepescaTarget(null);
-      setRepescaError("");
-      setShowOnlyPending(false);
+      setConfirmRepesca(false);
+      setHelpOpen(false);
     }
   }, [open]);
 
@@ -172,6 +179,101 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       ? brandsInCountry.find((b) => b.marca === selectedBrand) || null
       : null;
 
+  // Pool global de coches "pasados y pendientes": todos los coches que YA
+  // fueron coche del día (wasDaily) y que el usuario AÚN no ha adivinado
+  // (no unlocked). Los ids son pseudo-ids opacos generados por /api/garage,
+  // lo cual es lo que queremos: el cliente nunca conoce la marca/modelo del
+  // coche que va a tocar hasta que empieza la partida.
+  const repescaPool = useMemo(() => {
+    if (!state.data?.countries) return [];
+    const ids = [];
+    for (const c of state.data.countries) {
+      for (const car of c.cars || []) {
+        if (car.wasDaily && !car.unlocked) ids.push(car.id);
+      }
+    }
+    return ids;
+  }, [state.data]);
+
+  // Click en el CTA "Repesca Aleatoria". Hace los pre-checks rápidos antes
+  // de abrir el modal de confirmación — no merece la pena enseñar reglas si
+  // el usuario no tiene nada que repescar.
+  //   1. Si ya hay una repesca activa hoy → reanuda directamente (sin
+  //      mostrar reglas otra vez, ya las aceptó cuando arrancó).
+  //   2. Si no hay coches pendientes → toast de enhorabuena.
+  //   3. Si ya consumió la repesca de hoy → toast informativo.
+  //   4. En cualquier otro caso → abrir modal con las condiciones.
+  function handleRandomRepesca() {
+    if (repescaStarting) return;
+
+    if (state.data?.repescaActiveCarId) {
+      window.location.href = `/repesca?id=${encodeURIComponent(
+        state.data.repescaActiveCarId
+      )}`;
+      return;
+    }
+
+    if (repescaPool.length === 0) {
+      toast.push("¡Enhorabuena! Ya has adivinado todos los coches anteriores.", {
+        type: "success",
+      });
+      return;
+    }
+
+    if (!state.data?.repescaAvailable) {
+      toast.push(
+        "Ya has consumido tu repesca de hoy. Vuelve mañana para otra oportunidad.",
+        { type: "info" }
+      );
+      return;
+    }
+
+    setConfirmRepesca(true);
+  }
+
+  // El usuario acepta la repesca tras leer las condiciones. Sorteamos un
+  // coche al azar de la pool de pendientes y delegamos en el backend la
+  // consumición del intento. Tras OK, redirect a /repesca?id=<pseudo>.
+  async function confirmAndStartRepesca() {
+    if (repescaStarting) return;
+    if (repescaPool.length === 0) {
+      // Defensivo: la pool pudo cambiar entre apertura y aceptación.
+      setConfirmRepesca(false);
+      return;
+    }
+
+    const pickedId = repescaPool[Math.floor(Math.random() * repescaPool.length)];
+
+    setRepescaStarting(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sin sesión");
+
+      const res = await fetch("/api/repesca/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ carId: pickedId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.detail || body?.error || `HTTP ${res.status}`);
+      }
+      window.location.href = `/repesca?id=${encodeURIComponent(pickedId)}`;
+    } catch (err) {
+      console.error("[Garage] random repesca:", err);
+      toast.push(err?.message || "No se pudo iniciar la repesca.", {
+        type: "error",
+      });
+      setRepescaStarting(false);
+      setConfirmRepesca(false);
+    }
+  }
+
   if (!open) return null;
 
   // ¿Qué vista estamos pintando?
@@ -219,9 +321,12 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
               <p className={`text-[10px] uppercase tracking-[0.28em] text-accent ${backLabel ? "mt-2" : ""}`}>
                 {headerLabel}
               </p>
-              <h2 className="truncate font-display text-2xl tracking-widest text-white">
-                {headerTitle}
-              </h2>
+              <div className="flex items-center gap-2.5">
+                <h2 className="truncate font-display text-2xl tracking-widest text-white">
+                  {headerTitle}
+                </h2>
+                <HelpButton onClick={() => setHelpOpen(true)} />
+              </div>
             </div>
             <CloseButton onClick={onClose} />
           </div>
@@ -245,28 +350,23 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
           <BrandShowroom
             country={currentCountry}
             brand={currentBrand}
-            repescaAvailable={!!state.data?.repescaAvailable}
-            repescaActiveCarId={state.data?.repescaActiveCarId || null}
             onSelectCar={setDetailCar}
-            onSelectRepesca={(car) => {
-              setRepescaError("");
-              setRepescaTarget(car);
-            }}
           />
         ) : view === "brands" ? (
           <BrandsMenu
             country={currentCountry}
             brands={brandsInCountry}
             onSelectBrand={setSelectedBrand}
-            showOnlyPending={showOnlyPending}
-            onToggleOnlyPending={() => setShowOnlyPending((v) => !v)}
           />
         ) : (
           <CountriesMenu
             data={state.data}
             onSelectCountry={setSelectedCountry}
-            showOnlyPending={showOnlyPending}
-            onToggleOnlyPending={() => setShowOnlyPending((v) => !v)}
+            repescaPoolSize={repescaPool.length}
+            repescaAvailable={!!state.data?.repescaAvailable}
+            repescaActiveCarId={state.data?.repescaActiveCarId || null}
+            repescaStarting={repescaStarting}
+            onRandomRepesca={handleRandomRepesca}
           />
         )}
       </div>
@@ -275,51 +375,19 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         <CarDetail car={detailCar} onClose={() => setDetailCar(null)} />
       )}
 
-      {repescaTarget && (
-        <RepescaConfirm
-          car={repescaTarget}
-          country={currentCountry}
-          brand={currentBrand}
+      {confirmRepesca && (
+        <RandomRepescaConfirm
+          poolSize={repescaPool.length}
           starting={repescaStarting}
-          error={repescaError}
           onCancel={() => {
             if (repescaStarting) return;
-            setRepescaTarget(null);
-            setRepescaError("");
+            setConfirmRepesca(false);
           }}
-          onAccept={async () => {
-            if (repescaStarting) return;
-            setRepescaStarting(true);
-            setRepescaError("");
-            try {
-              const {
-                data: { session },
-              } = await supabase.auth.getSession();
-              if (!session?.access_token) throw new Error("Sin sesión");
-
-              const res = await fetch("/api/repesca/start", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({ carId: repescaTarget.id }),
-              });
-              const body = await res.json().catch(() => ({}));
-              if (!res.ok) {
-                throw new Error(body?.detail || body?.error || `HTTP ${res.status}`);
-              }
-              // Repesca consumida (o reanudada). Redirigimos al flujo de
-              // juego específico.
-              window.location.href = `/repesca?id=${encodeURIComponent(repescaTarget.id)}`;
-            } catch (err) {
-              console.error("[Garage] /api/repesca/start:", err);
-              setRepescaError(err?.message || "No se pudo iniciar la repesca.");
-              setRepescaStarting(false);
-            }
-          }}
+          onAccept={confirmAndStartRepesca}
         />
       )}
+
+      {helpOpen && <RepescaHelpModal onClose={() => setHelpOpen(false)} />}
     </div>
   );
 }
@@ -331,25 +399,20 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
 function CountriesMenu({
   data,
   onSelectCountry,
-  showOnlyPending,
-  onToggleOnlyPending,
+  repescaPoolSize,
+  repescaAvailable,
+  repescaActiveCarId,
+  repescaStarting,
+  onRandomRepesca,
 }) {
-  // Decoramos cada país con su `missed` (no `unlocked` && wasDaily). Lo
-  // memoizamos para no recalcular en cada cambio de filtro.
+  // Decoramos cada país con su `missed` (no `unlocked` && wasDaily) para
+  // que CountryCard pueda mostrar el contador ámbar.
   const countriesWithMissed = useMemo(() => {
     return (data.countries || []).map((c) => ({
       ...c,
       missed: countMissed(c.cars),
     }));
   }, [data.countries]);
-
-  const visibleCountries = useMemo(() => {
-    return showOnlyPending
-      ? countriesWithMissed.filter((c) => c.missed > 0)
-      : countriesWithMissed;
-  }, [countriesWithMissed, showOnlyPending]);
-
-  const hasAnyMissed = countriesWithMissed.some((c) => c.missed > 0);
 
   return (
     <>
@@ -362,32 +425,27 @@ function CountriesMenu({
           <span className="text-muted"> / {data.totalCatalog}</span>
         </p>
 
-        {hasAnyMissed && (
-          <div className="mt-2 flex justify-center">
-            <PendingToggle
-              active={showOnlyPending}
-              onToggle={onToggleOnlyPending}
-            />
-          </div>
-        )}
+        <div className="mt-3">
+          <RandomRepescaButton
+            poolSize={repescaPoolSize}
+            available={repescaAvailable}
+            hasActive={!!repescaActiveCarId}
+            starting={repescaStarting}
+            onClick={onRandomRepesca}
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {visibleCountries.length === 0 ? (
-          <p className="mt-6 text-center text-sm text-muted">
-            No quedan países con coches pendientes. ¡Buen trabajo!
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {visibleCountries.map((c) => (
-              <CountryCard
-                key={c.pais}
-                country={c}
-                onClick={() => onSelectCountry(c.pais)}
-              />
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {countriesWithMissed.map((c) => (
+            <CountryCard
+              key={c.pais}
+              country={c}
+              onClick={() => onSelectCountry(c.pais)}
+            />
+          ))}
+        </div>
       </div>
     </>
   );
@@ -395,12 +453,6 @@ function CountriesMenu({
 
 function CountryCard({ country, onClick }) {
   const completed = country.unlocked === country.total && country.total > 0;
-  // `missed` lo precalcula CountriesMenu; defensivo por si entra otro
-  // consumidor que no lo añada.
-  const missed =
-    typeof country.missed === "number"
-      ? country.missed
-      : countMissed(country.cars);
 
   return (
     <button
@@ -435,16 +487,6 @@ function CountryCard({ country, onClick }) {
         <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
           {country.unlocked} / {country.total}
         </p>
-        {missed > 0 && (
-          <p
-            className="mt-1 text-[10px] font-medium tabular-nums text-amber-500"
-            style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
-            aria-label={`${missed} pendientes de repesca`}
-          >
-            <span aria-hidden="true">🎯</span> {missed} pendiente
-            {missed > 1 ? "s" : ""}
-          </p>
-        )}
       </div>
     </button>
   );
@@ -458,16 +500,8 @@ function BrandsMenu({
   country,
   brands,
   onSelectBrand,
-  showOnlyPending,
-  onToggleOnlyPending,
 }) {
-  const visibleBrands = useMemo(() => {
-    return showOnlyPending
-      ? (brands || []).filter((b) => b.missed > 0)
-      : brands || [];
-  }, [brands, showOnlyPending]);
-
-  const hasAnyMissed = (brands || []).some((b) => b.missed > 0);
+  const visibleBrands = brands || [];
   return (
     <>
       {/* Banda con bandera de fondo y progreso del país.
@@ -504,30 +538,15 @@ function BrandsMenu({
           no da para acomodar nombres largos (VOLKSWAGEN, MERCEDES-BENZ)
           con tipografía premium y tracking ancho. */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {hasAnyMissed && (
-          <div className="mb-3 flex justify-center">
-            <PendingToggle
-              active={showOnlyPending}
-              onToggle={onToggleOnlyPending}
+        <div className="grid grid-cols-2 gap-3">
+          {visibleBrands.map((brand) => (
+            <BrandCard
+              key={brand.marca}
+              brand={brand}
+              onClick={() => onSelectBrand(brand.marca)}
             />
-          </div>
-        )}
-
-        {visibleBrands.length === 0 ? (
-          <p className="mt-6 text-center text-sm text-muted">
-            No quedan marcas con coches pendientes en {country.pais}.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {visibleBrands.map((brand) => (
-              <BrandCard
-                key={brand.marca}
-                brand={brand}
-                onClick={() => onSelectBrand(brand.marca)}
-              />
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
       </div>
     </>
   );
@@ -590,19 +609,9 @@ function BrandCard({ brand, onClick }) {
         {/* Línea separadora sutil entre el nombre y el contador */}
         <div className="mt-3 h-px w-10 bg-neutral-700" aria-hidden="true" />
 
-        <div className="mt-3 flex items-baseline justify-center gap-2">
-          <p className="text-sm font-medium tabular-nums text-neutral-500 drop-shadow-md">
-            {brand.unlocked} / {brand.total}
-          </p>
-          {brand.missed > 0 && (
-            <p
-              className="text-xs font-medium tabular-nums text-amber-500 drop-shadow-md"
-              aria-label={`${brand.missed} pendientes de repesca`}
-            >
-              <span aria-hidden="true">🎯</span> {brand.missed}
-            </p>
-          )}
-        </div>
+        <p className="mt-3 text-sm font-medium tabular-nums text-neutral-500 drop-shadow-md">
+          {brand.unlocked} / {brand.total}
+        </p>
       </div>
     </button>
   );
@@ -615,10 +624,7 @@ function BrandCard({ brand, onClick }) {
 function BrandShowroom({
   country,
   brand,
-  repescaAvailable,
-  repescaActiveCarId,
   onSelectCar,
-  onSelectRepesca,
 }) {
   const progressPct = brand.total
     ? Math.round((brand.unlocked / brand.total) * 100)
@@ -669,54 +675,25 @@ function BrandShowroom({
         </div>
       </div>
 
-      {/* Grid de coches de la marca: 3 estados posibles
+      {/* Grid de coches de la marca: 2 estados posibles
             A — Desbloqueado: foto a color, click → ficha
-            B — Repescable: lona interactiva con badge "🎯 Recuperar"
-            C — Bloqueado: lona oscurecida + "Vuelve mañana" o "No disponible" */}
+            B — Bloqueado: lona blureada + candado, no interactiva.
+                La única forma de jugar un coche bloqueado es el botón
+                "Repesca Aleatoria" del menú de países, que oculta marca,
+                modelo e incluso a qué país pertenece. */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="grid grid-cols-2 gap-3 pb-3 sm:grid-cols-3">
-          {brand.cars.map((car) => {
-            // Estado A: ganado.
-            if (car.unlocked) {
-              return (
-                <UnlockedCard
-                  key={car.id}
-                  car={car}
-                  onClick={() => onSelectCar(car)}
-                />
-              );
-            }
-            // Estado B: repescable AHORA. Tres condiciones:
-            //   1) El coche ya ha sido coche del día en el pasado (wasDaily).
-            //   2) El usuario no ha consumido repesca hoy
-            //      → repescaAvailable, O...
-            //   3) ...la repesca activa de hoy es justo este coche
-            //      → repescaActiveCarId === car.id (caso "Continuar").
-            const isActiveRepesca = repescaActiveCarId === car.id;
-            const canStartRepesca = repescaAvailable || isActiveRepesca;
-            if (car.wasDaily && canStartRepesca) {
-              return (
-                <RepescaCard
-                  key={car.id}
-                  car={car}
-                  resume={isActiveRepesca}
-                  onClick={() => onSelectRepesca(car)}
-                />
-              );
-            }
-            // Estado C: bloqueado. Texto contextual según motivo.
-            return (
-              <LockedCard
+          {brand.cars.map((car) =>
+            car.unlocked ? (
+              <UnlockedCard
                 key={car.id}
                 car={car}
-                reason={
-                  !car.wasDaily
-                    ? "future" // todavía no ha sido coche del día
-                    : "used" // ya gastó repesca hoy en otro coche
-                }
+                onClick={() => onSelectCar(car)}
               />
-            );
-          })}
+            ) : (
+              <LockedCard key={car.id} car={car} />
+            )
+          )}
         </div>
       </div>
     </div>
@@ -767,13 +744,17 @@ function UnlockedCard({ car, onClick }) {
   );
 }
 
-function LockedCard({ car, reason = "future" }) {
-  const label = reason === "used" ? "Vuelve mañana" : "Bloqueado";
+function LockedCard({ car }) {
   // El blur va aplicado SERVER-SIDE en /api/car-image (mode=blurred): lo que
   // llega al navegador es un JPEG ya desenfocado y oscurecido. No usamos
   // CSS blur a propósito — sería trivial de quitar abriendo DevTools y leyendo
   // la `src` original (que en este flujo, además, nunca existe en el cliente).
   // El overlay CSS que sí ponemos es decorativo, no de seguridad.
+  //
+  // Las tarjetas bloqueadas son puramente visuales: ya NO permiten iniciar
+  // una repesca individualmente. El usuario juega coches bloqueados solo
+  // a través del botón "Repesca Aleatoria" del menú de países, que esconde
+  // toda pista sobre marca / modelo / país hasta empezar la partida.
   return (
     <div
       className="
@@ -781,7 +762,7 @@ function LockedCard({ car, reason = "future" }) {
         border border-white/10 bg-[#0d0d10]
         shadow-md shadow-black/40
       "
-      aria-label={`Cromo bloqueado: ${label}`}
+      aria-label="Cromo bloqueado"
     >
       <img
         src={car?.img}
@@ -795,100 +776,18 @@ function LockedCard({ car, reason = "future" }) {
         }}
       />
 
-      {/* Overlay oscuro premium: refuerza el oscurecido del JPEG y empuja el
-          look hacia "noche" / "misterio" sin matar del todo los colores. */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/40" />
 
-      {/* Candado + texto centrados: el cromo se lee como "bloqueado" de
-          un vistazo, sin pistas sobre el coche que hay detrás. */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center">
         <LockIcon className="h-7 w-7 text-amber-500/70" />
         <p
           className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/80"
           style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
         >
-          {label}
+          Bloqueado
         </p>
       </div>
     </div>
-  );
-}
-
-// Estado B: coche que el usuario perdió en su día pero todavía tiene
-// repesca disponible. Visualmente paralela a LockedCard (mismo proxy
-// blureado server-side + mismo overlay oscuro), pero:
-//   - Es un <button>: clickeable, con hover y ring-accent al foco.
-//   - Borde y badge en accent → la card "llama" frente a las grises.
-//   - Mantiene el badge "🎯 Recuperar" arriba y la CTA "Intentar repesca"
-//     en el pie, ambos sobre el degradado para que se lean nítidos.
-//   - No hay candado: el badge ámbar ya dice que es una oportunidad, no
-//     un bloqueo; añadir candado mandaría mensaje contradictorio.
-function RepescaCard({ car, resume = false, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="
-        group relative aspect-[4/5] w-full overflow-hidden rounded-lg
-        border border-accent/40 bg-[#0d0d10]
-        shadow-md shadow-black/40
-        transition-all
-        hover:border-accent hover:shadow-lg hover:shadow-accent/20
-        focus:outline-none focus-visible:ring-2 focus-visible:ring-accent
-        active:scale-[0.97]
-      "
-      aria-label={resume ? "Continuar repesca" : "Intentar repesca"}
-    >
-      {/* Foto del coche blureada server-side (mode=blurred). La URL nítida
-          nunca llega al navegador: lo que llega es un JPEG ya borroseado y
-          oscurecido por sharp. El cliente solo decora. */}
-      <img
-        src={car?.img}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        loading="lazy"
-        className="
-          absolute inset-0 h-full w-full object-cover object-center
-          transition-transform duration-500 group-hover:scale-105
-        "
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-      />
-
-      {/* Mismo degradado oscuro que LockedCard: oscuro abajo y bajando
-          intensidad hacia arriba, donde queremos que la silueta del coche
-          se vea para incitar a "recuperarlo". */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/40" />
-
-      {/* Aura accent muy sutil arriba: refuerza que esta card es la
-          oportunidad ámbar dentro del grid de bloqueadas grises. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-accent/10 to-transparent" />
-
-      {/* Badge superior: diana o continuar */}
-      <div
-        className="
-          absolute left-1.5 top-1.5 inline-flex items-center gap-1
-          rounded-full bg-accent/25 px-2 py-0.5
-          text-[9px] font-semibold uppercase tracking-widest text-accent
-          backdrop-blur-sm
-        "
-      >
-        <span aria-hidden="true">{resume ? "⟳" : "🎯"}</span>
-        <span>{resume ? "Continuar" : "Recuperar"}</span>
-      </div>
-
-      {/* Pie: texto invitando a la acción */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-2 pb-2.5">
-        <p
-          className="text-[10px] font-medium uppercase tracking-widest text-accent"
-          style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
-        >
-          {resume ? "Continuar partida" : "Intentar repesca"}
-        </p>
-      </div>
-    </button>
   );
 }
 
@@ -954,47 +853,14 @@ function CarDetail({ car, onClose }) {
 }
 
 // ============================================================================
-// Toggle "Solo pendientes" (Vista 1 y Vista 2)
+// Modal de confirmación de Repesca Aleatoria
 // ============================================================================
-
-function PendingToggle({ active, onToggle }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      role="switch"
-      aria-checked={active}
-      aria-label="Mostrar solo coches pendientes de repesca"
-      className={`
-        inline-flex items-center gap-1.5 rounded-full border px-3 py-1
-        text-[10px] font-semibold uppercase tracking-[0.16em]
-        transition-colors active:scale-95
-        ${
-          active
-            ? "border-amber-500/60 bg-amber-500/15 text-amber-300 hover:bg-amber-500/20"
-            : "border-white/10 bg-white/[0.04] text-white/70 hover:border-white/30 hover:text-white"
-        }
-      `}
-    >
-      <span aria-hidden="true">🎯</span>
-      <span>{active ? "Viendo pendientes" : "Solo pendientes"}</span>
-    </button>
-  );
-}
-
-// ============================================================================
-// Modal de confirmación de repesca
-// ============================================================================
-
-function RepescaConfirm({
-  car,
-  country,
-  brand,
-  starting,
-  error,
-  onCancel,
-  onAccept,
-}) {
+//
+// Se abre tras pulsar el CTA principal y antes de tocar /api/repesca/start.
+// Muestra las condiciones (una al día, mitad de puntos, no afecta racha)
+// y nada de info del coche — porque ni siquiera nosotros sabemos cuál nos
+// va a tocar todavía (el random sale en el `onAccept`).
+function RandomRepescaConfirm({ poolSize, starting, onCancel, onAccept }) {
   return (
     <div
       className="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
@@ -1010,38 +876,25 @@ function RepescaConfirm({
       >
         <div className="px-5 py-5 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
-            <span className="text-2xl" aria-hidden="true">🎯</span>
+            <span className="text-2xl" aria-hidden="true">🎲</span>
           </div>
           <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-accent">
             Repesca diaria
           </p>
           <h3 className="mt-1 font-display text-xl tracking-wider text-white">
-            ¿Gastar tu repesca de hoy?
+            ¿Sortear un coche?
           </h3>
 
-          {(country || brand) && (
-            <p className="mt-3 text-sm text-muted">
-              Vas a intentar un coche de{" "}
-              {brand ? <span className="text-white">{brand.marca}</span> : null}
-              {brand && country ? " · " : null}
-              {country ? <span className="text-white">{country.pais}</span> : null}.
-            </p>
-          )}
+          <p className="mt-3 text-sm text-muted">
+            Te tocará un coche al azar de los {poolSize} pendientes. No verás
+            su marca, modelo ni país hasta empezar la partida.
+          </p>
 
           <ul className="mt-4 space-y-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-xs text-muted">
             <li>· Solo tienes <span className="text-white">una</span> repesca cada 24 h.</li>
             <li>· La puntuación es la <span className="text-white">mitad</span> que en una partida normal.</li>
             <li>· <span className="text-white">No</span> afecta a tu racha (streak).</li>
           </ul>
-
-          {error && (
-            <p
-              role="alert"
-              className="mt-3 rounded-lg border border-red-400/40 bg-red-400/10 px-3 py-2 text-xs text-red-300"
-            >
-              {error}
-            </p>
-          )}
 
           <div className="mt-5 flex gap-2">
             <button
@@ -1069,12 +922,89 @@ function RepescaConfirm({
               "
               aria-busy={starting}
             >
-              {starting ? "Iniciando..." : "Sí, repescar"}
+              {starting ? "Sorteando..." : "Sortear y jugar"}
             </button>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================================
+// Botón "Repesca Aleatoria" (CTA principal del Garaje)
+// ============================================================================
+//
+// Sustituye al flujo antiguo de "elegir coche bloqueado + confirmar". Ahora el
+// usuario no ve ni marca ni país del coche que va a jugar: el servidor
+// (vía /api/repesca/start) consume el intento del día y la página /repesca
+// muestra solo la lona blureada hasta que se hace el primer intento.
+//
+// Estados visuales:
+//   - hasActive  → "Continuar repesca": ya hay una partida en curso hoy.
+//   - !available → "Sin repescas hoy" : ya consumió su intento, pero la
+//                   partida está terminada (ganada o perdida). Botón
+//                   desactivado.
+//   - poolSize=0 → "Álbum completo"   : no quedan coches pendientes.
+//                   Botón desactivado.
+//   - default    → "🎲 Jugar Repesca Aleatoria".
+function RandomRepescaButton({
+  poolSize,
+  available,
+  hasActive,
+  starting,
+  onClick,
+}) {
+  let label;
+  let icon = "🎲";
+  let disabled = false;
+  let tone = "accent";
+
+  if (starting) {
+    label = "Sorteando...";
+    icon = "🎲";
+  } else if (hasActive) {
+    label = "Continuar repesca";
+    icon = "⟳";
+  } else if (poolSize === 0) {
+    label = "Álbum completo";
+    icon = "★";
+    disabled = true;
+    tone = "muted";
+  } else if (!available) {
+    label = "Sin repescas hoy";
+    icon = "⏳";
+    disabled = true;
+    tone = "muted";
+  } else {
+    label = "Jugar Repesca Aleatoria";
+  }
+
+  const base =
+    "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 " +
+    "text-xs font-semibold uppercase tracking-[0.16em] transition-all active:scale-[0.98] " +
+    "disabled:cursor-not-allowed disabled:opacity-60";
+  const toneCls =
+    tone === "accent"
+      ? "border border-accent/50 bg-accent/15 text-accent hover:border-accent hover:bg-accent/25"
+      : "border border-white/10 bg-white/[0.04] text-white/60";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || starting}
+      aria-busy={starting}
+      className={`${base} ${toneCls}`}
+    >
+      <span aria-hidden="true">{icon}</span>
+      <span>{label}</span>
+      {!disabled && !starting && poolSize > 0 && !hasActive && (
+        <span className="ml-1 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] tabular-nums tracking-wider text-accent">
+          {poolSize}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -1120,6 +1050,133 @@ function CenterMessage({ text, pulse = false, tone = "default" }) {
       <p className={`text-sm ${toneClass} ${pulse ? "animate-pulse uppercase tracking-widest" : ""}`}>
         {text}
       </p>
+    </div>
+  );
+}
+
+// "?" del header del Garaje. Mismo look que el HelpButton del Ranking
+// para mantener la consistencia visual entre módulos de la app.
+function HelpButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Cómo funciona la repesca"
+      title="Cómo funciona la repesca"
+      className="
+        flex h-7 w-7 shrink-0 items-center justify-center
+        rounded-full border border-white/15 bg-white/[0.04]
+        text-muted transition
+        hover:border-accent/60 hover:bg-accent/10 hover:text-accent
+        active:scale-90
+      "
+    >
+      <svg
+        className="h-3.5 w-3.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2.5-3 4.5" />
+        <path d="M12 18h.01" />
+      </svg>
+    </button>
+  );
+}
+
+// Modal con la explicación completa del modo Repesca. Lo lanza el "?" del
+// header. Se complementa con RandomRepescaConfirm, que es el modal corto
+// que sale justo antes de gastar la repesca; este de aquí está pensado
+// para consultarse antes de decidir.
+function RepescaHelpModal({ onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="
+          relative w-full max-w-sm overflow-hidden rounded-2xl
+          border border-accent/30 bg-[#0a0a0c] shadow-2xl
+          animate-fade-in
+        "
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="absolute right-2 top-2 z-10">
+          <CloseButton onClick={onClose} />
+        </div>
+
+        <div className="px-5 pb-5 pt-6 text-left">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
+              <span className="text-xl" aria-hidden="true">🎲</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
+                Modo Repesca
+              </p>
+              <h3 className="font-display text-xl tracking-wider text-white">
+                ¿Cómo funciona?
+              </h3>
+            </div>
+          </div>
+
+          <p className="mt-4 text-sm leading-relaxed text-white/90">
+            La repesca es una segunda oportunidad diaria para recuperar
+            coches que ya fueron coche del día y que aún no has adivinado.
+          </p>
+
+          <div className="mt-4 space-y-3">
+            <HelpRow icon="🎲" title="Coche sorpresa">
+              Se elige al azar entre tus coches pendientes. No verás marca,
+              modelo ni país hasta empezar la partida.
+            </HelpRow>
+            <HelpRow icon="⏱️" title="Una al día">
+              Solo puedes jugar una repesca cada 24 horas. Si fallas, tendrás
+              que esperar al día siguiente.
+            </HelpRow>
+            <HelpRow icon="½" title="Mitad de puntos">
+              La puntuación que consigas en una repesca cuenta la mitad que
+              en una partida normal.
+            </HelpRow>
+            <HelpRow icon="🔥" title="No afecta a tu racha">
+              Ganes o pierdas la repesca, tu streak diario no se ve afectado.
+            </HelpRow>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="
+              mt-5 w-full rounded-lg border border-accent/50 bg-accent/15
+              px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-accent
+              transition hover:border-accent hover:bg-accent/25 active:scale-[0.98]
+            "
+          >
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HelpRow({ icon, title, children }) {
+  return (
+    <div className="flex gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 font-display text-sm text-accent">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white">
+          {title}
+        </p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted">{children}</p>
+      </div>
     </div>
   );
 }

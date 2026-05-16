@@ -108,20 +108,24 @@ export default function ResultPanel({
         </p>
       </div>
 
-      <div className="bg-bg-secondary rounded-lg p-3 mb-4 font-mono text-sm whitespace-pre-wrap text-left text-muted leading-relaxed">
-        {shareText}
-      </div>
+      {shareText && (
+        <>
+          <div className="bg-bg-secondary rounded-lg p-3 mb-4 font-mono text-sm whitespace-pre-wrap text-left text-muted leading-relaxed">
+            {shareText}
+          </div>
 
-      <button
-        onClick={handleShare}
-        className="
-          border border-accent text-accent rounded-lg px-7 py-2.5
-          text-xs tracking-widest uppercase font-body
-          transition-colors hover:bg-accent/10 active:scale-[0.97]
-        "
-      >
-        Compartir resultado
-      </button>
+          <button
+            onClick={handleShare}
+            className="
+              border border-accent text-accent rounded-lg px-7 py-2.5
+              text-xs tracking-widest uppercase font-body
+              transition-colors hover:bg-accent/10 active:scale-[0.97]
+            "
+          >
+            Compartir resultado
+          </button>
+        </>
+      )}
 
       {!user && won && (
         <div className="mt-5 rounded-xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 text-left">

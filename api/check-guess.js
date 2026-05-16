@@ -279,7 +279,17 @@ export default async function handler(req, res) {
   //   El cliente ya no escribe en user_guesses; lo hacemos aquí con los
   //   valores que el servidor ha validado. Sin esto, un atacante podría
   //   nunca llamar al upsert del cliente y "reintentar" infinitas veces.
-  if (user && authClient) {
+  //
+  //   IMPORTANTE: usamos supabaseAdmin (service_role), NO authClient.
+  //   Las policies de user_guesses se han endurecido para revocar
+  //   INSERT/UPDATE/DELETE al rol `authenticated` — el cliente ya no puede
+  //   escribir directamente desde el navegador. Esto bloquea dos cheats:
+  //     - Pre-poblar `user_guesses` con guesses ganadoras para TODOS los
+  //       car_id y llamar a record_daily_result_v2 → auto-win.
+  //     - DELETE de la fila tras perder + recarga → replay ilimitado.
+  //   Todas las mutaciones pasan ahora por aquí, con el servidor como
+  //   única autoridad sobre el estado de la partida.
+  if (user) {
     const newGuesses = [...existingGuesses, result];
     const newStatus = result.win
       ? "won"
@@ -287,9 +297,7 @@ export default async function handler(req, res) {
       ? "lost"
       : "playing";
 
-    // Reutilizamos el authClient creado al principio. La policy RLS de
-    // INSERT/UPDATE exige auth.uid() = user_id, y user_id = user.id.
-    const { error: saveErr } = await authClient.from("user_guesses").upsert(
+    const { error: saveErr } = await supabaseAdmin.from("user_guesses").upsert(
       {
         user_id: user.id,
         car_id: todayCarId,

@@ -264,8 +264,14 @@ export default async function handler(req, res) {
 
     // 5) Persistencia autoritativa en user_guesses. Misma forma que daily
     //    para que el garaje detecte el win sin cambios.
+    //
+    //    IMPORTANTE: usamos supabaseAdmin (service_role), NO authClient.
+    //    Las policies de user_guesses se han endurecido para revocar
+    //    INSERT/UPDATE/DELETE al rol `authenticated` — el cliente ya no
+    //    puede escribir directamente desde el navegador. El servidor es
+    //    la única autoridad sobre el estado de la partida.
     const newGuesses = [...existingGuesses, result];
-    const { error: saveErr } = await authClient.from("user_guesses").upsert(
+    const { error: saveErr } = await supabaseAdmin.from("user_guesses").upsert(
       {
         user_id: user.id,
         car_id: carId,

@@ -14,8 +14,6 @@ import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
 
-const LONA_IMG = "/images/lona.jpg";
-
 function slugifyCountry(pais) {
   return String(pais || "")
     .normalize("NFD")
@@ -700,6 +698,7 @@ function BrandShowroom({
               return (
                 <RepescaCard
                   key={car.id}
+                  car={car}
                   resume={isActiveRepesca}
                   onClick={() => onSelectRepesca(car)}
                 />
@@ -709,6 +708,7 @@ function BrandShowroom({
             return (
               <LockedCard
                 key={car.id}
+                car={car}
                 reason={
                   !car.wasDaily
                     ? "future" // todavía no ha sido coche del día
@@ -767,37 +767,44 @@ function UnlockedCard({ car, onClick }) {
   );
 }
 
-function LockedCard({ reason = "future" }) {
+function LockedCard({ car, reason = "future" }) {
   const label = reason === "used" ? "Vuelve mañana" : "Bloqueado";
+  // El blur va aplicado SERVER-SIDE en /api/car-image (mode=blurred): lo que
+  // llega al navegador es un JPEG ya desenfocado y oscurecido. No usamos
+  // CSS blur a propósito — sería trivial de quitar abriendo DevTools y leyendo
+  // la `src` original (que en este flujo, además, nunca existe en el cliente).
+  // El overlay CSS que sí ponemos es decorativo, no de seguridad.
   return (
     <div
       className="
         relative aspect-[4/5] w-full overflow-hidden rounded-lg
-        border border-white/5 bg-[#0d0d10]
-        opacity-50 grayscale
+        border border-white/10 bg-[#0d0d10]
+        shadow-md shadow-black/40
       "
       aria-label={`Cromo bloqueado: ${label}`}
     >
       <img
-        src={LONA_IMG}
+        src={car?.img}
         alt=""
         aria-hidden="true"
         draggable={false}
         loading="lazy"
-        className="absolute inset-0 h-full w-full object-cover object-top"
+        className="absolute inset-0 h-full w-full object-cover object-center"
         onError={(e) => {
           e.currentTarget.style.display = "none";
         }}
       />
 
-      {/* Gradient elegante de abajo hacia arriba */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/60 to-transparent" />
+      {/* Overlay oscuro premium: refuerza el oscurecido del JPEG y empuja el
+          look hacia "noche" / "misterio" sin matar del todo los colores. */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/40" />
 
-      {/* Candado pequeño + texto sutil al pie. */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-1 px-2 pb-2.5">
-        <LockIcon className="h-3.5 w-3.5 text-gray-400" />
+      {/* Candado + texto centrados: el cromo se lee como "bloqueado" de
+          un vistazo, sin pistas sobre el coche que hay detrás. */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center">
+        <LockIcon className="h-7 w-7 text-amber-500/70" />
         <p
-          className="text-[10px] font-medium uppercase tracking-widest text-gray-400"
+          className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/80"
           style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
         >
           {label}
@@ -808,12 +815,15 @@ function LockedCard({ reason = "future" }) {
 }
 
 // Estado B: coche que el usuario perdió en su día pero todavía tiene
-// repesca disponible. Visualmente similar a Locked (lona + gradient) pero:
-//   - SIN opacity-50 / grayscale (más vivo, llama a la acción)
-//   - Es un <button>: clickeable, con hover, ring-accent
-//   - Badge "🎯 Recuperar" arriba derecha (o "Continuar" si es la repesca
-//     en curso del usuario, para que sepa que retomar es lo que pasa).
-function RepescaCard({ resume = false, onClick }) {
+// repesca disponible. Visualmente paralela a LockedCard (mismo proxy
+// blureado server-side + mismo overlay oscuro), pero:
+//   - Es un <button>: clickeable, con hover y ring-accent al foco.
+//   - Borde y badge en accent → la card "llama" frente a las grises.
+//   - Mantiene el badge "🎯 Recuperar" arriba y la CTA "Intentar repesca"
+//     en el pie, ambos sobre el degradado para que se lean nítidos.
+//   - No hay candado: el badge ámbar ya dice que es una oportunidad, no
+//     un bloqueo; añadir candado mandaría mensaje contradictorio.
+function RepescaCard({ car, resume = false, onClick }) {
   return (
     <button
       type="button"
@@ -821,6 +831,7 @@ function RepescaCard({ resume = false, onClick }) {
       className="
         group relative aspect-[4/5] w-full overflow-hidden rounded-lg
         border border-accent/40 bg-[#0d0d10]
+        shadow-md shadow-black/40
         transition-all
         hover:border-accent hover:shadow-lg hover:shadow-accent/20
         focus:outline-none focus-visible:ring-2 focus-visible:ring-accent
@@ -828,14 +839,17 @@ function RepescaCard({ resume = false, onClick }) {
       "
       aria-label={resume ? "Continuar repesca" : "Intentar repesca"}
     >
+      {/* Foto del coche blureada server-side (mode=blurred). La URL nítida
+          nunca llega al navegador: lo que llega es un JPEG ya borroseado y
+          oscurecido por sharp. El cliente solo decora. */}
       <img
-        src={LONA_IMG}
+        src={car?.img}
         alt=""
         aria-hidden="true"
         draggable={false}
         loading="lazy"
         className="
-          absolute inset-0 h-full w-full object-cover object-top
+          absolute inset-0 h-full w-full object-cover object-center
           transition-transform duration-500 group-hover:scale-105
         "
         onError={(e) => {
@@ -843,8 +857,13 @@ function RepescaCard({ resume = false, onClick }) {
         }}
       />
 
-      {/* Gradient inferior y aura accent muy sutil arriba */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/60 to-transparent" />
+      {/* Mismo degradado oscuro que LockedCard: oscuro abajo y bajando
+          intensidad hacia arriba, donde queremos que la silueta del coche
+          se vea para incitar a "recuperarlo". */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/40" />
+
+      {/* Aura accent muy sutil arriba: refuerza que esta card es la
+          oportunidad ámbar dentro del grid de bloqueadas grises. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-accent/10 to-transparent" />
 
       {/* Badge superior: diana o continuar */}

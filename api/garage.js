@@ -16,6 +16,19 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { pseudoIdFor } from "./_lib/repesca-token.js";
+import {
+  signImageToken,
+  IMAGE_MODE_CLEAR,
+  IMAGE_MODE_BLURRED,
+} from "./_lib/image-token.js";
+
+// Helper local: arma la URL del proxy server-side de imágenes del garaje.
+// Tanto unlocked como locked van por aquí: simetría de URLs en el front
+// y, para los bloqueados, garantía de que el image_url real NUNCA llega
+// al navegador (no se puede "abrir DevTools" para spoilear el coche).
+function carImageProxyUrl(carId, mode) {
+  return `/api/car-image?t=${signImageToken({ carId, mode })}`;
+}
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
@@ -160,7 +173,11 @@ export default async function handler(req, res) {
               modelo: c.model,
               anio: c.year,
               description: c.description ?? null,
-              img: c.image_url,
+              // Servimos también las imágenes desbloqueadas a través del
+              // proxy: simetría de URLs y oportunidad de rotar el CDN
+              // sin tocar el frontend. En modo "clear" el endpoint hace
+              // 302 a la URL pública de Supabase, así que no añade peso.
+              img: carImageProxyUrl(c.id, IMAGE_MODE_CLEAR),
               unlocked: true,
               wasDaily,
             }
@@ -174,6 +191,10 @@ export default async function handler(req, res) {
               // matchean con nada de allí.
               id: pseudoIdFor(c.id, user.id),
               marca: c.make,
+              // Imagen blureada server-side: el cliente solo recibe un
+              // JPEG ya desenfocado y oscurecido (no la URL original).
+              // No se puede "ver con F12" la imagen nítida.
+              img: carImageProxyUrl(c.id, IMAGE_MODE_BLURRED),
               unlocked: false,
               wasDaily,
             }

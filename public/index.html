@@ -7,18 +7,20 @@
 
     <!--
       Favicons en orden de preferencia para los distintos consumidores:
-        - favicon.ico (legacy, fallback universal)
-        - favicon.svg (escalable, Chrome/Firefox modernos)
-        - favicon-192.png (Google Search lo prefiere; debe ser >=48x48
-          y multiplo de 48 segun docs oficiales)
+        - favicon.ico (legacy, fallback universal Windows / IE / antiguos)
+        - favicon-96x96.png (Chrome / Firefox / Edge para pestana)
+        - favicon-192.png (Google Search; debe ser >=48x48 y multiplo de
+          48 segun https://developers.google.com/search/docs/appearance/favicon-in-search)
         - apple-touch-icon (iOS al anadir a pantalla de inicio)
-      El `?v=3` busta cualquier cache previa del navegador y del CDN
-      tras este cambio. Si lo vuelves a cambiar, sube a v=4.
+      Decision: omitimos SVG a proposito — no aporta para Google Search
+      (que usa raster) y simplifica la matriz de iconos.
+      El `?v=4` busta cualquier cache previa del navegador y del CDN
+      tras este cambio. Si lo vuelves a cambiar, sube a v=5.
     -->
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico?v=3" sizes="any" />
-    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg?v=3" />
-    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/favicon-192.png?v=3" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png?v=3" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico?v=4" sizes="any" />
+    <link rel="icon" type="image/png" sizes="96x96" href="%PUBLIC_URL%/favicon-96x96.png?v=4" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/favicon-192.png?v=4" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png?v=4" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
     <title>Carguessr | El juego diario para los amantes de los coches</title>

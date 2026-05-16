@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -v \"^[0-9]\\\\+\\\\.jpg$\")"
+      "Bash(grep -v \"^[0-9]\\\\+\\\\.jpg$\")",
+      "Bash(node \"C:\\\\Users\\\\Ruben\\\\Downloads\\\\coche-del-dia_1\\\\import-descriptions.js\")"
     ]
   }
 }

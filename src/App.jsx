@@ -308,6 +308,25 @@ export default function App() {
             />
           )}
         </main>
+
+        {/* Footer mínimo con enlace a Política de Privacidad. Necesario
+            para la verificación de la pantalla de consentimiento de
+            Google OAuth — exige que la home enlace explícitamente al
+            documento legal. Lo dejamos discreto para no romper el juego
+            pero perfectamente visible y rastreable. */}
+        <footer className="mt-8 flex flex-col items-center gap-2 border-t border-border/60 pt-4 pb-2 text-[10px] uppercase tracking-[0.22em] text-muted">
+          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <a
+              href="/privacidad"
+              className="transition-colors hover:text-accent"
+            >
+              Política de Privacidad
+            </a>
+          </nav>
+          <p className="text-[9px] tracking-[0.18em] text-muted/70">
+            © {new Date().getFullYear()} CarGuessr
+          </p>
+        </footer>
       </div>
 
       {activeModal === "login" && (

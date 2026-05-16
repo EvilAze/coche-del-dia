@@ -181,21 +181,44 @@ export default function AddCar() {
       const imageUrl = publicData?.publicUrl;
       if (!imageUrl) throw new Error("No se pudo obtener la URL pública.");
 
-      // 3) Insertar fila en la tabla cars.
-      const { error: insertError } = await supabase.from(TABLE_NAME).insert({
-        make,
-        model,
-        year: yearNum,
-        pais,
-        // Descripción opcional: mandamos null si está vacía para que la
-        // columna admita el `is null` natural en lugar de strings vacíos.
-        description: description ? description : null,
-        image_url: imageUrl,
+      // 3) Insertar fila en la tabla cars vía endpoint admin server-side.
+      //    Antes: supabase.from('cars').insert(...) directo desde el
+      //    navegador. La policy "Subida de coches" permitía INSERT a
+      //    cualquier authenticated (no solo al admin) → contaminación de
+      //    catálogo. Movido al server con whitelist de email + service_role
+      //    para cerrar el agujero. La policy permisiva y los grants de
+      //    escritura sobre `cars` quedaron revocados en BD.
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        throw new Error("Sesión perdida. Vuelve a iniciar sesión.");
+      }
+
+      const addRes = await fetch("/api/admin/add-car", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          marca: make,
+          modelo: model,
+          anio: yearNum,
+          pais,
+          // Descripción opcional: mandamos null si está vacía para que la
+          // columna admita el `is null` natural en lugar de strings vacíos.
+          description: description ? description : null,
+          image_url: imageUrl,
+        }),
       });
-      if (insertError) {
-        // Limpieza best-effort: si la fila no se insertó, quita el blob huérfano.
+      const addBody = await addRes.json().catch(() => ({}));
+      if (!addRes.ok) {
+        // Limpieza best-effort: el blob ya está subido; si la fila no
+        // entró, quítalo para no acumular huérfanos.
         await supabase.storage.from(STORAGE_BUCKET).remove([path]);
-        throw insertError;
+        throw new Error(
+          addBody?.detail || addBody?.error || `HTTP ${addRes.status}`
+        );
       }
 
       setFeedback({

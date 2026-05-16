@@ -5,7 +5,8 @@
       "Bash(node \"C:\\\\Users\\\\Ruben\\\\Downloads\\\\coche-del-dia_1\\\\import-descriptions.js\")",
       "Bash(node --check api/check-guess.js)",
       "Bash(node --check api/validate-guess.js)",
-      "Bash(node --check api/repesca/validate.js)"
+      "Bash(node --check api/repesca/validate.js)",
+      "Bash(node --check api/admin/add-car.js)"
     ]
   }
 }

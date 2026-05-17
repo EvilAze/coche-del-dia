@@ -30,7 +30,9 @@ import sharp from "sharp";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
-const ALLOWED_WIDTHS = new Set([640, 1280, 1920]);
+// 1920 quitado: en móvil/desktop normal nunca se pide y solo añadía una
+// cache key más que calentar y otra ocasión de cold-start de sharp.
+const ALLOWED_WIDTHS = new Set([640, 1280]);
 const FORMAT_MIME = {
   avif: "image/avif",
   webp: "image/webp",
@@ -192,10 +194,11 @@ export default async function handler(req, res) {
         });
       }
       if (wantedFormat === "avif") {
-        // effort 4 es el sweet spot calidad/tiempo. quality 50 da archivos
-        // ~10-15 KB para una foto 640w típica con calidad visual indistinta
-        // del JPEG q80 a simple vista.
-        pipeline = pipeline.avif({ quality: 50, effort: 4 });
+        // effort 2: encoda ~3× más rápido que effort 4 a cambio de archivos
+        // ~10-15% más grandes (imperceptible para fotos de coches). El cold
+        // start de la función Vercel pasa de 3-8 s a 1-2 s, lo que evita
+        // que el watchdog del cliente (8 s) dispare el fallback a JPEG.
+        pipeline = pipeline.avif({ quality: 50, effort: 2 });
       } else if (wantedFormat === "webp") {
         pipeline = pipeline.webp({ quality: 75 });
       } else if (wantedFormat === "jpeg") {

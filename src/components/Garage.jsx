@@ -10,7 +10,7 @@
 // suben un nivel en la jerarquía.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import { useToast } from "./Toast";
@@ -315,6 +315,32 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     prevDepthRef.current = VIEW_DEPTH[view] ?? 0;
   }, [view]);
 
+  // Swipe-from-edge para volver al nivel anterior (estilo iOS):
+  //   - El motion.div del panel acepta drag horizontal, pero `dragListener`
+  //     está desactivado: el drag SOLO se inicia desde el edge handle,
+  //     evitando interferir con scroll vertical, taps en cards o clicks en
+  //     el header.
+  //   - Threshold: 80 px de offset o 500 px/s de velocidad. El segundo es
+  //     un "fling" rápido — confirma intención aunque la distancia sea corta.
+  //   - dragConstraints right:200 limita cuánto puede arrastrarse, así no
+  //     se ve el panel desplazado fuera del viewport.
+  //   - dragElastic 0.15 da un toque de resistencia al final del rango.
+  const dragControls = useDragControls();
+
+  function handleSwipeEnd(_event, info) {
+    const triggered = info.offset.x > 80 || info.velocity.x > 500;
+    if (!triggered) return;
+    if (view === "cars") {
+      setSelectedBrand(null);
+    } else if (view === "brands") {
+      setSelectedCountry(null);
+    } else {
+      // En countries el swipe cierra el Garaje. Consistente con el ESC
+      // encadenado: cuando ya no hay nivel al que subir, salimos del modal.
+      onClose();
+    }
+  }
+
   // Nota: hemos quitado el `if (!open) return null` que había aquí. Con
   // AnimatePresence, el componente DEBE seguir renderizándose con open=false
   // para que la animación de salida pueda completarse antes del desmount.
@@ -364,7 +390,39 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 24, opacity: 0, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
+            // Drag horizontal armado pero NO autostart: el edge handle de
+            // abajo es quien dispara dragControls.start(). Así el resto del
+            // panel sigue siendo scrollable / clickable normal.
+            // dragSnapToOrigin: tras soltar, el panel vuelve a x=0 SIEMPRE
+            // (haya disparado swipe-back o no). Si dispara, el cambio de
+            // vista lo anima la cadena de Fase A (slide direccional del
+            // contenido interno); el panel mismo no se "va" del viewport,
+            // así evitamos dos animaciones de slide compitiendo.
+            drag="x"
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={{ left: 0, right: 200 }}
+            dragElastic={0.15}
+            dragSnapToOrigin
+            onDragEnd={handleSwipeEnd}
           >
+            {/*
+              Edge handle invisible. Cubre los 16 px más a la izquierda del
+              panel (coincide con el padding-x del body, por eso no solapa
+              con BackButton, cards, ni CloseButton). En cuanto el usuario
+              hace pointer-down aquí, dragControls.start toma el control
+              y empieza a seguir el dedo. Si el movimiento resulta vertical,
+              Framer reconoce que no es un drag horizontal y lo descarta;
+              touchAction: pan-y refuerza eso permitiendo scroll vertical
+              nativo dentro de la zona del handle.
+            */}
+            <div
+              aria-hidden="true"
+              onPointerDown={(e) => dragControls.start(e)}
+              className="absolute inset-y-0 left-0 z-30 w-4"
+              style={{ touchAction: "pan-y" }}
+            />
+
         {/* Header */}
         <div className="border-b border-white/10 px-4 py-3">
           <div className="flex items-start justify-between gap-3">

@@ -22,6 +22,14 @@ export default function CarImage({
   // forzamos 1:1.
   const [naturalRatio, setNaturalRatio] = useState(DEFAULT_ASPECT);
 
+  // Ref al <img> interior del <picture>. La usamos para detectar el caso de
+  // "imagen ya completa en cache" — un comportamiento típico de WebKit/Blink
+  // móvil al recargar la página: el navegador resuelve la imagen tan rápido
+  // que React aún no ha instalado el listener onLoad, así que el evento NO
+  // se dispara y `loaded` queda en false → opacity 0 → solo se ve el LQIP
+  // para siempre. El useEffect de abajo lo sincroniza manualmente.
+  const imgRef = useRef(null);
+
   // Capturamos el zoom previo DURANTE el render para que la primera vez
   // que cambia el status a "won" la keyframe revealWin parta del zoom
   // real anterior, no del actual (que ya es 1.0).
@@ -32,6 +40,22 @@ export default function CarImage({
   useEffect(() => {
     setLoaded(false);
   }, [src]);
+
+  // Sincronización post-render: si el navegador tenía la imagen en cache
+  // (recarga típica en móvil), `img.complete` ya es true y onLoad NUNCA se
+  // disparará. Forzamos `loaded = true` para que opacity pase a 1 y el
+  // usuario vea la foto, no el LQIP eterno.
+  // Sin dependencia explícita: corre tras CADA render, pero solo actúa
+  // cuando hace falta (loaded === false + img completa). setState con el
+  // mismo valor no re-renderiza, así que no hay loop.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) return;
+    if (!loaded && img.complete && img.naturalWidth > 0) {
+      setNaturalRatio(img.naturalWidth / img.naturalHeight);
+      setLoaded(true);
+    }
+  });
 
   // Flash de "pista desbloqueada" sólo durante la partida.
   useEffect(() => {
@@ -122,19 +146,37 @@ export default function CarImage({
             keyframe revealWin, filter:blur del estado "perdido anónimo",
             onLoad handler. <picture> solo decide qué bytes carga.
       */}
+      {/*
+        Sobre `sizes` y los srcSet:
+          - El contenedor en "playing" mide ~288 px (max-w-[18rem]) en móvil
+            y ~448 px (max-w-md del padre) en pantallas grandes.
+          - PERO el juego aplica transform:scale(3.5x → 1.8x) sobre la foto,
+            así que el "slot efectivo" es mucho mayor que el CSS literal.
+            Le mentimos al browser sobre el tamaño del slot para forzarlo a
+            descargar una imagen suficientemente grande para aguantar el zoom.
+          - "200vw" en móvil = pide una imagen del doble del viewport → con
+            DPR 2 termina pidiendo 1280w o 1920w, que aguantan el zoom inicial
+            sin pixelar.
+          - En desktop el slot está capeado al max-w-md (~448 px); usamos
+            1280px como hint, que en DPR 2 lleva al navegador a pedir 1920w
+            si está disponible, o 1280w en otro caso. Aceptable.
+        Sobre el orden AVIF → WebP → JPEG:
+          - El navegador toma el primer <source> que entiende. Safari 16+,
+            Chrome y Firefox 93+ → AVIF. Safari 14-15 → WebP. Resto → JPEG.
+      */}
       <picture>
         <source
           type="image/avif"
-          srcSet={`${src}&f=avif&w=320 320w, ${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w`}
-          sizes="(max-width: 480px) 100vw, 480px"
+          srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
+          sizes="(max-width: 480px) 200vw, 1280px"
         />
         <source
           type="image/webp"
-          srcSet={`${src}&f=webp&w=320 320w, ${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w`}
-          sizes="(max-width: 480px) 100vw, 480px"
+          srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
+          sizes="(max-width: 480px) 200vw, 1280px"
         />
         {/*
-          Sobre el <img> interior:
+          <img> interior:
             - Mantiene TODA la lógica visual previa: animación de zoom,
               keyframe revealWin, filter:blur del estado "perdido anónimo",
               onLoad handler que dispara setLoaded(true).
@@ -143,13 +185,14 @@ export default function CarImage({
               display:none algunos navegadores difieren la descarga). El
               LQIP de fondo cubre el rectángulo vacío mientras carga, y al
               completar la descarga el <img> aparece con fade suave (250 ms).
-            - El transition de opacity se concatena con el resto, por eso
-              respetamos la cadena de transitions existente.
+            - ref={imgRef}: necesario para el useEffect que sincroniza el
+              estado `loaded` cuando la imagen viene de cache (ver arriba).
         */}
         <img
-          src={`${src}&f=jpeg&w=640`}
-          srcSet={`${src}&f=jpeg&w=320 320w, ${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w`}
-          sizes="(max-width: 480px) 100vw, 480px"
+          ref={imgRef}
+          src={`${src}&f=jpeg&w=1280`}
+          srcSet={`${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w, ${src}&f=jpeg&w=1920 1920w`}
+          sizes="(max-width: 480px) 200vw, 1280px"
           alt="Coche del día"
           draggable={false}
           onLoad={handleImageLoad}

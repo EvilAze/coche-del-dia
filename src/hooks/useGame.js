@@ -3,7 +3,19 @@ import { supabase } from "../supabaseClient";
 import { useToast } from "../components/Toast";
 
 const MAX_ATTEMPTS = 5;
-const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
+
+// Niveles de zoom CSS aplicados sobre la imagen `?z=5` (crop 55.6% central)
+// que sirve el servidor durante la partida.
+//
+// Anteriormente estos valores eran [3.5, 3.0, 2.7, 2.4, 1.8] y se aplicaban
+// sobre la imagen completa. El problema: la imagen completa llegaba al
+// cliente, así que un atacante con DevTools veía el coche entero en 2
+// clicks. Ahora el servidor sólo entrega el 55.6% central (crop z=5) y el
+// cliente termina de cerrar el zoom con CSS para los intentos 1..4.
+//
+// Cada valor = ZOOM_ORIGINAL / 1.8. Así el área visible final coincide con
+// la del modelo anterior: 28.6% en intento 1, 55.6% en intento 5.
+const ZOOM_LEVELS = [1.944, 1.667, 1.500, 1.333, 1.0];
 
 function getTodayKey() {
   const options = {
@@ -146,25 +158,24 @@ export function useGame() {
 
   const attempts = guesses.length;
   const zoomIndex = Math.min(attempts, ZOOM_LEVELS.length - 1);
-  // Antes el zoom era un scale CSS aplicado en el cliente sobre la imagen
-  // completa. Ahora el servidor recorta la imagen al área correspondiente
-  // al intento (`?z=N`), así que el scale CSS ya no hace falta y, de hecho,
-  // sería contraproducente (daría doble-zoom sobre la imagen ya recortada).
-  // Mantenemos la prop `zoom` en el retorno por compatibilidad con CarImage,
-  // pero su valor efectivo durante el juego es 1.0.
-  const zoom = 1.0;
+  // El zoom es un scale CSS aplicado sobre la imagen `?z=5` que ya viene
+  // recortada al 55.6% central. Con cada intento, el scale baja → la imagen
+  // se "aleja" mostrando más coche, hasta scale=1.0 en el intento 5 (no
+  // queda más zoom que aplicar, ya ves todo el crop). Al revelar (won/lost),
+  // el servidor sirve la imagen completa y volvemos a scale=1.0.
+  const zoom = status === "playing" ? ZOOM_LEVELS[zoomIndex] : 1.0;
   const hintIndex = status === "playing" ? zoomIndex : null;
   const totalHints = ZOOM_LEVELS.length;
 
-  // Construimos la URL de la imagen del coche del día añadiendo el zoom
-  // level si el juego está en marcha. Cuando termina (won/lost), no pasamos
-  // `z` y el servidor sirve la imagen completa.
-  // El crop server-side hace que un atacante con DevTools NO pueda ver más
-  // del coche que el jugador legítimo de ese intento — la imagen entera
-  // sólo sale del servidor cuando el juego ha terminado.
+  // Durante la partida pedimos siempre el crop más amplio (z=5). El cliente
+  // termina de "cerrar" el zoom con CSS. Cuando el juego termina, sin `z`
+  // → el servidor entrega la imagen completa.
+  // Beneficio anti-cheat: un atacante con DevTools verá como máximo el 55%
+  // central (lo mismo que el jugador legítimo en el 5º intento), no la foto
+  // entera. La imagen completa sólo sale del servidor en estados won/lost.
   const dailyImgSrc =
     car?.img && status === "playing"
-      ? `${car.img}&z=${zoomIndex + 1}`
+      ? `${car.img}&z=5`
       : car?.img || null;
 
   async function submitGuess({ guessCarId, anio }) {

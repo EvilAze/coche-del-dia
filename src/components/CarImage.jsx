@@ -30,8 +30,16 @@ export default function CarImage({
   // para siempre. El useEffect de abajo lo sincroniza manualmente.
   const imgRef = useRef(null);
 
-  // Si cambia la foto (nuevo coche o nuevo nivel de zoom server-side),
-  // volvemos a mostrar el skeleton mientras carga la nueva imagen.
+  // Capturamos el zoom previo DURANTE el render para que la primera vez
+  // que cambia el status a "won" la keyframe revealWin parta del zoom
+  // real anterior, no del actual (que ya es 1.0).
+  const prevZoomRef = useRef(zoom);
+  const prevZoom = prevZoomRef.current;
+
+  // Si cambia la foto (nuevo coche), volvemos a mostrar el skeleton. El src
+  // sólo cambia: (1) al iniciar partida nueva, (2) al revelar la imagen
+  // completa al terminar (won/lost) — NO entre intentos, porque durante
+  // playing pedimos siempre la misma `?z=5`.
   useEffect(() => {
     setLoaded(false);
   }, [src]);
@@ -52,23 +60,23 @@ export default function CarImage({
     }
   });
 
-  // Flash dorado de "pista desbloqueada" sólo durante la partida. Antes se
-  // disparaba al cambiar el `zoom` CSS (cada intento subía/bajaba el scale).
-  // Ahora el zoom CSS ya no existe (el crop lo hace el servidor) pero el
-  // efecto sigue teniendo sentido: lo disparamos al cambiar `hintIndex`,
-  // que sube de 0..4 con cada intento.
-  const prevHintRef = useRef(hintIndex);
+  // Flash dorado de "pista desbloqueada" sólo durante la partida. Se
+  // dispara al cambiar el `zoom` CSS (cada intento baja el scale).
   useEffect(() => {
-    if (loaded && prevHintRef.current !== hintIndex && status === "playing") {
+    if (loaded && prevZoomRef.current !== zoom && status === "playing") {
       setFlashKey((k) => k + 1);
     }
-    prevHintRef.current = hintIndex;
-  }, [hintIndex, status, loaded]);
+    prevZoomRef.current = zoom;
+  }, [zoom, status, loaded]);
 
   const isWinReveal = status === "won";
   // Estado "revelado": el juego ha terminado, por victoria o derrota.
   // El contenedor abandona el cuadrado 1:1 y vuelve a su aspecto natural.
   const isRevealed = status === "won" || status === "lost";
+  // Punto de partida de la keyframe revealWin cuando se gana: el último
+  // zoom CSS activo (p.ej. 1.667 si ganó en el 2º intento). Sin esto, la
+  // animación arrancaría desde scale=1 y el "pop" no tendría amplitud.
+  const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
   const showLabel = status === "playing" && hintIndex != null && totalHints;
 
   function handleImageLoad(e) {
@@ -136,25 +144,25 @@ export default function CarImage({
         <picture> con AVIF / WebP / JPEG (fallback):
           - El navegador elige el primer <source> que entiende. Safari 16+,
             Chrome y Firefox 93+ → AVIF. Safari 14-15 → WebP. Resto → JPEG.
-          - El servidor recorta la imagen al área del intento actual (?z=N),
-            así que NO necesitamos `transform: scale()` CSS en el cliente.
-            El contenedor es 1:1 durante playing y la imagen ya viene
-            cuadrada → object-cover entra exacto sin recortar.
-          - sizes: como ya no hay scale CSS amplificando, el slot efectivo
-            es el container CSS real (≤ 480 px). En móvil DPR 2 con viewport
-            360 px, eso resuelve a ~720 px target → se elige 1280w del
-            srcset. Suficiente para que la imagen se vea nítida en retina.
+          - El servidor entrega la imagen ya con un primer crop (?z=5,
+            55% central) durante el juego. El cliente sigue aplicando un
+            `transform: scale(1.94..1.0)` CSS encima para los intentos
+            con más zoom — la combinación es lo que da el zoom-out animado.
+          - Por eso le mentimos al `sizes` para que pida imágenes grandes:
+            con scale 1.94, el "slot efectivo" en el primer intento es
+            casi 2× el container CSS. Usamos "200vw" en móvil y 1280px en
+            desktop, igual que antes de que reorganizáramos esto.
       */}
       <picture>
         <source
           type="image/avif"
           srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
-          sizes="(max-width: 480px) 100vw, 480px"
+          sizes="(max-width: 480px) 200vw, 1280px"
         />
         <source
           type="image/webp"
           srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
-          sizes="(max-width: 480px) 100vw, 480px"
+          sizes="(max-width: 480px) 200vw, 1280px"
         />
         {/*
           <img> interior:
@@ -172,7 +180,7 @@ export default function CarImage({
           ref={imgRef}
           src={`${src}&f=jpeg&w=1280`}
           srcSet={`${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w, ${src}&f=jpeg&w=1920 1920w`}
-          sizes="(max-width: 480px) 100vw, 480px"
+          sizes="(max-width: 480px) 200vw, 1280px"
           alt="Coche del día"
           draggable={false}
           onLoad={handleImageLoad}
@@ -180,8 +188,14 @@ export default function CarImage({
           style={{
             opacity: loaded ? 1 : 0,
             transformOrigin: "center center",
-            transition: "opacity 0.25s ease-out",
+            // En win: la keyframe revealWin pilota el transform.
+            // En el resto: scale(zoom) anima el zoom-out entre intentos.
+            transform: isWinReveal ? undefined : `scale(${zoom})`,
+            transition: isWinReveal
+              ? "opacity 0.25s ease-out"
+              : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out",
             filter: blurred ? "blur(18px) saturate(0.85)" : undefined,
+            "--zoom-from": zoomFrom,
           }}
         />
       </picture>

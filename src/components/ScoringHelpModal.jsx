@@ -1,5 +1,6 @@
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
+import ModalShell from "./ModalShell";
 
 const BASE_POINTS = [
   { attempt: 1, points: 10 },
@@ -19,20 +20,13 @@ const STREAK_BONUS = [
 export default function ScoringHelpModal({ open, onClose }) {
   useEscape(open, onClose);
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm animate-fade-in"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClose();
-      }}
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      backdropClassName="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
+      panelClassName="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
     >
-      <div
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.28em] text-accent">
@@ -112,7 +106,6 @@ export default function ScoringHelpModal({ open, onClose }) {
             El bonus se suma a los puntos base de cada día.
           </p>
         </section>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

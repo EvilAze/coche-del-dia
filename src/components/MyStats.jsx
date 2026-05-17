@@ -3,6 +3,7 @@ import { getMyStats, saveDisplayName } from "../hooks/useStats";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
+import ModalShell from "./ModalShell";
 
 function StatCard({ label, value }) {
   return (
@@ -133,21 +134,17 @@ export default function MyStats({ open, onClose, onSignedOut }) {
 
   useEscape(open, onClose);
 
-  if (!open) return null;
-
   const stats = state.stats;
   const nickname = state.profile?.display_name || "Sin nickname";
   const email = state.user?.email || "";
 
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
-      onClick={onClose}
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+      panelClassName="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl"
     >
-      <div
-        className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-widest text-white">
             Mi Perfil
@@ -258,7 +255,6 @@ export default function MyStats({ open, onClose, onSignedOut }) {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

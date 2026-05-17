@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { saveDisplayName } from "../hooks/useStats";
+import ModalShell from "./ModalShell";
 
 export default function NicknameModal({ open, onSaved }) {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-
-  if (!open) return null;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -32,11 +31,19 @@ export default function NicknameModal({ open, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 px-4 backdrop-blur-md">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-6 text-center shadow-2xl"
-      >
+    // dismissOnBackdrop=false: el nickname es obligatorio antes de jugar
+    // logueado. Cerrar tocando fuera dejaría al usuario en un estado raro
+    // (logueado pero sin display_name) que el resto del flujo ya esquiva.
+    <ModalShell
+      open={open}
+      // Sin onClose: este modal no se cierra hasta que onSaved se llama
+      // tras un guardado exitoso. El padre lo controla con `open`.
+      onClose={() => {}}
+      dismissOnBackdrop={false}
+      backdropClassName="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 px-4 backdrop-blur-md"
+      panelClassName="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-6 text-center shadow-2xl"
+    >
+      <form onSubmit={handleSubmit}>
         <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
           Nuevo piloto
         </p>
@@ -87,6 +94,6 @@ export default function NicknameModal({ open, onSaved }) {
           {saving ? "Guardando..." : "Entrar"}
         </button>
       </form>
-    </div>
+    </ModalShell>
   );
 }

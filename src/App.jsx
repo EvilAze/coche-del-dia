@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./supabaseClient";
-import { getMyProfile } from "./hooks/useStats";
+import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
 import CarImage from "./components/CarImage";
 import AttemptDots from "./components/AttemptDots";
@@ -82,6 +82,12 @@ export default function App() {
   // hoy y al menos un coche "missed" (ya fue coche del día y no se ganó).
   // Lo calculamos con una llamada ligera a /api/garage tras login.
   const [repescaAlert, setRepescaAlert] = useState(false);
+  // Racha actual del usuario logueado, visible como badge del header.
+  // 0 (o null si anónimo) = no se pinta el badge. Se sincroniza en dos
+  // momentos: (1) al hacer login, leemos de Supabase; (2) cuando una
+  // partida acaba, el score que devuelve useGame ya incluye el nuevo
+  // currentStreak — lo aplicamos sin refetch.
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     async function syncUser(session) {
@@ -90,6 +96,7 @@ export default function App() {
 
       if (!nextUser) {
         setProfile(null);
+        setStreak(0);
         setCheckingProfile(false);
         setActiveModal(null);
         return;
@@ -98,11 +105,20 @@ export default function App() {
       setCheckingProfile(true);
 
       try {
-        const nextProfile = await getMyProfile(nextUser.id);
+        // Paralelizamos: el profile y el streak son lecturas independientes.
+        // Promise.all → cualquiera de los dos puede fallar sin afectar al
+        // otro porque getMyStreak ya devuelve 0 en error y getMyProfile
+        // tira → lo cazamos en el catch general.
+        const [nextProfile, nextStreak] = await Promise.all([
+          getMyProfile(nextUser.id),
+          getMyStreak(nextUser.id),
+        ]);
         setProfile(nextProfile);
+        setStreak(nextStreak);
       } catch (error) {
         console.error("Error cargando perfil:", error);
         setProfile(null);
+        setStreak(0);
       } finally {
         setCheckingProfile(false);
       }
@@ -207,6 +223,21 @@ export default function App() {
     buildShareText,
   } = useGame();
 
+  // Cuando una partida termina, /api/validate-guess persiste el resultado y
+  // record_daily_result_v2 devuelve el currentStreak ya actualizado. Lo
+  // recibimos vía `score` (de useGame) y lo aplicamos al header al instante,
+  // sin un refetch extra a Supabase.
+  // Solo actuamos si:
+  //   - hay usuario logueado (los anónimos no tienen streak),
+  //   - score viene de un POST persistido (score.persisted),
+  //   - currentStreak está presente (puede ser 0 si perdió y se cortó).
+  useEffect(() => {
+    if (!user) return;
+    if (score?.persisted && typeof score.currentStreak === "number") {
+      setStreak(score.currentStreak);
+    }
+  }, [user, score?.persisted, score?.currentStreak]);
+
   const today = new Date().toLocaleDateString("es-ES", {
     weekday: "long",
     day: "numeric",
@@ -238,6 +269,7 @@ export default function App() {
         onOpenProfile={openProfile}
         onOpenLogin={openLogin}
         repescaAlert={repescaAlert}
+        streak={streak}
       />
 
       <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 sm:px-4">

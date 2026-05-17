@@ -5,6 +5,13 @@
 //   onOpenProfile  — fn(): abre el modal de perfil
 //   onOpenLogin    — fn(): abre el modal para iniciar sesión con Google
 //   user           — objeto de usuario de Supabase (null si no hay sesión)
+//   streak         — entero, racha actual. Si > 0 y user, se pinta un badge
+//                    dorado 🔥 N dentro del botón del usuario. Si 0 o null,
+//                    el botón muestra solo el icono.
+//   repescaAlert   — boolean, si true pinta el punto ámbar pulsante sobre
+//                    el icono del Garaje.
+
+import { useEffect, useRef, useState } from "react";
 
 function UserIcon() {
   return (
@@ -78,6 +85,55 @@ const iconBtn = `
   active:scale-90
 `;
 
+// Variante del botón cuando incluye el badge de racha. h-11 fija, width
+// dinámico (h-11 rounded-full pl-2 pr-3 con gap interno). Cambia el fondo
+// para destacar discretamente al jugador con racha activa.
+const userBtnWithStreak = `
+  flex h-11 items-center gap-1.5 rounded-full
+  pl-2 pr-3 text-muted transition-colors duration-200
+  hover:bg-accent/10 hover:text-accent
+  active:scale-90
+`;
+
+// StreakBadge: contenido del chip dentro del botón. Anima un "pop" cuando
+// el número aumenta (racha subió) para reforzar feedback positivo. El ref
+// guarda el valor previo para detectar el cambio sin renders extra.
+function StreakBadge({ value }) {
+  const prevRef = useRef(value);
+  const [pop, setPop] = useState(false);
+
+  useEffect(() => {
+    // Snapshot del valor anterior y actualizamos prev SIEMPRE — si no, una
+    // subida de 5 → 6 dejaría prev congelado en 5 y la siguiente subida
+    // (6 → 7) volvería a comparar contra 5 y dispararía el pop dos veces.
+    const prev = prevRef.current;
+    prevRef.current = value;
+
+    if (value > prev) {
+      setPop(true);
+      // Reset tras animación. 300 ms = duración de la keyframe `pop`;
+      // dejamos 400 para que la clase se quite con margen.
+      const t = setTimeout(() => setPop(false), 400);
+      return () => clearTimeout(t);
+    }
+  }, [value]);
+
+  return (
+    <span
+      className={`
+        flex items-center gap-0.5 text-sm font-bold text-accent
+        ${pop ? "animate-pop" : ""}
+      `}
+      // El emoji 🔥 es ligeramente más alto que las cifras. Le doy un baseline
+      // ajuste fino para que se vea alineado verticalmente con el número.
+      style={{ lineHeight: 1 }}
+    >
+      <span aria-hidden="true" className="text-[0.95rem]">🔥</span>
+      <span className="tabular-nums">{value}</span>
+    </span>
+  );
+}
+
 export default function Header({
   onOpenRanking,
   onOpenGarage,
@@ -85,7 +141,10 @@ export default function Header({
   onOpenLogin,
   user,
   repescaAlert = false,
+  streak = 0,
 }) {
+  const showStreak = Boolean(user) && streak > 0;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
       <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
@@ -94,11 +153,16 @@ export default function Header({
             <button
               type="button"
               onClick={onOpenProfile}
-              aria-label="Mi perfil"
-              title="Mi perfil"
-              className={iconBtn}
+              aria-label={
+                showStreak
+                  ? `Mi perfil · racha de ${streak} días`
+                  : "Mi perfil"
+              }
+              title={showStreak ? `Racha: ${streak}` : "Mi perfil"}
+              className={showStreak ? userBtnWithStreak : iconBtn}
             >
               <UserIcon />
+              {showStreak && <StreakBadge value={streak} />}
             </button>
           ) : (
             <button

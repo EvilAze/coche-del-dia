@@ -9,6 +9,15 @@
 //   2) Leemos image_url de la fila (columna privilegiada).
 //   3) Hacemos un fetch server-side al CDN y devolvemos el buffer al cliente
 //      con los mismos Content-Type / Content-Length.
+//
+// Sobre el query param `?v=<hash>`:
+//   No se lee en este endpoint, intencionadamente. Lo añade get-daily-car
+//   como hash corto de image_url para que el CDN trate cada versión de la
+//   foto como una entrada distinta. Cuando el admin reemplaza la imagen,
+//   `v` cambia y se sirven los bytes nuevos al instante; mientras la foto
+//   sea la misma, todos los visitantes comparten el mismo cache hit.
+//   No borrarlo del cliente: es lo que mantiene el hot-swap funcionando con
+//   el cache de 24 h activo.
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -82,14 +91,19 @@ export default async function handler(req, res) {
   const contentType = upstream.headers.get("content-type") || "image/jpeg";
   const buffer = Buffer.from(await upstream.arrayBuffer());
 
-  // Cache corta (60 s) para que el hot-swap desde /admin/edit-car se
-  // refleje rápido si se cambia la imagen del coche del día. Sigue
-  // amortizando el grueso del tráfico vía CDN.
+  // Cache fuerte (24 h) en navegador y CDN: el coche de una fecha dada es
+  // determinista (pick_daily_car con la misma p_date siempre devuelve lo
+  // mismo) y el query `?d=YYYY-MM-DD` ya rota la cache key cada día. Esta
+  // imagen es además el LCP element del juego — cada cache miss penaliza
+  // ~300-500ms al primer visitante de cada región.
+  // Si en algún momento se hace hot-swap desde /admin/edit-car a mitad de
+  // día, hay que invalidar la edge cache desde ese endpoint (Vercel purge
+  // API) o añadir un `?v=<revision>` al src en el cliente.
   res.setHeader("Content-Type", contentType);
   res.setHeader("Content-Length", String(buffer.length));
   res.setHeader(
     "Cache-Control",
-    "public, s-maxage=60, stale-while-revalidate=30"
+    "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400, immutable"
   );
   // Por si acaso algún proxy intermedio mira el Content-Disposition:
   // forzamos inline sin filename, evitando filtrar el original del CDN.

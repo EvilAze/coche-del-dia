@@ -13,6 +13,7 @@
 //   }
 
 import { createClient } from "@supabase/supabase-js";
+import { generateBlurData } from "../_lib/blur-data.js";
 
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
 
@@ -108,6 +109,10 @@ export default async function handler(req, res) {
     }
     if (typeof body.image_url === "string" && body.image_url.startsWith("http")) {
       patch.image_url = body.image_url;
+      // Si el admin cambia la foto, regeneramos el LQIP. Si falla por algún
+      // motivo (CDN frío, imagen rara), persistimos null y el front cae al
+      // skeleton gris hasta que se reedite. Es preferible a romper el guardado.
+      patch.blur_data = await generateBlurData(body.image_url);
     }
 
     if (Object.keys(patch).length === 0) {

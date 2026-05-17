@@ -7,6 +7,7 @@ const DEFAULT_ASPECT = 4 / 3;
 
 export default function CarImage({
   src,
+  blurData = null,
   zoom,
   hintIndex,
   totalHints,
@@ -86,7 +87,26 @@ export default function CarImage({
       }}
     >
       {!loaded && (
-        <div className="absolute inset-0 animate-pulse bg-bg-secondary/60" />
+        blurData ? (
+          // LQIP: el placeholder borroso ya intuye silueta y paleta del coche
+          // mientras descarga la foto real. El filter:blur es necesario porque
+          // la imagen base64 es solo 24 px de ancho y se escala a 100% del
+          // contenedor — sin blur se vería pixelado. scale(1.1) tapa el halo
+          // transparente que deja el blur en los bordes.
+          <div
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url(${blurData})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              filter: "blur(20px) saturate(1.1)",
+              transform: "scale(1.1)",
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 animate-pulse bg-bg-secondary/60" />
+        )
       )}
 
       <img

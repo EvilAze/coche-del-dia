@@ -48,11 +48,13 @@ function buildShareText(guesses) {
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la
-// imagen (siempre vía proxy) y, opcionalmente, marca/modelo/año cuando el
-// servidor decide revelarlos (solo en victoria).
-function buildCarState({ img, reveal }) {
+// imagen (siempre vía proxy), el LQIP base64 (placeholder borroso que
+// elimina el flash gris del skeleton) y, opcionalmente, marca/modelo/año
+// cuando el servidor decide revelarlos (solo en victoria).
+function buildCarState({ img, blurData, reveal }) {
   return {
     img,
+    blurData: blurData ?? null,
     marca: reveal?.marca ?? null,
     modelo: reveal?.modelo ?? null,
     anio: reveal?.anio ?? null,
@@ -125,7 +127,13 @@ export function useGame() {
 
         setGuesses(initialGuesses);
         setStatus(initialStatus);
-        setCar(buildCarState({ img: daily.img, reveal: initialReveal }));
+        setCar(
+          buildCarState({
+            img: daily.img,
+            blurData: daily.blurData,
+            reveal: initialReveal,
+          })
+        );
       } catch (err) {
         console.error("Error al inicializar:", err);
       } finally {

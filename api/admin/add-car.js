@@ -18,6 +18,7 @@
 // formulario.
 
 import { createClient } from "@supabase/supabase-js";
+import { generateBlurData } from "../_lib/blur-data.js";
 
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
 
@@ -118,7 +119,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3) INSERT con service_role (bypassea RLS).
+    // 3) LQIP. Generamos el placeholder DURANTE el alta para que el coche
+    //    nazca con su blur_data ya listo; así el día que sea coche del día,
+    //    el cliente recibe la data URI inline y no se ve el flash gris. Si
+    //    falla (foto inaccesible, formato raro, etc.), seguimos sin LQIP en
+    //    lugar de romper el alta — el script de migración lo regenera más
+    //    tarde, o el admin lo arregla reeditando la foto.
+    const blurData = await generateBlurData(imageUrl);
+
+    // 4) INSERT con service_role (bypassea RLS).
     const { data, error } = await supabaseAdmin
       .from("cars")
       .insert({
@@ -128,6 +137,7 @@ export default async function handler(req, res) {
         pais,
         description: description ? description : null,
         image_url: imageUrl,
+        blur_data: blurData,
       })
       .select("id, make, model, year, pais, description, image_url")
       .maybeSingle();

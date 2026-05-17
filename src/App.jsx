@@ -264,6 +264,7 @@ export default function App() {
         <main className="w-full min-w-0">
           <CarImage
             src={car.img}
+            blurData={car.blurData}
             zoom={zoom}
             hintIndex={hintIndex}
             totalHints={totalHints}

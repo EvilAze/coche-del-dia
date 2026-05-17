@@ -9,7 +9,13 @@
       "Bash(node --check api/admin/add-car.js)",
       "Bash(node -e \"require\\('@babel/parser'\\).parse\\(require\\('fs'\\).readFileSync\\('src/components/Garage.jsx','utf8'\\),{sourceType:'module',plugins:['jsx']}\\); console.log\\('OK'\\)\")",
       "Bash(xargs wc -l)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Ruben\\\\Downloads\\\\coche-del-dia_1\" -Recurse -Force)",
+      "Bash(Select-Object -First 100)",
+      "Bash(Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Ruben\\\\Downloads\\\\coche-del-dia_1\" -Recurse -Force | Where-Object { $_.PSIsContainer } | Sort-Object FullName | Format-Table -AutoSize Name, FullName)",
+      "Bash(xargs grep -l \"PISTA\\\\|pista\")",
+      "Bash(grep -E \"\\\\.\\(jsx|tsx|js\\)$\")"
     ]
   }
 }

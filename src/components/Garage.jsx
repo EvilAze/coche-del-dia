@@ -9,11 +9,35 @@
 // solo país → Vista 2; país + marca → Vista 3. ESC y BackButton siempre
 // suben un nivel en la jerarquía.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
+import ModalShell from "./ModalShell";
+
+// Mapa de profundidad de cada vista del Garaje. Sirve para decidir la
+// dirección del slide al cambiar de vista: bajar de nivel (countries →
+// brands) → entra desde la derecha. Subir (brands → countries) → entra
+// desde la izquierda. Mismo paradigma que la navegación nativa de iOS.
+const VIEW_DEPTH = { countries: 0, brands: 1, cars: 2 };
+
+// Variantes de slide. `dir` se pasa por `custom` a AnimatePresence — 1
+// significa "navegamos hacia adelante" (más profundo), -1 "hacia atrás".
+// La X de 40px es lo suficientemente sutil para no marear y suficientemente
+// claro para que el ojo capte la dirección. La opacidad acompaña al
+// movimiento para suavizar la entrada/salida.
+const slideVariants = {
+  enter: (dir) => ({ x: dir * 40, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir) => ({ x: dir * -40, opacity: 0 }),
+};
+
+const slideTransition = {
+  x: { type: "spring", stiffness: 320, damping: 32 },
+  opacity: { duration: 0.18 },
+};
 
 function slugifyCountry(pais) {
   return String(pais || "")
@@ -274,13 +298,27 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     }
   }
 
-  if (!open) return null;
-
   // ¿Qué vista estamos pintando?
   //   "countries" → Vista 1
   //   "brands"    → Vista 2 (país elegido, sin marca)
   //   "cars"      → Vista 3 (país + marca)
   const view = currentBrand ? "cars" : currentCountry ? "brands" : "countries";
+
+  // Direccionalidad del slide: comparamos la profundidad de la vista actual
+  // con la anterior. Si bajamos (countries → brands → cars), el nuevo
+  // contenido entra desde la derecha. Si subimos (cars → brands → countries
+  // o ESC), entra desde la izquierda. Esto da el "feel" nativo de iOS.
+  // Hooks ANTES del early return para no romper el orden de React.
+  const prevDepthRef = useRef(VIEW_DEPTH[view] ?? 0);
+  const direction = (VIEW_DEPTH[view] ?? 0) >= prevDepthRef.current ? 1 : -1;
+  useEffect(() => {
+    prevDepthRef.current = VIEW_DEPTH[view] ?? 0;
+  }, [view]);
+
+  // Nota: hemos quitado el `if (!open) return null` que había aquí. Con
+  // AnimatePresence, el componente DEBE seguir renderizándose con open=false
+  // para que la animación de salida pueda completarse antes del desmount.
+  // El JSX final lo envuelve y solo monta el panel cuando open=true.
 
   // Datos del header (label + título) y back button según vista.
   let headerLabel = "Tu colección";
@@ -300,17 +338,33 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[85] flex items-stretch justify-center bg-black/85 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="
-          relative flex w-full max-w-md flex-col overflow-hidden
-          border-x border-white/10 bg-[#0a0a0c] shadow-2xl
-        "
-        onClick={(e) => e.stopPropagation()}
-      >
+    // AnimatePresence externo: el backdrop hace fade in/out (200 ms) y el
+    // panel un slide-up con fade y un pizco de scale (~280 ms con spring).
+    // El "feel" es el de un bottom-sheet móvil al subir, adaptado al panel
+    // edge-to-edge alto del Garaje.
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="garage-backdrop"
+          className="fixed inset-0 z-[85] flex items-stretch justify-center bg-black/85 backdrop-blur-sm"
+          onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.div
+            key="garage-panel"
+            className="
+              relative flex w-full max-w-md flex-col overflow-hidden
+              border-x border-white/10 bg-[#0a0a0c] shadow-2xl
+            "
+            onClick={(e) => e.stopPropagation()}
+            initial={{ y: 24, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 24, opacity: 0, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 320, damping: 32 }}
+          >
         {/* Header */}
         <div className="border-b border-white/10 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
@@ -346,49 +400,88 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
           <CenterMessage text={state.error} tone="error" />
         ) : !state.data || state.data.countries.length === 0 ? (
           <CenterMessage text="El catálogo está vacío. Vuelve cuando haya coches que coleccionar." />
-        ) : view === "cars" ? (
-          <BrandShowroom
-            country={currentCountry}
-            brand={currentBrand}
-            onSelectCar={setDetailCar}
-          />
-        ) : view === "brands" ? (
-          <BrandsMenu
-            country={currentCountry}
-            brands={brandsInCountry}
-            onSelectBrand={setSelectedBrand}
-          />
         ) : (
-          <CountriesMenu
-            data={state.data}
-            onSelectCountry={setSelectedCountry}
-            repescaPoolSize={repescaPool.length}
-            repescaAvailable={!!state.data?.repescaAvailable}
-            repescaActiveCarId={state.data?.repescaActiveCarId || null}
-            repescaStarting={repescaStarting}
-            onRandomRepesca={handleRandomRepesca}
-          />
+          // AnimatePresence con mode="wait": espera a que la vista saliente
+          // complete su exit antes de montar la entrante. Sin esto, ambas
+          // se superpondrían visualmente durante ~200 ms. `custom` propaga
+          // `direction` a las variantes para que sepan hacia dónde slidear.
+          // `initial={false}`: la primera vez que se abre el modal, la vista
+          // de countries aparece directamente sin slide entrante (estamos
+          // recién montando, no es una navegación).
+          // El overflow-hidden del motion.div corta el contenido cuando
+          // entra/sale por los bordes, evitando ver el barrido fuera de la
+          // columna del modal.
+          <AnimatePresence mode="wait" custom={direction} initial={false}>
+            <motion.div
+              key={view}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={slideTransition}
+              className="flex flex-1 flex-col overflow-hidden"
+            >
+              {view === "cars" ? (
+                <BrandShowroom
+                  country={currentCountry}
+                  brand={currentBrand}
+                  onSelectCar={setDetailCar}
+                />
+              ) : view === "brands" ? (
+                <BrandsMenu
+                  country={currentCountry}
+                  brands={brandsInCountry}
+                  onSelectBrand={setSelectedBrand}
+                />
+              ) : (
+                <CountriesMenu
+                  data={state.data}
+                  onSelectCountry={setSelectedCountry}
+                  repescaPoolSize={repescaPool.length}
+                  repescaAvailable={!!state.data?.repescaAvailable}
+                  repescaActiveCarId={state.data?.repescaActiveCarId || null}
+                  repescaStarting={repescaStarting}
+                  onRandomRepesca={handleRandomRepesca}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
-      </div>
+          </motion.div>
 
-      {detailCar && (
-        <CarDetail car={detailCar} onClose={() => setDetailCar(null)} />
+          {/*
+            Los sub-modales reciben siempre `open` (boolean) además de su data,
+            y permanecen montados aunque open=false: así AnimatePresence
+            (dentro de ModalShell) puede animar el exit antes de desmontarlos.
+            Para CarDetail: cuando se cierra, `detailCar` queda
+            momentáneamente en el state durante la animación de salida. Si
+            el coche cambiara a null mientras aún se anima, intentaríamos
+            leer car.marca de null → crash. Por eso conservamos el último
+            valor en `displayCar` y lo pintamos hasta que la animación
+            termina.
+          */}
+          <CarDetail
+            open={Boolean(detailCar)}
+            car={detailCar}
+            onClose={() => setDetailCar(null)}
+          />
+
+          <RandomRepescaConfirm
+            open={confirmRepesca}
+            poolSize={repescaPool.length}
+            starting={repescaStarting}
+            onCancel={() => {
+              if (repescaStarting) return;
+              setConfirmRepesca(false);
+            }}
+            onAccept={confirmAndStartRepesca}
+          />
+
+          <RepescaHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+        </motion.div>
       )}
-
-      {confirmRepesca && (
-        <RandomRepescaConfirm
-          poolSize={repescaPool.length}
-          starting={repescaStarting}
-          onCancel={() => {
-            if (repescaStarting) return;
-            setConfirmRepesca(false);
-          }}
-          onAccept={confirmAndStartRepesca}
-        />
-      )}
-
-      {helpOpen && <RepescaHelpModal onClose={() => setHelpOpen(false)} />}
-    </div>
+    </AnimatePresence>
   );
 }
 
@@ -795,60 +888,68 @@ function LockedCard({ car }) {
 // Detail del cromo
 // ============================================================================
 
-function CarDetail({ car, onClose }) {
+function CarDetail({ open, car, onClose }) {
+  // Conservamos el último coche válido en estado local. Cuando el padre
+  // hace setDetailCar(null) para cerrar el modal, `car` pasa a null y `open`
+  // a false en el mismo render — pero el exit-animation tarda ~250 ms en
+  // completarse. Sin esta cache, durante ese intervalo intentaríamos leer
+  // car.marca de null y reventaría. displayCar solo se actualiza con
+  // valores no-null, así que sobrevive a la animación de salida.
+  const [displayCar, setDisplayCar] = useState(car);
+  useEffect(() => {
+    if (car) setDisplayCar(car);
+  }, [car]);
+
   return (
-    <div
-      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/30 bg-[#0a0a0c] shadow-2xl"
     >
-      <div
-        className="
-          relative w-full max-w-sm overflow-hidden rounded-2xl
-          border border-accent/30 bg-[#0a0a0c] shadow-2xl
-          animate-fade-in
-        "
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="absolute right-2 top-2 z-10">
-          <CloseButton onClick={onClose} />
-        </div>
+      {displayCar && (
+        <>
+          <div className="absolute right-2 top-2 z-10">
+            <CloseButton onClick={onClose} />
+          </div>
 
-        <div className="aspect-[4/3] w-full overflow-hidden bg-bg-secondary">
-          <img
-            src={car.img}
-            alt={`${car.marca} ${car.modelo}`}
-            className="h-full w-full object-cover"
-          />
-        </div>
+          <div className="aspect-[4/3] w-full overflow-hidden bg-bg-secondary">
+            <img
+              src={displayCar.img}
+              alt={`${displayCar.marca} ${displayCar.modelo}`}
+              className="h-full w-full object-cover"
+            />
+          </div>
 
-        <div className="p-4">
-          <p className="text-xs font-medium uppercase tracking-widest text-yellow-500">
-            {car.marca}
-          </p>
-          <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-white">
-            {car.modelo}
-          </h3>
-          <p className="mt-0.5 font-display text-base tabular-nums text-gray-400">
-            {car.anio}
-          </p>
-
-          {car.description ? (
-            <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
-              <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
-                Ficha
-              </p>
-              <p className="text-sm leading-relaxed text-white/90">
-                {car.description}
-              </p>
-            </div>
-          ) : (
-            <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-3 text-xs italic text-muted">
-              Sin ficha. Pronto añadiremos más detalles.
+          <div className="p-4">
+            <p className="text-xs font-medium uppercase tracking-widest text-yellow-500">
+              {displayCar.marca}
             </p>
-          )}
-        </div>
-      </div>
-    </div>
+            <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-white">
+              {displayCar.modelo}
+            </h3>
+            <p className="mt-0.5 font-display text-base tabular-nums text-gray-400">
+              {displayCar.anio}
+            </p>
+
+            {displayCar.description ? (
+              <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
+                <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
+                  Ficha
+                </p>
+                <p className="text-sm leading-relaxed text-white/90">
+                  {displayCar.description}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-3 text-xs italic text-muted">
+                Sin ficha. Pronto añadiremos más detalles.
+              </p>
+            )}
+          </div>
+        </>
+      )}
+    </ModalShell>
   );
 }
 
@@ -860,20 +961,18 @@ function CarDetail({ car, onClose }) {
 // Muestra las condiciones (una al día, mitad de puntos, no afecta racha)
 // y nada de info del coche — porque ni siquiera nosotros sabemos cuál nos
 // va a tocar todavía (el random sale en el `onAccept`).
-function RandomRepescaConfirm({ poolSize, starting, onCancel, onAccept }) {
+function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) {
+  // Si está en pleno proceso de "Sorteando..." (starting=true), bloqueamos
+  // que se cierre tocando el backdrop. La animación de salida del modal
+  // confundiría: parecería que se cancela cuando en realidad sigue el POST.
   return (
-    <div
-      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      onClick={onCancel}
+    <ModalShell
+      open={open}
+      onClose={onCancel}
+      dismissOnBackdrop={!starting}
+      backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/40 bg-[#0a0a0c] shadow-2xl"
     >
-      <div
-        className="
-          relative w-full max-w-sm overflow-hidden rounded-2xl
-          border border-accent/40 bg-[#0a0a0c] shadow-2xl
-          animate-fade-in
-        "
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="px-5 py-5 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
             <span className="text-2xl" aria-hidden="true">🎲</span>
@@ -926,8 +1025,7 @@ function RandomRepescaConfirm({ poolSize, starting, onCancel, onAccept }) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 
@@ -1092,20 +1190,14 @@ function HelpButton({ onClick }) {
 // header. Se complementa con RandomRepescaConfirm, que es el modal corto
 // que sale justo antes de gastar la repesca; este de aquí está pensado
 // para consultarse antes de decidir.
-function RepescaHelpModal({ onClose }) {
+function RepescaHelpModal({ open, onClose }) {
   return (
-    <div
-      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/30 bg-[#0a0a0c] shadow-2xl"
     >
-      <div
-        className="
-          relative w-full max-w-sm overflow-hidden rounded-2xl
-          border border-accent/30 bg-[#0a0a0c] shadow-2xl
-          animate-fade-in
-        "
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="absolute right-2 top-2 z-10">
           <CloseButton onClick={onClose} />
         </div>
@@ -1160,8 +1252,7 @@ function RepescaHelpModal({ onClose }) {
             Entendido
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getLeaderboard } from "../hooks/useStats";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
+import ModalShell from "./ModalShell";
 import ScoringHelpModal from "./ScoringHelpModal";
 
 function HelpButton({ onClick }) {
@@ -90,17 +91,14 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
 
   useEscape(open && !helpOpen, onClose);
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
-      onClick={onClose}
+    <>
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
+      panelClassName="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
     >
-      <div
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.28em] text-accent">
@@ -223,9 +221,11 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             )}
           </div>
         )}
-      </div>
+    </ModalShell>
 
-      <ScoringHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
-    </div>
+    {/* Sub-modal hermano (no anidado): ahora cada uno gestiona su propio
+        backdrop y su propia animación de entrada/salida. */}
+    <ScoringHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+    </>
   );
 }

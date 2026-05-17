@@ -49,15 +49,14 @@ module.exports = {
           "25%":  { opacity: 1 },
           "100%": { opacity: 0 },
         },
-        // Antes la "revelación" partía de un scale 2.4-3.5 (porque la
-        // imagen estaba zoomeada con CSS) y volvía a 1. Ahora el zoom CSS
-        // ya no existe — la imagen revealed es directamente full. Un pop
-        // sutil con overshoot da el "moment de aplauso" sin estar fuera
-        // de escala. Duración la lleva la prop animation en config.
+        // Animación al ganar: parte del último zoom CSS activo (inyectado
+        // por CarImage como --zoom-from, p.ej. 1.667 si ganó en el 2º
+        // intento) y vuelve a scale=1, pasando por un pequeño overshoot.
+        // El fallback 1.6 es el escenario medio (ganar en intento 3).
         revealWin: {
-          "0%":   { transform: "scale(0.94)", opacity: 0 },
-          "60%":  { transform: "scale(1.04)", opacity: 1 },
-          "100%": { transform: "scale(1)",    opacity: 1 },
+          "0%":   { transform: "scale(var(--zoom-from, 1.6))" },
+          "65%":  { transform: "scale(1.04)" },
+          "100%": { transform: "scale(1)" },
         },
         toastIn: {
           from: { opacity: 0, transform: "translateY(20px) scale(0.95)" },

@@ -70,6 +70,10 @@ export default function CarImage({
     prevZoomRef.current = zoom;
   }, [zoom, status, loaded]);
 
+  // Las URLs de proxy propio (/api/...) soportan ?f=avif&w=640 etc.
+  // Las URLs externas (Supabase CDN, /coches/, …) se usan directas.
+  const isApiProxy = typeof src === "string" && src.startsWith("/api/");
+
   const isWinReveal = status === "won";
   // Estado "revelado": el juego ha terminado, por victoria o derrota.
   // El contenedor abandona el cuadrado 1:1 y vuelve a su aspecto natural.
@@ -155,33 +159,29 @@ export default function CarImage({
             desktop, igual que antes de que reorganizáramos esto.
       */}
       <picture>
-        <source
-          type="image/avif"
-          srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
-          sizes="(max-width: 480px) 200vw, 1280px"
-        />
-        <source
-          type="image/webp"
-          srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
-          sizes="(max-width: 480px) 200vw, 1280px"
-        />
-        {/*
-          <img> interior:
-            - opacity en lugar de display: garantiza que el navegador
-              empiece a descargar la imagen al montar el componente. El
-              LQIP de fondo cubre el rectángulo vacío mientras carga, y al
-              completar la descarga el <img> aparece con fade suave (250 ms).
-            - ref={imgRef}: necesario para el useEffect que sincroniza el
-              estado `loaded` cuando la imagen viene de cache (ver arriba).
-            - animate-reveal-win: keyframe que hace un pequeño "pop" al
-              ganar (definida en tailwind.config.js). NO depende ya de
-              --zoom-from porque ya no hay zoom CSS previo del que partir.
-        */}
+        {isApiProxy && (
+          <source
+            type="image/avif"
+            srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
+            sizes="(max-width: 480px) 200vw, 1280px"
+          />
+        )}
+        {isApiProxy && (
+          <source
+            type="image/webp"
+            srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
+            sizes="(max-width: 480px) 200vw, 1280px"
+          />
+        )}
         <img
           ref={imgRef}
-          src={`${src}&f=jpeg&w=1280`}
-          srcSet={`${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w, ${src}&f=jpeg&w=1920 1920w`}
-          sizes="(max-width: 480px) 200vw, 1280px"
+          src={isApiProxy ? `${src}&f=jpeg&w=1280` : src}
+          srcSet={
+            isApiProxy
+              ? `${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w, ${src}&f=jpeg&w=1920 1920w`
+              : undefined
+          }
+          sizes={isApiProxy ? "(max-width: 480px) 200vw, 1280px" : undefined}
           alt="Coche del día"
           draggable={false}
           onLoad={handleImageLoad}
@@ -189,8 +189,6 @@ export default function CarImage({
           style={{
             opacity: loaded ? 1 : 0,
             transformOrigin: "center center",
-            // En win: la keyframe revealWin pilota el transform.
-            // En el resto: scale(zoom) anima el zoom-out entre intentos.
             transform: isWinReveal ? undefined : `scale(${zoom})`,
             transition: isWinReveal
               ? "opacity 0.25s ease-out"

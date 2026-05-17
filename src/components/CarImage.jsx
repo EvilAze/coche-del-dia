@@ -109,25 +109,66 @@ export default function CarImage({
         )
       )}
 
-      <img
-        src={src}
-        alt="Coche del día"
-        draggable={false}
-        onLoad={handleImageLoad}
-        className={`absolute inset-0 h-full w-full object-cover ${isWinReveal && loaded ? "animate-reveal-win" : ""}`}
-        style={{
-          display: loaded ? "block" : "none",
-          transformOrigin: "center center",
-          // En win: deja que la keyframe revealWin pilote el transform.
-          // En el resto: transition suave para los cambios de zoom.
-          transform: isWinReveal ? undefined : `scale(${zoom})`,
-          transition: isWinReveal
-            ? undefined
-            : "transform 0.75s cubic-bezier(0.4,0,0.2,1)",
-          filter: blurred ? "blur(18px) saturate(0.85)" : undefined,
-          "--zoom-from": zoomFrom,
-        }}
-      />
+      {/*
+        <picture> con AVIF / WebP / JPEG (fallback):
+          - El navegador elige el primer <source> que entiende. Safari < 16
+            y Firefox < 93 caen automáticamente al <img> JPEG.
+          - `srcSet` ofrece 3 tamaños (320 / 640 / 1280). Con `sizes` el
+            navegador calcula qué archivo bajar según viewport + DPR.
+          - sizes="(max-width:480px) 100vw, 480px": en móvil el contenedor
+            ocupa todo el ancho disponible; en pantallas grandes el max-w-md
+            del padre lo capea a ~448 px → 480px cubre con margen.
+          - El <img> mantiene TODA la lógica visual: animación de zoom,
+            keyframe revealWin, filter:blur del estado "perdido anónimo",
+            onLoad handler. <picture> solo decide qué bytes carga.
+      */}
+      <picture>
+        <source
+          type="image/avif"
+          srcSet={`${src}&f=avif&w=320 320w, ${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w`}
+          sizes="(max-width: 480px) 100vw, 480px"
+        />
+        <source
+          type="image/webp"
+          srcSet={`${src}&f=webp&w=320 320w, ${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w`}
+          sizes="(max-width: 480px) 100vw, 480px"
+        />
+        {/*
+          Sobre el <img> interior:
+            - Mantiene TODA la lógica visual previa: animación de zoom,
+              keyframe revealWin, filter:blur del estado "perdido anónimo",
+              onLoad handler que dispara setLoaded(true).
+            - opacity en lugar de display: garantiza que el navegador
+              empiece a descargar la imagen al montar el componente (con
+              display:none algunos navegadores difieren la descarga). El
+              LQIP de fondo cubre el rectángulo vacío mientras carga, y al
+              completar la descarga el <img> aparece con fade suave (250 ms).
+            - El transition de opacity se concatena con el resto, por eso
+              respetamos la cadena de transitions existente.
+        */}
+        <img
+          src={`${src}&f=jpeg&w=640`}
+          srcSet={`${src}&f=jpeg&w=320 320w, ${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w`}
+          sizes="(max-width: 480px) 100vw, 480px"
+          alt="Coche del día"
+          draggable={false}
+          onLoad={handleImageLoad}
+          className={`absolute inset-0 h-full w-full object-cover ${isWinReveal && loaded ? "animate-reveal-win" : ""}`}
+          style={{
+            opacity: loaded ? 1 : 0,
+            transformOrigin: "center center",
+            // En win: deja que la keyframe revealWin pilote el transform.
+            // En el resto: transition suave para los cambios de zoom +
+            // fade-in al cargar.
+            transform: isWinReveal ? undefined : `scale(${zoom})`,
+            transition: isWinReveal
+              ? "opacity 0.25s ease-out"
+              : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out",
+            filter: blurred ? "blur(18px) saturate(0.85)" : undefined,
+            "--zoom-from": zoomFrom,
+          }}
+        />
+      </picture>
 
       {/* Hint-flash: overlay efímero al desbloquear nueva pista */}
       {flashKey > 0 && (

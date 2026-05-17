@@ -7,19 +7,35 @@
 //   1) Resolvemos el coche del día con pick_daily_car (service_role: la RPC
 //      está revocada de anon/authenticated por hardening previo).
 //   2) Leemos image_url de la fila (columna privilegiada).
-//   3) Hacemos un fetch server-side al CDN y devolvemos el buffer al cliente
-//      con los mismos Content-Type / Content-Length.
+//   3) Hacemos un fetch server-side al CDN.
+//   4) Si el cliente pidió `?w` o `?f`, redimensionamos / recodificamos con
+//      sharp. Si no, passthrough literal.
 //
-// Sobre el query param `?v=<hash>`:
-//   No se lee en este endpoint, intencionadamente. Lo añade get-daily-car
-//   como hash corto de image_url para que el CDN trate cada versión de la
-//   foto como una entrada distinta. Cuando el admin reemplaza la imagen,
-//   `v` cambia y se sirven los bytes nuevos al instante; mientras la foto
-//   sea la misma, todos los visitantes comparten el mismo cache hit.
-//   No borrarlo del cliente: es lo que mantiene el hot-swap funcionando con
-//   el cache de 24 h activo.
+// Query params:
+//   ?d=YYYY-MM-DD   → cache buster diario (no se lee aquí; es solo cache key).
+//   ?v=<hash>       → hash corto de image_url (no se lee aquí; es solo cache
+//                     key — invalida automáticamente cuando admin cambia la
+//                     foto desde /admin/edit-car).
+//   ?w=320|640|1280 → ancho objetivo. Allowlist estricta para evitar DoS por
+//                     resize a tamaños absurdos.
+//   ?f=avif|webp|jpeg → formato de salida. Allowlist estricta.
+//
+// Cache:
+//   Cada combinación (d, v, w, f) tiene su propia entrada en el edge cache
+//   de Vercel. El cost de sharp se paga una vez por entrada y región, y
+//   luego durante 24 h se sirve desde el CDN sin tocar la función.
 
 import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
+
+// Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
+// srcset del front), que es donde se decide qué tamaños se piden.
+const ALLOWED_WIDTHS = new Set([320, 640, 1280]);
+const FORMAT_MIME = {
+  avif: "image/avif",
+  webp: "image/webp",
+  jpeg: "image/jpeg",
+};
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
@@ -73,7 +89,17 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: "Failed to load daily car" });
   }
 
-  // 3) Fetch server-side de los bytes. Si el CDN falla, propagamos el status
+  // 3) Validamos params de procesamiento. Las allowlists son estrictas: si
+  //    el cliente pide algo fuera del set, lo ignoramos (no devolvemos 400)
+  //    para que un visitante con un srcset cacheado obsoleto no rompa.
+  const wRaw = Number(req.query?.w);
+  const wantedWidth =
+    Number.isFinite(wRaw) && ALLOWED_WIDTHS.has(wRaw) ? wRaw : null;
+
+  const fRaw = String(req.query?.f || "").toLowerCase();
+  const wantedFormat = fRaw in FORMAT_MIME ? fRaw : null;
+
+  // 4) Fetch server-side de los bytes. Si el CDN falla, propagamos el status
   //    para que el cliente sepa que no es un error de nuestra app.
   let upstream;
   try {
@@ -88,19 +114,58 @@ export default async function handler(req, res) {
     return res.status(502).json({ message: "Upstream image error" });
   }
 
-  const contentType = upstream.headers.get("content-type") || "image/jpeg";
-  const buffer = Buffer.from(await upstream.arrayBuffer());
+  const originalContentType =
+    upstream.headers.get("content-type") || "image/jpeg";
+  const originalBuffer = Buffer.from(await upstream.arrayBuffer());
+
+  // 5) Procesamiento. Si el cliente pidió tamaño o formato, pasamos por
+  //    sharp. Si no, passthrough (mantenemos backward-compat con cualquier
+  //    enlace antiguo que llegue sin params, p.ej. tarjetas OG cacheadas).
+  let outBuffer = originalBuffer;
+  let outContentType = originalContentType;
+
+  if (wantedWidth !== null || wantedFormat !== null) {
+    try {
+      let pipeline = sharp(originalBuffer).rotate(); // rotate() respeta EXIF
+      if (wantedWidth !== null) {
+        pipeline = pipeline.resize(wantedWidth, null, {
+          fit: "inside",
+          withoutEnlargement: true,
+        });
+      }
+      if (wantedFormat === "avif") {
+        // effort 4 es el sweet spot calidad/tiempo. quality 50 da archivos
+        // ~10-15 KB para una foto 640w típica con calidad visual indistinta
+        // del JPEG q80 a simple vista.
+        pipeline = pipeline.avif({ quality: 50, effort: 4 });
+      } else if (wantedFormat === "webp") {
+        pipeline = pipeline.webp({ quality: 75 });
+      } else if (wantedFormat === "jpeg") {
+        pipeline = pipeline.jpeg({
+          quality: 80,
+          mozjpeg: true,
+          progressive: true,
+        });
+      }
+      outBuffer = await pipeline.toBuffer();
+      if (wantedFormat !== null) outContentType = FORMAT_MIME[wantedFormat];
+    } catch (err) {
+      // Si sharp falla por cualquier motivo (input corrupto, OOM, formato
+      // raro), seguimos sirviendo el original. Mejor entregar una imagen
+      // grande que ningún LCP.
+      console.error("[daily-image] sharp pipeline:", err?.message || err);
+      outBuffer = originalBuffer;
+      outContentType = originalContentType;
+    }
+  }
 
   // Cache fuerte (24 h) en navegador y CDN: el coche de una fecha dada es
   // determinista (pick_daily_car con la misma p_date siempre devuelve lo
-  // mismo) y el query `?d=YYYY-MM-DD` ya rota la cache key cada día. Esta
-  // imagen es además el LCP element del juego — cada cache miss penaliza
-  // ~300-500ms al primer visitante de cada región.
-  // Si en algún momento se hace hot-swap desde /admin/edit-car a mitad de
-  // día, hay que invalidar la edge cache desde ese endpoint (Vercel purge
-  // API) o añadir un `?v=<revision>` al src en el cliente.
-  res.setHeader("Content-Type", contentType);
-  res.setHeader("Content-Length", String(buffer.length));
+  // mismo) y los query params (d, v, w, f) ya rotan la cache key cada día
+  // o cuando el admin cambia la foto. Esta imagen es además el LCP element
+  // del juego — cada cache miss penaliza ~300-800 ms (más con AVIF).
+  res.setHeader("Content-Type", outContentType);
+  res.setHeader("Content-Length", String(outBuffer.length));
   res.setHeader(
     "Cache-Control",
     "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400, immutable"
@@ -112,5 +177,5 @@ export default async function handler(req, res) {
   if (req.method === "HEAD") {
     return res.status(200).end();
   }
-  return res.status(200).send(buffer);
+  return res.status(200).send(outBuffer);
 }

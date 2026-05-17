@@ -51,18 +51,23 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
 
   const marcaValidaSeleccionada = MARCAS.includes(marca);
 
-  const modelOptions = useMemo(
-    () =>
-      CARS
-        .filter((c) => {
-          if (!marcaValidaSeleccionada) return true;
-          return c.marca === marca;
-        })
-        .map((c) => c.modelo)
-        .filter((v, i, a) => a.indexOf(v) === i)
-        .sort(),
-    [CARS, marca, marcaValidaSeleccionada]
-  );
+  // ANTI-CHEAT: hasta que el usuario no elija una marca válida del catálogo,
+  // NO devolvemos ningún modelo. Antes devolvíamos toda la lista de modelos
+  // (filtrado vacío → return true para todos), lo que permitía:
+  //   1. Memorizar/fotografiar la lista completa del catálogo.
+  //   2. Escribir el nombre del modelo del día (p.ej. "Stradale") y ver al
+  //      instante a qué coche pertenece, anulando el reto.
+  //   3. Deducir por eliminación entre intentos.
+  // La consecuencia visible para el usuario: el campo Modelo está deshabilitado
+  // hasta que selecciona una Marca válida (ver `disabled` más abajo).
+  const modelOptions = useMemo(() => {
+    if (!marcaValidaSeleccionada) return [];
+    return CARS
+      .filter((c) => c.marca === marca)
+      .map((c) => c.modelo)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort();
+  }, [CARS, marca, marcaValidaSeleccionada]);
 
   useEffect(() => {
     if (!modelo || !marcaValidaSeleccionada) return;
@@ -152,14 +157,20 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
             Modelo
           </span>
+          {/*
+            Modelo bloqueado hasta que haya marca válida (ANTI-CHEAT).
+            El placeholder explica el "por qué" — sin esto, un usuario que
+            empieza por Modelo se quedaría confundido sin entender que
+            primero tiene que elegir Marca.
+          */}
           <Autocomplete
             id="input-modelo"
             value={modelo}
             onChange={setModelo}
             onSelect={setModelo}
             options={modelOptions}
-            placeholder=""
-            disabled={formDisabled}
+            placeholder={marcaValidaSeleccionada ? "" : "Elige marca primero"}
+            disabled={formDisabled || !marcaValidaSeleccionada}
           />
         </label>
 

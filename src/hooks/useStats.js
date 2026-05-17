@@ -36,6 +36,28 @@ export async function getMyProfile(userId) {
   return data;
 }
 
+// Lectura ligera del streak actual para el badge del header. No traemos
+// max_streak ni total_wins porque para el chip basta con current_streak.
+// Si la fila no existe (usuario nuevo que aún no ha jugado), devolvemos 0.
+export async function getMyStreak(userId) {
+  if (!userId) return 0;
+
+  const { data, error } = await supabase
+    .from("stats")
+    .select("current_streak")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    // No fallar el render del header por esto: si la query revienta, el
+    // badge simplemente no aparece. Log para detectar regresiones.
+    console.error("[getMyStreak]", error);
+    return 0;
+  }
+
+  return data?.current_streak ?? 0;
+}
+
 export async function saveDisplayName(displayName) {
   const user = await getCurrentUser();
 

@@ -18,6 +18,11 @@ export default function CarImage({
 }) {
   const [loaded, setLoaded] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
+  // Cuando el <source> AVIF/WebP falla o tarda demasiado, marcamos fallback:
+  // re-renderizamos sin los <source> y dejamos solo el <img> JPEG (más
+  // compatible). El navegador NO hace fallback automático entre <source>s
+  // del <picture> cuando la red falla mid-stream — hay que forzarlo a mano.
+  const [imgFailed, setImgFailed] = useState(false);
   // Ratio real de la foto (width/height). Se usa solo cuando el juego termina
   // para devolver al contenedor su forma natural. Mientras se juega siempre
   // forzamos 1:1.
@@ -43,7 +48,22 @@ export default function CarImage({
   // playing pedimos siempre la misma `?z=5`.
   useEffect(() => {
     setLoaded(false);
+    setImgFailed(false);
   }, [src]);
+
+  // Watchdog: si en 8 s la imagen no ha cargado, asumimos que el AVIF/WebP
+  // se ha encallado (cold start de sharp, red lenta, etc.) y disparamos el
+  // fallback a JPEG directo. Sin esto, algunos usuarios se quedan con el
+  // skeleton borroso eterno y tienen que refrescar la página manualmente.
+  useEffect(() => {
+    if (loaded || imgFailed || !src) return;
+    const t = setTimeout(() => setImgFailed(true), 8000);
+    return () => clearTimeout(t);
+  }, [src, loaded, imgFailed]);
+
+  function handleImageError() {
+    setImgFailed(true);
+  }
 
   // Sincronización post-render: si el navegador tenía la imagen en cache
   // (recarga típica en móvil), `img.complete` ya es true y onLoad NUNCA se
@@ -159,32 +179,37 @@ export default function CarImage({
             desktop, igual que antes de que reorganizáramos esto.
       */}
       <picture>
-        {isApiProxy && (
+        {isApiProxy && !imgFailed && (
           <source
             type="image/avif"
-            srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
+            srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w`}
             sizes="(max-width: 480px) 200vw, 1280px"
           />
         )}
-        {isApiProxy && (
+        {isApiProxy && !imgFailed && (
           <source
             type="image/webp"
-            srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
+            srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w`}
             sizes="(max-width: 480px) 200vw, 1280px"
           />
         )}
         <img
+          // key cambia al activar fallback para forzar remount del <img> y
+          // que el navegador haga una request limpia (sin reaprovechar el
+          // estado fallido del intento anterior).
+          key={imgFailed ? "fallback" : "primary"}
           ref={imgRef}
           src={isApiProxy ? `${src}&f=jpeg&w=1280` : src}
           srcSet={
-            isApiProxy
-              ? `${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w, ${src}&f=jpeg&w=1920 1920w`
+            isApiProxy && !imgFailed
+              ? `${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w`
               : undefined
           }
-          sizes={isApiProxy ? "(max-width: 480px) 200vw, 1280px" : undefined}
+          sizes={isApiProxy && !imgFailed ? "(max-width: 480px) 200vw, 1280px" : undefined}
           alt="Coche del día"
           draggable={false}
           onLoad={handleImageLoad}
+          onError={handleImageError}
           className={`absolute inset-0 h-full w-full object-cover ${isWinReveal && loaded ? "animate-reveal-win" : ""}`}
           style={{
             opacity: loaded ? 1 : 0,

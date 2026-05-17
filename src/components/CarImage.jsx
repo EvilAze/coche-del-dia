@@ -30,13 +30,8 @@ export default function CarImage({
   // para siempre. El useEffect de abajo lo sincroniza manualmente.
   const imgRef = useRef(null);
 
-  // Capturamos el zoom previo DURANTE el render para que la primera vez
-  // que cambia el status a "won" la keyframe revealWin parta del zoom
-  // real anterior, no del actual (que ya es 1.0).
-  const prevZoomRef = useRef(zoom);
-  const prevZoom = prevZoomRef.current;
-
-  // Si cambia la foto (nuevo coche), volvemos a mostrar el skeleton.
+  // Si cambia la foto (nuevo coche o nuevo nivel de zoom server-side),
+  // volvemos a mostrar el skeleton mientras carga la nueva imagen.
   useEffect(() => {
     setLoaded(false);
   }, [src]);
@@ -57,19 +52,23 @@ export default function CarImage({
     }
   });
 
-  // Flash de "pista desbloqueada" sólo durante la partida.
+  // Flash dorado de "pista desbloqueada" sólo durante la partida. Antes se
+  // disparaba al cambiar el `zoom` CSS (cada intento subía/bajaba el scale).
+  // Ahora el zoom CSS ya no existe (el crop lo hace el servidor) pero el
+  // efecto sigue teniendo sentido: lo disparamos al cambiar `hintIndex`,
+  // que sube de 0..4 con cada intento.
+  const prevHintRef = useRef(hintIndex);
   useEffect(() => {
-    if (loaded && prevZoomRef.current !== zoom && status === "playing") {
+    if (loaded && prevHintRef.current !== hintIndex && status === "playing") {
       setFlashKey((k) => k + 1);
     }
-    prevZoomRef.current = zoom;
-  }, [zoom, status, loaded]);
+    prevHintRef.current = hintIndex;
+  }, [hintIndex, status, loaded]);
 
   const isWinReveal = status === "won";
   // Estado "revelado": el juego ha terminado, por victoria o derrota.
   // El contenedor abandona el cuadrado 1:1 y vuelve a su aspecto natural.
   const isRevealed = status === "won" || status === "lost";
-  const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
   const showLabel = status === "playing" && hintIndex != null && totalHints;
 
   function handleImageLoad(e) {
@@ -135,64 +134,45 @@ export default function CarImage({
 
       {/*
         <picture> con AVIF / WebP / JPEG (fallback):
-          - El navegador elige el primer <source> que entiende. Safari < 16
-            y Firefox < 93 caen automáticamente al <img> JPEG.
-          - `srcSet` ofrece 3 tamaños (320 / 640 / 1280). Con `sizes` el
-            navegador calcula qué archivo bajar según viewport + DPR.
-          - sizes="(max-width:480px) 100vw, 480px": en móvil el contenedor
-            ocupa todo el ancho disponible; en pantallas grandes el max-w-md
-            del padre lo capea a ~448 px → 480px cubre con margen.
-          - El <img> mantiene TODA la lógica visual: animación de zoom,
-            keyframe revealWin, filter:blur del estado "perdido anónimo",
-            onLoad handler. <picture> solo decide qué bytes carga.
-      */}
-      {/*
-        Sobre `sizes` y los srcSet:
-          - El contenedor en "playing" mide ~288 px (max-w-[18rem]) en móvil
-            y ~448 px (max-w-md del padre) en pantallas grandes.
-          - PERO el juego aplica transform:scale(3.5x → 1.8x) sobre la foto,
-            así que el "slot efectivo" es mucho mayor que el CSS literal.
-            Le mentimos al browser sobre el tamaño del slot para forzarlo a
-            descargar una imagen suficientemente grande para aguantar el zoom.
-          - "200vw" en móvil = pide una imagen del doble del viewport → con
-            DPR 2 termina pidiendo 1280w o 1920w, que aguantan el zoom inicial
-            sin pixelar.
-          - En desktop el slot está capeado al max-w-md (~448 px); usamos
-            1280px como hint, que en DPR 2 lleva al navegador a pedir 1920w
-            si está disponible, o 1280w en otro caso. Aceptable.
-        Sobre el orden AVIF → WebP → JPEG:
-          - El navegador toma el primer <source> que entiende. Safari 16+,
+          - El navegador elige el primer <source> que entiende. Safari 16+,
             Chrome y Firefox 93+ → AVIF. Safari 14-15 → WebP. Resto → JPEG.
+          - El servidor recorta la imagen al área del intento actual (?z=N),
+            así que NO necesitamos `transform: scale()` CSS en el cliente.
+            El contenedor es 1:1 durante playing y la imagen ya viene
+            cuadrada → object-cover entra exacto sin recortar.
+          - sizes: como ya no hay scale CSS amplificando, el slot efectivo
+            es el container CSS real (≤ 480 px). En móvil DPR 2 con viewport
+            360 px, eso resuelve a ~720 px target → se elige 1280w del
+            srcset. Suficiente para que la imagen se vea nítida en retina.
       */}
       <picture>
         <source
           type="image/avif"
           srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
-          sizes="(max-width: 480px) 200vw, 1280px"
+          sizes="(max-width: 480px) 100vw, 480px"
         />
         <source
           type="image/webp"
           srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
-          sizes="(max-width: 480px) 200vw, 1280px"
+          sizes="(max-width: 480px) 100vw, 480px"
         />
         {/*
           <img> interior:
-            - Mantiene TODA la lógica visual previa: animación de zoom,
-              keyframe revealWin, filter:blur del estado "perdido anónimo",
-              onLoad handler que dispara setLoaded(true).
             - opacity en lugar de display: garantiza que el navegador
-              empiece a descargar la imagen al montar el componente (con
-              display:none algunos navegadores difieren la descarga). El
+              empiece a descargar la imagen al montar el componente. El
               LQIP de fondo cubre el rectángulo vacío mientras carga, y al
               completar la descarga el <img> aparece con fade suave (250 ms).
             - ref={imgRef}: necesario para el useEffect que sincroniza el
               estado `loaded` cuando la imagen viene de cache (ver arriba).
+            - animate-reveal-win: keyframe que hace un pequeño "pop" al
+              ganar (definida en tailwind.config.js). NO depende ya de
+              --zoom-from porque ya no hay zoom CSS previo del que partir.
         */}
         <img
           ref={imgRef}
           src={`${src}&f=jpeg&w=1280`}
           srcSet={`${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w, ${src}&f=jpeg&w=1920 1920w`}
-          sizes="(max-width: 480px) 200vw, 1280px"
+          sizes="(max-width: 480px) 100vw, 480px"
           alt="Coche del día"
           draggable={false}
           onLoad={handleImageLoad}
@@ -200,15 +180,8 @@ export default function CarImage({
           style={{
             opacity: loaded ? 1 : 0,
             transformOrigin: "center center",
-            // En win: deja que la keyframe revealWin pilote el transform.
-            // En el resto: transition suave para los cambios de zoom +
-            // fade-in al cargar.
-            transform: isWinReveal ? undefined : `scale(${zoom})`,
-            transition: isWinReveal
-              ? "opacity 0.25s ease-out"
-              : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out",
+            transition: "opacity 0.25s ease-out",
             filter: blurred ? "blur(18px) saturate(0.85)" : undefined,
-            "--zoom-from": zoomFrom,
           }}
         />
       </picture>

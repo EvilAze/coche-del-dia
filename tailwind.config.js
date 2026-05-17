@@ -49,10 +49,15 @@ module.exports = {
           "25%":  { opacity: 1 },
           "100%": { opacity: 0 },
         },
+        // Antes la "revelación" partía de un scale 2.4-3.5 (porque la
+        // imagen estaba zoomeada con CSS) y volvía a 1. Ahora el zoom CSS
+        // ya no existe — la imagen revealed es directamente full. Un pop
+        // sutil con overshoot da el "moment de aplauso" sin estar fuera
+        // de escala. Duración la lleva la prop animation en config.
         revealWin: {
-          "0%":   { transform: "scale(var(--zoom-from, 2.4))" },
-          "65%":  { transform: "scale(1.06)" },
-          "100%": { transform: "scale(1)" },
+          "0%":   { transform: "scale(0.94)", opacity: 0 },
+          "60%":  { transform: "scale(1.04)", opacity: 1 },
+          "100%": { transform: "scale(1)",    opacity: 1 },
         },
         toastIn: {
           from: { opacity: 0, transform: "translateY(20px) scale(0.95)" },

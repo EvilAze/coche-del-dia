@@ -14,6 +14,7 @@ export default function CarImage({
   status,
   blurred = false,
   overlay = null,
+  showHintLabel = true,
 }) {
   const [loaded, setLoaded] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
@@ -77,7 +78,7 @@ export default function CarImage({
   // zoom CSS activo (p.ej. 1.667 si ganó en el 2º intento). Sin esto, la
   // animación arrancaría desde scale=1 y el "pop" no tendría amplitud.
   const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
-  const showLabel = status === "playing" && hintIndex != null && totalHints;
+  const showLabel = showHintLabel && status === "playing" && hintIndex != null && totalHints;
 
   function handleImageLoad(e) {
     const img = e.currentTarget;

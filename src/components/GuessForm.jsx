@@ -128,6 +128,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
   }
 
   const formDisabled = isSubmitting || !catalog;
+  const fieldsEmpty = !marca || !modelo || !anio;
+  const buttonDisabled = formDisabled || fieldsEmpty;
 
   return (
     <form onSubmit={handleSubmit} className="w-full min-w-0">
@@ -185,7 +187,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
             value={anio}
             onChange={(e) => setAnio(e.target.value)}
             disabled={formDisabled}
-            placeholder=""
+            placeholder="ej. 2019"
             min={MIN_YEAR}
             max={CURRENT_YEAR}
             className="
@@ -199,21 +201,26 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
             "
             style={{ colorScheme: "dark" }}
           />
+          <span className="mt-0.5 block px-1 text-[9px] leading-tight text-muted/55">
+            ±2 años aceptados
+          </span>
         </label>
       </div>
 
       <button
         type="submit"
-        disabled={formDisabled}
+        disabled={buttonDisabled}
         aria-busy={isSubmitting}
         aria-live="polite"
         className={`
           mt-3 h-12 w-full rounded-lg bg-accent
           font-display text-lg tracking-widest text-bg-primary
-          transition-all duration-150 active:scale-[0.98]
+          transition-all duration-150
           ${isSubmitting
             ? "cursor-wait opacity-80"
-            : "hover:bg-accent-dark"}
+            : buttonDisabled
+            ? "cursor-not-allowed opacity-30"
+            : "hover:bg-accent-dark active:scale-[0.98]"}
         `}
       >
         {isSubmitting ? (

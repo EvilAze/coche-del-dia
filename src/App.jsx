@@ -5,8 +5,6 @@ import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
 import CarImage from "./components/CarImage";
-import AttemptDots from "./components/AttemptDots";
-import HintLegend from "./components/HintLegend";
 import GuessRow from "./components/GuessRow";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
@@ -285,8 +283,9 @@ export default function App() {
           </div>
 
           <div className="shrink-0 text-right">
-            <div className="font-display text-2xl leading-none text-accent">
-              {maxAttempts - attempts}
+            <div className="font-display leading-none text-accent">
+              <span className="text-2xl tabular-nums">{maxAttempts - attempts}</span>
+              <span className="text-base text-muted">/{maxAttempts}</span>
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted">
               intentos
@@ -302,6 +301,7 @@ export default function App() {
             hintIndex={hintIndex}
             totalHints={totalHints}
             status={status}
+            showHintLabel={false}
             blurred={status === "lost" && !user}
             overlay={
               status === "lost" && !user ? (
@@ -310,9 +310,38 @@ export default function App() {
             }
           />
 
-          <AttemptDots attempts={attempts} max={maxAttempts} won={status === "won"} />
-
-          <HintLegend />
+          {status === "playing" && hintIndex != null && (
+            <div className="my-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-1">
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-widest text-muted">
+                Pista{" "}
+                <span className="tabular-nums text-accent">{hintIndex + 1}</span>
+                <span className="text-muted/70"> / {totalHints}</span>
+              </span>
+              {guesses.length > 0 && (
+                <>
+                  <span className="select-none text-muted/30" aria-hidden="true">|</span>
+                  {[
+                    { symbol: "✓", label: "Correcto", color: "text-green-400", bg: "bg-[#1a2f1a] border-[#2d5a2d]" },
+                    { symbol: "🌍", label: "País", color: "text-sky-300", bg: "bg-[#142532] border-[#2f6f95]" },
+                    { symbol: "✕", label: "Incorrecto", color: "text-red-400", bg: "bg-[#2a1a1a] border-[#5a2d2d]" },
+                  ].map((item) => (
+                    <span
+                      key={item.label}
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap text-[10px] uppercase tracking-wider text-muted"
+                    >
+                      <span
+                        className={`inline-flex h-5 w-5 items-center justify-center rounded border text-[11px] leading-none ${item.bg} ${item.color}`}
+                        aria-hidden="true"
+                      >
+                        {item.symbol}
+                      </span>
+                      {item.label}
+                    </span>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
 
           {guesses.length > 0 && (
             <div className="mb-4 mt-3 flex w-full min-w-0 flex-col gap-2">

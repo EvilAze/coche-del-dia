@@ -30,7 +30,15 @@ import sharp from "sharp";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
-const ALLOWED_WIDTHS = new Set([320, 640, 1280]);
+//
+// Por qué los widths empiezan en 640 y no en 320: el juego aplica un
+// transform:scale(3.5x → 1.8x) sobre la imagen durante la fase "playing".
+// Eso significa que el "slot efectivo" en pantalla es 2-3.5× el contenedor.
+// Servir 320w para un slot CSS de 320 daba ~91 px de archivo fuente tras
+// el zoom 3.5x → upscale ~8x → pixelado evidente. 640 es el suelo decente
+// (después del zoom: ~180 px fuente, upscale ~4x, aún algo blando), y 1920
+// el techo para móviles de alta densidad con DPR 3 y zoom máximo.
+const ALLOWED_WIDTHS = new Set([640, 1280, 1920]);
 const FORMAT_MIME = {
   avif: "image/avif",
   webp: "image/webp",

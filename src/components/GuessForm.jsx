@@ -136,7 +136,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
       <div
         className={`
           flex w-full min-w-0 flex-col gap-y-3
-          md:flex-row md:items-end md:gap-x-2
+          md:flex-row md:items-start md:gap-x-2
           ${shake ? "animate-shake" : ""}
         `}
       >

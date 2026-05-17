@@ -30,19 +30,41 @@ import sharp from "sharp";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
-//
-// Por qué los widths empiezan en 640 y no en 320: el juego aplica un
-// transform:scale(3.5x → 1.8x) sobre la imagen durante la fase "playing".
-// Eso significa que el "slot efectivo" en pantalla es 2-3.5× el contenedor.
-// Servir 320w para un slot CSS de 320 daba ~91 px de archivo fuente tras
-// el zoom 3.5x → upscale ~8x → pixelado evidente. 640 es el suelo decente
-// (después del zoom: ~180 px fuente, upscale ~4x, aún algo blando), y 1920
-// el techo para móviles de alta densidad con DPR 3 y zoom máximo.
 const ALLOWED_WIDTHS = new Set([640, 1280, 1920]);
 const FORMAT_MIME = {
   avif: "image/avif",
   webp: "image/webp",
   jpeg: "image/jpeg",
+};
+
+// Zoom levels y mapeo a porcentaje del crop centrado.
+//
+// El motor del juego trabajaba antes así: una imagen FULL del coche bajaba
+// al navegador y el cliente aplicaba `transform: scale(3.5x → 1.8x)` CSS
+// para "tapar" lo que el jugador todavía no se había ganado ver. Eso es
+// puramente visual: el atacante con DevTools podía abrir Network → Preview
+// y ver la imagen entera en dos clicks.
+//
+// Ahora el servidor RECORTA la imagen al área que el jugador legítimo
+// estaría viendo en ese intento, antes de devolverla. La imagen completa
+// nunca sale del servidor mientras el juego está activo.
+//
+// Los porcentajes son `1 / ZOOM_LEVEL`, exactamente:
+//   z=1 (intento 1, zoom 3.5x) → 28.6% del lado menor centrado.
+//   z=2 (intento 2, zoom 3.0x) → 33.3%.
+//   z=3 (intento 3, zoom 2.7x) → 37.0%.
+//   z=4 (intento 4, zoom 2.4x) → 41.7%.
+//   z=5 (intento 5, zoom 1.8x) → 55.6%.
+// Si no se pasa `z` o el valor está fuera del set, NO se aplica crop:
+// devolvemos la imagen completa. El cliente solo debería pedir sin `z`
+// cuando el juego ha terminado (status=won|lost) y queremos revelar.
+const ALLOWED_Z = new Set([1, 2, 3, 4, 5]);
+const Z_TO_CROP_PCT = {
+  1: 0.286,
+  2: 0.333,
+  3: 0.370,
+  4: 0.417,
+  5: 0.556,
 };
 
 const SUPABASE_URL =
@@ -107,6 +129,10 @@ export default async function handler(req, res) {
   const fRaw = String(req.query?.f || "").toLowerCase();
   const wantedFormat = fRaw in FORMAT_MIME ? fRaw : null;
 
+  const zRaw = Number(req.query?.z);
+  const wantedZ =
+    Number.isFinite(zRaw) && ALLOWED_Z.has(zRaw) ? zRaw : null;
+
   // 4) Fetch server-side de los bytes. Si el CDN falla, propagamos el status
   //    para que el cliente sepa que no es un error de nuestra app.
   let upstream;
@@ -132,9 +158,33 @@ export default async function handler(req, res) {
   let outBuffer = originalBuffer;
   let outContentType = originalContentType;
 
-  if (wantedWidth !== null || wantedFormat !== null) {
+  if (wantedWidth !== null || wantedFormat !== null || wantedZ !== null) {
     try {
       let pipeline = sharp(originalBuffer).rotate(); // rotate() respeta EXIF
+
+      if (wantedZ !== null) {
+        // Crop centrado al área correspondiente al zoom-level del intento.
+        // Importante: sharp.metadata() devuelve las dimensiones FÍSICAS del
+        // fichero, antes de aplicar EXIF orientation. Pero el pipeline ya
+        // hizo .rotate() arriba, así que la imagen efectiva puede estar
+        // girada 90/270 respecto a lo que dice meta.width/meta.height.
+        // Si orientation ≥ 5, las dimensiones reales están intercambiadas.
+        const meta = await sharp(originalBuffer).metadata();
+        if (meta?.width && meta?.height) {
+          const rotated90 = meta.orientation && meta.orientation >= 5;
+          const W = rotated90 ? meta.height : meta.width;
+          const H = rotated90 ? meta.width : meta.height;
+          // Cuadrado centrado, lado = min(W,H) × cropPct. Cuadrado porque
+          // el container del juego es 1:1; así el resultado entra exacto
+          // sin que el cliente tenga que recortar nada con object-cover.
+          const minDim = Math.min(W, H);
+          const size = Math.max(1, Math.round(minDim * Z_TO_CROP_PCT[wantedZ]));
+          const left = Math.max(0, Math.round((W - size) / 2));
+          const top = Math.max(0, Math.round((H - size) / 2));
+          pipeline = pipeline.extract({ left, top, width: size, height: size });
+        }
+      }
+
       if (wantedWidth !== null) {
         pipeline = pipeline.resize(wantedWidth, null, {
           fit: "inside",

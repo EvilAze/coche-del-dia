@@ -146,9 +146,26 @@ export function useGame() {
 
   const attempts = guesses.length;
   const zoomIndex = Math.min(attempts, ZOOM_LEVELS.length - 1);
-  const zoom = status === "playing" ? ZOOM_LEVELS[zoomIndex] : 1.0;
+  // Antes el zoom era un scale CSS aplicado en el cliente sobre la imagen
+  // completa. Ahora el servidor recorta la imagen al área correspondiente
+  // al intento (`?z=N`), así que el scale CSS ya no hace falta y, de hecho,
+  // sería contraproducente (daría doble-zoom sobre la imagen ya recortada).
+  // Mantenemos la prop `zoom` en el retorno por compatibilidad con CarImage,
+  // pero su valor efectivo durante el juego es 1.0.
+  const zoom = 1.0;
   const hintIndex = status === "playing" ? zoomIndex : null;
   const totalHints = ZOOM_LEVELS.length;
+
+  // Construimos la URL de la imagen del coche del día añadiendo el zoom
+  // level si el juego está en marcha. Cuando termina (won/lost), no pasamos
+  // `z` y el servidor sirve la imagen completa.
+  // El crop server-side hace que un atacante con DevTools NO pueda ver más
+  // del coche que el jugador legítimo de ese intento — la imagen entera
+  // sólo sale del servidor cuando el juego ha terminado.
+  const dailyImgSrc =
+    car?.img && status === "playing"
+      ? `${car.img}&z=${zoomIndex + 1}`
+      : car?.img || null;
 
   async function submitGuess({ guessCarId, anio }) {
     if (status !== "playing" || isSubmitting) return;
@@ -307,7 +324,10 @@ export function useGame() {
   }
 
   return {
-    car,
+    // Sobreescribimos `img` con dailyImgSrc para que el consumidor reciba
+    // ya la URL apropiada según el estado del juego (con `&z=N` si está
+    // jugando, sin z si ha terminado y queremos servir la imagen completa).
+    car: car ? { ...car, img: dailyImgSrc } : car,
     isLoading,
     isSubmitting,
     guesses,

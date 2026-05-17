@@ -7,7 +7,8 @@
       "Bash(node --check api/validate-guess.js)",
       "Bash(node --check api/repesca/validate.js)",
       "Bash(node --check api/admin/add-car.js)",
-      "Bash(node -e \"require\\('@babel/parser'\\).parse\\(require\\('fs'\\).readFileSync\\('src/components/Garage.jsx','utf8'\\),{sourceType:'module',plugins:['jsx']}\\); console.log\\('OK'\\)\")"
+      "Bash(node -e \"require\\('@babel/parser'\\).parse\\(require\\('fs'\\).readFileSync\\('src/components/Garage.jsx','utf8'\\),{sourceType:'module',plugins:['jsx']}\\); console.log\\('OK'\\)\")",
+      "Bash(xargs wc -l)"
     ]
   }
 }

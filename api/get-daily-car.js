@@ -12,6 +12,7 @@
 // que el frontend no tenga que conocer el car_id para hacer esa consulta.
 
 import { createClient } from "@supabase/supabase-js";
+import crypto from "node:crypto";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
@@ -73,12 +74,41 @@ export default async function handler(req, res) {
   const accessToken = extractAccessToken(req);
   const { client: authClient, user } = await authClientAndUser(accessToken);
 
+  // Cache-buster derivado de image_url. Cuando el admin reemplaza la foto
+  // desde /admin/edit-car, el nuevo path lleva Date.now() en el nombre, así
+  // que image_url cambia y el hash cambia → el navegador y el CDN reciben
+  // un URL distinto y refrescan al instante, sin esperar al s-maxage de 24h
+  // del endpoint /api/daily-image.
+  // Si admin solo edita texto (marca/modelo/año/país/descripción), image_url
+  // no se toca, el hash es estable y el CDN mantiene el hit caliente para
+  // todos los visitantes.
+  // El hash NO filtra el coche: image_url no es público (list-cars lo omite)
+  // y un sha1 truncado no permite reverse-engineering.
+  // Aprovechamos para leer también blur_data — el LQIP que el cliente pinta
+  // como fondo del skeleton mientras descarga la foto real. La data URI pesa
+  // ~0.5-1 KB, despreciable comparado con el coste de pintar gris vacío.
+  // image_url NO se devuelve al cliente; solo sirve para computar el hash.
+  const { data: imgRow, error: imgRowErr } = await supabaseAdmin
+    .from("cars")
+    .select("image_url, blur_data")
+    .eq("id", todayCarId)
+    .maybeSingle();
+  if (imgRowErr) {
+    // Si esto falla por algún motivo, seguimos sin versión (cache "vieja"
+    // hasta el TTL natural). Es estrictamente mejor que romper la home.
+    console.error("[get-daily-car] read image_url for version:", imgRowErr);
+  }
+  const imgVersion = imgRow?.image_url
+    ? crypto.createHash("sha1").update(imgRow.image_url).digest("hex").slice(0, 8)
+    : "0";
+  const dailyImgUrl = `/api/daily-image?d=${today}&v=${imgVersion}`;
+  const blurData = imgRow?.blur_data || null;
+
   // Estado base que vale para anónimos.
-  // Cache-buster para que el navegador no reutilice la imagen entre días si
-  // el CDN intermedio se confunde.
   const base = {
     date: today,
-    img: `/api/daily-image?d=${today}`,
+    img: dailyImgUrl,
+    blurData,
     guesses: [],
     status: "playing",
     reveal: null,
@@ -137,7 +167,8 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   return res.status(200).json({
     date: today,
-    img: `/api/daily-image?d=${today}`,
+    img: dailyImgUrl,
+    blurData,
     guesses,
     status,
     reveal,

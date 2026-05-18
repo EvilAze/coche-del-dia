@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
-import { useT, getCarDescription } from "../i18n";
+import { useT, getCarDescription, getLocalizedCountry } from "../i18n";
 import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
@@ -352,13 +352,13 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   let onBack = null;
   if (view === "brands") {
     headerLabel = t("garage.headerLabelCountry");
-    headerTitle = currentCountry.pais;
+    headerTitle = getLocalizedCountry(currentCountry.pais);
     backLabel = t("garage.backCountries");
     onBack = () => setSelectedCountry(null);
   } else if (view === "cars") {
     headerLabel = t("garage.headerLabelBrand");
     headerTitle = currentBrand.marca;
-    backLabel = currentCountry.pais;
+    backLabel = getLocalizedCountry(currentCountry.pais);
     onBack = () => setSelectedBrand(null);
   }
 
@@ -634,7 +634,7 @@ function CountryCard({ country, onClick }) {
           className="font-display text-lg font-bold uppercase tracking-wider text-white sm:text-xl"
           style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
         >
-          {country.pais}
+          {getLocalizedCountry(country.pais)}
         </p>
         <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
           {country.unlocked} / {country.total}
@@ -678,7 +678,7 @@ function BrandsMenu({
             className="font-display text-3xl font-bold uppercase tracking-widest text-white"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
           >
-            {country.pais}
+            {getLocalizedCountry(country.pais)}
           </p>
           <p className="mt-2 text-xs font-medium tabular-nums text-gray-300">
             {t("garage.countryCount", { unlocked: country.unlocked, total: country.total })}

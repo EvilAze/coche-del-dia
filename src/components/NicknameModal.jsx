@@ -56,6 +56,10 @@ export default function NicknameModal({ open, onSaved }) {
           Este será tu nombre en el ranking arcade. No usaremos tu nombre ni tu foto de Google.
         </p>
 
+        <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2 text-xs leading-relaxed text-amber-200/90">
+          Elige con cuidado: <strong className="font-semibold">tu nick será permanente</strong> y no podrás cambiarlo después.
+        </p>
+
         <input
           autoFocus
           value={displayName}

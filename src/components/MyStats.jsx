@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMyStats, saveDisplayName } from "../hooks/useStats";
+import { getMyStats } from "../hooks/useStats";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
@@ -16,10 +16,10 @@ function StatCard({ label, value }) {
   );
 }
 
-function EditIcon() {
+function LockIcon() {
   return (
     <svg
-      className="h-4 w-4"
+      className="h-3.5 w-3.5"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -28,8 +28,8 @@ function EditIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   );
 }
@@ -43,11 +43,6 @@ export default function MyStats({ open, onClose, onSignedOut }) {
     error: "",
   });
 
-  const [editingName, setEditingName] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const [savingName, setSavingName] = useState(false);
-  const [nameError, setNameError] = useState("");
-
   useEffect(() => {
     if (!open) return;
 
@@ -58,14 +53,10 @@ export default function MyStats({ open, onClose, onSignedOut }) {
       stats: null,
       error: "",
     });
-    setEditingName(false);
-    setDraftName("");
-    setNameError("");
 
     getMyStats()
       .then(({ user, profile, stats }) => {
         setState({ loading: false, user, profile, stats, error: "" });
-        setDraftName(profile?.display_name || "");
       })
       .catch(() =>
         setState({
@@ -77,45 +68,6 @@ export default function MyStats({ open, onClose, onSignedOut }) {
         })
       );
   }, [open]);
-
-  async function handleSaveName() {
-    const cleanName = draftName.trim();
-
-    setNameError("");
-
-    if (!cleanName) {
-      setNameError("El nickname no puede estar vacío.");
-      return;
-    }
-
-    if (!/^[A-Za-z0-9]{1,12}$/.test(cleanName)) {
-      setNameError("Usa solo letras y números, máximo 12 caracteres.");
-      return;
-    }
-
-    setSavingName(true);
-
-    try {
-      const nextProfile = await saveDisplayName(cleanName);
-
-      setState((current) => ({
-        ...current,
-        profile: nextProfile,
-        error: "",
-      }));
-
-      setEditingName(false);
-      setDraftName(nextProfile.display_name || "");
-    } catch (error) {
-      setNameError(
-        error.code === "DUPLICATE_DISPLAY_NAME"
-          ? "Este nombre ya está en uso. Elige otro."
-          : error.message || "No se pudo guardar el nickname."
-      );
-    } finally {
-      setSavingName(false);
-    }
-  }
 
   async function handleSignOut() {
     const { error } = await supabase.auth.signOut();
@@ -163,78 +115,24 @@ export default function MyStats({ open, onClose, onSignedOut }) {
         ) : (
           <>
             <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  {editingName ? (
-                    <div className="flex gap-2">
-                      <input
-                        value={draftName}
-                        maxLength={12}
-                        onChange={(e) => {
-                          setDraftName(e.target.value.replace(/[^A-Za-z0-9]/g, ""));
-                          setNameError("");
-                        }}
-                        className="
-                          h-10 min-w-0 flex-1 rounded-lg border border-white/10
-                          bg-black/30 px-3 text-sm font-semibold text-white
-                          outline-none focus:border-accent
-                        "
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSaveName}
-                        disabled={savingName}
-                        className="
-                          h-10 rounded-lg border border-green-400/40 px-3
-                          text-sm font-semibold text-green-300 transition
-                          hover:bg-green-400/10 disabled:opacity-50
-                        "
-                      >
-                        ✓
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex min-w-0 items-center gap-2">
-                      <p className="truncate text-2xl font-bold text-white">
-                        {nickname}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDraftName(state.profile?.display_name || "");
-                          setEditingName(true);
-                          setState((current) => ({ ...current, error: "" }));
-                          setNameError("");
-                        }}
-                        className="shrink-0 text-muted transition hover:text-accent"
-                        aria-label="Editar nickname"
-                      >
-                        <EditIcon />
-                      </button>
-                    </div>
-                  )}
-
-                  <p className="mt-1 truncate text-sm text-gray-400">{email}</p>
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-2xl font-bold text-white">
+                    {nickname}
+                  </p>
+                  <span
+                    className="shrink-0 text-muted/60"
+                    title="Tu nick es permanente"
+                    aria-label="Nick permanente"
+                  >
+                    <LockIcon />
+                  </span>
                 </div>
+                <p className="mt-1 truncate text-sm text-gray-400">{email}</p>
               </div>
 
               {state.error && (
                 <p className="mt-3 text-sm text-red-400">{state.error}</p>
-              )}
-
-              {editingName && (
-                <div>
-                  <p className="mt-2 text-[10px] uppercase tracking-widest text-muted">
-                    Letras y números, máximo 12
-                  </p>
-
-                  {nameError && (
-                    <p className="mt-2 text-left text-xs text-red-400">
-                      {nameError}
-                    </p>
-                  )}
-                </div>
               )}
             </div>
 

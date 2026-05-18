@@ -71,13 +71,22 @@ export async function saveDisplayName(displayName) {
     throw new Error("Usa solo letras y números, máximo 12 caracteres.");
   }
 
+  // El nick es permanente: si ya existe una fila con display_name, rechazamos
+  // el cambio. Defensa en la app; el blindaje real debería estar en una RLS
+  // policy o trigger en Supabase (UPDATE de display_name solo si era NULL).
+  const existing = await getMyProfile(user.id);
+  if (existing?.display_name) {
+    const lockedError = new Error("Tu nick ya está fijado y no se puede cambiar.");
+    lockedError.code = "DISPLAY_NAME_LOCKED";
+    throw lockedError;
+  }
+
   const { data, error } = await supabase
     .from("profiles")
     .upsert(
       {
         id: user.id,
         display_name: clean,
-        username: clean,
       },
       { onConflict: "id" }
     )

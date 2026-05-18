@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useFreshCatalog } from "../data/catalog";
+import DescriptionEnField from "./DescriptionEnField";
 
 const STORAGE_BUCKET = "cars_images";
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
@@ -41,6 +42,7 @@ const initialForm = {
   anio: "",
   pais: "",
   description: "",
+  description_en: "",
   // Imagen: img (URL actual cargada del servidor) y file (nueva selección).
   img: "",
   file: null,
@@ -148,6 +150,7 @@ export default function EditCar() {
           anio: data.anio != null ? String(data.anio) : "",
           pais: data.pais || "",
           description: data.description || "",
+          description_en: data.description_en || "",
           img: data.img || "",
           file: null,
         };
@@ -193,6 +196,7 @@ export default function EditCar() {
       form.anio !== originalForm.anio ||
       form.pais !== originalForm.pais ||
       form.description !== originalForm.description ||
+      form.description_en !== originalForm.description_en ||
       form.file != null
     );
   }, [form, originalForm, selectedId]);
@@ -205,6 +209,7 @@ export default function EditCar() {
     const modelo = form.modelo.trim();
     const pais = form.pais.trim();
     const description = form.description.trim();
+    const descriptionEn = form.description_en.trim();
     const anioNum = Number(form.anio);
     const file = form.file;
 
@@ -263,6 +268,9 @@ export default function EditCar() {
       if (form.anio !== originalForm.anio) patch.anio = anioNum;
       if (pais !== originalForm.pais) patch.pais = pais;
       if (description !== originalForm.description) patch.description = description;
+      if (descriptionEn !== originalForm.description_en) {
+        patch.description_en = descriptionEn;
+      }
       if (newImageUrl) patch.image_url = newImageUrl;
 
       const res = await fetch("/api/admin/update-car", {
@@ -296,6 +304,7 @@ export default function EditCar() {
         anio: updated.anio != null ? String(updated.anio) : "",
         pais: updated.pais || "",
         description: updated.description || "",
+        description_en: updated.description_en || "",
         img: updated.img || "",
         file: null,
       };
@@ -506,7 +515,7 @@ export default function EditCar() {
               <Field
                 label={
                   <>
-                    Descripción
+                    Descripción (ES)
                     <span className="ml-2 normal-case tracking-normal text-muted">
                       · {form.description.length} / 600
                     </span>
@@ -521,6 +530,25 @@ export default function EditCar() {
                   rows={4}
                   disabled={isSubmitting}
                   className={`${inputClass} h-auto resize-y py-3 leading-relaxed`}
+                />
+              </Field>
+
+              <Field
+                label={
+                  <>
+                    Description (EN)
+                    <span className="ml-2 normal-case tracking-normal text-muted">
+                      · auto-traducible
+                    </span>
+                  </>
+                }
+              >
+                <DescriptionEnField
+                  valueEs={form.description}
+                  valueEn={form.description_en}
+                  onChange={(v) => updateField("description_en", v)}
+                  disabled={isSubmitting}
+                  inputClass={inputClass}
                 />
               </Field>
 

@@ -95,6 +95,10 @@ export default async function handler(req, res) {
     const pais = typeof body.pais === "string" ? body.pais.trim() : "";
     const description =
       typeof body.description === "string" ? body.description.trim() : "";
+    // description_en es opcional: si el admin no lo aporta o viene vacío,
+    // guardamos NULL y el frontend hará fallback al español.
+    const descriptionEn =
+      typeof body.description_en === "string" ? body.description_en.trim() : "";
     const imageUrl =
       typeof body.image_url === "string" ? body.image_url.trim() : "";
 
@@ -118,6 +122,11 @@ export default async function handler(req, res) {
         error: `Descripción supera ${MAX_DESCRIPTION_LEN} caracteres`,
       });
     }
+    if (descriptionEn.length > MAX_DESCRIPTION_LEN) {
+      return res.status(400).json({
+        error: `Descripción EN supera ${MAX_DESCRIPTION_LEN} caracteres`,
+      });
+    }
 
     // 3) LQIP. Generamos el placeholder DURANTE el alta para que el coche
     //    nazca con su blur_data ya listo; así el día que sea coche del día,
@@ -136,10 +145,11 @@ export default async function handler(req, res) {
         year: anioNum,
         pais,
         description: description ? description : null,
+        description_en: descriptionEn ? descriptionEn : null,
         image_url: imageUrl,
         blur_data: blurData,
       })
-      .select("id, make, model, year, pais, description, image_url")
+      .select("id, make, model, year, pais, description, description_en, image_url")
       .maybeSingle();
 
     if (error) {
@@ -159,6 +169,7 @@ export default async function handler(req, res) {
         anio: data.year,
         pais: data.pais,
         description: data.description ?? null,
+        description_en: data.description_en ?? null,
         img: data.image_url,
       },
     });

@@ -17,12 +17,12 @@ import CloseButton from "./components/CloseButton";
 import ModalShell from "./components/ModalShell";
 import { useGame } from "./hooks/useGame";
 import { useEscape } from "./hooks/useEscape";
+import { useT } from "./i18n";
 
 function LockedRevealCard() {
+  const { t } = useT();
   return (
-    <div
-      className="
-        rounded-xl border border-accent/40 bg-bg-primary/85 p-4
+    <div className="rounded-xl border border-accent/40 bg-bg-primary/85 p-4
         text-center shadow-xl shadow-black/50 backdrop-blur-md
         animate-fade-in
       "
@@ -42,13 +42,12 @@ function LockedRevealCard() {
           <path d="M8 11V8a4 4 0 0 1 8 0v3" />
         </svg>
         <span className="font-display text-xs uppercase tracking-[0.18em]">
-          Coche bloqueado
+          {t("app.lockedCar")}
         </span>
       </div>
 
       <p className="mt-2 text-[13px] leading-snug text-white/90">
-        Inicia sesión para descubrir qué coche era,
-        guardar tus estadísticas y entrar al ranking.
+        {t("app.lockedCarDescription")}
       </p>
 
       <button
@@ -66,13 +65,14 @@ function LockedRevealCard() {
           <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
         </svg>
-        Continuar con Google
+        {t("common.continueWithGoogle")}
       </button>
     </div>
   );
 }
 
 export default function App() {
+  const { t, dateLocale } = useT();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [checkingProfile, setCheckingProfile] = useState(true);
@@ -250,7 +250,7 @@ export default function App() {
     }
   }, [user, score?.persisted, score?.currentStreak]);
 
-  const today = new Date().toLocaleDateString("es-ES", {
+  const today = new Date().toLocaleDateString(dateLocale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -263,7 +263,7 @@ export default function App() {
         <div className="flex flex-col items-center gap-4">
           <span className="animate-bounce text-4xl">🚗</span>
           <p className="animate-pulse text-sm uppercase tracking-widest text-muted">
-            Aparcando coche...
+            {t("app.loadingCar")}
           </p>
         </div>
       </div>
@@ -288,7 +288,7 @@ export default function App() {
         <header className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-b border-border py-4">
           <div className="min-w-0">
             <h1 className="font-display text-[1.8rem] leading-none tracking-[0.12em] text-accent min-[380px]:text-4xl min-[380px]:tracking-widest">
-              Coche del Día
+              {t("app.title")}
             </h1>
             <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted">
               {today}
@@ -301,7 +301,7 @@ export default function App() {
               <span className="text-base text-muted">/{maxAttempts}</span>
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted">
-              intentos
+              {t("app.attempts")}
             </div>
           </div>
         </header>
@@ -326,7 +326,7 @@ export default function App() {
           {status === "playing" && hintIndex != null && (
             <div className="my-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-1">
               <span className="whitespace-nowrap text-[10px] uppercase tracking-widest text-muted">
-                Pista{" "}
+                {t("app.hint")}{" "}
                 <span className="tabular-nums text-accent">{hintIndex + 1}</span>
                 <span className="text-muted/70"> / {totalHints}</span>
               </span>
@@ -334,9 +334,9 @@ export default function App() {
                 <>
                   <span className="select-none text-muted/30" aria-hidden="true">|</span>
                   {[
-                    { symbol: "✓", label: "Correcto", color: "text-green-400", bg: "bg-[#1a2f1a] border-[#2d5a2d]" },
-                    { symbol: "🌍", label: "País", color: "text-sky-300", bg: "bg-[#142532] border-[#2f6f95]" },
-                    { symbol: "✕", label: "Incorrecto", color: "text-red-400", bg: "bg-[#2a1a1a] border-[#5a2d2d]" },
+                    { symbol: "✓", label: t("legend.correct"), color: "text-green-400", bg: "bg-[#1a2f1a] border-[#2d5a2d]" },
+                    { symbol: "🌍", label: t("legend.country"), color: "text-sky-300", bg: "bg-[#142532] border-[#2f6f95]" },
+                    { symbol: "✕", label: t("legend.wrong"), color: "text-red-400", bg: "bg-[#2a1a1a] border-[#5a2d2d]" },
                   ].map((item) => (
                     <span
                       key={item.label}
@@ -396,7 +396,7 @@ export default function App() {
               href="/privacidad"
               className="transition-colors hover:text-accent"
             >
-              Política de Privacidad
+              {t("app.footerPrivacy")}
             </a>
           </nav>
           <p className="text-[9px] tracking-[0.18em] text-muted/70">
@@ -416,10 +416,10 @@ export default function App() {
         </div>
 
         <h2 className="mb-4 font-display text-2xl tracking-widest text-accent">
-          INICIAR SESIÓN
+          {t("app.loginModalTitle")}
         </h2>
         <p className="mb-8 text-sm text-muted">
-          Guarda tus estadísticas en la nube, compite en el ranking global y juega desde cualquier dispositivo.
+          {t("app.loginModalDescription")}
         </p>
 
         <button
@@ -432,7 +432,7 @@ export default function App() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
           </svg>
-          Continuar con Google
+          {t("common.continueWithGoogle")}
         </button>
       </ModalShell>
 

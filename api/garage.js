@@ -95,7 +95,7 @@ export default async function handler(req, res) {
     //    privilegiadas → service_role).
     const { data: cars, error: carsErr } = await supabaseAdmin
       .from("cars")
-      .select("id, make, model, year, pais, description, image_url")
+      .select("id, make, model, year, pais, description, description_en, image_url")
       .order("year", { ascending: true });
     if (carsErr) {
       console.error("[garage] read cars:", carsErr);
@@ -173,6 +173,7 @@ export default async function handler(req, res) {
               modelo: c.model,
               anio: c.year,
               description: c.description ?? null,
+              description_en: c.description_en ?? null,
               // Servimos también las imágenes desbloqueadas a través del
               // proxy: simetría de URLs y oportunidad de rotar el CDN
               // sin tocar el frontend. En modo "clear" el endpoint hace

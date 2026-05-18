@@ -1,4 +1,5 @@
 import { COUNTRY_FLAGS } from "../data/countries";
+import { useT } from "../i18n";
 
 const STATUS_STYLES = {
   correct: {
@@ -24,9 +25,11 @@ const STATUS_STYLES = {
 };
 
 function YearDirection({ direction }) {
+  const { t } = useT();
   if (!direction) return null;
 
   const isUp = direction === "up";
+  const label = isUp ? t("guessRow.yearHigherTitle") : t("guessRow.yearLowerTitle");
 
   return (
     <span
@@ -36,8 +39,8 @@ function YearDirection({ direction }) {
         border-yellow-500/40
         sm:h-7 sm:w-7
       `}
-      title={isUp ? "El año correcto es mayor" : "El año correcto es menor"}
-      aria-label={isUp ? "El año correcto es mayor" : "El año correcto es menor"}
+      title={label}
+      aria-label={label}
     >
       {/* SVG chevron en lugar del unicode ↑/↓ para que se vea grueso y
           nítido a cualquier tamaño. strokeWidth alto para que destaque
@@ -58,9 +61,9 @@ function YearDirection({ direction }) {
   );
 }
 
-function Cell({ label, value, status, pais, direction }) {
-  const isYear = label === "Año";
-  const isCountryPartial = label === "Marca" && status === "partial";
+function Cell({ label, value, status, pais, direction, isYear, isMarca }) {
+  const { t } = useT();
+  const isCountryPartial = isMarca && status === "partial";
   const s = isCountryPartial ? STATUS_STYLES.country : STATUS_STYLES[status];
   const flag = isCountryPartial ? COUNTRY_FLAGS[pais] || s.symbol : s.symbol;
   const showYearDirection = isYear && status !== "correct";
@@ -82,7 +85,7 @@ function Cell({ label, value, status, pais, direction }) {
             sm:text-[11px] sm:tracking-widest
           "
         >
-          {isCountryPartial ? "País ok" : label}
+          {isCountryPartial ? t("guessRow.countryOk") : label}
         </span>
 
         <span
@@ -105,7 +108,7 @@ function Cell({ label, value, status, pais, direction }) {
             shrink-0 text-sm font-bold leading-none sm:text-base
             ${s.icon}
           `}
-          title={isCountryPartial && pais ? `País correcto: ${pais}` : undefined}
+          title={isCountryPartial && pais ? t("guessRow.countryOkTitle", { pais }) : undefined}
           aria-hidden="true"
         >
           {flag}
@@ -116,6 +119,7 @@ function Cell({ label, value, status, pais, direction }) {
 }
 
 export default function GuessRow({ guess, index }) {
+  const { t } = useT();
   return (
     <div
       className="
@@ -129,14 +133,16 @@ export default function GuessRow({ guess, index }) {
       }}
     >
       <Cell
-        label="Marca"
+        label={t("guess.labelMarca")}
         value={guess.marca.val}
         status={guess.marca.status}
         pais={guess.marca.pais}
+        isMarca
       />
-      <Cell label="Modelo" value={guess.modelo.val} status={guess.modelo.status} />
+      <Cell label={t("guess.labelModelo")} value={guess.modelo.val} status={guess.modelo.status} />
       <Cell
-        label="Año"
+        isYear
+        label={t("guess.labelAnio")}
         value={guess.anio.val}
         status={guess.anio.status}
         direction={guess.anio.direction}

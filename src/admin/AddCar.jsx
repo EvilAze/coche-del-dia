@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useCatalog } from "../data/catalog";
+import DescriptionEnField from "./DescriptionEnField";
 
 const STORAGE_BUCKET = "cars_images";
 const TABLE_NAME = "cars";
@@ -21,6 +22,7 @@ const initialForm = {
   year: "",
   pais: "",
   description: "",
+  description_en: "",
   file: null,
 };
 
@@ -130,6 +132,7 @@ export default function AddCar() {
     const model = form.model.trim();
     const pais = form.pais.trim();
     const description = form.description.trim();
+    const descriptionEn = form.description_en.trim();
     const yearNum = Number(form.year);
     const file = form.file;
 
@@ -208,6 +211,7 @@ export default function AddCar() {
           // Descripción opcional: mandamos null si está vacía para que la
           // columna admita el `is null` natural en lugar de strings vacíos.
           description: description ? description : null,
+          description_en: descriptionEn ? descriptionEn : null,
           image_url: imageUrl,
         }),
       });
@@ -402,7 +406,7 @@ export default function AddCar() {
           <Field
             label={
               <>
-                Descripción
+                Descripción (ES)
                 <span className="ml-2 normal-case tracking-normal text-muted">
                   · opcional
                 </span>
@@ -421,6 +425,25 @@ export default function AddCar() {
             <span className="text-[10px] uppercase tracking-widest text-muted">
               {form.description.length} / 600
             </span>
+          </Field>
+
+          <Field
+            label={
+              <>
+                Description (EN)
+                <span className="ml-2 normal-case tracking-normal text-muted">
+                  · auto-traducible
+                </span>
+              </>
+            }
+          >
+            <DescriptionEnField
+              valueEs={form.description}
+              valueEn={form.description_en}
+              onChange={(v) => updateField("description_en", v)}
+              disabled={isSubmitting}
+              inputClass={inputClass}
+            />
           </Field>
 
           <Field label="Foto del coche">

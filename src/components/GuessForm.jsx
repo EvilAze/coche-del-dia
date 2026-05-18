@@ -1,6 +1,7 @@
 // src/components/GuessForm.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useCatalog } from "../data/catalog";
+import { useT } from "../i18n";
 import Autocomplete from "./Autocomplete";
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -19,6 +20,7 @@ function triggerHaptic(pattern) {
 // accent al hover, para no robar protagonismo cuando el usuario está
 // rellenando otros campos pero sí ser evidente al inspeccionar la zona.
 function YearStepper({ onStep, disabled }) {
+  const { t } = useT();
   const btn = `
     flex h-1/2 w-7 items-center justify-center
     text-muted/70 transition-colors duration-150
@@ -41,7 +43,7 @@ function YearStepper({ onStep, disabled }) {
         disabled={disabled}
         onClick={() => onStep(1)}
         className={`${btn} rounded-tr-lg`}
-        aria-label="Año +1"
+        aria-label={t("guess.yearStepperUp")}
       >
         <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 15l6-6 6 6" />
@@ -53,7 +55,7 @@ function YearStepper({ onStep, disabled }) {
         disabled={disabled}
         onClick={() => onStep(-1)}
         className={`${btn} rounded-br-lg border-t border-border-strong/60`}
-        aria-label="Año -1"
+        aria-label={t("guess.yearStepperDown")}
       >
         <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 9l6 6 6-6" />
@@ -91,6 +93,7 @@ function Spinner() {
 }
 
 export default function GuessForm({ onSubmit, isSubmitting = false }) {
+  const { t } = useT();
   const { data: catalog } = useCatalog();
   const CARS = catalog?.cars ?? [];
   const MARCAS = catalog?.marcas ?? [];
@@ -193,7 +196,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
       >
         <label className="flex w-full min-w-0 flex-col gap-1 md:flex-1">
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
-            Marca
+            {t("guess.labelMarca")}
           </span>
           <Autocomplete
             id="input-marca"
@@ -208,7 +211,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
 
         <label className="flex w-full min-w-0 flex-col gap-1 md:flex-1">
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
-            Modelo
+            {t("guess.labelModelo")}
           </span>
           {/*
             Modelo bloqueado hasta que haya marca válida (ANTI-CHEAT).
@@ -222,14 +225,14 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
             onChange={setModelo}
             onSelect={setModelo}
             options={modelOptions}
-            placeholder={marcaValidaSeleccionada ? "" : "Elige marca primero"}
+            placeholder={marcaValidaSeleccionada ? "" : t("guess.placeholderModeloDisabled")}
             disabled={formDisabled || !marcaValidaSeleccionada}
           />
         </label>
 
         <label className="flex w-full min-w-0 flex-col gap-1 md:w-24 md:shrink-0">
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
-            Año
+            {t("guess.labelAnio")}
           </span>
           {/* Wrapper relative para anclar los steppers custom. El input mantiene
               [appearance:textfield] para suprimir los spinners nativos (que en
@@ -249,7 +252,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
               // página (no llamamos preventDefault).
               onWheel={(e) => e.currentTarget.blur()}
               disabled={formDisabled}
-              placeholder="ej. 2019"
+              placeholder={t("guess.placeholderAnio")}
               min={MIN_YEAR}
               max={CURRENT_YEAR}
               className="
@@ -281,7 +284,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
             />
           </div>
           <span className="mt-0.5 block px-1 text-[9px] leading-tight text-muted/55">
-            ±2 años aceptados
+            {t("guess.yearsToleranceHelp")}
           </span>
         </label>
       </div>
@@ -305,10 +308,10 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
         {isSubmitting ? (
           <span className="inline-flex items-center justify-center gap-2">
             <Spinner />
-            COMPROBANDO
+            {t("guess.submitting")}
           </span>
         ) : (
-          "ADIVINAR"
+          t("guess.submit")
         )}
       </button>
     </form>

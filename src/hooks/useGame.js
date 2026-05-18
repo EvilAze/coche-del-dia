@@ -71,6 +71,11 @@ function buildCarState({ img, blurData, reveal }) {
     modelo: reveal?.modelo ?? null,
     anio: reveal?.anio ?? null,
     pais: reveal?.pais ?? null,
+    // Mantenemos `description` como compat y añadimos `description_en`.
+    // El helper getCarDescription() en src/i18n decide cuál mostrar según
+    // el locale activo. Si reveal aún no llegó, ambos quedan null.
+    description: reveal?.description ?? null,
+    description_en: reveal?.description_en ?? null,
   };
 }
 
@@ -310,6 +315,8 @@ export function useGame() {
           modelo: reveal.modelo,
           anio: reveal.anio,
           pais: reveal.pais,
+          description: reveal.description ?? null,
+          description_en: reveal.description_en ?? null,
         }));
       }
 

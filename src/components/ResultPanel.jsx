@@ -3,6 +3,7 @@ import Confetti from "./Confetti";
 import ScoreBreakdown from "./ScoreBreakdown";
 import { useToast } from "./Toast";
 import { useCountdown } from "../hooks/useCountdown";
+import { useT, getCarDescription } from "../i18n";
 
 export default function ResultPanel({
   status,
@@ -14,11 +15,14 @@ export default function ResultPanel({
   user,
   onOpenLogin,
 }) {
+  const { t, tn } = useT();
   const won = status === "won";
   // Si el jugador no ha ganado, el servidor NO nos da marca/modelo/año por
   // diseño (anti-trampas vía DevTools). Renderizamos en consecuencia.
   const hasReveal = Boolean(car?.marca && car?.modelo && car?.anio);
-  const carDescription = car?.description?.trim();
+  // useT() arriba garantiza re-render al cambiar locale; getCarDescription
+  // lee el locale del módulo y elige description_en o description.
+  const carDescription = getCarDescription(car)?.trim();
   const toast = useToast();
   const { formatted: countdown } = useCountdown();
 
@@ -30,14 +34,14 @@ export default function ResultPanel({
       }
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareText);
-        toast.push("Resultado copiado al portapapeles", { type: "success" });
+        toast.push(t("result.shareCopied"), { type: "success" });
         return;
       }
-      toast.push("No se pudo compartir desde este navegador", { type: "error" });
+      toast.push(t("result.shareUnsupported"), { type: "error" });
     } catch (err) {
       // El usuario canceló el share nativo: no es un error real.
       if (err?.name === "AbortError") return;
-      toast.push("No se pudo compartir", { type: "error" });
+      toast.push(t("result.shareError"), { type: "error" });
     }
   }
 
@@ -48,14 +52,14 @@ export default function ResultPanel({
       {won ? (
         <>
           <div className="font-display text-3xl tracking-widest text-green-400 mb-1">
-            ¡ACERTASTE!
+            {t("result.wonTitle")}
           </div>
           <div className="text-2xl mb-3">🎉</div>
         </>
       ) : (
         <>
           <div className="font-display text-3xl tracking-widest text-red-400 mb-1">
-            SIN SUERTE
+            {t("result.lostTitle")}
           </div>
           <div className="text-2xl mb-3">😔</div>
         </>
@@ -63,7 +67,7 @@ export default function ResultPanel({
 
       {hasReveal ? (
         <>
-          <p className="text-muted text-sm mb-1">Era el</p>
+          <p className="text-muted text-sm mb-1">{t("result.wasThe")}</p>
           <p className="text-white font-medium text-base mb-1">
             {car.marca} {car.modelo}
           </p>
@@ -76,13 +80,13 @@ export default function ResultPanel({
         // arriba ya muestra el overlay con el CTA de login, así que no
         // duplicamos la llamada a la acción.
         <p className="text-muted text-sm mb-3">
-          La respuesta está bloqueada. Inicia sesión para verla.
+          {t("result.lockedAnswer")}
         </p>
       )}
 
       {won && (
         <p className="text-muted text-xs tracking-wider uppercase mb-3">
-          Conseguido en {attempts} intento{attempts !== 1 ? "s" : ""}
+          {tn("result.achievedIn", attempts)}
         </p>
       )}
 
@@ -91,7 +95,7 @@ export default function ResultPanel({
       {carDescription && (
         <div className="mb-4 rounded-lg border border-border/60 bg-bg-secondary/50 px-4 py-3 text-left">
           <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
-            Ficha
+            {t("result.spec")}
           </p>
           <p className="text-sm leading-relaxed text-white/90">
             {carDescription}
@@ -101,7 +105,7 @@ export default function ResultPanel({
 
       <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">
         <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
-          Próximo coche en
+          {t("result.nextCar")}
         </p>
         <p className="mt-1 font-display text-2xl tabular-nums tracking-[0.18em] text-white">
           {countdown}
@@ -122,7 +126,7 @@ export default function ResultPanel({
               transition-colors hover:bg-accent/10 active:scale-[0.97]
             "
           >
-            Compartir resultado
+            {t("result.share")}
           </button>
         </>
       )}
@@ -130,11 +134,10 @@ export default function ResultPanel({
       {!user && won && (
         <div className="mt-5 rounded-xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 text-left">
           <p className="font-display text-sm uppercase tracking-[0.14em] text-accent">
-            🔥 Menuda racha
+            {t("result.saveProgressTitle")}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-white/90">
-            No pierdas tus estadisticas. Registrate para guardar tus victorias y competir en
-            el ranking.
+            {t("result.saveProgressBody")}
           </p>
           <button
             type="button"
@@ -145,7 +148,7 @@ export default function ResultPanel({
               transition hover:brightness-110 active:scale-[0.98]
             "
           >
-            Guardar mi progreso
+            {t("result.saveProgressCta")}
           </button>
         </div>
       )}

@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useEscape } from "../hooks/useEscape";
 import { getMyMaxStreak } from "../hooks/useStats";
+import { useT, listLocales } from "../i18n";
 import ScoringHelpModal from "./ScoringHelpModal";
 
 // Hitos motivacionales que mostramos como "próximo objetivo" en el popover.
@@ -132,6 +133,7 @@ const iconBtn = `
 // el ratón muestra el mensaje completo como title; en pantalla solo se ve
 // 🔥 N para que ocupe poco. Animación pop al subir.
 const StreakChip = function StreakChip({ value, onClick, buttonRef, expanded }) {
+  const { t, tn } = useT();
   const prevRef = useRef(value);
   const [pop, setPop] = useState(false);
 
@@ -140,8 +142,8 @@ const StreakChip = function StreakChip({ value, onClick, buttonRef, expanded }) 
     prevRef.current = value;
     if (value > prev) {
       setPop(true);
-      const t = setTimeout(() => setPop(false), 400);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setPop(false), 400);
+      return () => clearTimeout(timer);
     }
   }, [value]);
 
@@ -150,10 +152,10 @@ const StreakChip = function StreakChip({ value, onClick, buttonRef, expanded }) 
       ref={buttonRef}
       type="button"
       onClick={onClick}
-      aria-label={`Racha de ${value} días. Ver detalles.`}
+      aria-label={t("streak.ariaChip", { count: value })}
       aria-expanded={expanded}
       aria-haspopup="dialog"
-      title={`Llevas ${value} día${value === 1 ? "" : "s"} de racha`}
+      title={tn("streak.titleChip", value)}
       className={`
         flex h-9 items-center gap-1.5 rounded-full
         border border-accent/40 bg-accent/10
@@ -175,6 +177,7 @@ const StreakChip = function StreakChip({ value, onClick, buttonRef, expanded }) 
 // próximo hito) + un mensaje motivacional + atajo al modal de puntos.
 // No duplica la tabla de puntos: deja ese contenido en ScoringHelpModal.
 function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring }) {
+  const { t, tn } = useT();
   const popoverRef = useRef(null);
   const [maxStreak, setMaxStreak] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -234,7 +237,7 @@ function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring 
     <div
       ref={popoverRef}
       role="dialog"
-      aria-label="Detalles de tu racha"
+      aria-label={t("streak.popoverLabel")}
       className="
         absolute left-0 top-[calc(100%+0.5rem)]
         w-64 rounded-xl border border-accent/30
@@ -243,24 +246,22 @@ function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring 
       "
     >
       <p className="text-[10px] uppercase tracking-[0.22em] text-accent">
-        Racha en curso
+        {t("streak.current")}
       </p>
       <p className="mt-1 font-display text-3xl tracking-wider text-white">
         <span aria-hidden="true">🔥</span> {currentStreak}{" "}
         <span className="text-sm font-normal tracking-normal text-muted">
-          día{currentStreak === 1 ? "" : "s"}
+          {tn("streak.daysShort", currentStreak)}
         </span>
       </p>
       <p className="mt-1 text-xs leading-snug text-muted">
-        {isRecord
-          ? "¡Es tu récord personal! No la pierdas."
-          : "Sigue así, no la pierdas."}
+        {isRecord ? t("streak.personalRecord") : t("streak.keepGoing")}
       </p>
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-center">
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
           <p className="text-[9px] uppercase tracking-widest text-muted">
-            Récord
+            {t("streak.record")}
           </p>
           <p className="font-display text-lg tabular-nums text-white">
             {loading ? "…" : maxStreak ?? "—"}
@@ -268,7 +269,7 @@ function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring 
         </div>
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
           <p className="text-[9px] uppercase tracking-widest text-muted">
-            Próximo hito
+            {t("streak.nextMilestone")}
           </p>
           <p className="font-display text-lg tabular-nums text-white">
             {next ?? "—"}
@@ -287,9 +288,47 @@ function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring 
           hover:bg-white/[0.05] hover:text-accent
         "
       >
-        Cómo funcionan los puntos
+        {t("streak.howScoringWorks")}
         <span aria-hidden="true">→</span>
       </button>
+    </div>
+  );
+}
+
+// Selector de idioma dentro del menú sandwich. Pinta cada locale como un
+// pill pequeño; el activo lleva borde accent. Pocos idiomas (2-4) →
+// segmented control inline es más rápido que un dropdown anidado.
+function LanguagePicker({ locale, onSelect }) {
+  const { t } = useT();
+  const options = listLocales();
+  return (
+    <div className="px-3 py-2">
+      <p className="mb-1.5 text-[9px] uppercase tracking-widest text-muted">
+        {t("header.language")}
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {options.map((opt) => {
+          const active = opt.code === locale;
+          return (
+            <button
+              key={opt.code}
+              type="button"
+              onClick={() => onSelect(opt.code)}
+              className={`
+                rounded-md border px-2 py-1 text-xs font-medium
+                transition-colors duration-150
+                ${
+                  active
+                    ? "border-accent/60 bg-accent/15 text-accent"
+                    : "border-white/10 bg-white/[0.02] text-muted hover:text-white"
+                }
+              `}
+            >
+              {opt.name}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -332,6 +371,7 @@ export default function HeaderSandwich({
   repescaAlert = false,
   streak = 0,
 }) {
+  const { t, locale, setLocale } = useT();
   const [menuOpen, setMenuOpen] = useState(false);
   const [streakOpen, setStreakOpen] = useState(false);
   const [scoringOpen, setScoringOpen] = useState(false);
@@ -428,12 +468,12 @@ export default function HeaderSandwich({
             onClick={() => setMenuOpen((v) => !v)}
             aria-label={
               repescaAlert
-                ? "Abrir menú · tienes una repesca disponible"
-                : "Abrir menú"
+                ? t("header.menuOpenWithRepesca")
+                : t("header.menuOpen")
             }
             aria-expanded={menuOpen}
             aria-haspopup="menu"
-            title="Menú"
+            title={t("header.menuTitle")}
             className={`relative ${iconBtn}`}
           >
             {menuOpen ? <CloseIcon /> : <MenuIcon />}
@@ -465,34 +505,36 @@ export default function HeaderSandwich({
             >
               <MenuItem
                 icon={<GarageIcon />}
-                label="Mi garaje"
+                label={t("header.garage")}
                 alert={repescaAlert}
                 onClick={() => handleMenuAction(onOpenGarage)}
               />
               <MenuItem
                 icon={<TrophyIcon />}
-                label="Ranking global"
+                label={t("header.ranking")}
                 onClick={() => handleMenuAction(onOpenRanking)}
               />
               <div className="my-1 h-px bg-white/5" />
               {user ? (
                 <MenuItem
                   icon={<UserIcon />}
-                  label="Mi perfil"
+                  label={t("header.profile")}
                   onClick={() => handleMenuAction(onOpenProfile)}
                 />
               ) : (
                 <MenuItem
                   icon={<UserIcon />}
-                  label="Iniciar sesión"
+                  label={t("header.login")}
                   onClick={() => handleMenuAction(onOpenLogin)}
                 />
               )}
+
+              <div className="my-1 h-px bg-white/5" />
+              <LanguagePicker locale={locale} onSelect={setLocale} />
             </div>
           )}
         </div>
       </div>
-
     </header>
 
     <ScoringHelpModal

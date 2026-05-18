@@ -26,15 +26,34 @@ const STATUS_STYLES = {
 function YearDirection({ direction }) {
   if (!direction) return null;
 
+  const isUp = direction === "up";
+
   return (
     <span
-      className="
-        inline-flex h-4 w-4 shrink-0 items-center justify-center
-        rounded-full bg-white/5 text-[10px] leading-none text-muted
-      "
-      title={direction === "up" ? "El año correcto es mayor" : "El año correcto es menor"}
+      className={`
+        inline-flex h-6 w-6 shrink-0 items-center justify-center
+        rounded-full border bg-yellow-500/15 text-yellow-300
+        border-yellow-500/40
+        sm:h-7 sm:w-7
+      `}
+      title={isUp ? "El año correcto es mayor" : "El año correcto es menor"}
+      aria-label={isUp ? "El año correcto es mayor" : "El año correcto es menor"}
     >
-      {direction === "up" ? "↑" : "↓"}
+      {/* SVG chevron en lugar del unicode ↑/↓ para que se vea grueso y
+          nítido a cualquier tamaño. strokeWidth alto para que destaque
+          incluso en la versión móvil (h-6). */}
+      <svg
+        viewBox="0 0 24 24"
+        className="h-3.5 w-3.5 sm:h-4 sm:w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        {isUp ? <path d="M6 15l6-6 6 6" /> : <path d="M6 9l6 6 6-6" />}
+      </svg>
     </span>
   );
 }

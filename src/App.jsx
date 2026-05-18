@@ -8,7 +8,7 @@ import CarImage from "./components/CarImage";
 import GuessRow from "./components/GuessRow";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
-import Header from "./components/Header";
+import Header from "./components/HeaderSandwich";
 import Ranking from "./components/Ranking";
 import Garage from "./components/Garage";
 import MyStats from "./components/MyStats";

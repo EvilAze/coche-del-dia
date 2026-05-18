@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import Preview from "./Preview";
+import HeaderTest from "./HeaderTest";
 import Repesca from "./Repesca";
 import Privacidad from "./Privacidad";
 import AddCar from "./admin/AddCar";
@@ -40,11 +41,16 @@ const isPrivacy =
   pathname.startsWith("/privacy") ||
   pathname.startsWith("/politica-de-privacidad");
 
+const isHeaderTest =
+  pathname.startsWith("/header-test") ||
+  /(\?|&)header-test(=|&|$)/.test(search);
+
 function pickRoute() {
   if (isAdminEditCar) return <EditCar />;
   if (isAdminAddCar) return <AddCar />;
   if (isRepesca) return <Repesca />;
   if (isPreview) return <Preview />;
+  if (isHeaderTest) return <HeaderTest />;
   if (isPrivacy) return <Privacidad />;
   return <App />;
 }

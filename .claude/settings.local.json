@@ -15,7 +15,9 @@
       "Bash(Format-Table -AutoSize)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Ruben\\\\Downloads\\\\coche-del-dia_1\" -Recurse -Force | Where-Object { $_.PSIsContainer } | Sort-Object FullName | Format-Table -AutoSize Name, FullName)",
       "Bash(xargs grep -l \"PISTA\\\\|pista\")",
-      "Bash(grep -E \"\\\\.\\(jsx|tsx|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(jsx|tsx|js\\)$\")",
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)"
     ]
   }
 }

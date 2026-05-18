@@ -10,7 +10,7 @@
 //      gateado por whitelist de emails y devuelve también image_url.
 //   3. El admin edita campos. Si cambia la foto, sube el nuevo blob al
 //      bucket por su cuenta (mismo patrón que AddCar) y nos manda la URL.
-//   4. POST /api/admin/update-car con solo los campos que hayan cambiado.
+//   4. POST /api/admin/save-car con `id` + solo los campos que hayan cambiado.
 //      El UPDATE corre con service_role.
 //
 // Hot-swap: el resto del juego (/api/get-daily-car y /api/daily-image)
@@ -273,7 +273,7 @@ export default function EditCar() {
       }
       if (newImageUrl) patch.image_url = newImageUrl;
 
-      const res = await fetch("/api/admin/update-car", {
+      const res = await fetch("/api/admin/save-car", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

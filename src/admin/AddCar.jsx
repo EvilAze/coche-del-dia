@@ -197,7 +197,7 @@ export default function AddCar() {
         throw new Error("Sesión perdida. Vuelve a iniciar sesión.");
       }
 
-      const addRes = await fetch("/api/admin/add-car", {
+      const addRes = await fetch("/api/admin/save-car", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

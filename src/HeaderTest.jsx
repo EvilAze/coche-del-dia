@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import HeaderSandwich from "./components/HeaderSandwich";
+import GuessRow from "./components/GuessRow";
 
 const STATES = [
   { label: "Logueado · racha 7 · repesca activa", user: { id: "1" }, streak: 7, repescaAlert: true },
@@ -16,6 +17,39 @@ const STATES = [
 
 function noop(name) {
   return () => alert(`[mock] ${name}`);
+}
+
+// Mocks de guesses para verificar visualmente YearDirection en sus dos
+// estados (mayor / menor). Si está acertado, no se pinta flecha.
+const GUESS_MOCKS = [
+  {
+    marca: { val: "Ford", status: "correct" },
+    modelo: { val: "Focus", status: "correct" },
+    anio: { val: "1995", status: "wrong", direction: "up" },
+  },
+  {
+    marca: { val: "Ford", status: "correct" },
+    modelo: { val: "Focus", status: "correct" },
+    anio: { val: "2020", status: "wrong", direction: "down" },
+  },
+  {
+    marca: { val: "Ford", status: "correct" },
+    modelo: { val: "Focus", status: "correct" },
+    anio: { val: "2010", status: "partial", direction: "up" },
+  },
+];
+
+function GuessRowPreview() {
+  return (
+    <div className="mt-8 space-y-2">
+      <p className="mb-2 text-xs uppercase tracking-widest text-muted">
+        Preview · flechas de año en resultados
+      </p>
+      {GUESS_MOCKS.map((g, i) => (
+        <GuessRow key={i} guess={g} index={i} />
+      ))}
+    </div>
+  );
 }
 
 export default function HeaderTest() {
@@ -64,6 +98,8 @@ export default function HeaderTest() {
           Espacio para comprobar que el dropdown se monta encima del
           contenido inferior con z-index suficiente.
         </div>
+
+        <GuessRowPreview />
       </main>
     </div>
   );

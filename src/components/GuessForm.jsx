@@ -12,6 +12,57 @@ function triggerHaptic(pattern) {
   }
 }
 
+// Steppers verticales (▲/▼) anclados al borde derecho del input de año.
+// Reemplazan a los spinners nativos (inconsistentes entre browsers y
+// minúsculos en móvil) por algo visible y táctil, manteniendo la altura
+// total del input (h-11 = 44px → cada botón h-5.5). Color muted en reposo,
+// accent al hover, para no robar protagonismo cuando el usuario está
+// rellenando otros campos pero sí ser evidente al inspeccionar la zona.
+function YearStepper({ onStep, disabled }) {
+  const btn = `
+    flex h-1/2 w-7 items-center justify-center
+    text-muted/70 transition-colors duration-150
+    hover:text-accent hover:bg-white/[0.04]
+    disabled:cursor-not-allowed disabled:opacity-30
+    disabled:hover:text-muted/70 disabled:hover:bg-transparent
+  `;
+  return (
+    <div
+      className="
+        pointer-events-none absolute inset-y-0 right-0
+        flex w-7 flex-col border-l border-border-strong/60
+        [&>button]:pointer-events-auto
+      "
+      aria-hidden="true"
+    >
+      <button
+        type="button"
+        tabIndex={-1}
+        disabled={disabled}
+        onClick={() => onStep(1)}
+        className={`${btn} rounded-tr-lg`}
+        aria-label="Año +1"
+      >
+        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 15l6-6 6 6" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        tabIndex={-1}
+        disabled={disabled}
+        onClick={() => onStep(-1)}
+        className={`${btn} rounded-br-lg border-t border-border-strong/60`}
+        aria-label="Año -1"
+      >
+        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 function Spinner() {
   return (
     <svg
@@ -180,27 +231,49 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
             Año
           </span>
-          <input
-            type="number"
-            inputMode="numeric"
-            pattern="\d*"
-            value={anio}
-            onChange={(e) => setAnio(e.target.value)}
-            disabled={formDisabled}
-            placeholder="ej. 2019"
-            min={MIN_YEAR}
-            max={CURRENT_YEAR}
-            className="
-              h-11 w-full min-w-0 rounded-lg border border-border-strong
-              bg-bg-secondary px-3 text-sm text-white outline-none
-              transition-colors focus:border-accent placeholder:text-muted
-              disabled:cursor-not-allowed disabled:opacity-40
-              [appearance:textfield]
-              [&::-webkit-inner-spin-button]:appearance-none
-              [&::-webkit-outer-spin-button]:appearance-none
-            "
-            style={{ colorScheme: "dark" }}
-          />
+          {/* Wrapper relative para anclar los steppers custom. El input mantiene
+              [appearance:textfield] para suprimir los spinners nativos (que en
+              Firefox aparecen como un chevron tenue) y dejamos sitio (pr-7) a
+              la derecha para los botones +/-. */}
+          <div className="relative">
+            <input
+              type="number"
+              inputMode="numeric"
+              pattern="\d*"
+              value={anio}
+              onChange={(e) => setAnio(e.target.value)}
+              disabled={formDisabled}
+              placeholder="ej. 2019"
+              min={MIN_YEAR}
+              max={CURRENT_YEAR}
+              className="
+                h-11 w-full min-w-0 rounded-lg border border-border-strong
+                bg-bg-secondary pl-3 pr-7 text-sm text-white outline-none
+                transition-colors focus:border-accent placeholder:text-muted
+                disabled:cursor-not-allowed disabled:opacity-40
+                [appearance:textfield]
+                [&::-webkit-inner-spin-button]:appearance-none
+                [&::-webkit-outer-spin-button]:appearance-none
+              "
+              style={{ colorScheme: "dark" }}
+            />
+            {/* Steppers ±1 con clamp al rango [MIN_YEAR, CURRENT_YEAR]. Si el
+                input está vacío al pulsar, arrancamos en CURRENT_YEAR (el año
+                más probable para coches modernos). Botones tipo `button` para
+                que no envíen el form. */}
+            <YearStepper
+              disabled={formDisabled}
+              onStep={(delta) => {
+                const current = parseInt(anio, 10);
+                const base = Number.isFinite(current) ? current : CURRENT_YEAR;
+                const next = Math.min(
+                  CURRENT_YEAR,
+                  Math.max(MIN_YEAR, base + delta)
+                );
+                setAnio(String(next));
+              }}
+            />
+          </div>
           <span className="mt-0.5 block px-1 text-[9px] leading-tight text-muted/55">
             ±2 años aceptados
           </span>

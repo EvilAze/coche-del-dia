@@ -17,7 +17,8 @@
       "Bash(xargs grep -l \"PISTA\\\\|pista\")",
       "Bash(grep -E \"\\\\.\\(jsx|tsx|js\\)$\")",
       "mcp__Claude_Preview__preview_start",
-      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)"
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
+      "Bash(until grep -q \"Compiled\\\\|Failed to compile\\\\|webpack compiled\" /tmp/dev3000.log 2>/dev/null; do sleep 1; done & *)"
     ]
   }
 }

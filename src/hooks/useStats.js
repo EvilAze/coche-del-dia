@@ -36,6 +36,27 @@ export async function getMyProfile(userId) {
   return data;
 }
 
+// Lectura ligera del récord personal (max_streak) para el popover de la
+// racha. Devuelve 0 si la fila no existe o si la query falla — el popover
+// debe seguir mostrándose aunque esta query reviente.
+export async function getMyMaxStreak() {
+  const user = await getCurrentUser();
+  if (!user) return 0;
+
+  const { data, error } = await supabase
+    .from("stats")
+    .select("max_streak")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[getMyMaxStreak]", error);
+    return 0;
+  }
+
+  return data?.max_streak ?? 0;
+}
+
 // Lectura ligera del streak actual para el badge del header. No traemos
 // max_streak ni total_wins porque para el chip basta con current_streak.
 // Si la fila no existe (usuario nuevo que aún no ha jugado), devolvemos 0.

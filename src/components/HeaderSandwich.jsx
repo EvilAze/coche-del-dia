@@ -12,6 +12,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useEscape } from "../hooks/useEscape";
+import { getMyMaxStreak } from "../hooks/useStats";
+import ScoringHelpModal from "./ScoringHelpModal";
+
+// Hitos motivacionales que mostramos como "próximo objetivo" en el popover.
+// Los 3 primeros (2, 3, 4) son los que dan bonus de puntos según
+// ScoringHelpModal; el resto son metas largas sin bonus, solo bragging.
+const STREAK_MILESTONES = [2, 3, 4, 7, 14, 30, 60, 100, 200, 365];
+
+function nextMilestone(current) {
+  return STREAK_MILESTONES.find((m) => m > current) ?? null;
+}
 
 function UserIcon() {
   return (
@@ -120,7 +131,7 @@ const iconBtn = `
 // Chip de racha: pill con borde sutil dorado para sugerir "logro". Al pasar
 // el ratón muestra el mensaje completo como title; en pantalla solo se ve
 // 🔥 N para que ocupe poco. Animación pop al subir.
-function StreakChip({ value, onClick }) {
+const StreakChip = function StreakChip({ value, onClick, buttonRef, expanded }) {
   const prevRef = useRef(value);
   const [pop, setPop] = useState(false);
 
@@ -136,10 +147,13 @@ function StreakChip({ value, onClick }) {
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onClick}
-      aria-label={`Racha de ${value} días. Sigue así.`}
-      title={`Llevas ${value} día${value === 1 ? "" : "s"} de racha · sigue así`}
+      aria-label={`Racha de ${value} días. Ver detalles.`}
+      aria-expanded={expanded}
+      aria-haspopup="dialog"
+      title={`Llevas ${value} día${value === 1 ? "" : "s"} de racha`}
       className={`
         flex h-9 items-center gap-1.5 rounded-full
         border border-accent/40 bg-accent/10
@@ -154,6 +168,129 @@ function StreakChip({ value, onClick }) {
       <span aria-hidden="true" className="text-[1rem]">🔥</span>
       <span className="tabular-nums">{value}</span>
     </button>
+  );
+};
+
+// Popover anclado al chip de racha. Muestra estado personal (récord,
+// próximo hito) + un mensaje motivacional + atajo al modal de puntos.
+// No duplica la tabla de puntos: deja ese contenido en ScoringHelpModal.
+function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring }) {
+  const popoverRef = useRef(null);
+  const [maxStreak, setMaxStreak] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEscape(open, onClose);
+
+  // Fetch lazy del récord solo al abrir. Si el usuario abre y cierra varias
+  // veces seguidas, refrescamos cada vez — barato y evita stale data si la
+  // partida acaba de subir la racha.
+  useEffect(() => {
+    if (!open) return;
+    let mounted = true;
+    setLoading(true);
+    getMyMaxStreak()
+      .then((v) => {
+        if (mounted) {
+          setMaxStreak(v);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setMaxStreak(null);
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
+
+  // Cierre por click fuera. Excluimos al ancla (el chip) para no entrar en
+  // un toggle-cancel-toggle al pulsar el propio botón.
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target) &&
+        anchorRef.current &&
+        !anchorRef.current.contains(e.target)
+      ) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open, onClose, anchorRef]);
+
+  if (!open) return null;
+
+  const next = nextMilestone(currentStreak);
+  const isRecord =
+    maxStreak !== null && currentStreak > 0 && currentStreak >= maxStreak;
+
+  return (
+    <div
+      ref={popoverRef}
+      role="dialog"
+      aria-label="Detalles de tu racha"
+      className="
+        absolute left-0 top-[calc(100%+0.5rem)]
+        w-64 rounded-xl border border-accent/30
+        bg-[#0f0f12] p-4 shadow-2xl shadow-black/60
+        animate-fade-in
+      "
+    >
+      <p className="text-[10px] uppercase tracking-[0.22em] text-accent">
+        Racha en curso
+      </p>
+      <p className="mt-1 font-display text-3xl tracking-wider text-white">
+        <span aria-hidden="true">🔥</span> {currentStreak}{" "}
+        <span className="text-sm font-normal tracking-normal text-muted">
+          día{currentStreak === 1 ? "" : "s"}
+        </span>
+      </p>
+      <p className="mt-1 text-xs leading-snug text-muted">
+        {isRecord
+          ? "¡Es tu récord personal! No la pierdas."
+          : "Sigue así, no la pierdas."}
+      </p>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+          <p className="text-[9px] uppercase tracking-widest text-muted">
+            Récord
+          </p>
+          <p className="font-display text-lg tabular-nums text-white">
+            {loading ? "…" : maxStreak ?? "—"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+          <p className="text-[9px] uppercase tracking-widest text-muted">
+            Próximo hito
+          </p>
+          <p className="font-display text-lg tabular-nums text-white">
+            {next ?? "—"}
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onOpenScoring}
+        className="
+          mt-3 flex w-full items-center justify-center gap-1
+          rounded-lg border border-white/5 bg-white/[0.02]
+          py-2 text-xs font-medium text-muted
+          transition-colors duration-150
+          hover:bg-white/[0.05] hover:text-accent
+        "
+      >
+        Cómo funcionan los puntos
+        <span aria-hidden="true">→</span>
+      </button>
+    </div>
   );
 }
 
@@ -196,8 +333,11 @@ export default function HeaderSandwich({
   streak = 0,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [streakOpen, setStreakOpen] = useState(false);
+  const [scoringOpen, setScoringOpen] = useState(false);
   const menuRef = useRef(null);
   const triggerRef = useRef(null);
+  const chipRef = useRef(null);
 
   const showStreak = Boolean(user) && streak > 0;
 
@@ -227,12 +367,40 @@ export default function HeaderSandwich({
     fn?.();
   }
 
+  // Si abren el menú sandwich teniendo el popover de la racha abierto,
+  // cerramos este último para que no queden dos overlays activos.
+  useEffect(() => {
+    if (menuOpen && streakOpen) setStreakOpen(false);
+  }, [menuOpen, streakOpen]);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
       <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
-        <div className="z-10 flex min-w-0 items-center justify-start">
+        <div className="relative z-10 flex min-w-0 items-center justify-start">
           {showStreak && (
-            <StreakChip value={streak} onClick={onOpenProfile} />
+            <>
+              <StreakChip
+                value={streak}
+                buttonRef={chipRef}
+                expanded={streakOpen}
+                onClick={() => {
+                  // Si abrimos el popover, cerramos el menú sandwich para
+                  // evitar que ambos overlays se solapen.
+                  setMenuOpen(false);
+                  setStreakOpen((v) => !v);
+                }}
+              />
+              <StreakPopover
+                open={streakOpen}
+                onClose={() => setStreakOpen(false)}
+                anchorRef={chipRef}
+                currentStreak={streak}
+                onOpenScoring={() => {
+                  setStreakOpen(false);
+                  setScoringOpen(true);
+                }}
+              />
+            </>
           )}
         </div>
 
@@ -319,6 +487,11 @@ export default function HeaderSandwich({
           )}
         </div>
       </div>
+
+      <ScoringHelpModal
+        open={scoringOpen}
+        onClose={() => setScoringOpen(false)}
+      />
     </header>
   );
 }

@@ -24,8 +24,12 @@ export default function ScoringHelpModal({ open, onClose }) {
     <ModalShell
       open={open}
       onClose={onClose}
-      backdropClassName="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
-      panelClassName="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
+      backdropClassName="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 px-4 py-4 backdrop-blur-sm"
+      // max-h con 100dvh (dynamic viewport) para que en móvil con la barra
+      // de URL desplegada el modal siga cabiendo. overflow-y-auto +
+      // overscroll-contain para que el scroll quede aislado al modal y no
+      // se propague al body al llegar al final del contenido.
+      panelClassName="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
     >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>

@@ -1,5 +1,5 @@
 import { COUNTRY_FLAGS } from "../data/countries";
-import { useT } from "../i18n";
+import { useT, getLocalizedCountry } from "../i18n";
 
 const STATUS_STYLES = {
   correct: {
@@ -108,7 +108,7 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca }) {
             shrink-0 text-sm font-bold leading-none sm:text-base
             ${s.icon}
           `}
-          title={isCountryPartial && pais ? t("guessRow.countryOkTitle", { pais }) : undefined}
+          title={isCountryPartial && pais ? t("guessRow.countryOkTitle", { pais: getLocalizedCountry(pais) }) : undefined}
           aria-hidden="true"
         >
           {flag}

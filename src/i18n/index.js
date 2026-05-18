@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import es from "./locales/es.json";
 import en from "./locales/en.json";
+import { COUNTRY_CODES } from "../data/countries";
 
 const DICTIONARIES = { es, en };
 export const SUPPORTED = Object.keys(DICTIONARIES);
@@ -100,6 +101,28 @@ export function listLocales() {
     code,
     name: DICTIONARIES[code]?.locale?.name || code,
   }));
+}
+
+// Devuelve el nombre del país en el idioma activo. La BD guarda los nombres
+// en español ("EE.UU.", "Reino Unido"...). Para inglés (y futuros idiomas)
+// resolvemos el código ISO via COUNTRY_CODES y dejamos que Intl.DisplayNames
+// haga la traducción nativa — así no mantenemos listas manuales.
+//
+// En español devolvemos el string tal cual: Intl.DisplayNames("es").of("US")
+// daría "Estados Unidos", pero la UI existente usa "EE.UU." (preferencia del
+// admin) y queremos respetarla. Para cualquier país sin código mapeado,
+// fallback al original sin tocar.
+export function getLocalizedCountry(pais) {
+  if (!pais) return pais;
+  if (currentLocale === "es") return pais;
+  const code = COUNTRY_CODES[pais];
+  if (!code) return pais;
+  try {
+    const dn = new Intl.DisplayNames([currentLocale], { type: "region" });
+    return dn.of(code) || pais;
+  } catch {
+    return pais;
+  }
 }
 
 // Helper para campos del modelo Car con descripción i18n. Las descripciones

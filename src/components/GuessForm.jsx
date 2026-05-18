@@ -242,6 +242,12 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
               pattern="\d*"
               value={anio}
               onChange={(e) => setAnio(e.target.value)}
+              // Bloqueamos el cambio de año con la rueda del ratón: el
+              // navegador solo aplica el wheel-to-increment si el input
+              // está focuseado, así que al hacer blur en cuanto entra
+              // wheel evitamos el cambio sin bloquear el scroll de la
+              // página (no llamamos preventDefault).
+              onWheel={(e) => e.currentTarget.blur()}
               disabled={formDisabled}
               placeholder="ej. 2019"
               min={MIN_YEAR}

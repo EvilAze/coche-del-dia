@@ -1,5 +1,5 @@
 // src/App.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
@@ -88,9 +88,22 @@ export default function App() {
   // currentStreak — lo aplicamos sin refetch.
   const [streak, setStreak] = useState(0);
 
+  // Gate de re-sincronización: onAuthStateChange dispara TOKEN_REFRESHED
+  // cada vez que el browser recupera el foco de la pestaña, con un user
+  // de igual id pero referencia nueva. Sin este ref, cada vuelta a la
+  // pestaña refetchea profile + streak (y arriba en useGame, dispara el
+  // re-init de la partida → pantalla "Aparcando coche"). Sentinel
+  // undefined = "nunca sincronizado" para distinguir del null = "sesión
+  // anónima ya procesada".
+  const lastUserIdRef = useRef(undefined);
+
   useEffect(() => {
     async function syncUser(session) {
       const nextUser = session?.user ?? null;
+      const nextId = nextUser?.id ?? null;
+      if (lastUserIdRef.current === nextId) return;
+      lastUserIdRef.current = nextId;
+
       setUser(nextUser);
 
       if (!nextUser) {

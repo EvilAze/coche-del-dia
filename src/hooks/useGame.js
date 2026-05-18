@@ -85,12 +85,23 @@ export function useGame() {
   const toast = useToast();
 
   useEffect(() => {
+    // Gate por id: onAuthStateChange dispara también TOKEN_REFRESHED al
+    // recuperar la pestaña el foco. Si entregamos un user nuevo (aunque
+    // sea el mismo usuario lógico), React lo trata como cambio → el
+    // useEffect([user]) de abajo re-ejecuta initGame() y vuelve a pintar
+    // "Aparcando coche...". Manteniendo la referencia previa cuando el id
+    // no cambia, evitamos ese re-fetch.
+    function applySession(session) {
+      const nextUser = session?.user ?? null;
+      setUser((prev) => (prev?.id === nextUser?.id ? prev : nextUser));
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      applySession(session);
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      applySession(session);
     });
 
     return () => authListener.subscription.unsubscribe();

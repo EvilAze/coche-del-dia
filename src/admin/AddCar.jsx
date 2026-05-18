@@ -9,12 +9,28 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
+import CarImage from "../components/CarImage";
 
 const STORAGE_BUCKET = "cars_images";
 const TABLE_NAME = "cars";
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
 
 const CURRENT_YEAR = new Date().getFullYear();
+
+// Mismos valores que useGame.js / Preview.jsx — duplicados a propósito para
+// que la previsualización aquí sea independiente del juego real.
+const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
+
+// Slider 1..6 -> mismo recorrido que vive un jugador real:
+//   1..5 = las cinco pistas progresivas
+//   6    = revelado final (zoom 1.0)
+function zoomFromStep(step) {
+  if (step >= 6) {
+    return { zoom: 1.0, hintIndex: null, status: "won" };
+  }
+  const idx = step - 1;
+  return { zoom: ZOOM_LEVELS[idx], hintIndex: idx, status: "playing" };
+}
 
 const initialForm = {
   make: "",
@@ -56,6 +72,8 @@ export default function AddCar() {
   // Si el usuario edita el país a mano, dejamos de pisarlo desde la marca.
   const [paisTouched, setPaisTouched] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  // Slider de dificultad (1..6) — mismo recorrido que el juego real.
+  const [previewStep, setPreviewStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: "success" | "error", message }
 
@@ -113,12 +131,14 @@ export default function AddCar() {
     const file = e.target.files?.[0] ?? null;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(file ? URL.createObjectURL(file) : null);
+    setPreviewStep(1);
     updateField("file", file);
   }
 
   function resetForm() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
+    setPreviewStep(1);
     setForm(initialForm);
     setPaisTouched(false);
     // El <input type="file"> es controlado por su DOM: lo reseteamos vía key.
@@ -465,13 +485,11 @@ export default function AddCar() {
               required
             />
             {previewUrl && (
-              <div className="mt-3 overflow-hidden rounded-xl border border-border bg-black/40">
-                <img
-                  src={previewUrl}
-                  alt="Vista previa"
-                  className="h-48 w-full object-contain"
-                />
-              </div>
+              <DifficultyPreview
+                src={previewUrl}
+                step={previewStep}
+                onStepChange={setPreviewStep}
+              />
             )}
           </Field>
 
@@ -520,5 +538,45 @@ function Field({ label, children }) {
       </span>
       {children}
     </label>
+  );
+}
+
+function DifficultyPreview({ src, step, onStepChange }) {
+  const { zoom, hintIndex, status } = zoomFromStep(step);
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      <CarImage
+        src={src}
+        zoom={zoom}
+        hintIndex={hintIndex}
+        totalHints={ZOOM_LEVELS.length}
+        status={status}
+      />
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-bg-secondary/40 p-3">
+        <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted">
+          <span>Intento</span>
+          <span className="font-display text-base text-accent">
+            {step} / 6 {step === 6 && "· revelado"}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={1}
+          max={6}
+          step={1}
+          value={step}
+          onChange={(e) => onStepChange(Number(e.target.value))}
+          className="w-full accent-accent"
+        />
+        <div className="flex justify-between text-[10px] uppercase tracking-widest text-muted">
+          <span>x3.5</span>
+          <span>x3</span>
+          <span>x2.7</span>
+          <span>x2.4</span>
+          <span>x1.8</span>
+          <span>1:1</span>
+        </div>
+      </div>
+    </div>
   );
 }

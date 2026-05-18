@@ -374,6 +374,11 @@ export default function HeaderSandwich({
   }, [menuOpen, streakOpen]);
 
   return (
+    // Fragment: <header> usa backdrop-blur, lo que crea un containing block
+    // para descendientes position:fixed. Si el modal de scoring vive dentro
+    // del header, su backdrop fixed queda confinado a los 56px del header
+    // en vez de cubrir la pantalla. Por eso ScoringHelpModal va FUERA.
+    <>
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
       <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
         <div className="relative z-10 flex min-w-0 items-center justify-start">
@@ -488,10 +493,12 @@ export default function HeaderSandwich({
         </div>
       </div>
 
-      <ScoringHelpModal
-        open={scoringOpen}
-        onClose={() => setScoringOpen(false)}
-      />
     </header>
+
+    <ScoringHelpModal
+      open={scoringOpen}
+      onClose={() => setScoringOpen(false)}
+    />
+    </>
   );
 }

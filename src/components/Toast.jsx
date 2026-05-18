@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "../i18n";
 
 const ToastContext = createContext({
   push: () => "",
@@ -31,6 +32,7 @@ const TYPE_STYLES = {
 };
 
 function ToastItem({ toast, onDismiss }) {
+  const { t } = useT();
   const style = TYPE_STYLES[toast.type] || TYPE_STYLES.info;
   return (
     <div
@@ -70,7 +72,7 @@ function ToastItem({ toast, onDismiss }) {
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        aria-label="Cerrar aviso"
+        aria-label={t("toast.closeAria")}
         className="
           shrink-0 rounded-md p-1 text-muted transition
           hover:bg-white/10 hover:text-white

@@ -21,6 +21,7 @@ import GuessRow from "./components/GuessRow";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import { useToast } from "./components/Toast";
+import { useT } from "./i18n";
 
 const MAX_ATTEMPTS = 5;
 const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
@@ -41,6 +42,7 @@ function getCarIdFromUrl() {
 }
 
 export default function Repesca() {
+  const { t } = useT();
   const toast = useToast();
   const [user, setUser] = useState(null);
   const [checkingUser, setCheckingUser] = useState(true);
@@ -92,12 +94,12 @@ export default function Repesca() {
     if (checkingUser) return;
     if (!user) {
       setPhase("error");
-      setError("Necesitas iniciar sesión para jugar la repesca.");
+      setError(t("repesca.errorNeedLogin"));
       return;
     }
     if (!carId) {
       setPhase("error");
-      setError("Falta el identificador del coche.");
+      setError(t("repesca.errorMissingCarId"));
       return;
     }
 
@@ -146,7 +148,7 @@ export default function Repesca() {
         if (cancelled) return;
         console.error("[Repesca] bootstrap:", err);
         setPhase("error");
-        setError(err?.message || "No se pudo iniciar la repesca.");
+        setError(err?.message || t("repesca.errorStartFailed"));
       }
     })();
 
@@ -218,6 +220,7 @@ export default function Repesca() {
       anio: reveal?.anio ?? null,
       pais: reveal?.pais ?? null,
       description: reveal?.description ?? null,
+      description_en: reveal?.description_en ?? null,
     }),
     [imgBlobUrl, reveal]
   );
@@ -225,7 +228,7 @@ export default function Repesca() {
   async function submitGuess({ guessCarId, anio }) {
     if (phase !== "playing" || isSubmitting) return;
     if (typeof guessCarId !== "string" || !guessCarId) {
-      toast.push("Selecciona un coche del listado.", { type: "error" });
+      toast.push(t("repesca.errorSelectCar"), { type: "error" });
       return;
     }
 
@@ -249,7 +252,7 @@ export default function Repesca() {
     } catch (networkErr) {
       console.error("[Repesca] fetch:", networkErr);
       triggerHaptic([60, 40, 60]);
-      toast.push("Error de conexión. Comprueba tu red.", { type: "error" });
+      toast.push(t("repesca.errorNetworkConnection"), { type: "error" });
       setIsSubmitting(false);
       return;
     }
@@ -260,7 +263,7 @@ export default function Repesca() {
     } catch {
       console.error("[Repesca] non-JSON response", response.status);
       triggerHaptic([60, 40, 60]);
-      toast.push("Respuesta inválida del servidor.", { type: "error" });
+      toast.push(t("repesca.errorInvalidResponse"), { type: "error" });
       setIsSubmitting(false);
       return;
     }
@@ -269,7 +272,7 @@ export default function Repesca() {
       console.error("[Repesca] server error", { status: response.status, data });
       triggerHaptic([60, 40, 60]);
       toast.push(
-        data?.error ? `Error: ${data.error}` : "No se pudo validar el intento.",
+        data?.error ? `Error: ${data.error}` : t("repesca.errorValidationFailed"),
         { type: "error" }
       );
       setIsSubmitting(false);
@@ -279,7 +282,7 @@ export default function Repesca() {
     try {
       const { result, reveal: nextReveal, score: scoreBreakdown } = data;
       if (!result) {
-        toast.push("Respuesta inesperada del servidor.", { type: "error" });
+        toast.push(t("repesca.errorUnexpectedResponse"), { type: "error" });
         setIsSubmitting(false);
         return;
       }
@@ -301,7 +304,7 @@ export default function Repesca() {
     } catch (err) {
       console.error("[Repesca] post-response error", err);
       triggerHaptic([60, 40, 60]);
-      toast.push("Error procesando la respuesta.", { type: "error" });
+      toast.push(t("repesca.errorProcessingResponse"), { type: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -315,7 +318,7 @@ export default function Repesca() {
         <div className="flex flex-col items-center gap-4">
           <span className="animate-bounce text-4xl">🎯</span>
           <p className="animate-pulse text-sm uppercase tracking-widest text-muted">
-            Cargando repesca...
+            {t("repesca.loadingMessage")}
           </p>
         </div>
       </div>
@@ -327,10 +330,10 @@ export default function Repesca() {
       <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-white">
         <div className="w-full max-w-sm rounded-2xl border border-red-400/40 bg-bg-secondary/60 p-6 text-center shadow-2xl">
           <p className="text-[10px] uppercase tracking-[0.28em] text-red-400">
-            Repesca no disponible
+            {t("repesca.errorUnavailable")}
           </p>
           <h1 className="mt-2 font-display text-2xl tracking-widest text-white">
-            Algo no encaja
+            {t("repesca.errorMismatchTitle")}
           </h1>
           <p className="mt-3 text-sm text-muted">{error}</p>
           <button
@@ -344,7 +347,7 @@ export default function Repesca() {
               transition hover:brightness-110 active:scale-[0.98]
             "
           >
-            Volver al juego
+            {t("repesca.buttonBackToGame")}
           </button>
         </div>
       </div>
@@ -383,11 +386,11 @@ export default function Repesca() {
             >
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            <span>Salir</span>
+            <span>{t("repesca.buttonExit")}</span>
           </button>
 
           <p className="font-display text-xl tracking-widest text-white">
-            REPESCA
+            {t("repesca.headerTitle")}
           </p>
 
           {/* Spacer para mantener "REPESCA" centrado visualmente */}
@@ -399,13 +402,13 @@ export default function Repesca() {
         <header className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-b border-border py-4">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.22em] text-accent">
-              Modo Repesca · una al día
+              {t("repesca.modeSubheader")}
             </p>
             <h1 className="mt-1 font-display text-[1.6rem] leading-none tracking-[0.12em] text-white">
-              Recuperar coche
+              {t("repesca.pageTitle")}
             </h1>
             <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted">
-              Puntos a la mitad · no afecta a tu racha
+              {t("repesca.gameRulesNote")}
             </p>
           </div>
 
@@ -414,7 +417,7 @@ export default function Repesca() {
               {MAX_ATTEMPTS - attempts}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted">
-              intentos
+              {t("repesca.attemptsLabel")}
             </div>
           </div>
         </header>

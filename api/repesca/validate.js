@@ -93,7 +93,7 @@ async function authClientAndUser(accessToken) {
 async function fetchCarById(id) {
   const { data, error } = await supabaseAdmin
     .from("cars")
-    .select("id, make, model, year, pais, description")
+    .select("id, make, model, year, pais, description, description_en")
     .eq("id", id)
     .single();
   if (error || !data) return null;
@@ -199,6 +199,7 @@ export default async function handler(req, res) {
       anio: realRow.year,
       pais: realRow.pais,
       description: realRow.description ?? null,
+      description_en: realRow.description_en ?? null,
     };
 
     // 3) Número de intento server-side. Leemos la fila de user_guesses
@@ -340,6 +341,7 @@ export default async function handler(req, res) {
         anio: realCar.anio,
         pais: realCar.pais,
         description: realCar.description,
+        description_en: realCar.description_en,
       };
     }
 

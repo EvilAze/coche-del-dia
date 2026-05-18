@@ -107,6 +107,10 @@ export default async function handler(req, res) {
       const d = typeof body.description === "string" ? body.description.trim() : "";
       patch.description = d ? d : null;
     }
+    if ("description_en" in body) {
+      const d = typeof body.description_en === "string" ? body.description_en.trim() : "";
+      patch.description_en = d ? d : null;
+    }
     if (typeof body.image_url === "string" && body.image_url.startsWith("http")) {
       patch.image_url = body.image_url;
       // Si el admin cambia la foto, regeneramos el LQIP. Si falla por algún
@@ -124,7 +128,7 @@ export default async function handler(req, res) {
       .from("cars")
       .update(patch)
       .eq("id", id)
-      .select("id, make, model, year, pais, description, image_url")
+      .select("id, make, model, year, pais, description, description_en, image_url")
       .maybeSingle();
     if (error) {
       console.error("[admin/update-car]", error);
@@ -143,6 +147,7 @@ export default async function handler(req, res) {
         anio: data.year,
         pais: data.pais,
         description: data.description ?? null,
+        description_en: data.description_en ?? null,
         img: data.image_url,
       },
     });

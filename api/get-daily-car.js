@@ -148,7 +148,7 @@ export default async function handler(req, res) {
   if (status === "won" || status === "lost") {
     const { data: liveCar, error: liveErr } = await supabaseAdmin
       .from("cars")
-      .select("make, model, year, pais, description")
+      .select("make, model, year, pais, description, description_en")
       .eq("id", todayCarId)
       .maybeSingle();
     if (liveErr) {
@@ -160,6 +160,7 @@ export default async function handler(req, res) {
         anio: liveCar.year,
         pais: liveCar.pais,
         description: liveCar.description ?? null,
+        description_en: liveCar.description_en ?? null,
       };
     }
   }

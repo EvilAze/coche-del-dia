@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getMyStats } from "../hooks/useStats";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
+import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 
@@ -35,6 +36,7 @@ function LockIcon() {
 }
 
 export default function MyStats({ open, onClose, onSignedOut }) {
+  const { t } = useT();
   const [state, setState] = useState({
     loading: true,
     user: null,
@@ -64,7 +66,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
           user: null,
           profile: null,
           stats: null,
-          error: "No se pudieron cargar tus estadísticas.",
+          error: t("myStats.errorLoad"),
         })
       );
   }, [open]);
@@ -75,7 +77,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
     if (error) {
       setState((current) => ({
         ...current,
-        error: "No se pudo cerrar sesión.",
+        error: t("myStats.errorSignOut"),
       }));
       return;
     }
@@ -87,7 +89,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
   useEscape(open, onClose);
 
   const stats = state.stats;
-  const nickname = state.profile?.display_name || "Sin nickname";
+  const nickname = state.profile?.display_name || t("myStats.noNickname");
   const email = state.user?.email || "";
 
   return (
@@ -99,18 +101,18 @@ export default function MyStats({ open, onClose, onSignedOut }) {
     >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-widest text-white">
-            Mi Perfil
+            {t("myStats.title")}
           </h2>
           <CloseButton onClick={onClose} />
         </div>
 
         {state.loading ? (
-          <p className="text-sm text-muted">Cargando...</p>
+          <p className="text-sm text-muted">{t("common.loading")}</p>
         ) : state.error && !state.user ? (
           <p className="text-sm text-red-400">{state.error}</p>
         ) : !state.user ? (
           <p className="text-sm text-muted">
-            Inicia sesión para guardar tus rachas y estadísticas.
+            {t("myStats.promoLogin")}
           </p>
         ) : (
           <>
@@ -122,8 +124,8 @@ export default function MyStats({ open, onClose, onSignedOut }) {
                   </p>
                   <span
                     className="shrink-0 text-muted/60"
-                    title="Tu nick es permanente"
-                    aria-label="Nick permanente"
+                    title={t("myStats.nickPermanent")}
+                    aria-label={t("myStats.nickPermanentAria")}
                   >
                     <LockIcon />
                   </span>
@@ -137,9 +139,9 @@ export default function MyStats({ open, onClose, onSignedOut }) {
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <StatCard label="Racha" value={stats.current_streak} />
-              <StatCard label="Máxima" value={stats.max_streak} />
-              <StatCard label="Aciertos" value={stats.total_wins} />
+              <StatCard label={t("myStats.statStreak")} value={stats.current_streak} />
+              <StatCard label={t("myStats.statMaxStreak")} value={stats.max_streak} />
+              <StatCard label={t("myStats.statWins")} value={stats.total_wins} />
             </div>
 
             <div className="mt-5 flex justify-center">
@@ -148,7 +150,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
                 onClick={handleSignOut}
                 className="text-xs uppercase tracking-widest text-muted transition hover:text-red-500"
               >
-                Cerrar sesión
+                {t("common.signOut")}
               </button>
             </div>
           </>

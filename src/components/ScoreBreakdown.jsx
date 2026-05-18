@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useT } from "../i18n";
 
 // Animación count-up con ease-out cubic. Reactiva ante cambios de target.
 function useCountUp(target, duration = 850) {
@@ -28,6 +29,7 @@ function useCountUp(target, duration = 850) {
 }
 
 export default function ScoreBreakdown({ score, won }) {
+  const { t } = useT();
   const totalCount = useCountUp(score?.totalPoints || 0);
 
   if (!score) return null;
@@ -35,10 +37,10 @@ export default function ScoreBreakdown({ score, won }) {
   const lines = [];
   if (won) {
     if (score.basePoints > 0) {
-      lines.push({ label: "Base", value: score.basePoints });
+      lines.push({ label: t("score.base"), value: score.basePoints });
     }
     if (score.streakBonus > 0) {
-      lines.push({ label: "Bonus racha 🔥", value: score.streakBonus });
+      lines.push({ label: t("score.streakBonus"), value: score.streakBonus });
     }
   }
 
@@ -69,14 +71,14 @@ export default function ScoreBreakdown({ score, won }) {
 
       <div className="flex items-baseline justify-between">
         <span className="text-[11px] uppercase tracking-[0.22em] text-muted">
-          {won ? "Tu puntuación" : "Racha rota"}
+          {won ? t("score.yourScore") : t("score.streakBroken")}
         </span>
         <div className="flex items-baseline gap-1.5">
           <span className="font-display text-4xl tabular-nums text-accent leading-none">
             {totalCount}
           </span>
           <span className="text-[11px] uppercase tracking-widest text-muted">
-            pts
+            {t("score.points")}
           </span>
         </div>
       </div>
@@ -84,14 +86,14 @@ export default function ScoreBreakdown({ score, won }) {
       {score.persisted && score.currentStreak !== null && (
         <div className="mt-3 flex justify-between gap-2 text-[11px] uppercase tracking-widest text-muted">
           <span>
-            Racha:{" "}
+            {t("score.streakLabel")}{" "}
             <span className="text-white tabular-nums">
               {score.currentStreak}
             </span>
           </span>
           {typeof score.totalScore === "number" && (
             <span>
-              Total:{" "}
+              {t("score.totalLabel")}{" "}
               <span className="text-white tabular-nums">{score.totalScore}</span>
             </span>
           )}

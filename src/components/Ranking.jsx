@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { getLeaderboard } from "../hooks/useStats";
 import { useEscape } from "../hooks/useEscape";
+import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import ScoringHelpModal from "./ScoringHelpModal";
 
 function HelpButton({ onClick }) {
+  const { t } = useT();
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Cómo se puntúa"
-      title="Cómo se puntúa"
+      aria-label={t("ranking.helpButtonAria")}
+      title={t("ranking.helpButtonAria")}
       className="
         flex h-7 w-7 shrink-0 items-center justify-center
         rounded-full border border-white/15 bg-white/[0.04]
@@ -45,6 +47,7 @@ function getStreakDisplay(streak) {
 }
 
 function StreakBadge({ streak }) {
+  const { t } = useT();
   const display = getStreakDisplay(streak);
   if (!display) return null;
 
@@ -54,8 +57,8 @@ function StreakBadge({ streak }) {
         inline-flex shrink-0 items-center gap-1 leading-none
         ${display.onFire ? "animate-pulse" : ""}
       `}
-      title={`Racha de ${streak} días`}
-      aria-label={`Racha de ${streak} días, bonus ${display.bonus}`}
+      title={t("ranking.streakTitle", { count: streak })}
+      aria-label={t("ranking.streakAria", { count: streak, bonus: display.bonus })}
     >
       <span className="text-sm tracking-tighter">{display.fires}</span>
       <span className="text-xs font-semibold text-amber-400">
@@ -66,6 +69,7 @@ function StreakBadge({ streak }) {
 }
 
 export default function Ranking({ open, onClose, user, onOpenLogin }) {
+  const { t } = useT();
   const [state, setState] = useState({
     loading: true,
     players: [],
@@ -84,7 +88,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
         setState({
           loading: false,
           players: [],
-          error: "No se pudo cargar el ranking.",
+          error: t("ranking.errorLoad"),
         })
       );
   }, [open]);
@@ -102,11 +106,11 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.28em] text-accent">
-              Arcade Board
+              {t("ranking.tag")}
             </p>
             <div className="flex items-center gap-2.5">
               <h2 className="font-display text-3xl tracking-widest text-white">
-                Ranking
+                {t("ranking.title")}
               </h2>
               <HelpButton onClick={() => setHelpOpen(true)} />
             </div>
@@ -116,12 +120,12 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
         </div>
 
         {state.loading ? (
-          <p className="text-sm text-muted">Cargando ranking...</p>
+          <p className="text-sm text-muted">{t("ranking.loading")}</p>
         ) : state.error ? (
           <p className="text-sm text-red-400">{state.error}</p>
         ) : state.players.length === 0 ? (
           <p className="text-sm text-muted">
-            Todavía no hay pilotos con nickname.
+            {t("ranking.empty")}
           </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-white/10">
@@ -132,9 +136,9 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                 ${user && state.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : ""}
               `}
             >
-              <span>#</span>
-              <span>Piloto</span>
-              <span className="text-right">Pts</span>
+              <span>{t("ranking.colRank")}</span>
+              <span>{t("ranking.colPlayer")}</span>
+              <span className="text-right">{t("ranking.colPoints")}</span>
             </div>
 
             <div
@@ -175,7 +179,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                       <StreakBadge streak={player.currentStreak} />
                     </div>
                     <p className="mt-0.5 text-xs text-muted">
-                      Mejor racha: {player.maxStreak}
+                      {t("ranking.bestStreak", { value: player.maxStreak })}
                     </p>
                   </div>
 
@@ -184,7 +188,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                       {player.totalPoints}
                     </div>
                     <div className="text-[10px] uppercase tracking-widest text-muted">
-                      puntos
+                      {t("ranking.points")}
                     </div>
                   </div>
                 </div>
@@ -201,7 +205,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             {!user && state.players.length > 3 && (
               <div className="bg-gradient-to-b from-black/5 to-black/40 p-4">
                 <p className="text-center text-sm text-muted">
-                  Inicia sesion para ver la tabla completa y tu posicion actual.
+                  {t("ranking.loginPrompt")}
                 </p>
                 <button
                   type="button"
@@ -215,7 +219,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     transition hover:bg-accent/20 active:scale-[0.98]
                   "
                 >
-                  Unirme a la competicion
+                  {t("ranking.loginCta")}
                 </button>
               </div>
             )}

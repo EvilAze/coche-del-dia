@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
+import { useT, getCarDescription } from "../i18n";
 import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
@@ -97,6 +98,7 @@ function groupCarsByBrand(cars) {
 }
 
 export default function Garage({ open, onClose, user, onOpenLogin }) {
+  const { t } = useT();
   const toast = useToast();
   const [state, setState] = useState({
     loading: false,
@@ -165,7 +167,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error("Sin sesión");
+        if (!session?.access_token) throw new Error(t("garage.errorNoSession"));
 
         const res = await fetch("/api/garage", {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -179,7 +181,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         setState({
           loading: false,
           data: null,
-          error: err?.message || "No se pudo cargar el garaje.",
+          error: err?.message || t("garage.errorLoad"),
         });
       }
     })();
@@ -238,17 +240,14 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     }
 
     if (repescaPool.length === 0) {
-      toast.push("¡Enhorabuena! Ya has adivinado todos los coches anteriores.", {
+      toast.push(t("garage.toastAllGuessed"), {
         type: "success",
       });
       return;
     }
 
     if (!state.data?.repescaAvailable) {
-      toast.push(
-        "Ya has consumido tu repesca de hoy. Vuelve mañana para otra oportunidad.",
-        { type: "info" }
-      );
+      toast.push(t("garage.toastRepescaConsumed"), { type: "info" });
       return;
     }
 
@@ -273,7 +272,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("Sin sesión");
+      if (!session?.access_token) throw new Error(t("garage.errorNoSession"));
 
       const res = await fetch("/api/repesca/start", {
         method: "POST",
@@ -290,7 +289,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       window.location.href = `/repesca?id=${encodeURIComponent(pickedId)}`;
     } catch (err) {
       console.error("[Garage] random repesca:", err);
-      toast.push(err?.message || "No se pudo iniciar la repesca.", {
+      toast.push(err?.message || t("garage.errorRepescaFailed"), {
         type: "error",
       });
       setRepescaStarting(false);
@@ -347,17 +346,17 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   // El JSX final lo envuelve y solo monta el panel cuando open=true.
 
   // Datos del header (label + título) y back button según vista.
-  let headerLabel = "Tu colección";
-  let headerTitle = "Garaje";
+  let headerLabel = t("garage.headerCollection");
+  let headerTitle = t("garage.headerTitle");
   let backLabel = null;
   let onBack = null;
   if (view === "brands") {
-    headerLabel = "País";
+    headerLabel = t("garage.headerLabelCountry");
     headerTitle = currentCountry.pais;
-    backLabel = "Países";
+    backLabel = t("garage.backCountries");
     onBack = () => setSelectedCountry(null);
   } else if (view === "cars") {
-    headerLabel = "Marca";
+    headerLabel = t("garage.headerLabelBrand");
     headerTitle = currentBrand.marca;
     backLabel = currentCountry.pais;
     onBack = () => setSelectedBrand(null);
@@ -453,11 +452,11 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
             }}
           />
         ) : state.loading ? (
-          <CenterMessage text="Abriendo el garaje..." pulse />
+          <CenterMessage text={t("garage.loading")} pulse />
         ) : state.error ? (
           <CenterMessage text={state.error} tone="error" />
         ) : !state.data || state.data.countries.length === 0 ? (
-          <CenterMessage text="El catálogo está vacío. Vuelve cuando haya coches que coleccionar." />
+          <CenterMessage text={t("garage.emptyCatalog")} />
         ) : (
           // AnimatePresence con mode="wait": espera a que la vista saliente
           // complete su exit antes de montar la entrante. Sin esto, ambas
@@ -556,6 +555,7 @@ function CountriesMenu({
   repescaStarting,
   onRandomRepesca,
 }) {
+  const { t } = useT();
   // Decoramos cada país con su `missed` (no `unlocked` && wasDaily) para
   // que CountryCard pueda mostrar el contador ámbar.
   const countriesWithMissed = useMemo(() => {
@@ -569,7 +569,7 @@ function CountriesMenu({
     <>
       <div className="border-b border-white/10 bg-white/[0.02] px-4 py-2.5 text-center">
         <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
-          Progreso total
+          {t("garage.progressTotal")}
         </p>
         <p className="mt-0.5 font-display text-lg text-white">
           <span className="text-accent">{data.totalUnlocked}</span>
@@ -603,6 +603,7 @@ function CountriesMenu({
 }
 
 function CountryCard({ country, onClick }) {
+  const { t } = useT();
   const completed = country.unlocked === country.total && country.total > 0;
 
   return (
@@ -624,7 +625,7 @@ function CountryCard({ country, onClick }) {
     >
       {completed && (
         <div className="absolute left-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
-          ★ Completo
+          {t("garage.badgeComplete")}
         </div>
       )}
 
@@ -652,6 +653,7 @@ function BrandsMenu({
   brands,
   onSelectBrand,
 }) {
+  const { t } = useT();
   const visibleBrands = brands || [];
   return (
     <>
@@ -679,7 +681,7 @@ function BrandsMenu({
             {country.pais}
           </p>
           <p className="mt-2 text-xs font-medium tabular-nums text-gray-300">
-            {country.unlocked} / {country.total} coches
+            {t("garage.countryCount", { unlocked: country.unlocked, total: country.total })}
           </p>
         </div>
       </div>
@@ -777,6 +779,7 @@ function BrandShowroom({
   brand,
   onSelectCar,
 }) {
+  const { t } = useT();
   const progressPct = brand.total
     ? Math.round((brand.unlocked / brand.total) * 100)
     : 0;
@@ -815,7 +818,7 @@ function BrandShowroom({
             </p>
           )}
           <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
-            {brand.unlocked} / {brand.total} desbloqueados
+            {t("garage.brandCount", { unlocked: brand.unlocked, total: brand.total })}
           </p>
           <div className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-white/10">
             <div
@@ -896,6 +899,7 @@ function UnlockedCard({ car, onClick }) {
 }
 
 function LockedCard({ car }) {
+  const { t } = useT();
   // El blur va aplicado SERVER-SIDE en /api/car-image (mode=blurred): lo que
   // llega al navegador es un JPEG ya desenfocado y oscurecido. No usamos
   // CSS blur a propósito — sería trivial de quitar abriendo DevTools y leyendo
@@ -913,7 +917,7 @@ function LockedCard({ car }) {
         border border-white/10 bg-[#0d0d10]
         shadow-md shadow-black/40
       "
-      aria-label="Cromo bloqueado"
+      aria-label={t("garage.ariaLockedCard")}
     >
       <img
         src={car?.img}
@@ -935,7 +939,7 @@ function LockedCard({ car }) {
           className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/80"
           style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
         >
-          Bloqueado
+          {t("garage.lockedLabel")}
         </p>
       </div>
     </div>
@@ -947,6 +951,7 @@ function LockedCard({ car }) {
 // ============================================================================
 
 function CarDetail({ open, car, onClose }) {
+  const { t } = useT();
   // Conservamos el último coche válido en estado local. Cuando el padre
   // hace setDetailCar(null) para cerrar el modal, `car` pasa a null y `open`
   // a false en el mismo render — pero el exit-animation tarda ~250 ms en
@@ -990,18 +995,18 @@ function CarDetail({ open, car, onClose }) {
               {displayCar.anio}
             </p>
 
-            {displayCar.description ? (
+            {getCarDescription(displayCar) ? (
               <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
                 <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
-                  Ficha
+                  {t("garage.carSpec")}
                 </p>
                 <p className="text-sm leading-relaxed text-white/90">
-                  {displayCar.description}
+                  {getCarDescription(displayCar)}
                 </p>
               </div>
             ) : (
               <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-3 text-xs italic text-muted">
-                Sin ficha. Pronto añadiremos más detalles.
+                {t("garage.carNoDescription")}
               </p>
             )}
           </div>
@@ -1020,6 +1025,7 @@ function CarDetail({ open, car, onClose }) {
 // y nada de info del coche — porque ni siquiera nosotros sabemos cuál nos
 // va a tocar todavía (el random sale en el `onAccept`).
 function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) {
+  const { t } = useT();
   // Si está en pleno proceso de "Sorteando..." (starting=true), bloqueamos
   // que se cierre tocando el backdrop. La animación de salida del modal
   // confundiría: parecería que se cancela cuando en realidad sigue el POST.
@@ -1036,21 +1042,20 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
             <span className="text-2xl" aria-hidden="true">🎲</span>
           </div>
           <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-accent">
-            Repesca diaria
+            {t("garage.repescaTag")}
           </p>
           <h3 className="mt-1 font-display text-xl tracking-wider text-white">
-            ¿Sortear un coche?
+            {t("garage.repescaConfirmTitle")}
           </h3>
 
           <p className="mt-3 text-sm text-muted">
-            Te tocará un coche al azar de los {poolSize} pendientes. No verás
-            su marca, modelo ni país hasta empezar la partida.
+            {t("garage.repescaConfirmBody", { poolSize })}
           </p>
 
           <ul className="mt-4 space-y-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-xs text-muted">
-            <li>· Solo tienes <span className="text-white">una</span> repesca cada 24 h.</li>
-            <li>· La puntuación es la <span className="text-white">mitad</span> que en una partida normal.</li>
-            <li>· <span className="text-white">No</span> afecta a tu racha (streak).</li>
+            <li>· {t("garage.repescaRuleOnePerDay")}</li>
+            <li>· {t("garage.repescaRuleHalfPoints")}</li>
+            <li>· {t("garage.repescaRuleNoStreak")}</li>
           </ul>
 
           <div className="mt-5 flex gap-2">
@@ -1065,7 +1070,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
                 disabled:cursor-not-allowed disabled:opacity-50
               "
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               type="button"
@@ -1079,7 +1084,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
               "
               aria-busy={starting}
             >
-              {starting ? "Sorteando..." : "Sortear y jugar"}
+              {starting ? t("garage.repescaStarting") : t("garage.repescaAccept")}
             </button>
           </div>
         </div>
@@ -1111,29 +1116,30 @@ function RandomRepescaButton({
   starting,
   onClick,
 }) {
+  const { t } = useT();
   let label;
   let icon = "🎲";
   let disabled = false;
   let tone = "accent";
 
   if (starting) {
-    label = "Sorteando...";
+    label = t("garage.repescaStarting");
     icon = "🎲";
   } else if (hasActive) {
-    label = "Continuar repesca";
+    label = t("garage.repescaContinue");
     icon = "⟳";
   } else if (poolSize === 0) {
-    label = "Álbum completo";
+    label = t("garage.repescaComplete");
     icon = "★";
     disabled = true;
     tone = "muted";
   } else if (!available) {
-    label = "Sin repescas hoy";
+    label = t("garage.repescaNoneToday");
     icon = "⏳";
     disabled = true;
     tone = "muted";
   } else {
-    label = "Jugar Repesca Aleatoria";
+    label = t("garage.repescaPlay");
   }
 
   const base =
@@ -1169,11 +1175,12 @@ function RandomRepescaButton({
 // ============================================================================
 
 function BackButton({ onClick, label }) {
+  const { t } = useT();
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Volver a ${label}`}
+      aria-label={t("garage.backTo", { label })}
       className="
         inline-flex max-w-full items-center gap-1.5
         rounded-md border border-white/10 bg-white/[0.04]
@@ -1194,7 +1201,7 @@ function BackButton({ onClick, label }) {
       >
         <path d="M15 18l-6-6 6-6" />
       </svg>
-      <span className="truncate">Volver a {label}</span>
+      <span className="truncate">{t("garage.backTo", { label })}</span>
     </button>
   );
 }
@@ -1213,12 +1220,13 @@ function CenterMessage({ text, pulse = false, tone = "default" }) {
 // "?" del header del Garaje. Mismo look que el HelpButton del Ranking
 // para mantener la consistencia visual entre módulos de la app.
 function HelpButton({ onClick }) {
+  const { t } = useT();
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Cómo funciona la repesca"
-      title="Cómo funciona la repesca"
+      aria-label={t("garage.helpRepesca")}
+      title={t("garage.helpRepesca")}
       className="
         flex h-7 w-7 shrink-0 items-center justify-center
         rounded-full border border-white/15 bg-white/[0.04]
@@ -1249,6 +1257,7 @@ function HelpButton({ onClick }) {
 // que sale justo antes de gastar la repesca; este de aquí está pensado
 // para consultarse antes de decidir.
 function RepescaHelpModal({ open, onClose }) {
+  const { t } = useT();
   return (
     <ModalShell
       open={open}
@@ -1267,34 +1276,30 @@ function RepescaHelpModal({ open, onClose }) {
             </div>
             <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
-                Modo Repesca
+                {t("garage.repescaHelpTag")}
               </p>
               <h3 className="font-display text-xl tracking-wider text-white">
-                ¿Cómo funciona?
+                {t("garage.repescaHelpTitle")}
               </h3>
             </div>
           </div>
 
           <p className="mt-4 text-sm leading-relaxed text-white/90">
-            La repesca es una segunda oportunidad diaria para recuperar
-            coches que ya fueron coche del día y que aún no has adivinado.
+            {t("garage.repescaHelpBody")}
           </p>
 
           <div className="mt-4 space-y-3">
-            <HelpRow icon="🎲" title="Coche sorpresa">
-              Se elige al azar entre tus coches pendientes. No verás marca,
-              modelo ni país hasta empezar la partida.
+            <HelpRow icon="🎲" title={t("garage.repescaHelpSurprise")}>
+              {t("garage.repescaHelpSurpriseDesc")}
             </HelpRow>
-            <HelpRow icon="⏱️" title="Una al día">
-              Solo puedes jugar una repesca cada 24 horas. Si fallas, tendrás
-              que esperar al día siguiente.
+            <HelpRow icon="⏱️" title={t("garage.repescaHelpOnce")}>
+              {t("garage.repescaHelpOnceDesc")}
             </HelpRow>
-            <HelpRow icon="½" title="Mitad de puntos">
-              La puntuación que consigas en una repesca cuenta la mitad que
-              en una partida normal.
+            <HelpRow icon="½" title={t("garage.repescaHelpHalf")}>
+              {t("garage.repescaHelpHalfDesc")}
             </HelpRow>
-            <HelpRow icon="🔥" title="No afecta a tu racha">
-              Ganes o pierdas la repesca, tu streak diario no se ve afectado.
+            <HelpRow icon="🔥" title={t("garage.repescaHelpNoStreak")}>
+              {t("garage.repescaHelpNoStreakDesc")}
             </HelpRow>
           </div>
 
@@ -1307,7 +1312,7 @@ function RepescaHelpModal({ open, onClose }) {
               transition hover:border-accent hover:bg-accent/25 active:scale-[0.98]
             "
           >
-            Entendido
+            {t("garage.repescaHelpOk")}
           </button>
         </div>
     </ModalShell>
@@ -1331,6 +1336,7 @@ function HelpRow({ icon, title, children }) {
 }
 
 function AuthWall({ onLogin }) {
+  const { t } = useT();
   return (
     <div className="flex flex-1 items-center justify-center p-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-white/10 bg-bg-secondary/60 p-6 text-center">
@@ -1339,11 +1345,10 @@ function AuthWall({ onLogin }) {
         </div>
         <div>
           <p className="font-display text-xl tracking-widest text-white">
-            Garaje cerrado
+            {t("garage.authTitle")}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Inicia sesión para coleccionar tus aciertos, completar el álbum
-            por países y guardar tu progreso.
+            {t("garage.authBody")}
           </p>
         </div>
         <button
@@ -1356,7 +1361,7 @@ function AuthWall({ onLogin }) {
           "
         >
           <GoogleIcon className="h-4 w-4" />
-          Continuar con Google
+          {t("common.continueWithGoogle")}
         </button>
       </div>
     </div>

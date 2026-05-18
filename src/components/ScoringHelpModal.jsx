@@ -1,4 +1,5 @@
 import { useEscape } from "../hooks/useEscape";
+import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 
@@ -11,14 +12,16 @@ const BASE_POINTS = [
   { attempt: 6, points: 1 },
 ];
 
-const STREAK_BONUS = [
-  { label: "Racha 2", fires: "🔥", bonus: "+1" },
-  { label: "Racha 3", fires: "🔥🔥", bonus: "+2" },
-  { label: "Racha 4+", fires: "🔥🔥🔥", bonus: "+3" },
-];
-
 export default function ScoringHelpModal({ open, onClose }) {
+  const { t } = useT();
   useEscape(open, onClose);
+
+  // Las labels van por i18n; el resto (fuegos, bonus) son universales.
+  const STREAK_BONUS = [
+    { labelKey: "scoring.streakLabel2", fires: "🔥", bonus: "+1" },
+    { labelKey: "scoring.streakLabel3", fires: "🔥🔥", bonus: "+2" },
+    { labelKey: "scoring.streakLabel4plus", fires: "🔥🔥🔥", bonus: "+3" },
+  ];
 
   return (
     <ModalShell
@@ -34,10 +37,10 @@ export default function ScoringHelpModal({ open, onClose }) {
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.28em] text-accent">
-              Cómo se puntúa
+              {t("scoring.tag")}
             </p>
             <h2 className="font-display text-3xl tracking-widest text-white">
-              Sistema
+              {t("scoring.title")}
             </h2>
           </div>
 
@@ -46,10 +49,10 @@ export default function ScoringHelpModal({ open, onClose }) {
 
         <section className="mb-5">
           <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">
-            Puntos base
+            {t("scoring.basePointsHeader")}
           </h3>
           <p className="mb-3 text-sm text-white/70">
-            Cuantos menos intentos necesites, más puntos consigues.
+            {t("scoring.basePointsBody")}
           </p>
 
           <div className="overflow-hidden rounded-xl border border-white/10">
@@ -63,13 +66,13 @@ export default function ScoringHelpModal({ open, onClose }) {
                 `}
               >
                 <span className="text-sm text-white/85">
-                  Intento{" "}
+                  {t("scoring.attempt")}{" "}
                   <span className="font-display text-base text-white">
                     {row.attempt}
                   </span>
                 </span>
                 <span className="font-display tabular-nums text-lg text-accent">
-                  {row.points} pts
+                  {row.points} {t("scoring.ptsSuffix")}
                 </span>
               </div>
             ))}
@@ -78,16 +81,16 @@ export default function ScoringHelpModal({ open, onClose }) {
 
         <section>
           <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted">
-            Bonus de racha
+            {t("scoring.bonusHeader")}
           </h3>
           <p className="mb-3 text-sm text-white/70">
-            Acierta cada día sin fallar para sumar puntos extra.
+            {t("scoring.bonusBody")}
           </p>
 
           <div className="grid grid-cols-3 gap-2">
             {STREAK_BONUS.map((row) => (
               <div
-                key={row.label}
+                key={row.labelKey}
                 className="
                   flex flex-col items-center justify-center gap-1
                   rounded-xl border border-accent/20 bg-accent/[0.06] px-2 py-3
@@ -97,7 +100,7 @@ export default function ScoringHelpModal({ open, onClose }) {
                   {row.fires}
                 </span>
                 <span className="text-[10px] uppercase tracking-widest text-muted">
-                  {row.label}
+                  {t(row.labelKey)}
                 </span>
                 <span className="font-display text-xl tabular-nums text-accent leading-none">
                   {row.bonus}
@@ -107,7 +110,7 @@ export default function ScoringHelpModal({ open, onClose }) {
           </div>
 
           <p className="mt-3 text-xs text-muted">
-            El bonus se suma a los puntos base de cada día.
+            {t("scoring.bonusFootnote")}
           </p>
         </section>
     </ModalShell>

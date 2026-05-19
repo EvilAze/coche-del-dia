@@ -25,7 +25,9 @@
       "Bash(node --check api/_lib/rate-limit.js)",
       "Bash(node --check api/_lib/reveal-token.js)",
       "Bash(node --check api/get-daily-car.js)",
-      "Bash(node --check api/daily-image.js)"
+      "Bash(node --check api/daily-image.js)",
+      "Bash(node --input-type=module -e \"import\\('./api/_lib/anon-session.js'\\).then\\(m => console.log\\('OK', Object.keys\\(m\\)\\)\\).catch\\(e => console.log\\('ERR', e.message\\)\\)\")",
+      "Bash(npm test *)"
     ]
   }
 }

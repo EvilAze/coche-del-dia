@@ -19,7 +19,10 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "test:security": "node scripts/test-security.mjs",
+    "test:attacks": "node scripts/test-attacks.mjs",
+    "test": "npm run test:security && npm run test:attacks"
   },
   "browserslist": {
     "production": [

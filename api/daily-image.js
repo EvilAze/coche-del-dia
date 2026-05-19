@@ -27,6 +27,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
+import { readAnonSession } from "./_lib/anon-session.js";
+import { verifyRevealToken } from "./_lib/reveal-token.js";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
@@ -71,6 +73,8 @@ const Z_TO_CROP_PCT = {
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
@@ -78,6 +82,36 @@ const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
       auth: { persistSession: false, autoRefreshToken: false },
     })
   : null;
+
+// Si llega un Bearer, intentamos identificar al usuario para gatear el
+// reveal a su `user_guesses.status`. Es opcional: el flujo normal de
+// reveal pasa por el revealToken firmado, pero este check es defensivo
+// para clientes que aún no tengan token (cache antigua, refresh raro).
+async function tryReadUserStatus(req, carId, today) {
+  const auth = req.headers?.authorization || "";
+  if (!auth.startsWith("Bearer ")) return null;
+  const token = auth.slice(7);
+  if (!token || !SUPABASE_ANON_KEY) return null;
+  try {
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: u } = await client.auth.getUser();
+    if (!u?.user) return null;
+    const { data: row } = await client
+      .from("user_guesses")
+      .select("status")
+      .eq("user_id", u.user.id)
+      .eq("car_id", carId)
+      .eq("date", today)
+      .maybeSingle();
+    return row?.status || null;
+  } catch (err) {
+    console.error("[daily-image] tryReadUserStatus:", err?.message || err);
+    return null;
+  }
+}
 
 function todayInMadrid() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -132,8 +166,47 @@ export default async function handler(req, res) {
   const wantedFormat = fRaw in FORMAT_MIME ? fRaw : null;
 
   const zRaw = Number(req.query?.z);
-  const wantedZ =
+  const zRequested =
     Number.isFinite(zRaw) && ALLOWED_Z.has(zRaw) ? zRaw : null;
+
+  // ---- Gateo del REVEAL (imagen completa) ------------------------------
+  // Antes, "sin z" significaba "imagen completa" — un cheater abría
+  // DevTools, copiaba la URL, quitaba `&z=5` y veía el coche entero. Ahora
+  // exigimos prueba server-verificable de que el visitante ha terminado
+  // la partida. Tres vías equivalentes:
+  //   (a) ?t=<revealToken> firmado por hoy (lo emite get-daily-car y
+  //       validate-guess cuando aplican).
+  //   (b) Bearer del usuario y user_guesses.status ∈ {won, lost}.
+  //   (c) Cookie anónima firmada con s ∈ {won, lost}.
+  // Si NINGUNA aplica, forzamos el crop más amplio que un jugador
+  // legítimo podría ver durante la partida (z=5 = 55,6% central).
+  let canReveal = false;
+
+  const tParam = typeof req.query?.t === "string" ? req.query.t : "";
+  if (tParam) {
+    const tokenDate = verifyRevealToken(tParam);
+    if (tokenDate === today) canReveal = true;
+  }
+
+  if (!canReveal) {
+    const userStatus = await tryReadUserStatus(req, carId, today);
+    if (userStatus === "won" || userStatus === "lost") canReveal = true;
+  }
+
+  if (!canReveal) {
+    const anon = readAnonSession(req);
+    if (anon && anon.d === today && (anon.s === "won" || anon.s === "lost")) {
+      canReveal = true;
+    }
+  }
+
+  // Decisión final del crop:
+  //   - canReveal=true  → respetamos lo que el cliente pidió (sin z = full,
+  //                       con z = un crop concreto si lo quiere por motivos
+  //                       de bandwidth — raro, pero válido).
+  //   - canReveal=false → SIEMPRE crop. Si el cliente mandó un z válido,
+  //                       lo usamos; si no, fallback a z=5.
+  const wantedZ = canReveal ? zRequested : zRequested ?? 5;
 
   // 4) Fetch server-side de los bytes. Si el CDN falla, propagamos el status
   //    para que el cliente sepa que no es un error de nuestra app.
@@ -220,16 +293,25 @@ export default async function handler(req, res) {
     }
   }
 
-  // Cache fuerte (24 h) en navegador y CDN: el coche de una fecha dada es
-  // determinista (pick_daily_car con la misma p_date siempre devuelve lo
-  // mismo) y los query params (d, v, w, f) ya rotan la cache key cada día
-  // o cuando el admin cambia la foto. Esta imagen es además el LCP element
-  // del juego — cada cache miss penaliza ~300-800 ms (más con AVIF).
+  // Cache:
+  //   - Si el cliente pasó un revealToken válido (?t=...), la URL incluye
+  //     ese token y es única para "reveal de hoy". Misma respuesta para
+  //     todos los que lo presenten → CDN-cacheable 24 h.
+  //   - Si la cache key es la URL "sin t" pero entregamos imagen completa
+  //     porque el usuario está logueado-con-win o tiene cookie won, NO
+  //     podemos cachear públicamente: la siguiente request anónima a esa
+  //     misma URL recibiría la imagen completa del cache → fuga total.
+  //     Marcamos no-store.
+  //   - El resto (crop forzado a z=5) es público y determinista, sin
+  //     leak: el crop es lo mismo que ve cualquier jugador legítimo.
+  const cacheable = !canReveal || Boolean(tParam);
   res.setHeader("Content-Type", outContentType);
   res.setHeader("Content-Length", String(outBuffer.length));
   res.setHeader(
     "Cache-Control",
-    "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400, immutable"
+    cacheable
+      ? "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400, immutable"
+      : "private, no-store"
   );
   // Por si acaso algún proxy intermedio mira el Content-Disposition:
   // forzamos inline sin filename, evitando filtrar el original del CDN.

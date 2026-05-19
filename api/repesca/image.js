@@ -8,7 +8,14 @@
 // carId=<X> y obtener la imagen de un coche al que aún no juega.
 
 import { createClient } from "@supabase/supabase-js";
+import sharp from "sharp";
 import { resolveRealCarId } from "../_lib/repesca-token.js";
+
+// Mismo crop fijo que /api/daily-image durante la partida: 55,6% central.
+// El cliente termina de "cerrar" el zoom por CSS sobre este 55%. Antes
+// servíamos la imagen ENTERA en repesca y el zoom era 100% client-side —
+// con DevTools veías el coche desnudo nada más arrancar.
+const CROP_PCT_PLAYING = 0.556;
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
@@ -115,6 +122,19 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Repesca not active for this car" });
     }
 
+    // ¿Ha cerrado la partida el usuario para este coche? Si sí, le servimos
+    // la imagen completa; si no, la crop'eamos server-side al 55% central
+    // (igual que en daily-image durante "playing").
+    const { data: guessRow } = await authClient
+      .from("user_guesses")
+      .select("status")
+      .eq("user_id", user.id)
+      .eq("car_id", carId)
+      .eq("date", today)
+      .maybeSingle();
+    const isFinished =
+      guessRow?.status === "won" || guessRow?.status === "lost";
+
     // Cargar URL real del CDN para este coche.
     const { data: row, error: fetchErr } = await supabaseAdmin
       .from("cars")
@@ -138,21 +158,53 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: "Upstream image error" });
     }
 
-    const contentType = upstream.headers.get("content-type") || "image/jpeg";
-    const buffer = Buffer.from(await upstream.arrayBuffer());
+    const originalContentType = upstream.headers.get("content-type") || "image/jpeg";
+    const originalBuffer = Buffer.from(await upstream.arrayBuffer());
 
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Content-Length", String(buffer.length));
-    // Cache corta (60s) por si el admin hot-swappea la imagen del coche
-    // a mitad de la repesca. Igual que /api/daily-image.
+    let outBuffer = originalBuffer;
+    let outContentType = originalContentType;
+
+    // Durante la partida (NO terminada), recortamos a un cuadrado central
+    // del 55,6% del lado menor — mismo cálculo que daily-image z=5.
+    if (!isFinished) {
+      try {
+        const meta = await sharp(originalBuffer).metadata();
+        if (meta?.width && meta?.height) {
+          const rotated90 = meta.orientation && meta.orientation >= 5;
+          const W = rotated90 ? meta.height : meta.width;
+          const H = rotated90 ? meta.width : meta.height;
+          const minDim = Math.min(W, H);
+          const size = Math.max(1, Math.round(minDim * CROP_PCT_PLAYING));
+          const left = Math.max(0, Math.round((W - size) / 2));
+          const top = Math.max(0, Math.round((H - size) / 2));
+          outBuffer = await sharp(originalBuffer)
+            .rotate()
+            .extract({ left, top, width: size, height: size })
+            .jpeg({ quality: 80, mozjpeg: true })
+            .toBuffer();
+          outContentType = "image/jpeg";
+        }
+      } catch (err) {
+        // Si sharp falla, mejor no entregar la imagen completa por accidente.
+        console.error("[repesca/image] sharp crop:", err?.message || err);
+        return res.status(500).json({ error: "Image processing failed" });
+      }
+    }
+
+    res.setHeader("Content-Type", outContentType);
+    res.setHeader("Content-Length", String(outBuffer.length));
+    // Cache PRIVADA y corta: la respuesta depende del estado del usuario
+    // (cropped vs full según user_guesses), así que NO debe cruzarse entre
+    // usuarios en ningún CDN compartido. Antes era una imagen anónimamente
+    // pública — ahora es per-usuario.
     res.setHeader(
       "Cache-Control",
-      "private, max-age=60, stale-while-revalidate=30"
+      "private, max-age=30, no-store"
     );
     res.setHeader("Content-Disposition", "inline");
 
     if (req.method === "HEAD") return res.status(200).end();
-    return res.status(200).send(buffer);
+    return res.status(200).send(outBuffer);
   } catch (err) {
     console.error("[repesca/image] UNCAUGHT:", err && err.stack ? err.stack : err);
     return res.status(500).json({

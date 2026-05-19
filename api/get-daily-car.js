@@ -13,6 +13,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
+import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
+import { signRevealToken } from "./_lib/reveal-token.js";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
@@ -115,11 +117,48 @@ export default async function handler(req, res) {
   };
 
   if (!user) {
-    // No queremos que un CDN cachee el estado del usuario, pero la respuesta
-    // anónima es estable durante el día. Aun así, dejamos no-store para no
-    // arriesgar contaminación cruzada con cabeceras Auth.
+    // Sesión anónima: gestionamos un cookie HttpOnly firmado para que
+    // /api/validate-guess pueda contar intentos server-side. Sin esto,
+    // el endpoint validaba `attemptNumber` desde el body — un script
+    // podía iterar todo el catálogo con attemptNumber:1 y descubrir el
+    // coche del día via `result.win` en alguna iteración.
+    //
+    // Estrategia:
+    //   - Si el visitante NO tiene cookie válida del día → emitimos una
+    //     fresca con n=0, s=playing.
+    //   - Si la tiene y es de hoy → la respetamos (no se pisa el progreso).
+    //   - Si la tiene pero es de un día anterior → la reemplazamos.
+    const anon = readAnonSession(req);
+    const anonValid =
+      anon &&
+      anon.d === today &&
+      Number.isInteger(anon.n) &&
+      typeof anon.s === "string";
+    if (!anonValid) {
+      try {
+        setAnonCookie(res, { d: today, n: 0, s: "playing" });
+      } catch (err) {
+        // Si REPESCA_TOKEN_SECRET no está configurado, dejamos al usuario
+        // jugar sin cookie. validate-guess se quejará pero al menos la
+        // home no rompe.
+        console.error("[get-daily-car] setAnonCookie:", err?.message || err);
+      }
+    }
+
+    // Si el cheater anónimo ya tenía ganado/perdido en la cookie, le damos
+    // el revealToken para que pueda ver la imagen completa al refrescar.
+    let revealToken = null;
+    if (anonValid && (anon.s === "won" || anon.s === "lost")) {
+      try {
+        revealToken = signRevealToken(today);
+      } catch (err) {
+        console.error("[get-daily-car] signRevealToken (anon):", err?.message || err);
+      }
+    }
+
+    // No queremos que un CDN cachee el estado del usuario.
     res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json(base);
+    return res.status(200).json({ ...base, revealToken });
   }
 
   // Usuario logueado: leemos su fila de user_guesses (RLS exige auth.uid()).
@@ -165,6 +204,19 @@ export default async function handler(req, res) {
     }
   }
 
+  // Token de reveal cuando el usuario ya cerró la partida: permite que la
+  // request a /api/daily-image sin `?z` reciba la imagen completa. Sin este
+  // token, el endpoint cae al crop de seguridad (z=5) — bloquea el viejo
+  // truco de "abrir DevTools → quitar &z=5 → ver foto entera".
+  let revealToken = null;
+  if (status === "won" || status === "lost") {
+    try {
+      revealToken = signRevealToken(today);
+    } catch (err) {
+      console.error("[get-daily-car] signRevealToken:", err?.message || err);
+    }
+  }
+
   res.setHeader("Cache-Control", "no-store");
   return res.status(200).json({
     date: today,
@@ -173,5 +225,6 @@ export default async function handler(req, res) {
     guesses,
     status,
     reveal,
+    revealToken,
   });
 }

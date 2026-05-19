@@ -20,7 +20,12 @@
       "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
       "Bash(until grep -q \"Compiled\\\\|Failed to compile\\\\|webpack compiled\" /tmp/dev3000.log 2>/dev/null; do sleep 1; done & *)",
       "PowerShell(Get-Process node -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.Id -Force }; \"killed\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(node --check api/_lib/anon-session.js)",
+      "Bash(node --check api/_lib/rate-limit.js)",
+      "Bash(node --check api/_lib/reveal-token.js)",
+      "Bash(node --check api/get-daily-car.js)",
+      "Bash(node --check api/daily-image.js)"
     ]
   }
 }

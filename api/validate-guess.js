@@ -12,6 +12,9 @@
 //     try/catch para no romper el flujo principal.
 
 import { createClient } from "@supabase/supabase-js";
+import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
+import { signRevealToken } from "./_lib/reveal-token.js";
+import { getClientIp, rateLimit } from "./_lib/rate-limit.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
@@ -126,6 +129,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // -------- 0.bis Rate-limit por IP ---------------------------------------
+  //   30 hits/min por IP es muy generoso para un humano (un intento tarda
+  //   ~3 s de teclear): un jugador normal hace 5 hits en toda la jornada.
+  //   El script que itera el catálogo (200 coches) reventará la ventana
+  //   a las pocas iteraciones.
+  //
+  //   Best-effort in-memory: ver api/_lib/rate-limit.js. No cuesta nada
+  //   pero un cheater con instancias warmadas distintas podría rotar entre
+  //   ellas — para una web pequeña como esta es aceptable.
+  const ip = getClientIp(req);
+  const limit = rateLimit(`vg:${ip}`, { max: 30, windowMs: 60_000 });
+  if (!limit.ok) {
+    res.setHeader("Retry-After", String(Math.ceil((limit.resetAt - Date.now()) / 1000)));
+    return res.status(429).json({ error: "Too many requests" });
+  }
+
   // -------- TRY/CATCH GLOBAL ---------------------------------------------
   try {
     // -------- 1. Sanity de configuración ---------------------------------
@@ -186,10 +205,19 @@ export default async function handler(req, res) {
       description_en: realRow.description_en ?? null,
     };
 
-    // -------- 5. attemptNumber server-side (logueados) -------------------
+    // -------- 5. attemptNumber AUTORITATIVO server-side -------------------
+    //   Logueados: contador desde user_guesses (RLS protegida).
+    //   Anónimos:  contador desde cookie HttpOnly firmada con HMAC. Antes
+    //              confiábamos en `body.attemptNumber`, lo que permitía a
+    //              un script enviar 200 requests con attemptNumber:1 e
+    //              iterar todo el catálogo leyendo `result.win`. Con la
+    //              cookie, el contador es server-controlled: tras 5
+    //              intentos esa sesión queda cerrada, y borrar cookies
+    //              fuerza a re-entrar por /api/get-daily-car (que sí emite
+    //              cookie pero también queda capada por el rate-limit).
     let attemptNumber;
-    let serverKnowsAttempts;
     let existingGuesses = [];
+    let anonSession = null;
     if (user) {
       const { data: row, error: rowErr } = await authClient
         .from("user_guesses")
@@ -210,14 +238,26 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: "Max attempts reached" });
       }
       attemptNumber = existingGuesses.length + 1;
-      serverKnowsAttempts = true;
     } else {
-      const claimed = Number(body.attemptNumber);
-      if (!Number.isInteger(claimed) || claimed < 1 || claimed > MAX_ATTEMPTS) {
-        return res.status(400).json({ error: "Invalid attemptNumber" });
+      anonSession = readAnonSession(req);
+      // Si no hay cookie válida o es de otro día, rechazamos: el cliente
+      // debe pasar por /api/get-daily-car primero (que la emite). En el
+      // flujo normal esto siempre ocurre — el frontend llama get-daily-car
+      // al arrancar la home.
+      if (
+        !anonSession ||
+        anonSession.d !== today ||
+        !Number.isInteger(anonSession.n)
+      ) {
+        return res.status(400).json({ error: "Anon session missing" });
       }
-      attemptNumber = claimed;
-      serverKnowsAttempts = false;
+      if (anonSession.s === "won" || anonSession.s === "lost") {
+        return res.status(403).json({ error: "Game already finished" });
+      }
+      if (anonSession.n >= MAX_ATTEMPTS) {
+        return res.status(403).json({ error: "Max attempts reached" });
+      }
+      attemptNumber = anonSession.n + 1;
     }
 
     // -------- 6. Comparación ---------------------------------------------
@@ -324,8 +364,13 @@ export default async function handler(req, res) {
     }
 
     // -------- 9. Política de revelado ------------------------------------
+    //   El servidor ahora SIEMPRE conoce los intentos (logueado vía DB,
+    //   anónimo vía cookie firmada), así que también los anónimos reciben
+    //   `reveal` al perder. Antes la única forma de cerrar la partida del
+    //   anónimo era ganar (porque attemptNumber era spoof-eable); ya no
+    //   hace falta esa asimetría.
     let reveal = null;
-    if (result.win || (isGameOver && serverKnowsAttempts)) {
+    if (isGameOver) {
       reveal = {
         marca: realCar.marca,
         modelo: realCar.modelo,
@@ -336,12 +381,37 @@ export default async function handler(req, res) {
       };
     }
 
+    // -------- 9.bis Actualizar cookie anónima + emitir revealToken --------
+    //   Cookie:    para el anónimo, persistimos el nuevo contador y status.
+    //              El próximo intento ya parte del valor server-controlled.
+    //   revealToken: cuando la partida cerró (won/lost), emitimos un token
+    //              firmado por hoy que el cliente añade como `?t=` a
+    //              /api/daily-image para recibir la imagen completa.
+    //              Reemplaza al hueco viejo de "quitar &z=5 → ver foto".
+    if (!user && anonSession) {
+      try {
+        setAnonCookie(res, { d: today, n: attemptNumber, s: newStatus });
+      } catch (err) {
+        console.error("[validate-guess] setAnonCookie:", err?.message || err);
+      }
+    }
+
+    let revealToken = null;
+    if (isGameOver) {
+      try {
+        revealToken = signRevealToken(today);
+      } catch (err) {
+        console.error("[validate-guess] signRevealToken:", err?.message || err);
+      }
+    }
+
     return res.status(200).json({
       result,
       win: result.win,
-      status: serverKnowsAttempts ? newStatus : isGameOver ? newStatus : "playing",
+      status: newStatus,
       attemptNumber,
       reveal,
+      revealToken,
       score,
     });
   } catch (err) {

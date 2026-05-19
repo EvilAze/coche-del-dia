@@ -87,6 +87,11 @@ export function useGame() {
   const [status, setStatus] = useState("playing");
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(null);
+  // Token firmado por el servidor que autoriza ver la imagen completa
+  // (modo reveal de /api/daily-image). Se rellena cuando el juego termina:
+  //   - Si el usuario llega con la partida ya cerrada → desde /api/get-daily-car.
+  //   - Si la cierra en esta sesión → desde la respuesta de /api/validate-guess.
+  const [revealToken, setRevealToken] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -128,9 +133,17 @@ export function useGame() {
         const headers = {};
         if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-        const res = await fetch("/api/get-daily-car", { headers });
+        const res = await fetch("/api/get-daily-car", {
+          headers,
+          // credentials same-origin: la cookie firmada `cd_anon` que emite
+          // el endpoint para anónimos viaja en este round-trip y todas las
+          // peticiones posteriores. Sin esto, los anónimos no podrían
+          // jugar (validate-guess exige cookie de sesión).
+          credentials: "same-origin",
+        });
         const daily = await res.json();
-        // daily = { date, img, guesses, status, reveal }
+        // daily = { date, img, guesses, status, reveal, revealToken }
+        setRevealToken(daily.revealToken || null);
 
         let initialGuesses = Array.isArray(daily.guesses) ? daily.guesses : [];
         let initialStatus = daily.status || "playing";
@@ -184,15 +197,22 @@ export function useGame() {
   const totalHints = ZOOM_LEVELS.length;
 
   // Durante la partida pedimos siempre el crop más amplio (z=5). El cliente
-  // termina de "cerrar" el zoom con CSS. Cuando el juego termina, sin `z`
-  // → el servidor entrega la imagen completa.
-  // Beneficio anti-cheat: un atacante con DevTools verá como máximo el 55%
-  // central (lo mismo que el jugador legítimo en el 5º intento), no la foto
-  // entera. La imagen completa sólo sale del servidor en estados won/lost.
-  const dailyImgSrc =
-    car?.img && status === "playing"
-      ? `${car.img}&z=5`
-      : car?.img || null;
+  // termina de "cerrar" el zoom con CSS. Cuando el juego termina añadimos
+  // `&t=<revealToken>` y el servidor entrega la imagen completa — sin ese
+  // token, /api/daily-image también devuelve crop (cierra el viejo cheat
+  // de "quitar &z=5 → ver foto entera").
+  let dailyImgSrc = null;
+  if (car?.img) {
+    if (status === "playing") {
+      dailyImgSrc = `${car.img}&z=5`;
+    } else if (revealToken) {
+      dailyImgSrc = `${car.img}&t=${encodeURIComponent(revealToken)}`;
+    } else {
+      // Game over pero aún no llegó el revealToken (race muy puntual).
+      // Mantenemos el crop hasta que llegue para no romper UX.
+      dailyImgSrc = `${car.img}&z=5`;
+    }
+  }
 
   async function submitGuess({ guessCarId, anio }) {
     if (status !== "playing" || isSubmitting) return;
@@ -224,6 +244,11 @@ export function useGame() {
       response = await fetch("/api/validate-guess", {
         method: "POST",
         headers,
+        // credentials same-origin: imprescindible para anónimos — la
+        // cookie HttpOnly `cd_anon` es la fuente de verdad del contador
+        // de intentos server-side. Sin esto el endpoint rechazaría con
+        // "Anon session missing".
+        credentials: "same-origin",
         body: JSON.stringify(payload),
       });
     } catch (networkErr) {
@@ -282,7 +307,8 @@ export function useGame() {
     }
 
     try {
-      const { result, reveal, score: scoreBreakdown } = data;
+      const { result, reveal, revealToken: nextRevealToken, score: scoreBreakdown } = data;
+      if (nextRevealToken) setRevealToken(nextRevealToken);
       if (!result) {
         console.error("[submitGuess] respuesta sin `result`", data);
         toast.push("Respuesta inesperada del servidor.", { type: "error" });

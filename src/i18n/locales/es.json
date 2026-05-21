@@ -127,6 +127,15 @@
       "country": "Por país"
     }
   },
+  "publicProfile": {
+    "title": "Perfil",
+    "publicLabel": "Perfil público",
+    "noNickname": "Sin nickname",
+    "errorLoad": "No se pudo cargar el perfil.",
+    "statPoints": "Puntos",
+    "medalsTitle": "Medallas",
+    "noMedalsYet": "Aún no ha conseguido medallas."
+  },
   "nickname": {
     "tag": "Nuevo piloto",
     "title": "Elige tu Nick",

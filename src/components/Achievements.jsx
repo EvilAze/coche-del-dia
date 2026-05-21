@@ -70,17 +70,24 @@ export default function Achievements({ stats }) {
       if (!map.has(a.category)) map.set(a.category, []);
       map.get(a.category).push(a);
     }
-    // Ordenar dentro de cada grupo: primero unlocked (más reciente
-    // = top), luego locked por progreso descendente (más cerca de
-    // desbloquear primero).
-    for (const arr of map.values()) {
-      arr.sort((a, b) => {
-        if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-        if (a.unlocked) return 0;
-        const pa = a.progress.current / a.progress.total;
-        const pb = b.progress.current / b.progress.total;
-        return pb - pa;
-      });
+    for (const [category, arr] of map.entries()) {
+      if (category === "milestone" || category === "streak") {
+        // Hitos y rachas: orden ascendente fijo por dificultad. Esto da
+        // un orden estable e intuitivo (1 → 10 → 25 → 50 → 100, etc.),
+        // sin importar cuáles tiene desbloqueados el usuario.
+        arr.sort((a, b) => a.progress.total - b.progress.total);
+      } else {
+        // Colecciones (marca/país): primero las completadas (oro+plata
+        // todo), luego en progreso por % desc (más cerca de subir
+        // tier primero), luego intactas por nombre.
+        arr.sort((a, b) => {
+          if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+          const pa = a.progress.current / a.progress.total;
+          const pb = b.progress.current / b.progress.total;
+          if (pa !== pb) return pb - pa;
+          return String(a.group).localeCompare(String(b.group), "es");
+        });
+      }
     }
     return CATEGORY_ORDER.filter((c) => map.has(c)).map((c) => ({
       category: c,
@@ -88,8 +95,20 @@ export default function Achievements({ stats }) {
     }));
   }, [items]);
 
-  const totalUnlocked = items.filter((a) => a.unlocked).length;
-  const totalCount = items.length;
+  // Para el contador "X / Y" mostramos algo significativo: en colecciones
+  // contamos por TIERS individuales (más motivante: "tienes 12 medallas
+  // de 60") en lugar de "8 / 40 colecciones completas".
+  let totalUnlocked = 0;
+  let totalCount = 0;
+  for (const a of items) {
+    if (Array.isArray(a.tiers) && a.tiers.length > 0) {
+      totalUnlocked += a.tiers.filter((t) => t.achieved).length;
+      totalCount += a.tiers.length;
+    } else {
+      totalCount += 1;
+      if (a.unlocked) totalUnlocked += 1;
+    }
+  }
 
   if (loading) {
     return (
@@ -142,8 +161,23 @@ export default function Achievements({ stats }) {
   );
 }
 
+// Color CSS por tier (texto y borde). Centralizado para que la card y
+// el chip usen el mismo paleta.
+function tierColors(tier) {
+  switch (tier) {
+    case "gold":
+      return { text: "text-yellow-300", border: "border-yellow-300/80" };
+    case "silver":
+      return { text: "text-zinc-300", border: "border-zinc-300/70" };
+    case "bronze":
+      return { text: "text-amber-600", border: "border-amber-700/70" };
+    default:
+      return { text: "text-accent", border: "border-accent/60" };
+  }
+}
+
 function Badge({ achievement, locale }) {
-  const { unlocked, progress } = achievement;
+  const { unlocked, progress, currentTier, nextTier, tiers } = achievement;
   const pct = Math.min(100, Math.round((progress.current / progress.total) * 100));
   const title =
     achievement.title?.[locale] ||
@@ -156,47 +190,52 @@ function Badge({ achievement, locale }) {
     achievement.description?.en ||
     "";
 
-  // Color del borde según tier. Si no hay tier (hitos, rachas), usamos
-  // accent (oro/ámbar de la marca).
-  const tierBorder =
-    achievement.tier === "gold"
-      ? "border-yellow-300/80"
-      : achievement.tier === "silver"
-      ? "border-zinc-300/70"
-      : achievement.tier === "bronze"
-      ? "border-amber-700/70"
-      : "border-accent/60";
+  // Tier visual de referencia para borde:
+  //   - colección con currentTier → ese color
+  //   - colección sin desbloquear → borde sutil blanco
+  //   - hitos/rachas: accent si unlocked, blanco si no
+  const isCollection = Array.isArray(tiers) && tiers.length > 0;
+  const borderClass = unlocked
+    ? tierColors(isCollection ? currentTier : "gold").border
+    : currentTier
+    ? tierColors(currentTier).border
+    : "border-white/10";
+
+  // El icono queda atenuado solo cuando NO hay nada conseguido en el
+  // grupo (colecciones con currentTier=null o hitos/rachas no unlocked).
+  const muted = isCollection ? !currentTier : !unlocked;
 
   return (
     <div
       className={`
         group relative aspect-square overflow-hidden rounded-lg
-        border ${unlocked ? tierBorder : "border-white/10"}
+        border ${borderClass}
         bg-white/[0.04] p-2
-        ${unlocked ? "" : "opacity-50"}
+        ${muted ? "opacity-55" : ""}
         transition hover:opacity-100 hover:border-accent/70
       `}
       title={`${title} — ${description}`}
     >
       <div className="flex h-full w-full flex-col items-center justify-center gap-1.5">
-        <BadgeIcon achievement={achievement} muted={!unlocked} />
-        {achievement.tier && (
-          <span
-            className={`
-              text-[8px] uppercase tracking-[0.18em]
-              ${
-                achievement.tier === "gold"
-                  ? "text-yellow-300"
-                  : achievement.tier === "silver"
-                  ? "text-zinc-300"
-                  : "text-amber-600"
-              }
-            `}
-          >
-            {achievement.tier}
-          </span>
-        )}
-        {!unlocked && (
+        <BadgeIcon achievement={achievement} muted={muted} />
+
+        {/* Etiqueta de estado */}
+        {isCollection ? (
+          currentTier ? (
+            <span className={`text-[9px] uppercase tracking-[0.18em] font-semibold ${tierColors(currentTier).text}`}>
+              {currentTier}
+            </span>
+          ) : (
+            <span className="text-[9px] uppercase tracking-[0.18em] text-muted">
+              {progress.current}/{progress.total}
+            </span>
+          )
+        ) : null}
+
+        {/* Barra de progreso: en colecciones siempre la mostramos
+            (incluso con tier conseguido, indica el avance al siguiente).
+            En unlocked total (sin nextTier) la ocultamos. */}
+        {(!unlocked || (isCollection && nextTier)) && (
           <div className="absolute inset-x-1 bottom-1 h-1 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full bg-accent/80 transition-[width] duration-500"

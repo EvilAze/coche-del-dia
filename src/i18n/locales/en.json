@@ -241,6 +241,12 @@
     "repescaHelpOk": "Got it",
     "veteranBadgeShort": "VET",
     "veteranBadgeAria": "Won in Veteran Mode",
+    "drawAria": "Drawing rescue car",
+    "drawShuffling": "Shuffling cards…",
+    "drawPicking": "Picking…",
+    "drawRevealed": "Your car!",
+    "drawYours": "Your car",
+    "drawVeteran": "Veteran Mode",
     "authTitle": "Garage locked",
     "authBody": "Sign in to collect your wins, complete the album by country and save your progress."
   }

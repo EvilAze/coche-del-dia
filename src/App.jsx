@@ -5,6 +5,7 @@ import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
 import CarImage from "./components/CarImage";
+import GarageDoorSplash from "./components/GarageDoorSplash";
 import GuessRow from "./components/GuessRow";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
@@ -258,15 +259,10 @@ export default function App() {
 
   if (isLoading || !car) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg-primary font-body text-white">
+      <>
         <Analytics />
-        <div className="flex flex-col items-center gap-4">
-          <span className="animate-bounce text-4xl">🚗</span>
-          <p className="animate-pulse text-sm uppercase tracking-widest text-muted">
-            {t("app.loadingCar")}
-          </p>
-        </div>
-      </div>
+        <GarageDoorSplash subtitle={t("app.loadingCar")} />
+      </>
     );
   }
 

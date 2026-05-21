@@ -17,6 +17,7 @@ import { useT, getCarDescription, getLocalizedCountry } from "../i18n";
 import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
+import RepescaDrawAnimation from "./RepescaDrawAnimation";
 
 // Mapa de profundidad de cada vista del Garaje. Sirve para decidir la
 // dirección del slide al cambiar de vista: bajar de nivel (countries →
@@ -116,6 +117,14 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   const [helpOpen, setHelpOpen] = useState(false);
   // Estado del POST a /api/repesca/start mientras se sortea un coche.
   const [repescaStarting, setRepescaStarting] = useState(false);
+  // Overlay de barajado de cromos. Lleva un objeto { carId, veteran } o null:
+  // cuando es no-null, se monta la animación a pantalla completa y arranca
+  // su secuencia visual. El redirect a /repesca lo dispara confirmAndStartRepesca
+  // cuando el POST y la animación (duración mínima visual) han terminado.
+  const [drawAnim, setDrawAnim] = useState(null);
+  // Duración mínima de la animación de sorteo. Si el POST termina antes,
+  // esperamos hasta cumplir este tiempo para no truncar el efecto visual.
+  const REPESCA_DRAW_MIN_MS = 2500;
 
   // ESC: seis niveles encadenados, de más interno a más externo.
   useEscape(open && helpOpen, () => setHelpOpen(false));
@@ -255,8 +264,10 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   }
 
   // El usuario acepta la repesca tras leer las condiciones. Sorteamos un
-  // coche al azar de la pool de pendientes y delegamos en el backend la
-  // consumición del intento. Tras OK, redirect a /repesca?id=<pseudo>.
+  // coche al azar de la pool de pendientes, lanzamos el POST en paralelo
+  // a la animación de barajado de cromos (duración mínima 2.5s), y
+  // redirigimos solo cuando ambas hayan terminado. Si el POST falla, se
+  // aborta la animación y se muestra el toast.
   async function confirmAndStartRepesca() {
     if (repescaStarting) return;
     if (repescaPool.length === 0) {
@@ -267,14 +278,33 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
 
     const pickedId = repescaPool[Math.floor(Math.random() * repescaPool.length)];
 
+    // Localizamos el flag `veteran` desde el estado local del garaje:
+    // /api/garage ya nos lo marca por coche. Nos sirve para que la
+    // animación tematice el cromo final (ámbar + 🔥) sin esperar al POST.
+    // Si no encontramos el coche (no debería pasar), default a normal.
+    let pickedVeteran = false;
+    outer: for (const c of state.data?.countries || []) {
+      for (const car of c.cars) {
+        if (car.id === pickedId) {
+          pickedVeteran = !!car.veteran;
+          break outer;
+        }
+      }
+    }
+
     setRepescaStarting(true);
+    setConfirmRepesca(false);
+    setDrawAnim({ carId: pickedId, veteran: pickedVeteran });
+
+    const minDelay = new Promise((r) => setTimeout(r, REPESCA_DRAW_MIN_MS));
+
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error(t("garage.errorNoSession"));
 
-      const res = await fetch("/api/repesca/start", {
+      const postPromise = fetch("/api/repesca/start", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -282,6 +312,8 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         },
         body: JSON.stringify({ carId: pickedId }),
       });
+
+      const [res] = await Promise.all([postPromise, minDelay]);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(body?.detail || body?.error || `HTTP ${res.status}`);
@@ -293,7 +325,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         type: "error",
       });
       setRepescaStarting(false);
-      setConfirmRepesca(false);
+      setDrawAnim(null);
     }
   }
 
@@ -537,6 +569,17 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
 
           <RepescaHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
         </motion.div>
+      )}
+
+      {/* Overlay de barajado de cromos: vive FUERA del motion.div del panel
+          del Garaje para que cubra toda la pantalla (z-[120]) y no quede
+          recortado por el max-w-md del panel. Solo se monta cuando el
+          usuario ha aceptado el sorteo y se desmonta cuando hay redirect
+          (o si el POST falla y volvemos al estado inicial). */}
+      {drawAnim && (
+        <RepescaDrawAnimation
+          veteran={drawAnim.veteran}
+        />
       )}
     </AnimatePresence>
   );

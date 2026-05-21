@@ -241,6 +241,12 @@
     "repescaHelpOk": "Entendido",
     "veteranBadgeShort": "VET",
     "veteranBadgeAria": "Ganado en Modo Veterano",
+    "drawAria": "Sorteando coche de repesca",
+    "drawShuffling": "Barajando cromos…",
+    "drawPicking": "Eligiendo…",
+    "drawRevealed": "¡Tu coche!",
+    "drawYours": "Tu coche",
+    "drawVeteran": "Modo Veterano",
     "authTitle": "Garaje cerrado",
     "authBody": "Inicia sesión para coleccionar tus aciertos, completar el álbum por países y guardar tu progreso."
   }

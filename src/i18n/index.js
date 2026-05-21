@@ -58,7 +58,7 @@ export function t(key, vars) {
   if (typeof value !== "string") {
     // En dev avisamos para no soltar keys sin traducir en producción
     // silenciosamente. Devolvemos la key para que el dev la vea en pantalla.
-    if (process.env.NODE_ENV !== "production") {
+    if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
       console.warn(`[i18n] Missing key: ${key} (locale: ${currentLocale})`);
     }

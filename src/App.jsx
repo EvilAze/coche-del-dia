@@ -306,7 +306,7 @@ export default function App() {
   if (!dataReady) {
     return (
       <>
-        <Analytics />
+        <Analytics mode={import.meta.env.PROD ? "production" : "development"} />
         <AnimatePresence>
           {showSplash && (
             <GarageDoorSplash key="splash" subtitle={t("app.loadingCar")} />

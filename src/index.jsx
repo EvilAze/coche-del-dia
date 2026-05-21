@@ -1,14 +1,18 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
-import Preview from "./Preview";
-import HeaderTest from "./HeaderTest";
-import Repesca from "./Repesca";
-import Privacidad from "./Privacidad";
-import AddCar from "./admin/AddCar";
-import EditCar from "./admin/EditCar";
 import { ToastProvider } from "./components/Toast";
+
+// El usuario normal solo carga <App />. Las rutas secundarias
+// (admin, repesca, preview, privacidad, header-test) se piden bajo demanda
+// para no engordar el bundle inicial.
+const Preview = lazy(() => import("./Preview"));
+const HeaderTest = lazy(() => import("./HeaderTest"));
+const Repesca = lazy(() => import("./Repesca"));
+const Privacidad = lazy(() => import("./Privacidad"));
+const AddCar = lazy(() => import("./admin/AddCar"));
+const EditCar = lazy(() => import("./admin/EditCar"));
 
 // Sala de pruebas interna y oculta. No enlazada en ningún menú.
 // Acceso: /preview  o  cualquier URL con ?preview (útil si el host no
@@ -45,6 +49,8 @@ const isHeaderTest =
   pathname.startsWith("/header-test") ||
   /(\?|&)header-test(=|&|$)/.test(search);
 
+// App va eager (la ruta principal); el resto pasa por Suspense para no
+// quedarse en blanco mientras descarga su chunk.
 function pickRoute() {
   if (isAdminEditCar) return <EditCar />;
   if (isAdminAddCar) return <AddCar />;
@@ -55,11 +61,20 @@ function pickRoute() {
   return <App />;
 }
 
+const isMainApp = !(
+  isAdminEditCar ||
+  isAdminAddCar ||
+  isRepesca ||
+  isPreview ||
+  isHeaderTest ||
+  isPrivacy
+);
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <ToastProvider>
-      {pickRoute()}
+      {isMainApp ? pickRoute() : <Suspense fallback={null}>{pickRoute()}</Suspense>}
     </ToastProvider>
   </React.StrictMode>
 );

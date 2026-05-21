@@ -117,6 +117,27 @@ export default async function handler(req, res) {
 
     const unlockedIds = new Set((wins || []).map((w) => w.car_id));
 
+    // 2b) Coches que el usuario ha jugado y PERDIDO (status='lost') en
+    //     algún momento. Sirve para detectar Modo Veterano:
+    //       - Cromos bloqueados con lost previa → veteran:true (al
+    //         repescarlos se aplicarán reglas duras: 1 intento, sin
+    //         pistas), para que el frontend pueda advertir al usuario.
+    //       - Cromos desbloqueados con lost previa → wonAsVeteran:true
+    //         (lo ganó después de haberlo visto al fallar), para mostrar
+    //         insignia discreta en el garaje.
+    const { data: losses, error: lossesErr } = await authClient
+      .from("user_guesses")
+      .select("car_id")
+      .eq("user_id", user.id)
+      .eq("status", "lost");
+    if (lossesErr) {
+      console.error("[garage] read losses:", lossesErr);
+      // Degradación segura: si no podemos leer pérdidas, los flags
+      // veteran/wonAsVeteran salen como false. La info del garaje
+      // sigue siendo válida; solo perdemos los matices.
+    }
+    const lostIds = new Set((losses || []).map((l) => l.car_id));
+
     // 3) Coches que YA han sido coche del día (fecha < hoy). Solo estos son
     //    repescables. Usamos service_role: pick_daily_car y daily_cars están
     //    revocados para anon/authenticated por hardening previo.
@@ -163,6 +184,7 @@ export default async function handler(req, res) {
       }
       const unlocked = unlockedIds.has(c.id);
       const wasDaily = pastDailyIds.has(c.id);
+      const wasLost = lostIds.has(c.id);
       byCountry.get(pais).cars.push(
         unlocked
           ? {
@@ -181,6 +203,11 @@ export default async function handler(req, res) {
               img: carImageProxyUrl(c.id, IMAGE_MODE_CLEAR),
               unlocked: true,
               wasDaily,
+              // wonAsVeteran: lo ganó tras haberlo fallado previamente.
+              // Insignia discreta en garaje (más mérito que ganar a la
+              // primera, porque tuvo que recordar marca+modelo+año
+              // exactos en un único intento).
+              wonAsVeteran: wasLost,
             }
           : {
               // Cromo bloqueado: id OPACO (pseudo HMAC por usuario). Si
@@ -198,6 +225,10 @@ export default async function handler(req, res) {
               img: carImageProxyUrl(c.id, IMAGE_MODE_BLURRED),
               unlocked: false,
               wasDaily,
+              // veteran: si lo repesca, será en Modo Veterano (1 intento,
+              // sin pistas) porque ya lo vio revelado al fallar antes.
+              // Solo informativo; el enforcement está en /api/repesca/*.
+              veteran: wasLost,
             }
       );
     }

@@ -59,6 +59,29 @@ function parseBody(req) {
   return {};
 }
 
+// Modo Veterano: si el usuario tiene alguna fila lost previa para este
+// coche, significa que ya lo vio revelado al fallar (sea en daily o en
+// otra repesca). Entonces la repesca aplica reglas más duras: 1 intento,
+// sin pistas progresivas. Mantiene el reto incluso conociendo el coche.
+//
+// La detección se hace SIEMPRE server-side aquí, en validate y en image,
+// para que el cliente no pueda "bajarse" a modo normal manipulando estado.
+async function isVeteranMode(authClient, userId, carId) {
+  const { data, error } = await authClient
+    .from("user_guesses")
+    .select("car_id")
+    .eq("user_id", userId)
+    .eq("car_id", carId)
+    .eq("status", "lost")
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("[repesca/start] isVeteranMode:", error);
+    return false; // degradación segura: ante duda, modo normal (más permisivo)
+  }
+  return !!data;
+}
+
 // Lee el estado actual de una partida de repesca (user_guesses) y lo
 // formatea para que el cliente lo pinte directamente sin necesitar el
 // cars.id real. Usa authClient para que RLS confirme que la fila es del
@@ -209,6 +232,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Failed to read stats" });
     }
 
+    // Detecta modo veterano: ¿el usuario ya vio este coche al fallarlo?
+    const veteran = await isVeteranMode(authClient, user.id, carId);
+    const mode = veteran ? "veteran" : "normal";
+    const maxAttempts = veteran ? 1 : 5;
+
     const alreadyConsumedToday = statsRow?.last_repesca_at === today;
     if (alreadyConsumedToday) {
       if (statsRow.last_repesca_car_id === carId) {
@@ -225,6 +253,8 @@ export default async function handler(req, res) {
           carId: pseudoCarId,
           resume: true,
           state: resumeState,
+          mode,
+          maxAttempts,
         });
       }
       // Repesca ya gastada en otro coche. Convertimos el carId activo
@@ -274,6 +304,8 @@ export default async function handler(req, res) {
       carId: pseudoCarId,   // eco del pseudo, nunca exponemos el real
       resume: false,
       state: freshState,
+      mode,
+      maxAttempts,
     });
   } catch (err) {
     console.error("[repesca/start] UNCAUGHT:", err && err.stack ? err.stack : err);

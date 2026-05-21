@@ -24,7 +24,11 @@ import { useToast } from "./components/Toast";
 import { useT } from "./i18n";
 
 const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS_VETERAN = 1;
 const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
+// En Modo Veterano no hay zoom progresivo: arrancamos siempre en el
+// nivel menos cerrado (el del último intento del modo normal).
+const VETERAN_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
 
 function triggerHaptic(pattern) {
   if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
@@ -56,6 +60,12 @@ export default function Repesca() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reveal, setReveal] = useState(null);
   const [score, setScore] = useState(null);
+  // Modo de la repesca: "normal" (5 intentos, pistas progresivas) o
+  // "veteran" (1 intento, sin pistas). Lo dicta /api/repesca/start a
+  // partir de si el usuario ya vio el coche al fallarlo. El servidor
+  // es la fuente de verdad — manipular esto en cliente no salta el
+  // límite de intentos (lo enforce /api/repesca/validate).
+  const [mode, setMode] = useState("normal");
   // La imagen del coche se sirve vía /api/repesca/image, que requiere
   // Bearer token. Como los <img> nativos NO mandan headers custom, no
   // podemos usar la URL del endpoint directa. Hacemos fetch en JS con
@@ -137,6 +147,10 @@ export default function Repesca() {
         const existingGuesses = Array.isArray(state.guesses) ? state.guesses : [];
         const existingStatus = state.status || "playing";
 
+        // Modo: lo dicta el server. Si por lo que sea no llega, fallback
+        // a "normal" (más permisivo) para no bloquear al usuario.
+        setMode(startBody.mode === "veteran" ? "veteran" : "normal");
+
         setGuesses(existingGuesses);
         if (existingStatus === "won" || existingStatus === "lost") {
           setPhase(existingStatus);
@@ -203,10 +217,21 @@ export default function Repesca() {
     };
   }, [user, carId, phase]);
 
+  const isVeteran = mode === "veteran";
+  const effectiveMaxAttempts = isVeteran ? MAX_ATTEMPTS_VETERAN : MAX_ATTEMPTS;
   const attempts = guesses.length;
   const zoomIndex = Math.min(attempts, ZOOM_LEVELS.length - 1);
-  const zoom = phase === "playing" ? ZOOM_LEVELS[zoomIndex] : 1.0;
-  const hintIndex = phase === "playing" ? zoomIndex : null;
+  // En Veterano no hay pistas progresivas: zoom fijo en el nivel menos
+  // cerrado. En normal, sigue el patrón habitual.
+  const zoom =
+    phase === "playing"
+      ? isVeteran
+        ? VETERAN_ZOOM
+        : ZOOM_LEVELS[zoomIndex]
+      : 1.0;
+  // En Veterano ocultamos la leyenda de pistas (no hay) pasando hintIndex
+  // null aun en juego; HintLegend ya gestiona ese caso.
+  const hintIndex = phase === "playing" && !isVeteran ? zoomIndex : null;
   const totalHints = ZOOM_LEVELS.length;
 
   // Estado tipo `car` que espera CarImage / ResultPanel. `img` arranca
@@ -290,7 +315,7 @@ export default function Repesca() {
       const newGuesses = [...guesses, result];
       let newPhase = "playing";
       if (result.win) newPhase = "won";
-      else if (newGuesses.length >= MAX_ATTEMPTS) newPhase = "lost";
+      else if (newGuesses.length >= effectiveMaxAttempts) newPhase = "lost";
 
       if (newPhase === "won") triggerHaptic(200);
       else if (newPhase === "lost") triggerHaptic([100, 50, 100]);
@@ -402,25 +427,40 @@ export default function Repesca() {
         <header className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-b border-border py-4">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.22em] text-accent">
-              {t("repesca.modeSubheader")}
+              {isVeteran ? t("repesca.veteranBadge") : t("repesca.modeSubheader")}
             </p>
             <h1 className="mt-1 font-display text-[1.6rem] leading-none tracking-[0.12em] text-white">
               {t("repesca.pageTitle")}
             </h1>
             <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted">
-              {t("repesca.gameRulesNote")}
+              {isVeteran
+                ? t("repesca.veteranRulesNote")
+                : t("repesca.gameRulesNote")}
             </p>
           </div>
 
           <div className="shrink-0 text-right">
             <div className="font-display text-2xl leading-none text-accent">
-              {MAX_ATTEMPTS - attempts}
+              {effectiveMaxAttempts - attempts}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted">
               {t("repesca.attemptsLabel")}
             </div>
           </div>
         </header>
+
+        {isVeteran && phase === "playing" && (
+          <div
+            className="
+              mt-3 rounded-lg border border-amber-400/40 bg-amber-500/10
+              px-3 py-2 text-[12px] leading-snug text-amber-100
+            "
+            role="note"
+          >
+            <span className="mr-1.5 font-display text-amber-300">🔥</span>
+            {t("repesca.veteranExplain")}
+          </div>
+        )}
 
         <main className="w-full min-w-0">
           <CarImage
@@ -431,9 +471,13 @@ export default function Repesca() {
             status={phase}
           />
 
-          <AttemptDots attempts={attempts} max={MAX_ATTEMPTS} won={phase === "won"} />
+          <AttemptDots
+            attempts={attempts}
+            max={effectiveMaxAttempts}
+            won={phase === "won"}
+          />
 
-          <HintLegend />
+          {!isVeteran && <HintLegend />}
 
           {guesses.length > 0 && (
             <div className="mb-4 mt-3 flex w-full min-w-0 flex-col gap-2">
@@ -452,7 +496,7 @@ export default function Repesca() {
               status={phase}
               car={car}
               attempts={attempts}
-              maxAttempts={MAX_ATTEMPTS}
+              maxAttempts={effectiveMaxAttempts}
               shareText={shareText}
               score={score}
               user={user}

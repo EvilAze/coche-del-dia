@@ -185,7 +185,10 @@
     "modeSubheader": "Modo Repesca · una al día",
     "pageTitle": "Recuperar coche",
     "gameRulesNote": "Puntos a la mitad · no afecta a tu racha",
-    "attemptsLabel": "intentos"
+    "attemptsLabel": "intentos",
+    "veteranBadge": "Modo Veterano",
+    "veteranExplain": "Ya viste este coche al fallarlo. Tienes 1 intento y sin pistas: marca, modelo y año exactos.",
+    "veteranRulesNote": "1 intento · sin pistas"
   },
   "garage": {
     "errorNoSession": "Sin sesión",
@@ -233,7 +236,11 @@
     "repescaHelpHalfDesc": "La puntuación que consigas en una repesca cuenta la mitad que en una partida normal.",
     "repescaHelpNoStreak": "No afecta a tu racha",
     "repescaHelpNoStreakDesc": "Ganes o pierdas la repesca, tu streak diario no se ve afectado.",
+    "repescaHelpVeteran": "Modo Veterano",
+    "repescaHelpVeteranDesc": "Si te toca un coche que ya viste al fallarlo, la repesca aplica reglas duras: 1 intento y sin pistas. Tienes que recordar marca, modelo y año exactos. Si lo ganas, se marca con un distintivo en el garaje.",
     "repescaHelpOk": "Entendido",
+    "veteranBadgeShort": "VET",
+    "veteranBadgeAria": "Ganado en Modo Veterano",
     "authTitle": "Garaje cerrado",
     "authBody": "Inicia sesión para coleccionar tus aciertos, completar el álbum por países y guardar tu progreso."
   }

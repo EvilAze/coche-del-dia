@@ -25,10 +25,12 @@
 //   de Vercel. El cost de sharp se paga una vez por entrada y región, y
 //   luego durante 24 h se sirve desde el CDN sin tocar la función.
 
-import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { readAnonSession } from "./_lib/anon-session.js";
 import { verifyRevealToken } from "./_lib/reveal-token.js";
+import { supabaseAdmin, createAuthClient } from "./_lib/supabase.js";
+import { todayInMadrid } from "./_lib/date.js";
+import { methodGuard } from "./_lib/http.js";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
@@ -71,18 +73,6 @@ const Z_TO_CROP_PCT = {
   5: 0.556,
 };
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  : null;
-
 // Si llega un Bearer, intentamos identificar al usuario para gatear el
 // reveal a su `user_guesses.status`. Es opcional: el flujo normal de
 // reveal pasa por el revealToken firmado, pero este check es defensivo
@@ -91,12 +81,9 @@ async function tryReadUserStatus(req, carId, today) {
   const auth = req.headers?.authorization || "";
   if (!auth.startsWith("Bearer ")) return null;
   const token = auth.slice(7);
-  if (!token || !SUPABASE_ANON_KEY) return null;
+  const client = token ? createAuthClient(token) : null;
+  if (!client) return null;
   try {
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const { data: u } = await client.auth.getUser();
     if (!u?.user) return null;
     const { data: row } = await client
@@ -113,19 +100,8 @@ async function tryReadUserStatus(req, carId, today) {
   }
 }
 
-function todayInMadrid() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
 export default async function handler(req, res) {
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    return res.status(405).json({ message: "Only GET allowed" });
-  }
+  if (methodGuard(req, res, ["GET", "HEAD"])) return;
 
   if (!supabaseAdmin) {
     console.error("[daily-image] missing SUPABASE_SERVICE_ROLE_KEY");

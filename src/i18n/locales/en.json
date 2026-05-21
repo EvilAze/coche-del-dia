@@ -115,6 +115,18 @@
     "statMaxStreak": "Best",
     "statWins": "Wins"
   },
+  "achievements": {
+    "sectionTitle": "Achievements",
+    "loading": "Loading achievements…",
+    "errorLoad": "Couldn't load your achievements.",
+    "empty": "No achievements available yet.",
+    "category": {
+      "milestone": "Milestones",
+      "streak": "Streaks",
+      "brand": "By brand",
+      "country": "By country"
+    }
+  },
   "nickname": {
     "tag": "New driver",
     "title": "Pick your Nick",

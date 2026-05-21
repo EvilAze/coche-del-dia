@@ -11,48 +11,12 @@
 // status, score si ganó/perdió) leyéndolo server-side de user_guesses, para
 // que el frontend no tenga que conocer el car_id para hacer esa consulta.
 
-import { createClient } from "@supabase/supabase-js";
 import crypto from "node:crypto";
 import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  : null;
-
-function todayInMadrid() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-function extractAccessToken(req) {
-  const header = req.headers?.authorization || "";
-  if (header.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
-
-async function authClientAndUser(accessToken) {
-  if (!accessToken) return { client: null, user: null };
-  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await client.auth.getUser();
-  if (error || !data?.user) return { client: null, user: null };
-  return { client, user: data.user };
-}
+import { supabaseAdmin } from "./_lib/supabase.js";
+import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
+import { todayInMadrid } from "./_lib/date.js";
 
 export default async function handler(req, res) {
   if (!supabaseAdmin) {

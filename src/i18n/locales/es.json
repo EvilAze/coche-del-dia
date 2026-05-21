@@ -115,6 +115,18 @@
     "statMaxStreak": "Máxima",
     "statWins": "Aciertos"
   },
+  "achievements": {
+    "sectionTitle": "Logros",
+    "loading": "Cargando logros…",
+    "errorLoad": "No se pudieron cargar tus logros.",
+    "empty": "Todavía no hay logros disponibles.",
+    "category": {
+      "milestone": "Hitos",
+      "streak": "Constancia",
+      "brand": "Por marca",
+      "country": "Por país"
+    }
+  },
   "nickname": {
     "tag": "Nuevo piloto",
     "title": "Elige tu Nick",

@@ -10,38 +10,19 @@
 //     max_streak ni last_played_date. Solo se suman points y total_wins
 //     directamente sobre `stats`.
 
-import { createClient } from "@supabase/supabase-js";
 import { resolveRealCarId } from "../_lib/repesca-token.js";
+import { supabaseAdmin } from "../_lib/supabase.js";
+import { requireUser } from "../_lib/auth.js";
+import { todayInMadrid } from "../_lib/date.js";
+import { parseBody, methodGuard } from "../_lib/http.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
 const BASE_POINTS_BY_ATTEMPT = { 1: 10, 2: 6, 3: 4, 4: 3, 5: 2, 6: 1 };
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabaseAdmin =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-    : null;
-
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function todayInMadrid() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
@@ -56,41 +37,6 @@ function repescaPointsFor(attemptNumber, won) {
   return Math.ceil(base / 2);
 }
 
-function extractAccessToken(req) {
-  const header = req.headers?.authorization || "";
-  if (header.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
-
-function parseBody(req) {
-  const raw = req.body;
-  if (raw == null) return {};
-  if (typeof raw === "object" && !Buffer.isBuffer(raw)) return raw;
-  if (Buffer.isBuffer(raw)) {
-    try { return JSON.parse(raw.toString("utf8")); } catch { return {}; }
-  }
-  if (typeof raw === "string") {
-    try { return JSON.parse(raw); } catch { return {}; }
-  }
-  return {};
-}
-
-async function authClientAndUser(accessToken) {
-  if (!accessToken) return { client: null, user: null };
-  try {
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await client.auth.getUser();
-    if (error || !data?.user) return { client: null, user: null };
-    return { client, user: data.user };
-  } catch (err) {
-    console.error("[repesca/validate] authClientAndUser:", err);
-    return { client: null, user: null };
-  }
-}
-
 async function fetchCarById(id) {
   const { data, error } = await supabaseAdmin
     .from("cars")
@@ -102,20 +48,16 @@ async function fetchCarById(id) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (methodGuard(req, res, "POST")) return;
 
   try {
     if (!supabaseAdmin) {
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
-    const accessToken = extractAccessToken(req);
-    const { client: authClient, user } = await authClientAndUser(accessToken);
-    if (!user || !authClient) {
-      return res.status(401).json({ error: "Unauthorized" });
+    const { user, authClient, error: authError } = await requireUser(req);
+    if (authError) {
+      return res.status(authError.status).json({ error: authError.message });
     }
 
     const body = parseBody(req);

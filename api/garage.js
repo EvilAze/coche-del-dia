@@ -14,13 +14,16 @@
 //     públicas; lo restringido era el cruce con el coche-del-día, ya
 //     mitigado por el sistema de proxy + RPC).
 
-import { createClient } from "@supabase/supabase-js";
 import { pseudoIdFor } from "./_lib/repesca-token.js";
 import {
   signImageToken,
   IMAGE_MODE_CLEAR,
   IMAGE_MODE_BLURRED,
 } from "./_lib/image-token.js";
+import { supabaseAdmin } from "./_lib/supabase.js";
+import { requireUser } from "./_lib/auth.js";
+import { todayInMadrid } from "./_lib/date.js";
+import { methodGuard } from "./_lib/http.js";
 
 // Helper local: arma la URL del proxy server-side de imágenes del garaje.
 // Tanto unlocked como locked van por aquí: simetría de URLs en el front
@@ -30,65 +33,17 @@ function carImageProxyUrl(carId, mode) {
   return `/api/car-image?t=${signImageToken({ carId, mode })}`;
 }
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabaseAdmin =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-    : null;
-
-function extractAccessToken(req) {
-  const header = req.headers?.authorization || "";
-  if (header.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
-
-function todayInMadrid() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-async function authClientAndUser(accessToken) {
-  if (!accessToken) return { client: null, user: null };
-  try {
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await client.auth.getUser();
-    if (error || !data?.user) return { client: null, user: null };
-    return { client, user: data.user };
-  } catch (err) {
-    console.error("[garage] authClientAndUser:", err);
-    return { client: null, user: null };
-  }
-}
-
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (methodGuard(req, res, "GET")) return;
 
   try {
     if (!supabaseAdmin) {
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
-    const accessToken = extractAccessToken(req);
-    const { client: authClient, user } = await authClientAndUser(accessToken);
-    if (!user || !authClient) {
-      return res.status(401).json({ error: "Unauthorized" });
+    const { user, authClient, error: authError } = await requireUser(req);
+    if (authError) {
+      return res.status(authError.status).json({ error: authError.message });
     }
 
     // 1) Catálogo completo (con image_url y description, columnas

@@ -4,27 +4,21 @@
 //
 // Se cachea en el CDN de Vercel 5 min para no martillear la BD.
 
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+import { supabasePublic } from "./_lib/supabase.js";
+import { methodGuard } from "./_lib/http.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ message: "Only GET allowed" });
+  if (methodGuard(req, res, "GET")) return;
+
+  if (!supabasePublic) {
+    return res.status(500).json({ message: "Server misconfigured" });
   }
 
   // NOTA: image_url se omite a propósito. Si lo expusiéramos aquí, cualquiera
   // podría cruzarlo con la URL que devuelve /api/get-daily-car y deducir
   // marca/modelo/año del coche del día. Para mostrar imágenes en herramientas
   // internas (Preview), hay endpoints separados con auth.
-  const { data, error } = await supabase
+  const { data, error } = await supabasePublic
     .from("cars")
     .select("id, make, model, year, pais")
     .order("id", { ascending: true });

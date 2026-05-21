@@ -7,9 +7,12 @@
 // Esto evita que cualquier usuario logueado pueda llamar /repesca/image?
 // carId=<X> y obtener la imagen de un coche al que aún no juega.
 
-import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { resolveRealCarId } from "../_lib/repesca-token.js";
+import { supabaseAdmin } from "../_lib/supabase.js";
+import { requireUser } from "../_lib/auth.js";
+import { todayInMadrid } from "../_lib/date.js";
+import { methodGuard } from "../_lib/http.js";
 
 // Mismo crop fijo que /api/daily-image durante la partida: 55,6% central.
 // El cliente termina de "cerrar" el zoom por CSS sobre este 55%. Antes
@@ -17,68 +20,20 @@ import { resolveRealCarId } from "../_lib/repesca-token.js";
 // con DevTools veías el coche desnudo nada más arrancar.
 const CROP_PCT_PLAYING = 0.556;
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabaseAdmin =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-    : null;
-
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function todayInMadrid() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-function extractAccessToken(req) {
-  const header = req.headers?.authorization || "";
-  if (header.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
-
-async function authClientAndUser(accessToken) {
-  if (!accessToken) return { client: null, user: null };
-  try {
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await client.auth.getUser();
-    if (error || !data?.user) return { client: null, user: null };
-    return { client, user: data.user };
-  } catch (err) {
-    console.error("[repesca/image] authClientAndUser:", err);
-    return { client: null, user: null };
-  }
-}
-
 export default async function handler(req, res) {
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    res.setHeader("Allow", "GET");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (methodGuard(req, res, ["GET", "HEAD"])) return;
 
   try {
     if (!supabaseAdmin) {
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
-    const accessToken = extractAccessToken(req);
-    const { client: authClient, user } = await authClientAndUser(accessToken);
-    if (!user || !authClient) {
-      return res.status(401).json({ error: "Unauthorized" });
+    const { user, authClient, error: authError } = await requireUser(req);
+    if (authError) {
+      return res.status(authError.status).json({ error: authError.message });
     }
 
     // El cliente nos pasa el PSEUDO (lo recibió de /api/garage). Lo

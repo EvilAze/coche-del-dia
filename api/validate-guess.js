@@ -11,38 +11,17 @@
 //   - Las RPCs (record_daily_result_v2) sí pueden tirar; van en su propio
 //     try/catch para no romper el flujo principal.
 
-import { createClient } from "@supabase/supabase-js";
 import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
 import { getClientIp, rateLimit } from "./_lib/rate-limit.js";
+import { supabaseAdmin, createAuthClient, SUPABASE_URL, SUPABASE_ANON_KEY } from "./_lib/supabase.js";
+import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
+import { todayInMadrid } from "./_lib/date.js";
+import { parseBody, methodGuard } from "./_lib/http.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
 const BASE_POINTS_BY_ATTEMPT = { 1: 10, 2: 6, 3: 4, 4: 3, 5: 2, 6: 1 };
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Cliente service_role: bypassea RLS y puede leer columnas privilegiadas
-// (image_url, pick_daily_car). NUNCA debe filtrarse al cliente.
-const supabaseAdmin =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-    : null;
-
-function todayInMadrid() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
@@ -51,51 +30,6 @@ function normalize(value) {
 function basePointsFor(attemptNumber, won) {
   if (!won) return 0;
   return BASE_POINTS_BY_ATTEMPT[attemptNumber] ?? 0;
-}
-
-function extractAccessToken(req) {
-  const header = req.headers?.authorization || "";
-  if (header.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
-
-// Vercel suele auto-parsear JSON, pero si el Content-Type viene mal el body
-// puede llegar como string o como Buffer. Lo normalizamos a objeto.
-function parseBody(req) {
-  const raw = req.body;
-  if (raw == null) return {};
-  if (typeof raw === "object" && !Buffer.isBuffer(raw)) return raw;
-  if (Buffer.isBuffer(raw)) {
-    try {
-      return JSON.parse(raw.toString("utf8"));
-    } catch {
-      return {};
-    }
-  }
-  if (typeof raw === "string") {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return {};
-    }
-  }
-  return {};
-}
-
-async function authClientAndUser(accessToken) {
-  if (!accessToken) return { client: null, user: null };
-  try {
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await client.auth.getUser();
-    if (error || !data?.user) return { client: null, user: null };
-    return { client, user: data.user };
-  } catch (err) {
-    console.error("[validate-guess] authClientAndUser:", err);
-    return { client: null, user: null };
-  }
 }
 
 async function fetchCarById(id) {
@@ -109,11 +43,8 @@ async function fetchCarById(id) {
 }
 
 async function persistDailyResult({ accessToken, won, attemptNumber }) {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !accessToken) return null;
-  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const client = accessToken ? createAuthClient(accessToken) : null;
+  if (!client) return null;
   const { data, error } = await client.rpc("record_daily_result_v2", {
     p_won: won,
     p_attempt_number: attemptNumber,
@@ -124,10 +55,7 @@ async function persistDailyResult({ accessToken, won, attemptNumber }) {
 
 export default async function handler(req, res) {
   // -------- 0. Método -----------------------------------------------------
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (methodGuard(req, res, "POST")) return;
 
   // -------- 0.bis Rate-limit por IP ---------------------------------------
   //   30 hits/min por IP es muy generoso para un humano (un intento tarda

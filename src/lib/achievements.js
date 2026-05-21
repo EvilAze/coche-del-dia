@@ -89,19 +89,75 @@ function effectiveTiers(tiers, total) {
  * @param {Array<{id:string, marca:string, pais:string}>} input.cars Catálogo completo.
  * @param {Array<string>} input.wonCarIds car_ids únicos ganados por el usuario.
  * @param {{current_streak?:number, max_streak?:number, total_wins?:number}|null} input.stats
- * @returns {Array<{
- *   id:string, category:string, group:string|null, tier:string|null,
- *   icon:{kind:string, value:string},
- *   title:{es:string,en:string}, description:{es:string,en:string},
- *   unlocked:boolean, progress:{current:number, total:number}
- * }>}
+ * @returns {Array} Lista de logros. Las colecciones (marca/país) emiten
+ *   UNA entrada por grupo con todos los tiers embebidos (currentTier +
+ *   nextTier). Hitos y rachas emiten una entrada por umbral individual.
  */
 export function computeAchievements({ cars, wonCarIds, stats }) {
   const wonSet = new Set(wonCarIds || []);
   const out = [];
 
+  // Helper: para una colección (marca o país), construye UNA tarjeta con
+  // todos los tiers. currentTier = el más alto desbloqueado (o null).
+  // nextTier = el siguiente por desbloquear (o null si completo).
+  function buildCollectionAchievement({
+    category, group, slug, total, wonCount, tierDefs, iconKind, iconValue,
+    labelSingular, labelPlural,
+  }) {
+    const tiers = effectiveTiers(tierDefs, total).map((t) => ({
+      tier: t.tier,
+      label: t.label,
+      required: t.required,
+      achieved: wonCount >= t.required,
+    }));
+    const achievedTiers = tiers.filter((t) => t.achieved);
+    const currentTier = achievedTiers[achievedTiers.length - 1] || null;
+    const nextTier = tiers.find((t) => !t.achieved) || null;
+    const fullyDone = tiers.length > 0 && tiers.every((t) => t.achieved);
+    // Para la barra de progreso: si no hay siguiente tier, mostramos
+    // wonCount/total absoluto. Si lo hay, progreso hacia ese siguiente.
+    const progress = nextTier
+      ? { current: Math.min(wonCount, nextTier.required), total: nextTier.required }
+      : { current: wonCount, total };
+
+    return {
+      id: `${category}_${slug}`,
+      category,
+      group,
+      icon: { kind: iconKind, value: iconValue },
+      tiers,                              // array completo de tiers
+      currentTier: currentTier?.tier || null,
+      nextTier: nextTier
+        ? { tier: nextTier.tier, required: nextTier.required, label: nextTier.label }
+        : null,
+      total,
+      wonCount,
+      unlocked: fullyDone,
+      progress,
+      // Título/descripción dinámicos según estado:
+      title: currentTier
+        ? {
+            es: `${currentTier.label.es} — ${group}`,
+            en: `${currentTier.label.en} — ${group}`,
+          }
+        : {
+            es: `${group}`,
+            en: `${group}`,
+          },
+      description: nextTier
+        ? {
+            es: `Tienes ${wonCount} de ${total} ${labelPlural || group}. Siguiente: ${nextTier.label.es} (${nextTier.required}).`,
+            en: `You have ${wonCount} of ${total} ${labelPlural || group}. Next: ${nextTier.label.en} (${nextTier.required}).`,
+          }
+        : {
+            es: `Colección completa de ${labelPlural || group}.`,
+            en: `Full ${labelSingular || group} collection.`,
+          },
+    };
+  }
+
   // ===== 1) Coleccionista por MARCA =====
-  const byBrand = new Map(); // brand -> {total, wonCount}
+  const byBrand = new Map();
   for (const c of cars || []) {
     const brand = (c.marca || "").trim();
     if (!brand) continue;
@@ -111,29 +167,20 @@ export function computeAchievements({ cars, wonCarIds, stats }) {
     byBrand.set(brand, entry);
   }
   for (const [brand, { total, wonCount }] of [...byBrand.entries()].sort()) {
-    const slug = slugify(brand);
-    for (const tier of effectiveTiers(BRAND_TIERS, total)) {
-      out.push({
-        id: `brand_${slug}_${tier.tier}`,
+    out.push(
+      buildCollectionAchievement({
         category: "brand",
         group: brand,
-        tier: tier.tier,
-        // value es el NOMBRE crudo de la marca; el componente UI resuelve
-        // la ruta del logo con su propio helper (que coincide con
-        // la convención de /public/brands/*.png).
-        icon: { kind: "brand", value: brand },
-        title: {
-          es: `Coleccionista ${tier.label.es} — ${brand}`,
-          en: `${tier.label.en} Collector — ${brand}`,
-        },
-        description: {
-          es: `Gana ${tier.required} de ${total} ${brand}.`,
-          en: `Win ${tier.required} of ${total} ${brand}.`,
-        },
-        unlocked: wonCount >= tier.required,
-        progress: { current: Math.min(wonCount, tier.required), total: tier.required },
-      });
-    }
+        slug: slugify(brand),
+        total,
+        wonCount,
+        tierDefs: BRAND_TIERS,
+        iconKind: "brand",
+        iconValue: brand,
+        labelSingular: brand,
+        labelPlural: brand,
+      })
+    );
   }
 
   // ===== 2) Coleccionista por PAÍS =====
@@ -147,26 +194,20 @@ export function computeAchievements({ cars, wonCarIds, stats }) {
     byCountry.set(country, entry);
   }
   for (const [country, { total, wonCount }] of [...byCountry.entries()].sort()) {
-    const slug = slugify(country);
-    for (const tier of effectiveTiers(COUNTRY_TIERS, total)) {
-      out.push({
-        id: `country_${slug}_${tier.tier}`,
+    out.push(
+      buildCollectionAchievement({
         category: "country",
         group: country,
-        tier: tier.tier,
-        icon: { kind: "country", value: country },
-        title: {
-          es: `Coleccionista ${tier.label.es} — ${country}`,
-          en: `${tier.label.en} Collector — ${country}`,
-        },
-        description: {
-          es: `Gana ${tier.required} de ${total} de ${country}.`,
-          en: `Win ${tier.required} of ${total} from ${country}.`,
-        },
-        unlocked: wonCount >= tier.required,
-        progress: { current: Math.min(wonCount, tier.required), total: tier.required },
-      });
-    }
+        slug: slugify(country),
+        total,
+        wonCount,
+        tierDefs: COUNTRY_TIERS,
+        iconKind: "country",
+        iconValue: country,
+        labelSingular: country,
+        labelPlural: country,
+      })
+    );
   }
 
   // ===== 3) Hitos de progreso =====

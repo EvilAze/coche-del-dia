@@ -176,6 +176,23 @@ export async function getMyWonCarIds() {
   return [...new Set((data || []).map((r) => r.car_id))];
 }
 
+// Lee el perfil público de OTRO usuario (no el actual). Llama a la RPC
+// SECURITY DEFINER `get_public_profile` que vive en Supabase. Devuelve
+// { profile: {display_name}, stats: {...}, wonCarIds: string[] }.
+// La RPC solo expone lo que ya es público (mismos campos que ranking).
+export async function getPublicProfile(userId) {
+  if (!userId) return null;
+  const { data, error } = await supabase.rpc("get_public_profile", {
+    p_user_id: userId,
+  });
+  if (error) throw error;
+  return {
+    profile: data?.profile ?? null,
+    stats: data?.stats ?? null,
+    wonCarIds: Array.isArray(data?.wonCarIds) ? data.wonCarIds : [],
+  };
+}
+
 export async function getLeaderboard() {
   // Devolvemos a TODOS los jugadores con puntos > 0 y nickname puesto.
   // El `.limit(1000)` es solo un techo de seguridad para no traer la BD

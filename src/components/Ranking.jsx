@@ -5,6 +5,7 @@ import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import ScoringHelpModal from "./ScoringHelpModal";
+import PublicProfile from "./PublicProfile";
 
 function HelpButton({ onClick }) {
   const { t } = useT();
@@ -76,6 +77,12 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
     error: "",
   });
   const [helpOpen, setHelpOpen] = useState(false);
+  // Modal de perfil público al clicar una fila del ranking. Guardamos
+  // el userId del jugador objetivo; null = cerrado.
+  const [openProfileId, setOpenProfileId] = useState(null);
+  // userId del usuario actual (logueado), si lo hay. Lo usamos para
+  // NO hacer clicable su propia fila — ya tiene su MyStats privado.
+  const currentUserId = user?.id || null;
 
   useEffect(() => {
     if (!open) return;
@@ -149,50 +156,65 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                 ${!user && state.players.length > 3 ? "max-h-[17.9rem] overflow-hidden sm:max-h-[19rem]" : ""}
               `}
             >
-              {state.players.map((player, index) => (
-                <div
-                  key={player.userId}
-                  className={`
-                    grid grid-cols-[2.5rem_minmax(0,1fr)_5rem]
-                    items-center px-3 py-3 bg-black/10
-                    ${!user && index < 2 ? "border-b border-white/10" : ""}
-                    ${!user && index === 3 ? "border-t border-white/20" : ""}
-                  `}
-                  style={
-                    !user && index > 2
-                      ? {
-                          filter: "blur(1.2px)",
-                          opacity: 0.62,
-                        }
-                      : undefined
-                  }
-                >
-                  <div className="font-display text-2xl text-accent">
-                    {player.rank}
-                  </div>
+              {state.players.map((player, index) => {
+                // Solo las filas DESBLURREADAS (usuario logueado o top-3
+                // públicos sin login) son clicables. La preview blureada
+                // no debe permitir abrir perfiles ajenos.
+                const isClickable = user || index <= 2;
+                const isSelf = currentUserId && currentUserId === player.userId;
+                const RowTag = isClickable && !isSelf ? "button" : "div";
+                return (
+                  <RowTag
+                    key={player.userId}
+                    type={RowTag === "button" ? "button" : undefined}
+                    onClick={
+                      RowTag === "button"
+                        ? () => setOpenProfileId(player.userId)
+                        : undefined
+                    }
+                    className={`
+                      grid w-full grid-cols-[2.5rem_minmax(0,1fr)_5rem]
+                      items-center px-3 py-3 bg-black/10 text-left
+                      ${!user && index < 2 ? "border-b border-white/10" : ""}
+                      ${!user && index === 3 ? "border-t border-white/20" : ""}
+                      ${RowTag === "button" ? "transition hover:bg-white/[0.06] active:scale-[0.99]" : ""}
+                    `}
+                    style={
+                      !user && index > 2
+                        ? {
+                            filter: "blur(1.2px)",
+                            opacity: 0.62,
+                          }
+                        : undefined
+                    }
+                  >
+                    <div className="font-display text-2xl text-accent">
+                      {player.rank}
+                    </div>
 
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <p className="truncate font-display text-xl uppercase tracking-wider text-white">
-                        {player.displayName}
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate font-display text-xl uppercase tracking-wider text-white">
+                          {player.displayName}
+                        </p>
+                        <StreakBadge streak={player.currentStreak} />
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted">
+                        {t("ranking.bestStreak", { value: player.maxStreak })}
                       </p>
-                      <StreakBadge streak={player.currentStreak} />
                     </div>
-                    <p className="mt-0.5 text-xs text-muted">
-                      {t("ranking.bestStreak", { value: player.maxStreak })}
-                    </p>
-                  </div>
 
-                  <div className="text-right">
-                    <div className="font-display text-3xl leading-none text-white">
-                      {player.totalPoints}
+                    <div className="text-right">
+                      <div className="font-display text-3xl leading-none text-white">
+                        {player.totalPoints}
+                      </div>
+                      <div className="text-[10px] uppercase tracking-widest text-muted">
+                        {t("ranking.points")}
+                      </div>
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted">
-                      {t("ranking.points")}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  </RowTag>
+                );
+              })}
 
               {!user && state.players.length > 3 && (
                 <>
@@ -230,6 +252,11 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
     {/* Sub-modal hermano (no anidado): ahora cada uno gestiona su propio
         backdrop y su propia animación de entrada/salida. */}
     <ScoringHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+    <PublicProfile
+      open={!!openProfileId}
+      userId={openProfileId}
+      onClose={() => setOpenProfileId(null)}
+    />
     </>
   );
 }

@@ -127,6 +127,15 @@
       "country": "By country"
     }
   },
+  "publicProfile": {
+    "title": "Profile",
+    "publicLabel": "Public profile",
+    "noNickname": "No nickname",
+    "errorLoad": "Couldn't load this profile.",
+    "statPoints": "Points",
+    "medalsTitle": "Medals",
+    "noMedalsYet": "No medals earned yet."
+  },
   "nickname": {
     "tag": "New driver",
     "title": "Pick your Nick",

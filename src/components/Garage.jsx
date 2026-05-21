@@ -855,6 +855,7 @@ function BrandShowroom({
 }
 
 function UnlockedCard({ car, onClick }) {
+  const { t } = useT();
   return (
     <button
       type="button"
@@ -894,6 +895,23 @@ function UnlockedCard({ car, onClick }) {
       <div className="absolute right-1.5 top-1.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
         ✓
       </div>
+
+      {/* Insignia Modo Veterano: solo aparece cuando el cromo se ganó tras
+          haberlo fallado antes (1 intento sin pistas). Discreto pero
+          reconocible — premia el completismo "duro". */}
+      {car.wonAsVeteran && (
+        <div
+          className="
+            absolute left-1.5 top-1.5 rounded-full border border-amber-300/60
+            bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase
+            tracking-widest text-amber-200 backdrop-blur-sm
+          "
+          title={t("garage.veteranBadgeAria")}
+          aria-label={t("garage.veteranBadgeAria")}
+        >
+          {t("garage.veteranBadgeShort")}
+        </div>
+      )}
     </button>
   );
 }
@@ -1300,6 +1318,9 @@ function RepescaHelpModal({ open, onClose }) {
             </HelpRow>
             <HelpRow icon="🔥" title={t("garage.repescaHelpNoStreak")}>
               {t("garage.repescaHelpNoStreakDesc")}
+            </HelpRow>
+            <HelpRow icon="🏅" title={t("garage.repescaHelpVeteran")}>
+              {t("garage.repescaHelpVeteranDesc")}
             </HelpRow>
           </div>
 

@@ -185,7 +185,10 @@
     "modeSubheader": "Rescue Mode · one per day",
     "pageTitle": "Catch up on a car",
     "gameRulesNote": "Half points · doesn't affect your streak",
-    "attemptsLabel": "attempts"
+    "attemptsLabel": "attempts",
+    "veteranBadge": "Veteran Mode",
+    "veteranExplain": "You already saw this car when you failed it. You get 1 attempt and no hints: exact make, model and year.",
+    "veteranRulesNote": "1 attempt · no hints"
   },
   "garage": {
     "errorNoSession": "Not signed in",
@@ -233,7 +236,11 @@
     "repescaHelpHalfDesc": "Whatever you score on a rescue counts half compared to a normal game.",
     "repescaHelpNoStreak": "Doesn't affect your streak",
     "repescaHelpNoStreakDesc": "Win or lose, your daily streak stays untouched.",
+    "repescaHelpVeteran": "Veteran Mode",
+    "repescaHelpVeteranDesc": "If the random pick lands on a car you already saw when you failed it, the rescue gets harder: 1 attempt and no hints. You'll need to remember exact make, model and year. Wins earn a special badge in your garage.",
     "repescaHelpOk": "Got it",
+    "veteranBadgeShort": "VET",
+    "veteranBadgeAria": "Won in Veteran Mode",
     "authTitle": "Garage locked",
     "authBody": "Sign in to collect your wins, complete the album by country and save your progress."
   }

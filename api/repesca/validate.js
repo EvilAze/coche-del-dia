@@ -15,6 +15,7 @@ import { resolveRealCarId } from "../_lib/repesca-token.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS_VETERAN = 1;
 const BASE_POINTS_BY_ATTEMPT = { 1: 10, 2: 6, 3: 4, 4: 3, 5: 2, 6: 1 };
 
 const SUPABASE_URL =
@@ -202,7 +203,28 @@ export default async function handler(req, res) {
       description_en: realRow.description_en ?? null,
     };
 
-    // 3) Número de intento server-side. Leemos la fila de user_guesses
+    // 3) Modo veterano: si el usuario ya vio este coche al fallarlo (en
+    //    daily o en una repesca previa), aplicamos reglas más duras: 1
+    //    intento, sin pistas progresivas. El frontend solo muestra el
+    //    modo — quien lo enforce de verdad es ESTE check server-side.
+    //    NOTA: filtramos por user_id+car_id sin importar la fecha, porque
+    //    el reveal pudo haber sido cualquier día anterior.
+    const { data: lostRow, error: lostErr } = await authClient
+      .from("user_guesses")
+      .select("car_id")
+      .eq("user_id", user.id)
+      .eq("car_id", carId)
+      .eq("status", "lost")
+      .limit(1)
+      .maybeSingle();
+    if (lostErr) {
+      console.error("[repesca/validate] check veteran:", lostErr);
+      // Degradación segura: ante duda, modo normal (más permisivo).
+    }
+    const isVeteran = !!lostRow;
+    const effectiveMaxAttempts = isVeteran ? MAX_ATTEMPTS_VETERAN : MAX_ATTEMPTS;
+
+    // 4) Número de intento server-side. Leemos la fila de user_guesses
     //    para (user_id, car_id, date=hoy) — única para esta repesca.
     const { data: row, error: rowErr } = await authClient
       .from("user_guesses")
@@ -219,7 +241,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: "Repesca already finished" });
     }
     const existingGuesses = Array.isArray(row?.guesses) ? row.guesses : [];
-    if (existingGuesses.length >= MAX_ATTEMPTS) {
+    if (existingGuesses.length >= effectiveMaxAttempts) {
       return res.status(403).json({ error: "Max attempts reached" });
     }
     const attemptNumber = existingGuesses.length + 1;
@@ -256,7 +278,7 @@ export default async function handler(req, res) {
       win: marcaOk && modeloOk && anioCorrect,
     };
 
-    const isGameOver = result.win || attemptNumber >= MAX_ATTEMPTS;
+    const isGameOver = result.win || attemptNumber >= effectiveMaxAttempts;
     const newStatus = result.win
       ? "won"
       : isGameOver
@@ -353,6 +375,8 @@ export default async function handler(req, res) {
       reveal,
       score,
       mode: "repesca",
+      veteran: isVeteran,
+      maxAttempts: effectiveMaxAttempts,
     });
   } catch (err) {
     console.error("[repesca/validate] UNCAUGHT:", err && err.stack ? err.stack : err);

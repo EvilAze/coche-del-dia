@@ -42,9 +42,10 @@ export default function GarageDoorSplash({
     >
       <div className="relative flex flex-col items-center">
         {/* === Conjunto puerta + raíles ===================================
-            Width pensado para móvil estrecho (260px) — escala bien en
-            desktop también. Height proporcional. */}
-        <div className="relative" style={{ width: 260, height: 200 }}>
+            Ratio 5:3 (300x180) para encajar con un coche fotografiado
+            de lado — más cinematográfico que el cuadrado, evita que el
+            morro o la cola queden recortados por el object-cover. */}
+        <div className="relative" style={{ width: 300, height: 180 }}>
           {/* Raíl izquierdo */}
           <div
             className="absolute top-0 bottom-0 left-[-10px] w-[6px] rounded
@@ -102,12 +103,14 @@ export default function GarageDoorSplash({
               />
 
               {/* Gradient inferior: funde el bottom de la foto con el
-                  "suelo" del garaje y deja el coche "apoyado". */}
+                  "suelo" del garaje y deja el coche "apoyado". Con el
+                  marco más bajo (180px) basta con un 30% para no
+                  tragarse las ruedas del R33. */}
               <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%]"
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-[30%]"
                 style={{
                   background:
-                    "linear-gradient(to top, rgba(5,5,7,0.95) 0%, rgba(5,5,7,0.55) 45%, transparent 100%)",
+                    "linear-gradient(to top, rgba(5,5,7,0.9) 0%, rgba(5,5,7,0.45) 50%, transparent 100%)",
                 }}
               />
 

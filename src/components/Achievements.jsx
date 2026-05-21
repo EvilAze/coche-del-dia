@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useT, getLocalizedCountry } from "../i18n";
 import { detectAndPersistNewAchievements } from "../lib/achievementsNotifier";
+import AchievementIcon from "./AchievementIcons";
 
 // Mismas convenciones de slug que Garage.jsx para que los iconos
 // (logos de marca, banderas) resuelvan correctamente sin 404s.
@@ -172,8 +173,12 @@ function tierColors(tier) {
 }
 
 function Badge({ achievement, locale }) {
-  const { unlocked, progress, currentTier, nextTier, tiers } = achievement;
-  const pct = Math.min(100, Math.round((progress.current / progress.total) * 100));
+  const { unlocked, progress, progressToNext, currentTier, nextTier, tiers } = achievement;
+  // Barra: % hacia el SIGUIENTE tier (urgencia visual "estás a punto
+  // de subir"). Si ya no hay siguiente tier, la barra usa el progreso
+  // absoluto (caso típico: hitos/rachas, o colección al máximo).
+  const barSource = progressToNext || progress;
+  const pct = Math.min(100, Math.round((barSource.current / barSource.total) * 100));
   const title =
     achievement.title?.[locale] ||
     achievement.title?.es ||
@@ -214,7 +219,12 @@ function Badge({ achievement, locale }) {
       <div className="flex h-full w-full flex-col items-center justify-center gap-1.5">
         <BadgeIcon achievement={achievement} muted={muted} />
 
-        {/* Etiqueta de estado */}
+        {/* Etiqueta de estado:
+            - Si hay tier conseguido: nombre del tier (PLATA, ORO…).
+            - Si no: ratio CONTRA EL TOTAL real del catálogo (1/8). NUNCA
+              ratio contra el siguiente tier — ahí el usuario confundiría
+              4 con "total de coches de la marca" en vez de "necesarios
+              para plata". */}
         {isCollection ? (
           currentTier ? (
             <span className={`text-[9px] uppercase tracking-[0.18em] font-semibold ${tierColors(currentTier).text}`}>
@@ -283,10 +293,24 @@ function BadgeIcon({ achievement, muted }) {
     );
   }
 
-  // Emoji u otro → texto grande
+  // SVG (hitos y rachas) — usamos el componente compartido que sabe
+  // pintar la silueta correcta y, en el caso de las rachas, repetir
+  // N veces el icono (1/2/3 llamas según la dureza).
+  if (icon.kind === "svg") {
+    return (
+      <AchievementIcon
+        name={icon.name}
+        repeat={icon.repeat || 1}
+        muted={muted}
+        size="h-7 w-7"
+      />
+    );
+  }
+
+  // Fallback (no debería darse): texto plano.
   return (
     <span className="font-display text-3xl leading-none" style={{ filter }}>
-      {icon.value}
+      {icon.value || "?"}
     </span>
   );
 }

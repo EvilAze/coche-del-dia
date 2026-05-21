@@ -63,23 +63,26 @@ function slugify(value) {
 }
 
 /**
- * Devuelve los tiers QUE APLICAN dada la talla del grupo. Si el grupo es
- * tan pequeño que el porcentaje del tier no añade requisito (p.ej. plata
- * = 50% de 2 coches = 1, pero oro = 2 → plata desbloquea con menos que oro).
- * Filtramos tiers cuyo umbral en valor absoluto sería igual o menor que
- * el anterior, para no repetir logros equivalentes.
+ * Devuelve los tiers QUE APLICAN dada la talla del grupo, sin duplicar
+ * umbrales absolutos. Si varios tiers (p.ej. silver y gold) caen sobre
+ * el MISMO valor requerido (típico en grupos con 1-2 elementos),
+ * conservamos SIEMPRE el tier más alto — la lógica es: "tener 1 de 1
+ * coches no es plata, es oro". El bug previo elegía el primero (más
+ * bajo) y por eso una marca con 1 coche aparecía como SILVER.
+ *
+ * `tiers` debe venir ordenado ascendente por pct (gold el último).
  */
 function effectiveTiers(tiers, total) {
-  const out = [];
-  let lastRequired = 0;
+  // Mapa required → tier. Al sobrescribir al iterar en orden ascendente
+  // de pct, el tier más alto siempre gana en empate de umbral.
+  const byRequired = new Map();
   for (const t of tiers) {
     const required = Math.max(1, Math.ceil(total * t.pct));
-    if (required > lastRequired && required <= total) {
-      out.push({ ...t, required });
-      lastRequired = required;
+    if (required <= total) {
+      byRequired.set(required, { ...t, required });
     }
   }
-  return out;
+  return [...byRequired.values()].sort((a, b) => a.required - b.required);
 }
 
 // ---------- Cómputo principal -------------------------------------------

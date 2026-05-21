@@ -28,14 +28,15 @@ DECLARE
   v_stats   jsonb;
   v_wins    jsonb;
 BEGIN
-  -- Nickname desde profiles. Si no existe perfil, devolvemos null
-  -- para que el frontend renderice "Sin perfil" o similar.
+  -- Nickname desde profiles. La tabla `profiles` usa `id` como FK a
+  -- auth.users.id (no `user_id` como `stats` o `user_guesses`).
+  -- Si no existe perfil, devolvemos null y el frontend muestra "Sin nickname".
   SELECT to_jsonb(t)
     INTO v_profile
     FROM (
       SELECT display_name
       FROM public.profiles
-      WHERE user_id = p_user_id
+      WHERE id = p_user_id
     ) AS t;
 
   -- Stats relevantes para el perfil público. MISMOS campos que el

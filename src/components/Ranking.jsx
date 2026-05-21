@@ -157,12 +157,15 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
               `}
             >
               {state.players.map((player, index) => {
-                // Solo las filas DESBLURREADAS (usuario logueado o top-3
-                // públicos sin login) son clicables. La preview blureada
-                // no debe permitir abrir perfiles ajenos.
-                const isClickable = user || index <= 2;
+                // Solo usuarios LOGUEADOS pueden abrir perfiles ajenos.
+                // Para visitantes anónimos el ranking es informativo
+                // pero no interactivo — abrir perfiles requiere estar
+                // dentro del juego.
+                // Además: tu propia fila nunca es clicable (tienes
+                // MyStats para verte a ti).
                 const isSelf = currentUserId && currentUserId === player.userId;
-                const RowTag = isClickable && !isSelf ? "button" : "div";
+                const isClickable = !!user && !isSelf;
+                const RowTag = isClickable ? "button" : "div";
                 return (
                   <RowTag
                     key={player.userId}

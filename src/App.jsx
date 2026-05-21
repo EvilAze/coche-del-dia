@@ -1,7 +1,6 @@
 // src/App.jsx
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
@@ -316,7 +315,6 @@ export default function App() {
 
   return (
     <>
-      <Analytics mode={import.meta.env.PROD ? "production" : "development"} />
       {/* Splash superpuesto a TODO el resto. Vive en un único punto del
           árbol: aunque dataReady oscile o el contenido cambie por debajo,
           este overlay no se desmonta hasta que splashFinished=true (sticky).

@@ -22,14 +22,8 @@
 //     nuestros 500k chars/mes gratis.
 //   - target/source son códigos ISO-639-1 en mayúsculas como espera DeepL.
 
-import { createClient } from "@supabase/supabase-js";
-
-const ADMIN_EMAILS = ["ievilaze@gmail.com"];
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
+import { requireAdmin } from "../_lib/auth.js";
+import { parseBody, methodGuard } from "../_lib/http.js";
 
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
 const DEEPL_API_HOST = process.env.DEEPL_API_HOST || "api-free.deepl.com";
@@ -39,56 +33,18 @@ const DEEPL_API_HOST = process.env.DEEPL_API_HOST || "api-free.deepl.com";
 // nunca debería saltar.
 const MAX_TEXT_LEN = 1000;
 
-function extractAccessToken(req) {
-  const header = req.headers?.authorization || "";
-  if (header.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
-
-function parseBody(req) {
-  const raw = req.body;
-  if (raw == null) return {};
-  if (typeof raw === "object" && !Buffer.isBuffer(raw)) return raw;
-  if (Buffer.isBuffer(raw)) {
-    try { return JSON.parse(raw.toString("utf8")); } catch { return {}; }
-  }
-  if (typeof raw === "string") {
-    try { return JSON.parse(raw); } catch { return {}; }
-  }
-  return {};
-}
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (methodGuard(req, res, "POST")) return;
 
   try {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      return res.status(500).json({ error: "Server misconfigured (supabase)" });
-    }
     if (!DEEPL_API_KEY) {
       return res.status(500).json({ error: "Server misconfigured (DEEPL_API_KEY)" });
     }
 
-    const accessToken = extractAccessToken(req);
-    if (!accessToken) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    // Identidad + whitelist (mismo patrón que add-car).
-    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: userData, error: userErr } = await authClient.auth.getUser();
-    if (userErr || !userData?.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const email = (userData.user.email || "").toLowerCase();
-    if (!ADMIN_EMAILS.includes(email)) {
-      return res.status(403).json({ error: "Forbidden" });
+    // Identidad + whitelist.
+    const { error: authError } = await requireAdmin(req);
+    if (authError) {
+      return res.status(authError.status).json({ error: authError.message });
     }
 
     const body = parseBody(req);

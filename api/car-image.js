@@ -15,30 +15,17 @@
 //   autorización está embebida en el token cifrado (un atacante no puede
 //   fabricar uno sin REPESCA_TOKEN_SECRET, ni cambiar mode "b" por "c").
 
-import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import {
   verifyImageToken,
   IMAGE_MODE_CLEAR,
   IMAGE_MODE_BLURRED,
 } from "./_lib/image-token.js";
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabaseAdmin =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-    : null;
+import { supabaseAdmin } from "./_lib/supabase.js";
+import { methodGuard } from "./_lib/http.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    res.setHeader("Allow", "GET, HEAD");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (methodGuard(req, res, ["GET", "HEAD"])) return;
 
   try {
     if (!supabaseAdmin) {

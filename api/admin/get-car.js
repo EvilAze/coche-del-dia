@@ -3,58 +3,24 @@
 // autenticado. Necesario para Preview.jsx tras revocar SELECT(image_url) a
 // anon/authenticated.
 
-import { createClient } from "@supabase/supabase-js";
-
-const ADMIN_EMAILS = ["ievilaze@gmail.com"];
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabaseAdmin = SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  : null;
-
-function extractAccessToken(req) {
-  const header = req.headers?.authorization || "";
-  if (header.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
+import { supabaseAdmin } from "../_lib/supabase.js";
+import { requireAdmin } from "../_lib/auth.js";
+import { methodGuard } from "../_lib/http.js";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ message: "Only GET" });
-  }
+  if (methodGuard(req, res, "GET")) return;
 
   if (!supabaseAdmin) {
     console.error("[admin/get-car] missing SUPABASE_SERVICE_ROLE_KEY");
     return res.status(500).json({ message: "Server misconfigured" });
   }
 
-  const accessToken = extractAccessToken(req);
-  if (!accessToken) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  // Validar identidad y email contra la whitelist.
-  const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: userData, error: userErr } = await authClient.auth.getUser();
-  if (userErr || !userData?.user) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-  const email = (userData.user.email || "").toLowerCase();
-  if (!ADMIN_EMAILS.includes(email)) {
-    return res.status(403).json({ message: "Forbidden" });
+  const { error: authError } = await requireAdmin(req);
+  if (authError) {
+    return res.status(authError.status).json({ message: authError.message });
   }
 
   const id = req.query.id;

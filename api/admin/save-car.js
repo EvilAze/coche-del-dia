@@ -23,47 +23,15 @@
 // Service-role bypassea RLS. El cliente sube la imagen al bucket público
 // `cars_images` por su cuenta y nos manda la URL ya resuelta.
 
-import { createClient } from "@supabase/supabase-js";
 import { generateBlurData } from "../_lib/blur-data.js";
-
-const ADMIN_EMAILS = ["ievilaze@gmail.com"];
-
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const supabaseAdmin =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      })
-    : null;
+import { supabaseAdmin } from "../_lib/supabase.js";
+import { requireAdmin } from "../_lib/auth.js";
+import { parseBody, methodGuard } from "../_lib/http.js";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MAX_DESCRIPTION_LEN = 600;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function extractAccessToken(req) {
-  const header = req.headers?.authorization || "";
-  if (header.startsWith("Bearer ")) return header.slice(7);
-  return null;
-}
-
-function parseBody(req) {
-  const raw = req.body;
-  if (raw == null) return {};
-  if (typeof raw === "object" && !Buffer.isBuffer(raw)) return raw;
-  if (Buffer.isBuffer(raw)) {
-    try { return JSON.parse(raw.toString("utf8")); } catch { return {}; }
-  }
-  if (typeof raw === "string") {
-    try { return JSON.parse(raw); } catch { return {}; }
-  }
-  return {};
-}
 
 // Forma de respuesta común para ambas operaciones — el cliente no tiene
 // que ramificar el parseo entre alta y update.
@@ -81,33 +49,17 @@ function shapeCarResponse(row) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (methodGuard(req, res, "POST")) return;
 
   try {
     if (!supabaseAdmin) {
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
-    const accessToken = extractAccessToken(req);
-    if (!accessToken) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    // 1) Identidad + whitelist (compartido entre alta y update).
-    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data: userData, error: userErr } = await authClient.auth.getUser();
-    if (userErr || !userData?.user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const email = (userData.user.email || "").toLowerCase();
-    if (!ADMIN_EMAILS.includes(email)) {
-      return res.status(403).json({ error: "Forbidden" });
+    // Identidad + whitelist (compartido entre alta y update).
+    const { error: authError } = await requireAdmin(req);
+    if (authError) {
+      return res.status(authError.status).json({ error: authError.message });
     }
 
     const body = parseBody(req);

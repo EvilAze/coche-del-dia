@@ -159,6 +159,23 @@ export async function getMyStats() {
   };
 }
 
+// Devuelve los car_ids únicos que el usuario actual ha ganado. Usa la
+// sesión del propio cliente (RLS auth.uid()=user_id en user_guesses).
+// Si no hay sesión, devuelve [].
+export async function getMyWonCarIds() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("user_guesses")
+    .select("car_id")
+    .eq("user_id", user.id)
+    .eq("status", "won");
+  if (error) throw error;
+  // Deduplicamos: un mismo coche se puede haber ganado en daily + repesca
+  // (raro pero posible). Para logros, "ganado" es ganado, una vez basta.
+  return [...new Set((data || []).map((r) => r.car_id))];
+}
+
 export async function getLeaderboard() {
   // Devolvemos a TODOS los jugadores con puntos > 0 y nickname puesto.
   // El `.limit(1000)` es solo un techo de seguridad para no traer la BD

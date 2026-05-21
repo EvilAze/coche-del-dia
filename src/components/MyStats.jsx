@@ -5,6 +5,7 @@ import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
+import Achievements from "./Achievements";
 
 function StatCard({ label, value }) {
   return (
@@ -97,7 +98,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
       open={open}
       onClose={onClose}
       backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
-      panelClassName="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl"
+      panelClassName="flex max-h-[90vh] w-full max-w-sm flex-col rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl overflow-hidden"
     >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-widest text-white">
@@ -142,6 +143,13 @@ export default function MyStats({ open, onClose, onSignedOut }) {
               <StatCard label={t("myStats.statStreak")} value={stats.current_streak} />
               <StatCard label={t("myStats.statMaxStreak")} value={stats.max_streak} />
               <StatCard label={t("myStats.statWins")} value={stats.total_wins} />
+            </div>
+
+            {/* Sección de logros: scroll interno dentro del modal para
+                que el contenido principal (stats + sign out) siga visible
+                sin scroll. */}
+            <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-white/10 px-5 pt-4">
+              <Achievements stats={stats} />
             </div>
 
             <div className="mt-5 flex justify-center">

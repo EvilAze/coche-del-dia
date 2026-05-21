@@ -337,17 +337,12 @@ export default function Repesca() {
 
   // ---- Renders ----
 
-  if (checkingUser || phase === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg-primary font-body text-white">
-        <div className="flex flex-col items-center gap-4">
-          <span className="animate-bounce text-4xl">🎯</span>
-          <p className="animate-pulse text-sm uppercase tracking-widest text-muted">
-            {t("repesca.loadingMessage")}
-          </p>
-        </div>
-      </div>
-    );
+  // Mientras checkingUser, devolvemos un fondo limpio (sin loader): la
+  // página llega aquí justo tras la animación de sorteo (zoom-blur de
+  // cartas) y mostrar otra pantalla de carga rompía la continuidad.
+  // El bootstrap real se cubre debajo con el skeleton de CarImage.
+  if (checkingUser) {
+    return <div className="min-h-screen bg-bg-primary" />;
   }
 
   if (phase === "error") {
@@ -441,7 +436,11 @@ export default function Repesca() {
 
           <div className="shrink-0 text-right">
             <div className="font-display text-2xl leading-none text-accent">
-              {effectiveMaxAttempts - attempts}
+              {/* Durante el bootstrap (phase === "loading") el modo aún no
+                  llegó del servidor, así que evitar pintar "5" para que
+                  luego salte a "1" en veteranos. Un guión es suficiente
+                  como placeholder visual de 1-2 frames. */}
+              {phase === "loading" ? "—" : effectiveMaxAttempts - attempts}
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted">
               {t("repesca.attemptsLabel")}
@@ -489,7 +488,7 @@ export default function Repesca() {
 
           {guesses.length > 0 && <div className="my-4 h-px bg-border" />}
 
-          {phase === "playing" ? (
+          {phase === "loading" ? null : phase === "playing" ? (
             <GuessForm onSubmit={submitGuess} isSubmitting={isSubmitting} />
           ) : (
             <ResultPanel

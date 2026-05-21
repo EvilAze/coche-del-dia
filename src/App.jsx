@@ -1,5 +1,6 @@
 // src/App.jsx
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
@@ -88,6 +89,42 @@ export default function App() {
   // partida acaba, el score que devuelve useGame ya incluye el nuevo
   // currentStreak — lo aplicamos sin refetch.
   const [streak, setStreak] = useState(0);
+
+  // Splash de carga:
+  //   - Primera visita en esta sesión del navegador → splash con
+  //     duración mínima SPLASH_MIN_MS para que la animación se
+  //     entienda.
+  //   - Visitas siguientes en la misma sesión (refresh, navegación
+  //     interna que monte App de nuevo) → skip total. Los jugadores
+  //     diarios solo ven el splash una vez por sesión, no en cada
+  //     refresh.
+  //   - sessionStorage se borra al cerrar el navegador / pestaña, así
+  //     que el splash vuelve a salir en la siguiente sesión "fresh".
+  const SPLASH_MIN_MS = 1500;
+  const SPLASH_SEEN_KEY = "carguessr_splash_seen";
+  const splashAlreadySeen =
+    typeof window !== "undefined" &&
+    window.sessionStorage?.getItem(SPLASH_SEEN_KEY) === "1";
+  const splashMountedAtRef = useRef(Date.now());
+  const [splashMinElapsed, setSplashMinElapsed] = useState(splashAlreadySeen);
+  useEffect(() => {
+    if (splashAlreadySeen) return;
+    const remaining = Math.max(
+      0,
+      SPLASH_MIN_MS - (Date.now() - splashMountedAtRef.current)
+    );
+    const id = setTimeout(() => {
+      setSplashMinElapsed(true);
+      try {
+        window.sessionStorage?.setItem(SPLASH_SEEN_KEY, "1");
+      } catch {
+        // sessionStorage puede estar deshabilitado (Safari privado en
+        // algunos casos). No es crítico: solo significa que la próxima
+        // visita verá el splash de nuevo.
+      }
+    }, remaining);
+    return () => clearTimeout(id);
+  }, [splashAlreadySeen]);
 
   // Gate de re-sincronización: onAuthStateChange dispara TOKEN_REFRESHED
   // cada vez que el browser recupera el foco de la pestaña, con un user
@@ -257,17 +294,42 @@ export default function App() {
     month: "long",
   });
 
-  if (isLoading || !car) {
+  // Visitas repetidas (sessionStorage marcado): NO montamos el splash
+  // de puerta en ningún momento, ni siquiera mientras esperamos datos.
+  // Si la API tarda, se ve un fondo plano breve — preferible a abrir
+  // y cerrar la puerta a medias en cuanto los datos lleguen.
+  // Primera visita en la sesión: splash con duración mínima.
+  const dataReady = !isLoading && !!car;
+  const showSplash =
+    !splashAlreadySeen && !(dataReady && splashMinElapsed);
+
+  if (!dataReady) {
     return (
       <>
         <Analytics />
-        <GarageDoorSplash subtitle={t("app.loadingCar")} />
+        <AnimatePresence>
+          {showSplash && (
+            <GarageDoorSplash key="splash" subtitle={t("app.loadingCar")} />
+          )}
+        </AnimatePresence>
+        {splashAlreadySeen && (
+          <div className="min-h-screen bg-bg-primary" />
+        )}
       </>
     );
   }
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
+      {/* Splash superpuesto solo en primera visita: cuando dataReady ya
+          es true pero el mínimo aún no ha pasado, sigue tapando la home.
+          Al pasar el mínimo, AnimatePresence dispara el exit (zoom + blur)
+          y deja ver el juego que ya está montado debajo. */}
+      <AnimatePresence>
+        {showSplash && (
+          <GarageDoorSplash key="splash" subtitle={t("app.loadingCar")} />
+        )}
+      </AnimatePresence>
       <Analytics />
 
       <Header

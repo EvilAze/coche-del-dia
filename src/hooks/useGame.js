@@ -3,6 +3,7 @@ import { supabase } from "../supabaseClient";
 import { useToast } from "../components/Toast";
 import { getMyStats } from "./useStats";
 import { detectAndPersistNewAchievements } from "../lib/achievementsNotifier";
+import { track } from "../lib/analytics";
 import { useT } from "../i18n";
 
 const MAX_ATTEMPTS = 5;
@@ -108,6 +109,11 @@ export async function notifyAchievementsAfterWin({ toast, t, locale }) {
     head.forEach((a, i) => {
       const title =
         a.title?.[locale] || a.title?.es || a.title?.en || "Logro";
+      track("achievement_unlocked", {
+        id: a.id,
+        category: a.category,
+        tier: a.currentTier || null,
+      });
       // Stagger: 600 ms entre toasts. Da tiempo a leer cada uno sin que
       // pisen al anterior (el Toast por defecto dura ~3-4s).
       setTimeout(() => {
@@ -401,6 +407,14 @@ export function useGame() {
       }
 
       if (scoreBreakdown && newStatus !== "playing") setScore(scoreBreakdown);
+
+      // Analytics: registramos el resultado de la partida diaria.
+      // attempts incluye el intento ganador/perdedor que acaba de pasar.
+      if (newStatus === "won") {
+        track("daily_win", { attempts: newGuesses.length });
+      } else if (newStatus === "lost") {
+        track("daily_lose", {});
+      }
 
       // Logros: solo aplican a usuarios logueados (los anónimos no tienen
       // persistencia en Supabase). Tras ganar, detectamos desbloqueos

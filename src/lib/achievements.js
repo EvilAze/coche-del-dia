@@ -31,18 +31,23 @@ const BRAND_TIERS = [
 
 // ---------- Hitos fijos --------------------------------------------------
 
+// Iconos: nombre lógico que el componente UI resuelve a un SVG inline
+// (ver src/components/AchievementIcons.jsx). Usamos SVG en vez de emoji
+// porque la representación de emoji varía entre OS y en Windows
+// 🔥 sale como una cebolla gris en vez de llama.
 const MILESTONE_THRESHOLDS = [
-  { id: "first",  count: 1,   icon: "🚗", title: { es: "Primer coche",   en: "First car" },         desc: { es: "Desbloquea tu primer coche.",  en: "Unlock your first car." } },
-  { id: "small",  count: 10,  icon: "🅿️", title: { es: "Garaje pequeño", en: "Small garage" },      desc: { es: "Desbloquea 10 coches.",        en: "Unlock 10 cars." } },
-  { id: "shop",   count: 25,  icon: "🏬", title: { es: "Concesionario",  en: "Dealership" },        desc: { es: "Desbloquea 25 coches.",        en: "Unlock 25 cars." } },
-  { id: "museum", count: 50,  icon: "🏛️", title: { es: "Museo",          en: "Museum" },            desc: { es: "Desbloquea 50 coches.",        en: "Unlock 50 cars." } },
-  { id: "icon",   count: 100, icon: "👑", title: { es: "Garaje icónico", en: "Iconic garage" },     desc: { es: "Desbloquea 100 coches.",       en: "Unlock 100 cars." } },
+  { id: "first",  count: 1,   svg: "car",     title: { es: "Primer coche",   en: "First car" },     desc: { es: "Desbloquea tu primer coche.", en: "Unlock your first car." } },
+  { id: "small",  count: 10,  svg: "parking", title: { es: "Garaje pequeño", en: "Small garage" }, desc: { es: "Desbloquea 10 coches.",        en: "Unlock 10 cars." } },
+  { id: "shop",   count: 25,  svg: "shop",    title: { es: "Concesionario",  en: "Dealership" },   desc: { es: "Desbloquea 25 coches.",        en: "Unlock 25 cars." } },
+  { id: "museum", count: 50,  svg: "museum",  title: { es: "Museo",          en: "Museum" },       desc: { es: "Desbloquea 50 coches.",        en: "Unlock 50 cars." } },
+  { id: "icon",   count: 100, svg: "crown",   title: { es: "Garaje icónico", en: "Iconic garage" }, desc: { es: "Desbloquea 100 coches.",      en: "Unlock 100 cars." } },
 ];
 
+// `repeat` indica cuántas llamas se pintan (1 = simple, 3 = intenso).
 const STREAK_THRESHOLDS = [
-  { id: 7,   icon: "🔥",   title: { es: "Constancia",  en: "Steady" },     desc: { es: "Racha de 7 días.",   en: "7-day streak." } },
-  { id: 30,  icon: "🔥🔥", title: { es: "Disciplina",  en: "Disciplined" }, desc: { es: "Racha de 30 días.",  en: "30-day streak." } },
-  { id: 100, icon: "🔥🔥🔥", title: { es: "Leyenda",   en: "Legend" },     desc: { es: "Racha de 100 días.", en: "100-day streak." } },
+  { id: 7,   svg: "flame", repeat: 1, title: { es: "Constancia",  en: "Steady" },     desc: { es: "Racha de 7 días.",   en: "7-day streak." } },
+  { id: 30,  svg: "flame", repeat: 2, title: { es: "Disciplina",  en: "Disciplined" }, desc: { es: "Racha de 30 días.",  en: "30-day streak." } },
+  { id: 100, svg: "flame", repeat: 3, title: { es: "Leyenda",     en: "Legend" },     desc: { es: "Racha de 100 días.", en: "100-day streak." } },
 ];
 
 // ---------- Helpers ------------------------------------------------------
@@ -189,11 +194,18 @@ export function computeAchievements({ cars, wonCarIds, stats, persistedUnlocks }
       || tierDefs.find((d) => d.tier === effectiveTierName)?.label
       || null;
 
-    // Para la barra de progreso: si no hay siguiente tier, mostramos
-    // wonCount/total absoluto. Si lo hay, progreso hacia ese siguiente.
-    const progress = nextTier
+    // Dos métricas de progreso conviven a propósito:
+    //   - `progress`: ganados / total absoluto del catálogo (BMW: "1/8").
+    //     Es la cifra que se MUESTRA al usuario en la card y el tooltip.
+    //     Es honesta y no confunde con el siguiente tier.
+    //   - `progressToNext`: progreso hacia el siguiente tier requerido
+    //     (BMW silver = 4 → "1/4"). NO se muestra como número, solo
+    //     alimenta el porcentaje de la BARRA. Cuando la barra se llena,
+    //     el usuario sube de tier — eso da la urgencia visual.
+    const progress = { current: wonCount, total };
+    const progressToNext = nextTier
       ? { current: Math.min(wonCount, nextTier.required), total: nextTier.required }
-      : { current: wonCount, total };
+      : null;
 
     return {
       id,
@@ -215,6 +227,7 @@ export function computeAchievements({ cars, wonCarIds, stats, persistedUnlocks }
       frozenFromCatalogGrowth:
         persistedRank > 0 && wonCount < (currentTierObj?.required ?? 0),
       progress,
+      progressToNext,
       // Título/descripción dinámicos según estado:
       title: effectiveTierName
         ? {
@@ -302,7 +315,7 @@ export function computeAchievements({ cars, wonCarIds, stats, persistedUnlocks }
       category: "milestone",
       group: null,
       tier: null,
-      icon: { kind: "emoji", value: m.icon },
+      icon: { kind: "svg", name: m.svg },
       title: m.title,
       description: m.desc,
       unlocked: naturallyUnlocked || persistedUnlocked,
@@ -322,7 +335,7 @@ export function computeAchievements({ cars, wonCarIds, stats, persistedUnlocks }
       category: "streak",
       group: null,
       tier: null,
-      icon: { kind: "emoji", value: s.icon },
+      icon: { kind: "svg", name: s.svg, repeat: s.repeat || 1 },
       title: s.title,
       description: s.desc,
       unlocked: naturallyUnlockedS || persistedUnlockedS,

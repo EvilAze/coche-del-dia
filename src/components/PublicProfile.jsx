@@ -18,6 +18,7 @@ import { computeAchievements } from "../lib/achievements";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
+import AchievementIcon from "./AchievementIcons";
 
 function StatCard({ label, value }) {
   return (
@@ -286,9 +287,17 @@ function PublicBadge({ achievement, locale }) {
         }}
       />
     );
+  } else if (icon.kind === "svg") {
+    iconNode = (
+      <AchievementIcon
+        name={icon.name}
+        repeat={icon.repeat || 1}
+        size="h-6 w-6"
+      />
+    );
   } else {
     iconNode = (
-      <span className="font-display text-2xl leading-none">{icon.value}</span>
+      <span className="font-display text-2xl leading-none">{icon.value || "?"}</span>
     );
   }
 

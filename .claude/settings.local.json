@@ -40,7 +40,13 @@
       "Bash(python3 -c 'import datetime; print\\(datetime.datetime.utcfromtimestamp\\(2093757424\\)\\)')",
       "Bash(echo \"exp: 2093757424 = $\\(date -u -d @2093757424 || python3 -c 'import datetime; print\\(datetime.datetime.utcfromtimestamp\\(2093757424\\)\\)'\\)\")",
       "Bash(curl -s -o /dev/null -w '%{http_code}' 'https://ftojemthjgkgwbjjmuwy.supabase.co/rest/v1/__TRACKED_VAR__?select=*&limit=1' -H 'apikey: __TRACKED_VAR__' -H 'Authorization: Bearer __TRACKED_VAR__')",
-      "Bash(curl -s 'https://ftojemthjgkgwbjjmuwy.supabase.co/rest/v1/__TRACKED_VAR__?select=*&limit=1' -H 'apikey: __TRACKED_VAR__' -H 'Authorization: Bearer __TRACKED_VAR__')"
+      "Bash(curl -s 'https://ftojemthjgkgwbjjmuwy.supabase.co/rest/v1/__TRACKED_VAR__?select=*&limit=1' -H 'apikey: __TRACKED_VAR__' -H 'Authorization: Bearer __TRACKED_VAR__')",
+      "Bash(grep -iE \"\\\\.\\(key|pem|p12|pfx\\)$|secret|credential|token\")",
+      "Bash(curl -s -o /dev/null -w \"github.com/EvilAze/coche-del-dia: HTTP %{http_code}\\\\n\" \"https://github.com/EvilAze/coche-del-dia\")",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/EvilAze/coche-del-dia/__TRACKED_VAR__/.env)",
+      "Bash(npm uninstall *)",
+      "Bash(git mv *)",
+      "Bash(npx vite *)"
     ]
   }
 }

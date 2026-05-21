@@ -120,6 +120,8 @@
     "loading": "Cargando logros…",
     "errorLoad": "No se pudieron cargar tus logros.",
     "empty": "Todavía no hay logros disponibles.",
+    "toastUnlocked": "Has desbloqueado:",
+    "toastMore": "Y {count} logro(s) más desbloqueado(s).",
     "category": {
       "milestone": "Hitos",
       "streak": "Constancia",

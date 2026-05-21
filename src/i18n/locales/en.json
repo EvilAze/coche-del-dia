@@ -120,6 +120,8 @@
     "loading": "Loading achievements…",
     "errorLoad": "Couldn't load your achievements.",
     "empty": "No achievements available yet.",
+    "toastUnlocked": "Unlocked:",
+    "toastMore": "And {count} more achievement(s) unlocked.",
     "category": {
       "milestone": "Milestones",
       "streak": "Streaks",

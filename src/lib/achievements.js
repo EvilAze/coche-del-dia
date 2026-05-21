@@ -85,14 +85,48 @@ function effectiveTiers(tiers, total) {
   return [...byRequired.values()].sort((a, b) => a.required - b.required);
 }
 
-// ---------- Cómputo principal -------------------------------------------
-
 // Ranking interno de tiers para el merge "max(persisted, computed)".
-// gold > silver > bronze > nada.
+// gold > silver > bronze > nada. Declarado a nivel de módulo para
+// usarse tanto en buildPersistDiff como en computeAchievements.
 const TIER_RANK = { bronze: 1, silver: 2, gold: 3 };
 function tierRank(name) {
   return TIER_RANK[name] || 0;
 }
+
+/**
+ * Dado el resultado de computeAchievements y el snapshot persistido en
+ * stats.achievements_unlocked, devuelve un mapa con SOLO los desbloqueos
+ * NUEVOS (no presentes o con tier inferior). Pensado para que el cliente
+ * envíe únicamente el delta a la RPC persist_achievement_unlocks — el
+ * servidor hace merge no-destructivo.
+ *
+ * @param {Array} items Resultado de computeAchievements.
+ * @param {Record<string, string|boolean>} persisted Mapa ya persistido.
+ * @returns {Record<string, string|boolean>} Diff a enviar al servidor.
+ */
+export function buildPersistDiff(items, persisted) {
+  const diff = {};
+  const p = persisted || {};
+  for (const a of items) {
+    if (Array.isArray(a.tiers) && a.tiers.length > 0) {
+      // Colección: enviamos el currentTier si es superior al persistido.
+      if (!a.currentTier) continue;
+      const currRank = TIER_RANK[a.currentTier] || 0;
+      const persistedRank = TIER_RANK[p[a.id]] || 0;
+      if (currRank > persistedRank) {
+        diff[a.id] = a.currentTier;
+      }
+    } else {
+      // Hito o racha: booleano.
+      if (a.unlocked && p[a.id] !== true) {
+        diff[a.id] = true;
+      }
+    }
+  }
+  return diff;
+}
+
+// ---------- Cómputo principal -------------------------------------------
 
 /**
  * @param {object} input

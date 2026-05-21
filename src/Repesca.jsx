@@ -22,6 +22,7 @@ import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import { useToast } from "./components/Toast";
 import { useT } from "./i18n";
+import { notifyAchievementsAfterWin } from "./hooks/useGame";
 
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
@@ -46,7 +47,7 @@ function getCarIdFromUrl() {
 }
 
 export default function Repesca() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const toast = useToast();
   const [user, setUser] = useState(null);
   const [checkingUser, setCheckingUser] = useState(true);
@@ -324,6 +325,13 @@ export default function Repesca() {
       setPhase(newPhase);
       if (nextReveal) setReveal(nextReveal);
       if (scoreBreakdown && newPhase !== "playing") setScore(scoreBreakdown);
+
+      // Logros: solo aplican a usuarios logueados (la repesca ya lo
+      // requiere). Tras ganar, detectamos desbloqueos nuevos y los
+      // notificamos con toast staggered. Fire and forget.
+      if (newPhase === "won" && user) {
+        notifyAchievementsAfterWin({ toast, t, locale });
+      }
 
       return result;
     } catch (err) {

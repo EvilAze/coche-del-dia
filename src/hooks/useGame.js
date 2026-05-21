@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { useToast } from "../components/Toast";
+import { getMyStats } from "./useStats";
+import { detectAndPersistNewAchievements } from "../lib/achievementsNotifier";
+import { useT } from "../i18n";
 
 const MAX_ATTEMPTS = 5;
 
@@ -79,6 +82,56 @@ function buildCarState({ img, blurData, reveal }) {
   };
 }
 
+// Helper compartido con Repesca.jsx: tras ganar una partida, refresca
+// stats (que ya están actualizadas server-side por record_daily_result_v2
+// o por la propia /api/repesca/validate), detecta logros nuevos y los
+// pinta como toasts staggered. Máximo 3 individuales — si hay más,
+// agrega el resto en uno solo para no spamear.
+//
+// Importable desde useGame y desde Repesca. NO usa hooks (recibe toast
+// y t por parámetro) para poder llamarse fuera de un componente React.
+export async function notifyAchievementsAfterWin({ toast, t, locale }) {
+  try {
+    // Refetch stats: la victoria que acaba de pasar ha actualizado al
+    // menos current_streak/max_streak/total_wins/total_points + posibles
+    // achievements ya persistidos (si el usuario tenía MyStats abierto en
+    // sesiones anteriores). Necesitamos el snapshot fresco.
+    const { stats } = await getMyStats();
+    if (!stats) return;
+    const { newlyUnlocked } = await detectAndPersistNewAchievements({ stats });
+    if (newlyUnlocked.length === 0) return;
+
+    const MAX_INDIVIDUAL = 3;
+    const head = newlyUnlocked.slice(0, MAX_INDIVIDUAL);
+    const rest = newlyUnlocked.length - head.length;
+
+    head.forEach((a, i) => {
+      const title =
+        a.title?.[locale] || a.title?.es || a.title?.en || "Logro";
+      // Stagger: 600 ms entre toasts. Da tiempo a leer cada uno sin que
+      // pisen al anterior (el Toast por defecto dura ~3-4s).
+      setTimeout(() => {
+        toast.push(`🏅 ${t("achievements.toastUnlocked")} ${title}`, {
+          type: "success",
+        });
+      }, i * 600);
+    });
+
+    if (rest > 0) {
+      setTimeout(() => {
+        toast.push(
+          `🏅 ${t("achievements.toastMore", { count: rest })}`,
+          { type: "success" }
+        );
+      }, head.length * 600);
+    }
+  } catch (err) {
+    // No interferir nunca con el flujo de victoria. Si la notificación
+    // falla, el usuario verá los logros la próxima vez que abra MyStats.
+    console.warn("[achievementsNotifier] post-win:", err);
+  }
+}
+
 export function useGame() {
   const [car, setCar] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,6 +140,7 @@ export function useGame() {
   const [status, setStatus] = useState("playing");
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(null);
+  const { t, locale } = useT();
   // Token firmado por el servidor que autoriza ver la imagen completa
   // (modo reveal de /api/daily-image). Se rellena cuando el juego termina:
   //   - Si el usuario llega con la partida ya cerrada → desde /api/get-daily-car.
@@ -347,6 +401,14 @@ export function useGame() {
       }
 
       if (scoreBreakdown && newStatus !== "playing") setScore(scoreBreakdown);
+
+      // Logros: solo aplican a usuarios logueados (los anónimos no tienen
+      // persistencia en Supabase). Tras ganar, detectamos desbloqueos
+      // nuevos y los notificamos con toast. Lo hacemos "fire and forget":
+      // no bloquea el render del resultado de la partida.
+      if (newStatus === "won" && user) {
+        notifyAchievementsAfterWin({ toast, t, locale });
+      }
 
       // Persistencia local SOLO para anónimos. Para logueados, /api/validate-guess
       // ya escribió en user_guesses con valores server-validated.

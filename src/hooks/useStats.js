@@ -144,7 +144,9 @@ export async function getMyStats() {
   const [{ data: stats, error: statsError }, profile] = await Promise.all([
     supabase
       .from("stats")
-      .select("current_streak, max_streak, total_wins, total_points, last_played_date")
+      .select(
+        "current_streak, max_streak, total_wins, total_points, last_played_date, achievements_unlocked"
+      )
       .eq("user_id", user.id)
       .maybeSingle(),
     getMyProfile(user.id),
@@ -176,6 +178,23 @@ export async function getMyWonCarIds() {
   return [...new Set((data || []).map((r) => r.car_id))];
 }
 
+// Persiste un mapa de logros desbloqueados (delta). El servidor hace
+// MERGE no-destructivo: solo añade claves, nunca quita. La frontend
+// debe enviar solo desbloqueos NUEVOS (no rebaja, no idempotente
+// innecesariamente — es defensa contra payload inflado).
+//
+// Formato esperado: { "brand_mitsubishi": "gold", "milestone_first": true, ... }
+//
+// Devuelve el mapa fusionado tras la operación.
+export async function persistAchievementUnlocks(unlocksMap) {
+  if (!unlocksMap || Object.keys(unlocksMap).length === 0) return null;
+  const { data, error } = await supabase.rpc("persist_achievement_unlocks", {
+    p_unlocks: unlocksMap,
+  });
+  if (error) throw error;
+  return data;
+}
+
 // Lee el perfil público de OTRO usuario (no el actual). Llama a la RPC
 // SECURITY DEFINER `get_public_profile` que vive en Supabase. Devuelve
 // { profile: {display_name}, stats: {...}, wonCarIds: string[] }.
@@ -190,6 +209,10 @@ export async function getPublicProfile(userId) {
     profile: data?.profile ?? null,
     stats: data?.stats ?? null,
     wonCarIds: Array.isArray(data?.wonCarIds) ? data.wonCarIds : [],
+    achievementsUnlocked:
+      data?.achievementsUnlocked && typeof data.achievementsUnlocked === "object"
+        ? data.achievementsUnlocked
+        : {},
   };
 }
 

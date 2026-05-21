@@ -87,17 +87,31 @@ function effectiveTiers(tiers, total) {
 
 // ---------- Cómputo principal -------------------------------------------
 
+// Ranking interno de tiers para el merge "max(persisted, computed)".
+// gold > silver > bronze > nada.
+const TIER_RANK = { bronze: 1, silver: 2, gold: 3 };
+function tierRank(name) {
+  return TIER_RANK[name] || 0;
+}
+
 /**
  * @param {object} input
  * @param {Array<{id:string, marca:string, pais:string}>} input.cars Catálogo completo.
  * @param {Array<string>} input.wonCarIds car_ids únicos ganados por el usuario.
  * @param {{current_streak?:number, max_streak?:number, total_wins?:number}|null} input.stats
+ * @param {Record<string, string|boolean>} [input.persistedUnlocks] Snapshot
+ *   persistido de desbloqueos previos. Mapa achievementId -> tier (para
+ *   colecciones) o boolean true (para hitos/rachas). Si está presente, los
+ *   logros NUNCA regresan: el tier final es max(persisted, computed). Esto
+ *   protege al usuario de "perder" medallas cuando el admin amplía el
+ *   catálogo (y los umbrales porcentuales se mueven).
  * @returns {Array} Lista de logros. Las colecciones (marca/país) emiten
  *   UNA entrada por grupo con todos los tiers embebidos (currentTier +
  *   nextTier). Hitos y rachas emiten una entrada por umbral individual.
  */
-export function computeAchievements({ cars, wonCarIds, stats }) {
+export function computeAchievements({ cars, wonCarIds, stats, persistedUnlocks }) {
   const wonSet = new Set(wonCarIds || []);
+  const persisted = persistedUnlocks || {};
   const out = [];
 
   // Helper: para una colección (marca o país), construye UNA tarjeta con
@@ -107,16 +121,40 @@ export function computeAchievements({ cars, wonCarIds, stats }) {
     category, group, slug, total, wonCount, tierDefs, iconKind, iconValue,
     labelSingular, labelPlural,
   }) {
+    const id = `${category}_${slug}`;
+    const persistedTier = typeof persisted[id] === "string" ? persisted[id] : null;
+    const persistedRank = tierRank(persistedTier);
+
+    // Cada tier se marca como achieved si:
+    //   - el usuario tiene wonCount >= required (estado natural), O
+    //   - el tier es <= al persistido (freeze: el oro de ayer sigue siendo oro)
     const tiers = effectiveTiers(tierDefs, total).map((t) => ({
       tier: t.tier,
       label: t.label,
       required: t.required,
-      achieved: wonCount >= t.required,
+      achieved: wonCount >= t.required || tierRank(t.tier) <= persistedRank,
     }));
     const achievedTiers = tiers.filter((t) => t.achieved);
-    const currentTier = achievedTiers[achievedTiers.length - 1] || null;
+    const currentTierObj = achievedTiers[achievedTiers.length - 1] || null;
     const nextTier = tiers.find((t) => !t.achieved) || null;
     const fullyDone = tiers.length > 0 && tiers.every((t) => t.achieved);
+
+    // El nombre del tier "final" puede ser persistido si está por encima
+    // de cualquier tier definido en el catálogo actual (caso edge: el
+    // persistido es gold pero el catálogo creció tanto que ni siquiera
+    // existe ya un tier llamado igual con el wonCount actual). En la
+    // práctica, como persistimos solo nombres canónicos (bronze/silver/
+    // gold), y los tier names se mantienen, currentTierObj cubre el caso.
+    const effectiveTierName = currentTierObj?.tier
+      || (persistedTier && tierRank(persistedTier) > 0 ? persistedTier : null);
+
+    // Etiqueta amigable del tier efectivo (si es persistido y no figura en
+    // tiers, buscamos su label en tierDefs).
+    const effectiveTierLabel =
+      currentTierObj?.label
+      || tierDefs.find((d) => d.tier === effectiveTierName)?.label
+      || null;
+
     // Para la barra de progreso: si no hay siguiente tier, mostramos
     // wonCount/total absoluto. Si lo hay, progreso hacia ese siguiente.
     const progress = nextTier
@@ -124,24 +162,30 @@ export function computeAchievements({ cars, wonCarIds, stats }) {
       : { current: wonCount, total };
 
     return {
-      id: `${category}_${slug}`,
+      id,
       category,
       group,
       icon: { kind: iconKind, value: iconValue },
       tiers,                              // array completo de tiers
-      currentTier: currentTier?.tier || null,
+      currentTier: effectiveTierName,
       nextTier: nextTier
         ? { tier: nextTier.tier, required: nextTier.required, label: nextTier.label }
         : null,
       total,
       wonCount,
       unlocked: fullyDone,
+      // Flag útil para UI/futuro: ¿el currentTier viene de persistencia
+      // y NO del estado actual del catálogo? Sirve para distinguir
+      // visualmente medallas "frozen" (catálogo creció) si algún día
+      // queremos mostrarlo. Hoy no se usa, pero queda emitido.
+      frozenFromCatalogGrowth:
+        persistedRank > 0 && wonCount < (currentTierObj?.required ?? 0),
       progress,
       // Título/descripción dinámicos según estado:
-      title: currentTier
+      title: effectiveTierName
         ? {
-            es: `${currentTier.label.es} — ${group}`,
-            en: `${currentTier.label.en} — ${group}`,
+            es: `${effectiveTierLabel?.es || effectiveTierName} — ${group}`,
+            en: `${effectiveTierLabel?.en || effectiveTierName} — ${group}`,
           }
         : {
             es: `${group}`,
@@ -216,15 +260,19 @@ export function computeAchievements({ cars, wonCarIds, stats }) {
   // ===== 3) Hitos de progreso =====
   const totalUnlocked = wonSet.size;
   for (const m of MILESTONE_THRESHOLDS) {
+    const id = `milestone_${m.id}`;
+    const naturallyUnlocked = totalUnlocked >= m.count;
+    const persistedUnlocked = persisted[id] === true;
     out.push({
-      id: `milestone_${m.id}`,
+      id,
       category: "milestone",
       group: null,
       tier: null,
       icon: { kind: "emoji", value: m.icon },
       title: m.title,
       description: m.desc,
-      unlocked: totalUnlocked >= m.count,
+      unlocked: naturallyUnlocked || persistedUnlocked,
+      frozenFromCatalogGrowth: persistedUnlocked && !naturallyUnlocked,
       progress: { current: Math.min(totalUnlocked, m.count), total: m.count },
     });
   }
@@ -232,15 +280,19 @@ export function computeAchievements({ cars, wonCarIds, stats }) {
   // ===== 4) Constancia (rachas) =====
   const maxStreak = Math.max(0, Number(stats?.max_streak || 0));
   for (const s of STREAK_THRESHOLDS) {
+    const idStreak = `streak_${s.id}`;
+    const naturallyUnlockedS = maxStreak >= s.id;
+    const persistedUnlockedS = persisted[idStreak] === true;
     out.push({
-      id: `streak_${s.id}`,
+      id: idStreak,
       category: "streak",
       group: null,
       tier: null,
       icon: { kind: "emoji", value: s.icon },
       title: s.title,
       description: s.desc,
-      unlocked: maxStreak >= s.id,
+      unlocked: naturallyUnlockedS || persistedUnlockedS,
+      frozenFromCatalogGrowth: persistedUnlockedS && !naturallyUnlockedS,
       progress: { current: Math.min(maxStreak, s.id), total: s.id },
     });
   }

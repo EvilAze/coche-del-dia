@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useT, getLocalizedCountry } from "../i18n";
 import { computeAchievements } from "../lib/achievements";
 import { loadCatalog } from "../data/catalog";
-import { getMyWonCarIds } from "../hooks/useStats";
+import { getMyWonCarIds, persistAchievementUnlocks } from "../hooks/useStats";
 
 // Mismas convenciones de slug que Garage.jsx para que los iconos
 // (logos de marca, banderas) resuelvan correctamente sin 404s.
@@ -29,6 +29,36 @@ function countrySlug(pais) {
 
 const CATEGORY_ORDER = ["milestone", "streak", "brand", "country"];
 
+// Ranking interno para detectar "upgrades" reales en tier de colección.
+const TIER_RANK = { bronze: 1, silver: 2, gold: 3 };
+
+// Dado el resultado de computeAchievements y lo ya persistido en stats,
+// devuelve un mapa con SOLO los desbloqueos nuevos (los que aún no están
+// persistidos o cuyo tier ha subido). El servidor hará merge naive — esto
+// es lo que evita reenviar todo el snapshot en cada apertura.
+function buildPersistDiff(items, persisted) {
+  const diff = {};
+  for (const a of items) {
+    if (Array.isArray(a.tiers) && a.tiers.length > 0) {
+      // Colección: enviamos el currentTier si es superior al persistido.
+      if (!a.currentTier) continue;
+      const persistedTier = persisted?.[a.id];
+      const currRank = TIER_RANK[a.currentTier] || 0;
+      const persistedRank = TIER_RANK[persistedTier] || 0;
+      if (currRank > persistedRank) {
+        diff[a.id] = a.currentTier;
+      }
+    } else {
+      // Hito o racha: booleano. Persistimos true si está unlocked y aún
+      // no figura como true en persistido.
+      if (a.unlocked && persisted?.[a.id] !== true) {
+        diff[a.id] = true;
+      }
+    }
+  }
+  return diff;
+}
+
 export default function Achievements({ stats }) {
   const { t, locale } = useT();
   const [loading, setLoading] = useState(true);
@@ -38,10 +68,17 @@ export default function Achievements({ stats }) {
   // Carga del catálogo + wins del usuario en paralelo. Ambos son baratos
   // (catalog está cacheado en sesión; wins es una query simple a
   // user_guesses con RLS).
+  //
+  // El snapshot persistido de logros (stats.achievements_unlocked) ya
+  // viene en `stats` desde getMyStats — lo pasamos a computeAchievements
+  // para que aplique el "freeze on unlock" y nadie pierda medallas si
+  // el catálogo crece.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
+    const persistedUnlocks = stats?.achievements_unlocked || {};
+
     Promise.all([loadCatalog(), getMyWonCarIds()])
       .then(([catalog, wonCarIds]) => {
         if (cancelled) return;
@@ -49,9 +86,24 @@ export default function Achievements({ stats }) {
           cars: catalog?.cars || [],
           wonCarIds: wonCarIds || [],
           stats: stats || {},
+          persistedUnlocks,
         });
         setItems(result);
         setLoading(false);
+
+        // Detecta desbloqueos NUEVOS (no presentes en persistedUnlocks
+        // o con tier inferior al actual) y los manda al servidor. La RPC
+        // hace merge no-destructivo. Esto se ejecuta una sola vez por
+        // apertura del modal — coste mínimo (1 RPC si hay cambios, 0 si
+        // todo está al día).
+        const diff = buildPersistDiff(result, persistedUnlocks);
+        if (Object.keys(diff).length > 0) {
+          persistAchievementUnlocks(diff).catch((err) => {
+            // No es bloqueante: si falla, lo veremos en la próxima
+            // sesión. Logueamos para debug pero no rompemos UI.
+            console.warn("[Achievements] persist failed:", err);
+          });
+        }
       })
       .catch((err) => {
         if (cancelled) return;

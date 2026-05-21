@@ -63,6 +63,9 @@ export default function PublicProfile({ open, onClose, userId }) {
           cars: catalog?.cars || [],
           wonCarIds: profile?.wonCarIds || [],
           stats: profile?.stats || {},
+          // Si el otro usuario tenía oro en una marca antes de que
+          // ampliáramos el catálogo, terceros lo siguen viendo en oro.
+          persistedUnlocks: profile?.achievementsUnlocked || {},
         });
         setState({
           loading: false,

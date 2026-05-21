@@ -6,6 +6,7 @@ import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import ScoringHelpModal from "./ScoringHelpModal";
 import PublicProfile from "./PublicProfile";
+import { track } from "../lib/analytics";
 
 function HelpButton({ onClick }) {
   const { t } = useT();
@@ -172,7 +173,10 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     type={RowTag === "button" ? "button" : undefined}
                     onClick={
                       RowTag === "button"
-                        ? () => setOpenProfileId(player.userId)
+                        ? () => {
+                            track("profile_view", { source: "ranking" });
+                            setOpenProfileId(player.userId);
+                          }
                         : undefined
                     }
                     className={`

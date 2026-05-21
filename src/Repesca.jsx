@@ -23,6 +23,7 @@ import ResultPanel from "./components/ResultPanel";
 import { useToast } from "./components/Toast";
 import { useT } from "./i18n";
 import { notifyAchievementsAfterWin } from "./hooks/useGame";
+import { track } from "./lib/analytics";
 
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
@@ -325,6 +326,13 @@ export default function Repesca() {
       setPhase(newPhase);
       if (nextReveal) setReveal(nextReveal);
       if (scoreBreakdown && newPhase !== "playing") setScore(scoreBreakdown);
+
+      // Analytics: resultado de la repesca con su modo (normal/veteran).
+      if (newPhase === "won") {
+        track("repesca_win", { mode, attempts: newGuesses.length });
+      } else if (newPhase === "lost") {
+        track("repesca_lose", { mode });
+      }
 
       // Logros: solo aplican a usuarios logueados (la repesca ya lo
       // requiere). Tras ganar, detectamos desbloqueos nuevos y los

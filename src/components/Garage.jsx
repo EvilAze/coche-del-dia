@@ -18,6 +18,7 @@ import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
+import { track } from "../lib/analytics";
 
 // Mapa de profundidad de cada vista del Garaje. Sirve para decidir la
 // dirección del slide al cambiar de vista: bajar de nivel (countries →
@@ -295,6 +296,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     setRepescaStarting(true);
     setConfirmRepesca(false);
     setDrawAnim({ carId: pickedId, veteran: pickedVeteran });
+    track("repesca_start", { mode: pickedVeteran ? "veteran" : "normal" });
 
     const minDelay = new Promise((r) => setTimeout(r, REPESCA_DRAW_MIN_MS));
 

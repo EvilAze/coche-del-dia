@@ -69,53 +69,61 @@ export default function GarageDoorSplash({
               shadow-[0_0_50px_rgba(255,191,0,0.18)]
             "
           >
-            {/* Interior del garaje — visible cuando la puerta sube */}
-            <div className="absolute inset-0 flex flex-col items-center justify-end pb-6">
-              {/* Suelo de garaje con dos líneas amarillas de aparcamiento */}
-              <div className="absolute bottom-0 left-0 right-0 h-[34%]">
-                <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
-                <motion.div
-                  className="absolute left-[20%] top-2 bottom-2 w-[3px] rounded-sm bg-yellow-500/55"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 0.35 }}
-                />
-                <motion.div
-                  className="absolute right-[20%] top-2 bottom-2 w-[3px] rounded-sm bg-yellow-500/55"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 0.35 }}
-                />
-              </div>
+            {/* Interior del garaje — visible cuando la puerta sube.
+                La foto real del coche llena el fondo, con vignette
+                radial + gradient inferior para integrarla con la
+                paleta oscura/ámbar del splash sin choque visual. */}
+            <div className="absolute inset-0 overflow-hidden">
+              {/* Foto del coche (Nismo 400R). Se precarga eager para
+                  que esté lista cuando la puerta termine de subir;
+                  decoding async para no bloquear el main thread. */}
+              <motion.img
+                src="/splash-car.jpg"
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                loading="eager"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover"
+                initial={{ scale: 1.06, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.45, duration: 0.55, ease: "easeOut" }}
+              />
 
-              {/* Halo de faros */}
-              <motion.div
-                className="absolute inset-0"
+              {/* Vignette radial: oscurece bordes para que el coche
+                  emerja de la sombra del garaje y la foto no se sienta
+                  "pegada" sobre el fondo del marco. */}
+              <div
+                className="pointer-events-none absolute inset-0"
                 style={{
                   background:
-                    "radial-gradient(ellipse 70% 50% at 50% 75%, rgba(255,191,0,0.28), transparent 65%)",
+                    "radial-gradient(ellipse 90% 70% at 50% 55%, transparent 35%, rgba(0,0,0,0.55) 80%, rgba(0,0,0,0.85) 100%)",
+                }}
+              />
+
+              {/* Gradient inferior: funde el bottom de la foto con el
+                  "suelo" del garaje y deja el coche "apoyado". */}
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%]"
+                style={{
+                  background:
+                    "linear-gradient(to top, rgba(5,5,7,0.95) 0%, rgba(5,5,7,0.55) 45%, transparent 100%)",
+                }}
+              />
+
+              {/* Halo ámbar de faros — toque cálido sobre el coche,
+                  mantiene la cohesión con la paleta del splash. */}
+              <motion.div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 65% 45% at 50% 75%, rgba(255,191,0,0.22), transparent 60%)",
+                  mixBlendMode: "screen",
                 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.45, duration: 0.4 }}
+                transition={{ delay: 0.6, duration: 0.45 }}
               />
-
-              {/* Coche (silueta SVG, no emoji — fonts de emoji no son
-                  fiables entre navegadores/SO) */}
-              <motion.svg
-                className="relative mb-2 h-16 w-auto text-accent drop-shadow-[0_4px_10px_rgba(255,191,0,0.35)]"
-                viewBox="0 0 64 28"
-                fill="currentColor"
-                initial={{ y: 14, opacity: 0, scale: 0.92 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                transition={{ delay: 0.55, duration: 0.4, ease: "easeOut" }}
-                aria-hidden="true"
-              >
-                <path d="M6 22 L4 18 Q4 14 8 14 L14 14 Q16 10 22 8 L40 8 Q46 10 50 14 L56 14 Q60 14 60 18 L58 22 L52 22 Q52 26 48 26 Q44 26 44 22 L20 22 Q20 26 16 26 Q12 26 12 22 Z" />
-                <path d="M22 12 L26 9 L38 9 L42 12 L42 13 L22 13 Z" fill="#0a0a0c" opacity="0.85" />
-                <circle cx="16" cy="22" r="3" fill="#0a0a0c" />
-                <circle cx="48" cy="22" r="3" fill="#0a0a0c" />
-              </motion.svg>
             </div>
 
             {/* === LA PUERTA SECCIONAL ===========================

@@ -48,7 +48,9 @@
       "Bash(git mv *)",
       "Bash(npx vite *)",
       "WebFetch(domain:carguessr.org)",
-      "Bash(curl -s https://carguessr.org/)"
+      "Bash(curl -s https://carguessr.org/)",
+      "Bash(node -e \"const s=require\\('sharp'\\); s\\('public/splash-car.jpg'\\).metadata\\(\\).then\\(m=>console.log\\(JSON.stringify\\(m\\)\\)\\)\")",
+      "Bash(node -e ' *)"
     ]
   }
 }

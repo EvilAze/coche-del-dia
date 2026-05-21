@@ -88,7 +88,7 @@ export default function GarageDoorSplash({
                 className="absolute inset-0 h-full w-full object-cover"
                 initial={{ scale: 1.06, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.45, duration: 0.55, ease: "easeOut" }}
+                transition={{ delay: 0.55, duration: 0.7, ease: "easeOut" }}
               />
 
               {/* Vignette radial: oscurece bordes para que el coche
@@ -125,7 +125,7 @@ export default function GarageDoorSplash({
                 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.45 }}
+                transition={{ delay: 0.7, duration: 0.5 }}
               />
             </div>
 
@@ -138,8 +138,8 @@ export default function GarageDoorSplash({
               initial={{ y: 0 }}
               animate={{ y: "-100%" }}
               transition={{
-                delay: 0.15,
-                duration: 0.7,
+                delay: 0.2,
+                duration: 1.0,
                 ease: [0.65, 0.05, 0.36, 1],
               }}
             >
@@ -188,7 +188,7 @@ export default function GarageDoorSplash({
           className="mt-7 font-display text-2xl tracking-[0.32em] text-white"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.85, duration: 0.35, ease: "easeOut" }}
+          transition={{ delay: 1.1, duration: 0.4, ease: "easeOut" }}
         >
           {title}
         </motion.p>

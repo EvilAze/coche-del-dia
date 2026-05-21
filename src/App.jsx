@@ -100,13 +100,17 @@ export default function App() {
   //     refresh.
   //   - sessionStorage se borra al cerrar el navegador / pestaña, así
   //     que el splash vuelve a salir en la siguiente sesión "fresh".
-  const SPLASH_MIN_MS = 1500;
+  const SPLASH_MIN_MS = 1700;
   const SPLASH_SEEN_KEY = "carguessr_splash_seen";
   const splashAlreadySeen =
     typeof window !== "undefined" &&
     window.sessionStorage?.getItem(SPLASH_SEEN_KEY) === "1";
   const splashMountedAtRef = useRef(Date.now());
   const [splashMinElapsed, setSplashMinElapsed] = useState(splashAlreadySeen);
+  // Sticky: una vez el splash decide "ya estás dentro", no vuelve a
+  // mostrarse aunque dataReady oscile (por re-fetch, re-auth, lo que
+  // sea). Esto evita la regresión "se ve la animación dos veces".
+  const [splashFinished, setSplashFinished] = useState(splashAlreadySeen);
   useEffect(() => {
     if (splashAlreadySeen) return;
     const remaining = Math.max(
@@ -295,42 +299,37 @@ export default function App() {
   });
 
   // Visitas repetidas (sessionStorage marcado): NO montamos el splash
-  // de puerta en ningún momento, ni siquiera mientras esperamos datos.
-  // Si la API tarda, se ve un fondo plano breve — preferible a abrir
-  // y cerrar la puerta a medias en cuanto los datos lleguen.
-  // Primera visita en la sesión: splash con duración mínima.
+  // de puerta en ningún momento. Si la API tarda, se ve un fondo plano
+  // breve. Primera visita: splash hasta que dataReady && minElapsed.
+  //
+  // CRÍTICO: splashFinished es sticky una vez se pone a true. Sin él,
+  // si dataReady oscila false→true→false (por re-auth, re-fetch, etc.)
+  // el splash desmontaría y remontaría → la animación de la puerta
+  // arrancaría de cero otra vez. El sticky lo blinda.
   const dataReady = !isLoading && !!car;
-  const showSplash =
-    !splashAlreadySeen && !(dataReady && splashMinElapsed);
-
-  if (!dataReady) {
-    return (
-      <>
-        <Analytics mode={import.meta.env.PROD ? "production" : "development"} />
-        <AnimatePresence>
-          {showSplash && (
-            <GarageDoorSplash key="splash" />
-          )}
-        </AnimatePresence>
-        {splashAlreadySeen && (
-          <div className="min-h-screen bg-bg-primary" />
-        )}
-      </>
-    );
-  }
+  useEffect(() => {
+    if (!splashFinished && dataReady && splashMinElapsed) {
+      setSplashFinished(true);
+    }
+  }, [splashFinished, dataReady, splashMinElapsed]);
+  const showSplash = !splashAlreadySeen && !splashFinished;
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
-      {/* Splash superpuesto solo en primera visita: cuando dataReady ya
-          es true pero el mínimo aún no ha pasado, sigue tapando la home.
-          Al pasar el mínimo, AnimatePresence dispara el exit (zoom + blur)
-          y deja ver el juego que ya está montado debajo. */}
+    <>
+      <Analytics mode={import.meta.env.PROD ? "production" : "development"} />
+      {/* Splash superpuesto a TODO el resto. Vive en un único punto del
+          árbol: aunque dataReady oscile o el contenido cambie por debajo,
+          este overlay no se desmonta hasta que splashFinished=true (sticky).
+          Esto evita que la animación de la puerta arranque dos veces. */}
       <AnimatePresence>
-        {showSplash && (
-          <GarageDoorSplash key="splash" />
-        )}
+        {showSplash && <GarageDoorSplash key="splash" />}
       </AnimatePresence>
-      <Analytics />
+
+      {!dataReady ? (
+        <div className="min-h-screen bg-bg-primary" />
+      ) : (
+        <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
+
 
       <Header
         user={user}
@@ -522,5 +521,7 @@ export default function App() {
         }}
       />
     </div>
+      )}
+    </>
   );
 } 

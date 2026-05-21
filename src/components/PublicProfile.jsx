@@ -73,10 +73,19 @@ export default function PublicProfile({ open, onClose, userId }) {
       .catch((err) => {
         console.error("[PublicProfile]", err);
         if (cancelled) return;
+        // Detectamos el caso específico de "RPC no existe" para dar un
+        // mensaje útil en dev: la causa más común es haber olvidado
+        // ejecutar scripts/supabase-public-profile-rpc.sql en Supabase.
+        const msg = String(err?.message || "").toLowerCase();
+        const rpcMissing =
+          msg.includes("function") &&
+          (msg.includes("does not exist") || msg.includes("not found"));
         setState({
           loading: false,
           data: null,
-          error: t("publicProfile.errorLoad"),
+          error: rpcMissing
+            ? t("publicProfile.errorRpcMissing")
+            : t("publicProfile.errorLoad"),
         });
       });
 

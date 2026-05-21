@@ -132,6 +132,7 @@
     "publicLabel": "Public profile",
     "noNickname": "No nickname",
     "errorLoad": "Couldn't load this profile.",
+    "errorRpcMissing": "Server function not available. If you're the admin, run the SQL at scripts/supabase-public-profile-rpc.sql in Supabase.",
     "statPoints": "Points",
     "medalsTitle": "Medals",
     "noMedalsYet": "No medals earned yet."

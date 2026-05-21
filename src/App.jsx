@@ -309,7 +309,7 @@ export default function App() {
         <Analytics mode={import.meta.env.PROD ? "production" : "development"} />
         <AnimatePresence>
           {showSplash && (
-            <GarageDoorSplash key="splash" subtitle={t("app.loadingCar")} />
+            <GarageDoorSplash key="splash" />
           )}
         </AnimatePresence>
         {splashAlreadySeen && (
@@ -327,7 +327,7 @@ export default function App() {
           y deja ver el juego que ya está montado debajo. */}
       <AnimatePresence>
         {showSplash && (
-          <GarageDoorSplash key="splash" subtitle={t("app.loadingCar")} />
+          <GarageDoorSplash key="splash" />
         )}
       </AnimatePresence>
       <Analytics />

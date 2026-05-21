@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
+import { Analytics } from "@vercel/analytics/react";
 import "./index.css";
 import App from "./App";
 import { ToastProvider } from "./components/Toast";
@@ -74,6 +75,7 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <ToastProvider>
+      <Analytics mode={import.meta.env.PROD ? "production" : "development"} />
       {isMainApp ? pickRoute() : <Suspense fallback={null}>{pickRoute()}</Suspense>}
     </ToastProvider>
   </React.StrictMode>

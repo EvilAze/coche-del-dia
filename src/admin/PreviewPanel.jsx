@@ -10,7 +10,11 @@ import CarImage from "../components/CarImage";
 import { useCatalog } from "../data/catalog";
 import { supabase } from "../supabaseClient";
 
-const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
+// Mismos zooms lógicos que el juego real (ver useGame.js). Aquí los
+// aplicamos como CSS scale directo sobre la image_url completa porque
+// PreviewPanel pinta sin pasar por /api/daily-image — el resultado
+// visual debe igualar exactamente lo que ve el jugador.
+const ZOOM_LEVELS = [3.7, 3.2, 2.7, 2.2, 1.7];
 
 function zoomFromStep(step) {
   if (step >= 6) {
@@ -177,11 +181,11 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar }) {
         />
 
         <div className="flex justify-between text-[10px] uppercase tracking-widest text-muted">
-          <span>x3.5</span>
-          <span>x3</span>
+          <span>x3.7</span>
+          <span>x3.2</span>
           <span>x2.7</span>
-          <span>x2.4</span>
-          <span>x1.8</span>
+          <span>x2.2</span>
+          <span>x1.7</span>
           <span>1:1</span>
         </div>
       </section>

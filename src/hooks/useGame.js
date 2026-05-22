@@ -8,18 +8,21 @@ import { useT } from "../i18n";
 
 const MAX_ATTEMPTS = 5;
 
-// Niveles de zoom CSS aplicados sobre la imagen `?z=5` (crop 55.6% central)
+// Niveles de zoom CSS aplicados sobre la imagen `?z=5` (crop 58.8% central)
 // que sirve el servidor durante la partida.
 //
-// Anteriormente estos valores eran [3.5, 3.0, 2.7, 2.4, 1.8] y se aplicaban
-// sobre la imagen completa. El problema: la imagen completa llegaba al
-// cliente, así que un atacante con DevTools veía el coche entero en 2
-// clicks. Ahora el servidor sólo entrega el 55.6% central (crop z=5) y el
-// cliente termina de cerrar el zoom con CSS para los intentos 1..4.
+// Los zooms lógicos del juego son [3.7, 3.2, 2.7, 2.2, 1.7] — intervalos
+// regulares de 0.5 para que la dificultad baje de forma uniforme y el
+// último intento no sea demasiado revelador (antes el salto 2.4 → 1.8
+// regalaba mucha imagen). El servidor solo entrega el crop más amplio
+// (58.8% = 1/1.7) y el cliente cierra el resto con CSS para los intentos
+// 1..4. Un atacante con DevTools nunca ve más imagen que un jugador
+// legítimo en intento 5.
 //
-// Cada valor = ZOOM_ORIGINAL / 1.8. Así el área visible final coincide con
-// la del modelo anterior: 28.6% en intento 1, 55.6% en intento 5.
-const ZOOM_LEVELS = [1.944, 1.667, 1.500, 1.333, 1.0];
+// Cada valor CSS = ZOOM_LOGICO / 1.7. Si tocas estos números también
+// hay que actualizarlos en api/daily-image.js (Z_TO_CROP_PCT) y en
+// src/admin/FocusPicker.jsx (ZOOM_PREVIEWS).
+const ZOOM_LEVELS = [2.176, 1.882, 1.588, 1.294, 1.0];
 
 function getTodayKey() {
   const options = {

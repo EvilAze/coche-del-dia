@@ -27,7 +27,11 @@ import { track } from "./lib/analytics";
 
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
-const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
+// Mismos zooms lógicos que el modo diario (ver src/hooks/useGame.js).
+// Aquí los aplicamos como CSS scale absoluto sobre el crop server-side
+// (api/repesca/image.js sirve el crop 1/1.7 = 58.8% central durante la
+// partida). Intervalos regulares de 0.5 para suavizar la curva.
+const ZOOM_LEVELS = [3.7, 3.2, 2.7, 2.2, 1.7];
 // En Modo Veterano no hay zoom progresivo: arrancamos siempre en el
 // nivel menos cerrado (el del último intento del modo normal).
 const VETERAN_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];

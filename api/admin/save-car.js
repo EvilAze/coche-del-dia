@@ -47,7 +47,20 @@ function shapeCarResponse(row) {
     description: row.description ?? null,
     description_en: row.description_en ?? null,
     img: row.image_url,
+    focus_x: typeof row.focus_x === "number" ? row.focus_x : 0.5,
+    focus_y: typeof row.focus_y === "number" ? row.focus_y : 0.5,
   };
+}
+
+// Validador compartido para focus_x / focus_y. Devuelve un número en [0,1]
+// o null si el valor no es válido. Permite null/undefined → null (no se
+// toca la columna en update; en insert deja que la BD aplique el default).
+function parseFocus(value) {
+  if (value === undefined || value === null) return null;
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return undefined; // sentinel para "inválido"
+  if (n < 0 || n > 1) return undefined;
+  return n;
 }
 
 export default async function handler(req, res) {
@@ -73,7 +86,7 @@ export default async function handler(req, res) {
       }
       const { data, error } = await supabaseAdmin
         .from("cars")
-        .select("id, make, model, year, pais, description, description_en, image_url")
+        .select("id, make, model, year, pais, description, description_en, image_url, focus_x, focus_y")
         .eq("id", idQ)
         .maybeSingle();
       if (error) {
@@ -132,6 +145,24 @@ export default async function handler(req, res) {
         // a romper el guardado.
         patch.blur_data = await generateBlurData(body.image_url);
       }
+      // focus_x / focus_y — punto del crop del zoom. Solo aplicamos si
+      // llegan en el body y son válidos. parseFocus devuelve `undefined`
+      // cuando el valor está fuera de rango o no es numérico — en ese caso
+      // 400. `null` significa "no presente", lo ignoramos.
+      if ("focus_x" in body) {
+        const fx = parseFocus(body.focus_x);
+        if (fx === undefined) {
+          return res.status(400).json({ error: "focus_x fuera de [0, 1]" });
+        }
+        if (fx !== null) patch.focus_x = fx;
+      }
+      if ("focus_y" in body) {
+        const fy = parseFocus(body.focus_y);
+        if (fy === undefined) {
+          return res.status(400).json({ error: "focus_y fuera de [0, 1]" });
+        }
+        if (fy !== null) patch.focus_y = fy;
+      }
 
       if (Object.keys(patch).length === 0) {
         return res.status(400).json({ error: "Nothing to update" });
@@ -141,7 +172,7 @@ export default async function handler(req, res) {
         .from("cars")
         .update(patch)
         .eq("id", idRaw)
-        .select("id, make, model, year, pais, description, description_en, image_url")
+        .select("id, make, model, year, pais, description, description_en, image_url, focus_x, focus_y")
         .maybeSingle();
       if (error) {
         console.error("[admin/save-car update]", error);
@@ -191,22 +222,37 @@ export default async function handler(req, res) {
       });
     }
 
+    // focus_x / focus_y opcionales en el alta. Si no vienen, la BD aplica
+    // el DEFAULT 0.5 → comportamiento histórico (crop centrado).
+    const focusXIn = parseFocus(body.focus_x);
+    const focusYIn = parseFocus(body.focus_y);
+    if (focusXIn === undefined) {
+      return res.status(400).json({ error: "focus_x fuera de [0, 1]" });
+    }
+    if (focusYIn === undefined) {
+      return res.status(400).json({ error: "focus_y fuera de [0, 1]" });
+    }
+
     // LQIP generado durante el alta para que el coche nazca con su
     // blur_data listo. Si falla, seguimos sin LQIP en lugar de romper.
     const blurData = await generateBlurData(imageUrl);
 
+    const insertRow = {
+      make: marca,
+      model: modelo,
+      year: anioNum,
+      pais,
+      description: description ? description : null,
+      description_en: descriptionEn ? descriptionEn : null,
+      image_url: imageUrl,
+      blur_data: blurData,
+    };
+    if (focusXIn !== null) insertRow.focus_x = focusXIn;
+    if (focusYIn !== null) insertRow.focus_y = focusYIn;
+
     const { data, error } = await supabaseAdmin
       .from("cars")
-      .insert({
-        make: marca,
-        model: modelo,
-        year: anioNum,
-        pais,
-        description: description ? description : null,
-        description_en: descriptionEn ? descriptionEn : null,
-        image_url: imageUrl,
-        blur_data: blurData,
-      })
+      .insert(insertRow)
       .select("id, make, model, year, pais, description, description_en, image_url")
       .maybeSingle();
 

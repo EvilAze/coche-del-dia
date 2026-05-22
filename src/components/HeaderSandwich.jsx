@@ -1,42 +1,24 @@
 /// src/components/HeaderSandwich.jsx
-// Variante experimental del Header. Propuesta de UI:
-//   - Izquierda: chip de racha (clickable). Si el usuario tiene racha > 0,
-//     se muestra como un "incentivo" con 🔥 N. Si está logueado pero sin
-//     racha, se muestra un mensaje sutil de "Empieza tu racha". Si no hay
-//     sesión, se oculta para no robar protagonismo al sandwich.
-//   - Centro: CARGUESSR (igual que el Header original).
-//   - Derecha: botón sandwich que despliega un menú con Garaje, Ranking y
-//     Perfil/Iniciar sesión. El punto ámbar de repesca se promueve al
-//     propio botón sandwich cuando hay alerta, para no perder el aviso al
-//     cerrar el menú.
+// Props: onOpenRanking, onOpenGarage, onOpenProfile, onOpenLogin,
+//        user, repescaAlert, streak
 
 import { useEffect, useRef, useState } from "react";
 import { useEscape } from "../hooks/useEscape";
 import { getMyMaxStreak } from "../hooks/useStats";
-import { useT, listLocales } from "../i18n";
+import { useT } from "../i18n";
 import ScoringHelpModal from "./ScoringHelpModal";
 
-// Hitos motivacionales que mostramos como "próximo objetivo" en el popover.
-// Los 3 primeros (2, 3, 4) son los que dan bonus de puntos según
-// ScoringHelpModal; el resto son metas largas sin bonus, solo bragging.
 const STREAK_MILESTONES = [2, 3, 4, 7, 14, 30, 60, 100, 200, 365];
 
 function nextMilestone(current) {
   return STREAK_MILESTONES.find((m) => m > current) ?? null;
 }
 
+// --- Icons ---
+
 function UserIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
@@ -45,16 +27,7 @@ function UserIcon() {
 
 function TrophyIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M6 4h12v5a6 6 0 0 1-12 0V4Z" />
       <path d="M6 6H3a3 3 0 0 0 3 5" />
       <path d="M18 6h3a3 3 0 0 1-3 5" />
@@ -66,16 +39,7 @@ function TrophyIcon() {
 
 function GarageIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 10 12 4l9 6" />
       <path d="M4 10v10" />
       <path d="M20 10v10" />
@@ -85,55 +49,29 @@ function GarageIcon() {
   );
 }
 
-function MenuIcon() {
+// FlameIcon: SVG en lugar de 🔥. Sustituye al emoji porque el emoji se
+// renderiza con la paleta del SO (naranja chillón en Windows, otro en Mac)
+// y no respeta currentColor — rompe la coherencia con el resto del header.
+function FlameIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-6 w-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 7h16" />
-      <path d="M4 12h16" />
-      <path d="M4 17h16" />
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
     </svg>
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-6 w-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M6 6l12 12" />
-      <path d="M18 6l-12 12" />
-    </svg>
-  );
-}
+// --- Shared styles ---
 
 const iconBtn = `
   flex h-11 w-11 items-center justify-center rounded-full
   text-muted transition-colors duration-200
-  hover:bg-accent/10 hover:text-accent
+  hover:bg-accent/15 hover:text-accent
   active:scale-90
 `;
 
-// Chip de racha: pill con borde sutil dorado para sugerir "logro". Al pasar
-// el ratón muestra el mensaje completo como title; en pantalla solo se ve
-// 🔥 N para que ocupe poco. Animación pop al subir.
-const StreakChip = function StreakChip({ value, onClick, buttonRef, expanded }) {
-  const { t, tn } = useT();
+// --- StreakBadge: inline dentro del botón de usuario ---
+
+function StreakBadge({ value }) {
   const prevRef = useRef(value);
   const [pop, setPop] = useState(false);
 
@@ -148,35 +86,19 @@ const StreakChip = function StreakChip({ value, onClick, buttonRef, expanded }) 
   }, [value]);
 
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      onClick={onClick}
-      aria-label={t("streak.ariaChip", { count: value })}
-      aria-expanded={expanded}
-      aria-haspopup="dialog"
-      title={tn("streak.titleChip", value)}
-      className={`
-        flex h-9 items-center gap-1.5 rounded-full
-        border border-accent/40 bg-accent/10
-        pl-2 pr-3 text-sm font-bold text-accent
-        transition-all duration-200
-        hover:bg-accent/20 hover:border-accent/70
-        active:scale-95
-        ${pop ? "animate-pop" : ""}
-      `}
+    <span
+      className={`flex items-center gap-1 text-sm font-bold text-accent ${pop ? "animate-pop" : ""}`}
       style={{ lineHeight: 1 }}
     >
-      <span aria-hidden="true" className="text-[1rem]">🔥</span>
+      <FlameIcon />
       <span className="tabular-nums">{value}</span>
-    </button>
+    </span>
   );
-};
+}
 
-// Popover anclado al chip de racha. Muestra estado personal (récord,
-// próximo hito) + un mensaje motivacional + atajo al modal de puntos.
-// No duplica la tabla de puntos: deja ese contenido en ScoringHelpModal.
-function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring }) {
+// --- StreakPopover: anclado al botón de usuario ---
+
+function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring, onOpenProfile }) {
   const { t, tn } = useT();
   const popoverRef = useRef(null);
   const [maxStreak, setMaxStreak] = useState(null);
@@ -184,41 +106,22 @@ function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring 
 
   useEscape(open, onClose);
 
-  // Fetch lazy del récord solo al abrir. Si el usuario abre y cierra varias
-  // veces seguidas, refrescamos cada vez — barato y evita stale data si la
-  // partida acaba de subir la racha.
   useEffect(() => {
     if (!open) return;
     let mounted = true;
     setLoading(true);
     getMyMaxStreak()
-      .then((v) => {
-        if (mounted) {
-          setMaxStreak(v);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (mounted) {
-          setMaxStreak(null);
-          setLoading(false);
-        }
-      });
-    return () => {
-      mounted = false;
-    };
+      .then((v) => { if (mounted) { setMaxStreak(v); setLoading(false); } })
+      .catch(() => { if (mounted) { setMaxStreak(null); setLoading(false); } });
+    return () => { mounted = false; };
   }, [open]);
 
-  // Cierre por click fuera. Excluimos al ancla (el chip) para no entrar en
-  // un toggle-cancel-toggle al pulsar el propio botón.
   useEffect(() => {
     if (!open) return;
     function handleClickOutside(e) {
       if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(e.target)
+        popoverRef.current && !popoverRef.current.contains(e.target) &&
+        anchorRef.current && !anchorRef.current.contains(e.target)
       ) {
         onClose();
       }
@@ -230,8 +133,7 @@ function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring 
   if (!open) return null;
 
   const next = nextMilestone(currentStreak);
-  const isRecord =
-    maxStreak !== null && currentStreak > 0 && currentStreak >= maxStreak;
+  const isRecord = maxStreak !== null && currentStreak > 0 && currentStreak >= maxStreak;
 
   return (
     <div
@@ -260,20 +162,12 @@ function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring 
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-center">
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
-          <p className="text-[9px] uppercase tracking-widest text-muted">
-            {t("streak.record")}
-          </p>
-          <p className="font-display text-lg tabular-nums text-white">
-            {loading ? "…" : maxStreak ?? "—"}
-          </p>
+          <p className="text-[9px] uppercase tracking-widest text-muted">{t("streak.record")}</p>
+          <p className="font-display text-lg tabular-nums text-white">{loading ? "…" : maxStreak ?? "—"}</p>
         </div>
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
-          <p className="text-[9px] uppercase tracking-widest text-muted">
-            {t("streak.nextMilestone")}
-          </p>
-          <p className="font-display text-lg tabular-nums text-white">
-            {next ?? "—"}
-          </p>
+          <p className="text-[9px] uppercase tracking-widest text-muted">{t("streak.nextMilestone")}</p>
+          <p className="font-display text-lg tabular-nums text-white">{next ?? "—"}</p>
         </div>
       </div>
 
@@ -288,79 +182,27 @@ function StreakPopover({ open, onClose, anchorRef, currentStreak, onOpenScoring 
           hover:bg-white/[0.05] hover:text-accent
         "
       >
-        {t("streak.howScoringWorks")}
-        <span aria-hidden="true">→</span>
+        {t("streak.howScoringWorks")} <span aria-hidden="true">→</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => { onClose(); onOpenProfile?.(); }}
+        className="
+          mt-2 flex w-full items-center justify-center gap-1
+          rounded-lg border border-white/5 bg-white/[0.02]
+          py-2 text-xs font-medium text-muted
+          transition-colors duration-150
+          hover:bg-white/[0.05] hover:text-accent
+        "
+      >
+        {t("header.profile")} <span aria-hidden="true">→</span>
       </button>
     </div>
   );
 }
 
-// Selector de idioma dentro del menú sandwich. Pinta cada locale como un
-// pill pequeño; el activo lleva borde accent. Pocos idiomas (2-4) →
-// segmented control inline es más rápido que un dropdown anidado.
-function LanguagePicker({ locale, onSelect }) {
-  const { t } = useT();
-  const options = listLocales();
-  return (
-    <div className="px-3 py-2">
-      <p className="mb-1.5 text-[9px] uppercase tracking-widest text-muted">
-        {t("header.language")}
-      </p>
-      <div className="flex flex-wrap gap-1">
-        {options.map((opt) => {
-          const active = opt.code === locale;
-          return (
-            <button
-              key={opt.code}
-              type="button"
-              onClick={() => onSelect(opt.code)}
-              className={`
-                rounded-md border px-2 py-1 text-xs font-medium
-                transition-colors duration-150
-                ${
-                  active
-                    ? "border-accent/60 bg-accent/15 text-accent"
-                    : "border-white/10 bg-white/[0.02] text-muted hover:text-white"
-                }
-              `}
-            >
-              {opt.name}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function MenuItem({ icon, label, onClick, alert = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="
-        relative flex w-full items-center gap-3 rounded-lg
-        px-3 py-2.5 text-left text-sm font-medium text-white/90
-        transition-colors duration-150
-        hover:bg-accent/10 hover:text-accent
-        active:scale-[0.98]
-      "
-    >
-      <span className="flex h-5 w-5 items-center justify-center text-muted">
-        {icon}
-      </span>
-      <span className="flex-1">{label}</span>
-      {alert && (
-        <span
-          aria-hidden="true"
-          className="
-            h-2 w-2 rounded-full bg-amber-500 animate-pulse
-          "
-        />
-      )}
-    </button>
-  );
-}
+// --- Header principal ---
 
 export default function HeaderSandwich({
   onOpenRanking,
@@ -371,176 +213,124 @@ export default function HeaderSandwich({
   repescaAlert = false,
   streak = 0,
 }) {
-  const { t, locale, setLocale } = useT();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { t } = useT();
   const [streakOpen, setStreakOpen] = useState(false);
   const [scoringOpen, setScoringOpen] = useState(false);
-  const menuRef = useRef(null);
-  const triggerRef = useRef(null);
-  const chipRef = useRef(null);
+  const userBtnRef = useRef(null);
 
   const showStreak = Boolean(user) && streak > 0;
 
-  useEscape(menuOpen, () => setMenuOpen(false));
-
-  // Cierra el dropdown si el usuario hace click fuera. Usamos mousedown
-  // para que la acción cierre antes que un click en otro elemento (mejor
-  // sensación táctil).
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleClickOutside(e) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(e.target)
-      ) {
-        setMenuOpen(false);
-      }
+  function handleUserClick() {
+    if (!user) { onOpenLogin?.(); return; }
+    if (showStreak) {
+      setStreakOpen((v) => !v);
+    } else {
+      onOpenProfile?.();
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen]);
-
-  function handleMenuAction(fn) {
-    setMenuOpen(false);
-    fn?.();
   }
 
-  // Si abren el menú sandwich teniendo el popover de la racha abierto,
-  // cerramos este último para que no queden dos overlays activos.
-  useEffect(() => {
-    if (menuOpen && streakOpen) setStreakOpen(false);
-  }, [menuOpen, streakOpen]);
-
   return (
-    // Fragment: <header> usa backdrop-blur, lo que crea un containing block
-    // para descendientes position:fixed. Si el modal de scoring vive dentro
-    // del header, su backdrop fixed queda confinado a los 56px del header
-    // en vez de cubrir la pantalla. Por eso ScoringHelpModal va FUERA.
+    // ScoringHelpModal fuera del <header> para que su backdrop fixed no quede
+    // confinado al containing block que crea backdrop-blur en el header.
     <>
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
-      <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
-        <div className="relative z-10 flex min-w-0 items-center justify-start">
-          {showStreak && (
-            <>
-              <StreakChip
-                value={streak}
-                buttonRef={chipRef}
-                expanded={streakOpen}
-                onClick={() => {
-                  // Si abrimos el popover, cerramos el menú sandwich para
-                  // evitar que ambos overlays se solapen.
-                  setMenuOpen(false);
-                  setStreakOpen((v) => !v);
-                }}
-              />
-              <StreakPopover
-                open={streakOpen}
-                onClose={() => setStreakOpen(false)}
-                anchorRef={chipRef}
-                currentStreak={streak}
-                onOpenScoring={() => {
-                  setStreakOpen(false);
-                  setScoringOpen(true);
-                }}
-              />
-            </>
-          )}
-        </div>
+      <header className="sticky top-0 z-50 w-full bg-[#0d0c0a]/90 backdrop-blur-xl">
+        <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
 
-        <div
-          className="
-            pointer-events-none absolute inset-0
-            flex translate-y-[1px] items-center justify-center
-            select-none whitespace-nowrap text-center font-display
-            text-[1.75rem] tracking-widest text-white
-            min-[360px]:text-[1.95rem] sm:text-[2.2rem]
-          "
-        >
-          CARGUESSR
-        </div>
+          {/* IZQUIERDA: botón de usuario, siempre presente */}
+          <div className="relative z-10">
+            <button
+              ref={userBtnRef}
+              type="button"
+              onClick={handleUserClick}
+              aria-label={
+                !user ? t("header.login")
+                : showStreak ? `${t("header.profile")} · racha ${streak}`
+                : t("header.profile")
+              }
+              aria-expanded={showStreak ? streakOpen : undefined}
+              aria-haspopup={showStreak ? "dialog" : undefined}
+              className={`
+                flex h-11 items-center gap-1.5 rounded-full
+                text-muted transition-colors duration-200
+                hover:bg-accent/15 hover:text-accent active:scale-90
+                ${showStreak ? "pl-2 pr-3" : "w-11 justify-center"}
+              `}
+            >
+              <UserIcon />
+              {showStreak && <StreakBadge value={streak} />}
+            </button>
 
-        <div className="relative z-10 flex min-w-0 items-center justify-end">
-          <button
-            ref={triggerRef}
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label={
-              repescaAlert
-                ? t("header.menuOpenWithRepesca")
-                : t("header.menuOpen")
-            }
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            title={t("header.menuTitle")}
-            className={`relative ${iconBtn}`}
-          >
-            {menuOpen ? <CloseIcon /> : <MenuIcon />}
-            {repescaAlert && !menuOpen && (
-              <span
-                aria-hidden="true"
-                className="
-                  pointer-events-none absolute -right-0.5 -top-0.5
-                  h-3 w-3 rounded-full bg-amber-500
-                  ring-2 ring-[#08080a]
-                  animate-pulse
-                "
-              />
-            )}
-          </button>
+            <StreakPopover
+              open={streakOpen}
+              onClose={() => setStreakOpen(false)}
+              anchorRef={userBtnRef}
+              currentStreak={streak}
+              onOpenScoring={() => { setStreakOpen(false); setScoringOpen(true); }}
+              onOpenProfile={() => { setStreakOpen(false); onOpenProfile?.(); }}
+            />
+          </div>
 
-          {menuOpen && (
-            <div
-              ref={menuRef}
-              role="menu"
+          {/* CENTRO: logo + línea dorada */}
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center select-none">
+            <span
               className="
-                absolute right-0 top-[calc(100%+0.5rem)]
-                w-56 origin-top-right
-                rounded-xl border border-white/10
-                bg-[#0f0f12] p-1.5 shadow-2xl shadow-black/60
-                backdrop-blur-xl
-                animate-fade-in
+                translate-y-[1px] whitespace-nowrap font-display
+                text-[1.75rem] tracking-widest text-white
+                min-[360px]:text-[1.95rem] sm:text-[2.2rem]
               "
             >
-              <MenuItem
-                icon={<GarageIcon />}
-                label={t("header.garage")}
-                alert={repescaAlert}
-                onClick={() => handleMenuAction(onOpenGarage)}
-              />
-              <MenuItem
-                icon={<TrophyIcon />}
-                label={t("header.ranking")}
-                onClick={() => handleMenuAction(onOpenRanking)}
-              />
-              <div className="my-1 h-px bg-white/5" />
-              {user ? (
-                <MenuItem
-                  icon={<UserIcon />}
-                  label={t("header.profile")}
-                  onClick={() => handleMenuAction(onOpenProfile)}
-                />
-              ) : (
-                <MenuItem
-                  icon={<UserIcon />}
-                  label={t("header.login")}
-                  onClick={() => handleMenuAction(onOpenLogin)}
+              CARGUESSR
+            </span>
+            <span className="mt-[3px] h-[1.5px] w-14 rounded-full bg-accent/70" />
+          </div>
+
+          {/* DERECHA: Garaje + Ranking */}
+          <div className="relative z-10 flex items-center">
+
+            <button
+              type="button"
+              onClick={onOpenGarage}
+              aria-label={t("header.garage")}
+              title={t("header.garage")}
+              className={`relative ${iconBtn}`}
+            >
+              <GarageIcon />
+              {repescaAlert && (
+                // Dot de alerta: gold (mismo idioma que el accent) + soft
+                // glow para que vibre sin gritar. Posicionado dentro del
+                // botón, sobre el "hombro" derecho del icono del garaje
+                // (donde el tejado se une al pilar) — se siente atado al
+                // icono en lugar de flotando en el borde del botón.
+                <span
+                  aria-hidden="true"
+                  className="
+                    pointer-events-none absolute right-2 top-2
+                    h-2.5 w-2.5 rounded-full bg-accent
+                    shadow-[0_0_6px_rgba(232,200,122,0.65)]
+                    ring-2 ring-[#0d0c0a] animate-pulse
+                  "
                 />
               )}
+            </button>
 
-              <div className="my-1 h-px bg-white/5" />
-              <LanguagePicker locale={locale} onSelect={setLocale} />
-            </div>
-          )}
+            <button
+              type="button"
+              onClick={onOpenRanking}
+              aria-label={t("header.ranking")}
+              title={t("header.ranking")}
+              className={iconBtn}
+            >
+              <TrophyIcon />
+            </button>
+
+          </div>
         </div>
-      </div>
-    </header>
 
-    <ScoringHelpModal
-      open={scoringOpen}
-      onClose={() => setScoringOpen(false)}
-    />
+        {/* Línea inferior con gradiente dorado sutil */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/25 to-transparent" />
+      </header>
+
+      <ScoringHelpModal open={scoringOpen} onClose={() => setScoringOpen(false)} />
     </>
   );
 }

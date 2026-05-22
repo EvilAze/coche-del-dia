@@ -1,11 +1,8 @@
 // src/components/AchievementIcons.jsx
-// Iconos SVG para los logros que no son ni logo de marca ni bandera de
-// país. Sustituyen a los emoji originales (🚗 🅿️ 🏬 🏛️ 👑 🔥) que
-// renderizaban inconsistentes entre OS y, en Windows, parecían cebollas
-// grises en vez de llamas. Mismo problema que ya arreglé en el splash.
-//
-// Todos los iconos comparten viewBox 24x24 y heredan color via
-// `currentColor`. El componente padre decide tamaño con `className`.
+// Iconos SVG para los logros que no son ni logo de marca ni bandera. Stroke
+// consistente (1.8) y currentColor para todos: el padre decide tamaño y
+// color via className. Reemplaza a la primera iteración (sketchy, fill
+// mezclado con stroke) por trazos más detallados estilo Lucide/Phosphor.
 
 const STROKE = {
   fill: "none",
@@ -15,61 +12,114 @@ const STROKE = {
   strokeLinejoin: "round",
 };
 
+// Coche en perfil (sedán): capó curvado, cabina con dos ventanas
+// definidas, dos ruedas con pasos. Mucho más leíble a 28 px que la
+// silueta plana anterior.
 function CarIcon({ className }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M3 14 L4 10 Q4.5 8.5 6 8.5 L18 8.5 Q19.5 8.5 20 10 L21 14" />
-      <path d="M3 14 L3 17 Q3 18 4 18 L20 18 Q21 18 21 17 L21 14 Z" />
-      <circle cx="7.5" cy="18" r="1.6" fill="currentColor" />
-      <circle cx="16.5" cy="18" r="1.6" fill="currentColor" />
+      {/* Carrocería: bajos + capó + techo + maletero */}
+      <path d="M3 14v-1l1.5-3.5A2 2 0 0 1 6.3 8.3h11.4a2 2 0 0 1 1.8 1.2L21 13v1" />
+      {/* Línea de cintura (separación ventanas/carrocería) */}
+      <path d="M5 11h14" />
+      {/* Pilar central entre ventanas delantera y trasera */}
+      <path d="M12 8.3v2.7" />
+      {/* Chasis bajo (suelo del coche) */}
+      <path d="M3 14h18v3a1 1 0 0 1-1 1h-1.5" />
+      <path d="M5.5 18H4a1 1 0 0 1-1-1v-3" />
+      {/* Ruedas */}
+      <circle cx="7.5" cy="18" r="1.8" />
+      <circle cx="16.5" cy="18" r="1.8" />
     </svg>
   );
 }
 
+// Garaje pequeño: caseta con tejado a dos aguas y puerta basculante
+// con líneas que sugieren paneles. Reemplaza al "rectángulo con P"
+// que parecía señal de aparcamiento, no un garaje.
 function ParkingIcon({ className }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <rect x="4" y="4" width="16" height="16" rx="2.5" />
-      <path d="M10 16 L10 8 L13.5 8 Q15.5 8 15.5 10.5 Q15.5 13 13.5 13 L10 13" />
+      {/* Tejado a dos aguas */}
+      <path d="M3 10 12 4l9 6" />
+      {/* Muros */}
+      <path d="M5 10v10h14V10" />
+      {/* Puerta del garaje con paneles horizontales */}
+      <path d="M7 20v-7h10v7" />
+      <path d="M7 15.5h10" />
+      <path d="M7 18h10" />
     </svg>
   );
 }
 
+// Concesionario: edificio comercial con toldo, puerta central y dos
+// ventanas/escaparates. El toldo es la pista visual de "comercio".
 function ShopIcon({ className }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M3 8 L4 4 L20 4 L21 8" />
-      <path d="M4 8 L4 20 L20 20 L20 8" />
-      <path d="M3 8 L21 8" />
-      <path d="M10 20 L10 14 L14 14 L14 20" />
+      {/* Toldo */}
+      <path d="M3 9 5 5h14l2 4" />
+      <path d="M3 9h18" />
+      {/* Estructura */}
+      <path d="M4 9v11h16V9" />
+      {/* Puerta central */}
+      <path d="M10 20v-6h4v6" />
+      {/* Escaparates */}
+      <rect x="6" y="12" width="3" height="3" rx="0.4" />
+      <rect x="15" y="12" width="3" height="3" rx="0.4" />
+      {/* Suelo */}
+      <path d="M3 20h18" />
     </svg>
   );
 }
 
+// Museo / templo griego: frontón triangular, arquitrabe, tres columnas
+// y basamento escalonado. Más reconocible que la versión anterior con
+// 4 columnas tan apretadas que se fundían a 28 px.
 function MuseumIcon({ className }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M3 9 L12 4 L21 9" />
-      <path d="M3 9 L21 9 L21 11 L3 11 Z" />
-      <path d="M5 11 L5 18 M9 11 L9 18 M15 11 L15 18 M19 11 L19 18" />
-      <path d="M3 20 L21 20" />
+      {/* Frontón */}
+      <path d="M3 9 12 4l9 5" />
+      {/* Arquitrabe */}
+      <path d="M3 9h18v1H3z" />
+      {/* Columnas */}
+      <path d="M6 10v8" />
+      <path d="M12 10v8" />
+      <path d="M18 10v8" />
+      {/* Plataforma */}
+      <path d="M4 18h16v1H4z" />
+      {/* Base escalonada */}
+      <path d="M3 20h18" />
     </svg>
   );
 }
 
+// Corona refinada: cinco picos (tres altos, dos valles), banda lisa
+// y gemas en los picos principales. Sustituye al zigzag plano previo.
 function CrownIcon({ className }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M3 18 L5 8 L9 12 L12 6 L15 12 L19 8 L21 18 Z" />
-      <path d="M3 20 L21 20" />
+      {/* Silueta de la corona: tres picos */}
+      <path d="M3 17 4.5 8l4.5 4 3-7 3 7 4.5-4L21 17z" />
+      {/* Banda inferior */}
+      <path d="M3 17h18" />
+      <path d="M5 20h14" />
+      {/* Gemas en cada pico */}
+      <circle cx="4.5" cy="8" r="0.7" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="5" r="0.8" fill="currentColor" stroke="none" />
+      <circle cx="19.5" cy="8" r="0.7" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
+// Llama estilo Lucide. Stroke-based para emparejar el resto de iconos
+// (la versión anterior era fill, rompía la coherencia del set) y
+// matchea la FlameIcon del header.
 function FlameIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" stroke="none">
-      <path d="M12 2.5 c0 4 3 5.5 3 9 0 2-1 3-2 3.5 .3-1.3-.4-2.6-1.5-3 .5 2-1 3-2 3 -1.5 0 -2.5 -1.5 -2.5 -3.5 0 -3 2.5 -4 2.5 -7 1 1.5 2 2 2.5 2 0-1.5-.5-3 0-4z" />
+    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
     </svg>
   );
 }

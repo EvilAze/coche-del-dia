@@ -466,12 +466,9 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
               <p className={`text-[10px] uppercase tracking-[0.28em] text-accent ${backLabel ? "mt-2" : ""}`}>
                 {headerLabel}
               </p>
-              <div className="flex items-center gap-2.5">
-                <h2 className="truncate font-display text-2xl tracking-widest text-white">
-                  {headerTitle}
-                </h2>
-                <HelpButton onClick={() => setHelpOpen(true)} />
-              </div>
+              <h2 className="truncate font-display text-2xl tracking-widest text-white">
+                {headerTitle}
+              </h2>
             </div>
             <CloseButton onClick={onClose} />
           </div>
@@ -534,6 +531,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
                   repescaActiveCarId={state.data?.repescaActiveCarId || null}
                   repescaStarting={repescaStarting}
                   onRandomRepesca={handleRandomRepesca}
+                  onOpenHelp={() => setHelpOpen(true)}
                 />
               )}
             </motion.div>
@@ -599,6 +597,7 @@ function CountriesMenu({
   repescaActiveCarId,
   repescaStarting,
   onRandomRepesca,
+  onOpenHelp,
 }) {
   const { t } = useT();
   // Decoramos cada país con su `missed` (no `unlocked` && wasDaily) para
@@ -629,6 +628,36 @@ function CountriesMenu({
             starting={repescaStarting}
             onClick={onRandomRepesca}
           />
+          {/* Link contextual de ayuda: vive debajo del CTA en lugar de
+              flotar junto al título del modal. Solo aparece en la vista
+              raíz (countries), que es donde el modo Repesca tiene
+              sentido. Al navegar a un país o marca, el link desaparece
+              con el resto de la vista. */}
+          <button
+            type="button"
+            onClick={onOpenHelp}
+            className="
+              mt-2 inline-flex items-center gap-1 text-[11px]
+              text-muted/80 transition-colors duration-150
+              hover:text-accent
+            "
+          >
+            <svg
+              className="h-3 w-3"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2.5-3 4.5" />
+              <path d="M12 18h.01" />
+            </svg>
+            {t("garage.helpRepesca")}
+          </button>
         </div>
       </div>
 
@@ -1280,43 +1309,9 @@ function CenterMessage({ text, pulse = false, tone = "default" }) {
   );
 }
 
-// "?" del header del Garaje. Mismo look que el HelpButton del Ranking
-// para mantener la consistencia visual entre módulos de la app.
-function HelpButton({ onClick }) {
-  const { t } = useT();
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={t("garage.helpRepesca")}
-      title={t("garage.helpRepesca")}
-      className="
-        flex h-7 w-7 shrink-0 items-center justify-center
-        rounded-full border border-white/15 bg-white/[0.04]
-        text-muted transition
-        hover:border-accent/60 hover:bg-accent/10 hover:text-accent
-        active:scale-90
-      "
-    >
-      <svg
-        className="h-3.5 w-3.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2.5-3 4.5" />
-        <path d="M12 18h.01" />
-      </svg>
-    </button>
-  );
-}
-
-// Modal con la explicación completa del modo Repesca. Lo lanza el "?" del
-// header. Se complementa con RandomRepescaConfirm, que es el modal corto
+// Modal con la explicación completa del modo Repesca. Lo lanza el link
+// contextual "Cómo funciona la repesca" debajo del CTA de la vista raíz.
+// Se complementa con RandomRepescaConfirm, que es el modal corto
 // que sale justo antes de gastar la repesca; este de aquí está pensado
 // para consultarse antes de decidir.
 function RepescaHelpModal({ open, onClose }) {

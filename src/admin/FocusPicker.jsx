@@ -40,6 +40,16 @@ export default function FocusPicker({
   const containerRef = useRef(null);
   const [dragging, setDragging] = useState(false);
 
+  // Guardamos onChange en una ref para que los listeners attachados a
+  // window vean siempre la versión más reciente del callback — si el
+  // padre re-renderiza durante el drag (algo que pasa con cada onChange),
+  // los listeners de window se quedarían con la closure antigua. Esto
+  // también nos permite NO añadirlos como dependencias del useEffect.
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   // Dimensiones naturales de la imagen — necesarias para calcular el
   // background-size de las previews. Si la imagen aún no cargó, los
   // previews salen ocultos hasta que tengamos los datos.
@@ -65,6 +75,11 @@ export default function FocusPicker({
   }, [src]);
 
   // ---- Drag handlers ----
+  // Patrón clásico de slider/picker custom: al hacer pointer-down,
+  // attacha listeners a `window` y los desconecta al soltar. Es más
+  // robusto que setPointerCapture en este caso, que tenía un bug donde
+  // ciertos navegadores disparaban un pointermove espurio tras soltar
+  // y dejaban el punto en una posición distinta a la elegida.
   function pointerPosToFocus(clientX, clientY) {
     const el = containerRef.current;
     if (!el) return null;
@@ -78,29 +93,31 @@ export default function FocusPicker({
 
   function handlePointerDown(e) {
     if (disabled) return;
-    // Captura del puntero: sigue recibiendo move/up incluso si sale del
-    // contenedor antes de soltar.
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    // preventDefault evita que el navegador inicie un drag nativo de la
+    // imagen o seleccione texto cercano al arrastrar.
+    e.preventDefault();
     setDragging(true);
     const next = pointerPosToFocus(e.clientX, e.clientY);
-    if (next && typeof onChange === "function") onChange(next);
-  }
+    if (next && onChangeRef.current) onChangeRef.current(next);
 
-  function handlePointerMove(e) {
-    if (!dragging || disabled) return;
-    const next = pointerPosToFocus(e.clientX, e.clientY);
-    if (next && typeof onChange === "function") onChange(next);
-  }
-
-  function handlePointerUp(e) {
-    if (!dragging) return;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-    setDragging(false);
+    function onWindowMove(ev) {
+      const n = pointerPosToFocus(ev.clientX, ev.clientY);
+      if (n && onChangeRef.current) onChangeRef.current(n);
+    }
+    function onWindowUp() {
+      setDragging(false);
+      window.removeEventListener("pointermove", onWindowMove);
+      window.removeEventListener("pointerup", onWindowUp);
+      window.removeEventListener("pointercancel", onWindowUp);
+    }
+    window.addEventListener("pointermove", onWindowMove);
+    window.addEventListener("pointerup", onWindowUp);
+    window.addEventListener("pointercancel", onWindowUp);
   }
 
   function resetCenter() {
     if (disabled) return;
-    if (typeof onChange === "function") onChange({ x: 0.5, y: 0.5 });
+    if (onChangeRef.current) onChangeRef.current({ x: 0.5, y: 0.5 });
   }
 
   const px = clamp01(value?.x ?? 0.5);
@@ -112,9 +129,6 @@ export default function FocusPicker({
       <div
         ref={containerRef}
         onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
         className={`
           relative w-full overflow-hidden rounded-xl border border-border
           bg-black/40 touch-none select-none

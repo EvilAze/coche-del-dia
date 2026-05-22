@@ -129,6 +129,13 @@ export default function FocusPicker({
       <div
         ref={containerRef}
         onPointerDown={handlePointerDown}
+        // preventDefault del click es CRÍTICO: el padre envuelve este
+        // componente en un <label> (vía el helper Field). Por spec HTML,
+        // el click sobre un label activa con un click sintético al primer
+        // control de formulario descendente. Como el primer control aquí
+        // es el botón "Centrar", al soltar el drag se disparaba el reset
+        // automáticamente. preventDefault cancela esa activación.
+        onClick={(e) => e.preventDefault()}
         className={`
           relative w-full overflow-hidden rounded-xl border border-border
           bg-black/40 touch-none select-none

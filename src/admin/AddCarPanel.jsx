@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { useCatalog } from "../data/catalog";
+import { useFreshCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
 import FocusPicker from "./FocusPicker";
 
@@ -43,7 +43,13 @@ export default function AddCarPanel({
   onCancelAssign,
   onSaved,
 }) {
-  const { data: catalog, reload: reloadCatalog } = useCatalog();
+  // useFreshCatalog (no useCatalog) por dos razones:
+  //   1. Expone reload() — necesario para refrescar el dropdown tras
+  //      guardar un coche sin esperar al TTL del CDN.
+  //   2. Al montar, hace fresh-fetch: si vienes de un swap (flujo
+  //      "crear coche para el día X"), no quieres que el datalist
+  //      muestre datos viejos.
+  const { data: catalog, reload: reloadCatalog } = useFreshCatalog();
   const MARCAS = catalog?.marcas ?? [];
   const PAISES = catalog?.paises ?? [];
 

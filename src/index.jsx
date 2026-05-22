@@ -5,31 +5,37 @@ import App from "./App";
 import { ToastProvider } from "./components/Toast";
 
 // El usuario normal solo carga <App />. Las rutas secundarias
-// (admin, repesca, preview, privacidad, header-test) se piden bajo demanda
+// (admin-tools, repesca, privacidad, header-test) se piden bajo demanda
 // para no engordar el bundle inicial.
-const Preview = lazy(() => import("./Preview"));
 const HeaderTest = lazy(() => import("./HeaderTest"));
 const Repesca = lazy(() => import("./Repesca"));
 const Privacidad = lazy(() => import("./Privacidad"));
-const AddCar = lazy(() => import("./admin/AddCar"));
-const EditCar = lazy(() => import("./admin/EditCar"));
+const AdminTools = lazy(() => import("./admin/AdminTools"));
 
-// Sala de pruebas interna y oculta. No enlazada en ningún menú.
-// Acceso: /preview  o  cualquier URL con ?preview (útil si el host no
-// hace fallback a index.html para rutas SPA).
 const { pathname, search } = window.location;
-const isPreview =
-  pathname.startsWith("/preview") || /(\?|&)preview(=|&|$)/.test(search);
 
-// Herramienta interna para añadir coches al catálogo. Requiere sesión.
-const isAdminAddCar =
-  pathname.startsWith("/admin/add-car") ||
-  /(\?|&)admin-add-car(=|&|$)/.test(search);
-
-// Herramienta interna para editar coches existentes (hot-swap). Requiere sesión.
-const isAdminEditCar =
+// Herramientas internas unificadas. /admin-tools es la ruta canónica.
+// Las rutas viejas (/admin/edit-car, /admin/add-car, /preview) cargan
+// el mismo shell con el tab apropiado preseleccionado — así no se rompen
+// los bookmarks que tengamos.
+const isAdminTools =
+  pathname.startsWith("/admin-tools") ||
+  /(\?|&)admin-tools(=|&|$)/.test(search);
+const isLegacyEditCar =
   pathname.startsWith("/admin/edit-car") ||
   /(\?|&)admin-edit-car(=|&|$)/.test(search);
+const isLegacyAddCar =
+  pathname.startsWith("/admin/add-car") ||
+  /(\?|&)admin-add-car(=|&|$)/.test(search);
+const isLegacyPreview =
+  pathname.startsWith("/preview") || /(\?|&)preview(=|&|$)/.test(search);
+
+function legacyTab() {
+  if (isLegacyEditCar) return "edit";
+  if (isLegacyAddCar) return "add";
+  if (isLegacyPreview) return "preview";
+  return null;
+}
 
 // Modo Repesca: el usuario llega aquí desde el Garaje tras confirmar el
 // uso de su repesca diaria. La página recoge ?id=<carId> de la query.
@@ -49,23 +55,22 @@ const isHeaderTest =
   pathname.startsWith("/header-test") ||
   /(\?|&)header-test(=|&|$)/.test(search);
 
+const isAnyAdminTools =
+  isAdminTools || isLegacyEditCar || isLegacyAddCar || isLegacyPreview;
+
 // App va eager (la ruta principal); el resto pasa por Suspense para no
 // quedarse en blanco mientras descarga su chunk.
 function pickRoute() {
-  if (isAdminEditCar) return <EditCar />;
-  if (isAdminAddCar) return <AddCar />;
+  if (isAnyAdminTools) return <AdminTools defaultTab={legacyTab()} />;
   if (isRepesca) return <Repesca />;
-  if (isPreview) return <Preview />;
   if (isHeaderTest) return <HeaderTest />;
   if (isPrivacy) return <Privacidad />;
   return <App />;
 }
 
 const isMainApp = !(
-  isAdminEditCar ||
-  isAdminAddCar ||
+  isAnyAdminTools ||
   isRepesca ||
-  isPreview ||
   isHeaderTest ||
   isPrivacy
 );

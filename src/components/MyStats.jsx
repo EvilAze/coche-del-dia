@@ -2,47 +2,10 @@ import { useEffect, useState } from "react";
 import { getMyStats } from "../hooks/useStats";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
-import { useT, listLocales } from "../i18n";
+import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import Achievements from "./Achievements";
-
-// Selector de idioma. Movido aquí desde el header para mantenerlo limpio:
-// los iconos del header se reservan a destinos primarios del juego, y el
-// idioma es una preferencia que se configura una vez. Segmented control
-// inline porque solo hay 2-4 locales.
-function LanguagePicker() {
-  const { t, locale, setLocale } = useT();
-  const options = listLocales();
-  return (
-    <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
-      <span className="text-[10px] uppercase tracking-widest text-muted">
-        {t("header.language")}
-      </span>
-      <div className="flex gap-1">
-        {options.map((opt) => {
-          const active = opt.code === locale;
-          return (
-            <button
-              key={opt.code}
-              type="button"
-              onClick={() => setLocale(opt.code)}
-              className={`
-                rounded-md border px-2.5 py-1 text-xs font-medium
-                transition-colors duration-150
-                ${active
-                  ? "border-accent/60 bg-accent/15 text-accent"
-                  : "border-white/10 bg-white/[0.02] text-muted hover:text-white"}
-              `}
-            >
-              {opt.name}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function StatCard({ label, value }) {
   return (
@@ -189,9 +152,7 @@ export default function MyStats({ open, onClose, onSignedOut }) {
               <Achievements stats={stats} />
             </div>
 
-            <LanguagePicker />
-
-            <div className="mt-4 flex justify-center">
+            <div className="mt-5 flex justify-center">
               <button
                 type="button"
                 onClick={handleSignOut}

@@ -64,7 +64,7 @@ function parseFocus(value) {
 }
 
 export default async function handler(req, res) {
-  if (methodGuard(req, res, ["GET", "POST"])) return;
+  if (methodGuard(req, res, ["GET", "POST", "DELETE"])) return;
 
   try {
     if (!supabaseAdmin) {
@@ -95,6 +95,44 @@ export default async function handler(req, res) {
       }
       if (!data) return res.status(404).json({ message: "Not found" });
       return res.status(200).json(shapeCarResponse(data));
+    }
+
+    // ====================== DELETE ======================
+    // Solo permite borrar coches que nunca han aparecido en `daily_cars`
+    // (ni pasados ni futuros) para no romper el historial ni el calendario.
+    if (req.method === "DELETE") {
+      const idQ = typeof req.query?.id === "string" ? req.query.id.trim() : "";
+      if (!idQ || !UUID_RE.test(idQ)) {
+        return res.status(400).json({ error: "Invalid id" });
+      }
+
+      // Comprobamos si el coche está asignado en alguna fecha (pasada o futura).
+      const { data: used, error: usedError } = await supabaseAdmin
+        .from("daily_cars")
+        .select("date")
+        .eq("car_id", idQ)
+        .limit(1)
+        .maybeSingle();
+      if (usedError) {
+        console.error("[admin/save-car delete] check daily_cars:", usedError);
+        return res.status(500).json({ error: "Delete check failed" });
+      }
+      if (used) {
+        return res.status(409).json({
+          error: "No se puede borrar: el coche tiene asignaciones en el calendario.",
+        });
+      }
+
+      const { error: delError } = await supabaseAdmin
+        .from("cars")
+        .delete()
+        .eq("id", idQ);
+      if (delError) {
+        console.error("[admin/save-car delete]", delError);
+        return res.status(500).json({ error: "Delete failed", detail: delError.message });
+      }
+
+      return res.status(200).json({ ok: true });
     }
 
     const body = parseBody(req);

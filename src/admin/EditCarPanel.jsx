@@ -45,6 +45,7 @@ export default function EditCarPanel({
   selectedCarId = "",
   onSelectCar,
   onSaved,
+  onDeleted,
   onOpenPreview,
 }) {
   // useFreshCatalog (no useCatalog) para que un coche recién creado en el
@@ -68,6 +69,8 @@ export default function EditCarPanel({
   const [loadingCar, setLoadingCar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Libera el object URL del preview al desmontar / cambiar archivo.
   useEffect(() => {
@@ -85,8 +88,10 @@ export default function EditCarPanel({
       setOriginalForm(initialForm);
       setPreviewUrl(null);
       setFeedback(null);
+      setDeleteConfirm(false);
       return;
     }
+    setDeleteConfirm(false);
 
     let cancelled = false;
     setLoadingCar(true);
@@ -171,6 +176,40 @@ export default function EditCarPanel({
       form.focus_y !== originalForm.focus_y
     );
   }, [form, originalForm, selectedCarId]);
+
+  async function handleDelete() {
+    if (isDeleting || !selectedCarId) return;
+    setIsDeleting(true);
+    setFeedback(null);
+    try {
+      const {
+        data: { session: s },
+      } = await supabase.auth.getSession();
+      if (!s) throw new Error("Sin sesión");
+
+      const res = await fetch(
+        `/api/admin/save-car?id=${encodeURIComponent(selectedCarId)}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${s.access_token}` },
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+
+      reloadCatalog().catch(() => {});
+      setDeleteConfirm(false);
+      if (typeof onDeleted === "function") onDeleted(selectedCarId);
+    } catch (err) {
+      console.error("[EditCarPanel] delete:", err);
+      setDeleteConfirm(false);
+      setFeedback({ type: "error", message: err?.message || "No se pudo borrar el coche." });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -535,7 +574,7 @@ export default function EditCarPanel({
 
         <button
           type="submit"
-          disabled={isSubmitting || !selectedCarId || !dirty}
+          disabled={isSubmitting || isDeleting || !selectedCarId || !dirty}
           className="
             h-12 w-full rounded-xl bg-accent font-display text-lg
             tracking-widest text-bg-primary transition
@@ -551,6 +590,59 @@ export default function EditCarPanel({
             ? "Sin cambios"
             : "Guardar cambios"}
         </button>
+
+        {selectedCarId && !deleteConfirm && (
+          <button
+            type="button"
+            onClick={() => setDeleteConfirm(true)}
+            disabled={isSubmitting || isDeleting}
+            className="
+              h-10 w-full rounded-xl border border-red-400/30 bg-transparent
+              text-sm uppercase tracking-[0.18em] text-red-400/70
+              transition hover:border-red-400 hover:text-red-400
+              disabled:cursor-not-allowed disabled:opacity-40
+            "
+          >
+            Borrar coche
+          </button>
+        )}
+
+        {selectedCarId && deleteConfirm && (
+          <div className="rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-4 flex flex-col gap-3">
+            <p className="text-sm text-red-300">
+              ¿Seguro? Esta acción no se puede deshacer. Solo se pueden borrar
+              coches que no tengan asignaciones en el calendario.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="
+                  flex-1 h-10 rounded-xl bg-red-500 font-display text-sm
+                  uppercase tracking-[0.18em] text-white transition
+                  hover:bg-red-600 active:scale-[0.98]
+                  disabled:cursor-not-allowed disabled:opacity-40
+                "
+              >
+                {isDeleting ? "Borrando..." : "Sí, borrar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="
+                  flex-1 h-10 rounded-xl border border-white/10 bg-black/40
+                  text-sm uppercase tracking-[0.18em] text-muted
+                  transition hover:border-white/30 hover:text-white
+                  disabled:cursor-not-allowed disabled:opacity-40
+                "
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );

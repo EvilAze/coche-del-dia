@@ -151,8 +151,11 @@ export default function AdminTools({ defaultTab }) {
   }
 
   function handleEditSaved() {
-    // El coche editado puede ser uno del calendario. Refrescamos para
-    // que se vea la foto/datos nuevos.
+    setRefreshKey((k) => k + 1);
+  }
+
+  function handleCarDeleted() {
+    setSelectedCarId("");
     setRefreshKey((k) => k + 1);
   }
 
@@ -283,6 +286,7 @@ export default function AdminTools({ defaultTab }) {
               selectedCarId={selectedCarId}
               onSelectCar={setSelectedCarId}
               onSaved={handleEditSaved}
+              onDeleted={handleCarDeleted}
               onOpenPreview={goPreviewCar}
             />
           )}

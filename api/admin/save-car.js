@@ -1,17 +1,19 @@
 // api/admin/save-car.js
-// CRUD unificado de la tabla `cars`. Reemplaza a los anteriores
-// /api/admin/add-car y /api/admin/update-car, fusionados para no superar
-// el límite de 12 funciones serverless del plan Hobby de Vercel.
+// CRUD unificado de la tabla `cars`. Acepta GET y POST para no consumir un
+// slot de función serverless extra (plan Hobby de Vercel: 12 max). Antes el
+// GET vivía en /api/admin/get-car.js — fusionado aquí para liberar slot.
 //
-// Modo se decide por presencia de `id` en el body:
-//   - Sin `id`              → INSERT (alta). Requiere todos los campos
-//                              obligatorios (marca, modelo, anio, pais,
-//                              image_url).
-//   - Con `id` válido (UUID) → UPDATE parcial. Solo se aplican los campos
+// Métodos:
+//   - GET ?id=<uuid>        → devuelve la fila completa del coche (incluye
+//                              image_url, que está revocada para anon/auth
+//                              y solo es legible vía service_role).
+//   - POST sin `id` en body → INSERT (alta). Requiere marca, modelo, anio,
+//                              pais, image_url.
+//   - POST con `id` válido  → UPDATE parcial. Solo se aplican los campos
 //                              presentes en el body — útil para "tocar solo
 //                              la descripción" sin pisar el resto.
 //
-// Body JSON:
+// Body POST JSON:
 //   {
 //     id?:             uuid                       // ausente = alta, presente = update
 //     marca, modelo, anio, pais,                  // requeridos en alta, opcionales en update
@@ -19,7 +21,7 @@
 //     image_url                                   // requerido en alta, opcional en update
 //   }
 //
-// Patrón de seguridad: misma whitelist de email para ambas operaciones.
+// Patrón de seguridad: misma whitelist de email para todas las operaciones.
 // Service-role bypassea RLS. El cliente sube la imagen al bucket público
 // `cars_images` por su cuenta y nos manda la URL ya resuelta.
 
@@ -49,17 +51,37 @@ function shapeCarResponse(row) {
 }
 
 export default async function handler(req, res) {
-  if (methodGuard(req, res, "POST")) return;
+  if (methodGuard(req, res, ["GET", "POST"])) return;
 
   try {
     if (!supabaseAdmin) {
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
-    // Identidad + whitelist (compartido entre alta y update).
+    // Identidad + whitelist (compartido entre lectura, alta y update).
     const { error: authError } = await requireAdmin(req);
     if (authError) {
       return res.status(authError.status).json({ error: authError.message });
+    }
+
+    // ====================== GET (lectura por id) ======================
+    // Antes vivía en /api/admin/get-car.js. Fusionado aquí para liberar slot.
+    if (req.method === "GET") {
+      const idQ = typeof req.query?.id === "string" ? req.query.id.trim() : "";
+      if (!idQ || !UUID_RE.test(idQ)) {
+        return res.status(400).json({ message: "Invalid id" });
+      }
+      const { data, error } = await supabaseAdmin
+        .from("cars")
+        .select("id, make, model, year, pais, description, description_en, image_url")
+        .eq("id", idQ)
+        .maybeSingle();
+      if (error) {
+        console.error("[admin/save-car get]", error);
+        return res.status(500).json({ message: "Read failed" });
+      }
+      if (!data) return res.status(404).json({ message: "Not found" });
+      return res.status(200).json(shapeCarResponse(data));
     }
 
     const body = parseBody(req);

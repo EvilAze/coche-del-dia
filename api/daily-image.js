@@ -55,22 +55,24 @@ const FORMAT_MIME = {
 // estaría viendo en ese intento, antes de devolverla. La imagen completa
 // nunca sale del servidor mientras el juego está activo.
 //
-// Los porcentajes son `1 / ZOOM_LEVEL`, exactamente:
-//   z=1 (intento 1, zoom 3.5x) → 28.6% del lado menor centrado.
-//   z=2 (intento 2, zoom 3.0x) → 33.3%.
+// Los porcentajes son `1 / ZOOM_LEVEL`. Los zooms se distribuyen en
+// intervalos regulares de 0.5 para que la curva de dificultad sea
+// uniforme:
+//   z=1 (intento 1, zoom 3.7x) → 27.0% del lado menor.
+//   z=2 (intento 2, zoom 3.2x) → 31.3%.
 //   z=3 (intento 3, zoom 2.7x) → 37.0%.
-//   z=4 (intento 4, zoom 2.4x) → 41.7%.
-//   z=5 (intento 5, zoom 1.8x) → 55.6%.
+//   z=4 (intento 4, zoom 2.2x) → 45.5%.
+//   z=5 (intento 5, zoom 1.7x) → 58.8%.
 // Si no se pasa `z` o el valor está fuera del set, NO se aplica crop:
 // devolvemos la imagen completa. El cliente solo debería pedir sin `z`
 // cuando el juego ha terminado (status=won|lost) y queremos revelar.
 const ALLOWED_Z = new Set([1, 2, 3, 4, 5]);
 const Z_TO_CROP_PCT = {
-  1: 0.286,
-  2: 0.333,
+  1: 0.270,
+  2: 0.313,
   3: 0.370,
-  4: 0.417,
-  5: 0.556,
+  4: 0.455,
+  5: 0.588,
 };
 
 // Si llega un Bearer, intentamos identificar al usuario para gatear el
@@ -120,16 +122,28 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: "Failed to pick daily car" });
   }
 
-  // 2) URL real del CDN. Nunca sale de este proceso.
+  // 2) URL real del CDN + punto focal. Nunca salen de este proceso.
+  //    focus_x/focus_y indican el centro del crop en [0,1]. Si están a
+  //    null (compat con coches anteriores a la columna) o fuera de rango,
+  //    cae al 0.5/0.5 — equivalente al crop centrado del comportamiento
+  //    histórico.
   const { data: row, error: fetchErr } = await supabaseAdmin
     .from("cars")
-    .select("image_url")
+    .select("image_url, focus_x, focus_y")
     .eq("id", carId)
     .single();
   if (fetchErr || !row?.image_url) {
     console.error("[daily-image] fetch car:", fetchErr);
     return res.status(500).json({ message: "Failed to load daily car" });
   }
+  const focusX =
+    Number.isFinite(row.focus_x) && row.focus_x >= 0 && row.focus_x <= 1
+      ? row.focus_x
+      : 0.5;
+  const focusY =
+    Number.isFinite(row.focus_y) && row.focus_y >= 0 && row.focus_y <= 1
+      ? row.focus_y
+      : 0.5;
 
   // 3) Validamos params de procesamiento. Las allowlists son estrictas: si
   //    el cliente pide algo fuera del set, lo ignoramos (no devolvemos 400)
@@ -225,13 +239,21 @@ export default async function handler(req, res) {
           const rotated90 = meta.orientation && meta.orientation >= 5;
           const W = rotated90 ? meta.height : meta.width;
           const H = rotated90 ? meta.width : meta.height;
-          // Cuadrado centrado, lado = min(W,H) × cropPct. Cuadrado porque
-          // el container del juego es 1:1; así el resultado entra exacto
-          // sin que el cliente tenga que recortar nada con object-cover.
+          // Cuadrado centrado en (focusX, focusY) en lugar del centro de
+          // la imagen. Lado = min(W,H) × cropPct. Cuadrado porque el
+          // container del juego es 1:1; así el resultado entra exacto sin
+          // que el cliente tenga que recortar nada con object-cover.
+          //
+          // El clamp con (W - size) / (H - size) garantiza que el crop no
+          // se salga por los bordes cuando el foco está cerca de una
+          // esquina y el `size` es grande (intento 5). En esos casos el
+          // cuadrado se "pega" al borde — visualmente lógico.
           const minDim = Math.min(W, H);
           const size = Math.max(1, Math.round(minDim * Z_TO_CROP_PCT[wantedZ]));
-          const left = Math.max(0, Math.round((W - size) / 2));
-          const top = Math.max(0, Math.round((H - size) / 2));
+          const rawLeft = Math.round(W * focusX - size / 2);
+          const rawTop = Math.round(H * focusY - size / 2);
+          const left = Math.max(0, Math.min(W - size, rawLeft));
+          const top = Math.max(0, Math.min(H - size, rawTop));
           pipeline = pipeline.extract({ left, top, width: size, height: size });
         }
       }

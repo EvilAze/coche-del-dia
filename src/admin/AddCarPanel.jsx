@@ -10,22 +10,10 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
-import CarImage from "../components/CarImage";
+import FocusPicker from "./FocusPicker";
 
 const STORAGE_BUCKET = "cars_images";
 const CURRENT_YEAR = new Date().getFullYear();
-
-// Mismos valores que useGame.js — duplicados para que la previsualización
-// del admin sea independiente del juego real.
-const ZOOM_LEVELS = [3.5, 3.0, 2.7, 2.4, 1.8];
-
-function zoomFromStep(step) {
-  if (step >= 6) {
-    return { zoom: 1.0, hintIndex: null, status: "won" };
-  }
-  const idx = step - 1;
-  return { zoom: ZOOM_LEVELS[idx], hintIndex: idx, status: "playing" };
-}
 
 const initialForm = {
   make: "",
@@ -35,6 +23,10 @@ const initialForm = {
   description: "",
   description_en: "",
   file: null,
+  // Punto focal del zoom. 0.5/0.5 = centro (igual que el comportamiento
+  // por defecto del servidor antes de existir las columnas).
+  focus_x: 0.5,
+  focus_y: 0.5,
 };
 
 function sanitizeFilename(name) {
@@ -67,7 +59,6 @@ export default function AddCarPanel({
   const [form, setForm] = useState(initialForm);
   const [paisTouched, setPaisTouched] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [previewStep, setPreviewStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
@@ -94,14 +85,20 @@ export default function AddCarPanel({
     const file = e.target.files?.[0] ?? null;
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(file ? URL.createObjectURL(file) : null);
-    setPreviewStep(1);
-    updateField("file", file);
+    // Cambiar foto resetea el punto focal al centro: la foto anterior
+    // podía tener un foco específico que ya no aplica.
+    setForm((prev) => ({
+      ...prev,
+      file,
+      focus_x: 0.5,
+      focus_y: 0.5,
+    }));
+    if (feedback) setFeedback(null);
   }
 
   function resetForm() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-    setPreviewStep(1);
     setForm(initialForm);
     setPaisTouched(false);
   }
@@ -188,6 +185,8 @@ export default function AddCarPanel({
           description: description ? description : null,
           description_en: descriptionEn ? descriptionEn : null,
           image_url: imageUrl,
+          focus_x: form.focus_x,
+          focus_y: form.focus_y,
         }),
       });
       const addBody = await addRes.json().catch(() => ({}));
@@ -427,14 +426,29 @@ export default function AddCarPanel({
             "
             required
           />
-          {previewUrl && (
-            <DifficultyPreview
-              src={previewUrl}
-              step={previewStep}
-              onStepChange={setPreviewStep}
-            />
-          )}
         </Field>
+
+        {previewUrl && (
+          <Field
+            label={
+              <>
+                Punto focal del zoom
+                <span className="ml-2 normal-case tracking-normal text-muted">
+                  · arrastra para elegir desde dónde nace
+                </span>
+              </>
+            }
+          >
+            <FocusPicker
+              src={previewUrl}
+              value={{ x: form.focus_x, y: form.focus_y }}
+              onChange={({ x, y }) =>
+                setForm((prev) => ({ ...prev, focus_x: x, focus_y: y }))
+              }
+              disabled={isSubmitting}
+            />
+          </Field>
+        )}
 
         {feedback && (
           <div
@@ -484,45 +498,5 @@ function Field({ label, children }) {
       </span>
       {children}
     </label>
-  );
-}
-
-function DifficultyPreview({ src, step, onStepChange }) {
-  const { zoom, hintIndex, status } = zoomFromStep(step);
-  return (
-    <div className="mt-3 flex flex-col gap-3">
-      <CarImage
-        src={src}
-        zoom={zoom}
-        hintIndex={hintIndex}
-        totalHints={ZOOM_LEVELS.length}
-        status={status}
-      />
-      <div className="flex flex-col gap-2 rounded-xl border border-border bg-bg-secondary/40 p-3">
-        <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted">
-          <span>Intento</span>
-          <span className="font-display text-base text-accent">
-            {step} / 6 {step === 6 && "· revelado"}
-          </span>
-        </div>
-        <input
-          type="range"
-          min={1}
-          max={6}
-          step={1}
-          value={step}
-          onChange={(e) => onStepChange(Number(e.target.value))}
-          className="w-full accent-accent"
-        />
-        <div className="flex justify-between text-[10px] uppercase tracking-widest text-muted">
-          <span>x3.5</span>
-          <span>x3</span>
-          <span>x2.7</span>
-          <span>x2.4</span>
-          <span>x1.8</span>
-          <span>1:1</span>
-        </div>
-      </div>
-    </div>
   );
 }

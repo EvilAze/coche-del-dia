@@ -14,11 +14,15 @@ import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { methodGuard } from "../_lib/http.js";
 
-// Mismo crop fijo que /api/daily-image durante la partida: 55,6% central.
-// El cliente termina de "cerrar" el zoom por CSS sobre este 55%. Antes
-// servíamos la imagen ENTERA en repesca y el zoom era 100% client-side —
-// con DevTools veías el coche desnudo nada más arrancar.
-const CROP_PCT_PLAYING = 0.556;
+// Mismo crop fijo que /api/daily-image durante la partida: 58,8% central
+// (= 1 / 1.7, el último nivel de zoom del juego). El cliente termina de
+// "cerrar" el zoom por CSS sobre este 58,8%. Antes servíamos la imagen
+// ENTERA en repesca y el zoom era 100% client-side — con DevTools veías
+// el coche desnudo nada más arrancar.
+//
+// Si actualizas ZOOM_LEVELS en useGame.js / Repesca.jsx hay que ajustar
+// también este valor: debe ser exactamente 1 / max(ZOOM_LEVELS).
+const CROP_PCT_PLAYING = 0.588;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -120,7 +124,7 @@ export default async function handler(req, res) {
     let outContentType = originalContentType;
 
     // Durante la partida (NO terminada), recortamos a un cuadrado central
-    // del 55,6% del lado menor — mismo cálculo que daily-image z=5.
+    // del 58,8% del lado menor — mismo cálculo que daily-image z=5.
     if (!isFinished) {
       try {
         const meta = await sharp(originalBuffer).metadata();

@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useFreshCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
+import FocusPicker from "./FocusPicker";
 
 const STORAGE_BUCKET = "cars_images";
 const CURRENT_YEAR = new Date().getFullYear();
@@ -34,6 +35,10 @@ const initialForm = {
   description_en: "",
   img: "",
   file: null,
+  // Punto focal del crop del zoom — 0.5/0.5 = centro (compat con el
+  // comportamiento histórico).
+  focus_x: 0.5,
+  focus_y: 0.5,
 };
 
 export default function EditCarPanel({
@@ -116,6 +121,8 @@ export default function EditCarPanel({
           description_en: data.description_en || "",
           img: data.img || "",
           file: null,
+          focus_x: typeof data.focus_x === "number" ? data.focus_x : 0.5,
+          focus_y: typeof data.focus_y === "number" ? data.focus_y : 0.5,
         };
         setForm(next);
         setOriginalForm(next);
@@ -159,7 +166,9 @@ export default function EditCarPanel({
       form.pais !== originalForm.pais ||
       form.description !== originalForm.description ||
       form.description_en !== originalForm.description_en ||
-      form.file != null
+      form.file != null ||
+      form.focus_x !== originalForm.focus_x ||
+      form.focus_y !== originalForm.focus_y
     );
   }, [form, originalForm, selectedCarId]);
 
@@ -230,6 +239,8 @@ export default function EditCarPanel({
         patch.description_en = descriptionEn;
       }
       if (newImageUrl) patch.image_url = newImageUrl;
+      if (form.focus_x !== originalForm.focus_x) patch.focus_x = form.focus_x;
+      if (form.focus_y !== originalForm.focus_y) patch.focus_y = form.focus_y;
 
       const res = await fetch("/api/admin/save-car", {
         method: "POST",
@@ -260,6 +271,8 @@ export default function EditCarPanel({
         description_en: updated.description_en || "",
         img: updated.img || "",
         file: null,
+        focus_x: typeof updated.focus_x === "number" ? updated.focus_x : 0.5,
+        focus_y: typeof updated.focus_y === "number" ? updated.focus_y : 0.5,
       };
       setForm(nextForm);
       setOriginalForm(nextForm);
@@ -463,15 +476,32 @@ export default function EditCarPanel({
                   disabled:cursor-not-allowed disabled:opacity-50
                 "
               />
-              {activePreview && (
-                <div className="mt-3 overflow-hidden rounded-xl border border-border bg-black/40">
-                  <img
-                    src={activePreview}
-                    alt="Vista previa"
-                    className="h-48 w-full object-contain"
-                  />
-                </div>
-              )}
+            </Field>
+
+            {/* Punto focal del zoom. La imagen activa es la nueva foto
+                seleccionada (previewUrl) si la hay, o la actual guardada
+                (form.img). Reseteamos el foco a 0.5/0.5 cuando el admin
+                sube una foto nueva para que no arrastre coordenadas del
+                coche anterior — pero solo en la primera selección, no
+                cada vez que mueve el punto. */}
+            <Field
+              label={
+                <>
+                  Punto focal del zoom
+                  <span className="ml-2 normal-case tracking-normal text-muted">
+                    · arrastra para elegir desde dónde nace
+                  </span>
+                </>
+              }
+            >
+              <FocusPicker
+                src={activePreview || null}
+                value={{ x: form.focus_x, y: form.focus_y }}
+                onChange={({ x, y }) =>
+                  setForm((prev) => ({ ...prev, focus_x: x, focus_y: y }))
+                }
+                disabled={isSubmitting}
+              />
             </Field>
 
             {typeof onOpenPreview === "function" && (

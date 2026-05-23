@@ -57,7 +57,12 @@
       "Bash(node scripts/generate-og-image.mjs)",
       "Bash(curl -s http://localhost:3000/)",
       "Bash(vercel --prod --yes)",
-      "Bash(curl -sI https://carguessr.org/og-image.jpg)"
+      "Bash(curl -sI https://carguessr.org/og-image.jpg)",
+      "Bash(curl -sI https://carguessr.org/admin-tools)",
+      "Bash(curl -sI https://carguessr.org/repesca)",
+      "Bash(curl -sI https://carguessr.org/privacidad)",
+      "Bash(curl -sI https://carguessr.org/)",
+      "Bash(curl -sI https://carguessr.org/api/list-cars)"
     ]
   }
 }

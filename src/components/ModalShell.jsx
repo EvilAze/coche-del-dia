@@ -17,6 +17,7 @@
 // se mantiene en useEscape() del propio componente.
 
 import { AnimatePresence, motion } from "framer-motion";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 const backdropVariants = {
   hidden: { opacity: 0 },
@@ -39,6 +40,12 @@ export default function ModalShell({
   panelClassName,
   dismissOnBackdrop = true,
 }) {
+  // Evita scroll chaining: cuando el modal está abierto, el body queda
+  // bloqueado para que el gesto de scroll dentro del modal no propague
+  // y mueva la página de fondo (artefactos visuales en móvil).
+  // El hook usa un contador, así que modales anidados funcionan bien.
+  useScrollLock(open);
+
   return (
     <AnimatePresence>
       {open && (

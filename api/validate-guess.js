@@ -292,13 +292,23 @@ export default async function handler(req, res) {
     }
 
     // -------- 9. Política de revelado ------------------------------------
-    //   El servidor ahora SIEMPRE conoce los intentos (logueado vía DB,
-    //   anónimo vía cookie firmada), así que también los anónimos reciben
-    //   `reveal` al perder. Antes la única forma de cerrar la partida del
-    //   anónimo era ganar (porque attemptNumber era spoof-eable); ya no
-    //   hace falta esa asimetría.
+    //   Política asimétrica intencional según (status, autenticación):
+    //
+    //   - WIN (logueado o anónimo): revelamos. El jugador ganó, merece
+    //     ver el coche y compartir.
+    //   - LOST + logueado: revelamos. El usuario tiene cuenta, el
+    //     resultado queda en su historial — la "trampa del incógnito"
+    //     no le sirve porque la pérdida queda registrada.
+    //   - LOST + anónimo: NO revelamos. Si lo hiciéramos, el cheat sería
+    //     trivial: abrir incógnito → fallar adrede los 5 → leer el
+    //     coche → cerrar incógnito → jugar con la cuenta real sabiendo
+    //     la respuesta. Por eso el anónimo perdedor ve solo la imagen
+    //     blurred + overlay de login (renderizado por CarImage). El
+    //     ResultPanel pinta el fallback `result.lockedAnswer` cuando
+    //     reveal viene null.
+    const shouldReveal = result.win || (isGameOver && Boolean(user));
     let reveal = null;
-    if (isGameOver) {
+    if (shouldReveal) {
       reveal = {
         marca: realCar.marca,
         modelo: realCar.modelo,
@@ -312,10 +322,12 @@ export default async function handler(req, res) {
     // -------- 9.bis Actualizar cookie anónima + emitir revealToken --------
     //   Cookie:    para el anónimo, persistimos el nuevo contador y status.
     //              El próximo intento ya parte del valor server-controlled.
-    //   revealToken: cuando la partida cerró (won/lost), emitimos un token
-    //              firmado por hoy que el cliente añade como `?t=` a
-    //              /api/daily-image para recibir la imagen completa.
-    //              Reemplaza al hueco viejo de "quitar &z=5 → ver foto".
+    //   revealToken: token firmado para que el cliente pida la imagen
+    //              completa a /api/daily-image. Solo lo emitimos cuando
+    //              corresponde revelar (misma regla que `reveal`). Si lo
+    //              firmáramos al anónimo perdedor, equivaldría a regalarle
+    //              la foto del coche — exactamente el cheat que estamos
+    //              cerrando con la asimetría de arriba.
     if (!user && anonSession) {
       try {
         setAnonCookie(res, { d: today, n: attemptNumber, s: newStatus });
@@ -325,7 +337,7 @@ export default async function handler(req, res) {
     }
 
     let revealToken = null;
-    if (isGameOver) {
+    if (shouldReveal) {
       try {
         revealToken = signRevealToken(today);
       } catch (err) {

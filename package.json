@@ -24,6 +24,7 @@
     "preview": "vite preview",
     "test:security": "node scripts/test-security.mjs",
     "test:attacks": "node scripts/test-attacks.mjs",
+    "test:rls": "node scripts/test-rls.mjs",
     "test": "npm run test:security && npm run test:attacks"
   },
   "browserslist": {

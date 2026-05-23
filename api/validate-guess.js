@@ -15,7 +15,7 @@ import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
 import { getClientIp, rateLimit } from "./_lib/rate-limit.js";
 import { captureServerError } from "./_lib/sentry.js";
-import { supabaseAdmin, createAuthClient, SUPABASE_URL, SUPABASE_ANON_KEY } from "./_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { parseBody, methodGuard } from "./_lib/http.js";
@@ -34,7 +34,7 @@ function basePointsFor(attemptNumber, won) {
 }
 
 async function fetchCarById(id) {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("cars")
     .select("id, make, model, year, pais, description, description_en")
     .eq("id", id)
@@ -77,8 +77,9 @@ export default async function handler(req, res) {
   // -------- TRY/CATCH GLOBAL ---------------------------------------------
   try {
     // -------- 1. Sanity de configuración ---------------------------------
+    const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
-      console.error("[validate-guess] missing SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL");
+      console.error(`[validate-guess] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
@@ -359,7 +360,7 @@ export default async function handler(req, res) {
     // Cualquier excepción no manejada arriba aterriza aquí: la convertimos
     // en una respuesta JSON 500 en vez de dejar que Vercel devuelva HTML.
     console.error("[validate-guess] UNCAUGHT:", err && err.stack ? err.stack : err);
-    captureServerError(err, { endpoint: "validate-guess" });
+    await captureServerError(err, { endpoint: "validate-guess" });
     return res.status(500).json({
       error: "Internal error",
       detail:

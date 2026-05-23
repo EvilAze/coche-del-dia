@@ -26,7 +26,7 @@
 // `cars_images` por su cuenta y nos manda la URL ya resuelta.
 
 import { generateBlurData } from "../_lib/blur-data.js";
-import { supabaseAdmin } from "../_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
 import { requireAdmin } from "../_lib/auth.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
 
@@ -67,7 +67,8 @@ export default async function handler(req, res) {
   if (methodGuard(req, res, ["GET", "POST", "DELETE"])) return;
 
   try {
-    if (!supabaseAdmin) {
+    if (!getSupabaseAdmin()) {
+      console.error(`[admin/save-car] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
       if (!idQ || !UUID_RE.test(idQ)) {
         return res.status(400).json({ message: "Invalid id" });
       }
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await getSupabaseAdmin()
         .from("cars")
         .select("id, make, model, year, pais, description, description_en, image_url, focus_x, focus_y")
         .eq("id", idQ)
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
       }
 
       // Comprobamos si el coche está asignado en alguna fecha (pasada o futura).
-      const { data: used, error: usedError } = await supabaseAdmin
+      const { data: used, error: usedError } = await getSupabaseAdmin()
         .from("daily_cars")
         .select("date")
         .eq("car_id", idQ)
@@ -123,7 +124,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const { error: delError } = await supabaseAdmin
+      const { error: delError } = await getSupabaseAdmin()
         .from("cars")
         .delete()
         .eq("id", idQ);
@@ -206,7 +207,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Nothing to update" });
       }
 
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await getSupabaseAdmin()
         .from("cars")
         .update(patch)
         .eq("id", idRaw)
@@ -288,7 +289,7 @@ export default async function handler(req, res) {
     if (focusXIn !== null) insertRow.focus_x = focusXIn;
     if (focusYIn !== null) insertRow.focus_y = focusYIn;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from("cars")
       .insert(insertRow)
       .select("id, make, model, year, pais, description, description_en, image_url")

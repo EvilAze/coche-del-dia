@@ -22,7 +22,7 @@
 // pasa por service_role; daily_cars está revocado para anon/authenticated
 // por el hardening de RLS.
 
-import { supabaseAdmin } from "../_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
 import { requireAdmin } from "../_lib/auth.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
 import { todayInMadrid } from "../_lib/date.js";
@@ -64,7 +64,8 @@ export default async function handler(req, res) {
   if (methodGuard(req, res, ["GET", "POST"])) return;
 
   try {
-    if (!supabaseAdmin) {
+    if (!getSupabaseAdmin()) {
+      console.error(`[admin/schedule] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
@@ -101,7 +102,7 @@ async function handleGet(req, res) {
   const carIdByDate = {};
   await Promise.all(
     dates.map(async (date) => {
-      const { data, error } = await supabaseAdmin.rpc("pick_daily_car", {
+      const { data, error } = await getSupabaseAdmin().rpc("pick_daily_car", {
         p_date: date,
       });
       if (error) {
@@ -117,7 +118,7 @@ async function handleGet(req, res) {
 
   let carsById = {};
   if (uniqueCarIds.length > 0) {
-    const { data: rows, error: rowsErr } = await supabaseAdmin
+    const { data: rows, error: rowsErr } = await getSupabaseAdmin()
       .from("cars")
       .select("id, make, model, year, pais, description, description_en, image_url")
       .in("id", uniqueCarIds);
@@ -161,7 +162,7 @@ async function handlePost(req, res) {
   }
 
   // ¿El coche existe?
-  const { data: car, error: carErr } = await supabaseAdmin
+  const { data: car, error: carErr } = await getSupabaseAdmin()
     .from("cars")
     .select("id, make, model, year, pais, description, description_en, image_url")
     .eq("id", carId)
@@ -175,7 +176,7 @@ async function handlePost(req, res) {
   }
 
   // ¿El coche está ya programado en otra fecha?
-  const { data: existing, error: existingErr } = await supabaseAdmin
+  const { data: existing, error: existingErr } = await getSupabaseAdmin()
     .from("daily_cars")
     .select("date")
     .eq("car_id", carId)
@@ -202,7 +203,7 @@ async function handlePost(req, res) {
     }
     // existing.date > today → futura: liberamos para que el upsert al
     // targetDate no choque con un eventual UNIQUE(car_id).
-    const { error: delErr } = await supabaseAdmin
+    const { error: delErr } = await getSupabaseAdmin()
       .from("daily_cars")
       .delete()
       .eq("date", existing.date);
@@ -214,7 +215,7 @@ async function handlePost(req, res) {
 
   // Sustituye lo que hubiera en targetDate por este coche. onConflict=date
   // porque date es la PK natural de daily_cars (un coche por día).
-  const { error: upErr } = await supabaseAdmin
+  const { error: upErr } = await getSupabaseAdmin()
     .from("daily_cars")
     .upsert({ date: targetDate, car_id: carId }, { onConflict: "date" });
   if (upErr) {

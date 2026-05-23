@@ -68,7 +68,10 @@
     "submit": "ADIVINAR",
     "submitting": "COMPROBANDO",
     "yearStepperUp": "Año +1",
-    "yearStepperDown": "Año -1"
+    "yearStepperDown": "Año -1",
+    "yearAlreadyTried": "Ya probaste ese año",
+    "modelAlreadyTried": "Ya probaste ese modelo",
+    "marcaAlreadyTried": "Ya probaste esa marca"
   },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",

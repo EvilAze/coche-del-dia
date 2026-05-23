@@ -68,7 +68,10 @@
     "submit": "GUESS",
     "submitting": "CHECKING",
     "yearStepperUp": "Year +1",
-    "yearStepperDown": "Year -1"
+    "yearStepperDown": "Year -1",
+    "yearAlreadyTried": "You already tried that year",
+    "modelAlreadyTried": "You already tried that model",
+    "marcaAlreadyTried": "You already tried that make"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",

@@ -14,13 +14,15 @@
 import crypto from "node:crypto";
 import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
-import { supabaseAdmin } from "./_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
 import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 
 export default async function handler(req, res) {
+  const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
-    console.error("[get-daily-car] missing SUPABASE_SERVICE_ROLE_KEY");
+    const missing = getMissingAdminEnvs();
+    console.error(`[get-daily-car] missing env vars: ${missing.join(", ")}`);
     return res.status(500).json({ message: "Server misconfigured" });
   }
 

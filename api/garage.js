@@ -20,7 +20,7 @@ import {
   IMAGE_MODE_CLEAR,
   IMAGE_MODE_BLURRED,
 } from "./_lib/image-token.js";
-import { supabaseAdmin } from "./_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
 import { requireUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { methodGuard } from "./_lib/http.js";
@@ -38,7 +38,9 @@ export default async function handler(req, res) {
   if (methodGuard(req, res, "GET")) return;
 
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
+      console.error(`[garage] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
@@ -243,7 +245,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("[garage] UNCAUGHT:", err && err.stack ? err.stack : err);
-    captureServerError(err, { endpoint: "garage" });
+    await captureServerError(err, { endpoint: "garage" });
     return res.status(500).json({
       error: "Internal error",
       detail:

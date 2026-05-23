@@ -122,20 +122,36 @@ function ensureInit() {
  * (por endpoint, etc.). Es 100% non-throwing: si algo va mal aquí,
  * silenciamos para no romper la respuesta original del endpoint.
  *
- * Patrón de uso (en el catch de cada handler):
+ * IMPORTANTE — flush obligatorio en serverless:
+ *   En entornos long-running (express, fastify) basta con llamar a
+ *   Sentry.captureException() y olvidarse: el SDK despacha el evento
+ *   en background. En Vercel functions, sin embargo, Vercel mata el
+ *   proceso en cuanto el handler devuelve la respuesta — y nuestro
+ *   evento se queda en el buffer del SDK, sin enviarse jamás.
+ *
+ *   La fix canónica es hacer un flush sincrónico ANTES de devolver:
+ *   le decimos al SDK "vacía tu cola, te espero". `flush(timeout)`
+ *   devuelve una promise que resuelve cuando o bien todo está enviado
+ *   o bien han pasado `timeout` ms (lo que pase antes). 2000 ms es
+ *   un buen balance: suficiente para alcanzar Sentry en condiciones
+ *   normales sin colgar al usuario.
+ *
+ * Patrón de uso (en el catch de cada handler — el `await` ES CRÍTICO):
  *
  *   } catch (err) {
  *     console.error("[validate-guess] UNCAUGHT:", err);
- *     captureServerError(err, { endpoint: "validate-guess" });
+ *     await captureServerError(err, { endpoint: "validate-guess" });
  *     return res.status(500).json({ ... });
  *   }
  */
-export function captureServerError(err, context = {}) {
+export async function captureServerError(err, context = {}) {
   try {
     if (!ensureInit()) return;
     Sentry.captureException(err, {
       tags: context,
     });
+    // Sin este flush, el evento se pierde cuando Vercel mata el lambda.
+    await Sentry.flush(2000);
   } catch {
     // Sentry roto: no contamina al endpoint.
   }

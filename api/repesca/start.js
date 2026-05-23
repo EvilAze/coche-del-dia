@@ -29,6 +29,7 @@ import { supabaseAdmin } from "../_lib/supabase.js";
 import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
+import { captureServerError } from "../_lib/sentry.js";
 
 // Modo Veterano: si el usuario tiene alguna fila lost previa para este
 // coche, significa que ya lo vio revelado al fallar (sea en daily o en
@@ -287,6 +288,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("[repesca/start] UNCAUGHT:", err && err.stack ? err.stack : err);
+    captureServerError(err, { endpoint: "repesca/start" });
     return res.status(500).json({
       error: "Internal error",
       detail:

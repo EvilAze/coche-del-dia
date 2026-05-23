@@ -13,6 +13,7 @@ import { supabaseAdmin } from "../_lib/supabase.js";
 import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { methodGuard } from "../_lib/http.js";
+import { captureServerError } from "../_lib/sentry.js";
 
 // Mismo crop fijo que /api/daily-image durante la partida: 58,8% central
 // (= 1 / 1.7, el último nivel de zoom del juego). El cliente termina de
@@ -166,6 +167,7 @@ export default async function handler(req, res) {
     return res.status(200).send(outBuffer);
   } catch (err) {
     console.error("[repesca/image] UNCAUGHT:", err && err.stack ? err.stack : err);
+    captureServerError(err, { endpoint: "repesca/image" });
     return res.status(500).json({
       error: "Internal error",
       detail:

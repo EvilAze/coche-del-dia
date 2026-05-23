@@ -14,6 +14,7 @@
 import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
 import { getClientIp, rateLimit } from "./_lib/rate-limit.js";
+import { captureServerError } from "./_lib/sentry.js";
 import { supabaseAdmin, createAuthClient, SUPABASE_URL, SUPABASE_ANON_KEY } from "./_lib/supabase.js";
 import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
@@ -358,6 +359,7 @@ export default async function handler(req, res) {
     // Cualquier excepción no manejada arriba aterriza aquí: la convertimos
     // en una respuesta JSON 500 en vez de dejar que Vercel devuelva HTML.
     console.error("[validate-guess] UNCAUGHT:", err && err.stack ? err.stack : err);
+    captureServerError(err, { endpoint: "validate-guess" });
     return res.status(500).json({
       error: "Internal error",
       detail:

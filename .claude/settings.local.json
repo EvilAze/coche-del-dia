@@ -52,7 +52,8 @@
       "Bash(node -e \"const s=require\\('sharp'\\); s\\('public/splash-car.jpg'\\).metadata\\(\\).then\\(m=>console.log\\(JSON.stringify\\(m\\)\\)\\)\")",
       "Bash(node -e ' *)",
       "Bash(grep -rn \"from\\(\\\\\"profiles\\\\\"\\)\\\\|from\\('profiles'\\)\\\\|\\\\\\\\.profiles\\\\b\" src/ api/)",
-      "Bash(xargs grep -l \"Garage\\\\|garage\")"
+      "Bash(xargs grep -l \"Garage\\\\|garage\")",
+      "Bash(awk -F= '{print $1}')"
     ]
   }
 }

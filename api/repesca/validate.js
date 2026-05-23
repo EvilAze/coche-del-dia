@@ -15,6 +15,7 @@ import { supabaseAdmin } from "../_lib/supabase.js";
 import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
+import { captureServerError } from "../_lib/sentry.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
@@ -322,6 +323,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("[repesca/validate] UNCAUGHT:", err && err.stack ? err.stack : err);
+    captureServerError(err, { endpoint: "repesca/validate" });
     return res.status(500).json({
       error: "Internal error",
       detail:

@@ -109,10 +109,16 @@ export default async function handler(req, res) {
       }
     }
 
-    // Si el cheater anónimo ya tenía ganado/perdido en la cookie, le damos
-    // el revealToken para que pueda ver la imagen completa al refrescar.
+    // Si el anónimo ya GANÓ hoy, le damos el revealToken para que pueda
+    // ver la imagen completa al refrescar. Si PERDIÓ, NO se lo damos:
+    // firmarle el token le permitiría pedir /api/daily-image?t=... y ver
+    // el coche entero, regalándole la respuesta. Ese es exactamente el
+    // cheat "abrir incógnito → fallar adrede → leer/ver el coche →
+    // jugar con la cuenta real ya sabiendo la respuesta". Asimetría
+    // intencional. El cliente perdedor anónimo queda con la imagen
+    // blurred + overlay de login (lo gestiona CarImage).
     let revealToken = null;
-    if (anonValid && (anon.s === "won" || anon.s === "lost")) {
+    if (anonValid && anon.s === "won") {
       try {
         revealToken = signRevealToken(today);
       } catch (err) {

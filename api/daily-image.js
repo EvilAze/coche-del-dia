@@ -185,7 +185,13 @@ export default async function handler(req, res) {
 
   if (!canReveal) {
     const anon = readAnonSession(req);
-    if (anon && anon.d === today && (anon.s === "won" || anon.s === "lost")) {
+    // Asimetría intencional: solo el anónimo que GANÓ desbloquea por cookie.
+    // Si perdió (s === "lost"), mantenemos el crop de seguridad: revelarle
+    // la imagen completa equivaldría a regalarle el coche, justo el cheat
+    // que cerramos en validate-guess (no firmar revealToken al anon-lost).
+    // Aquí completamos la defensa: cualquier otra vía a /api/daily-image
+    // que dependiera de la cookie también queda bloqueada.
+    if (anon && anon.d === today && anon.s === "won") {
       canReveal = true;
     }
   }

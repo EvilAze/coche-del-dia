@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
+import { useScrollLock } from "../hooks/useScrollLock";
 import { useT, getCarDescription, getLocalizedCountry } from "../i18n";
 import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
@@ -126,6 +127,14 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   // Duración mínima de la animación de sorteo. Si el POST termina antes,
   // esperamos hasta cumplir este tiempo para no truncar el efecto visual.
   const REPESCA_DRAW_MIN_MS = 2500;
+
+  // Bloquea el scroll del body mientras el modal Garage está abierto.
+  // Garage no usa ModalShell (es un motion.div directo a body), así que
+  // hay que llamar al hook a mano. Sus sub-modales (CarDetail,
+  // ScoringHelp, RepescaHelp, RandomRepescaConfirm) sí usan ModalShell
+  // y heredan el bloqueo desde ahí; el contador del hook impide que
+  // cerrar un sub-modal libere el scroll mientras Garage sigue abierto.
+  useScrollLock(open);
 
   // ESC: seis niveles encadenados, de más interno a más externo.
   useEscape(open && helpOpen, () => setHelpOpen(false));
@@ -669,7 +678,7 @@ function CountriesMenu({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {countriesWithMissed.map((c) => (
             <CountryCard
@@ -772,7 +781,7 @@ function BrandsMenu({
           a max-w-md (448px) y 3 columnas dejan cada card ~130px, que
           no da para acomodar nombres largos (VOLKSWAGEN, MERCEDES-BENZ)
           con tipografía premium y tracking ancho. */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
           {visibleBrands.map((brand) => (
             <BrandCard
@@ -917,7 +926,7 @@ function BrandShowroom({
                 La única forma de jugar un coche bloqueado es el botón
                 "Repesca Aleatoria" del menú de países, que oculta marca,
                 modelo e incluso a qué país pertenece. */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
         <div className="grid grid-cols-2 gap-3 pb-3 sm:grid-cols-3">
           {brand.cars.map((car) =>
             car.unlocked ? (

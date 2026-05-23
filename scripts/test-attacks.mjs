@@ -63,10 +63,13 @@ function computeCanReveal({ tParam = null, cookieValue = null, today }) {
   }
   // Branch 2: Bearer con user_guesses.status — no testable sin Supabase,
   // omitido aquí. El handler real lo cubre.
-  // Branch 3: cookie anon firmada con s ∈ {won, lost}.
+  // Branch 3: cookie anon firmada SOLO con s === "won". Anon-lost NO
+  // desbloquea (anti-cheat del modo incógnito: si revelásemos la imagen
+  // al anon perdedor, podría fallar adrede en incógnito → ver el coche
+  // → volver con su cuenta real ya sabiendo la respuesta).
   if (cookieValue) {
     const anon = verifyAnonSession(cookieValue);
-    if (anon && anon.d === today && (anon.s === "won" || anon.s === "lost")) {
+    if (anon && anon.d === today && anon.s === "won") {
       return true;
     }
   }
@@ -113,6 +116,18 @@ check(
   check(
     "cookie real con s=won → canReveal=true (full image OK)",
     computeCanReveal({ cookieValue: wonCookie, today: TODAY }) === true
+  );
+}
+
+// Escenario D.bis: anti-cheat del modo incógnito. El anon que ha PERDIDO
+// hoy NO debe poder pedir la imagen completa, aunque su cookie esté
+// firmada por nosotros y sea de hoy. Si esto da true es exactamente el
+// vector "fallo adrede en incógnito para ver y volver con cuenta real".
+{
+  const lostCookie = signAnonSession({ d: TODAY, n: 5, s: "lost" });
+  check(
+    "cookie real con s=lost → canReveal=false (anti-incógnito)",
+    computeCanReveal({ cookieValue: lostCookie, today: TODAY }) === false
   );
 }
 

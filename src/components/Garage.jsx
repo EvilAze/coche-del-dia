@@ -264,11 +264,20 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     setConfirmRepesca(true);
   }
 
-  // El usuario acepta la repesca tras leer las condiciones. Sorteamos un
-  // coche al azar de la pool de pendientes, lanzamos el POST en paralelo
-  // a la animación de barajado de cromos (duración mínima 2.5s), y
-  // redirigimos solo cuando ambas hayan terminado. Si el POST falla, se
-  // aborta la animación y se muestra el toast.
+  // El usuario acepta la repesca tras leer las condiciones. El SERVIDOR
+  // elige el coche al azar (server-side CSPRNG); el cliente NO participa
+  // en la elección. Lanzamos la animación de barajado con tema neutro
+  // mientras viaja el POST, y cuando el server responde:
+  //   - Si éxito → actualizamos el tema (veteran/normal) reactivamente,
+  //     dejamos terminar la animación y redirigimos al pseudo carId que
+  //     devuelve el server.
+  //   - Si error → toast, abortamos animación, volvemos al estado base.
+  //
+  // Anti-cheat: antes esta función elegía el coche en cliente con
+  // Math.random(). Como el cliente conoce metadatos del pool (país,
+  // marca, veteran flag) podía sesgar la "aleatoriedad" hacia coches
+  // más fáciles. Ahora la decisión es del server y este vector queda
+  // cerrado. La pool local solo se usa para la guarda defensiva.
   async function confirmAndStartRepesca() {
     if (repescaStarting) return;
     if (repescaPool.length === 0) {
@@ -277,26 +286,13 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       return;
     }
 
-    const pickedId = repescaPool[Math.floor(Math.random() * repescaPool.length)];
-
-    // Localizamos el flag `veteran` desde el estado local del garaje:
-    // /api/garage ya nos lo marca por coche. Nos sirve para que la
-    // animación tematice el cromo final (ámbar + 🔥) sin esperar al POST.
-    // Si no encontramos el coche (no debería pasar), default a normal.
-    let pickedVeteran = false;
-    outer: for (const c of state.data?.countries || []) {
-      for (const car of c.cars) {
-        if (car.id === pickedId) {
-          pickedVeteran = !!car.veteran;
-          break outer;
-        }
-      }
-    }
-
     setRepescaStarting(true);
     setConfirmRepesca(false);
-    setDrawAnim({ carId: pickedId, veteran: pickedVeteran });
-    track("repesca_start", { mode: pickedVeteran ? "veteran" : "normal" });
+    // Animación arranca con tema neutro (carId null, veteran false). El
+    // prop `veteran` solo lo lee RepescaDrawAnimation en la fase final
+    // del flip (~2.1s), así que actualizarlo cuando responda el POST
+    // (típicamente <500ms) llega a tiempo de tematizar la carta hero.
+    setDrawAnim({ carId: null, veteran: false });
 
     const minDelay = new Promise((r) => setTimeout(r, REPESCA_DRAW_MIN_MS));
 
@@ -306,13 +302,16 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error(t("garage.errorNoSession"));
 
+      // POST sin carId: indica al server "elige tú". El server devuelve
+      // el pseudoCarId resultante (o el activo si ya había uno hoy, por
+      // idempotencia).
       const postPromise = fetch("/api/repesca/start", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ carId: pickedId }),
+        body: JSON.stringify({}),
       });
 
       const [res] = await Promise.all([postPromise, minDelay]);
@@ -320,7 +319,16 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       if (!res.ok) {
         throw new Error(body?.detail || body?.error || `HTTP ${res.status}`);
       }
-      window.location.href = `/repesca?id=${encodeURIComponent(pickedId)}`;
+      const serverPickedId = body?.carId;
+      if (!serverPickedId) {
+        throw new Error("Server did not return a carId");
+      }
+      // Aplicamos el modo real a la animación (puede tematizar la carta
+      // hero en su fase de flip si llegamos a tiempo).
+      const serverVeteran = body?.mode === "veteran";
+      setDrawAnim({ carId: serverPickedId, veteran: serverVeteran });
+      track("repesca_start", { mode: serverVeteran ? "veteran" : "normal" });
+      window.location.href = `/repesca?id=${encodeURIComponent(serverPickedId)}`;
     } catch (err) {
       console.error("[Garage] random repesca:", err);
       toast.push(err?.message || t("garage.errorRepescaFailed"), {

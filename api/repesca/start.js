@@ -1,25 +1,34 @@
 // api/repesca/start.js
-// Inicia (o reanuda) una repesca: valida que el coche es elegible y consume
-// la repesca diaria del usuario.
+// Inicia (o reanuda) una repesca. El SERVIDOR decide qué coche tocará;
+// el cliente nunca lo elige.
 //
-// REGLAS:
-//   - Solo usuarios autenticados.
-//   - Solo se puede repescar un coche que YA haya sido "Coche del Día"
-//     (existe en daily_cars con fecha < hoy). Nada de coches futuros.
-//   - El usuario no puede repescar un coche que ya ganó.
-//   - Una repesca al día. Si ya consumió hoy:
-//       - Si era para este mismo carId → idempotente: devolvemos OK con
-//         resume:true (sirve para refresh / volver a abrir).
-//       - Si era para otro → 409 "Repesca ya consumida hoy".
+// Contrato del endpoint (POST):
+//
+//   POST {} (sin carId)
+//     → "Arrancar una repesca nueva."
+//     - Si ya hay una repesca activa hoy → devuelve esa (idempotente).
+//     - Si no hay activa → el server elige un coche al azar de la pool
+//       de elegibles del usuario, consume la repesca del día y la devuelve.
+//
+//   POST { carId: <pseudoId> }
+//     → "Estoy en la página /repesca?id=X, dame el estado actual."
+//     - Si X coincide con la repesca activa hoy → devuelve estado (idempotente).
+//     - Si X no coincide o no hay activa → 409 / 404.
+//     - NUNCA arranca una repesca nueva por carId del cliente.
+//
+// Por qué este diseño:
+//   Antes, el cliente elegía el coche con Math.random() en Garage.jsx y
+//   enviaba el pseudoCarId. Como el cliente conoce metadatos del pool
+//   (país, marca, flag veteran) podía sesgar la "aleatoriedad" hacia
+//   coches más fáciles. Mover la elección al servidor con un CSPRNG
+//   (crypto.randomInt) cierra ese vector.
 
-import { pseudoIdFor, resolveRealCarId } from "../_lib/repesca-token.js";
+import { randomInt } from "node:crypto";
+import { pseudoIdFor } from "../_lib/repesca-token.js";
 import { supabaseAdmin } from "../_lib/supabase.js";
 import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Modo Veterano: si el usuario tiene alguna fila lost previa para este
 // coche, significa que ya lo vio revelado al fallar (sea en daily o en
@@ -81,6 +90,49 @@ async function readRepescaState(authClient, userId, carId, today) {
   };
 }
 
+// Calcula la pool de coches elegibles para repesca de un usuario:
+// (coches que fueron daily en el pasado) menos (coches que el usuario ya
+// ganó). Se computa entera en el server — el cliente no participa.
+//
+// Notas RLS:
+//   - daily_cars: lectura con supabaseAdmin (service_role). La tabla no
+//     debería tener policies de SELECT para authenticated por diseño;
+//     todas las lecturas pasan por aquí.
+//   - user_guesses: lectura con authClient. RLS confirma que solo
+//     leemos filas del propio usuario (defensa en profundidad además
+//     del .eq("user_id", userId)).
+async function computeEligiblePool(authClient, userId, today) {
+  const { data: pastDaily, error: pastErr } = await supabaseAdmin
+    .from("daily_cars")
+    .select("car_id")
+    .lt("date", today);
+  if (pastErr) {
+    throw new Error(`Failed to load past daily cars: ${pastErr.message}`);
+  }
+  const pastDailyIds = new Set((pastDaily || []).map((d) => d.car_id));
+
+  const { data: userWins, error: winsErr } = await authClient
+    .from("user_guesses")
+    .select("car_id")
+    .eq("user_id", userId)
+    .eq("status", "won");
+  if (winsErr) {
+    throw new Error(`Failed to load user wins: ${winsErr.message}`);
+  }
+  const wonIds = new Set((userWins || []).map((w) => w.car_id));
+
+  return [...pastDailyIds].filter((id) => !wonIds.has(id));
+}
+
+// Elección uniforme con CSPRNG. Math.random() es entropía PRNG (Mersenne
+// Twister o similar): suficiente para juegos casuales, NO para decisiones
+// con incentivo de manipular. crypto.randomInt usa rejection sampling y
+// es uniforme + criptográficamente seguro.
+function pickRandomCryptoSafe(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  return arr[randomInt(0, arr.length)];
+}
+
 export default async function handler(req, res) {
   if (methodGuard(req, res, "POST")) return;
 
@@ -95,75 +147,18 @@ export default async function handler(req, res) {
     }
 
     const body = parseBody(req);
-    const pseudoCarId =
-      typeof body.carId === "string" ? body.carId.trim() : "";
-    if (!pseudoCarId) {
-      return res.status(400).json({ error: "Missing carId" });
-    }
-
-    // Resolver pseudo → cars.id real. El cliente nunca conoce el id real
-    // de un coche bloqueado; nos envía el pseudo y aquí lo traducimos.
-    const { data: allCarRows, error: allCarsErr } = await supabaseAdmin
-      .from("cars")
-      .select("id");
-    if (allCarsErr) {
-      console.error("[repesca/start] read cars:", allCarsErr);
-      return res.status(500).json({ error: "Failed to load catalog" });
-    }
-    const carId = resolveRealCarId(
-      pseudoCarId,
-      user.id,
-      (allCarRows || []).map((c) => c.id)
-    );
-    if (!carId) {
-      return res.status(400).json({ error: "Invalid carId" });
-    }
+    // carId del cliente es OPCIONAL. Si viene: modo RESUME (validamos contra
+    // active). Si no viene: modo NEW START (servidor elige).
+    const clientPseudoCarId =
+      typeof body.carId === "string" && body.carId.trim()
+        ? body.carId.trim()
+        : null;
 
     const today = todayInMadrid();
 
-    // 1) ¿El coche ha sido coche del día? Buscamos cualquier fila en
-    //    daily_cars con fecha < hoy. Solo entonces es repescable.
-    const { data: pastDaily, error: pastErr } = await supabaseAdmin
-      .from("daily_cars")
-      .select("car_id, date")
-      .eq("car_id", carId)
-      .lt("date", today)
-      .limit(1)
-      .maybeSingle();
-    if (pastErr) {
-      console.error("[repesca/start] read daily_cars:", pastErr);
-      return res.status(500).json({ error: "Failed to check history" });
-    }
-    if (!pastDaily) {
-      return res.status(403).json({
-        error: "Car not eligible for repesca",
-        detail: "Solo se pueden repescar coches que ya hayan sido coche del día.",
-      });
-    }
-
-    // 2) ¿El usuario ya ganó este coche? Si sí, no tiene sentido repescar.
-    const { data: alreadyWon, error: wonErr } = await authClient
-      .from("user_guesses")
-      .select("car_id")
-      .eq("user_id", user.id)
-      .eq("car_id", carId)
-      .eq("status", "won")
-      .limit(1)
-      .maybeSingle();
-    if (wonErr) {
-      console.error("[repesca/start] read user_guesses:", wonErr);
-      return res.status(500).json({ error: "Failed to check wins" });
-    }
-    if (alreadyWon) {
-      return res.status(409).json({ error: "Already unlocked" });
-    }
-
-    // 3) Estado de la repesca actual del usuario. Lectura con service_role:
-    //    `stats` solo tiene policies de SELECT públicas en este proyecto, y
-    //    las escrituras desde el cliente están deliberadamente bloqueadas
-    //    (no hay policy INSERT/UPDATE para authenticated). Toda mutación
-    //    sobre stats pasa por endpoints server-side, igual que hace el RPC
-    //    record_daily_result_v2 con SECURITY DEFINER.
+    // === FASE 1: ¿Hay una repesca activa hoy? ===
+    // El servidor es la fuente única de verdad. Esta lectura no se puede
+    // saltar ni manipular desde el cliente.
     const { data: statsRow, error: statsErr } = await supabaseAdmin
       .from("stats")
       .select("last_repesca_at, last_repesca_car_id")
@@ -174,78 +169,119 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Failed to read stats" });
     }
 
-    // Detecta modo veterano: ¿el usuario ya vio este coche al fallarlo?
+    const activeCarId =
+      statsRow?.last_repesca_at === today ? statsRow?.last_repesca_car_id : null;
+
+    // === FASE 2: Resolver qué coche se va a tocar ===
+    let carId;
+    let isNewStart;
+
+    if (clientPseudoCarId) {
+      // --- MODO RESUME ---
+      // El cliente está en /repesca?id=X y nos pide el estado. SOLO
+      // respondemos OK si X coincide con la repesca activa hoy. Esto
+      // bloquea el vector "URL crafteada con un pseudo arbitrario para
+      // arrancar una repesca a la carta": si X no es la activa, error.
+      if (!activeCarId) {
+        return res.status(404).json({
+          error: "No active repesca",
+          detail:
+            "No tienes ninguna repesca activa hoy. Inicia una nueva desde el garaje.",
+        });
+      }
+      // Verificación directa: derivamos el pseudo del coche activo y
+      // comparamos. No hace falta cargar la tabla cars entera para
+      // resolveRealCarId — basta con esta comparación O(1).
+      const expectedPseudo = pseudoIdFor(activeCarId, user.id);
+      if (clientPseudoCarId !== expectedPseudo) {
+        return res.status(409).json({
+          error: "Repesca mismatch",
+          detail:
+            "El coche que intentas reanudar no coincide con tu repesca activa de hoy.",
+          activeCarId: expectedPseudo, // Lo damos para que el cliente
+          // pueda redirigir al activo correcto si quiere.
+        });
+      }
+      carId = activeCarId;
+      isNewStart = false;
+    } else {
+      // --- MODO NEW START ---
+      // Cliente no especifica carId → server decide.
+      if (activeCarId) {
+        // Idempotencia: ya hay una activa, la devolvemos sin consumir.
+        // Útil si Garage.jsx fallback re-invoca start (no debería, ya
+        // que detecta repescaActiveCarId antes — pero defensivo).
+        carId = activeCarId;
+        isNewStart = false;
+      } else {
+        // No hay activa: calculamos pool server-side y elegimos con CSPRNG.
+        let pool;
+        try {
+          pool = await computeEligiblePool(authClient, user.id, today);
+        } catch (err) {
+          console.error("[repesca/start] computeEligiblePool:", err);
+          return res.status(500).json({ error: "Failed to compute pool" });
+        }
+        if (pool.length === 0) {
+          return res.status(404).json({
+            error: "No cars to repesca",
+            detail: "No tienes coches pendientes para repescar.",
+          });
+        }
+        carId = pickRandomCryptoSafe(pool);
+        isNewStart = true;
+      }
+    }
+
+    // === FASE 3: Modo veterano (siempre server-side) ===
     const veteran = await isVeteranMode(authClient, user.id, carId);
     const mode = veteran ? "veteran" : "normal";
     const maxAttempts = veteran ? 1 : 5;
 
-    const alreadyConsumedToday = statsRow?.last_repesca_at === today;
-    if (alreadyConsumedToday) {
-      if (statsRow.last_repesca_car_id === carId) {
-        // Reanudación legítima: idempotente, no consumimos de nuevo.
-        // Incluimos también el estado actual de la partida para que el
-        // cliente no necesite leer user_guesses por su cuenta (lo cual
-        // exigiría conocer el carId real, justo lo que queremos ocultar).
-        const resumeState = await readRepescaState(authClient, user.id, carId, today);
-        return res.status(200).json({
-          ok: true,
-          // Devolvemos el pseudo, no el real. El cliente nos lo envió;
-          // se lo eco-respondemos para que pueda usarlo en image/validate
-          // sin guardarlo en algún state extra.
-          carId: pseudoCarId,
-          resume: true,
-          state: resumeState,
-          mode,
-          maxAttempts,
+    // === FASE 4: Consumir la repesca si es un arranque nuevo ===
+    // En resume NO tocamos stats (ya se consumió cuando arrancó). En new
+    // start escribimos last_repesca_at + last_repesca_car_id atómicamente
+    // via upsert.
+    if (isNewStart) {
+      const { error: upsertErr } = await supabaseAdmin
+        .from("stats")
+        .upsert(
+          {
+            user_id: user.id,
+            last_repesca_at: today,
+            last_repesca_car_id: carId,
+          },
+          { onConflict: "user_id" }
+        );
+      if (upsertErr) {
+        // Logueamos TODO lo que devuelve Supabase: en logs de Vercel queda
+        // el message + code + details + hint. Devolvemos en `detail` el
+        // mensaje + código para que la modal del frontend lo muestre y
+        // podamos diagnosticar en producción sin tener que abrir logs.
+        console.error("[repesca/start] upsert stats:", {
+          message: upsertErr.message,
+          code: upsertErr.code,
+          details: upsertErr.details,
+          hint: upsertErr.hint,
+        });
+        return res.status(500).json({
+          error: "Failed to consume repesca",
+          detail: `${upsertErr.message}${
+            upsertErr.code ? ` (code ${upsertErr.code})` : ""
+          }`,
         });
       }
-      // Repesca ya gastada en otro coche. Convertimos el carId activo
-      // también a pseudo antes de exponerlo.
-      return res.status(409).json({
-        error: "Repesca already used today",
-        activeCarId: pseudoIdFor(statsRow.last_repesca_car_id, user.id),
-      });
     }
 
-    // 4) Consumir la repesca: marcar fecha y car_id en stats.
-    //    Usamos upsert con service_role para saltar RLS — el cliente no
-    //    tiene permisos de INSERT/UPDATE sobre stats por diseño (ver nota
-    //    en el paso 3). El usuario no puede manipular estos campos desde
-    //    DevTools porque sus credenciales no pueden tocar la tabla.
-    const { error: upsertErr } = await supabaseAdmin
-      .from("stats")
-      .upsert(
-        {
-          user_id: user.id,
-          last_repesca_at: today,
-          last_repesca_car_id: carId,
-        },
-        { onConflict: "user_id" }
-      );
-    if (upsertErr) {
-      // Logueamos TODO lo que devuelve Supabase: en logs de Vercel queda
-      // el message + code + details + hint. Devolvemos en `detail` el
-      // mensaje + código para que la modal del frontend lo muestre y
-      // podamos diagnosticar en producción sin tener que abrir logs.
-      console.error("[repesca/start] upsert stats:", {
-        message: upsertErr.message,
-        code: upsertErr.code,
-        details: upsertErr.details,
-        hint: upsertErr.hint,
-      });
-      return res.status(500).json({
-        error: "Failed to consume repesca",
-        detail: `${upsertErr.message}${upsertErr.code ? ` (code ${upsertErr.code})` : ""}`,
-      });
-    }
-
-    // Primer arranque tras consumir: state nuevo, sin intentos previos.
-    const freshState = await readRepescaState(authClient, user.id, carId, today);
+    // === FASE 5: Devolver estado al cliente ===
+    // Siempre pseudo carId, nunca real. Mantenemos la propiedad "el
+    // cliente nunca conoce el cars.id real de un coche bloqueado".
+    const state = await readRepescaState(authClient, user.id, carId, today);
     return res.status(200).json({
       ok: true,
-      carId: pseudoCarId,   // eco del pseudo, nunca exponemos el real
-      resume: false,
-      state: freshState,
+      carId: pseudoIdFor(carId, user.id),
+      resume: !isNewStart,
+      state,
       mode,
       maxAttempts,
     });

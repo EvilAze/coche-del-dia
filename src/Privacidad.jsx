@@ -16,7 +16,10 @@ import { useEffect } from "react";
 const ADMIN_CONTACT_EMAIL = "carguessrorg@gmail.com";
 
 // Fecha de última actualización del documento, en formato humano.
-const LAST_UPDATED = "16 de mayo de 2026";
+// IMPORTANTE: actualizar esta fecha CADA VEZ que cambies el contenido
+// del documento. GDPR Art. 13 exige que el usuario sepa cuándo ha sido
+// la última revisión de los términos que está aceptando implícitamente.
+const LAST_UPDATED = "23 de mayo de 2026";
 
 export default function Privacidad() {
   // Título de pestaña y meta-tag descriptivo. SÍ queremos que sea
@@ -113,7 +116,82 @@ export default function Privacidad() {
             </p>
           </Section>
 
-          <Section title="5. Derecho de supresión (borrado de datos)">
+          <Section title="5. Cookies y servicios técnicos">
+            <p>
+              CarGuessr utiliza únicamente cookies{" "}
+              <span className="text-white">estrictamente necesarias</span>{" "}
+              para el funcionamiento del juego. Conforme al artículo 22.2
+              de la LSSI y la Directiva ePrivacy, estas cookies no
+              requieren consentimiento previo:
+            </p>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-neutral-300">
+              <li>
+                <span className="text-white">Cookie de sesión anónima:</span>{" "}
+                firmada, permite contar tus intentos del día y mantener tu
+                progreso sin necesidad de cuenta. Caduca cada 24 horas.
+              </li>
+              <li>
+                <span className="text-white">
+                  Cookies de autenticación (Supabase):
+                </span>{" "}
+                solo si inicias sesión con Google. Mantienen tu sesión
+                activa entre visitas.
+              </li>
+            </ul>
+            <p className="mt-3 text-neutral-400">
+              No utilizamos cookies publicitarias, de tracking de terceros
+              ni de redes sociales.
+            </p>
+          </Section>
+
+          <Section title="6. Servicios de terceros (sub-procesadores)">
+            <p>
+              Para operar el servicio confiamos en los siguientes
+              proveedores técnicos. Todos ellos están sujetos a sus
+              propias políticas de privacidad y a acuerdos de tratamiento
+              de datos (DPA) cuando aplica.
+            </p>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-neutral-300">
+              <li>
+                <span className="text-white">Supabase</span> (alojado en
+                AWS, regiones EU). Base de datos y autenticación. Recibe:
+                tu identificador de cuenta, nombre, email y progreso de
+                juego. Base legal: ejecución del contrato (Art. 6.1.b GDPR).
+              </li>
+              <li>
+                <span className="text-white">Vercel</span> (alojamiento de
+                la web). Recibe: tu dirección IP y user-agent durante las
+                peticiones HTTP, como cualquier servidor web. Logs
+                operacionales con retención corta. Base legal: interés
+                legítimo en operar el sitio (Art. 6.1.f GDPR).
+              </li>
+              <li>
+                <span className="text-white">Umami Analytics</span>{" "}
+                (alojado en EU). Estadísticas agregadas de uso de la web.
+                No usa cookies. No registra identificadores personales:
+                solo página visitada y país aproximado derivado de la IP
+                (que NO se almacena). Base legal: interés legítimo en
+                medir tráfico anónimo (Art. 6.1.f GDPR).
+              </li>
+              <li>
+                <span className="text-white">Sentry</span> (alojado en EU).
+                Recibe automáticamente los errores que ocurren en tu
+                navegador o en nuestros servidores, junto con el contexto
+                técnico necesario para reproducirlos (URL, mensaje del
+                error, stack trace). Aplicamos un filtrado previo
+                automático que elimina tokens de seguridad, cabeceras de
+                autorización y dirección de email antes de enviar el
+                evento. Base legal: interés legítimo en garantizar la
+                seguridad y la fiabilidad del servicio (Art. 6.1.f GDPR).
+              </li>
+            </ul>
+            <p className="mt-3 text-neutral-400">
+              CarGuessr no transfiere tus datos a terceros con fines
+              comerciales ni publicitarios.
+            </p>
+          </Section>
+
+          <Section title="7. Derecho de supresión (borrado de datos)">
             <p>
               Puedes solicitar la eliminación íntegra de tu cuenta y de
               todos los datos asociados (estadísticas, garaje, historial de
@@ -127,7 +205,7 @@ export default function Privacidad() {
             </p>
           </Section>
 
-          <Section title="6. Contacto">
+          <Section title="8. Contacto">
             <p>
               Para cualquier consulta relacionada con esta política, o para
               ejercer tus derechos de acceso, rectificación o supresión,

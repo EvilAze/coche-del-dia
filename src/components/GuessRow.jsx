@@ -24,6 +24,15 @@ const STATUS_STYLES = {
   },
 };
 
+// Mientras esperamos respuesta del servidor pintamos una celda "pending"
+// con shimmer diagonal: misma silueta que una celda real (mismo padding,
+// mismo borde) pero en gris neutro y sin icono de estado. Da feedback
+// instantáneo de que el intento se ha registrado, en lugar de dejar al
+// usuario mirando un spinner en el botón sin saber qué está pasando.
+const PENDING_STYLE = {
+  cell: "bg-bg-tertiary border-border-strong/70 relative overflow-hidden",
+};
+
 function YearDirection({ direction }) {
   const { t } = useT();
   if (!direction) return null;
@@ -61,12 +70,29 @@ function YearDirection({ direction }) {
   );
 }
 
-function Cell({ label, value, status, pais, direction, isYear, isMarca }) {
+function Cell({ label, value, status, pais, direction, isYear, isMarca, pending, revealDelayMs }) {
   const { t } = useT();
   const isCountryPartial = isMarca && status === "partial";
-  const s = isCountryPartial ? STATUS_STYLES.country : STATUS_STYLES[status];
-  const flag = isCountryPartial ? COUNTRY_FLAGS[pais] || s.symbol : s.symbol;
-  const showYearDirection = isYear && status !== "correct";
+  const s = pending
+    ? PENDING_STYLE
+    : isCountryPartial
+    ? STATUS_STYLES.country
+    : STATUS_STYLES[status];
+  const flag = pending
+    ? null
+    : isCountryPartial
+    ? COUNTRY_FLAGS[pais] || s.symbol
+    : s.symbol;
+  const showYearDirection = !pending && isYear && status !== "correct";
+
+  // Si revealDelayMs viene definido, esta celda se está revelando ahora:
+  // arranca invisible y entra con flip stagger. Si no, animación pop
+  // estándar (carga inicial / filas previas).
+  const isRevealing = typeof revealDelayMs === "number";
+  const animClass = isRevealing ? "animate-flip-reveal" : "animate-pop";
+  const animStyle = isRevealing
+    ? { animationDelay: `${revealDelayMs}ms`, animationFillMode: "both" }
+    : undefined;
 
   return (
     <div
@@ -74,11 +100,28 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca }) {
         flex min-w-0 items-center justify-between gap-2
         rounded-md border px-2 py-1.5 min-h-[36px]
         sm:rounded-lg sm:px-2.5 sm:py-2 sm:min-h-[42px]
-        animate-pop ${s.cell}
+        ${animClass} ${s.cell}
       `}
+      style={{ ...animStyle, transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
+      aria-busy={pending || undefined}
     >
+      {/* Capa de shimmer solo en modo pending: barrido diagonal de luz sobre
+          el fondo gris. inset-0 para cubrir la celda, pointer-events-none
+          para no robar interacciones. */}
+      {pending && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 animate-shimmer"
+          style={{
+            backgroundImage:
+              "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.07) 50%, transparent 65%)",
+            backgroundSize: "200% 100%",
+          }}
+        />
+      )}
+
       {/* Bloque de texto a la izquierda: label arriba, valor justo debajo. */}
-      <div className="min-w-0 overflow-hidden">
+      <div className="relative min-w-0 overflow-hidden">
         <span
           className="
             mb-0.5 block truncate text-[10px] uppercase tracking-[0.08em] text-muted
@@ -90,22 +133,31 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca }) {
 
         <span
           className={`
-            block truncate font-medium leading-tight text-white
+            block truncate font-medium leading-tight
             text-xs sm:text-sm
+            ${pending ? "text-muted/80" : "text-white"}
             ${isYear ? "tabular-nums" : ""}
           `}
         >
-          {value}
+          {value || "—"}
         </span>
       </div>
 
       {/* Indicador a la derecha. items-center del padre lo centra verticalmente. */}
-      {isYear ? (
+      {pending ? (
+        // Tres puntitos pulsando: señal compacta de "esperando" alineada a
+        // la derecha donde luego aparecerá el icono real (✓/≈/🌍/✕).
+        <span className="relative flex shrink-0 items-end gap-0.5" aria-hidden="true">
+          <span className="h-1 w-1 animate-bounce rounded-full bg-muted/70 [animation-delay:0ms]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-muted/70 [animation-delay:150ms]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-muted/70 [animation-delay:300ms]" />
+        </span>
+      ) : isYear ? (
         showYearDirection && <YearDirection direction={direction} />
       ) : (
         <span
           className={`
-            shrink-0 text-sm font-bold leading-none sm:text-base
+            relative shrink-0 text-sm font-bold leading-none sm:text-base
             ${s.icon}
           `}
           title={isCountryPartial && pais ? t("guessRow.countryOkTitle", { pais: getLocalizedCountry(pais) }) : undefined}
@@ -118,34 +170,56 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca }) {
   );
 }
 
-export default function GuessRow({ guess, index }) {
+export default function GuessRow({ guess, index, pending = false, justRevealed = false }) {
   const { t } = useT();
+
+  // Stagger entre celdas al revelar: marca primero, luego modelo, luego
+  // año. 140 ms da una cadencia legible sin alargar la espera percibida.
+  const REVEAL_STAGGER_MS = 140;
+  const cellDelay = (i) => (justRevealed ? i * REVEAL_STAGGER_MS : undefined);
+
+  // Filas previas siguen entrando con slide-up. Al revelar, no animamos
+  // el contenedor (la animación per-celda ya da el efecto) para que las
+  // celdas no entren "movidas" además de "volteadas".
+  const containerAnim = pending || justRevealed ? "" : "animate-slide-up";
+  const containerStyle =
+    pending || justRevealed
+      ? undefined
+      : { animationDelay: `${index * 60}ms`, animationFillMode: "both" };
+
   return (
     <div
-      className="
+      className={`
         grid w-full min-w-0 grid-cols-[0.85fr_minmax(0,1fr)_82px]
-        gap-1 animate-slide-up
+        gap-1 ${containerAnim}
         sm:grid-cols-[0.9fr_minmax(0,1fr)_96px] sm:gap-1.5
-      "
-      style={{
-        animationDelay: `${index * 60}ms`,
-        animationFillMode: "both",
-      }}
+      `}
+      style={{ ...containerStyle, perspective: "600px" }}
     >
       <Cell
         label={t("guess.labelMarca")}
-        value={guess.marca.val}
-        status={guess.marca.status}
-        pais={guess.marca.pais}
+        value={guess.marca?.val}
+        status={guess.marca?.status}
+        pais={guess.marca?.pais}
         isMarca
+        pending={pending}
+        revealDelayMs={cellDelay(0)}
       />
-      <Cell label={t("guess.labelModelo")} value={guess.modelo.val} status={guess.modelo.status} />
+      <Cell
+        label={t("guess.labelModelo")}
+        value={guess.modelo?.val}
+        status={guess.modelo?.status}
+        pending={pending}
+        revealDelayMs={cellDelay(1)}
+      />
       <Cell
         isYear
         label={t("guess.labelAnio")}
-        value={guess.anio.val}
-        status={guess.anio.status}
-        direction={guess.anio.direction}
+        value={guess.anio?.val}
+        status={guess.anio?.status}
+        direction={guess.anio?.direction}
+        pending={pending}
+        revealDelayMs={cellDelay(2)}
       />
     </div>
   );

@@ -9,7 +9,7 @@
 
 import sharp from "sharp";
 import { resolveRealCarId } from "../_lib/repesca-token.js";
-import { supabaseAdmin } from "../_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
 import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { methodGuard } from "../_lib/http.js";
@@ -32,7 +32,8 @@ export default async function handler(req, res) {
   if (methodGuard(req, res, ["GET", "HEAD"])) return;
 
   try {
-    if (!supabaseAdmin) {
+    if (!getSupabaseAdmin()) {
+      console.error(`[repesca/image] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
@@ -47,7 +48,7 @@ export default async function handler(req, res) {
     if (!pseudoCarId) {
       return res.status(400).json({ error: "Missing carId" });
     }
-    const { data: allCarRows, error: allCarsErr } = await supabaseAdmin
+    const { data: allCarRows, error: allCarsErr } = await getSupabaseAdmin()
       .from("cars")
       .select("id");
     if (allCarsErr) {
@@ -66,7 +67,7 @@ export default async function handler(req, res) {
     // Gate: ¿el usuario tiene una repesca activa hoy para ESE carId real?
     // Read con service_role (mismo motivo que en start/validate).
     const today = todayInMadrid();
-    const { data: statsRow, error: statsErr } = await supabaseAdmin
+    const { data: statsRow, error: statsErr } = await getSupabaseAdmin()
       .from("stats")
       .select("last_repesca_at, last_repesca_car_id")
       .eq("user_id", user.id)
@@ -96,7 +97,7 @@ export default async function handler(req, res) {
       guessRow?.status === "won" || guessRow?.status === "lost";
 
     // Cargar URL real del CDN para este coche.
-    const { data: row, error: fetchErr } = await supabaseAdmin
+    const { data: row, error: fetchErr } = await getSupabaseAdmin()
       .from("cars")
       .select("image_url")
       .eq("id", carId)
@@ -167,7 +168,7 @@ export default async function handler(req, res) {
     return res.status(200).send(outBuffer);
   } catch (err) {
     console.error("[repesca/image] UNCAUGHT:", err && err.stack ? err.stack : err);
-    captureServerError(err, { endpoint: "repesca/image" });
+    await captureServerError(err, { endpoint: "repesca/image" });
     return res.status(500).json({
       error: "Internal error",
       detail:

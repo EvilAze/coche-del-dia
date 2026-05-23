@@ -21,15 +21,16 @@ import {
   IMAGE_MODE_CLEAR,
   IMAGE_MODE_BLURRED,
 } from "./_lib/image-token.js";
-import { supabaseAdmin } from "./_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
 import { methodGuard } from "./_lib/http.js";
 
 export default async function handler(req, res) {
   if (methodGuard(req, res, ["GET", "HEAD"])) return;
 
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
-      console.error("[car-image] missing SUPABASE_SERVICE_ROLE_KEY");
+      console.error(`[car-image] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
       return res.status(500).json({ error: "Server misconfigured" });
     }
 

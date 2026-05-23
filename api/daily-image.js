@@ -28,7 +28,7 @@
 import sharp from "sharp";
 import { readAnonSession } from "./_lib/anon-session.js";
 import { verifyRevealToken } from "./_lib/reveal-token.js";
-import { supabaseAdmin, createAuthClient } from "./_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { methodGuard } from "./_lib/http.js";
 
@@ -105,8 +105,9 @@ async function tryReadUserStatus(req, carId, today) {
 export default async function handler(req, res) {
   if (methodGuard(req, res, ["GET", "HEAD"])) return;
 
+  const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
-    console.error("[daily-image] missing SUPABASE_SERVICE_ROLE_KEY");
+    console.error(`[daily-image] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
     return res.status(500).json({ message: "Server misconfigured" });
   }
 

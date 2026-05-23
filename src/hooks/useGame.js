@@ -146,6 +146,16 @@ export function useGame() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guesses, setGuesses] = useState([]);
+  // Fila "pending" que se pinta mientras esperamos respuesta del servidor.
+  // Tiene la misma forma que un guess real, pero todas las celdas se renderizan
+  // con shimmer neutro. Se setea al inicio de submitGuess y se limpia cuando
+  // llega la respuesta (o error). Sin esto, el usuario solo veía un spinner
+  // en el botón sin pista de qué estaba pasando.
+  const [pendingGuess, setPendingGuess] = useState(null);
+  // Índice de la última guess "recién revelada". Sirve para que App marque la
+  // GuessRow correspondiente con justRevealed → reveal secuencial por celda.
+  // Se resetea a -1 al inicializar y cuando entra una nueva pending.
+  const [justRevealedIndex, setJustRevealedIndex] = useState(-1);
   const [status, setStatus] = useState("playing");
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(null);
@@ -277,7 +287,7 @@ export function useGame() {
     }
   }
 
-  async function submitGuess({ guessCarId, anio }) {
+  async function submitGuess({ guessCarId, anio, marca, modelo }) {
     if (status !== "playing" || isSubmitting) return;
     // Los ids del catálogo son UUIDs (string). Solo exigimos que venga algo.
     if (typeof guessCarId !== "string" || !guessCarId) {
@@ -287,6 +297,17 @@ export function useGame() {
     }
 
     setIsSubmitting(true);
+    // Pintamos la fila pending con los valores que el usuario tecleó. Si el
+    // form no nos los pasó, caemos a placeholders neutros para no romper
+    // la UI (las celdas mostrarán "—").
+    setPendingGuess({
+      marca: { val: marca || "" },
+      modelo: { val: modelo || "" },
+      anio: { val: anio ? String(anio) : "" },
+    });
+    // Al iniciar un nuevo intento, dejamos de "destacar" el anterior — su
+    // reveal ya terminó y no queremos que vuelva a animarse.
+    setJustRevealedIndex(-1);
 
     // Construimos el payload UNA sola vez y lo reutilizamos en logs y en
     // el fetch — así si algo falla podemos ver exactamente qué se mandó.
@@ -323,6 +344,7 @@ export function useGame() {
       });
       triggerHaptic([60, 40, 60]);
       toast.push("Error de conexión. Comprueba tu red.", { type: "error" });
+      setPendingGuess(null);
       setIsSubmitting(false);
       return;
     }
@@ -347,6 +369,7 @@ export function useGame() {
       });
       triggerHaptic([60, 40, 60]);
       toast.push("Respuesta inválida del servidor.", { type: "error" });
+      setPendingGuess(null);
       setIsSubmitting(false);
       return;
     }
@@ -365,6 +388,7 @@ export function useGame() {
           : "No se pudo validar el intento.",
         { type: "error" }
       );
+      setPendingGuess(null);
       setIsSubmitting(false);
       return;
     }
@@ -375,11 +399,16 @@ export function useGame() {
       if (!result) {
         console.error("[submitGuess] respuesta sin `result`", data);
         toast.push("Respuesta inesperada del servidor.", { type: "error" });
+        setPendingGuess(null);
         setIsSubmitting(false);
         return;
       }
 
       const newGuesses = [...guesses, result];
+      // Marcamos la nueva guess como "recién revelada" para que App active
+      // el reveal secuencial por celda en esa fila concreta.
+      setJustRevealedIndex(newGuesses.length - 1);
+      setPendingGuess(null);
       let newStatus = "playing";
 
       if (result.win) newStatus = "won";
@@ -452,6 +481,7 @@ export function useGame() {
       });
       triggerHaptic([60, 40, 60]);
       toast.push("Error procesando la respuesta.", { type: "error" });
+      setPendingGuess(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -465,6 +495,8 @@ export function useGame() {
     isLoading,
     isSubmitting,
     guesses,
+    pendingGuess,
+    justRevealedIndex,
     attempts,
     status,
     zoom,

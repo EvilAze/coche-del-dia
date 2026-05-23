@@ -53,7 +53,11 @@
       "Bash(node -e ' *)",
       "Bash(grep -rn \"from\\(\\\\\"profiles\\\\\"\\)\\\\|from\\('profiles'\\)\\\\|\\\\\\\\.profiles\\\\b\" src/ api/)",
       "Bash(xargs grep -l \"Garage\\\\|garage\")",
-      "Bash(awk -F= '{print $1}')"
+      "Bash(awk -F= '{print $1}')",
+      "Bash(node scripts/generate-og-image.mjs)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(vercel --prod --yes)",
+      "Bash(curl -sI https://carguessr.org/og-image.jpg)"
     ]
   }
 }

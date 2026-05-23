@@ -33,6 +33,8 @@ module.exports = {
         "hint-flash": "hintFlash 0.55s ease-out forwards",
         "reveal-win": "revealWin 1s cubic-bezier(0.34,1.56,0.64,1) forwards",
         "toast-in": "toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards",
+        "shimmer": "shimmer 1.4s linear infinite",
+        "flip-reveal": "flipReveal 0.55s cubic-bezier(0.34,1.4,0.64,1) forwards",
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -61,6 +63,19 @@ module.exports = {
         toastIn: {
           from: { opacity: 0, transform: "translateY(20px) scale(0.95)" },
           to:   { opacity: 1, transform: "translateY(0) scale(1)" },
+        },
+        // Barrido diagonal sobre el fondo neutro de la celda pending. Recorre
+        // -150% → 150% para que el brillo entre y salga limpio sin "saltar".
+        shimmer: {
+          "0%":   { backgroundPosition: "-150% 0" },
+          "100%": { backgroundPosition: "150% 0" },
+        },
+        // Flip Y al revelar cada celda tras la respuesta del servidor. El
+        // overshoot (-15deg → 0) le da un toque táctil de "carta volteándose".
+        flipReveal: {
+          "0%":   { opacity: 0, transform: "rotateX(90deg)" },
+          "55%":  { opacity: 1, transform: "rotateX(-15deg)" },
+          "100%": { opacity: 1, transform: "rotateX(0)" },
         },
       },
     },

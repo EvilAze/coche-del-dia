@@ -28,14 +28,38 @@
     <meta name="keywords" content="carguessr, juego coches, adivinar coche, wordle de coches, motor, automovilismo, trivia coches" />
     <meta name="author" content="Carguessr" />
 
+    <!-- Canonical: evita penalización SEO por duplicados de carguessr.org
+         y www.carguessr.org / .com / etc. Apunta siempre al .org sin www. -->
+    <link rel="canonical" href="https://carguessr.org/" />
+
+    <!--
+      Open Graph + Twitter Card.
+      og:image se genera con scripts/generate-og-image.mjs (1200×630). Si
+      cambias el diseño o el texto, regenera con:
+        node scripts/generate-og-image.mjs
+      y commitea el resultado. El CDN cachea por URL — si quieres invalidar
+      un preview ya pegado en redes sociales, sube el bust query (?v=2).
+    -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Carguessr" />
     <meta property="og:url" content="https://carguessr.org/" />
     <meta property="og:title" content="Carguessr | El Wordle de Coches" />
-    <meta property="og:description" content="¿Eres un experto en motor? Intenta adivinar el coche oculto de hoy en 5 intentos." />
+    <meta property="og:description" content="¿Eres un experto en motor? Adivina marca, modelo y año del coche del día en 5 intentos. Nuevo coche cada 24h." />
+    <meta property="og:image" content="https://carguessr.org/og-image.jpg?v=1" />
+    <meta property="og:image:secure_url" content="https://carguessr.org/og-image.jpg?v=1" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Carguessr — El reto diario de coches. Adivina marca, modelo y año en 5 intentos." />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:locale:alternate" content="en_US" />
+
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://carguessr.org/" />
     <meta name="twitter:title" content="Carguessr | El reto diario de coches" />
-    <meta name="twitter:description" content="Adivina el coche de hoy. ¿Podrás hacerlo en el primer intento?" />
+    <meta name="twitter:description" content="Adivina marca, modelo y año del coche del día en 5 intentos. ¿Te atreves?" />
+    <meta name="twitter:image" content="https://carguessr.org/og-image.jpg?v=1" />
+    <meta name="twitter:image:alt" content="Carguessr — El reto diario de coches" />
 
     <!--
       Umami Analytics — privacy-first, sin cookies, ~1 KB.

@@ -11,7 +11,7 @@
 //     directamente sobre `stats`.
 
 import { resolveRealCarId } from "../_lib/repesca-token.js";
-import { supabaseAdmin } from "../_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
 import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
@@ -39,7 +39,7 @@ function repescaPointsFor(attemptNumber, won) {
 }
 
 async function fetchCarById(id) {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("cars")
     .select("id, make, model, year, pais, description, description_en")
     .eq("id", id)
@@ -52,7 +52,8 @@ export default async function handler(req, res) {
   if (methodGuard(req, res, "POST")) return;
 
   try {
-    if (!supabaseAdmin) {
+    if (!getSupabaseAdmin()) {
+      console.error(`[repesca/validate] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
@@ -85,7 +86,7 @@ export default async function handler(req, res) {
     }
 
     // Resolver pseudo → cars.id real del objetivo.
-    const { data: allCarRows, error: allCarsErr } = await supabaseAdmin
+    const { data: allCarRows, error: allCarsErr } = await getSupabaseAdmin()
       .from("cars")
       .select("id");
     if (allCarsErr) {
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
     //    Lectura con service_role: stats solo expone SELECT públicas en
     //    este proyecto y todas las mutaciones pasan por endpoints server-
     //    side. Mantenemos la disciplina aquí también.
-    const { data: statsRow, error: statsErr } = await supabaseAdmin
+    const { data: statsRow, error: statsErr } = await getSupabaseAdmin()
       .from("stats")
       .select(
         "last_repesca_at, last_repesca_car_id, total_points, total_wins"
@@ -231,13 +232,13 @@ export default async function handler(req, res) {
     // 5) Persistencia autoritativa en user_guesses. Misma forma que daily
     //    para que el garaje detecte el win sin cambios.
     //
-    //    IMPORTANTE: usamos supabaseAdmin (service_role), NO authClient.
+    //    IMPORTANTE: usamos getSupabaseAdmin() (service_role), NO authClient.
     //    Las policies de user_guesses se han endurecido para revocar
     //    INSERT/UPDATE/DELETE al rol `authenticated` — el cliente ya no
     //    puede escribir directamente desde el navegador. El servidor es
     //    la única autoridad sobre el estado de la partida.
     const newGuesses = [...existingGuesses, result];
-    const { error: saveErr } = await supabaseAdmin.from("user_guesses").upsert(
+    const { error: saveErr } = await getSupabaseAdmin().from("user_guesses").upsert(
       {
         user_id: user.id,
         car_id: carId,
@@ -274,7 +275,7 @@ export default async function handler(req, res) {
       // mutaciones sobre stats viven server-side. Esto bloquea desde la
       // raíz que un usuario manipule sus propios puntos/wins desde el
       // navegador llamando a Supabase directamente con su bearer.
-      const { error: pointsErr } = await supabaseAdmin
+      const { error: pointsErr } = await getSupabaseAdmin()
         .from("stats")
         .upsert(
           {
@@ -323,7 +324,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("[repesca/validate] UNCAUGHT:", err && err.stack ? err.stack : err);
-    captureServerError(err, { endpoint: "repesca/validate" });
+    await captureServerError(err, { endpoint: "repesca/validate" });
     return res.status(500).json({
       error: "Internal error",
       detail:

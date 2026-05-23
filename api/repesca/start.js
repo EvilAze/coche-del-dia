@@ -25,7 +25,7 @@
 
 import { randomInt } from "node:crypto";
 import { pseudoIdFor } from "../_lib/repesca-token.js";
-import { supabaseAdmin } from "../_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
 import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
@@ -96,14 +96,14 @@ async function readRepescaState(authClient, userId, carId, today) {
 // ganó). Se computa entera en el server — el cliente no participa.
 //
 // Notas RLS:
-//   - daily_cars: lectura con supabaseAdmin (service_role). La tabla no
+//   - daily_cars: lectura con getSupabaseAdmin() (service_role). La tabla no
 //     debería tener policies de SELECT para authenticated por diseño;
 //     todas las lecturas pasan por aquí.
 //   - user_guesses: lectura con authClient. RLS confirma que solo
 //     leemos filas del propio usuario (defensa en profundidad además
 //     del .eq("user_id", userId)).
 async function computeEligiblePool(authClient, userId, today) {
-  const { data: pastDaily, error: pastErr } = await supabaseAdmin
+  const { data: pastDaily, error: pastErr } = await getSupabaseAdmin()
     .from("daily_cars")
     .select("car_id")
     .lt("date", today);
@@ -138,7 +138,8 @@ export default async function handler(req, res) {
   if (methodGuard(req, res, "POST")) return;
 
   try {
-    if (!supabaseAdmin) {
+    if (!getSupabaseAdmin()) {
+      console.error(`[repesca/start] missing env vars: ${getMissingAdminEnvs().join(", ")}`);
       return res.status(500).json({ error: "Server misconfigured" });
     }
 
@@ -160,7 +161,7 @@ export default async function handler(req, res) {
     // === FASE 1: ¿Hay una repesca activa hoy? ===
     // El servidor es la fuente única de verdad. Esta lectura no se puede
     // saltar ni manipular desde el cliente.
-    const { data: statsRow, error: statsErr } = await supabaseAdmin
+    const { data: statsRow, error: statsErr } = await getSupabaseAdmin()
       .from("stats")
       .select("last_repesca_at, last_repesca_car_id")
       .eq("user_id", user.id)
@@ -244,7 +245,7 @@ export default async function handler(req, res) {
     // start escribimos last_repesca_at + last_repesca_car_id atómicamente
     // via upsert.
     if (isNewStart) {
-      const { error: upsertErr } = await supabaseAdmin
+      const { error: upsertErr } = await getSupabaseAdmin()
         .from("stats")
         .upsert(
           {
@@ -288,7 +289,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("[repesca/start] UNCAUGHT:", err && err.stack ? err.stack : err);
-    captureServerError(err, { endpoint: "repesca/start" });
+    await captureServerError(err, { endpoint: "repesca/start" });
     return res.status(500).json({
       error: "Internal error",
       detail:

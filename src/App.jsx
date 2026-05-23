@@ -265,6 +265,8 @@ export default function App() {
     isLoading,
     isSubmitting,
     guesses,
+    pendingGuess,
+    justRevealedIndex,
     attempts,
     status,
     zoom,
@@ -411,20 +413,34 @@ export default function App() {
             </div>
           )}
 
-          {guesses.length > 0 && (
+          {(guesses.length > 0 || pendingGuess) && (
             <div className="mb-4 mt-3 flex w-full min-w-0 flex-col gap-2">
               {guesses.map((g, i) => (
-                <GuessRow key={i} guess={g} index={i} />
+                <GuessRow
+                  key={i}
+                  guess={g}
+                  index={i}
+                  justRevealed={i === justRevealedIndex}
+                />
               ))}
+              {pendingGuess && (
+                <GuessRow
+                  key="pending"
+                  guess={pendingGuess}
+                  index={guesses.length}
+                  pending
+                />
+              )}
             </div>
           )}
 
-          {guesses.length > 0 && <div className="my-4 h-px bg-border" />}
+          {(guesses.length > 0 || pendingGuess) && <div className="my-4 h-px bg-border" />}
 
           {status === "playing" ? (
             <GuessForm
               onSubmit={submitGuess}
               isSubmitting={isSubmitting}
+              guesses={guesses}
             />
           ) : (
             <ResultPanel

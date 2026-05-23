@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
+      "runtimeExecutable": "vercel",
+      "runtimeArgs": ["dev", "--listen", "3000"],
       "port": 3000
     }
   ]

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCatalog } from "../data/catalog";
 import { useT } from "../i18n";
 import Autocomplete from "./Autocomplete";
+import { useToast } from "./Toast";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
@@ -92,11 +93,60 @@ function Spinner() {
   );
 }
 
-export default function GuessForm({ onSubmit, isSubmitting = false }) {
+export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [] }) {
   const { t } = useT();
+  const toast = useToast();
   const { data: catalog } = useCatalog();
   const CARS = catalog?.cars ?? [];
   const MARCAS = catalog?.marcas ?? [];
+
+  // Conjuntos de valores ya intentados sin éxito. Sirven para:
+  //   - Quitar la marca del autocompletado (wrong y partial — partial es
+  //     "país acertado" y reintentar la misma marca no aporta info nueva).
+  //   - Quitar el modelo del autocompletado (mismo marca + modelo wrong).
+  //   - Rechazar el año exacto en el submit (con feedback visual + toast).
+  // Simplificamos la UX: si ya lo probaste y falló, no vuelves a perder un
+  // intento con lo mismo.
+  const triedWrongMarcas = useMemo(() => {
+    const set = new Set();
+    for (const g of guesses) {
+      const st = g?.marca?.status;
+      if ((st === "wrong" || st === "partial") && g.marca?.val) {
+        set.add(g.marca.val.toLowerCase());
+      }
+    }
+    return set;
+  }, [guesses]);
+
+  const triedWrongModelKeys = useMemo(() => {
+    const set = new Set();
+    for (const g of guesses) {
+      if (g?.modelo?.status === "wrong" && g.modelo.val && g.marca?.val) {
+        set.add(`${g.marca.val.toLowerCase()}|${g.modelo.val.toLowerCase()}`);
+      }
+    }
+    return set;
+  }, [guesses]);
+
+  const triedWrongYears = useMemo(() => {
+    const set = new Set();
+    for (const g of guesses) {
+      if (g?.anio?.status === "wrong" && g.anio.val != null) {
+        set.add(String(g.anio.val));
+      }
+    }
+    return set;
+  }, [guesses]);
+
+  // Lista de marcas disponibles en el autocompletado: catálogo sin las que
+  // ya se intentaron sin éxito. Si después de filtrar no queda ninguna,
+  // dejamos al menos la lista completa visible (caso patológico — no debería
+  // pasar en la práctica con MAX_ATTEMPTS=5 y >100 marcas).
+  const availableMarcas = useMemo(() => {
+    if (triedWrongMarcas.size === 0) return MARCAS;
+    const filtered = MARCAS.filter((m) => !triedWrongMarcas.has(m.toLowerCase()));
+    return filtered.length > 0 ? filtered : MARCAS;
+  }, [MARCAS, triedWrongMarcas]);
 
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
@@ -116,12 +166,18 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
   // hasta que selecciona una Marca válida (ver `disabled` más abajo).
   const modelOptions = useMemo(() => {
     if (!marcaValidaSeleccionada) return [];
+    const marcaKey = marca.toLowerCase();
     return CARS
       .filter((c) => c.marca === marca)
       .map((c) => c.modelo)
       .filter((v, i, a) => a.indexOf(v) === i)
+      // Excluimos modelos ya intentados (status=wrong) con la marca actual:
+      // si ya probaste "Ferrari Stradale" y falló, "Stradale" ya no aparece
+      // mientras la marca sea Ferrari. Simplifica el siguiente intento y
+      // evita que el usuario pierda un turno repitiendo lo mismo.
+      .filter((modeloNombre) => !triedWrongModelKeys.has(`${marcaKey}|${modeloNombre.toLowerCase()}`))
       .sort();
-  }, [CARS, marca, marcaValidaSeleccionada]);
+  }, [CARS, marca, marcaValidaSeleccionada, triedWrongModelKeys]);
 
   useEffect(() => {
     if (!modelo || !marcaValidaSeleccionada) return;
@@ -164,14 +220,44 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
       return;
     }
 
+    // Bloqueos por intento repetido. El autocompletado ya filtra las opciones,
+    // pero si el usuario teclea el nombre completo a mano (o el año coincide
+    // con uno ya fallado) lo cortamos aquí con shake.
+    if (triedWrongMarcas.has(submittedMarca.toLowerCase())) {
+      triggerHaptic(30);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      toast.push(t("guess.marcaAlreadyTried"), { type: "error" });
+      return;
+    }
+    const modelKey = `${submittedMarca.toLowerCase()}|${submittedModelo.toLowerCase()}`;
+    if (triedWrongModelKeys.has(modelKey)) {
+      triggerHaptic(30);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      toast.push(t("guess.modelAlreadyTried"), { type: "error" });
+      return;
+    }
+    if (triedWrongYears.has(submittedAnio)) {
+      triggerHaptic(30);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      toast.push(t("guess.yearAlreadyTried"), { type: "error" });
+      return;
+    }
+
     triggerHaptic(50);
 
     // Enviamos el id del coche elegido en el autocompletado en vez del par
     // marca/modelo en texto: así el servidor valida directamente contra una
     // fila concreta del catálogo y no tiene que confiar en strings cliente.
+    // También pasamos marca/modelo string para que useGame pueda pintarlos
+    // en la fila pending mientras espera respuesta del servidor.
     const result = await onSubmit({
       guessCarId: guessCar.id,
       anio: submittedAnio,
+      marca: submittedMarca,
+      modelo: submittedModelo,
     });
 
     if (!result) return;
@@ -203,7 +289,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false }) {
             value={marca}
             onChange={setMarca}
             onSelect={setMarca}
-            options={MARCAS}
+            options={availableMarcas}
             placeholder=""
             disabled={formDisabled}
           />

@@ -4,13 +4,15 @@
 //
 // Se cachea en el CDN de Vercel 5 min para no martillear la BD.
 
-import { supabasePublic } from "./_lib/supabase.js";
+import { getSupabasePublic, getMissingPublicEnvs } from "./_lib/supabase.js";
 import { methodGuard } from "./_lib/http.js";
 
 export default async function handler(req, res) {
   if (methodGuard(req, res, "GET")) return;
 
+  const supabasePublic = getSupabasePublic();
   if (!supabasePublic) {
+    console.error(`[list-cars] missing env vars: ${getMissingPublicEnvs().join(", ")}`);
     return res.status(500).json({ message: "Server misconfigured" });
   }
 

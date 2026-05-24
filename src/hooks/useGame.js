@@ -36,8 +36,11 @@ function getTodayKey() {
 }
 
 function getShareDate() {
-  const [year, month, day] = getTodayKey().split("-");
-  return `${day}/${month}/${year.slice(-2)}`;
+  // Formato corto DD/MM sin año — los resultados solo tienen sentido
+  // contextual el mismo día (es un puzzle diario), así que el año es
+  // ruido. Ahorra 3 caracteres en cada mensaje compartido.
+  const [, month, day] = getTodayKey().split("-");
+  return `${day}/${month}`;
 }
 
 function triggerHaptic(pattern) {
@@ -46,17 +49,28 @@ function triggerHaptic(pattern) {
   }
 }
 
-function buildShareText(guesses) {
-  // Formato compacto: marca + dominio + emoji + fecha en una sola cabecera,
-  // sin URL repetida al final. Pros vs el formato Wordle clásico:
-  //   - Ahorra una línea (la URL final).
-  //   - La mayoría de clientes (Telegram/WhatsApp) NO renderizan tarjeta
-  //     de preview cuando la URL está mezclada con texto en la misma línea,
-  //     así que el mensaje no se infla con el "card" de OpenGraph.
-  //   - "cochedeldia.com" sigue siendo clicable: los autodetectores de URL
-  //     reconocen el dominio aunque no lleve https://.
-  // Estructura: "El Coche del Día" identifica el juego para quien lo recibe
-  // por primera vez; el "·" lo separa visualmente del dominio.
+function buildShareText(guesses, streak = 0) {
+  // Formato Wordle-style con tres bloques de información, cada uno con rol
+  // distinto — sin redundancia entre ellos:
+  //
+  //   1. CABECERA  → identificador + fecha + score [+ racha]
+  //        "Coche del Día · 24/05 · 3/5 · 🔥7"
+  //      • Nombre sin artículo: más compacto sin perder identidad.
+  //      • Fecha sin año: nadie comparte resultados de meses atrás.
+  //      • Score: dato crítico que el lector busca primero. "X/5" para
+  //        derrotas (convención Wordle), "N/5" para victorias.
+  //      • Racha (solo si > 0): peso emocional → "no quiero romperla" =
+  //        share-bait. El 🔥 es universal para streak.
+  //
+  //   2. CUADRÍCULA → resultados visuales
+  //        ✅❌❌ / ✅✅❌ / ✅✅✅
+  //
+  //   3. DOMINIO   → en línea propia, sin texto alrededor
+  //        "cochedeldia.com"
+  //      Esto SÍ activa el OG card preview en WhatsApp/Telegram —
+  //      decisión deliberada: cada share genera un preview con el
+  //      wordmark dorado + GT-R en el chat del receptor. Marketing
+  //      gratis vs ahorrar 50 px de altura en el mensaje.
   const lines = guesses.map((g) => {
     const m = g.marca.status === "correct" ? "✅" : "❌";
     const mo = g.modelo.status === "correct" ? "✅" : "❌";
@@ -65,7 +79,18 @@ function buildShareText(guesses) {
     return m + mo + a;
   });
 
-  return `El Coche del Día · cochedeldia.com 🚗 ${getShareDate()}\n${lines.join("\n")}`;
+  // Score: la última fila ✅✅✅ indica victoria. Cualquier otra cosa en
+  // la última fila tras agotar intentos es derrota → "X/5".
+  const lastLine = lines[lines.length - 1];
+  const won = lastLine === "✅✅✅";
+  const score = won ? `${guesses.length}/5` : "X/5";
+
+  // Racha: solo se incluye si hay racha real (>0). Los anónimos pasan
+  // streak=0 por defecto y se omite limpiamente. Un "🔥0" sería
+  // contraproducente.
+  const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
+
+  return `Coche del Día · ${getShareDate()} · ${score}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la
@@ -507,6 +532,6 @@ export function useGame() {
     score,
     maxAttempts: MAX_ATTEMPTS,
     submitGuess,
-    buildShareText: () => buildShareText(guesses),
+    buildShareText: (streak = 0) => buildShareText(guesses, streak),
   };
 }

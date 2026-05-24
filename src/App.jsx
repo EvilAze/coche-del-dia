@@ -451,7 +451,7 @@ export default function App() {
               car={car}
               attempts={attempts}
               maxAttempts={maxAttempts}
-              shareText={buildShareText()}
+              shareText={buildShareText(streak)}
               score={score}
               user={user}
               onOpenLogin={openLogin}

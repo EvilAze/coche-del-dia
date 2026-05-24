@@ -1,6 +1,6 @@
 {
-  "name": "Carguessr",
-  "short_name": "Carguessr",
+  "name": "El Coche del Día",
+  "short_name": "Coche del Día",
   "description": "El reto diario de adivinar coches. Marca, modelo y año en 5 intentos.",
   "start_url": "/",
   "scope": "/",

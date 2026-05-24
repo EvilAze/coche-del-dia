@@ -24,7 +24,7 @@ const DOOR_SLATS = 5;          // 5 tablas, cada una con 3 paneles
 const PANELS_PER_SLAT = 3;
 
 export default function GarageDoorSplash({
-  title = "CARGUESSR",
+  title = "EL COCHE DEL DÍA",
   subtitle,
 }) {
   // La duración mínima la enforce el padre (App.jsx) — este componente
@@ -183,9 +183,12 @@ export default function GarageDoorSplash({
           />
         </div>
 
-        {/* Título y subtítulo */}
+        {/* Título y subtítulo.
+            Tracking y tamaño bajados respecto al "CARGUESSR" histórico
+            para acomodar el wordmark más largo "EL COCHE DEL DÍA" sin
+            que overflow en mobile (~360px de ancho útil). */}
         <motion.p
-          className="mt-7 font-display text-2xl tracking-[0.32em] text-white"
+          className="mt-7 font-display text-[1.35rem] tracking-[0.22em] text-white text-center sm:text-[1.55rem] sm:tracking-[0.26em]"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1, duration: 0.4, ease: "easeOut" }}

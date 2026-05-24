@@ -186,7 +186,9 @@ export default function Header({
             min-[360px]:text-[1.95rem] sm:text-[2.2rem]
           "
         >
-          CARGUESSR
+          {/* Marca eliminada del header tras la migración a "El Coche
+              del Día". Este componente Header.jsx queda como variante
+              histórica — el header en uso es HeaderSandwich.jsx. */}
         </div>
 
         <div className="z-10 flex min-w-0 items-center justify-end gap-0.5">

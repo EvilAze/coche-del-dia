@@ -12,14 +12,16 @@
 import { useEffect } from "react";
 
 // Dirección de contacto para solicitudes (borrado, dudas, etc.). Si
-// cambias el correo del admin, sustitúyelo aquí.
-const ADMIN_CONTACT_EMAIL = "carguessrorg@gmail.com";
+// cambias el correo del admin, sustitúyelo aquí. La dirección se sirve
+// vía ImprovMX (forwarder gratuito) hacia el inbox real de Gmail —
+// para el usuario final solo existe el correo con dominio propio.
+const ADMIN_CONTACT_EMAIL = "soporte@cochedeldia.com";
 
 // Fecha de última actualización del documento, en formato humano.
 // IMPORTANTE: actualizar esta fecha CADA VEZ que cambies el contenido
 // del documento. GDPR Art. 13 exige que el usuario sepa cuándo ha sido
 // la última revisión de los términos que está aceptando implícitamente.
-const LAST_UPDATED = "23 de mayo de 2026";
+const LAST_UPDATED = "24 de mayo de 2026";
 
 export default function Privacidad() {
   // Título de pestaña y meta-tag descriptivo. SÍ queremos que sea
@@ -27,7 +29,7 @@ export default function Privacidad() {
   // confianza), así que NO añadimos noindex.
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = "Política de Privacidad · CarGuessr";
+    document.title = "Política de Privacidad · El Coche del Día";
     return () => {
       document.title = prevTitle;
     };
@@ -44,7 +46,7 @@ export default function Privacidad() {
             Política de Privacidad
           </h1>
           <p className="mt-2 text-sm text-neutral-400">
-            Aplicación: <span className="text-neutral-200">CarGuessr</span> ·
+            Aplicación: <span className="text-neutral-200">El Coche del Día</span> ·
             Última actualización: {LAST_UPDATED}
           </p>
         </header>
@@ -52,7 +54,7 @@ export default function Privacidad() {
         <main className="mt-8 space-y-8 text-sm leading-relaxed sm:text-[15px]">
           <Section title="1. Datos que recopilamos">
             <p>
-              CarGuessr únicamente recopila los siguientes datos personales,
+              El Coche del Día únicamente recopila los siguientes datos personales,
               proporcionados por tu cuenta de Google en el momento del inicio
               de sesión:
             </p>
@@ -69,7 +71,7 @@ export default function Privacidad() {
           <Section title="2. Finalidad del tratamiento">
             <p>
               La única finalidad de estos datos es la creación de una cuenta
-              de usuario en CarGuessr que permita:
+              de usuario en El Coche del Día que permita:
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-neutral-300">
               <li>
@@ -97,7 +99,7 @@ export default function Privacidad() {
               en reposo y en tránsito.
             </p>
             <p className="mt-3 text-neutral-400">
-              CarGuessr aplica además políticas de control de acceso a nivel
+              El Coche del Día aplica además políticas de control de acceso a nivel
               de fila (Row Level Security) para garantizar que cada usuario
               únicamente pueda consultar y modificar sus propios datos.
             </p>
@@ -105,20 +107,20 @@ export default function Privacidad() {
 
           <Section title="4. Compartición con terceros">
             <p>
-              CarGuessr <span className="text-white">no comparte</span>,{" "}
+              El Coche del Día <span className="text-white">no comparte</span>,{" "}
               <span className="text-white">no vende</span> ni cede tu nombre
               o tu correo electrónico a terceros bajo ninguna circunstancia.
             </p>
             <p className="mt-3 text-neutral-400">
               Tampoco utilizamos tu correo electrónico para enviar
               comunicaciones promocionales, publicitarias ni de ningún otro
-              tipo. CarGuessr no envía correos electrónicos a sus usuarios.
+              tipo. El Coche del Día no envía correos electrónicos a sus usuarios.
             </p>
           </Section>
 
           <Section title="5. Cookies y servicios técnicos">
             <p>
-              CarGuessr utiliza únicamente cookies{" "}
+              El Coche del Día utiliza únicamente cookies{" "}
               <span className="text-white">estrictamente necesarias</span>{" "}
               para el funcionamiento del juego. Conforme al artículo 22.2
               de la LSSI y la Directiva ePrivacy, estas cookies no
@@ -186,7 +188,7 @@ export default function Privacidad() {
               </li>
             </ul>
             <p className="mt-3 text-neutral-400">
-              CarGuessr no transfiere tus datos a terceros con fines
+              El Coche del Día no transfiere tus datos a terceros con fines
               comerciales ni publicitarios.
             </p>
           </Section>
@@ -224,7 +226,7 @@ export default function Privacidad() {
 
         <footer className="mt-12 flex flex-col items-start gap-4 border-t border-neutral-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-neutral-500">
-            © {new Date().getFullYear()} CarGuessr · Todos los derechos
+            © {new Date().getFullYear()} El Coche del Día · Todos los derechos
             reservados.
           </p>
 

@@ -86,7 +86,7 @@ export default function Repesca() {
     meta.content = "noindex, nofollow";
     document.head.appendChild(meta);
     const prevTitle = document.title;
-    document.title = "Repesca · Carguessr";
+    document.title = "Repesca · El Coche del Día";
     return () => {
       document.head.removeChild(meta);
       document.title = prevTitle;

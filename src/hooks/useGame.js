@@ -53,16 +53,18 @@ function buildShareText(guesses, streak = 0) {
   // Formato Wordle-style con tres bloques de información, cada uno con rol
   // distinto — sin redundancia entre ellos:
   //
-  //   1. CABECERA  → identificador + fecha + score [+ racha]
-  //        "Coche del Día · 24/05 · 3/5 · 🔥7"
+  //   1. CABECERA  → identificador + fecha [+ racha]
+  //        "Coche del Día · 24/05 · 🔥7"
   //      • Nombre sin artículo: más compacto sin perder identidad.
   //      • Fecha sin año: nadie comparte resultados de meses atrás.
-  //      • Score: dato crítico que el lector busca primero. "X/5" para
-  //        derrotas (convención Wordle), "N/5" para victorias.
   //      • Racha (solo si > 0): peso emocional → "no quiero romperla" =
   //        share-bait. El 🔥 es universal para streak.
+  //      • NO incluimos "N/5" tipo Wordle: con máx 5 filas de 3 celdas,
+  //        la cuadrícula ES trivialmente parseable a ojo (contar filas =
+  //        score, última fila ✅✅✅ = victoria). Repetir esa info en
+  //        número es ruido. Wordle lo lleva por su grid de 6x5 más densa.
   //
-  //   2. CUADRÍCULA → resultados visuales
+  //   2. CUADRÍCULA → resultados visuales (contiene score + win/loss)
   //        ✅❌❌ / ✅✅❌ / ✅✅✅
   //
   //   3. DOMINIO   → en línea propia, sin texto alrededor
@@ -79,18 +81,12 @@ function buildShareText(guesses, streak = 0) {
     return m + mo + a;
   });
 
-  // Score: la última fila ✅✅✅ indica victoria. Cualquier otra cosa en
-  // la última fila tras agotar intentos es derrota → "X/5".
-  const lastLine = lines[lines.length - 1];
-  const won = lastLine === "✅✅✅";
-  const score = won ? `${guesses.length}/5` : "X/5";
-
   // Racha: solo se incluye si hay racha real (>0). Los anónimos pasan
   // streak=0 por defecto y se omite limpiamente. Un "🔥0" sería
   // contraproducente.
   const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
 
-  return `Coche del Día · ${getShareDate()} · ${score}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
+  return `Coche del Día · ${getShareDate()}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la

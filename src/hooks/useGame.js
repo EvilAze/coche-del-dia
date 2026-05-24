@@ -87,15 +87,15 @@ function buildShareText(guesses, streak = 0) {
   //      gratis vs ahorrar 50 px de altura en el mensaje.
   //
   //   4. AVISO REBRAND (temporal, hasta REBRAND_NOTICE_UNTIL)
-  //        "cochedeldia.com (antes carguessr．org)"
+  //        "cochedeldia.com (antes Carguessr)"
   //      En la misma línea del dominio nuevo, separado por paréntesis.
-  //      El "." dentro de "carguessr.org" NO es un punto ASCII normal:
-  //      es U+FF0E (FULLWIDTH FULL STOP, "．"). Visualmente casi idéntico
-  //      pero los detectores de URL de WhatsApp/Telegram buscan punto
-  //      ASCII estricto → el dominio viejo NO se convierte en link
-  //      clicable y todo el tráfico se desvía al dominio nuevo.
-  //      Si en algún momento ves "carguessr.org" con punto normal en
-  //      este código, NO es typo: alguien lo "corrigió" sin entender.
+  //      Usamos "Carguessr" con C mayúscula y SIN ".org" deliberadamente:
+  //        • Sin TLD → WhatsApp/Telegram no lo detectan como URL → no
+  //          se convierte en link clicable y todo el tráfico se desvía
+  //          al dominio nuevo. Cero trucos de unicode necesarios.
+  //        • Mayúscula → lee como nombre de marca, no como URL truncada.
+  //        • Los usuarios del Telegram histórico conocen el sitio por
+  //          su nombre "Carguessr", no por su TLD. La info no se pierde.
   const lines = guesses.map((g) => {
     const m = g.marca.status === "correct" ? "✅" : "❌";
     const mo = g.modelo.status === "correct" ? "✅" : "❌";
@@ -110,11 +110,11 @@ function buildShareText(guesses, streak = 0) {
   const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
 
   // Aviso rebrand: paréntesis añadido al final de la línea del dominio
-  // si aún estamos en la ventana. El "." de "carguessr.org" es U+FF0E
-  // (fullwidth) — ver comentario del bloque 4 arriba. Tras
-  // REBRAND_NOTICE_UNTIL se omite limpiamente sin tocar más código.
+  // si aún estamos en la ventana. "Carguessr" sin TLD → no se detecta
+  // como URL en WhatsApp/Telegram. Tras REBRAND_NOTICE_UNTIL se omite
+  // limpiamente sin tocar más código.
   const rebrandNotice = Date.now() < REBRAND_NOTICE_UNTIL.getTime()
-    ? " (antes carguessr．org)"
+    ? " (antes Carguessr)"
     : "";
 
   return `Coche del Día · ${getShareDate()}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com${rebrandNotice}`;

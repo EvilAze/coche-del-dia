@@ -1,0 +1,293 @@
+/* ============================================================
+   HeaderQuecochees — Glassmorphism dark + wordmark premium
+   ------------------------------------------------------------
+   Diseño OEM+: cristal tintado oscuro, gold accent #e8c87a,
+   transición de scroll que intensifica blur + densidad. La
+   marca se trata como inscripción metálica (gradiente vertical
+   sutil con background-clip:text), no como texto pintado.
+   ============================================================ */
+
+.header {
+  /* Posicionamiento: sticky en top con z-index alto pero por
+     debajo de modales (que viven en 9000+) */
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+
+  /* Glassmorphism base: cristal oscuro tintado con leve calidez.
+     El alpha bajo (0.45) deja que el fondo sangre a través — al
+     hacer scroll sube a 0.82. */
+  background: rgba(13, 12, 10, 0.45);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+
+  /* Borde inferior invisible al inicio. En .scrolled se revela
+     con un gradiente dorado lineal — la firma del header. */
+  border-bottom: 1px solid transparent;
+
+  transition:
+    background-color 220ms ease,
+    backdrop-filter 220ms ease,
+    border-color 220ms ease;
+}
+
+/* Línea decorativa dorada en el borde inferior. Se monta como
+   ::after porque queremos un gradiente, no un color sólido —
+   el border no soporta gradientes nativamente. */
+.header::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(232, 200, 122, 0) 15%,
+    rgba(232, 200, 122, 0.35) 50%,
+    rgba(232, 200, 122, 0) 85%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 240ms ease;
+  pointer-events: none;
+}
+
+.header.scrolled {
+  background: rgba(13, 12, 10, 0.82);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+}
+
+.header.scrolled::after {
+  opacity: 1;
+}
+
+/* ---- Layout interno ---- */
+
+.inner {
+  position: relative;
+  /* Sin centro: flex con space-between mantiene el equilibrio
+     visual entre los dos clusters laterales sin necesidad de
+     anchor central. La composición se siente "respirada" —
+     el espacio vacío del medio ES la decisión de diseño. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  width: 100%;
+  max-width: 28rem; /* coincide con max-w-md del resto de la app */
+  margin: 0 auto;
+  padding: 10px 14px;
+  min-height: 56px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ---- Brand wordmark ---- */
+
+/* La marca vive en la columna central del grid (auto). Esto
+   evita colisiones con los clusters laterales por construcción
+   — si crecen, el grid empuja la marca, no la solapa. */
+.brand {
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-self: center;
+  line-height: 1;
+  min-width: 0; /* permite que el wordmark se trunque si hace falta */
+}
+
+.brandText {
+  /* Sentence-case en DM Sans heavy. La marca ES una pregunta:
+     se trata como pregunta tipográficamente, no como logo de
+     mayúsculas. Más editorial, más conversacional, más cercano
+     al tono "puzzle diario que te interroga". */
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.92rem;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  line-height: 1;
+
+  /* Gradiente vertical: blanco hueso arriba → champagne abajo.
+     Background-clip:text lo convierte en relleno tipográfico.
+     El efecto es sutil — no se "lee" como gradiente, se siente
+     como reflejo de luz sobre superficie metálica. */
+  background: linear-gradient(
+    180deg,
+    #f4f1ea 0%,
+    #f4f1ea 55%,
+    #d9c8a8 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  /* Sombra interior sutil para dar profundidad sobre cristal */
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4));
+}
+
+/* Los signos de interrogación ¿ ? son los únicos elementos
+   con color saturado. Funcionan como marcas tipográficas
+   distintivas que enmarcan la pregunta — un guiño puramente
+   español (el ¿ inicial es exclusivo del idioma) que aporta
+   identidad cultural a la marca. */
+.punct {
+  color: #e8c87a;
+  -webkit-text-fill-color: #e8c87a;
+  background: none;
+  font-weight: 700;
+  /* Ligeramente más grande y peso visual reforzado */
+  font-size: 1.08em;
+  margin: 0 0.04em;
+  display: inline-block;
+  vertical-align: -0.02em;
+}
+
+@media (min-width: 380px) {
+  .brandText { font-size: 1rem; }
+}
+@media (min-width: 480px) {
+  .brandText { font-size: 1.08rem; }
+}
+@media (min-width: 640px) {
+  .brandText { font-size: 1.18rem; }
+}
+
+/* ---- Botones de icono ---- */
+
+.iconBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #c8c8d0;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f0f0f4;
+}
+
+.iconBtn:active {
+  transform: scale(0.94);
+}
+
+.iconBtn:focus-visible {
+  outline: 1px solid #e8c87a;
+  outline-offset: 2px;
+}
+
+/* Botón de idioma: micro-chip de texto en lugar de icono.
+   Variant más estrecho y monoespacial-feel. */
+.langBtn {
+  height: 30px;
+  min-width: 36px;
+  padding: 0 8px;
+  border: 1px solid rgba(232, 200, 122, 0.25);
+  border-radius: 8px;
+  background: transparent;
+  color: #c8c8d0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+  margin-left: 4px;
+}
+
+.langBtn:hover {
+  color: #e8c87a;
+  border-color: rgba(232, 200, 122, 0.55);
+  background: rgba(232, 200, 122, 0.06);
+}
+
+/* ---- Streak chip ---- */
+
+/* Chip visible cuando el usuario tiene racha >0. Es información
+   con peso emocional — merece su propio slot, no enterrada en
+   un menú. */
+.streakChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 9px 0 7px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(232, 122, 50, 0.16) 0%,
+    rgba(232, 122, 50, 0.08) 100%
+  );
+  border: 1px solid rgba(232, 122, 50, 0.28);
+  color: #f5b07a;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  /* Brillo interior para sensación de calor */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 200, 150, 0.12),
+    0 0 12px -2px rgba(232, 122, 50, 0.18);
+}
+
+.streakChip svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- Dot de alerta del garaje ---- */
+.alertDot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #e8c87a;
+  box-shadow:
+    0 0 6px rgba(232, 200, 122, 0.65),
+    0 0 0 2px #0d0c0a;
+  animation: pulseDot 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.85); }
+}
+
+/* Reduce motion: respeta preferencias del sistema */
+@media (prefers-reduced-motion: reduce) {
+  .header { transition: none; }
+  .alertDot { animation: none; }
+}

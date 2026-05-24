@@ -62,7 +62,14 @@
       "Bash(curl -sI https://carguessr.org/repesca)",
       "Bash(curl -sI https://carguessr.org/privacidad)",
       "Bash(curl -sI https://carguessr.org/)",
-      "Bash(curl -sI https://carguessr.org/api/list-cars)"
+      "Bash(curl -sI https://carguessr.org/api/list-cars)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Ruben\\\\Downloads\\\\coche-del-dia_1\" -Recurse -File)",
+      "Bash(Select-Object -First 30)",
+      "Bash(powershell -Command \"\\(Get-Content index.html -Encoding Byte -TotalCount 3\\) -join ','\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/vite/package.json'\\).version\\)\")",
+      "Bash(powershell -Command \"Get-Process node,vercel -ErrorAction SilentlyContinue | Select-Object Id,ProcessName,StartTime | Format-Table -AutoSize\")",
+      "Bash(powershell -Command \"Stop-Process -Id 9092,15768 -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; Get-Process node -ErrorAction SilentlyContinue | Select-Object Id,StartTime | Format-Table -AutoSize\")",
+      "Bash(tasklist /FI \"IMAGENAME eq node.exe\")"
     ]
   }
 }

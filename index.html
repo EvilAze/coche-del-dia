@@ -7,20 +7,31 @@
 
     <!--
       Favicons en orden de preferencia para los distintos consumidores:
-        - favicon.ico (legacy, fallback universal Windows / IE / antiguos)
-        - favicon-96x96.png (Chrome / Firefox / Edge para pestana)
-        - favicon-192.png (Google Search; debe ser >=48x48 y multiplo de
-          48 segun https://developers.google.com/search/docs/appearance/favicon-in-search)
-        - apple-touch-icon (iOS al anadir a pantalla de inicio)
-      Decision: omitimos SVG a proposito — no aporta para Google Search
-      (que usa raster) y simplifica la matriz de iconos.
-      El `?v=4` busta cualquier cache previa del navegador y del CDN
-      tras este cambio. Si lo vuelves a cambiar, sube a v=5.
+        - favicon.ico (legacy, fallback universal Windows / Safari antiguos
+          / Google Search Console; el .ico es multi-resolución y resuelve
+          16/32/48 según contexto).
+        - favicon-96x96.png (Chrome/Firefox/Edge en pestañas y bookmarks).
+        - web-app-manifest-192x192.png (Google Search resultado de búsqueda
+          en móvil; debe ser >=48x48 y múltiplo de 48 según
+          https://developers.google.com/search/docs/appearance/favicon-in-search).
+        - apple-touch-icon (iOS al añadir a pantalla de inicio).
+
+      DECISIÓN: omitimos a propósito el <link rel="icon" type="image/svg+xml">
+      aunque exista public/favicon.svg en el repo. Ese SVG es un wrapper
+      generado por RealFaviconGenerator que contiene el PNG embebido en
+      base64 — 391 KB para "renderizar" como pestaña de 16 px, sin ganar
+      la nitidez vectorial que justifica el formato SVG. Si en el futuro
+      tienes un SVG verdaderamente vectorial (Figma / Illustrator export
+      sin raster), añade aquí el link y bórralo del bundle de iconos.
+
+      El `?v=5` busta cualquier caché previa del navegador y del CDN tras
+      el rebrand a "El Coche del Día". Si vuelves a cambiar los iconos,
+      sube a v=6.
     -->
-    <link rel="icon" href="/favicon.ico?v=4" sizes="any" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=4" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png?v=4" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" />
+    <link rel="icon" href="/favicon.ico?v=5" sizes="any" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=5" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/web-app-manifest-192x192.png?v=5" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=5" />
     <link rel="manifest" href="/manifest.json" />
 
     <title>El Coche del Día · Adivina el coche en 5 intentos</title>

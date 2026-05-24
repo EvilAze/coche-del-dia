@@ -69,7 +69,10 @@
       "Bash(node -e \"console.log\\(require\\('./node_modules/vite/package.json'\\).version\\)\")",
       "Bash(powershell -Command \"Get-Process node,vercel -ErrorAction SilentlyContinue | Select-Object Id,ProcessName,StartTime | Format-Table -AutoSize\")",
       "Bash(powershell -Command \"Stop-Process -Id 9092,15768 -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; Get-Process node -ErrorAction SilentlyContinue | Select-Object Id,StartTime | Format-Table -AutoSize\")",
-      "Bash(tasklist /FI \"IMAGENAME eq node.exe\")"
+      "Bash(tasklist /FI \"IMAGENAME eq node.exe\")",
+      "Read(//c/Users/Ruben/Downloads/**)",
+      "Bash(awk '{printf \"Tamaño: %s bytes \\(%.1f KB\\)\\\\n\", $1, $1/1024}')",
+      "Bash(grep -oE \"[0-9]\\\\.[0-9]{6,}\" \"C:/Users/Ruben/Downloads/web-app-manifest-512x512.svg\")"
     ]
   }
 }

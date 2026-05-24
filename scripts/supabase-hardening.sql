@@ -1,6 +1,6 @@
 -- scripts/supabase-hardening.sql
 --
--- Auditoría y blindaje de Supabase para Carguessr.
+-- Auditoría y blindaje de Supabase para El Coche del Día.
 -- Ejecuta CADA bloque por separado en el SQL Editor de Supabase. Cada uno
 -- está marcado con su propósito:
 --

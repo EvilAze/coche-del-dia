@@ -100,6 +100,9 @@ export default function App() {
   //   - sessionStorage se borra al cerrar el navegador / pestaña, así
   //     que el splash vuelve a salir en la siguiente sesión "fresh".
   const SPLASH_MIN_MS = 1700;
+  // Prefijo histórico "carguessr_" mantenido a propósito tras la migración
+  // a cochedeldia.com — cambiarlo invalidaría la sessionStorage de los
+  // usuarios activos y todos verían el splash de nuevo en su próxima visita.
   const SPLASH_SEEN_KEY = "carguessr_splash_seen";
   const splashAlreadySeen =
     typeof window !== "undefined" &&
@@ -471,7 +474,7 @@ export default function App() {
             </a>
           </nav>
           <p className="text-[9px] tracking-[0.18em] text-muted/70">
-            © {new Date().getFullYear()} CarGuessr
+            © {new Date().getFullYear()} El Coche del Día
           </p>
         </footer>
       </div>

@@ -386,19 +386,14 @@ export default function HeaderSandwich({
             />
           </div>
 
-          {/* CENTRO: logo + línea dorada */}
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center select-none">
-            <span
-              className="
-                translate-y-[1px] whitespace-nowrap font-display
-                text-[1.75rem] tracking-widest text-white
-                min-[360px]:text-[1.95rem] sm:text-[2.2rem]
-              "
-            >
-              CARGUESSR
-            </span>
-            <span className="mt-[3px] h-[1.5px] w-14 rounded-full bg-accent/70" />
-          </div>
+          {/* CENTRO: vacío intencionalmente. Tras la migración a
+              "El Coche del Día", la marca verbal vive en favicon, share
+              card, OG image y splash — no en el header persistente. Es
+              la decisión que toman Apple Music, Spotify, Linear, etc.:
+              dentro de la app, el header es UI funcional, no escaparate.
+              El usuario recurrente no necesita que le recuerden cada
+              sesión dónde está. La mirada se libera para el contenido
+              (el coche borroso del día). */}
 
           {/* DERECHA: Garaje + Ranking */}
           <div className="relative z-10 flex items-center">

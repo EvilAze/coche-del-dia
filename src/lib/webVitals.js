@@ -10,7 +10,7 @@
 // Métricas que emitimos (todas a través del paquete oficial `web-vitals`,
 // que ya implementa el sampling y las definiciones canónicas de Google):
 //   - LCP: Largest Contentful Paint. Cuándo aparece el contenido principal.
-//     En carguessr suele ser la imagen del coche del día.
+//     En El Coche del Día suele ser la imagen del coche del día.
 //   - CLS: Cumulative Layout Shift. Cuánto "salta" el layout. Multiplicamos
 //     por 1000 para evitar mandar floats microscópicos.
 //   - INP: Interaction to Next Paint. Reemplaza a FID en 2024+. La métrica

@@ -1,7 +1,7 @@
 // scripts/generate-og-image.mjs
 //
 // Genera public/og-image.jpg (1200×630) para los previews de Open Graph /
-// Twitter Card cuando alguien comparte un enlace de carguessr.org.
+// Twitter Card cuando alguien comparte un enlace de cochedeldia.com.
 //
 // Por qué 1200×630:
 //   - Facebook / WhatsApp recomienda mínimo 1200×630. Por debajo lo
@@ -40,68 +40,92 @@ const ACCENT = "#e8c87a";
 const MUTED = "#9a9aab";
 const BG = "#0a0a0b";
 
-// SVG overlay con el branding. Lo componemos sobre la imagen base
-// redimensionada + oscurecida. Importante: lleva un rect oscuro
-// semi-transparente para garantizar contraste del texto sobre cualquier
-// imagen de fondo (no dependemos de que splash-car tenga la zona del
-// texto oscura por suerte).
+// SVG overlay con el branding. Decisiones tipográficas:
+//   • `serif` y `sans-serif` genéricos: Fontconfig en el entorno de
+//     build de Vercel (Linux) mapea esto a DejaVu Serif / DejaVu Sans
+//     respectivamente. Evitamos referenciar 'Impact' o 'Helvetica Neue'
+//     que NO están instalados — el fallback silencioso de DejaVu era el
+//     que daba el look "tosco" del v1.
+//   • Wordmark en serif: editorial, premium, energía Top Gear / Octane.
+//     Resta peso y deja respirar la foto del coche en lugar de
+//     aplastarla con un block negro tipo Impact.
+//   • Tagline + dominio en sans tracked-out: energía badge automotive
+//     (Mercedes-AMG, BMW Individual).
 const overlay = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="darken" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${BG}" stop-opacity="0.55"/>
-      <stop offset="60%" stop-color="${BG}" stop-opacity="0.85"/>
-      <stop offset="100%" stop-color="${BG}" stop-opacity="0.95"/>
+      <stop offset="0%" stop-color="${BG}" stop-opacity="0.45"/>
+      <stop offset="55%" stop-color="${BG}" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="${BG}" stop-opacity="0.92"/>
     </linearGradient>
+    <!-- Vignette radial para acentuar el centro y oscurecer esquinas:
+         ayuda a que el ojo aterrice en el wordmark. -->
+    <radialGradient id="vignette" cx="50%" cy="50%" r="75%">
+      <stop offset="55%" stop-color="${BG}" stop-opacity="0"/>
+      <stop offset="100%" stop-color="${BG}" stop-opacity="0.55"/>
+    </radialGradient>
   </defs>
 
-  <!-- Oscurecido vertical para legibilidad del texto inferior -->
+  <!-- Capas de oscurecido -->
   <rect x="0" y="0" width="${W}" height="${H}" fill="url(#darken)"/>
+  <rect x="0" y="0" width="${W}" height="${H}" fill="url(#vignette)"/>
 
-  <!-- Marca CARGUESSR centrada — Impact/Arial Black simula Bebas Neue.
-       letter-spacing en SVG va con kerning, simulado con "tspan" + dx. -->
-  <text x="${W / 2}" y="${H / 2 - 30}"
-        font-family="'Impact', 'Arial Black', 'Helvetica', sans-serif"
-        font-size="140"
-        fill="#ffffff"
-        text-anchor="middle"
-        letter-spacing="18"
-        font-weight="900">
-    CARGUESSR
-  </text>
-
-  <!-- Línea dorada bajo el logo — mismo motif que el header -->
-  <rect x="${W / 2 - 70}" y="${H / 2 + 8}" width="140" height="3" rx="1.5" fill="${ACCENT}"/>
-
-  <!-- Tagline en gold -->
-  <text x="${W / 2}" y="${H / 2 + 70}"
-        font-family="'Helvetica Neue', 'Arial', sans-serif"
-        font-size="36"
+  <!-- Tagline superior, micro-cabecera estilo masthead de revista -->
+  <text x="${W / 2}" y="155"
+        font-family="sans-serif"
+        font-size="20"
         fill="${ACCENT}"
         text-anchor="middle"
-        letter-spacing="6"
+        letter-spacing="14"
         font-weight="500">
     EL RETO DIARIO DE COCHES
   </text>
 
-  <!-- Subtítulo muted -->
-  <text x="${W / 2}" y="${H / 2 + 120}"
-        font-family="'Helvetica Neue', 'Arial', sans-serif"
-        font-size="24"
+  <!-- Hairline dorado entre tagline y wordmark, sutil y simétrico -->
+  <line x1="${W / 2 - 230}" y1="180" x2="${W / 2 - 80}" y2="180"
+        stroke="${ACCENT}" stroke-width="1" stroke-opacity="0.55"/>
+  <line x1="${W / 2 + 80}" y1="180" x2="${W / 2 + 230}" y2="180"
+        stroke="${ACCENT}" stroke-width="1" stroke-opacity="0.55"/>
+
+  <!-- WORDMARK: "El Coche del Día" en serif, una sola línea.
+       Sentence case + serif = identidad editorial premium. La longitud
+       (16 chars) cabe perfectamente en serif a este tamaño sin
+       sentirse aplastado. -->
+  <text x="${W / 2}" y="${H / 2 + 30}"
+        font-family="serif"
+        font-size="105"
+        fill="#f4f1ea"
+        text-anchor="middle"
+        letter-spacing="2"
+        font-weight="400">
+    El Coche del Día
+  </text>
+
+  <!-- Línea dorada bajo el wordmark — el mismo motif del header histórico -->
+  <rect x="${W / 2 - 65}" y="${H / 2 + 70}" width="130" height="2" rx="1" fill="${ACCENT}"/>
+
+  <!-- Subtítulo descriptivo -->
+  <text x="${W / 2}" y="${H / 2 + 125}"
+        font-family="sans-serif"
+        font-size="22"
         fill="${MUTED}"
         text-anchor="middle"
-        letter-spacing="2">
+        letter-spacing="3"
+        font-weight="400">
     Adivina marca, modelo y año en 5 intentos
   </text>
 
-  <!-- Dominio abajo a la derecha como sello -->
-  <text x="${W - 40}" y="${H - 30}"
-        font-family="'Helvetica Neue', 'Arial', sans-serif"
-        font-size="22"
+  <!-- Dominio inferior — pequeño y discreto, no compite con el wordmark.
+       Centrado abajo para simetría editorial; tracked-out para
+       lectura como inscripción. -->
+  <text x="${W / 2}" y="${H - 50}"
+        font-family="sans-serif"
+        font-size="18"
         fill="${ACCENT}"
-        text-anchor="end"
-        letter-spacing="4"
+        text-anchor="middle"
+        letter-spacing="8"
         font-weight="600">
-    CARGUESSR.ORG
+    cochedeldia.com
   </text>
 </svg>`;
 

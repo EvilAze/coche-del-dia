@@ -151,7 +151,7 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                   />
                   <span className="font-display text-5xl text-accent/70">?</span>
                   <div className="absolute bottom-3 left-0 right-0 text-center text-[8px] uppercase tracking-[0.24em] text-accent/40">
-                    Carguessr
+                    Coche del Día
                   </div>
                 </div>
 

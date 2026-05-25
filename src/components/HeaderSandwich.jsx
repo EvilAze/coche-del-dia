@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useEscape } from "../hooks/useEscape";
 import { getMyMaxStreak } from "../hooks/useStats";
 import { useT, listLocales } from "../i18n";
+import { haptic } from "../lib/haptics";
 import ScoringHelpModal from "./ScoringHelpModal";
 
 const STREAK_MILESTONES = [2, 3, 4, 7, 14, 30, 60, 100, 200, 365];
@@ -113,7 +114,7 @@ function LanguageStrip() {
             <button
               key={opt.code}
               type="button"
-              onClick={() => setLocale(opt.code)}
+              onClick={() => { haptic.selection(); setLocale(opt.code); }}
               className={`
                 rounded-md border px-2 py-0.5 text-[11px] font-medium
                 transition-colors duration-150
@@ -340,6 +341,7 @@ export default function HeaderSandwich({
   // directos a profile/login). Así el selector de idioma queda accesible
   // en todos los estados desde un único punto.
   function handleUserClick() {
+    haptic.impactLight();
     setMenuOpen((v) => !v);
   }
 
@@ -400,7 +402,7 @@ export default function HeaderSandwich({
 
             <button
               type="button"
-              onClick={onOpenGarage}
+              onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
               aria-label={t("header.garage")}
               title={t("header.garage")}
               className={`relative ${iconBtn}`}
@@ -426,7 +428,7 @@ export default function HeaderSandwich({
 
             <button
               type="button"
-              onClick={onOpenRanking}
+              onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
               aria-label={t("header.ranking")}
               title={t("header.ranking")}
               className={iconBtn}

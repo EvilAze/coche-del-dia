@@ -4,15 +4,10 @@ import { useCatalog } from "../data/catalog";
 import { useT } from "../i18n";
 import Autocomplete from "./Autocomplete";
 import { useToast } from "./Toast";
+import { haptic } from "../lib/haptics";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
-
-function triggerHaptic(pattern) {
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-    navigator.vibrate(pattern);
-  }
-}
 
 // Steppers verticales (▲/▼) anclados al borde derecho del input de año.
 // Reemplazan a los spinners nativos (inconsistentes entre browsers y
@@ -214,7 +209,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
       !isNaN(anioNum) && anioNum >= MIN_YEAR && anioNum <= CURRENT_YEAR;
 
     if (!marcaValida || !modeloValido || !anioValido) {
-      triggerHaptic(30);
+      haptic.warning();
       setShake(true);
       setTimeout(() => setShake(false), 500);
       return;
@@ -224,7 +219,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     // pero si el usuario teclea el nombre completo a mano (o el año coincide
     // con uno ya fallado) lo cortamos aquí con shake.
     if (triedWrongMarcas.has(submittedMarca.toLowerCase())) {
-      triggerHaptic(30);
+      haptic.warning();
       setShake(true);
       setTimeout(() => setShake(false), 500);
       toast.push(t("guess.marcaAlreadyTried"), { type: "error" });
@@ -232,21 +227,21 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     }
     const modelKey = `${submittedMarca.toLowerCase()}|${submittedModelo.toLowerCase()}`;
     if (triedWrongModelKeys.has(modelKey)) {
-      triggerHaptic(30);
+      haptic.warning();
       setShake(true);
       setTimeout(() => setShake(false), 500);
       toast.push(t("guess.modelAlreadyTried"), { type: "error" });
       return;
     }
     if (triedWrongYears.has(submittedAnio)) {
-      triggerHaptic(30);
+      haptic.warning();
       setShake(true);
       setTimeout(() => setShake(false), 500);
       toast.push(t("guess.yearAlreadyTried"), { type: "error" });
       return;
     }
 
-    triggerHaptic(50);
+    haptic.impactMedium();
 
     // Enviamos el id del coche elegido en el autocompletado en vez del par
     // marca/modelo en texto: así el servidor valida directamente contra una

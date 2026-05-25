@@ -6,7 +6,7 @@
 
   "rewrites": [
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|src/|assets/|@|node_modules/|.*\\.).*)",
       "destination": "/index.html"
     }
   ]

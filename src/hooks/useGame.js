@@ -4,6 +4,7 @@ import { useToast } from "../components/Toast";
 import { getMyStats } from "./useStats";
 import { detectAndPersistNewAchievements } from "../lib/achievementsNotifier";
 import { track } from "../lib/analytics";
+import { haptic } from "../lib/haptics";
 import { useT } from "../i18n";
 
 const MAX_ATTEMPTS = 5;
@@ -41,12 +42,6 @@ function getShareDate() {
   // ruido. Ahorra 3 caracteres en cada mensaje compartido.
   const [, month, day] = getTodayKey().split("-");
   return `${day}/${month}`;
-}
-
-function triggerHaptic(pattern) {
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-    navigator.vibrate(pattern);
-  }
 }
 
 // Aviso temporal de rebrand: aparece al final del share text para que la
@@ -396,7 +391,7 @@ export function useGame() {
         error: networkErr,
         message: networkErr?.message,
       });
-      triggerHaptic([60, 40, 60]);
+      haptic.error();
       toast.push("Error de conexión. Comprueba tu red.", { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
@@ -421,7 +416,7 @@ export function useGame() {
         rawBody: rawText.slice(0, 500),
         parseError: parseErr?.message,
       });
-      triggerHaptic([60, 40, 60]);
+      haptic.error();
       toast.push("Respuesta inválida del servidor.", { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
@@ -435,7 +430,7 @@ export function useGame() {
         body: data,
         payload,
       });
-      triggerHaptic([60, 40, 60]);
+      haptic.error();
       toast.push(
         data?.error
           ? `Error: ${data.error}`
@@ -469,9 +464,9 @@ export function useGame() {
       else if (newGuesses.length >= MAX_ATTEMPTS) newStatus = "lost";
 
       if (newStatus === "won") {
-        triggerHaptic(200);
+        haptic.success();
       } else if (newStatus === "lost") {
-        triggerHaptic([100, 50, 100]);
+        haptic.warning();
       }
 
       setGuesses(newGuesses);
@@ -533,7 +528,7 @@ export function useGame() {
         stack: error?.stack,
         data,
       });
-      triggerHaptic([60, 40, 60]);
+      haptic.error();
       toast.push("Error procesando la respuesta.", { type: "error" });
       setPendingGuess(null);
     } finally {

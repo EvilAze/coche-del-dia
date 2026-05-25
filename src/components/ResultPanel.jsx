@@ -4,6 +4,7 @@ import ScoreBreakdown from "./ScoreBreakdown";
 import { useToast } from "./Toast";
 import { useCountdown } from "../hooks/useCountdown";
 import { useT, getCarDescription } from "../i18n";
+import { haptic } from "../lib/haptics";
 
 export default function ResultPanel({
   status,
@@ -27,6 +28,7 @@ export default function ResultPanel({
   const { formatted: countdown } = useCountdown();
 
   async function handleShare() {
+    haptic.impactLight();
     try {
       if (navigator.share) {
         await navigator.share({ text: shareText });
@@ -34,6 +36,7 @@ export default function ResultPanel({
       }
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareText);
+        haptic.success();
         toast.push(t("result.shareCopied"), { type: "success" });
         return;
       }
@@ -41,6 +44,7 @@ export default function ResultPanel({
     } catch (err) {
       // El usuario canceló el share nativo: no es un error real.
       if (err?.name === "AbortError") return;
+      haptic.error();
       toast.push(t("result.shareError"), { type: "error" });
     }
   }

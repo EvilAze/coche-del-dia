@@ -1,5 +1,6 @@
 // src/components/Autocomplete.jsx
 import { useEffect, useRef, useState } from "react";
+import { haptic } from "../lib/haptics";
 
 export default function Autocomplete({
   value,
@@ -69,6 +70,7 @@ export default function Autocomplete({
     selectingRef.current = true;
     cancelScheduledClose();
 
+    haptic.selection();
     onSelect(option);
     setOpen(false);
     setHighlighted(0);

@@ -39,21 +39,43 @@ const ROUTES = {
 };
 
 export default async function handler(req, res) {
-  // Vercel pasa el segmento dinámico como array de strings. Para una
-  // ruta como /api/admin/analytics → slug = ["analytics"]. Solo nos
-  // interesa el primer segmento; cualquier slug adicional es un 404
-  // (no soportamos endpoints anidados aquí).
+  // Vercel puede pasar req.query.slug como:
+  //   • Array de strings  → e.g., ["analytics"] o ["nested", "deep"]
+  //   • String suelta     → e.g., "analytics" (algunos runtimes lo simplifican
+  //                         cuando solo hay 1 segmento)
+  //   • undefined         → si la URL es /api/admin sin nada más
+  // Normalizamos a array para tener UN solo flujo de lógica.
+  let segments;
   const slug = req.query.slug;
-  const first = Array.isArray(slug) ? slug[0] : slug;
+  if (Array.isArray(slug)) {
+    segments = slug;
+  } else if (typeof slug === "string" && slug.length > 0) {
+    segments = [slug];
+  } else {
+    segments = [];
+  }
 
-  if (!first || slug?.length > 1) {
+  // Fallback: si por alguna razón req.query.slug no está poblado (cambio de
+  // runtime, runtime "edge" sin parseo de catch-all, etc.), parseamos
+  // manualmente desde req.url. Esto nos hace robustos a cambios de Vercel.
+  if (segments.length === 0 && req.url) {
+    const path = req.url.split("?")[0];
+    const m = path.match(/^\/api\/admin\/(.+?)\/?$/);
+    if (m) {
+      segments = m[1].split("/").filter(Boolean);
+    }
+  }
+
+  // Solo soportamos 1 segmento (/api/admin/<accion>). Cualquier cosa
+  // anidada o vacía → 404.
+  if (segments.length !== 1) {
     return res.status(404).json({
       error: "Unknown admin endpoint",
-      detail: `Path: /api/admin/${Array.isArray(slug) ? slug.join("/") : slug}`,
+      detail: `Path: /api/admin/${segments.join("/") || "(empty)"}`,
     });
   }
 
-  const route = ROUTES[first];
+  const route = ROUTES[segments[0]];
   if (!route) {
     return res.status(404).json({
       error: "Unknown admin endpoint",

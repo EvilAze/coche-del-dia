@@ -35,19 +35,28 @@ const BRAND_TIERS = [
 // (ver src/components/AchievementIcons.jsx). Usamos SVG en vez de emoji
 // porque la representación de emoji varía entre OS y en Windows
 // 🔥 sale como una cebolla gris en vez de llama.
+//
+// Set v3 (rediseño 2026-05): los iconos hablan "automotive" desde el
+// primer pixel, no son genéricos de app gamificada.
+//   Milestones: narrativa de propiedad → maestría → leyenda
+//     llave → garaje con coche → showroom → vitrina → trofeo competición
+//   Streaks: narrativa de ignición mecánica
+//     bujía → bujía encendida → pistón en combustión
 const MILESTONE_THRESHOLDS = [
-  { id: "first",  count: 1,   svg: "car",     title: { es: "Primer coche",   en: "First car" },     desc: { es: "Desbloquea tu primer coche.", en: "Unlock your first car." } },
-  { id: "small",  count: 10,  svg: "parking", title: { es: "Garaje pequeño", en: "Small garage" }, desc: { es: "Desbloquea 10 coches.",        en: "Unlock 10 cars." } },
-  { id: "shop",   count: 25,  svg: "shop",    title: { es: "Concesionario",  en: "Dealership" },   desc: { es: "Desbloquea 25 coches.",        en: "Unlock 25 cars." } },
-  { id: "museum", count: 50,  svg: "museum",  title: { es: "Museo",          en: "Museum" },       desc: { es: "Desbloquea 50 coches.",        en: "Unlock 50 cars." } },
-  { id: "icon",   count: 100, svg: "crown",   title: { es: "Garaje icónico", en: "Iconic garage" }, desc: { es: "Desbloquea 100 coches.",      en: "Unlock 100 cars." } },
+  { id: "first",  count: 1,   svg: "key",      title: { es: "Primer coche",   en: "First car" },     desc: { es: "Desbloquea tu primer coche.", en: "Unlock your first car." } },
+  { id: "small",  count: 10,  svg: "garage",   title: { es: "Garaje pequeño", en: "Small garage" }, desc: { es: "Desbloquea 10 coches.",        en: "Unlock 10 cars." } },
+  { id: "shop",   count: 25,  svg: "showroom", title: { es: "Concesionario",  en: "Dealership" },   desc: { es: "Desbloquea 25 coches.",        en: "Unlock 25 cars." } },
+  { id: "museum", count: 50,  svg: "vitrine",  title: { es: "Museo",          en: "Museum" },       desc: { es: "Desbloquea 50 coches.",        en: "Unlock 50 cars." } },
+  { id: "icon",   count: 100, svg: "trophy",   title: { es: "Garaje icónico", en: "Iconic garage" }, desc: { es: "Desbloquea 100 coches.",      en: "Unlock 100 cars." } },
 ];
 
-// `repeat` indica cuántas llamas se pintan (1 = simple, 3 = intenso).
+// Cada tier tiene su propio icono específico (no repetimos el mismo
+// símbolo N veces — eso era resignación visual). La escala visual y
+// conceptual aumenta: bujía → bujía encendida → motor en combustión.
 const STREAK_THRESHOLDS = [
-  { id: 7,   svg: "flame", repeat: 1, title: { es: "Constancia",  en: "Steady" },     desc: { es: "Racha de 7 días.",   en: "7-day streak." } },
-  { id: 30,  svg: "flame", repeat: 2, title: { es: "Disciplina",  en: "Disciplined" }, desc: { es: "Racha de 30 días.",  en: "30-day streak." } },
-  { id: 100, svg: "flame", repeat: 3, title: { es: "Leyenda",     en: "Legend" },     desc: { es: "Racha de 100 días.", en: "100-day streak." } },
+  { id: 7,   svg: "spark",        title: { es: "Constancia",  en: "Steady" },     desc: { es: "Racha de 7 días.",   en: "7-day streak." } },
+  { id: 30,  svg: "spark_fired",  title: { es: "Disciplina",  en: "Disciplined" }, desc: { es: "Racha de 30 días.",  en: "30-day streak." } },
+  { id: 100, svg: "piston",       title: { es: "Leyenda",     en: "Legend" },     desc: { es: "Racha de 100 días.", en: "100-day streak." } },
 ];
 
 // ---------- Helpers ------------------------------------------------------

@@ -72,16 +72,26 @@ async function readRepescaState(authClient, userId, carId, today) {
   }
   const status = row?.status || "playing";
   let reveal = null;
-  // Solo exponemos reveal cuando la partida está cerrada: en repesca
-  // se revela tanto al ganar como al perder (igual que daily logueado).
+  // Reveal cuando la partida está cerrada. Identidad (marca/modelo/año/
+  // país) en ambos casos para que el usuario sepa qué falló. Descripción
+  // SOLO en victoria — recompensa de lore reservada para wins.
+  //
+  // NOTA: `car_data` persistido en user_guesses puede contener descripción
+  // de partidas históricas (anteriores a esta política). Aquí se filtra
+  // en el read, así que tanto rows nuevos como viejos respetan la regla
+  // sin necesidad de migrar la tabla.
+  //
+  // Coherente con /api/validate-guess, /api/repesca/validate y
+  // /api/get-daily-car.
   if ((status === "won" || status === "lost") && row?.car_data) {
+    const isWon = status === "won";
     reveal = {
       marca: row.car_data.marca,
       modelo: row.car_data.modelo,
       anio: row.car_data.anio,
       pais: row.car_data.pais,
-      description: row.car_data.description ?? null,
-      description_en: row.car_data.description_en ?? null,
+      description: isWon ? (row.car_data.description ?? null) : null,
+      description_en: isWon ? (row.car_data.description_en ?? null) : null,
     };
   }
   return {

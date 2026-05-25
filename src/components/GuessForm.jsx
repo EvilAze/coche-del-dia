@@ -1,5 +1,5 @@
 // src/components/GuessForm.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalog } from "../data/catalog";
 import { useT } from "../i18n";
 import Autocomplete from "./Autocomplete";
@@ -146,7 +146,27 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
-  const [shake, setShake] = useState(false);
+
+  // Shake re-triggerable: si el usuario falla dos veces seguidas en menos
+  // de la duración de la keyframe (0.4 s), el patrón anterior con
+  // useState(true) + setTimeout(false) no re-disparaba la animación porque
+  // React no detectaba cambio de valor (ya estaba true).
+  //
+  // Solución: ref al contenedor + manipulación directa de classList con un
+  // force-reflow entre remove/add. Esto NO remonta los inputs hijos (que
+  // perderían foco y blanquearían lo que el usuario está escribiendo) y
+  // garantiza que cada fallo dispara la animación de cero.
+  const shakeBoxRef = useRef(null);
+  function triggerShake() {
+    const el = shakeBoxRef.current;
+    if (!el) return;
+    el.classList.remove("animate-shake");
+    // Force reflow: el navegador procesa la eliminación antes del add y
+    // así el keyframe arranca limpio. Sin esto, el add inmediato es un
+    // no-op visual cuando la clase ya estaba presente.
+    void el.offsetWidth;
+    el.classList.add("animate-shake");
+  }
 
   const marcaValidaSeleccionada = MARCAS.includes(marca);
 
@@ -210,8 +230,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
 
     if (!marcaValida || !modeloValido || !anioValido) {
       haptic.warning();
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+      triggerShake();
       return;
     }
 
@@ -220,23 +239,20 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     // con uno ya fallado) lo cortamos aquí con shake.
     if (triedWrongMarcas.has(submittedMarca.toLowerCase())) {
       haptic.warning();
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+      triggerShake();
       toast.push(t("guess.marcaAlreadyTried"), { type: "error" });
       return;
     }
     const modelKey = `${submittedMarca.toLowerCase()}|${submittedModelo.toLowerCase()}`;
     if (triedWrongModelKeys.has(modelKey)) {
       haptic.warning();
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+      triggerShake();
       toast.push(t("guess.modelAlreadyTried"), { type: "error" });
       return;
     }
     if (triedWrongYears.has(submittedAnio)) {
       haptic.warning();
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+      triggerShake();
       toast.push(t("guess.yearAlreadyTried"), { type: "error" });
       return;
     }
@@ -269,11 +285,20 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   return (
     <form onSubmit={handleSubmit} className="w-full min-w-0">
       <div
-        className={`
+        ref={shakeBoxRef}
+        // Al terminar la animación, retiramos la clase para que el siguiente
+        // triggerShake pueda añadirla de nuevo sin que el navegador la
+        // considere "ya aplicada" (defensa en profundidad además del
+        // force-reflow en triggerShake).
+        onAnimationEnd={(e) => {
+          if (e.animationName === "shake") {
+            e.currentTarget.classList.remove("animate-shake");
+          }
+        }}
+        className="
           flex w-full min-w-0 flex-col gap-y-3
           md:flex-row md:items-start md:gap-x-2
-          ${shake ? "animate-shake" : ""}
-        `}
+        "
       >
         <label className="flex w-full min-w-0 flex-col gap-1 md:flex-1">
           <span className="px-1 text-[10px] uppercase tracking-widest text-muted">
@@ -324,6 +349,18 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               type="number"
               inputMode="numeric"
               pattern="\d*"
+              // Anti-fricción de teclados móviles y password managers:
+              //   - autoComplete="off": iOS a veces ofrece autofill de OTP
+              //     en inputs numéricos. Esto lo desactiva.
+              //   - enterKeyHint="done": el teclado muestra "OK/Done" en
+              //     vez del genérico "↵", coherente con que es el último
+              //     campo del formulario antes del submit.
+              //   - data-1p-ignore / data-lpignore: 1Password y LastPass
+              //     no inyectan su icono sobre el input.
+              autoComplete="off"
+              enterKeyHint="done"
+              data-1p-ignore="true"
+              data-lpignore="true"
               value={anio}
               onChange={(e) => setAnio(e.target.value)}
               // Bloqueamos el cambio de año con la rueda del ratón: el
@@ -378,7 +415,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         className={`
           mt-3 h-12 w-full rounded-lg bg-accent
           font-display text-lg tracking-widest text-bg-primary
-          transition-all duration-150
+          transition-[background-color,opacity,transform] duration-150
           ${isSubmitting
             ? "cursor-wait opacity-80"
             : buttonDisabled

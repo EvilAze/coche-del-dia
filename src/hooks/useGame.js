@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useToast } from "../components/Toast";
 import { getMyStats } from "./useStats";
@@ -34,6 +34,52 @@ function getTodayKey() {
   };
   const formatter = new Intl.DateTimeFormat("en-CA", options);
   return formatter.format(new Date());
+}
+
+// Lectura SÍNCRONA del estado local del reto diario, solo para anónimos.
+// Sirve para pintar el resultado (ResultPanel + lista de guesses) en el
+// primer render, sin esperar a que /api/get-daily-car resuelva. Antes,
+// el usuario que volvía durante el día veía un fondo negro hasta que
+// llegaba la respuesta del servidor (~150-400 ms en revisitas con caché
+// caliente, mucho más en redes lentas).
+//
+// Restricciones críticas para no romper la fuente de verdad:
+//   1. SOLO se aplica si NO hay sesión Supabase en localStorage. Si el
+//      usuario está logueado, la fuente de verdad es el servidor — un
+//      estado anon antiguo podría engañarle pintando un resultado
+//      incorrecto durante 200 ms.
+//   2. Solo si la `date` del snapshot coincide con HOY (Europe/Madrid).
+//   3. Cualquier excepción → null. Modo privado / sandbox / JSON corrupto
+//      caen al flujo normal (loading + fetch), no a UI rota.
+//
+// El servidor sigue corriendo después con su propia respuesta y, si
+// difiere, sobreescribe el estado. En el 99% de los casos coincide.
+function readInitialAnonState() {
+  if (typeof window === "undefined") return null;
+  try {
+    // Detectar sesión Supabase: la lib guarda el token en una clave del
+    // estilo `sb-<projectref>-auth-token`. Si hay una, el usuario está
+    // logueado y NO debemos confiar en el snapshot anon local.
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("sb-") && key.endsWith("-auth-token")) {
+        const val = localStorage.getItem(key);
+        if (val && val !== "null" && val !== '""') return null;
+      }
+    }
+    const raw = localStorage.getItem("cocheDia_state");
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved || saved.date !== getTodayKey()) return null;
+    if (!Array.isArray(saved.guesses)) return null;
+    return {
+      guesses: saved.guesses,
+      status: saved.status || "playing",
+      reveal: saved.reveal || null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function getShareDate() {
@@ -191,10 +237,33 @@ export async function notifyAchievementsAfterWin({ toast, t, locale }) {
 }
 
 export function useGame() {
-  const [car, setCar] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Snapshot anon leído UNA sola vez al montar. Si existe, pre-pintamos
+  // el resultado del reto y omitimos el primer paso de loading — la
+  // CarImage seguirá esperando al servidor por su cuenta (tiene su propio
+  // skeleton) pero el resto de la UI ya está visible.
+  const initialAnonRef = useRef(null);
+  if (initialAnonRef.current === null) {
+    // Inicialización lazy "tipo useState lazy initializer" pero a través
+    // de ref para que esté disponible tanto en useState como en useEffect.
+    initialAnonRef.current = readInitialAnonState() || { _empty: true };
+  }
+  const initialAnon = initialAnonRef.current._empty ? null : initialAnonRef.current;
+
+  // `car` arranca con un placeholder que solo expone el reveal (marca/
+  // modelo/año si el usuario ya ganó). `img` y `blurData` siguen siendo
+  // null hasta que llegue la respuesta del servidor, y CarImage trata src
+  // null como "muestra skeleton" — sin error ni request rota.
+  const [car, setCar] = useState(
+    initialAnon
+      ? buildCarState({ img: null, blurData: null, reveal: initialAnon.reveal })
+      : null
+  );
+  // Si tenemos snapshot, isLoading=false desde el principio → App.jsx
+  // considera dataReady=true en el primer paint y renderiza la UI completa
+  // (con CarImage en skeleton hasta que llegue la foto).
+  const [isLoading, setIsLoading] = useState(!initialAnon);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [guesses, setGuesses] = useState([]);
+  const [guesses, setGuesses] = useState(initialAnon?.guesses ?? []);
   // Fila "pending" que se pinta mientras esperamos respuesta del servidor.
   // Tiene la misma forma que un guess real, pero todas las celdas se renderizan
   // con shimmer neutro. Se setea al inicio de submitGuess y se limpia cuando
@@ -205,7 +274,7 @@ export function useGame() {
   // GuessRow correspondiente con justRevealed → reveal secuencial por celda.
   // Se resetea a -1 al inicializar y cuando entra una nueva pending.
   const [justRevealedIndex, setJustRevealedIndex] = useState(-1);
-  const [status, setStatus] = useState("playing");
+  const [status, setStatus] = useState(initialAnon?.status ?? "playing");
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(null);
   const { t, locale } = useT();
@@ -239,9 +308,19 @@ export function useGame() {
     return () => authListener.subscription.unsubscribe();
   }, []);
 
+  // Flag: si la primera ejecución de initGame tiene snapshot optimista,
+  // NO flipeamos isLoading→true (eso causaría exactamente el flicker que
+  // estamos evitando). El servidor confirma en background y, si todo va
+  // bien, el setIsLoading(false) final es un no-op.
+  const skipFirstLoadingFlipRef = useRef(Boolean(initialAnon));
+
   useEffect(() => {
     async function initGame() {
-      setIsLoading(true);
+      if (skipFirstLoadingFlipRef.current) {
+        skipFirstLoadingFlipRef.current = false;
+      } else {
+        setIsLoading(true);
+      }
       const today = getTodayKey();
 
       try {

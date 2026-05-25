@@ -130,6 +130,13 @@ export default function Autocomplete({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
+        // enterKeyHint="search": en móvil el teclado muestra una lupa en
+        // vez del genérico "↵". Coherente con que el input filtra una lista.
+        enterKeyHint="search"
+        // Evita que 1Password / LastPass / Bitwarden inyecten su icono
+        // sobre el input — pensaban que era un campo de username.
+        data-1p-ignore="true"
+        data-lpignore="true"
         className="
           h-11 w-full min-w-0 rounded-lg border border-border-strong
           bg-bg-secondary px-3 text-sm text-white outline-none transition-colors

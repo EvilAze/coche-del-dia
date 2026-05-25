@@ -296,18 +296,27 @@ export default async function handler(req, res) {
     // -------- 9. Política de revelado ------------------------------------
     //   Política asimétrica intencional según (status, autenticación):
     //
-    //   - WIN (logueado o anónimo): revelamos. El jugador ganó, merece
-    //     ver el coche y compartir.
-    //   - LOST + logueado: revelamos. El usuario tiene cuenta, el
-    //     resultado queda en su historial — la "trampa del incógnito"
-    //     no le sirve porque la pérdida queda registrada.
-    //   - LOST + anónimo: NO revelamos. Si lo hiciéramos, el cheat sería
-    //     trivial: abrir incógnito → fallar adrede los 5 → leer el
-    //     coche → cerrar incógnito → jugar con la cuenta real sabiendo
-    //     la respuesta. Por eso el anónimo perdedor ve solo la imagen
-    //     blurred + overlay de login (renderizado por CarImage). El
-    //     ResultPanel pinta el fallback `result.lockedAnswer` cuando
+    //   - WIN (logueado o anónimo): revelamos TODO, incluida la
+    //     descripción/ficha del coche. El jugador ganó, se merece la
+    //     recompensa completa de lore.
+    //   - LOST + logueado: revelamos IDENTIDAD (marca/modelo/año/país)
+    //     pero NO la descripción. El usuario tiene cuenta, el resultado
+    //     queda en su historial — la "trampa del incógnito" no le sirve
+    //     porque la pérdida queda registrada. Aprende qué coche era
+    //     (necesario para mejorar) pero la ficha completa queda
+    //     reservada como recompensa para victorias futuras o repesca
+    //     exitosa.
+    //   - LOST + anónimo: NO revelamos NADA. Si lo hiciéramos, el cheat
+    //     sería trivial: abrir incógnito → fallar adrede los 5 → leer
+    //     el coche → cerrar incógnito → jugar con la cuenta real
+    //     sabiendo la respuesta. Por eso el anónimo perdedor ve solo la
+    //     imagen blurred + overlay de login (renderizado por CarImage).
+    //     El ResultPanel pinta el fallback `result.lockedAnswer` cuando
     //     reveal viene null.
+    //
+    //   Simetría con /api/repesca/validate: ambos endpoints aplican la
+    //   misma regla — descripción solo en victoria. Coherencia narrativa
+    //   en toda la app.
     const shouldReveal = result.win || (isGameOver && Boolean(user));
     let reveal = null;
     if (shouldReveal) {
@@ -316,8 +325,8 @@ export default async function handler(req, res) {
         modelo: realCar.modelo,
         anio: realCar.anio,
         pais: realCar.pais,
-        description: realCar.description,
-        description_en: realCar.description_en,
+        description: result.win ? realCar.description : null,
+        description_en: result.win ? realCar.description_en : null,
       };
     }
 

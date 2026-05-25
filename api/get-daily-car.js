@@ -155,8 +155,15 @@ export default async function handler(req, res) {
   // datos LIVE desde `cars` (no desde la copia congelada en user_guesses)
   // para que las correcciones que haga el admin en /admin/edit-car se
   // reflejen al instante en pantalla — hot-swap real.
+  //
+  // Descripción/ficha: SOLO en victoria. La identidad del coche (marca,
+  // modelo, año, país) se revela en ambos casos para que el usuario
+  // sepa qué falló y aprenda. La ficha de lore queda reservada como
+  // recompensa para victorias. Coherente con /api/validate-guess y
+  // /api/repesca/validate y /api/repesca/start.
   let reveal = null;
   if (status === "won" || status === "lost") {
+    const isWon = status === "won";
     const { data: liveCar, error: liveErr } = await supabaseAdmin
       .from("cars")
       .select("make, model, year, pais, description, description_en")
@@ -170,8 +177,8 @@ export default async function handler(req, res) {
         modelo: liveCar.model,
         anio: liveCar.year,
         pais: liveCar.pais,
-        description: liveCar.description ?? null,
-        description_en: liveCar.description_en ?? null,
+        description: isWon ? (liveCar.description ?? null) : null,
+        description_en: isWon ? (liveCar.description_en ?? null) : null,
       };
     }
   }

@@ -1,11 +1,11 @@
 // src/HeaderTest.jsx
-// Sala de pruebas SOLO para iterar visualmente el nuevo header.
+// Sala de pruebas SOLO para iterar visualmente el header en producción.
 // Acceso: /?header-test  o  /header-test
-// Renderiza HeaderSandwich en varios estados sin depender del catálogo.
+// Renderiza HeaderSandwich en varios estados sin depender del catálogo
+// real ni de un usuario logueado.
 
 import { useState } from "react";
 import HeaderSandwich from "./components/HeaderSandwich";
-import HeaderQuecochees from "./components/HeaderQuecochees";
 import GuessRow from "./components/GuessRow";
 
 const STATES = [
@@ -55,66 +55,28 @@ function GuessRowPreview() {
 
 export default function HeaderTest() {
   const [idx, setIdx] = useState(0);
-  const [variant, setVariant] = useState("quecochees"); // "quecochees" | "sandwich"
-  const [lang, setLang] = useState("es");
   const s = STATES[idx];
 
   return (
     <div className="min-h-screen bg-bg-primary font-body text-white">
-      {variant === "quecochees" ? (
-        <HeaderQuecochees
-          user={s.user}
-          streak={s.streak}
-          repescaAlert={s.repescaAlert}
-          currentLang={lang}
-          onOpenRanking={noop("Ranking")}
-          onOpenGarage={noop("Garaje")}
-          onOpenProfile={noop("Perfil")}
-          onOpenLogin={noop("Login")}
-          onOpenHelp={noop("Ayuda")}
-          onToggleLang={() => setLang((l) => (l === "es" ? "en" : "es"))}
-        />
-      ) : (
-        <HeaderSandwich
-          user={s.user}
-          streak={s.streak}
-          repescaAlert={s.repescaAlert}
-          onOpenRanking={noop("Ranking")}
-          onOpenGarage={noop("Garaje")}
-          onOpenProfile={noop("Perfil")}
-          onOpenLogin={noop("Login")}
-        />
-      )}
+      <HeaderSandwich
+        user={s.user}
+        streak={s.streak}
+        repescaAlert={s.repescaAlert}
+        onOpenRanking={noop("Ranking")}
+        onOpenGarage={noop("Garaje")}
+        onOpenProfile={noop("Perfil")}
+        onOpenLogin={noop("Login")}
+      />
 
       <main className="mx-auto max-w-md px-4 py-10">
         <h2 className="mb-3 font-display text-2xl tracking-widest text-accent">
           HEADER TEST
         </h2>
         <p className="mb-6 text-sm text-muted">
-          Escenarios para iterar el nuevo header. Cambia entre estados y
-          prueba el sandwich. Los botones internos hacen alert().
+          Escenarios para iterar el header. Cambia entre estados y prueba
+          el sandwich. Los botones internos hacen alert().
         </p>
-
-        {/* Toggle de variante: nuevo Quecochees vs. el viejo Sandwich */}
-        <div className="mb-6 flex gap-2 rounded-lg border border-white/10 p-1">
-          {[
-            { id: "quecochees", label: "Quecochees (nuevo)" },
-            { id: "sandwich", label: "Sandwich (actual)" },
-          ].map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => setVariant(v.id)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold tracking-wide transition-colors ${
-                variant === v.id
-                  ? "bg-accent/15 text-accent"
-                  : "text-white/60 hover:text-white"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
 
         <div className="flex flex-col gap-2">
           {STATES.map((st, i) => (

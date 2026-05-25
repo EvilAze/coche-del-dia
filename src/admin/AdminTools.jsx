@@ -19,6 +19,7 @@ import SchedulePanel from "./SchedulePanel";
 import EditCarPanel from "./EditCarPanel";
 import AddCarPanel from "./AddCarPanel";
 import PreviewPanel from "./PreviewPanel";
+import AnalyticsPanel from "./AnalyticsPanel";
 import SwapCarModal from "./SwapCarModal";
 
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
@@ -28,6 +29,7 @@ const TABS = [
   { id: "edit", label: "Editar" },
   { id: "add", label: "Añadir" },
   { id: "preview", label: "Preview" },
+  { id: "analytics", label: "Analítica" },
 ];
 
 function readInitialState() {
@@ -303,6 +305,7 @@ export default function AdminTools({ defaultTab }) {
               onSelectCar={setSelectedCarId}
             />
           )}
+          {tab === "analytics" && <AnalyticsPanel />}
         </main>
       </div>
 

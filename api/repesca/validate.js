@@ -297,8 +297,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // 7) Política de revelado: misma que daily. Ganar SIEMPRE revela;
-    //    perder en juego servidor-validado también revela (todo logueado).
+    // 7) Política de revelado en repesca:
+    //    - Ganar: revela TODO (marca, modelo, año, país y descripción).
+    //    - Perder: revela identidad (marca/modelo/año/país) pero NO la
+    //      descripción. La descripción es la "recompensa de lore" — si
+    //      ya fallaste el daily Y luego fallas la repesca del mismo coche,
+    //      ves qué coche era para aprender, pero la ficha completa queda
+    //      bloqueada hasta que lo recuperes en una sesión futura.
     let reveal = null;
     if (result.win || isGameOver) {
       reveal = {
@@ -306,8 +311,8 @@ export default async function handler(req, res) {
         modelo: realCar.modelo,
         anio: realCar.anio,
         pais: realCar.pais,
-        description: realCar.description,
-        description_en: realCar.description_en,
+        description: result.win ? realCar.description : null,
+        description_en: result.win ? realCar.description_en : null,
       };
     }
 

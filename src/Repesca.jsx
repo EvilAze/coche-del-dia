@@ -24,6 +24,7 @@ import { useToast } from "./components/Toast";
 import { useT } from "./i18n";
 import { notifyAchievementsAfterWin } from "./hooks/useGame";
 import { track } from "./lib/analytics";
+import { haptic } from "./lib/haptics";
 
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
@@ -35,12 +36,6 @@ const ZOOM_LEVELS = [3.7, 3.2, 2.7, 2.2, 1.7];
 // En Modo Veterano no hay zoom progresivo: arrancamos siempre en el
 // nivel menos cerrado (el del último intento del modo normal).
 const VETERAN_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
-
-function triggerHaptic(pattern) {
-  if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-    navigator.vibrate(pattern);
-  }
-}
 
 function getCarIdFromUrl() {
   try {
@@ -282,7 +277,7 @@ export default function Repesca() {
       });
     } catch (networkErr) {
       console.error("[Repesca] fetch:", networkErr);
-      triggerHaptic([60, 40, 60]);
+      haptic.error();
       toast.push(t("repesca.errorNetworkConnection"), { type: "error" });
       setIsSubmitting(false);
       return;
@@ -293,7 +288,7 @@ export default function Repesca() {
       data = await response.json();
     } catch {
       console.error("[Repesca] non-JSON response", response.status);
-      triggerHaptic([60, 40, 60]);
+      haptic.error();
       toast.push(t("repesca.errorInvalidResponse"), { type: "error" });
       setIsSubmitting(false);
       return;
@@ -301,7 +296,7 @@ export default function Repesca() {
 
     if (!response.ok) {
       console.error("[Repesca] server error", { status: response.status, data });
-      triggerHaptic([60, 40, 60]);
+      haptic.error();
       toast.push(
         data?.error ? `Error: ${data.error}` : t("repesca.errorValidationFailed"),
         { type: "error" }
@@ -323,8 +318,8 @@ export default function Repesca() {
       if (result.win) newPhase = "won";
       else if (newGuesses.length >= effectiveMaxAttempts) newPhase = "lost";
 
-      if (newPhase === "won") triggerHaptic(200);
-      else if (newPhase === "lost") triggerHaptic([100, 50, 100]);
+      if (newPhase === "won") haptic.success();
+      else if (newPhase === "lost") haptic.warning();
 
       setGuesses(newGuesses);
       setPhase(newPhase);
@@ -348,7 +343,7 @@ export default function Repesca() {
       return result;
     } catch (err) {
       console.error("[Repesca] post-response error", err);
-      triggerHaptic([60, 40, 60]);
+      haptic.error();
       toast.push(t("repesca.errorProcessingResponse"), { type: "error" });
     } finally {
       setIsSubmitting(false);

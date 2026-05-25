@@ -36,7 +36,7 @@ import { methodGuard } from "./_lib/http.js";
 // srcset del front), que es donde se decide qué tamaños se piden.
 // 1920 quitado: en móvil/desktop normal nunca se pide y solo añadía una
 // cache key más que calentar y otra ocasión de cold-start de sharp.
-const ALLOWED_WIDTHS = new Set([640, 1280]);
+const ALLOWED_WIDTHS = new Set([640, 1280, 1920]);
 const FORMAT_MIME = {
   avif: "image/avif",
   webp: "image/webp",
@@ -272,16 +272,20 @@ export default async function handler(req, res) {
         });
       }
       if (wantedFormat === "avif") {
-        // effort 2: encoda ~3× más rápido que effort 4 a cambio de archivos
-        // ~10-15% más grandes (imperceptible para fotos de coches). El cold
-        // start de la función Vercel pasa de 3-8 s a 1-2 s, lo que evita
-        // que el watchdog del cliente (8 s) dispare el fallback a JPEG.
-        pipeline = pipeline.avif({ quality: 50, effort: 2 });
+        // quality 68: la imagen del coche es el centro de la web y los
+        // primeros intentos aplican un zoom grande (hasta 3.7×), donde
+        // los artefactos de compresión se hacen muy visibles. Subimos
+        // de 50 a 68 — peso +30-50% pero los detalles finos (parrilla,
+        // faros, badges) aguantan el zoom sin "look comprimido".
+        // effort 2: NO subir. Effort 4 hace el cold-start de sharp pasar
+        // de 1-2 s a 3-8 s, lo que dispara el watchdog del cliente (8 s)
+        // y cae al fallback JPEG.
+        pipeline = pipeline.avif({ quality: 68, effort: 2 });
       } else if (wantedFormat === "webp") {
-        pipeline = pipeline.webp({ quality: 75 });
+        pipeline = pipeline.webp({ quality: 85 });
       } else if (wantedFormat === "jpeg") {
         pipeline = pipeline.jpeg({
-          quality: 80,
+          quality: 90,
           mozjpeg: true,
           progressive: true,
         });

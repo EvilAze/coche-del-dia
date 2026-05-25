@@ -1,5 +1,6 @@
 // src/components/CarImage.jsx
 import { useEffect, useRef, useState } from "react";
+import { haptic } from "../lib/haptics";
 
 // Aspect ratio por defecto mientras la imagen aún no ha cargado.
 // Se reemplaza por el natural (img.naturalWidth/Height) al onLoad.
@@ -83,9 +84,14 @@ export default function CarImage({
 
   // Flash dorado de "pista desbloqueada" sólo durante la partida. Se
   // dispara al cambiar el `zoom` CSS (cada intento baja el scale).
+  // El háptico (tap ligerísimo) acompaña al flash para reforzar la sensación
+  // de "algo se ha revelado" — coherente con el shake del intento erróneo
+  // que YA disparó haptic.warning() en GuessForm; aquí es el contrapunto
+  // positivo del mismo gesto.
   useEffect(() => {
     if (loaded && prevZoomRef.current !== zoom && status === "playing") {
       setFlashKey((k) => k + 1);
+      haptic.impactLight();
     }
     prevZoomRef.current = zoom;
   }, [zoom, status, loaded]);
@@ -182,15 +188,15 @@ export default function CarImage({
         {isApiProxy && !imgFailed && (
           <source
             type="image/avif"
-            srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w`}
-            sizes="(max-width: 480px) 200vw, 1280px"
+            srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
+            sizes="(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px"
           />
         )}
         {isApiProxy && !imgFailed && (
           <source
             type="image/webp"
-            srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w`}
-            sizes="(max-width: 480px) 200vw, 1280px"
+            srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
+            sizes="(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px"
           />
         )}
         <img
@@ -202,10 +208,10 @@ export default function CarImage({
           src={isApiProxy ? `${src}&f=jpeg&w=1280` : src}
           srcSet={
             isApiProxy && !imgFailed
-              ? `${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w`
+              ? `${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w, ${src}&f=jpeg&w=1920 1920w`
               : undefined
           }
-          sizes={isApiProxy && !imgFailed ? "(max-width: 480px) 200vw, 1280px" : undefined}
+          sizes={isApiProxy && !imgFailed ? "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px" : undefined}
           alt="Coche del día"
           draggable={false}
           onLoad={handleImageLoad}

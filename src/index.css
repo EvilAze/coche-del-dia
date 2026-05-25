@@ -41,6 +41,29 @@
     font-family: 'DM Sans', sans-serif;
   }
 
+  /*
+   * focus-ring: halo dorado consistente en TODOS los elementos
+   * interactivos (inputs, botones, items de listbox) cuando el usuario
+   * navega con teclado. focus-visible para que no se pinte al hacer
+   * click con ratón — solo en navegación Tab/flechas.
+   *
+   * Antes cada componente tenía su propio `focus:border-accent` (cambio
+   * de 1 px de borde, invisible para usuarios de teclado y técnicamente
+   * Fail en WCAG 2.4.7). Con esta clase, todos los focusables comparten
+   * el mismo "feedback premium" coherente con el resto de la paleta.
+   *
+   * NO usamos ring-offset porque los focusables viven sobre fondos de
+   * 2 tonos distintos (bg-primary y bg-tertiary) y un offset acertaría
+   * solo a uno. Sin offset, el ring se pinta pegado al elemento — el
+   * navegador no necesita conocer el fondo.
+   */
+  .focus-ring {
+    @apply outline-none
+      focus-visible:ring-2
+      focus-visible:ring-accent/60
+      focus-visible:ring-offset-0;
+  }
+
   .scrollbar-premium {
     scrollbar-width: thin;
     scrollbar-color: rgba(232, 200, 122, 0.35) transparent;

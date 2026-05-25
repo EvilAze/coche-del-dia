@@ -64,6 +64,7 @@ function FlameIcon() {
 // --- Shared styles ---
 
 const iconBtn = `
+  focus-ring
   flex h-11 w-11 items-center justify-center rounded-full
   text-muted transition-colors duration-200
   hover:bg-accent/15 hover:text-accent
@@ -116,6 +117,7 @@ function LanguageStrip() {
               type="button"
               onClick={() => { haptic.selection(); setLocale(opt.code); }}
               className={`
+                focus-ring
                 rounded-md border px-2 py-0.5 text-[11px] font-medium
                 transition-colors duration-150
                 ${active
@@ -238,6 +240,7 @@ function UserPopover({
             type="button"
             onClick={onOpenScoring}
             className="
+              focus-ring
               mt-3 flex w-full items-center justify-center gap-1
               rounded-lg border border-white/5 bg-white/[0.02]
               py-2 text-xs font-medium text-muted
@@ -252,6 +255,7 @@ function UserPopover({
             type="button"
             onClick={() => { onClose(); onOpenProfile?.(); }}
             className="
+              focus-ring
               mt-2 flex w-full items-center justify-center gap-1
               rounded-lg border border-white/5 bg-white/[0.02]
               py-2 text-xs font-medium text-muted
@@ -274,6 +278,7 @@ function UserPopover({
             type="button"
             onClick={() => { onClose(); onOpenProfile?.(); }}
             className="
+              focus-ring
               mt-2 flex w-full items-center justify-center gap-1
               rounded-lg border border-accent/40 bg-accent/10
               py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent
@@ -299,6 +304,7 @@ function UserPopover({
             type="button"
             onClick={() => { onClose(); onOpenLogin?.(); }}
             className="
+              focus-ring
               mt-3 flex w-full items-center justify-center gap-1
               rounded-lg border border-accent/40 bg-accent/10
               py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent
@@ -366,6 +372,7 @@ export default function HeaderSandwich({
               aria-expanded={menuOpen}
               aria-haspopup="dialog"
               className={`
+                focus-ring
                 flex h-11 items-center gap-1.5 rounded-full
                 text-muted transition-colors duration-200
                 hover:bg-accent/15 hover:text-accent active:scale-90

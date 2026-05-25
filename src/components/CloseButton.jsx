@@ -8,6 +8,7 @@ export default function CloseButton({ onClick, label = "Cerrar", className = "" 
       aria-label={label}
       title={label}
       className={`
+        focus-ring
         flex h-11 w-11 shrink-0 items-center justify-center
         rounded-full text-muted transition-colors
         hover:bg-white/5 hover:text-white

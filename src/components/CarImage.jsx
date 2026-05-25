@@ -70,17 +70,18 @@ export default function CarImage({
   // (recarga típica en móvil), `img.complete` ya es true y onLoad NUNCA se
   // disparará. Forzamos `loaded = true` para que opacity pase a 1 y el
   // usuario vea la foto, no el LQIP eterno.
-  // Sin dependencia explícita: corre tras CADA render, pero solo actúa
-  // cuando hace falta (loaded === false + img completa). setState con el
-  // mismo valor no re-renderiza, así que no hay loop.
+  // Limitamos a cuando puede ocurrir realmente: tras cambio de src o
+  // mientras loaded sigue false. Antes corría tras cada render (incluso al
+  // cambiar flashKey o naturalRatio) — innecesario y ruidoso en profiler.
   useEffect(() => {
+    if (loaded) return;
     const img = imgRef.current;
     if (!img) return;
-    if (!loaded && img.complete && img.naturalWidth > 0) {
+    if (img.complete && img.naturalWidth > 0) {
       setNaturalRatio(img.naturalWidth / img.naturalHeight);
       setLoaded(true);
     }
-  });
+  }, [src, loaded]);
 
   // Flash dorado de "pista desbloqueada" sólo durante la partida. Se
   // dispara al cambiar el `zoom` CSS (cada intento baja el scale).
@@ -148,25 +149,33 @@ export default function CarImage({
           "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1), max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      {!loaded && (
-        blurData ? (
-          // LQIP: el placeholder borroso ya intuye silueta y paleta del coche
-          // mientras descarga la foto real. El filter:blur es necesario porque
-          // la imagen base64 es solo 24 px de ancho y se escala a 100% del
-          // contenedor — sin blur se vería pixelado. scale(1.1) tapa el halo
-          // transparente que deja el blur en los bordes.
-          <div
-            aria-hidden="true"
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url(${blurData})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              filter: "blur(20px) saturate(1.1)",
-              transform: "scale(1.1)",
-            }}
-          />
-        ) : (
+      {/*
+        LQIP: el placeholder borroso ya intuye silueta y paleta del coche
+        mientras descarga la foto real. El filter:blur es necesario porque
+        la imagen base64 es solo 24 px de ancho y se escala a 100% del
+        contenedor — sin blur se vería pixelado. scale(1.1) tapa el halo
+        transparente que deja el blur en los bordes.
+        Lo mantenemos SIEMPRE montado (no `{!loaded && …}`) y fadeamos su
+        opacidad: así la imagen real cubre por encima durante su propio
+        fade-in y desaparece el parpadeo gris de bg-tertiary que se veía
+        antes en el desmontaje instantáneo del LQIP.
+      */}
+      {blurData ? (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${blurData})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(20px) saturate(1.1)",
+            transform: "scale(1.1)",
+            opacity: loaded ? 0 : 1,
+            transition: "opacity 300ms ease-out",
+          }}
+        />
+      ) : (
+        !loaded && (
           <div className="absolute inset-0 animate-pulse bg-bg-secondary/60" />
         )
       )}
@@ -214,6 +223,14 @@ export default function CarImage({
           sizes={isApiProxy && !imgFailed ? "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px" : undefined}
           alt="Coche del día"
           draggable={false}
+          // Pistas al navegador para optimizar LCP: la foto del coche es el
+          // hero element de la página y siempre está above-the-fold.
+          // - fetchPriority="high": Chrome/Edge la priorizan en la cola de
+          //   descarga incluso si el HTML aún no terminó de parsearse.
+          // - decoding="async": la decodificación no bloquea el main thread,
+          //   evita micro-jank al revelar.
+          fetchPriority="high"
+          decoding="async"
           onLoad={handleImageLoad}
           onError={handleImageError}
           className={`absolute inset-0 h-full w-full object-cover ${isWinReveal && loaded ? "animate-reveal-win" : ""}`}

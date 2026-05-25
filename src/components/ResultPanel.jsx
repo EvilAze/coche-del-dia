@@ -1,10 +1,42 @@
 // src/components/ResultPanel.jsx
+import { useRef, useState } from "react";
 import Confetti from "./Confetti";
 import ScoreBreakdown from "./ScoreBreakdown";
 import { useToast } from "./Toast";
 import { useCountdown } from "../hooks/useCountdown";
 import { useT, getCarDescription } from "../i18n";
 import { haptic } from "../lib/haptics";
+
+// Fallback de copia para contextos sin navigator.clipboard:
+//   - Safari iOS < 13.4
+//   - HTTP (no HTTPS) — Clipboard API exige secure context
+//   - Algunos WebViews embebidos (Instagram, TikTok, etc.)
+// document.execCommand("copy") está deprecated pero sigue funcionando en
+// todos los browsers actuales y cubre exactamente esos casos.
+function legacyCopy(text) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    // Posicionamos fuera de la vista pero dentro del DOM — required para
+    // que select() funcione. opacity:0 evita parpadeo si algún browser
+    // lo pinta brevemente antes de la copia.
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "0";
+    ta.style.width = "1px";
+    ta.style.height = "1px";
+    ta.style.opacity = "0";
+    ta.setAttribute("readonly", "");
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length); // iOS necesita range explícito
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export default function ResultPanel({
   status,
@@ -27,16 +59,41 @@ export default function ResultPanel({
   const toast = useToast();
   const { formatted: countdown } = useCountdown();
 
+  // Estado efímero "Copiado": cambia el propio botón a un estado verde con
+  // checkmark durante ~1.6 s tras un copy exitoso. Funciona como feedback
+  // primario (el toast queda como confirmación redundante por accesibilidad).
+  // El motivo: en móvil, el toast aparece donde está el pulgar — el dedo
+  // tapa la confirmación. Cambiar el botón sí lo ve el usuario porque
+  // acaba de pulsarlo y su mirada está fija ahí.
+  const [justCopied, setJustCopied] = useState(false);
+  const copyResetTimerRef = useRef(null);
+  function flashCopied() {
+    setJustCopied(true);
+    if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
+    copyResetTimerRef.current = setTimeout(() => setJustCopied(false), 1600);
+  }
+
   async function handleShare() {
     haptic.impactLight();
     try {
       if (navigator.share) {
+        // Share nativo: el OS muestra su propia hoja de compartir, no
+        // necesitamos feedback porque el usuario ya recibe confirmación
+        // visual del sistema. No flasheamos el botón aquí.
         await navigator.share({ text: shareText });
         return;
       }
-      if (navigator.clipboard) {
+      if (navigator.clipboard && window.isSecureContext !== false) {
         await navigator.clipboard.writeText(shareText);
         haptic.success();
+        flashCopied();
+        toast.push(t("result.shareCopied"), { type: "success" });
+        return;
+      }
+      // Fallback legacy execCommand — cubre Safari iOS viejo, HTTP, WebViews.
+      if (legacyCopy(shareText)) {
+        haptic.success();
+        flashCopied();
         toast.push(t("result.shareCopied"), { type: "success" });
         return;
       }
@@ -124,13 +181,19 @@ export default function ResultPanel({
 
           <button
             onClick={handleShare}
-            className="
-              border border-accent text-accent rounded-lg px-7 py-2.5
-              text-xs tracking-widest uppercase font-body
-              transition-colors hover:bg-accent/10 active:scale-[0.97]
-            "
+            aria-live="polite"
+            // disabled durante el flash para evitar dobles copias accidentales
+            // (y para que active:scale no compita con la transición de color).
+            disabled={justCopied}
+            className={`
+              rounded-lg px-7 py-2.5 text-xs tracking-widest uppercase font-body
+              border transition-[color,background-color,border-color] duration-200
+              ${justCopied
+                ? "border-green-400/70 bg-green-400/10 text-green-400 cursor-default"
+                : "border-accent text-accent hover:bg-accent/10 active:scale-[0.97]"}
+            `}
           >
-            {t("result.share")}
+            {justCopied ? `✓ ${t("result.shareCopiedShort")}` : t("result.share")}
           </button>
         </>
       )}

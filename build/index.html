@@ -7,30 +7,42 @@
 
     <!--
       Favicons en orden de preferencia para los distintos consumidores:
-        - favicon.ico (legacy, fallback universal Windows / IE / antiguos)
-        - favicon-96x96.png (Chrome / Firefox / Edge para pestana)
-        - favicon-192.png (Google Search; debe ser >=48x48 y multiplo de
-          48 segun https://developers.google.com/search/docs/appearance/favicon-in-search)
-        - apple-touch-icon (iOS al anadir a pantalla de inicio)
-      Decision: omitimos SVG a proposito — no aporta para Google Search
-      (que usa raster) y simplifica la matriz de iconos.
-      El `?v=4` busta cualquier cache previa del navegador y del CDN
-      tras este cambio. Si lo vuelves a cambiar, sube a v=5.
+        - favicon.ico (legacy, fallback universal Windows / Safari antiguos
+          / Google Search Console; el .ico es multi-resolución y resuelve
+          16/32/48 según contexto).
+        - favicon-96x96.png (Chrome/Firefox/Edge en pestañas y bookmarks).
+        - web-app-manifest-192x192.png (Google Search resultado de búsqueda
+          en móvil; debe ser >=48x48 y múltiplo de 48 según
+          https://developers.google.com/search/docs/appearance/favicon-in-search).
+        - apple-touch-icon (iOS al añadir a pantalla de inicio).
+
+      DECISIÓN: omitimos a propósito el <link rel="icon" type="image/svg+xml">
+      aunque exista public/favicon.svg en el repo. Ese SVG es un wrapper
+      generado por RealFaviconGenerator que contiene el PNG embebido en
+      base64 — 391 KB para "renderizar" como pestaña de 16 px, sin ganar
+      la nitidez vectorial que justifica el formato SVG. Si en el futuro
+      tienes un SVG verdaderamente vectorial (Figma / Illustrator export
+      sin raster), añade aquí el link y bórralo del bundle de iconos.
+
+      El `?v=5` busta cualquier caché previa del navegador y del CDN tras
+      el rebrand a "El Coche del Día". Si vuelves a cambiar los iconos,
+      sube a v=6.
     -->
-    <link rel="icon" href="/favicon.ico?v=4" sizes="any" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=4" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png?v=4" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" />
+    <link rel="icon" href="/favicon.ico?v=5" sizes="any" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=5" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/web-app-manifest-192x192.png?v=5" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=5" />
     <link rel="manifest" href="/manifest.json" />
 
-    <title>Carguessr | El juego diario para los amantes de los coches</title>
-    <meta name="description" content="¿Cuánto sabes de motor? Adivina la marca, modelo y año del coche del día en 5 intentos. Un nuevo reto automovilístico cada 24 horas. ¡Juega gratis a Carguessr!" />
-    <meta name="keywords" content="carguessr, juego coches, adivinar coche, wordle de coches, motor, automovilismo, trivia coches" />
-    <meta name="author" content="Carguessr" />
+    <title>El Coche del Día · Adivina el coche en 5 intentos</title>
+    <meta name="description" content="¿Cuánto sabes de motor? Adivina la marca, modelo y año del coche del día en 5 intentos. Un nuevo reto automovilístico cada 24 horas. Juega gratis a El Coche del Día." />
+    <meta name="keywords" content="coche del día, adivina coche, wordle de coches, motor, automovilismo, simracing, trivia coches" />
+    <meta name="author" content="El Coche del Día" />
 
-    <!-- Canonical: evita penalización SEO por duplicados de carguessr.org
-         y www.carguessr.org / .com / etc. Apunta siempre al .org sin www. -->
-    <link rel="canonical" href="https://carguessr.org/" />
+    <!-- Canonical: evita penalización SEO por duplicados (www, http, etc.)
+         y consolida autoridad en el apex sin www. Tras la migración desde
+         carguessr.org (308 desde Vercel), todo el juice fluye aquí. -->
+    <link rel="canonical" href="https://cochedeldia.com/" />
 
     <!--
       Open Graph + Twitter Card.
@@ -41,47 +53,48 @@
       un preview ya pegado en redes sociales, sube el bust query (?v=2).
     -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Carguessr" />
-    <meta property="og:url" content="https://carguessr.org/" />
-    <meta property="og:title" content="Carguessr | El Wordle de Coches" />
+    <meta property="og:site_name" content="El Coche del Día" />
+    <meta property="og:url" content="https://cochedeldia.com/" />
+    <meta property="og:title" content="El Coche del Día · El reto diario para entusiastas del motor" />
     <meta property="og:description" content="¿Eres un experto en motor? Adivina marca, modelo y año del coche del día en 5 intentos. Nuevo coche cada 24h." />
-    <meta property="og:image" content="https://carguessr.org/og-image.jpg?v=1" />
-    <meta property="og:image:secure_url" content="https://carguessr.org/og-image.jpg?v=1" />
+    <meta property="og:image" content="https://cochedeldia.com/og-image.jpg?v=2" />
+    <meta property="og:image:secure_url" content="https://cochedeldia.com/og-image.jpg?v=2" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Carguessr — El reto diario de coches. Adivina marca, modelo y año en 5 intentos." />
+    <meta property="og:image:alt" content="El Coche del Día — El reto diario de coches. Adivina marca, modelo y año en 5 intentos." />
     <meta property="og:locale" content="es_ES" />
     <meta property="og:locale:alternate" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://carguessr.org/" />
-    <meta name="twitter:title" content="Carguessr | El reto diario de coches" />
+    <meta name="twitter:url" content="https://cochedeldia.com/" />
+    <meta name="twitter:title" content="El Coche del Día · El reto diario de coches" />
     <meta name="twitter:description" content="Adivina marca, modelo y año del coche del día en 5 intentos. ¿Te atreves?" />
-    <meta name="twitter:image" content="https://carguessr.org/og-image.jpg?v=1" />
-    <meta name="twitter:image:alt" content="Carguessr — El reto diario de coches" />
+    <meta name="twitter:image" content="https://cochedeldia.com/og-image.jpg?v=2" />
+    <meta name="twitter:image:alt" content="El Coche del Día — El reto diario de coches" />
 
     <!--
       Umami Analytics — privacy-first, sin cookies, ~1 KB.
       `data-domains` limita el envío al dominio real de producción para
       que las pruebas en localhost / preview-deploys no contaminen los
-      datos. `data-website-id` lo rellenas con el UUID que te da Umami
-      al crear el website en cloud.umami.is.
+      datos. Durante la ventana de migración admitimos también
+      carguessr.org para no perder los eventos que entren por el redirect
+      308 durante las primeras semanas. Cuando consolides (en 30-60 días)
+      puedes quitarlo y dejar solo cochedeldia.com.
 
-      Si nunca llegas a poner un ID válido, el script se carga pero el
-      backend rechaza los eventos por website-id inexistente — sin error
-      visible, sin ruido.
+      `data-website-id` es el mismo de siempre — un único website en Umami,
+      solo cambia el dominio en su dashboard.
     -->
     <script
       defer
       src="https://cloud.umami.is/script.js"
       data-website-id="6d3e8cc0-401e-42b0-8cd4-dfc2a2748f1b"
-      data-domains="carguessr.org"
+      data-domains="cochedeldia.com,carguessr.org"
     ></script>
-      <script type="module" crossorigin src="/assets/index-CSR0hKLF.js"></script>
-      <link rel="stylesheet" crossorigin href="/assets/index-CCQW7g2p.css">
+      <script type="module" crossorigin src="/assets/index-DN_Krqf4.js"></script>
+      <link rel="stylesheet" crossorigin href="/assets/index-BECELh-I.css">
     </head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>

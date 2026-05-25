@@ -452,6 +452,8 @@ export default function App() {
               attempts={attempts}
               maxAttempts={maxAttempts}
               shareText={buildShareText(streak)}
+              guesses={guesses}
+              streak={streak}
               score={score}
               user={user}
               onOpenLogin={openLogin}

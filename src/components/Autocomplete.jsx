@@ -138,8 +138,9 @@ export default function Autocomplete({
         data-1p-ignore="true"
         data-lpignore="true"
         className="
+          focus-ring
           h-11 w-full min-w-0 rounded-lg border border-border-strong
-          bg-bg-secondary px-3 text-sm text-white outline-none transition-colors
+          bg-bg-secondary px-3 text-sm text-white transition-colors
           placeholder:text-muted focus:border-accent
           disabled:cursor-not-allowed disabled:opacity-40
         "

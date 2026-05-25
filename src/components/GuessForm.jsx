@@ -374,8 +374,9 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               min={MIN_YEAR}
               max={CURRENT_YEAR}
               className="
+                focus-ring
                 h-11 w-full min-w-0 rounded-lg border border-border-strong
-                bg-bg-secondary pl-3 pr-7 text-sm text-white outline-none
+                bg-bg-secondary pl-3 pr-7 text-sm text-white
                 transition-colors focus:border-accent placeholder:text-muted
                 disabled:cursor-not-allowed disabled:opacity-40
                 [appearance:textfield]

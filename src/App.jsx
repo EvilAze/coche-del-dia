@@ -213,14 +213,12 @@ export default function App() {
         if (!res.ok) return;
         const body = await res.json();
         if (cancelled) return;
-        // missed = ya fue coche del día Y el usuario no lo ha ganado.
-        let missed = 0;
-        for (const c of body.countries || []) {
-          for (const car of c.cars || []) {
-            if (!car.unlocked && car.wasDaily) missed++;
-          }
-        }
-        setRepescaAlert(Boolean(body.repescaAvailable) && missed > 0);
+        // `repescaPoolSize` lo calcula el server: coches que ya fueron daily
+        // y el usuario no ha ganado. Antes derivábamos esto en cliente
+        // sumando `wasDaily && !unlocked`, pero exponer `wasDaily` por-coche
+        // filtraba candidatos al coche del día (ver api/garage.js).
+        const poolSize = Number(body.repescaPoolSize) || 0;
+        setRepescaAlert(Boolean(body.repescaAvailable) && poolSize > 0);
       } catch (err) {
         // Fallar silenciosamente: el badge es decorativo, no crítico.
         console.error("[App] repesca alert check:", err);

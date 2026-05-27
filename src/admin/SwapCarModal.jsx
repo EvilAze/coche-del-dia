@@ -29,6 +29,11 @@ export default function SwapCarModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [picking, setPicking] = useState(null); // id del coche siendo enviado
+  // IDs de coches ya jugados (hoy o pasado). Vienen de /api/admin/schedule
+  // y sirven para deshabilitar visualmente esas opciones — el backend ya
+  // rechaza el POST con 409 si se intenta, pero deshabilitar en UI evita
+  // que el admin haga clicks ciegos.
+  const [usedCarIds, setUsedCarIds] = useState([]);
 
   // Resetea estado al abrir/cerrar.
   useEffect(() => {
@@ -39,6 +44,40 @@ export default function SwapCarModal({
       setPicking(null);
     }
   }, [open]);
+
+  // Carga la lista de coches ya jugados cada vez que se abre el modal —
+  // fresca, no cacheada, porque podría haber cambiado desde la última vez
+  // (otro admin asignando, o el propio usuario tras un swap previo).
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch("/api/admin/schedule", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && Array.isArray(body.usedCarIds)) {
+          setUsedCarIds(body.usedCarIds);
+        }
+      } catch (err) {
+        // Fail silent: si no podemos cargar la lista, simplemente no
+        // deshabilitamos nada y el backend hace el rechazo final con 409.
+        console.warn("[SwapCarModal] no se pudo cargar usedCarIds:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  // Set para O(1) lookup en el render de la lista.
+  const usedSet = useMemo(() => new Set(usedCarIds), [usedCarIds]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -52,6 +91,12 @@ export default function SwapCarModal({
       `${c.marca} ${c.modelo} ${c.anio}`.toLowerCase().includes(q)
     );
   }, [CARS, query, currentCarId]);
+
+  // Estadística para el header: coches consumidos sobre el total del catálogo.
+  // Útil para que el admin vea de un vistazo cuánto stock le queda — clave
+  // para decidir si debe añadir más coches.
+  const totalCars = CARS.length;
+  const usedCount = usedCarIds.length;
 
   async function handlePick(carId) {
     if (isSubmitting) return;
@@ -104,6 +149,14 @@ export default function SwapCarModal({
         <h2 className="mt-1 font-display text-xl tracking-widest text-white">
           {date}
         </h2>
+        {totalCars > 0 && (
+          <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-muted">
+            <span className="tabular-nums text-white">{usedCount}</span>
+            {" / "}
+            <span className="tabular-nums">{totalCars}</span>
+            {" ya jugados"}
+          </p>
+        )}
       </header>
 
       <div className="border-b border-border px-5 py-3">
@@ -127,35 +180,54 @@ export default function SwapCarModal({
             {query ? "Ningún coche encaja con la búsqueda" : "Catálogo vacío"}
           </li>
         ) : (
-          filtered.map((c) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handlePick(c.id)}
-                className="
-                  flex w-full items-center justify-between gap-3 rounded-lg
-                  px-2 py-2.5 text-left transition
-                  hover:bg-white/5
-                  disabled:cursor-not-allowed disabled:opacity-50
-                "
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-white">
-                    {c.marca} {c.modelo}
-                  </p>
-                  <p className="text-[11px] uppercase tracking-widest text-muted">
-                    {c.anio} · {c.pais}
-                  </p>
-                </div>
-                {picking === c.id && (
-                  <span className="text-[10px] uppercase tracking-widest text-accent">
-                    Asignando…
-                  </span>
-                )}
-              </button>
-            </li>
-          ))
+          filtered.map((c) => {
+            const isUsed = usedSet.has(c.id);
+            return (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  // Deshabilitamos si: hay un POST en curso, O este coche
+                  // ya salió como coche del día. Visualmente bajamos opacidad
+                  // y atenuamos los textos para que se lea "ítem inhábil".
+                  disabled={isSubmitting || isUsed}
+                  onClick={() => handlePick(c.id)}
+                  title={isUsed ? "Este coche ya ha sido coche del día" : undefined}
+                  className={`
+                    flex w-full items-center justify-between gap-3 rounded-lg
+                    px-2 py-2.5 text-left transition
+                    disabled:cursor-not-allowed
+                    ${isUsed
+                      ? "opacity-45"
+                      : "hover:bg-white/5 disabled:opacity-50"}
+                  `}
+                >
+                  <div className="min-w-0">
+                    <p className={`truncate text-sm ${isUsed ? "text-muted line-through decoration-muted/40" : "text-white"}`}>
+                      {c.marca} {c.modelo}
+                    </p>
+                    <p className="text-[11px] uppercase tracking-widest text-muted">
+                      {c.anio} · {c.pais}
+                    </p>
+                  </div>
+                  {picking === c.id && (
+                    <span className="text-[10px] uppercase tracking-widest text-accent">
+                      Asignando…
+                    </span>
+                  )}
+                  {isUsed && picking !== c.id && (
+                    <span
+                      className="
+                        shrink-0 rounded border border-muted/30 bg-muted/10
+                        px-1.5 py-0.5 text-[9px] uppercase tracking-[0.14em] text-muted
+                      "
+                    >
+                      Ya jugado
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })
         )}
       </ul>
 

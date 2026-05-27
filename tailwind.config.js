@@ -22,7 +22,14 @@ module.exports = {
           dark: "#c4a455",
           glow: "rgba(232,200,122,0.15)",
         },
-        muted: "#9a9aab",
+        // Gris cálido neutral: mismo nivel de brillo que el #9a9aab anterior
+        // pero con undertone cálido (R>G>B) en vez de frío azulado (B>R>G).
+        // Razón: con la paleta cobre/oro establecida (título, flecha año,
+        // bandera misma-nacionalidad, botón ADIVINAR), el muted anterior leía
+        // como "azulado residual" contra el resto. Este tono integra sin
+        // robar protagonismo. Cambio global porque text-muted aparece en ~160
+        // sitios y el problema era sistémico, no puntual.
+        muted: "#a39d97",
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease forwards",

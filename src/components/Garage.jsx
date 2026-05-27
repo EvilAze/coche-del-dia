@@ -20,6 +20,7 @@ import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
 import { track } from "../lib/analytics";
+import { flagImagePath } from "../data/countries";
 
 // Mapa de profundidad de cada vista del Garaje. Sirve para decidir la
 // dirección del slide al cambiar de vista: bajar de nivel (countries →
@@ -42,20 +43,6 @@ const slideTransition = {
   x: { type: "spring", stiffness: 320, damping: 32 },
   opacity: { duration: 0.18 },
 };
-
-function slugifyCountry(pais) {
-  return String(pais || "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/\./g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-");
-}
-
-function flagImagePath(pais) {
-  return `/flags/${slugifyCountry(pais)}.jpg`;
-}
 
 // Slug de marca según especificación del usuario: simple lowercase + spaces→-.
 // No quitamos acentos a propósito (es como el usuario nombra los .png).

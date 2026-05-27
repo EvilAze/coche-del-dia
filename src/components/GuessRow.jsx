@@ -1,4 +1,4 @@
-import { COUNTRY_FLAGS } from "../data/countries";
+import { flagImagePath } from "../data/countries";
 import { useT, getLocalizedCountry } from "../i18n";
 
 const STATUS_STYLES = {
@@ -7,15 +7,15 @@ const STATUS_STYLES = {
     icon: "text-green-400",
     symbol: "✓",
   },
+  // "Misma nacionalidad" = tercer estado del juego (ni acierto ni fallo).
+  // Cobre cálido: distinto del rojo de fallo, distinto del amarillo de las
+  // flechas de año, semánticamente "casi" (warmth = "estuviste cerca").
+  // El indicador derecho es la BANDERA (imagen real, JPG en /public/flags),
+  // no un glifo de texto — por eso symbol/icon van como null.
   partial: {
-    cell: "bg-[#2a2318] border-[#5a4a1d]",
-    icon: "text-yellow-400",
-    symbol: "≈",
-  },
-  country: {
-    cell: "bg-[#142532] border-[#2f6f95]",
-    icon: "text-sky-300",
-    symbol: "🌍",
+    cell: "bg-[#2d1f15] border-[#6a4128]",
+    icon: null,
+    symbol: null,
   },
   wrong: {
     cell: "bg-[#2a1a1a] border-[#5a2d2d]",
@@ -44,16 +44,18 @@ function YearDirection({ direction }) {
     <span
       className={`
         inline-flex h-6 w-6 shrink-0 items-center justify-center
-        rounded-full border bg-yellow-500/15 text-yellow-300
-        border-yellow-500/40
+        rounded-full border bg-[#2d1f15] text-orange-300
+        border-[#6a4128]
         sm:h-7 sm:w-7
       `}
       title={label}
       aria-label={label}
     >
-      {/* SVG chevron en lugar del unicode ↑/↓ para que se vea grueso y
-          nítido a cualquier tamaño. strokeWidth alto para que destaque
-          incluso en la versión móvil (h-6). */}
+      {/* Flecha completa (tallo + cabeza triangular) en vez del chevron
+          escueto. La proporción tallo:cabeza ~2:1 + strokeWidth alto le
+          da peso visual y la hace inconfundible incluso a 14 px. Colores
+          cobre cálido para alinearse con el estado "misma nacionalidad"
+          (ambos son hints/pistas, no estados de acierto/fallo). */}
       <svg
         viewBox="0 0 24 24"
         className="h-3.5 w-3.5 sm:h-4 sm:w-4"
@@ -64,7 +66,11 @@ function YearDirection({ direction }) {
         strokeLinejoin="round"
         aria-hidden="true"
       >
-        {isUp ? <path d="M6 15l6-6 6 6" /> : <path d="M6 9l6 6 6-6" />}
+        {isUp ? (
+          <path d="M12 20V4m-7 7l7-7 7 7" />
+        ) : (
+          <path d="M12 4v16m-7-7l7 7 7-7" />
+        )}
       </svg>
     </span>
   );
@@ -72,17 +78,19 @@ function YearDirection({ direction }) {
 
 function Cell({ label, value, status, pais, direction, isYear, isMarca, pending, revealDelayMs }) {
   const { t } = useT();
+  // Marca con status="partial" = misma nacionalidad pero marca incorrecta.
+  // El backend SOLO emite "partial" en la celda marca y solo cuando el país
+  // coincide (ver api/validate-guess.js).
+  //
+  // Decisión UX final (post-iteraciones): este es un TERCER ESTADO de juego
+  // ("casi"), no un fallo decorado. Patrón Wordle-style:
+  //   verde + ✓      = correcto
+  //   cobre + bandera = misma nacionalidad
+  //   rojo  + ✕      = fallo
+  // Una sola señal visual por celda (color + icono), sin chips adicionales.
   const isCountryPartial = isMarca && status === "partial";
-  const s = pending
-    ? PENDING_STYLE
-    : isCountryPartial
-    ? STATUS_STYLES.country
-    : STATUS_STYLES[status];
-  const flag = pending
-    ? null
-    : isCountryPartial
-    ? COUNTRY_FLAGS[pais] || s.symbol
-    : s.symbol;
+  const s = pending ? PENDING_STYLE : STATUS_STYLES[status];
+  const flag = pending ? null : s.symbol;
   const showYearDirection = !pending && isYear && status !== "correct";
 
   // Si revealDelayMs viene definido, esta celda se está revelando ahora:
@@ -128,7 +136,7 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca, pending,
             sm:text-[11px] sm:tracking-widest
           "
         >
-          {isCountryPartial ? t("guessRow.countryOk") : label}
+          {label}
         </span>
 
         <span
@@ -146,7 +154,7 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca, pending,
       {/* Indicador a la derecha. items-center del padre lo centra verticalmente. */}
       {pending ? (
         // Tres puntitos pulsando: señal compacta de "esperando" alineada a
-        // la derecha donde luego aparecerá el icono real (✓/≈/🌍/✕).
+        // la derecha donde luego aparecerá el icono real (✓ / ✕).
         <span className="relative flex shrink-0 items-end gap-0.5" aria-hidden="true">
           <span className="h-1 w-1 animate-bounce rounded-full bg-muted/70 [animation-delay:0ms]" />
           <span className="h-1 w-1 animate-bounce rounded-full bg-muted/70 [animation-delay:150ms]" />
@@ -154,13 +162,33 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca, pending,
         </span>
       ) : isYear ? (
         showYearDirection && <YearDirection direction={direction} />
+      ) : isCountryPartial && pais ? (
+        // Bandera real (JPG en /public/flags) — misma fuente que el Garage.
+        // ES el icono del estado (no un add-on), por eso ocupa el mismo slot
+        // que ✓/✕ y se voltea con el mismo flip-reveal de la celda. Funciona
+        // cross-platform: en Windows los emojis de bandera renderizan como
+        // texto "SE/DE" y rompían la lectura — la imagen sí se ve bien
+        // siempre. Tooltip explicita "País correcto: Suecia".
+        <span
+          className="inline-flex shrink-0 overflow-hidden rounded-sm shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+          title={t("guessRow.countryOkTitle", { pais: getLocalizedCountry(pais) })}
+        >
+          <img
+            src={flagImagePath(pais)}
+            alt={t("guessRow.countryOkTitle", { pais: getLocalizedCountry(pais) })}
+            width={22}
+            height={14}
+            loading="lazy"
+            decoding="async"
+            className="block h-3.5 w-[22px] object-cover sm:h-4 sm:w-[26px]"
+          />
+        </span>
       ) : (
         <span
           className={`
             relative shrink-0 text-sm font-bold leading-none sm:text-base
             ${s.icon}
           `}
-          title={isCountryPartial && pais ? t("guessRow.countryOkTitle", { pais: getLocalizedCountry(pais) }) : undefined}
           aria-hidden="true"
         >
           {flag}

@@ -16,7 +16,6 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabaseClient";
 import CarImage from "./components/CarImage";
 import AttemptDots from "./components/AttemptDots";
-import HintLegend from "./components/HintLegend";
 import GuessRow from "./components/GuessRow";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
@@ -230,8 +229,8 @@ export default function Repesca() {
         ? VETERAN_ZOOM
         : ZOOM_LEVELS[zoomIndex]
       : 1.0;
-  // En Veterano ocultamos la leyenda de pistas (no hay) pasando hintIndex
-  // null aun en juego; HintLegend ya gestiona ese caso.
+  // En Veterano no hay pistas progresivas: pasamos hintIndex null para que
+  // CarImage no muestre el indicador interno de pista.
   const hintIndex = phase === "playing" && !isVeteran ? zoomIndex : null;
   const totalHints = ZOOM_LEVELS.length;
 
@@ -490,8 +489,6 @@ export default function Repesca() {
             max={effectiveMaxAttempts}
             won={phase === "won"}
           />
-
-          {!isVeteran && <HintLegend />}
 
           {guesses.length > 0 && (
             <div className="mb-4 mt-3 flex w-full min-w-0 flex-col gap-2">

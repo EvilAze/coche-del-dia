@@ -20,9 +20,14 @@ export default async function handler(req, res) {
   // podría cruzarlo con la URL que devuelve /api/get-daily-car y deducir
   // marca/modelo/año del coche del día. Para mostrar imágenes en herramientas
   // internas (Preview), hay endpoints separados con auth.
+  //
+  // image_ready SÍ se expone: el admin lo usa para ver qué coches están
+  // pendientes de imagen. No revela nada sensible — solo dice "este coche
+  // existe en catálogo pero todavía no es elegible para coche del día".
+  // El daily real va por otro endpoint (get-daily-car) con su propio hardening.
   const { data, error } = await supabasePublic
     .from("cars")
-    .select("id, make, model, year, pais")
+    .select("id, make, model, year, pais, image_ready")
     .order("id", { ascending: true });
 
   if (error) {
@@ -31,12 +36,16 @@ export default async function handler(req, res) {
   }
 
   // Mapeamos a las claves en español que ya usa el frontend.
+  // image_ready se incluye sólo si la columna existe (defensa por si se
+  // consulta antes de aplicar la migración SQL: el ?? true mantiene el
+  // comportamiento legacy de "todo coche está listo").
   const cars = data.map((row) => ({
     id: row.id,
     marca: row.make,
     modelo: row.model,
     anio: row.year,
     pais: row.pais,
+    image_ready: row.image_ready ?? true,
   }));
 
   const marcas = [...new Set(cars.map((c) => c.marca))].sort((a, b) =>

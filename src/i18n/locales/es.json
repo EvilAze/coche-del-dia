@@ -50,7 +50,10 @@
     "lockedCarDescription": "Inicia sesión para descubrir qué coche era, guardar tus estadísticas y entrar al ranking.",
     "loginModalTitle": "INICIAR SESIÓN",
     "loginModalDescription": "Guarda tus estadísticas en la nube, compite en el ranking global y juega desde cualquier dispositivo.",
-    "footerPrivacy": "Política de Privacidad"
+    "footerPrivacy": "Política de Privacidad",
+    "dayRolloverTitle": "¡Nuevo coche del día!",
+    "dayRolloverBody": "El reto de hoy ya está disponible. Recarga la página para jugarlo.",
+    "dayRolloverButton": "Recargar"
   },
   "guess": {
     "labelMarca": "Marca",

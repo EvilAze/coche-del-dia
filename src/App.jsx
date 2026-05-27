@@ -1,11 +1,9 @@
 // src/App.jsx
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
 import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
 import CarImage from "./components/CarImage";
-import GarageDoorSplash from "./components/GarageDoorSplash";
 import GuessRow from "./components/GuessRow";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
@@ -18,6 +16,7 @@ import CloseButton from "./components/CloseButton";
 import ModalShell from "./components/ModalShell";
 import { useGame } from "./hooks/useGame";
 import { useEscape } from "./hooks/useEscape";
+import { useDayRollover } from "./hooks/useDayRollover";
 import { useT } from "./i18n";
 
 function LockedRevealCard() {
@@ -89,48 +88,20 @@ export default function App() {
   // currentStreak — lo aplicamos sin refetch.
   const [streak, setStreak] = useState(0);
 
-  // Splash de carga:
-  //   - Primera visita en esta sesión del navegador → splash con
-  //     duración mínima SPLASH_MIN_MS para que la animación se
-  //     entienda.
-  //   - Visitas siguientes en la misma sesión (refresh, navegación
-  //     interna que monte App de nuevo) → skip total. Los jugadores
-  //     diarios solo ven el splash una vez por sesión, no en cada
-  //     refresh.
-  //   - sessionStorage se borra al cerrar el navegador / pestaña, así
-  //     que el splash vuelve a salir en la siguiente sesión "fresh".
-  const SPLASH_MIN_MS = 1700;
-  // Prefijo histórico "carguessr_" mantenido a propósito tras la migración
-  // a cochedeldia.com — cambiarlo invalidaría la sessionStorage de los
-  // usuarios activos y todos verían el splash de nuevo en su próxima visita.
-  const SPLASH_SEEN_KEY = "carguessr_splash_seen";
-  const splashAlreadySeen =
-    typeof window !== "undefined" &&
-    window.sessionStorage?.getItem(SPLASH_SEEN_KEY) === "1";
-  const splashMountedAtRef = useRef(Date.now());
-  const [splashMinElapsed, setSplashMinElapsed] = useState(splashAlreadySeen);
-  // Sticky: una vez el splash decide "ya estás dentro", no vuelve a
-  // mostrarse aunque dataReady oscile (por re-fetch, re-auth, lo que
-  // sea). Esto evita la regresión "se ve la animación dos veces".
-  const [splashFinished, setSplashFinished] = useState(splashAlreadySeen);
-  useEffect(() => {
-    if (splashAlreadySeen) return;
-    const remaining = Math.max(
-      0,
-      SPLASH_MIN_MS - (Date.now() - splashMountedAtRef.current)
-    );
-    const id = setTimeout(() => {
-      setSplashMinElapsed(true);
-      try {
-        window.sessionStorage?.setItem(SPLASH_SEEN_KEY, "1");
-      } catch {
-        // sessionStorage puede estar deshabilitado (Safari privado en
-        // algunos casos). No es crítico: solo significa que la próxima
-        // visita verá el splash de nuevo.
-      }
-    }, remaining);
-    return () => clearTimeout(id);
-  }, [splashAlreadySeen]);
+  // Sin splash bloqueante. Antes había un GarageDoorSplash con duración
+  // mínima de 1700 ms que el usuario fiel veía cada día (o cada sesión)
+  // antes de poder jugar. La pieza era preciosa pero suponía un peaje
+  // visible: ~25% del tiempo total que el jugador medio pasa en la web.
+  //
+  // Estrategia actual: app-shell instantáneo + skeleton del recuadro de
+  // imagen mientras /api/get-daily-car resuelve. Header, contador de
+  // intentos y formulario aparecen en el primer paint (~150-400 ms tras
+  // la navegación), y el coche encaja en su sitio con el fade-in nativo
+  // de CarImage (LQIP → AVIF) sin overlay que ocultar.
+  //
+  // Si en el futuro quieres recuperar la pieza de marca, hazlo como
+  // intro opcional (link "Ver intro" en footer) o como animación de
+  // arranque de PWA — no como bloqueo del primer paint.
 
   // Gate de re-sincronización: onAuthStateChange dispara TOKEN_REFRESHED
   // cada vez que el browser recupera el foco de la pestaña, con un user
@@ -261,6 +232,14 @@ export default function App() {
 
   useEscape(activeModal === "login", closeModal);
 
+  // Day rollover: el usuario dejó la pestaña abierta cruzando medianoche.
+  // El front muestra los datos de "ayer" pero el server ya valida contra
+  // el coche de "hoy" — un nuevo intento devolvería respuestas raras y
+  // rompería la sensación de partida. El modal pide recargar (no lo hacemos
+  // automáticamente para no descartar input no enviado del usuario, p.ej.
+  // un guess a medio escribir).
+  const staleDay = useDayRollover();
+
   const {
     car,
     isLoading,
@@ -300,36 +279,41 @@ export default function App() {
     month: "long",
   });
 
-  // Visitas repetidas (sessionStorage marcado): NO montamos el splash
-  // de puerta en ningún momento. Si la API tarda, se ve un fondo plano
-  // breve. Primera visita: splash hasta que dataReady && minElapsed.
-  //
-  // CRÍTICO: splashFinished es sticky una vez se pone a true. Sin él,
-  // si dataReady oscila false→true→false (por re-auth, re-fetch, etc.)
-  // el splash desmontaría y remontaría → la animación de la puerta
-  // arrancaría de cero otra vez. El sticky lo blinda.
   const dataReady = !isLoading && !!car;
+
+  // Preload del daily-image en cuanto conocemos la URL. CarImage va a
+  // renderizar su <picture> en el mismo ciclo, así que la ganancia neta
+  // es de pocos ms — pero el navegador trata `<link rel=preload>` con
+  // prioridad alta desde el primer byte, así que el fetch arranca antes
+  // de pasar por el reconciliador de React. Imagesrcset/imagesizes deben
+  // coincidir EXACTAMENTE con los del <picture> de CarImage para que el
+  // browser reuse el resource cuando CarImage monte (si difieren, doble
+  // descarga). El AVIF es el path feliz; navegadores antiguos ignorarán
+  // el preload AVIF y caerán al <img> JPEG fallback de CarImage sin
+  // penalización.
   useEffect(() => {
-    if (!splashFinished && dataReady && splashMinElapsed) {
-      setSplashFinished(true);
-    }
-  }, [splashFinished, dataReady, splashMinElapsed]);
-  const showSplash = !splashAlreadySeen && !splashFinished;
+    if (!car?.img) return;
+    if (typeof document === "undefined") return;
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.type = "image/avif";
+    link.imageSrcset = `${car.img}&f=avif&w=640 640w, ${car.img}&f=avif&w=1280 1280w, ${car.img}&f=avif&w=1920 1920w`;
+    link.imageSizes = "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px";
+    link.fetchPriority = "high";
+    document.head.appendChild(link);
+    return () => {
+      try {
+        document.head.removeChild(link);
+      } catch {
+        // El link puede haber desaparecido si React limpió el head
+        // (hot-reload, navegación rara). No es crítico.
+      }
+    };
+  }, [car?.img]);
 
   return (
-    <>
-      {/* Splash superpuesto a TODO el resto. Vive en un único punto del
-          árbol: aunque dataReady oscile o el contenido cambie por debajo,
-          este overlay no se desmonta hasta que splashFinished=true (sticky).
-          Esto evita que la animación de la puerta arranque dos veces. */}
-      <AnimatePresence>
-        {showSplash && <GarageDoorSplash key="splash" />}
-      </AnimatePresence>
-
-      {!dataReady ? (
-        <div className="min-h-screen bg-bg-primary" />
-      ) : (
-        <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
 
 
       <Header
@@ -365,9 +349,15 @@ export default function App() {
         </header>
 
         <main className="w-full min-w-0">
+          {/* CarImage siempre montado: cuando car es null, internamente cae
+              al skeleton (animate-pulse sobre bg-bg-secondary/60) con el
+              mismo aspect-ratio 1:1 y borde que tendrá la imagen final.
+              Cuando car llega, src cambia y el LQIP base64 entra como
+              fondo blureado, luego el AVIF crossfade encima. Cero overlay
+              que ocultar y cero tiempo muerto entre estados. */}
           <CarImage
-            src={car.img}
-            blurData={car.blurData}
+            src={car?.img ?? null}
+            blurData={car?.blurData ?? null}
             zoom={zoom}
             hintIndex={hintIndex}
             totalHints={totalHints}
@@ -408,25 +398,42 @@ export default function App() {
 
           {(guesses.length > 0 || pendingGuess) && <div className="my-4 h-px bg-border" />}
 
-          {status === "playing" ? (
-            <GuessForm
-              onSubmit={submitGuess}
-              isSubmitting={isSubmitting}
-              guesses={guesses}
-            />
+          {/* Form/Result gateado por dataReady para evitar dos cosas:
+              (a) Renderizar ResultPanel con car=null y pinchar al leer
+                  car.marca durante el loading inicial de un usuario
+                  logueado que ya cerró la partida.
+              (b) Flash brevísimo de GuessForm "playing" antes de que
+                  llegue la respuesta del server y status cambie a
+                  won/lost. Mantener el espacio reservado evita layout
+                  shift cuando el contenido aparece. */}
+          {dataReady ? (
+            status === "playing" ? (
+              <GuessForm
+                onSubmit={submitGuess}
+                isSubmitting={isSubmitting}
+                guesses={guesses}
+              />
+            ) : (
+              <ResultPanel
+                status={status}
+                car={car}
+                attempts={attempts}
+                maxAttempts={maxAttempts}
+                shareText={buildShareText(streak)}
+                guesses={guesses}
+                streak={streak}
+                score={score}
+                user={user}
+                onOpenLogin={openLogin}
+              />
+            )
           ) : (
-            <ResultPanel
-              status={status}
-              car={car}
-              attempts={attempts}
-              maxAttempts={maxAttempts}
-              shareText={buildShareText(streak)}
-              guesses={guesses}
-              streak={streak}
-              score={score}
-              user={user}
-              onOpenLogin={openLogin}
-            />
+            // Reserva visual mientras llega el estado de la partida:
+            // misma altura aprox que GuessForm (3 inputs + botón) para
+            // que no haya CLS cuando el contenido real entra. Vacío a
+            // propósito — el skeleton del recuadro de imagen ya da
+            // suficiente señal de "cargando", duplicarla aquí ensucia.
+            <div className="min-h-[12.5rem]" aria-hidden="true" />
           )}
         </main>
 
@@ -508,8 +515,39 @@ export default function App() {
           setActiveModal(null);
         }}
       />
+
+      {/* Day rollover: no dismissable por backdrop ni por ESC. Lo único
+          que puede hacer el usuario es recargar la página. Si dejamos
+          cerrar el modal, seguiría jugando con el coche de ayer y todos
+          los intentos darían respuesta inconsistente. */}
+      <ModalShell
+        open={staleDay}
+        onClose={() => {}}
+        dismissOnBackdrop={false}
+        backdropClassName="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+        panelClassName="relative w-full max-w-sm rounded-2xl border border-accent/40 bg-bg-primary p-6 text-center shadow-2xl"
+      >
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-2xl">
+          🚗
+        </div>
+        <h2 className="font-display text-xl tracking-widest text-accent">
+          {t("app.dayRolloverTitle")}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          {t("app.dayRolloverBody")}
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="
+            mt-5 w-full rounded-lg bg-accent px-4 py-3
+            font-display text-base tracking-widest text-bg-primary
+            transition-transform hover:scale-[1.02] active:scale-[0.98]
+          "
+        >
+          {t("app.dayRolloverButton")}
+        </button>
+      </ModalShell>
     </div>
-      )}
-    </>
   );
-} 
+}

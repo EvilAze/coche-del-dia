@@ -10,6 +10,12 @@ export default function Autocomplete({
   placeholder = "",
   disabled = false,
   id,
+  // Si true, pinta el input con borde rojo SOLO cuando está fuera de foco
+  // (el dropdown cerrado). La idea: mientras el usuario tipea, no le damos
+  // feedback negativo — quizá está a medio escribir. Solo cuando ya ha
+  // dejado el campo y el texto no coincide con ninguna opción exacta,
+  // marcamos visualmente "esto no es válido, vuelve y selecciona".
+  invalid = false,
 }) {
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
@@ -137,13 +143,16 @@ export default function Autocomplete({
         // sobre el input — pensaban que era un campo de username.
         data-1p-ignore="true"
         data-lpignore="true"
-        className="
+        className={`
           focus-ring
-          h-11 w-full min-w-0 rounded-lg border border-border-strong
+          h-11 w-full min-w-0 rounded-lg border
           bg-bg-secondary px-3 text-sm text-white transition-colors
           placeholder:text-muted focus:border-accent
           disabled:cursor-not-allowed disabled:opacity-40
-        "
+          ${invalid && !open
+            ? "border-red-500/70 bg-red-500/5"
+            : "border-border-strong"}
+        `}
       />
 
       {open && filtered.length > 0 && (

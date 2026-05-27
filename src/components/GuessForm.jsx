@@ -169,6 +169,24 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   }
 
   const marcaValidaSeleccionada = MARCAS.includes(marca);
+  // Feedback visual de "marca tecleada pero no seleccionada del dropdown".
+  // p.ej. el usuario escribe "Ferra", hace click fuera y se va a otro campo
+  // sin haber elegido "Ferrari" de la lista. Sin esta señal, ve el campo
+  // Modelo deshabilitado pero no entiende por qué. El borde rojo en Marca
+  // (solo cuando el campo NO tiene foco — el Autocomplete lo gestiona) le
+  // dice "vuelve aquí y selecciona una opción de la lista".
+  const marcaInvalida = marca.trim().length > 0 && !marcaValidaSeleccionada;
+  // Mismo principio para Modelo: si la marca es válida pero el texto del
+  // modelo no coincide con ningún modelo del catálogo de esa marca. Solo
+  // tiene sentido cuando la marca ya es válida (sin marca, el campo está
+  // disabled y el usuario no puede haber tecleado ahí).
+  const modeloValidoSeleccionado =
+    marcaValidaSeleccionada &&
+    CARS.some((c) => c.marca === marca && c.modelo === modelo);
+  const modeloInvalido =
+    marcaValidaSeleccionada &&
+    modelo.trim().length > 0 &&
+    !modeloValidoSeleccionado;
 
   // ANTI-CHEAT: hasta que el usuario no elija una marca válida del catálogo,
   // NO devolvemos ningún modelo. Antes devolvíamos toda la lista de modelos
@@ -312,6 +330,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             options={availableMarcas}
             placeholder=""
             disabled={formDisabled}
+            invalid={marcaInvalida}
           />
         </label>
 
@@ -333,6 +352,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             options={modelOptions}
             placeholder={marcaValidaSeleccionada ? "" : t("guess.placeholderModeloDisabled")}
             disabled={formDisabled || !marcaValidaSeleccionada}
+            invalid={modeloInvalido}
           />
         </label>
 

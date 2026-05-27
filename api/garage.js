@@ -134,6 +134,19 @@ export default async function handler(req, res) {
     // 3) Agrupar por país. Sin clase de coche → "Sin país" como cubo
     //    fallback (en la práctica no debería pasar porque pais es required
     //    en /admin/add-car, pero defensivo).
+    // Contador agregado de "cromos pendientes": coches que YA fueron coche
+    // del día y el usuario aún no ha ganado. Es el tamaño de la pool de
+    // repesca y lo que el header usa para pintar el badge ámbar.
+    //
+    // Crítico: NO exponemos `wasDaily` por-coche. Hacerlo permitía un cheat
+    // pasivo — el atacante filtraba locked + wasDaily=false y obtenía la
+    // lista exacta de candidatos a coche-del-día de hoy (pick_daily_car
+    // solo elige de coches con image_ready=true que aún no han salido).
+    // Cruzando con /api/list-cars (image_ready expuesto) reducía el espacio
+    // de adivinación a 1-2 intentos. Al pasar a un agregado top-level
+    // perdemos esa señal sin perder la funcionalidad de la repesca.
+    let repescaPoolSize = 0;
+
     const byCountry = new Map();
     for (const c of cars || []) {
       const pais = c.pais || "Sin país";
@@ -143,6 +156,7 @@ export default async function handler(req, res) {
       const unlocked = unlockedIds.has(c.id);
       const wasDaily = pastDailyIds.has(c.id);
       const wasLost = lostIds.has(c.id);
+      if (!unlocked && wasDaily) repescaPoolSize++;
       byCountry.get(pais).cars.push(
         unlocked
           ? {
@@ -160,7 +174,6 @@ export default async function handler(req, res) {
               // 302 a la URL pública de Supabase, así que no añade peso.
               img: carImageProxyUrl(c.id, IMAGE_MODE_CLEAR),
               unlocked: true,
-              wasDaily,
               // wonAsVeteran: lo ganó tras haberlo fallado previamente.
               // Insignia discreta en garaje (más mérito que ganar a la
               // primera, porque tuvo que recordar marca+modelo+año
@@ -182,7 +195,6 @@ export default async function handler(req, res) {
               // No se puede "ver con F12" la imagen nítida.
               img: carImageProxyUrl(c.id, IMAGE_MODE_BLURRED),
               unlocked: false,
-              wasDaily,
               // veteran: si lo repesca, será en Modo Veterano (1 intento,
               // sin pistas) porque ya lo vio revelado al fallar antes.
               // Solo informativo; el enforcement está en /api/repesca/*.
@@ -228,6 +240,11 @@ export default async function handler(req, res) {
       totalUnlocked,
       countries,
       // Repesca (sistema "una al día"):
+      //   repescaPoolSize      → cuántos coches del catálogo ya fueron daily
+      //                          pero el usuario no ha ganado. Sustituye al
+      //                          antiguo `wasDaily` por-coche para no filtrar
+      //                          qué cromos son candidatos a coche-del-día
+      //                          (ver comentario arriba del loop).
       //   repescaAvailable     → true si el usuario no ha consumido repesca
       //                          hoy. El frontend usa este flag para decidir
       //                          si las cards repescables son interactivas
@@ -235,6 +252,7 @@ export default async function handler(req, res) {
       //   repescaActiveCarId   → si hay una repesca en curso (consumida hoy
       //                          pero sin terminar), aquí va el car_id que
       //                          el usuario eligió. Permite "Continuar".
+      repescaPoolSize,
       repescaAvailable,
       // Convertimos también el carId de la repesca activa a pseudo para
       // que el frontend pueda hacer `car.id === repescaActiveCarId` y

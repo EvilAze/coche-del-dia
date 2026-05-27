@@ -54,17 +54,6 @@ function brandLogoPath(marca) {
   return `/brands/${brandSlug(marca)}.png`;
 }
 
-// Cuenta coches "missed" en un array: ya fue coche del día y el usuario
-// no lo ha ganado. Es la cifra que muestra el indicador ámbar y la que
-// usa el filtro "Solo pendientes" para decidir qué tarjetas aparecen.
-function countMissed(cars) {
-  let n = 0;
-  for (const c of cars || []) {
-    if (!c.unlocked && c.wasDaily) n++;
-  }
-  return n;
-}
-
 // Agrupa el array de coches de un país por marca, devolviendo una lista
 // ordenada por progreso (desbloqueados desc) y luego alfabético.
 function groupCarsByBrand(cars) {
@@ -79,7 +68,6 @@ function groupCarsByBrand(cars) {
       ...b,
       unlocked: b.cars.filter((c) => c.unlocked).length,
       total: b.cars.length,
-      missed: countMissed(b.cars),
     }))
     .sort((a, b) => {
       if (b.unlocked !== a.unlocked) return b.unlocked - a.unlocked;
@@ -211,21 +199,14 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       ? brandsInCountry.find((b) => b.marca === selectedBrand) || null
       : null;
 
-  // Pool global de coches "pasados y pendientes": todos los coches que YA
-  // fueron coche del día (wasDaily) y que el usuario AÚN no ha adivinado
-  // (no unlocked). Los ids son pseudo-ids opacos generados por /api/garage,
-  // lo cual es lo que queremos: el cliente nunca conoce la marca/modelo del
-  // coche que va a tocar hasta que empieza la partida.
-  const repescaPool = useMemo(() => {
-    if (!state.data?.countries) return [];
-    const ids = [];
-    for (const c of state.data.countries) {
-      for (const car of c.cars || []) {
-        if (car.wasDaily && !car.unlocked) ids.push(car.id);
-      }
-    }
-    return ids;
-  }, [state.data]);
+  // Tamaño de la pool de repesca: cuántos coches ya fueron daily y el
+  // usuario aún no los ha ganado. Lo calcula el servidor en /api/garage
+  // (`repescaPoolSize`) — antes lo derivábamos en cliente con `wasDaily`
+  // por-coche, pero esa señal permitía un cheat pasivo (filtrar locked +
+  // !wasDaily revelaba candidatos a coche-del-día). Ahora solo recibimos
+  // el agregado. El servidor también es quien elige el coche concreto en
+  // /api/repesca/start (CSPRNG), así que el cliente nunca necesita los ids.
+  const repescaPoolSize = state.data?.repescaPoolSize ?? 0;
 
   // Click en el CTA "Repesca Aleatoria". Hace los pre-checks rápidos antes
   // de abrir el modal de confirmación — no merece la pena enseñar reglas si
@@ -245,7 +226,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       return;
     }
 
-    if (repescaPool.length === 0) {
+    if (repescaPoolSize === 0) {
       toast.push(t("garage.toastAllGuessed"), {
         type: "success",
       });
@@ -276,7 +257,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   // cerrado. La pool local solo se usa para la guarda defensiva.
   async function confirmAndStartRepesca() {
     if (repescaStarting) return;
-    if (repescaPool.length === 0) {
+    if (repescaPoolSize === 0) {
       // Defensivo: la pool pudo cambiar entre apertura y aceptación.
       setConfirmRepesca(false);
       return;
@@ -530,7 +511,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
                 <CountriesMenu
                   data={state.data}
                   onSelectCountry={setSelectedCountry}
-                  repescaPoolSize={repescaPool.length}
+                  repescaPoolSize={repescaPoolSize}
                   repescaAvailable={!!state.data?.repescaAvailable}
                   repescaActiveCarId={state.data?.repescaActiveCarId || null}
                   repescaStarting={repescaStarting}
@@ -562,7 +543,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
 
           <RandomRepescaConfirm
             open={confirmRepesca}
-            poolSize={repescaPool.length}
+            poolSize={repescaPoolSize}
             starting={repescaStarting}
             onCancel={() => {
               if (repescaStarting) return;
@@ -604,14 +585,7 @@ function CountriesMenu({
   onOpenHelp,
 }) {
   const { t } = useT();
-  // Decoramos cada país con su `missed` (no `unlocked` && wasDaily) para
-  // que CountryCard pueda mostrar el contador ámbar.
-  const countriesWithMissed = useMemo(() => {
-    return (data.countries || []).map((c) => ({
-      ...c,
-      missed: countMissed(c.cars),
-    }));
-  }, [data.countries]);
+  const countries = data.countries || [];
 
   return (
     <>
@@ -667,7 +641,7 @@ function CountriesMenu({
 
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {countriesWithMissed.map((c) => (
+          {countries.map((c) => (
             <CountryCard
               key={c.pais}
               country={c}

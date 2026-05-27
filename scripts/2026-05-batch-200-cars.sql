@@ -37,7 +37,7 @@ WHERE n.nspname = 'public' AND p.proname = 'pick_daily_car';
 
 
 -- =============================================================================
--- [PASO 1] Schema: columna image_ready + image_url nullable
+-- [PASO 1] Schema: columna image_ready + image_url nullable + GRANT
 -- =============================================================================
 -- Aditivo y seguro. Los 203 coches existentes quedan con image_ready=TRUE
 -- por el DEFAULT, así que su comportamiento NO cambia. Idempotente: usar
@@ -50,6 +50,15 @@ ALTER TABLE public.cars
 -- Si tu schema ya lo tiene nullable, este ALTER es no-op.
 ALTER TABLE public.cars
   ALTER COLUMN image_url DROP NOT NULL;
+
+-- ⚠️ CRÍTICO: el hardening previo restringe SELECT en `cars` a columnas
+-- concretas para anon/authenticated (ver supabase-hardening.sql [B.5]).
+-- Sin este GRANT explícito sobre la columna nueva, /api/list-cars rompe
+-- con permission denied → frontend ve "0 coches en catálogo". El anon
+-- necesita poder leer image_ready para que EditCarPanel pueda marcar los
+-- pendientes con 📷. La columna NO revela info sensible: solo dice "este
+-- coche existe pero todavía no es elegible como coche del día".
+GRANT SELECT (image_ready) ON public.cars TO authenticated, anon;
 
 -- Índice parcial: pick_daily_car va a leer `WHERE image_ready=TRUE` y un
 -- index parcial sobre esa condición es ínfimo (200 falsos vs 200 trues

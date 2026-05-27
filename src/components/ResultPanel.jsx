@@ -242,12 +242,14 @@ export default function ResultPanel({
       <Confetti active={won} />
 
       {won ? (
-        <>
-          <div className="font-display text-3xl tracking-widest text-green-400 mb-1">
-            {t("result.wonTitle")}
-          </div>
-          <div className="text-2xl mb-3">🎉</div>
-        </>
+        // En victoria el Confetti animado (línea 242) ya carga la
+        // celebración — añadir un 🎉 estático debajo del título era doble
+        // celebración y leía como asterisco triste. En derrota mantenemos
+        // 😔 porque no hay particle animation y el emoji aporta la única
+        // señal emocional.
+        <div className="font-display text-3xl tracking-widest text-green-400 mb-3">
+          {t("result.wonTitle")}
+        </div>
       ) : (
         <>
           <div className="font-display text-3xl tracking-widest text-red-400 mb-1">
@@ -295,15 +297,6 @@ export default function ResultPanel({
         </div>
       )}
 
-      <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">
-        <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
-          {t("result.nextCar")}
-        </p>
-        <p className="mt-1 font-display text-2xl tabular-nums tracking-[0.18em] text-white">
-          {countdown}
-        </p>
-      </div>
-
       {shareText && (
         // Card UNIFICADA: preview + acción son una sola unidad conceptual
         // ("esto es lo que vas a compartir" + "hazlo"). Antes vivían en
@@ -314,6 +307,11 @@ export default function ResultPanel({
         // del wordmark y como divisor entre preview y CTA. Doble función
         // visual con un único elemento — patrón típico de share cards en
         // los daily puzzles de NYT, etc.
+        //
+        // Orden de la página: este bloque va ANTES de la cuenta atrás
+        // ("próximo coche en...") porque captura al usuario en el pico
+        // emocional del win. Meter info "para mañana" entre la victoria
+        // y el botón de compartir bajaba el momentum del share.
         <div
           className="
             mb-4 rounded-xl border border-border/60 bg-bg-secondary/40
@@ -344,20 +342,66 @@ export default function ResultPanel({
             // disabled durante el flash para evitar dobles copias accidentales
             // (y para que active:scale no compita con la transición de color).
             disabled={justCopied}
+            // Estado idle: outlined dorado con wash interno sutil
+            // (bg-accent/[0.06]) + halo exterior bajo (shadow accent/15)
+            // + icono share a la izquierda. El conjunto eleva visibilidad
+            // sin pasarse a "botón sólido" (lo que entraría en competencia
+            // con el GUARDAR MI PROGRESO sólido de abajo cuando aparecen
+            // los dos en anon-win). El halo cambia a más intenso en hover.
             className={`
               focus-ring
-              w-full rounded-lg border
-              px-4 py-2.5 text-xs tracking-widest uppercase font-body
-              transition-[color,background-color,border-color] duration-200
+              group inline-flex w-full items-center justify-center gap-2
+              rounded-lg border
+              px-4 py-2.5 text-xs tracking-widest uppercase font-semibold font-body
+              transition-[color,background-color,border-color,box-shadow,transform]
+              duration-200
               ${justCopied
                 ? "border-green-400/70 bg-green-400/10 text-green-400 cursor-default"
-                : "border-accent text-accent hover:bg-accent/10 active:scale-[0.97]"}
+                : `border-accent text-accent
+                   bg-accent/[0.06]
+                   shadow-[0_0_24px_-6px_rgba(232,200,122,0.25)]
+                   hover:bg-accent/15
+                   hover:shadow-[0_0_28px_-4px_rgba(232,200,122,0.4)]
+                   active:scale-[0.97]`}
             `}
           >
-            {justCopied ? `✓ ${t("result.shareCopiedShort")}` : t("result.share")}
+            {justCopied ? (
+              <>✓ {t("result.shareCopiedShort")}</>
+            ) : (
+              <>
+                {/* Icono share genérico (square + arrow) — universal,
+                    funciona tanto si el OS abre share sheet nativo como
+                    si copia al portapapeles. Stroke 2 para parear el
+                    peso de la tipografía font-semibold. */}
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-y-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
+                  <path d="M16 6l-4-4-4 4" />
+                  <path d="M12 2v14" />
+                </svg>
+                {t("result.share")}
+              </>
+            )}
           </button>
         </div>
       )}
+
+      <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">
+        <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
+          {t("result.nextCar")}
+        </p>
+        <p className="mt-1 font-display text-2xl tabular-nums tracking-[0.18em] text-white">
+          {countdown}
+        </p>
+      </div>
 
       {!user && won && (
         <div className="mt-5 rounded-xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 text-left">

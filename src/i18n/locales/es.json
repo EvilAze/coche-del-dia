@@ -46,24 +46,18 @@
     "loadingCar": "Aparcando coche...",
     "title": "Coche del Día",
     "attempts": "intentos",
-    "hint": "Pista",
     "lockedCar": "Coche bloqueado",
     "lockedCarDescription": "Inicia sesión para descubrir qué coche era, guardar tus estadísticas y entrar al ranking.",
     "loginModalTitle": "INICIAR SESIÓN",
     "loginModalDescription": "Guarda tus estadísticas en la nube, compite en el ranking global y juega desde cualquier dispositivo.",
     "footerPrivacy": "Política de Privacidad"
   },
-  "legend": {
-    "correct": "Correcto",
-    "country": "País",
-    "wrong": "Incorrecto"
-  },
   "guess": {
     "labelMarca": "Marca",
     "labelModelo": "Modelo",
     "labelAnio": "Año",
     "placeholderAnio": "ej. 2019",
-    "placeholderModeloDisabled": "Elige marca primero",
+    "placeholderModeloDisabled": "Marca primero",
     "yearsToleranceHelp": "±2 años aceptados",
     "submit": "ADIVINAR",
     "submitting": "COMPROBANDO",
@@ -76,7 +70,6 @@
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",
     "yearLowerTitle": "El año correcto es menor",
-    "countryOk": "País ok",
     "countryOkTitle": "País correcto: {pais}"
   },
   "result": {

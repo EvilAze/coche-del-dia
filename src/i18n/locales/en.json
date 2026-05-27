@@ -46,24 +46,18 @@
     "loadingCar": "Parking the car...",
     "title": "Car of the Day",
     "attempts": "attempts",
-    "hint": "Hint",
     "lockedCar": "Car locked",
     "lockedCarDescription": "Sign in to reveal which car it was, save your stats and join the ranking.",
     "loginModalTitle": "SIGN IN",
     "loginModalDescription": "Save your stats in the cloud, compete on the global ranking and play from any device.",
     "footerPrivacy": "Privacy Policy"
   },
-  "legend": {
-    "correct": "Correct",
-    "country": "Country",
-    "wrong": "Wrong"
-  },
   "guess": {
     "labelMarca": "Make",
     "labelModelo": "Model",
     "labelAnio": "Year",
     "placeholderAnio": "e.g. 2019",
-    "placeholderModeloDisabled": "Pick a make first",
+    "placeholderModeloDisabled": "Make first",
     "yearsToleranceHelp": "±2 years allowed",
     "submit": "GUESS",
     "submitting": "CHECKING",
@@ -76,7 +70,6 @@
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",
     "yearLowerTitle": "The correct year is lower",
-    "countryOk": "Country ok",
     "countryOkTitle": "Correct country: {pais}"
   },
   "result": {

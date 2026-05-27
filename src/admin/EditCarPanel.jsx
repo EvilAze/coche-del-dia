@@ -63,6 +63,23 @@ export default function EditCarPanel({
     [CARS]
   );
 
+  // Filtro de "solo pendientes de imagen": cuando el admin tiene cientos
+  // de coches en catálogo, encontrar a cuáles les falta imagen es una
+  // necesidad recurrente (ej: batch de 200 inserts vía SQL). Toggle
+  // simple por encima del dropdown que reduce la lista a los image_ready=FALSE.
+  const [showOnlyPending, setShowOnlyPending] = useState(false);
+  const pendingCount = useMemo(
+    () => CARS.filter((c) => c.image_ready === false).length,
+    [CARS]
+  );
+  const visibleCars = useMemo(
+    () =>
+      showOnlyPending
+        ? carsSorted.filter((c) => c.image_ready === false)
+        : carsSorted,
+    [carsSorted, showOnlyPending]
+  );
+
   const [form, setForm] = useState(initialForm);
   const [originalForm, setOriginalForm] = useState(initialForm);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -357,10 +374,31 @@ export default function EditCarPanel({
               Coche
               <span className="ml-2 normal-case tracking-normal text-muted">
                 · {CARS.length} en catálogo
+                {pendingCount > 0 && (
+                  <>
+                    {" · "}
+                    <span className="text-amber-300">
+                      📷 {pendingCount} sin imagen
+                    </span>
+                  </>
+                )}
               </span>
             </>
           }
         >
+          {pendingCount > 0 && (
+            // Toggle de filtro: aparece SOLO si hay pendientes. Cuando no
+            // hay nada que filtrar, no metemos chrome extra.
+            <label className="mb-2 inline-flex cursor-pointer items-center gap-2 text-[11px] uppercase tracking-widest text-muted">
+              <input
+                type="checkbox"
+                checked={showOnlyPending}
+                onChange={(e) => setShowOnlyPending(e.target.checked)}
+                className="h-3.5 w-3.5 accent-amber-300"
+              />
+              Solo pendientes de imagen
+            </label>
+          )}
           <select
             value={selectedCarId}
             onChange={(e) => {
@@ -370,8 +408,9 @@ export default function EditCarPanel({
             className={selectClass}
           >
             <option value="">— Selecciona —</option>
-            {carsSorted.map((c) => (
+            {visibleCars.map((c) => (
               <option key={c.id} value={c.id}>
+                {c.image_ready === false ? "📷 " : ""}
                 {c.marca} {c.modelo} ({c.anio})
               </option>
             ))}

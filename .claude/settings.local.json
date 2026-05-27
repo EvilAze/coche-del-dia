@@ -75,7 +75,9 @@
       "Bash(grep -oE \"[0-9]\\\\.[0-9]{6,}\" \"C:/Users/Ruben/Downloads/web-app-manifest-512x512.svg\")",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Ruben\\\\Downloads\\\\coche-del-dia_1\" -Recurse -Filter \"*admin*\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -First 20)",
-      "Bash(npx --no-install vite build --mode development)"
+      "Bash(npx --no-install vite build --mode development)",
+      "Bash(curl -s \"https://cochedeldia.com/api/list-cars\")",
+      "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); cars=d['cars']; print\\(f'Total: {len\\(cars\\)}'\\); [print\\(f'{c[\\\\\"marca\\\\\"]} | {c[\\\\\"modelo\\\\\"]} | {c[\\\\\"anio\\\\\"]} | {c[\\\\\"pais\\\\\"]}'\\) for c in sorted\\(cars, key=lambda x: \\(x['marca'], x['modelo']\\)\\)]\")"
     ]
   }
 }

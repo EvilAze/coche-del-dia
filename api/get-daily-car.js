@@ -1,78 +1,159 @@
 // api/get-daily-car.js
-// Devuelve el estado del juego de HOY sin filtrar ningún dato cruzable con
-// el catálogo público:
+// Endpoint del PRIMER PAINT: lo que el cliente pide nada más arrancar para
+// saber qué coche es hoy, qué imagen pintar y en qué estado está la partida
+// del usuario. Es el único request bloqueante del path crítico, así que aquí
+// se nota cada milisegundo.
+//
+// ARQUITECTURA — Vercel Edge Function:
+//   - Runtime "edge" (V8 isolate compartido) en vez de serverless Node.
+//     Cold start típico <50 ms vs 200-500 ms del serverless. Para una
+//     visita fresca (primera del día por región), esto solo ya recorta
+//     ~300 ms al primer paint.
+//   - Region pinneada a `fra1` (Frankfurt) — el más cercano a Supabase
+//     EU y a la base de usuarios principal (es). Sin pin, el Edge se
+//     ejecutaría cerca del visitante pero tendría que cruzar Atlántico
+//     hasta Supabase EU — peor que el actual.
+//
+// HARDENING DE SEGURIDAD (preservado del handler Node anterior):
 //   - NO se devuelve `id` del coche del día (antes permitía cruzarlo con
 //     /api/list-cars y deducir marca/modelo/año).
-//   - NO se devuelve la URL real del CDN (antes contenía el nombre del coche
-//     en el filename). En su lugar apuntamos al proxy /api/daily-image, que
-//     sirve los bytes desde nuestro servidor.
+//   - NO se devuelve la URL real del CDN. En su lugar apuntamos al proxy
+//     /api/daily-image, que sirve los bytes desde nuestro servidor.
+//   - Para usuarios logueados también devolvemos el estado guardado
+//     (intentos, status, score) leyéndolo server-side de user_guesses,
+//     para que el frontend no tenga que conocer el car_id.
 //
-// Para usuarios logueados también devolvemos el estado guardado (intentos,
-// status, score si ganó/perdió) leyéndolo server-side de user_guesses, para
-// que el frontend no tenga que conocer el car_id para hacer esa consulta.
+// PARALELIZACIÓN DE I/O (lo nuevo en esta versión):
+//   - pick_daily_car y auth.getUser() se ejecutan en paralelo: son
+//     independientes y entre los dos solían sumar 250-500 ms en
+//     secuencial.
+//   - Después de tener carId: la lectura de cars.image_url y la
+//     lectura de user_guesses se hacen en paralelo.
+//   - Para partidas terminadas: la lectura de los datos del reveal
+//     (marca/modelo/año/país) y la firma del revealToken corren a la vez.
+//   En total: pasamos de 5 round-trips secuenciales a 3.
 
-import crypto from "node:crypto";
-import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
-import { signRevealToken } from "./_lib/reveal-token.js";
-import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
-import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
+import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { todayInMadrid } from "./_lib/date.js";
+import { signRevealToken } from "./_lib/edge/reveal-token.js";
+import { readAnonSession, buildSetCookie } from "./_lib/edge/anon-session.js";
+import { sha1Hex } from "./_lib/edge/crypto.js";
 
-export default async function handler(req, res) {
+export const config = {
+  runtime: "edge",
+  // Pinneamos a Frankfurt: el Edge se ejecuta físicamente cerca del
+  // visitante por defecto, pero después tiene que hablar con Supabase
+  // EU. Sin pin, un visitante en US ejecutaría en us-east → cruzaría
+  // Atlántico cada query → peor latencia que el serverless EU actual.
+  // Con `fra1`, todos los visitantes pagan el ping inicial a Frankfurt
+  // (~30-150 ms según geo) pero las queries a Supabase son sub-20 ms.
+  // Para la audiencia mayoritariamente española de cochedeldia.com es
+  // el trade-off correcto.
+  regions: ["fra1"],
+};
+
+// Helper de respuesta JSON con headers consistentes. Centralizar evita
+// olvidar el Cache-Control no-store o el Content-Type en algún return.
+function jsonResponse(body, { status = 200, headers = {} } = {}) {
+  const h = new Headers({
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+    ...headers,
+  });
+  return new Response(JSON.stringify(body), { status, headers: h });
+}
+
+// Cliente Supabase con el JWT del usuario, llamada local porque el helper
+// existente vive en auth.js que usa req.headers estilo Vercel. Aquí lo
+// inline para que la cadena de imports sea estrictamente Edge-safe.
+async function authClientAndUser(accessToken) {
+  if (!accessToken) return { client: null, user: null };
+  try {
+    const client = createAuthClient(accessToken);
+    if (!client) return { client: null, user: null };
+    const { data, error } = await client.auth.getUser();
+    if (error || !data?.user) return { client: null, user: null };
+    return { client, user: data.user };
+  } catch {
+    return { client: null, user: null };
+  }
+}
+
+export default async function handler(request) {
   const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
     const missing = getMissingAdminEnvs();
     console.error(`[get-daily-car] missing env vars: ${missing.join(", ")}`);
-    return res.status(500).json({ message: "Server misconfigured" });
+    return jsonResponse({ message: "Server misconfigured" }, { status: 500 });
   }
 
   const today = todayInMadrid();
 
-  // Resolvemos el coche del día solo para verificar que existe y para que la
-  // RPC haga su trabajo de fijarlo en daily_cars. NO devolvemos el id.
-  const { data: todayCarId, error: rpcErr } = await supabaseAdmin.rpc(
-    "pick_daily_car",
-    { p_date: today }
-  );
+  // Extraemos el token aquí para poder lanzar auth.getUser() en paralelo
+  // con pick_daily_car. Ambas son independientes y entre las dos suelen
+  // sumar 250-500 ms en secuencial.
+  const authHeader = request.headers.get("authorization") || "";
+  const accessToken = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
+
+  // FASE 1: arranque paralelo. Ni pick_daily_car ni la resolución de
+  // sesión dependen del otro. El usuario anónimo paga solo pick_daily_car.
+  const [rpcResult, authResult] = await Promise.all([
+    supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+    accessToken
+      ? authClientAndUser(accessToken)
+      : Promise.resolve({ client: null, user: null }),
+  ]);
+
+  const { data: todayCarId, error: rpcErr } = rpcResult;
   if (rpcErr || !todayCarId) {
     console.error("[get-daily-car] pick_daily_car:", rpcErr);
-    return res.status(500).json({ message: "Failed to pick daily car" });
+    return jsonResponse({ message: "Failed to pick daily car" }, { status: 500 });
   }
+  const { client: authClient, user } = authResult;
 
-  const accessToken = extractAccessToken(req);
-  const { client: authClient, user } = await authClientAndUser(accessToken);
+  // FASE 2: con carId resuelto, paralelizamos:
+  //   - Lectura de image_url + blur_data (necesarios para construir el
+  //     URL del proxy + el LQIP).
+  //   - Si hay usuario, lectura de su user_guesses (status + guesses).
+  //
+  // Para anónimos, la rama de user_guesses cae a un resolve(null) y solo
+  // hacemos la lectura de imagen.
+  const [imgResult, gameResult] = await Promise.all([
+    supabaseAdmin
+      .from("cars")
+      .select("image_url, blur_data")
+      .eq("id", todayCarId)
+      .maybeSingle(),
+    user
+      ? authClient
+          .from("user_guesses")
+          .select("guesses, status")
+          .eq("user_id", user.id)
+          .eq("car_id", todayCarId)
+          .eq("date", today)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
-  // Cache-buster derivado de image_url. Cuando el admin reemplaza la foto
-  // desde /admin/edit-car, el nuevo path lleva Date.now() en el nombre, así
-  // que image_url cambia y el hash cambia → el navegador y el CDN reciben
-  // un URL distinto y refrescan al instante, sin esperar al s-maxage de 24h
-  // del endpoint /api/daily-image.
-  // Si admin solo edita texto (marca/modelo/año/país/descripción), image_url
-  // no se toca, el hash es estable y el CDN mantiene el hit caliente para
-  // todos los visitantes.
-  // El hash NO filtra el coche: image_url no es público (list-cars lo omite)
-  // y un sha1 truncado no permite reverse-engineering.
-  // Aprovechamos para leer también blur_data — el LQIP que el cliente pinta
-  // como fondo del skeleton mientras descarga la foto real. La data URI pesa
-  // ~0.5-1 KB, despreciable comparado con el coste de pintar gris vacío.
-  // image_url NO se devuelve al cliente; solo sirve para computar el hash.
-  const { data: imgRow, error: imgRowErr } = await supabaseAdmin
-    .from("cars")
-    .select("image_url, blur_data")
-    .eq("id", todayCarId)
-    .maybeSingle();
+  const { data: imgRow, error: imgRowErr } = imgResult;
   if (imgRowErr) {
-    // Si esto falla por algún motivo, seguimos sin versión (cache "vieja"
+    // Si falla la lectura de image_url, seguimos sin versión (cache "vieja"
     // hasta el TTL natural). Es estrictamente mejor que romper la home.
-    console.error("[get-daily-car] read image_url for version:", imgRowErr);
+    console.error("[get-daily-car] read image_url:", imgRowErr);
   }
+
+  // Cache-buster sha1 corto. Si admin reemplaza la foto desde
+  // /admin/edit-car, image_url cambia → hash cambia → CDN sirve la nueva
+  // al instante. Si solo edita texto, image_url no se toca y el CDN
+  // mantiene el hit caliente.
   const imgVersion = imgRow?.image_url
-    ? crypto.createHash("sha1").update(imgRow.image_url).digest("hex").slice(0, 8)
+    ? (await sha1Hex(imgRow.image_url)).slice(0, 8)
     : "0";
   const dailyImgUrl = `/api/daily-image?d=${today}&v=${imgVersion}`;
   const blurData = imgRow?.blur_data || null;
 
-  // Estado base que vale para anónimos.
   const base = {
     date: today,
     img: dailyImgUrl,
@@ -82,122 +163,102 @@ export default async function handler(req, res) {
     reveal: null,
   };
 
+  // -------- RAMA ANÓNIMA -------------------------------------------------
   if (!user) {
-    // Sesión anónima: gestionamos un cookie HttpOnly firmado para que
-    // /api/validate-guess pueda contar intentos server-side. Sin esto,
-    // el endpoint validaba `attemptNumber` desde el body — un script
-    // podía iterar todo el catálogo con attemptNumber:1 y descubrir el
-    // coche del día via `result.win` en alguna iteración.
-    //
-    // Estrategia:
-    //   - Si el visitante NO tiene cookie válida del día → emitimos una
-    //     fresca con n=0, s=playing.
-    //   - Si la tiene y es de hoy → la respetamos (no se pisa el progreso).
-    //   - Si la tiene pero es de un día anterior → la reemplazamos.
-    const anon = readAnonSession(req);
+    const responseHeaders = {};
+
+    // Cookie HttpOnly firmada con HMAC para que /api/validate-guess pueda
+    // contar intentos server-side sin confiar en `attemptNumber` del body.
+    // Si la cookie ya existe y es de hoy, la respetamos (no pisar progreso).
+    const anon = await readAnonSession(request);
     const anonValid =
       anon &&
       anon.d === today &&
       Number.isInteger(anon.n) &&
       typeof anon.s === "string";
+
     if (!anonValid) {
       try {
-        setAnonCookie(res, { d: today, n: 0, s: "playing" });
+        responseHeaders["Set-Cookie"] = await buildSetCookie({
+          d: today,
+          n: 0,
+          s: "playing",
+        });
       } catch (err) {
         // Si REPESCA_TOKEN_SECRET no está configurado, dejamos al usuario
         // jugar sin cookie. validate-guess se quejará pero al menos la
         // home no rompe.
-        console.error("[get-daily-car] setAnonCookie:", err?.message || err);
+        console.error("[get-daily-car] buildSetCookie:", err?.message || err);
       }
     }
 
-    // Si el anónimo ya GANÓ hoy, le damos el revealToken para que pueda
-    // ver la imagen completa al refrescar. Si PERDIÓ, NO se lo damos:
-    // firmarle el token le permitiría pedir /api/daily-image?t=... y ver
-    // el coche entero, regalándole la respuesta. Ese es exactamente el
-    // cheat "abrir incógnito → fallar adrede → leer/ver el coche →
-    // jugar con la cuenta real ya sabiendo la respuesta". Asimetría
-    // intencional. El cliente perdedor anónimo queda con la imagen
-    // blurred + overlay de login (lo gestiona CarImage).
+    // Asimetría intencional con el caso "lost" del anónimo: NO firmamos
+    // revealToken al perdedor para no regalarle la imagen completa al
+    // siguiente refresh. Solo al ganador anónimo.
     let revealToken = null;
     if (anonValid && anon.s === "won") {
       try {
-        revealToken = signRevealToken(today);
+        revealToken = await signRevealToken(today);
       } catch (err) {
         console.error("[get-daily-car] signRevealToken (anon):", err?.message || err);
       }
     }
 
-    // No queremos que un CDN cachee el estado del usuario.
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json({ ...base, revealToken });
+    return jsonResponse({ ...base, revealToken }, { headers: responseHeaders });
   }
 
-  // Usuario logueado: leemos su fila de user_guesses (RLS exige auth.uid()).
-  const { data: row, error: rowErr } = await authClient
-    .from("user_guesses")
-    .select("guesses, status")
-    .eq("user_id", user.id)
-    .eq("car_id", todayCarId)
-    .eq("date", today)
-    .maybeSingle();
-
-  if (rowErr) {
-    console.error("[get-daily-car] read user_guesses:", rowErr);
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json(base);
+  // -------- RAMA LOGUEADA ------------------------------------------------
+  const { data: gameRow, error: gameErr } = gameResult;
+  if (gameErr) {
+    console.error("[get-daily-car] read user_guesses:", gameErr);
+    return jsonResponse(base);
   }
 
-  const status = row?.status || "playing";
-  const guesses = Array.isArray(row?.guesses) ? row.guesses : [];
+  const status = gameRow?.status || "playing";
+  const guesses = Array.isArray(gameRow?.guesses) ? gameRow.guesses : [];
 
-  // Revelamos marca/modelo/año si el usuario ganó o si perdió. Leemos los
-  // datos LIVE desde `cars` (no desde la copia congelada en user_guesses)
-  // para que las correcciones que haga el admin en /admin/edit-car se
-  // reflejen al instante en pantalla — hot-swap real.
-  //
-  // Descripción/ficha: SOLO en victoria. La identidad del coche (marca,
-  // modelo, año, país) se revela en ambos casos para que el usuario
-  // sepa qué falló y aprenda. La ficha de lore queda reservada como
-  // recompensa para victorias. Coherente con /api/validate-guess y
-  // /api/repesca/validate y /api/repesca/start.
+  // Si la partida está cerrada (won|lost), necesitamos:
+  //   - Datos LIVE del coche para el reveal (no la copia congelada en
+  //     user_guesses — así una corrección de admin se refleja al instante).
+  //   - revealToken firmado para que /api/daily-image sirva imagen completa.
+  // Las dos operaciones son independientes; las paralelizamos.
   let reveal = null;
+  let revealToken = null;
   if (status === "won" || status === "lost") {
     const isWon = status === "won";
-    const { data: liveCar, error: liveErr } = await supabaseAdmin
-      .from("cars")
-      .select("make, model, year, pais, description, description_en")
-      .eq("id", todayCarId)
-      .maybeSingle();
-    if (liveErr) {
-      console.error("[get-daily-car] read cars (live):", liveErr);
-    } else if (liveCar) {
+    const [liveResult, signedToken] = await Promise.all([
+      supabaseAdmin
+        .from("cars")
+        .select("make, model, year, pais, description, description_en")
+        .eq("id", todayCarId)
+        .maybeSingle(),
+      signRevealToken(today).catch((err) => {
+        console.error("[get-daily-car] signRevealToken:", err?.message || err);
+        return null;
+      }),
+    ]);
+
+    if (liveResult.error) {
+      console.error("[get-daily-car] read cars (live):", liveResult.error);
+    } else if (liveResult.data) {
+      const liveCar = liveResult.data;
       reveal = {
         marca: liveCar.make,
         modelo: liveCar.model,
         anio: liveCar.year,
         pais: liveCar.pais,
+        // Descripción/ficha: SOLO en victoria. La identidad del coche
+        // (marca, modelo, año, país) se revela en ambos casos para que
+        // el usuario sepa qué falló. La ficha de lore queda reservada
+        // como recompensa para victorias.
         description: isWon ? (liveCar.description ?? null) : null,
         description_en: isWon ? (liveCar.description_en ?? null) : null,
       };
     }
+    revealToken = signedToken;
   }
 
-  // Token de reveal cuando el usuario ya cerró la partida: permite que la
-  // request a /api/daily-image sin `?z` reciba la imagen completa. Sin este
-  // token, el endpoint cae al crop de seguridad (z=5) — bloquea el viejo
-  // truco de "abrir DevTools → quitar &z=5 → ver foto entera".
-  let revealToken = null;
-  if (status === "won" || status === "lost") {
-    try {
-      revealToken = signRevealToken(today);
-    } catch (err) {
-      console.error("[get-daily-car] signRevealToken:", err?.message || err);
-    }
-  }
-
-  res.setHeader("Cache-Control", "no-store");
-  return res.status(200).json({
+  return jsonResponse({
     date: today,
     img: dailyImgUrl,
     blurData,

@@ -41,11 +41,27 @@ export default async function handler(req, res) {
   }
 
   // ---- BASE URL para fetches internos -----------------------------------
-  // Usamos el header `host` que llega en la request del cron. Vercel lo
-  // pone con el dominio del deployment activo (cochedeldia.com en prod).
-  const host = req.headers.host;
+  // CRÍTICO: usamos el dominio público de producción (cochedeldia.com), NO
+  // la URL del deployment (*.vercel.app). Razón:
+  //
+  // Cuando Vercel dispara este cron, lo hace contra la URL del deployment.
+  // Vercel infrastructure firma esa request inicial para que pase la
+  // Deployment Protection que tienes activa por defecto en Hobby. PERO el
+  // fetch que esta función hace internamente (cron → /api/get-daily-car)
+  // sale como una request externa normal, sin esa firma. Si lo enviamos
+  // a la URL del deployment, Deployment Protection lo bloquea con 401 y
+  // el cron entero falla.
+  //
+  // El dominio público (cochedeldia.com) no tiene esa protección — es
+  // accesible para cualquiera, así que el fetch interno pasa sin problema.
+  //
+  // `VERCEL_PROJECT_PRODUCTION_URL` lo setea Vercel automáticamente con
+  // el host de producción (sin protocolo). Fallback al host header solo
+  // para casos raros (env no inyectada, dev local con `vercel dev`).
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const host = productionHost || req.headers.host;
   if (!host) {
-    return res.status(500).json({ error: "Missing host header" });
+    return res.status(500).json({ error: "Missing host" });
   }
   const baseUrl = `https://${host}`;
 

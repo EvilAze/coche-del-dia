@@ -150,20 +150,40 @@ export default function CarImage({
       }}
     >
       {/*
+        Skeleton base: SIEMPRE montado, en la capa de abajo. Da la textura
+        "cargando" mientras no hay ni LQIP ni imagen real (caso src=null
+        del primer paint, antes de que get-daily-car resuelva).
+
+        Clave para el feel premium: NO se desmonta nunca. Antes había un
+        ternario `blurData ? <LQIP> : <pulse>` que al llegar la data
+        desmontaba el pulse y montaba el LQIP en el mismo frame → micro-
+        parpadeo en el handoff. Ahora el skeleton se queda detrás y el
+        LQIP aparece encima cubriéndolo; cuando la imagen real carga, los
+        tres (skeleton, LQIP, img) se cruzan suavemente por opacidad.
+      */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 animate-pulse bg-bg-secondary/60"
+        style={{ opacity: loaded ? 0 : 1, transition: "opacity 300ms ease-out" }}
+      />
+
+      {/*
         LQIP: el placeholder borroso ya intuye silueta y paleta del coche
         mientras descarga la foto real. El filter:blur es necesario porque
         la imagen base64 es solo 24 px de ancho y se escala a 100% del
         contenedor — sin blur se vería pixelado. scale(1.1) tapa el halo
         transparente que deja el blur en los bordes.
-        Lo mantenemos SIEMPRE montado (no `{!loaded && …}`) y fadeamos su
-        opacidad: así la imagen real cubre por encima durante su propio
-        fade-in y desaparece el parpadeo gris de bg-tertiary que se veía
-        antes en el desmontaje instantáneo del LQIP.
+
+        Aparece encima del skeleton en cuanto llega blurData. Como el
+        skeleton sigue detrás, no hay hueco visual durante el cambio. El
+        `animate-fade-in` suaviza su propia entrada (0.4s) para que no sea
+        un pop seco sobre el gris pulsante. Al cargar la imagen real
+        fadea a opacity 0 por encima de su animación de entrada.
       */}
-      {blurData ? (
+      {blurData && (
         <div
           aria-hidden="true"
-          className="absolute inset-0"
+          className={loaded ? "absolute inset-0" : "absolute inset-0 animate-fade-in"}
           style={{
             backgroundImage: `url(${blurData})`,
             backgroundSize: "cover",
@@ -174,10 +194,6 @@ export default function CarImage({
             transition: "opacity 300ms ease-out",
           }}
         />
-      ) : (
-        !loaded && (
-          <div className="absolute inset-0 animate-pulse bg-bg-secondary/60" />
-        )
       )}
 
       {/*

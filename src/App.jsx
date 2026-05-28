@@ -375,58 +375,67 @@ export default function App() {
               ayuda textual aquí es ruido para un juego diario rápido. La
               imagen sirve de pista visual implícita (más zoom out por intento). */}
 
-          {(guesses.length > 0 || pendingGuess) && (
-            <div className="mb-4 mt-3 flex w-full min-w-0 flex-col gap-2">
-              {guesses.map((g, i) => (
-                <GuessRow
-                  key={i}
-                  guess={g}
-                  index={i}
-                  justRevealed={i === justRevealedIndex}
-                />
-              ))}
-              {pendingGuess && (
-                <GuessRow
-                  key="pending"
-                  guess={pendingGuess}
-                  index={guesses.length}
-                  pending
-                />
-              )}
-            </div>
-          )}
+          {/* Todo el bloque bajo la imagen (filas de intentos + separador +
+              formulario/resultado) entra como una sola unidad con un
+              fade-in suave cuando llega la data. El `key="content"` fuerza
+              el remount del wrapper al pasar de !dataReady → dataReady,
+              así la animación de entrada se dispara una sola vez. La
+              imagen va aparte: tiene su propio crossfade LQIP → AVIF.
 
-          {(guesses.length > 0 || pendingGuess) && <div className="my-4 h-px bg-border" />}
-
-          {/* Form/Result gateado por dataReady para evitar dos cosas:
+              Gateado por dataReady para evitar:
               (a) Renderizar ResultPanel con car=null y pinchar al leer
                   car.marca durante el loading inicial de un usuario
                   logueado que ya cerró la partida.
-              (b) Flash brevísimo de GuessForm "playing" antes de que
-                  llegue la respuesta del server y status cambie a
-                  won/lost. Mantener el espacio reservado evita layout
-                  shift cuando el contenido aparece. */}
+              (b) Flash de GuessForm "playing" antes de que llegue el
+                  estado real del server. */}
           {dataReady ? (
-            status === "playing" ? (
-              <GuessForm
-                onSubmit={submitGuess}
-                isSubmitting={isSubmitting}
-                guesses={guesses}
-              />
-            ) : (
-              <ResultPanel
-                status={status}
-                car={car}
-                attempts={attempts}
-                maxAttempts={maxAttempts}
-                shareText={buildShareText(streak)}
-                guesses={guesses}
-                streak={streak}
-                score={score}
-                user={user}
-                onOpenLogin={openLogin}
-              />
-            )
+            <div key="content" className="animate-fade-in">
+              {(guesses.length > 0 || pendingGuess) && (
+                <div className="mb-4 mt-3 flex w-full min-w-0 flex-col gap-2">
+                  {guesses.map((g, i) => (
+                    <GuessRow
+                      key={i}
+                      guess={g}
+                      index={i}
+                      justRevealed={i === justRevealedIndex}
+                    />
+                  ))}
+                  {pendingGuess && (
+                    <GuessRow
+                      key="pending"
+                      guess={pendingGuess}
+                      index={guesses.length}
+                      pending
+                    />
+                  )}
+                </div>
+              )}
+
+              {(guesses.length > 0 || pendingGuess) && (
+                <div className="my-4 h-px bg-border" />
+              )}
+
+              {status === "playing" ? (
+                <GuessForm
+                  onSubmit={submitGuess}
+                  isSubmitting={isSubmitting}
+                  guesses={guesses}
+                />
+              ) : (
+                <ResultPanel
+                  status={status}
+                  car={car}
+                  attempts={attempts}
+                  maxAttempts={maxAttempts}
+                  shareText={buildShareText(streak)}
+                  guesses={guesses}
+                  streak={streak}
+                  score={score}
+                  user={user}
+                  onOpenLogin={openLogin}
+                />
+              )}
+            </div>
           ) : (
             // Reserva visual mientras llega el estado de la partida:
             // misma altura aprox que GuessForm (3 inputs + botón) para

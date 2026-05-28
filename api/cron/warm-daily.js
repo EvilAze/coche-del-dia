@@ -26,6 +26,50 @@
 // a las peticiones que dispara el scheduler. Verificamos aquí para que
 // nadie externo pueda spamear el endpoint. CRON_SECRET tienes que
 // configurarlo manualmente en el dashboard de Vercel (Settings → Env Vars).
+//
+// PASO 3 (Edge Config): tras calentar, el cron escribe la URL del coche
+// del día en Vercel Edge Config con la clave `daily_preload`. El
+// middleware (middleware.js) la lee en <1ms e inyecta un `Link: rel=preload`
+// en el HTML de la home, para que el navegador empiece a descargar la
+// imagen hero EN PARALELO con el bundle JS (rompe el waterfall
+// get-daily-car → daily-image). Requiere estas env vars adicionales:
+//   - VERCEL_API_TOKEN  → token de cuenta Vercel con permiso de escritura
+//   - EDGE_CONFIG_ID     → id del store (ecfg_...), visible en su dashboard
+//   - VERCEL_TEAM_ID     → solo si el proyecto está bajo un team (opcional)
+// Si faltan, el cron sigue calentando igual; solo se salta la escritura.
+
+/**
+ * Escribe (upsert) un item en Vercel Edge Config vía REST API. La SDK
+ * `@vercel/edge-config` es READ-ONLY; las escrituras van por la API HTTP.
+ * No es fatal si falla: el warming es el trabajo principal, el Edge Config
+ * es la optimización extra del preload.
+ */
+async function writeEdgeConfig(key, value) {
+  const token = process.env.VERCEL_API_TOKEN;
+  const configId = process.env.EDGE_CONFIG_ID;
+  if (!token || !configId) {
+    return { skipped: true, reason: "VERCEL_API_TOKEN / EDGE_CONFIG_ID ausentes" };
+  }
+  const url = new URL(`https://api.vercel.com/v1/edge-config/${configId}/items`);
+  const teamId = process.env.VERCEL_TEAM_ID;
+  if (teamId) url.searchParams.set("teamId", teamId);
+
+  const r = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      items: [{ operation: "upsert", key, value }],
+    }),
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    return { ok: false, status: r.status, body: body.slice(0, 200) };
+  }
+  return { ok: true, status: r.status };
+}
 
 export default async function handler(req, res) {
   // ---- AUTH --------------------------------------------------------------
@@ -132,6 +176,23 @@ export default async function handler(req, res) {
           ? s.value
           : { width: widths[i], error: s.reason?.message || "unknown" }
       ),
+    });
+
+    // ---- PASO 3: escribir el preload del día en Edge Config -------------
+    // Guardamos `{ date, img }` para que el middleware (1) verifique que es
+    // de hoy antes de inyectar el Link header (guard anti-stale si el cron
+    // falla un día) y (2) construya el srcset/sizes a partir de `img`.
+    // `body1.img` es exactamente `/api/daily-image?d=YYYY-MM-DD&v=HASH`,
+    // la misma base que pide CarImage en el cliente.
+    const step3Start = Date.now();
+    const ecResult = await writeEdgeConfig("daily_preload", {
+      date: body1.date,
+      img: body1.img,
+    });
+    result.steps.push({
+      step: "edge-config-write",
+      ms: Date.now() - step3Start,
+      ...ecResult,
     });
 
     result.ok = true;

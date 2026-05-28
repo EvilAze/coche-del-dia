@@ -154,14 +154,20 @@ export default async function handler(req, res) {
 
     res.setHeader("Content-Type", outContentType);
     res.setHeader("Content-Length", String(outBuffer.length));
-    // Cache PRIVADA y corta: la respuesta depende del estado del usuario
-    // (cropped vs full según user_guesses), así que NO debe cruzarse entre
-    // usuarios en ningún CDN compartido. Antes era una imagen anónimamente
-    // pública — ahora es per-usuario.
-    res.setHeader(
-      "Cache-Control",
-      "private, max-age=30, no-store"
-    );
+    // Cache PRIVADA (navegador del usuario, nunca CDN compartido — la
+    // respuesta depende de user_guesses: cropped mientras juega, full al
+    // terminar). Antes era `no-store`, que impedía cualquier cache y obligaba
+    // a re-procesar sharp en cada carga. Ahora permitimos cache privada de
+    // 5 min: el preload que dispara Garage.jsx durante el barajeo puebla
+    // esta cache, y cuando /repesca monta y pide la MISMA url, es un hit
+    // instantáneo (sin red, sin sharp).
+    //
+    // Anti-stale tras ganar: el cliente añade `&phase=playing|done` a la
+    // URL. El server IGNORA ese param para decidir crop/full (eso lo dicta
+    // user_guesses, no el cliente — no hay bypass posible), pero al cambiar
+    // la query cambia la cache key: la imagen cropped (phase=playing) y la
+    // full revelada (phase=done) viven en entradas distintas y no se pisan.
+    res.setHeader("Cache-Control", "private, max-age=300");
     res.setHeader("Content-Disposition", "inline");
 
     if (req.method === "HEAD") return res.status(200).end();

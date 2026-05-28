@@ -72,6 +72,10 @@ export default function Repesca() {
   // Authorization, convertimos la respuesta a Blob, y le pasamos al <img>
   // una blob: URL local. Bonus: la URL es opaca (no filtra filename).
   const [imgBlobUrl, setImgBlobUrl] = useState(null);
+  // LQIP (blur_data) que devuelve /api/repesca/start. CarImage lo pinta
+  // como fondo borroso mientras llega la foto real → mismo efecto
+  // "blur-up" que el juego principal. Identidad visual compartida.
+  const [blurData, setBlurData] = useState(null);
 
   // noindex + título de pestaña.
   useEffect(() => {
@@ -151,6 +155,9 @@ export default function Repesca() {
         // a "normal" (más permisivo) para no bloquear al usuario.
         setMode(startBody.mode === "veteran" ? "veteran" : "normal");
 
+        // LQIP para el blur-up (puede venir null si la lectura falló server-side).
+        if (startBody.blurData) setBlurData(startBody.blurData);
+
         setGuesses(existingGuesses);
         if (existingStatus === "won" || existingStatus === "lost") {
           setPhase(existingStatus);
@@ -184,6 +191,16 @@ export default function Repesca() {
     let cancelled = false;
     let blobUrl = null;
 
+    // `phase` en la URL diferencia la cache key entre la imagen recortada
+    // (durante el juego) y la revelada completa (al terminar). El server
+    // ignora este param para decidir crop/full — eso lo dicta user_guesses,
+    // no el cliente —, pero al cambiar la query, la imagen cropped y la full
+    // no se pisan en la cache privada del navegador. Además, `phase=playing`
+    // coincide con la URL que precarga Garage.jsx durante el barajeo → la
+    // primera carga de /repesca es un cache hit instantáneo.
+    const phaseParam =
+      phase === "won" || phase === "lost" ? "done" : "playing";
+
     (async () => {
       try {
         const {
@@ -192,7 +209,7 @@ export default function Repesca() {
         if (!session?.access_token) return;
 
         const res = await fetch(
-          `/api/repesca/image?carId=${encodeURIComponent(carId)}`,
+          `/api/repesca/image?carId=${encodeURIComponent(carId)}&phase=${phaseParam}`,
           { headers: { Authorization: `Bearer ${session.access_token}` } }
         );
         if (!res.ok) {
@@ -240,6 +257,7 @@ export default function Repesca() {
   const car = useMemo(
     () => ({
       img: imgBlobUrl,
+      blurData,
       marca: reveal?.marca ?? null,
       modelo: reveal?.modelo ?? null,
       anio: reveal?.anio ?? null,
@@ -247,7 +265,7 @@ export default function Repesca() {
       description: reveal?.description ?? null,
       description_en: reveal?.description_en ?? null,
     }),
-    [imgBlobUrl, reveal]
+    [imgBlobUrl, blurData, reveal]
   );
 
   async function submitGuess({ guessCarId, anio }) {
@@ -478,6 +496,7 @@ export default function Repesca() {
         <main className="w-full min-w-0">
           <CarImage
             src={car.img}
+            blurData={car.blurData}
             zoom={zoom}
             hintIndex={hintIndex}
             totalHints={totalHints}

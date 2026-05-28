@@ -291,7 +291,10 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         body: JSON.stringify({}),
       });
 
-      const [res] = await Promise.all([postPromise, minDelay]);
+      // Esperamos SOLO al POST (no al minDelay todavía): así tenemos el
+      // carId en cuanto el server responde (~300-600ms), no a los 2500ms.
+      // Eso nos deja ~2s del barajeo para precargar la imagen del coche.
+      const res = await postPromise;
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(body?.detail || body?.error || `HTTP ${res.status}`);
@@ -305,6 +308,30 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       const serverVeteran = body?.mode === "veteran";
       setDrawAnim({ carId: serverPickedId, veteran: serverVeteran });
       track("repesca_start", { mode: serverVeteran ? "veteran" : "normal" });
+
+      // PRELOAD de la imagen DURANTE el barajeo (fire-and-forget). Pedimos
+      // la MISMA url que pedirá /repesca al montar (phase=playing). Esto:
+      //   - Calienta sharp en el server (mata el cold start de ~2-3s).
+      //   - Puebla la cache privada del navegador. Como /repesca es una
+      //     navegación completa, el preload solo "viaja" gracias a que
+      //     repesca/image es ahora cacheable (private, max-age=300): el
+      //     blob queda en la cache HTTP y /repesca lo reusa al instante.
+      // Consumimos .blob() para que la respuesta se descargue entera y el
+      // navegador la guarde (si solo leyéramos headers, podría no cachear).
+      try {
+        fetch(
+          `/api/repesca/image?carId=${encodeURIComponent(serverPickedId)}&phase=playing`,
+          { headers: { Authorization: `Bearer ${session.access_token}` } }
+        )
+          .then((r) => (r.ok ? r.blob() : null))
+          .catch(() => {});
+      } catch {
+        // El preload nunca debe romper el flujo de la repesca.
+      }
+
+      // Ahora sí esperamos al tiempo mínimo de animación antes de navegar,
+      // para no truncar el barajeo si el POST resolvió muy rápido.
+      await minDelay;
       window.location.href = `/repesca?id=${encodeURIComponent(serverPickedId)}`;
     } catch (err) {
       console.error("[Garage] random repesca:", err);

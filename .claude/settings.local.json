@@ -78,7 +78,11 @@
       "Bash(npx --no-install vite build --mode development)",
       "Bash(curl -s \"https://cochedeldia.com/api/list-cars\")",
       "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); cars=d['cars']; print\\(f'Total: {len\\(cars\\)}'\\); [print\\(f'{c[\\\\\"marca\\\\\"]} | {c[\\\\\"modelo\\\\\"]} | {c[\\\\\"anio\\\\\"]} | {c[\\\\\"pais\\\\\"]}'\\) for c in sorted\\(cars, key=lambda x: \\(x['marca'], x['modelo']\\)\\)]\")",
-      "Bash(ffmpeg -version)"
+      "Bash(ffmpeg -version)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('deps:', Object.keys\\(p.dependencies||{}\\).filter\\(d=>d.includes\\('vercel'\\)\\)\\); console.log\\('devDeps:', Object.keys\\(p.devDependencies||{}\\).filter\\(d=>d.includes\\('vercel'\\)\\)\\)\")",
+      "Bash(npm --version)",
+      "Bash(node --check api/cron/warm-daily.js)",
+      "Bash(node --check middleware.js)"
     ]
   }
 }

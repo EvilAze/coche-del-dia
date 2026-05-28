@@ -9,5 +9,12 @@
       "source": "/((?!api/|src/|assets/|@|node_modules/|.*\\.).*)",
       "destination": "/index.html"
     }
+  ],
+
+  "crons": [
+    {
+      "path": "/api/cron/warm-daily",
+      "schedule": "5 22,23 * * *"
+    }
   ]
 }

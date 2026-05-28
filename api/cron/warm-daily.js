@@ -117,7 +117,7 @@ export default async function handler(req, res) {
     const step2Start = Date.now();
     const settled = await Promise.allSettled(
       widths.map(async (w) => {
-        const r = await fetch(`${imageUrlBase}&f=avif&w=${w}`, {
+        const r = await fetch(`${imageUrlBase}&z=5&f=avif&w=${w}`, {
           headers: { "User-Agent": "VercelCron/warm-daily" },
         });
         await r.arrayBuffer();

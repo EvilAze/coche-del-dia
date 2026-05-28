@@ -289,6 +289,25 @@ export default async function handler(req, res) {
     // Siempre pseudo carId, nunca real. Mantenemos la propiedad "el
     // cliente nunca conoce el cars.id real de un coche bloqueado".
     const state = await readRepescaState(authClient, user.id, carId, today);
+
+    // LQIP (blur_data) del coche: el placeholder borroso de ~0.5-1 KB que
+    // CarImage pinta como fondo mientras descarga la foto real. Devolverlo
+    // aquí le da a la repesca el mismo efecto "blur-up → nítida" que el
+    // juego principal (identidad visual). No es sensible: es una versión
+    // ~24px brutalmente desenfocada, no revela el coche. Si la lectura
+    // falla, seguimos sin LQIP (CarImage cae a su skeleton pulsante).
+    let blurData = null;
+    try {
+      const { data: blurRow } = await getSupabaseAdmin()
+        .from("cars")
+        .select("blur_data")
+        .eq("id", carId)
+        .maybeSingle();
+      blurData = blurRow?.blur_data || null;
+    } catch (err) {
+      console.error("[repesca/start] read blur_data:", err?.message || err);
+    }
+
     return res.status(200).json({
       ok: true,
       carId: pseudoIdFor(carId, user.id),
@@ -296,6 +315,7 @@ export default async function handler(req, res) {
       state,
       mode,
       maxAttempts,
+      blurData,
     });
   } catch (err) {
     console.error("[repesca/start] UNCAUGHT:", err && err.stack ? err.stack : err);

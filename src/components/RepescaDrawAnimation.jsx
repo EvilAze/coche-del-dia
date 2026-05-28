@@ -155,13 +155,16 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                   </div>
                 </div>
 
-                {/* CARA FRONTAL del cromo (la que se ve al voltearse):
-                    silueta blureada + texto contextual. La rotateY:180
-                    inicial la mantiene oculta hasta que el padre la gira. */}
+                {/* CARA FRONTAL del cromo: reveal premium. La rotateY:180
+                    inicial la mantiene oculta hasta que el flip la gira.
+                    Componentes: glow radial + barrido de luz al voltear +
+                    icono SVG en anillo (no emoji — renderiza consistente
+                    cross-OS y se ve "diseñado", no pegado) + tipografía
+                    display con tracking. */}
                 <div
                   className={`
                     absolute inset-0 rounded-xl border-2
-                    flex flex-col items-center justify-center gap-2
+                    flex flex-col items-center justify-center gap-3
                     overflow-hidden
                     ${
                       veteran
@@ -174,11 +177,54 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                     transform: "rotateY(180deg)",
                   }}
                 >
-                  <span className="text-5xl">{veteran ? "🔥" : "🚗"}</span>
+                  {/* Glow radial detrás del icono */}
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background: veteran
+                        ? "radial-gradient(circle at 50% 42%, rgba(251,191,36,0.22), transparent 62%)"
+                        : "radial-gradient(circle at 50% 42%, rgba(255,191,0,0.2), transparent 62%)",
+                    }}
+                  />
+
+                  {/* Barrido de luz: cruza la carta una vez al revelarse.
+                      Solo se dispara en la hero (las demás no se voltean). */}
+                  <motion.div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background:
+                        "linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%)",
+                    }}
+                    initial={{ x: "-130%" }}
+                    animate={
+                      isHero && (phase === "flip" || phase === "done")
+                        ? { x: "130%" }
+                        : { x: "-130%" }
+                    }
+                    transition={{ duration: 0.7, ease: "easeOut", delay: 0.12 }}
+                  />
+
+                  {/* Icono en anillo con glow */}
+                  <div
+                    className={`
+                      relative flex h-14 w-14 items-center justify-center rounded-full border
+                      ${
+                        veteran
+                          ? "border-amber-300/60 bg-amber-500/15 shadow-[0_0_18px_rgba(251,191,36,0.45)]"
+                          : "border-accent/60 bg-accent/15 shadow-[0_0_18px_rgba(255,191,0,0.4)]"
+                      }
+                    `}
+                  >
+                    <CarGlyph
+                      className={`h-7 w-7 ${veteran ? "text-amber-200" : "text-accent"}`}
+                    />
+                  </div>
+
+                  {/* Label */}
                   <p
                     className={`
-                      text-[10px] uppercase tracking-[0.22em] font-semibold
-                      ${veteran ? "text-amber-200" : "text-accent"}
+                      relative text-center font-display text-sm uppercase tracking-[0.22em]
+                      ${veteran ? "text-amber-100" : "text-white"}
                     `}
                   >
                     {veteran ? t("garage.drawVeteran") : t("garage.drawYours")}
@@ -210,5 +256,30 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
         </div>
       </div>
     </motion.div>
+  );
+}
+
+// Silueta de coche (perfil lateral, estilo Lucide "car"). SVG en vez de
+// emoji 🚗: renderiza idéntico en iOS / Android / Windows y se integra con
+// el sistema de iconos del resto de la app (stroke currentColor, hereda el
+// color del contenedor). El emoji se veía distinto en cada dispositivo y
+// "pegado" sobre la carta.
+function CarGlyph({ className = "" }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+      <circle cx="7" cy="17" r="2" />
+      <path d="M9 17h6" />
+      <circle cx="17" cy="17" r="2" />
+    </svg>
   );
 }

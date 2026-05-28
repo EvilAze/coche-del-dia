@@ -82,7 +82,9 @@
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('deps:', Object.keys\\(p.dependencies||{}\\).filter\\(d=>d.includes\\('vercel'\\)\\)\\); console.log\\('devDeps:', Object.keys\\(p.devDependencies||{}\\).filter\\(d=>d.includes\\('vercel'\\)\\)\\)\")",
       "Bash(npm --version)",
       "Bash(node --check api/cron/warm-daily.js)",
-      "Bash(node --check middleware.js)"
+      "Bash(node --check middleware.js)",
+      "Bash(node --check api/repesca/image.js)",
+      "Bash(node --check api/repesca/start.js)"
     ]
   }
 }

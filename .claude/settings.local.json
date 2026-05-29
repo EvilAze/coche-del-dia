@@ -84,7 +84,13 @@
       "Bash(node --check api/cron/warm-daily.js)",
       "Bash(node --check middleware.js)",
       "Bash(node --check api/repesca/image.js)",
-      "Bash(node --check api/repesca/start.js)"
+      "Bash(node --check api/repesca/start.js)",
+      "Bash(node scripts/diag-cheater.mjs navaro)",
+      "Bash(node --check api/_lib/audit.js)",
+      "Bash(node --check scripts/audit-oracle.mjs)",
+      "Bash(node --check lib/admin-handlers/audit.js)",
+      "Bash(node --check \"api/admin/[...slug].js\")",
+      "Bash(node scripts/audit-oracle.mjs)"
     ]
   }
 }

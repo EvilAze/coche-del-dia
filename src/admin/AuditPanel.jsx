@@ -36,6 +36,12 @@ function shortDateTime(isoString) {
   });
 }
 
+// Porcentaje con 1 decimal. null/NaN → "—".
+function pct(n) {
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  return `${(n * 100).toFixed(1)}%`;
+}
+
 // Pinta el estado de un campo (correct/partial/wrong) como pastilla.
 function StatusDot({ status }) {
   const map = {

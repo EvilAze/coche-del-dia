@@ -80,3 +80,35 @@ export async function logGuessAttempt({
     console.error("[audit] logGuessAttempt:", err?.message || err);
   }
 }
+
+/**
+ * Registra un evento de seguridad "canary": algo que un cliente legítimo
+ * NUNCA hace (p.ej. presentar un revealToken forjado a /api/daily-image).
+ * Se guarda en la misma tabla con mode='canary', attempt_number=0 y
+ * win=false para no contaminar las consultas de intentos reales. El motivo
+ * va en `note`. Best-effort: nunca tira.
+ */
+export async function logCanary({ req, reason, carId, gameDate, userId = null, isAnon, ip }) {
+  try {
+    const admin = getSupabaseAdmin();
+    if (!admin) return;
+    const headers = req?.headers || {};
+    const { error } = await admin.from("guess_audit").insert({
+      mode: "canary",
+      game_date: gameDate,
+      car_id: carId,
+      user_id: userId,
+      is_anon: Boolean(isAnon),
+      anon_n: null,
+      attempt_number: 0,
+      ip_hash: hashIp(ip),
+      ua: clip(headers["user-agent"], 300),
+      accept_lang: clip(headers["accept-language"], 120),
+      win: false,
+      note: clip(reason, 200),
+    });
+    if (error) console.error("[audit] canary insert:", error.message || error);
+  } catch (err) {
+    console.error("[audit] logCanary:", err?.message || err);
+  }
+}

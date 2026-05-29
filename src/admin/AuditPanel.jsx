@@ -102,26 +102,96 @@ export default function AuditPanel() {
         </div>
       )}
 
-      {!loading && !error && data?.migrationPending && (
-        <div className="rounded-xl border border-amber-400/40 bg-amber-500/5 p-4 text-sm text-amber-200">
-          La tabla de auditoría aún no existe. Aplica{" "}
-          <code className="text-amber-100">scripts/supabase-guess-audit.sql</code> en el SQL
-          Editor de Supabase y vuelve aquí.
-        </div>
-      )}
-
-      {!loading && !error && data && !data.migrationPending && (
+      {!loading && !error && data && (
         <>
           {/* Resumen */}
           <div className="grid grid-cols-3 gap-2">
-            <Stat label="Intentos registrados" value={data.totalRows} />
-            <Stat label="Casos marcados" value={data.flags.length} accent={data.flags.length > 0} />
-            <Stat label="Cuentas señaladas" value={data.flaggedWinners} accent={data.flaggedWinners > 0} />
+            <Stat label="Intentos registrados" value={data.totalRows ?? 0} />
+            <Stat label="Casos por IP" value={data.flags?.length ?? 0} accent={(data.flags?.length ?? 0) > 0} />
+            <Stat label="Canarios" value={data.canaries?.length ?? 0} accent={(data.canaries?.length ?? 0) > 0} />
           </div>
 
-          {data.flags.length === 0 && (
+          {/* Sección 1: Ranking de sospecha (siempre, sale de user_guesses) */}
+          <section className="space-y-2">
+            <h3 className="font-display text-sm uppercase tracking-[0.18em] text-white">
+              Ranking de sospecha
+            </h3>
+            <p className="text-[10px] text-muted">
+              Huella de oráculo: % de victorias clavando marca+modelo+año a la 1ª en frío.
+              Independiente de la IP. Necesita ≥5 partidas daily en el rango.
+            </p>
+            {(!data.suspects || data.suspects.length === 0) ? (
+              <div className="rounded-xl border border-border bg-bg-secondary/40 p-4 text-center text-xs text-muted">
+                Sin datos suficientes en este rango (prueba "Todo").
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-border">
+                <table className="w-full text-left text-[11px]">
+                  <thead className="bg-bg-secondary/60 text-[9px] uppercase tracking-wider text-muted">
+                    <tr>
+                      <th className="px-2 py-2">Cuenta</th>
+                      <th className="px-2 py-2 text-right">Part.</th>
+                      <th className="px-2 py-2 text-right">Win%</th>
+                      <th className="px-2 py-2 text-right">1ª frío</th>
+                      <th className="px-2 py-2 text-right">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.suspects.map((s) => (
+                      <tr key={s.userId} className="border-t border-border/60">
+                        <td className="px-2 py-1.5 text-white">{s.email}</td>
+                        <td className="px-2 py-1.5 text-right text-muted">{s.games}</td>
+                        <td className="px-2 py-1.5 text-right text-muted">{pct(s.winRate)}</td>
+                        <td className="px-2 py-1.5 text-right text-muted">
+                          {s.coldExact}/{s.games} ({pct(s.coldExactRate)})
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          <ScoreBadge score={s.score} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          {/* Sección 3: Canarios */}
+          {data.canaries?.length > 0 && (
+            <section className="space-y-2">
+              <h3 className="font-display text-sm uppercase tracking-[0.18em] text-white">
+                Canarios (tokens forjados)
+              </h3>
+              <div className="space-y-1">
+                {data.canaries.map((c, i) => (
+                  <div key={i} className="flex flex-wrap items-center gap-x-2 rounded-lg bg-red-500/[0.05] px-2 py-1 text-[11px]">
+                    <span className="text-muted">{shortDateTime(c.ts)}</span>
+                    <span className={`font-semibold ${c.isAnon ? "text-amber-300" : "text-white"}`}>{c.who}</span>
+                    <span className="rounded bg-red-500/20 px-1 text-[9px] uppercase text-red-300">{c.reason}</span>
+                    {c.ipHash && <span className="text-[10px] text-muted">ip {c.ipHash}…</span>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {data.migrationPending && (
+            <div className="rounded-xl border border-amber-400/40 bg-amber-500/5 p-4 text-sm text-amber-200">
+              La tabla de auditoría aún no existe, así que las secciones por IP y canarios no
+              están activas. Aplica <code className="text-amber-100">scripts/supabase-guess-audit.sql</code>{" "}
+              en Supabase. (El ranking de sospecha de arriba sí funciona — sale de las partidas.)
+            </div>
+          )}
+
+          {/* Sección 2: Casos por IP */}
+          {!data.migrationPending && (
+            <h3 className="font-display text-sm uppercase tracking-[0.18em] text-white">
+              Casos por IP
+            </h3>
+          )}
+          {!data.migrationPending && data.flags.length === 0 && (
             <div className="rounded-xl border border-border bg-bg-secondary/40 p-6 text-center text-sm text-muted">
-              Nada sospechoso en este rango. (Necesita partidas jugadas con el logging activo.)
+              Nada sospechoso por IP en este rango. (Necesita partidas jugadas con el logging activo.)
             </div>
           )}
 
@@ -193,5 +263,18 @@ function Stat({ label, value, accent }) {
       <p className="text-[9px] uppercase tracking-[0.18em] text-muted">{label}</p>
       <p className={`mt-1 font-display text-2xl ${accent ? "text-red-300" : "text-white"}`}>{value}</p>
     </div>
+  );
+}
+
+// Pastilla de score 0-100: verde bajo, ámbar medio, rojo alto.
+function ScoreBadge({ score }) {
+  const tone =
+    score >= 65 ? "bg-red-500/20 text-red-300"
+    : score >= 45 ? "bg-amber-500/20 text-amber-300"
+    : "bg-white/5 text-muted";
+  return (
+    <span className={`inline-block min-w-[2.2rem] rounded px-1.5 py-0.5 text-center font-semibold ${tone}`}>
+      {score}
+    </span>
   );
 }

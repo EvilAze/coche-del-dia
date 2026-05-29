@@ -33,8 +33,13 @@ CREATE TABLE IF NOT EXISTS public.guess_audit (
   marca_status   text,                             -- correct|partial|wrong
   modelo_status  text,
   anio_status    text,
-  win            boolean      NOT NULL
+  win            boolean      NOT NULL,
+  note           text                              -- motivo en eventos 'canary'
 );
+
+-- Idempotente: si la tabla ya existía de una ejecución previa, añade la
+-- columna 'note' (usada por los eventos canary de daily-image).
+ALTER TABLE public.guess_audit ADD COLUMN IF NOT EXISTS note text;
 
 -- Índices para las consultas de auditoría: correlación por (ip_hash, día) y
 -- listados por usuario.

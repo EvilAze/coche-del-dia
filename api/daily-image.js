@@ -31,6 +31,8 @@ import { verifyRevealToken } from "./_lib/reveal-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { methodGuard } from "./_lib/http.js";
+import { getClientIp } from "./_lib/rate-limit.js";
+import { logCanary } from "./_lib/audit.js";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
@@ -176,7 +178,23 @@ export default async function handler(req, res) {
   const tParam = typeof req.query?.t === "string" ? req.query.t : "";
   if (tParam) {
     const tokenDate = verifyRevealToken(tParam);
-    if (tokenDate === today) canReveal = true;
+    if (tokenDate === today) {
+      canReveal = true;
+    } else {
+      // CANARIO: un cliente legítimo solo presenta tokens que el servidor
+      // emitió para HOY. Un token con firma inválida (tokenDate === null) es
+      // forjado; uno válido pero de otra fecha es caducado/replay (puede ser
+      // una pestaña vieja, señal más débil). Registramos ambos con motivo
+      // distinto. Best-effort: nunca rompe la entrega de la imagen.
+      await logCanary({
+        req,
+        reason: tokenDate === null ? "forged_reveal_token" : "stale_reveal_token",
+        carId,
+        gameDate: today,
+        isAnon: !String(req.headers?.authorization || "").startsWith("Bearer "),
+        ip: getClientIp(req),
+      });
+    }
   }
 
   if (!canReveal) {

@@ -19,6 +19,7 @@ import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/
 import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { parseBody, methodGuard } from "./_lib/http.js";
+import { logGuessAttempt } from "./_lib/audit.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
@@ -355,6 +356,24 @@ export default async function handler(req, res) {
         console.error("[validate-guess] signRevealToken:", err?.message || err);
       }
     }
+
+    // -------- 9.ter Auditoría oculta (best-effort) -----------------------
+    //   Registra cada intento en public.guess_audit para poder detectar el
+    //   patrón de oráculo (misma IP sondeando hoy desde sesiones distintas
+    //   y luego ganando a la primera). Nunca rompe la respuesta.
+    await logGuessAttempt({
+      req,
+      mode: "daily",
+      gameDate: today,
+      carId: todayCarId,
+      userId: user?.id ?? null,
+      isAnon: !user,
+      anonN: anonSession?.n ?? null,
+      attemptNumber,
+      ip,
+      guess: { make: guessRow.make, model: guessRow.model, year: guessAnio },
+      result,
+    });
 
     return res.status(200).json({
       result,

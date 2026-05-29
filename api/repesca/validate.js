@@ -16,6 +16,8 @@ import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
 import { captureServerError } from "../_lib/sentry.js";
+import { getClientIp } from "../_lib/rate-limit.js";
+import { logGuessAttempt } from "../_lib/audit.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
@@ -315,6 +317,21 @@ export default async function handler(req, res) {
         description_en: result.win ? realCar.description_en : null,
       };
     }
+
+    // Auditoría oculta (best-effort): misma tabla que daily, mode='repesca'.
+    await logGuessAttempt({
+      req,
+      mode: "repesca",
+      gameDate: today,
+      carId,
+      userId: user.id,
+      isAnon: false,
+      anonN: null,
+      attemptNumber,
+      ip: getClientIp(req),
+      guess: { make: guessRow.make, model: guessRow.model, year: guessAnio },
+      result,
+    });
 
     return res.status(200).json({
       result,

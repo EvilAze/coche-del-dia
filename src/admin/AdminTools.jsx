@@ -20,6 +20,7 @@ import EditCarPanel from "./EditCarPanel";
 import AddCarPanel from "./AddCarPanel";
 import PreviewPanel from "./PreviewPanel";
 import AnalyticsPanel from "./AnalyticsPanel";
+import AuditPanel from "./AuditPanel";
 import SwapCarModal from "./SwapCarModal";
 
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
@@ -30,6 +31,7 @@ const TABS = [
   { id: "add", label: "Añadir" },
   { id: "preview", label: "Preview" },
   { id: "analytics", label: "Analítica" },
+  { id: "audit", label: "Auditoría" },
 ];
 
 function readInitialState() {
@@ -249,7 +251,7 @@ export default function AdminTools({ defaultTab }) {
         <nav
           role="tablist"
           aria-label="Herramientas de administración"
-          className="mt-4 grid grid-cols-4 gap-1 rounded-xl border border-border bg-bg-secondary/40 p-1"
+          className="mt-4 grid grid-cols-3 gap-1 rounded-xl border border-border bg-bg-secondary/40 p-1"
         >
           {TABS.map((t) => {
             const active = tab === t.id;
@@ -306,6 +308,7 @@ export default function AdminTools({ defaultTab }) {
             />
           )}
           {tab === "analytics" && <AnalyticsPanel />}
+          {tab === "audit" && <AuditPanel />}
         </main>
       </div>
 

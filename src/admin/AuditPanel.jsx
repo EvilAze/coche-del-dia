@@ -42,6 +42,16 @@ function pct(n) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+// Duración en humano: "12s", "1m 45s", "23m". null → "—".
+function humanDur(sec) {
+  if (sec == null) return "—";
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m < 10 && s) return `${m}m ${s}s`;
+  return `${m}m`;
+}
+
 // Pinta el estado de un campo (correct/partial/wrong) como pastilla.
 function StatusDot({ status }) {
   const map = {
@@ -139,6 +149,7 @@ export default function AuditPanel() {
                       <th className="px-2 py-2 text-right">Part.</th>
                       <th className="px-2 py-2 text-right">Win%</th>
                       <th className="px-2 py-2 text-right">1ª frío</th>
+                      <th className="px-2 py-2 text-right" title="Tiempo mediano desde abrir el juego hasta ganar (solo wins con session_start logueado)">t→win</th>
                       <th className="px-2 py-2 text-right">Score</th>
                     </tr>
                   </thead>
@@ -150,6 +161,9 @@ export default function AuditPanel() {
                         <td className="px-2 py-1.5 text-right text-muted">{pct(s.winRate)}</td>
                         <td className="px-2 py-1.5 text-right text-muted">
                           {s.coldExact}/{s.games} ({pct(s.coldExactRate)})
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          <TimeToWinCell ttw={s.timeToWin} />
                         </td>
                         <td className="px-2 py-1.5 text-right">
                           <ScoreBadge score={s.score} />
@@ -269,6 +283,21 @@ function Stat({ label, value, accent }) {
       <p className="text-[9px] uppercase tracking-[0.18em] text-muted">{label}</p>
       <p className={`mt-1 font-display text-2xl ${accent ? "text-red-300" : "text-white"}`}>{value}</p>
     </div>
+  );
+}
+
+// Pastilla de time-to-win. <30s rojo (incompatible con jugar a mano),
+// <60s ámbar (sospechoso), resto neutro. null → "—" gris.
+function TimeToWinCell({ ttw }) {
+  if (!ttw) return <span className="text-muted">—</span>;
+  const tone =
+    ttw.medianSec < 30 ? "text-red-300"
+    : ttw.medianSec < 60 ? "text-amber-300"
+    : "text-muted";
+  return (
+    <span className={tone} title={`mediana de ${ttw.n} wins medibles (min ${ttw.min}s, max ${ttw.max}s)`}>
+      {humanDur(ttw.medianSec)} <span className="text-[9px] opacity-60">(n={ttw.n})</span>
+    </span>
   );
 }
 

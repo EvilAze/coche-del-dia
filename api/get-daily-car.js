@@ -38,6 +38,7 @@ import { todayInMadrid } from "./_lib/date.js";
 import { signRevealToken } from "./_lib/edge/reveal-token.js";
 import { readAnonSession, buildSetCookie } from "./_lib/edge/anon-session.js";
 import { sha1Hex } from "./_lib/edge/crypto.js";
+import { logSessionStart } from "./_lib/edge/audit.js";
 
 export const config = {
   runtime: "edge",
@@ -112,6 +113,18 @@ export default async function handler(request) {
     return jsonResponse({ message: "Failed to pick daily car" }, { status: 500 });
   }
   const { client: authClient, user } = authResult;
+
+  // AUDITORÍA: registra la PRIMERA visita del día por (user|ip + día).
+  // Deliberadamente SIN await — el insert vuela en background; Vercel Edge
+  // deja que las fetches en vuelo se completen tras devolver la Response.
+  // Dedupe en memoria de la instancia warm evita filas por cada F5.
+  logSessionStart({
+    request,
+    userId: user?.id || null,
+    isAnon: !user,
+    gameDate: today,
+    carId: todayCarId,
+  }).catch(() => {});
 
   // FASE 2: con carId resuelto, paralelizamos:
   //   - Lectura de image_url + blur_data (necesarios para construir el

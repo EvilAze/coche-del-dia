@@ -91,7 +91,8 @@
       "Bash(node --check lib/admin-handlers/audit.js)",
       "Bash(node --check \"api/admin/[...slug].js\")",
       "Bash(node scripts/audit-oracle.mjs)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(node --check api/_lib/edge/audit.js)"
     ]
   }
 }

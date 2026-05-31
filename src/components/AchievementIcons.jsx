@@ -2,6 +2,11 @@
 // ---------------------------------------------------------------------
 // Set de iconos para los logros que no son ni logo de marca ni bandera.
 //
+// Soporte para PNG (v5):
+//   Si existe un archivo PNG en /public/achievements/ con el nombre
+//   del icono, se usa en lugar del SVG. Esto permite al usuario
+//   personalizar la sección "Colección" con arte propio.
+//
 // Filosofía del rediseño (v4 — "línea refinada"):
 //   • UNA silueta confiada por icono. Cero detalle interior, cero
 //     miniaturas dentro de miniaturas. A 28-36px el detalle es ruido;
@@ -9,12 +14,6 @@
 //   • Stroke 1.5 consistente, currentColor, SIN rellenos. El color
 //     (dorado si conseguido, gris tenue si bloqueado) lo aporta el
 //     contenedor — el icono solo dibuja la silueta.
-//   • Estética Apple / Linear / Vercel: geometría tranquila y legible
-//     de un vistazo, no ilustración.
-//
-//   Narrativa (intacta respecto a v3, solo cambia la ejecución):
-//     MILESTONES   llave → garaje → showroom → museo → trofeo
-//     STREAKS      bujía → bujía encendida → pistón
 // ---------------------------------------------------------------------
 
 const STROKE = {
@@ -23,6 +22,18 @@ const STROKE = {
   strokeWidth: 1.5,
   strokeLinecap: "round",
   strokeLinejoin: "round",
+};
+
+// Mapa de iconos que tienen versión PNG en /public/achievements/
+const PNG_ICONS = {
+  key: "/achievements/key.png",
+  garage: "/achievements/garage.png",
+  showroom: "/achievements/showroom.png",
+  vitrine: "/achievements/vitrine.png",
+  trophy: "/achievements/trophy.png",
+  spark: "/achievements/spark.png",
+  spark_fired: "/achievements/spark_fired.png",
+  piston: "/achievements/piston.png",
 };
 
 /* ============================================================
@@ -172,9 +183,7 @@ const ICONS = {
  *
  * @param {string} name   — clave del icono en ICONS
  * @param {boolean} muted — DEPRECATED. El estado bloqueado ahora se
- *                          comunica con el color (prop `color`), no con
- *                          grayscale: un trazo monocromo no mejora al
- *                          desaturarlo. Se ignora.
+ *                          comunica con el color (prop `color`).
  * @param {string} size   — clases tailwind de tamaño (h-* w-*)
  * @param {string} color  — clase de color (default accent dorado)
  */
@@ -185,10 +194,28 @@ export default function AchievementIcon({
   size = "h-8 w-8",
   color = "text-accent",
 }) {
+  // Soporte para PNG personalizado.
+  if (PNG_ICONS[name]) {
+    // Si el color indica bloqueo (text-white/25), aplicamos filtro visual al PNG.
+    const isLocked = color.includes("white") || color.includes("25");
+    return (
+      <img
+        src={PNG_ICONS[name]}
+        alt=""
+        draggable={false}
+        className={`w-full h-full aspect-square shrink-0 object-contain object-center transition-all duration-500 scale-95 ${
+          isLocked 
+            ? "opacity-[0.35] grayscale brightness-[0.7] contrast-[1.2]" 
+            : "drop-shadow-[0_6px_12px_rgba(0,0,0,0.6)] brightness-[1.05] contrast-[1.05]"
+        }`}
+        style={{ imageRendering: "high-quality", WebkitUserDrag: "none" }}
+      />
+    );
+  }
+
   const Cmp = ICONS[name] || KeyIcon;
   return (
-    <span className={`inline-flex ${color}`}>
-      <Cmp className={size} />
-    </span>
+    <Cmp className={`${size} ${color} shrink-0 transition-colors duration-300`} />
   );
 }
+

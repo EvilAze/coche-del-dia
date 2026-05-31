@@ -54,9 +54,9 @@ const MILESTONE_THRESHOLDS = [
 // símbolo N veces — eso era resignación visual). La escala visual y
 // conceptual aumenta: bujía → bujía encendida → motor en combustión.
 const STREAK_THRESHOLDS = [
-  { id: 7,   svg: "spark",        title: { es: "Chispa",      en: "Spark" },    desc: { es: "Racha de 7 días.",   en: "7-day streak." } },
-  { id: 30,  svg: "spark_fired",  title: { es: "Ignición",    en: "Ignition" }, desc: { es: "Racha de 30 días.",  en: "30-day streak." } },
-  { id: 100, svg: "piston",       title: { es: "Pleno motor", en: "Full throttle" }, desc: { es: "Racha de 100 días.", en: "100-day streak." } },
+  { id: 7,   svg: "spark",        title: { es: "Piloto Novato",   en: "Rookie Driver" },    desc: { es: "Racha de 7 días. Has calentado motores.",   en: "7-day streak. Engines warmed up." } },
+  { id: 30,  svg: "spark_fired",  title: { es: "Piloto Experto",  en: "Pro Driver" },       desc: { es: "Racha de 30 días. Dominas el asfalto.",  en: "30-day streak. Mastering the track." } },
+  { id: 100, svg: "piston",       title: { es: "Piloto de Leyenda", en: "Legendary Driver" }, desc: { es: "Racha de 100 días. Imparable.", en: "100-day streak. Unstoppable." } },
 ];
 
 // ---------- Helpers ------------------------------------------------------

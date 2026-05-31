@@ -26,14 +26,18 @@ function UserIcon() {
   );
 }
 
-function TrophyIcon() {
+// Podio 1·2·3 para el Ranking. Lee como "clasificación / competición" al
+// instante, sin competir con la medalla de Logros (antes ambos eran un
+// "premio dorado" y se confundían). El pódestal central (1º) es más alto.
+function PodiumIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M6 4h12v5a6 6 0 0 1-12 0V4Z" />
-      <path d="M6 6H3a3 3 0 0 0 3 5" />
-      <path d="M18 6h3a3 3 0 0 1-3 5" />
-      <path d="M12 15v4" />
-      <path d="M8 19h8" />
+      {/* 2º (izquierda, medio) */}
+      <rect x="3" y="12" width="6" height="8" rx="1" />
+      {/* 1º (centro, más alto) */}
+      <rect x="9" y="8" width="6" height="12" rx="1" />
+      {/* 3º (derecha, más bajo) */}
+      <rect x="15" y="15" width="6" height="5" rx="1" />
     </svg>
   );
 }
@@ -46,6 +50,18 @@ function GarageIcon() {
       <path d="M20 10v10" />
       <path d="M7 20v-6h10v6" />
       <path d="M9 17h6" />
+    </svg>
+  );
+}
+
+// Medalla: disco + cinta. Distinta del trofeo del ranking para que no se
+// confundan dos accesos en el mismo grupo.
+function MedalIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="15" r="6" />
+      <path d="M12 12.5v5M9.5 15h5" />
+      <path d="M8.5 9 5.5 3M15.5 9l3-6" />
     </svg>
   );
 }
@@ -331,6 +347,7 @@ export default function HeaderSandwich({
   onOpenRanking,
   onOpenGarage,
   onOpenProfile,
+  onOpenAchievements,
   onOpenLogin,
   user,
   repescaAlert = false,
@@ -433,6 +450,20 @@ export default function HeaderSandwich({
               )}
             </button>
 
+            {/* Logros: solo con sesión (el cómputo necesita datos del
+                usuario). Para anónimos no tiene sentido el acceso. */}
+            {user && (
+              <button
+                type="button"
+                onClick={() => { haptic.impactLight(); onOpenAchievements?.(); }}
+                aria-label={t("header.achievements")}
+                title={t("header.achievements")}
+                className={iconBtn}
+              >
+                <MedalIcon />
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
@@ -440,7 +471,7 @@ export default function HeaderSandwich({
               title={t("header.ranking")}
               className={iconBtn}
             >
-              <TrophyIcon />
+              <PodiumIcon />
             </button>
 
           </div>

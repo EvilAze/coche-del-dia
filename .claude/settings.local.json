@@ -92,7 +92,19 @@
       "Bash(node --check \"api/admin/[...slug].js\")",
       "Bash(node scripts/audit-oracle.mjs)",
       "Bash(git check-ignore *)",
-      "Bash(node --check api/_lib/edge/audit.js)"
+      "Bash(node --check api/_lib/edge/audit.js)",
+      "PowerShell(\\(Get-Content src\\\\profile.js | Measure-Object -Line\\).Lines; \\(Get-Content src\\\\achievements.js | Measure-Object -Line\\).Lines; \\(Get-Content src\\\\style.css | Measure-Object -Line\\).Lines)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"src\\\\profile.js\"\\)[0..3]; $bytes | ForEach-Object { \"{0:X2}\" -f $_ })",
+      "PowerShell(\"hello world\")",
+      "Bash(npx eslint *)",
+      "Bash(echo \"===EXIT $?===\")",
+      "Bash(npx esbuild *)",
+      "Bash(echo \"EXIT $?\")",
+      "Bash(node -e \"try{const j=require\\('./src/i18n/locales/es.json'\\);console.log\\('ES parses OK, top keys:',Object.keys\\(j\\).length\\)}catch\\(e\\){console.log\\('ES PARSE ERROR:',e.message\\)}\")",
+      "Bash(node -e \"try{const j=require\\('./src/i18n/locales/en.json'\\);console.log\\('EN parses OK'\\)}catch\\(e\\){console.log\\('EN PARSE ERROR:',e.message\\)}\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/es.json','utf8'\\)\\);console.log\\('ES OK'\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/en.json','utf8'\\)\\);console.log\\('EN OK'\\)\")",
+      "Bash(node -e \"['src/i18n/locales/es.json','src/i18n/locales/en.json'].forEach\\(f=>{JSON.parse\\(require\\('fs'\\).readFileSync\\(f,'utf8'\\)\\);console.log\\(f,'OK'\\)}\\)\")"
     ]
   }
 }

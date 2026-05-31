@@ -19,6 +19,7 @@
     "menuTitle": "Menú",
     "garage": "Mi garaje",
     "ranking": "Ranking global",
+    "achievements": "Logros",
     "profile": "Mi perfil",
     "login": "Iniciar sesión",
     "loginPitch": "Guarda tu progreso, desbloquea tu garaje y compite en el ranking.",
@@ -118,16 +119,17 @@
   },
   "achievements": {
     "sectionTitle": "Logros",
+    "modalSubtitle": "Tus hitos y rachas. Marcas y países viven en el Garaje.",
     "loading": "Cargando logros…",
     "errorLoad": "No se pudieron cargar tus logros.",
     "empty": "Todavía no hay logros disponibles.",
     "toastUnlocked": "Has desbloqueado:",
     "toastMore": "Y {count} logro(s) más desbloqueado(s).",
     "category": {
-      "milestone": "Hitos",
-      "streak": "Constancia",
-      "brand": "Por marca",
-      "country": "Por país"
+      "milestone": "Colección",
+      "streak": "Rachas",
+      "brand": "Marcas",
+      "country": "Países"
     }
   },
   "publicProfile": {

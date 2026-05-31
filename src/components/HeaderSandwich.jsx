@@ -16,52 +16,48 @@ function nextMilestone(current) {
 }
 
 // --- Icons ---
+// Conjunto rediseñado para máxima coherencia visual.
+// Filosofía:
+// - Mismo peso de línea (strokeWidth="1.75" para un toque elegante pero legible).
+// - Misma ocupación de la "caja" (bounding box visual equilibrado).
+// - Geometría tranquila, curvas suaves, cero detalles superfluos.
 
 function UserIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+      <path d="M5 20c0-3.5 3.5-6 7-6s7 2.5 7 6" />
     </svg>
   );
 }
 
-// Podio 1·2·3 para el Ranking. Lee como "clasificación / competición" al
-// instante, sin competir con la medalla de Logros (antes ambos eran un
-// "premio dorado" y se confundían). El pódestal central (1º) es más alto.
 function PodiumIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* 2º (izquierda, medio) */}
-      <rect x="3" y="12" width="6" height="8" rx="1" />
-      {/* 1º (centro, más alto) */}
-      <rect x="9" y="8" width="6" height="12" rx="1" />
-      {/* 3º (derecha, más bajo) */}
-      <rect x="15" y="15" width="6" height="5" rx="1" />
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 13h6v8H3z" />
+      <path d="M9 7h6v14H9z" />
+      <path d="M15 15h6v6h-6z" />
+      <path d="M9 11h6" />
     </svg>
   );
 }
 
 function GarageIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 10 12 4l9 6" />
-      <path d="M4 10v10" />
-      <path d="M20 10v10" />
-      <path d="M7 20v-6h10v6" />
-      <path d="M9 17h6" />
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 10.5 12 4l9 6.5" />
+      <path d="M5 10v11" />
+      <path d="M19 10v11" />
+      <path d="M8 21v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6" />
     </svg>
   );
 }
 
-// Medalla: disco + cinta. Distinta del trofeo del ranking para que no se
-// confundan dos accesos en el mismo grupo.
 function MedalIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="15" r="6" />
-      <path d="M12 12.5v5M9.5 15h5" />
-      <path d="M8.5 9 5.5 3M15.5 9l3-6" />
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="5" />
+      <path d="M8.21 13.89 7 22l5-3 5 3-1.21-8.11" />
     </svg>
   );
 }

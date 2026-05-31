@@ -152,7 +152,7 @@ function Badge({ achievement, locale }) {
     <div
       className={`
         group relative flex flex-col items-center gap-2 overflow-hidden
-        rounded-2xl border px-2 py-3.5 text-center transition-all duration-300
+        rounded-2xl border px-1 pt-3 pb-1.5 text-center transition-all duration-300
         ${unlocked
           ? "border-accent/40 bg-accent/[0.07] shadow-[0_0_22px_-8px_rgba(232,200,122,0.6)]"
           : "border-white/[0.06] bg-white/[0.02]"}
@@ -174,10 +174,10 @@ function Badge({ achievement, locale }) {
         </span>
       )}
 
-      <span className={`relative ${unlocked ? "drop-shadow-[0_0_6px_rgba(232,200,122,0.4)]" : ""}`}>
+      <span className={`relative flex w-[85%] aspect-square shrink-0 items-center justify-center ${unlocked ? "drop-shadow-[0_0_6px_rgba(232,200,122,0.4)]" : ""}`}>
         <AchievementIcon
           name={achievement.icon?.name}
-          size="h-9 w-9"
+          size="w-full h-full"
           color={unlocked ? "text-accent" : "text-white/25"}
         />
       </span>

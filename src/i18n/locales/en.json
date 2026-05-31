@@ -19,6 +19,7 @@
     "menuTitle": "Menu",
     "garage": "My garage",
     "ranking": "Global ranking",
+    "achievements": "Achievements",
     "profile": "My profile",
     "login": "Sign in",
     "loginPitch": "Save your progress, unlock your garage and climb the ranking.",
@@ -118,16 +119,17 @@
   },
   "achievements": {
     "sectionTitle": "Achievements",
+    "modalSubtitle": "Your milestones and streaks. Brands and countries live in the Garage.",
     "loading": "Loading achievements…",
     "errorLoad": "Couldn't load your achievements.",
     "empty": "No achievements available yet.",
     "toastUnlocked": "Unlocked:",
     "toastMore": "And {count} more achievement(s) unlocked.",
     "category": {
-      "milestone": "Milestones",
+      "milestone": "Collection",
       "streak": "Streaks",
-      "brand": "By brand",
-      "country": "By country"
+      "brand": "Brands",
+      "country": "Countries"
     }
   },
   "publicProfile": {

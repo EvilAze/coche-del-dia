@@ -21,6 +21,7 @@ import ModalShell from "./ModalShell";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
 import { track } from "../lib/analytics";
 import { flagImagePath } from "../data/countries";
+import { countryTier, brandTier, TIER_HEX } from "../lib/collectionTier";
 
 // Mapa de profundidad de cada vista del Garaje. Sirve para decidir la
 // dirección del slide al cambiar de vista: bajar de nivel (countries →
@@ -684,6 +685,7 @@ function CountriesMenu({
 function CountryCard({ country, onClick }) {
   const { t } = useT();
   const completed = country.unlocked === country.total && country.total > 0;
+  const tier = countryTier(country.unlocked, country.total);
 
   return (
     <button
@@ -702,10 +704,12 @@ function CountryCard({ country, onClick }) {
         backgroundPosition: "center",
       }}
     >
-      {completed && (
+      {completed ? (
         <div className="absolute left-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
           {t("garage.badgeComplete")}
         </div>
+      ) : (
+        <TierMedal tier={tier} />
       )}
 
       <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pt-6 text-center">
@@ -789,6 +793,7 @@ function BrandCard({ brand, onClick }) {
   // sigue siendo el protagonista, pero el logo de la marca aparece detrás
   // como textura casi imperceptible. Al hover el logo crece y sube su
   // opacidad, dando la sensación de que la card "respira".
+  const tier = brandTier(brand.unlocked, brand.total);
   return (
     <button
       type="button"
@@ -801,6 +806,7 @@ function BrandCard({ brand, onClick }) {
         active:scale-[0.97]
       "
     >
+      <TierMedal tier={tier} />
       {/* Ghost logo de fondo: posición absoluta cubriendo toda la card,
           desaturado y casi transparente. Al pasar por encima crece y se
           intensifica un pelín. `pointer-events-none` para que el click
@@ -1270,6 +1276,28 @@ function RandomRepescaButton({
 // ============================================================================
 // Subcomponentes auxiliares
 // ============================================================================
+
+// Medalla de tier (bronce/plata/oro) en la esquina de una tarjeta de
+// colección. No se pinta cuando tier es null (nada conseguido) ni cuando
+// la colección está completa (la card muestra el badge "Completo" en su
+// lugar). Es un disco con cinta, monocromo según el color del tier.
+function TierMedal({ tier }) {
+  if (!tier) return null;
+  const hex = TIER_HEX[tier];
+  return (
+    <span
+      className="absolute right-2 top-2 z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+      style={{ color: hex }}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="14" r="6" fill={hex} fillOpacity="0.18" />
+        <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
+        <circle cx="12" cy="14" r="6" />
+      </svg>
+    </span>
+  );
+}
 
 function BackButton({ onClick, label }) {
   const { t } = useT();

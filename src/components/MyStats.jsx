@@ -5,14 +5,26 @@ import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
-import Achievements from "./Achievements";
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center">
-      <div className="font-display text-3xl text-accent">{value}</div>
+    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center transition hover:border-accent/30">
+      {/* Hairline dorada superior: detalle premium discreto. */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+      <div className="font-display text-3xl tabular-nums text-accent">{value}</div>
       <div className="mt-1 text-[10px] uppercase tracking-widest text-muted">
         {label}
+      </div>
+    </div>
+  );
+}
+
+// Avatar circular con inicial sobre un disco de degradado dorado.
+function Avatar({ initial }) {
+  return (
+    <div className="relative h-16 w-16 shrink-0">
+      <div className="flex h-full w-full items-center justify-center rounded-full border border-accent/25 bg-gradient-to-br from-accent/30 to-accent/[0.04]">
+        <span className="font-display text-2xl text-accent">{initial}</span>
       </div>
     </div>
   );
@@ -36,7 +48,7 @@ function LockIcon() {
   );
 }
 
-export default function MyStats({ open, onClose, onSignedOut }) {
+export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements }) {
   const { t } = useT();
   const [state, setState] = useState({
     loading: true,
@@ -92,13 +104,14 @@ export default function MyStats({ open, onClose, onSignedOut }) {
   const stats = state.stats;
   const nickname = state.profile?.display_name || t("myStats.noNickname");
   const email = state.user?.email || "";
+  const initial = ((state.profile?.display_name || email || "?").trim()[0] || "?").toUpperCase();
 
   return (
     <ModalShell
       open={open}
       onClose={onClose}
       backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
-      panelClassName="flex max-h-[90vh] w-full max-w-sm flex-col rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl overflow-hidden"
+      panelClassName="flex w-full max-w-sm flex-col rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl"
     >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-widest text-white">
@@ -117,26 +130,26 @@ export default function MyStats({ open, onClose, onSignedOut }) {
           </p>
         ) : (
           <>
-            <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <p className="truncate text-2xl font-bold text-white">
+            <div className="mb-5 flex items-center gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.015] p-4">
+              <Avatar initial={initial} />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <p className="truncate text-xl font-bold text-white">
                     {nickname}
                   </p>
                   <span
-                    className="shrink-0 text-muted/60"
+                    className="shrink-0 text-muted/50"
                     title={t("myStats.nickPermanent")}
                     aria-label={t("myStats.nickPermanentAria")}
                   >
                     <LockIcon />
                   </span>
                 </div>
-                <p className="mt-1 truncate text-sm text-gray-400">{email}</p>
+                <p className="mt-0.5 truncate text-sm text-gray-400">{email}</p>
+                {state.error && (
+                  <p className="mt-2 text-sm text-red-400">{state.error}</p>
+                )}
               </div>
-
-              {state.error && (
-                <p className="mt-3 text-sm text-red-400">{state.error}</p>
-              )}
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -145,12 +158,30 @@ export default function MyStats({ open, onClose, onSignedOut }) {
               <StatCard label={t("myStats.statWins")} value={stats.total_wins} />
             </div>
 
-            {/* Sección de logros: scroll interno dentro del modal para
-                que el contenido principal (stats + sign out) siga visible
-                sin scroll. */}
-            <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-white/10 px-5 pt-4">
-              <Achievements stats={stats} />
-            </div>
+            {/* Acceso a Logros: vive en su propio destino, no embebido aquí.
+                Este botón es el puente desde el perfil. */}
+            <button
+              type="button"
+              onClick={() => { onClose?.(); onOpenAchievements?.(); }}
+              className="focus-ring mt-4 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-accent/40 hover:bg-accent/[0.06]"
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="text-accent">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="9" r="5" />
+                    <path d="M8.5 13.5 7 21l5-3 5 3-1.5-7.5" />
+                  </svg>
+                </span>
+                <span className="text-sm font-medium text-white">
+                  {t("header.achievements")}
+                </span>
+              </span>
+              <span className="text-muted" aria-hidden="true">
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+              </span>
+            </button>
 
             <div className="mt-5 flex justify-center">
               <button

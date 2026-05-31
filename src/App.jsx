@@ -11,6 +11,7 @@ import Header from "./components/HeaderSandwich";
 import Ranking from "./components/Ranking";
 import Garage from "./components/Garage";
 import MyStats from "./components/MyStats";
+import AchievementsModal from "./components/AchievementsModal";
 import NicknameModal from "./components/NicknameModal";
 import CloseButton from "./components/CloseButton";
 import ModalShell from "./components/ModalShell";
@@ -215,6 +216,10 @@ export default function App() {
     setActiveModal("profile");
   }
 
+  function openAchievements() {
+    setActiveModal("achievements");
+  }
+
   function openLogin() {
     setActiveModal("login");
   }
@@ -321,6 +326,7 @@ export default function App() {
         onOpenRanking={openRanking}
         onOpenGarage={openGarage}
         onOpenProfile={openProfile}
+        onOpenAchievements={openAchievements}
         onOpenLogin={openLogin}
         repescaAlert={repescaAlert}
         streak={streak}
@@ -515,6 +521,12 @@ export default function App() {
         open={activeModal === "profile"}
         onClose={closeModal}
         onSignedOut={handleSignedOut}
+        onOpenAchievements={openAchievements}
+      />
+
+      <AchievementsModal
+        open={activeModal === "achievements"}
+        onClose={closeModal}
       />
 
       <NicknameModal

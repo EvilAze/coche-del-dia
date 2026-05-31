@@ -1,44 +1,37 @@
 // src/components/Achievements.jsx
-// Grid de logros (badges) — pensado para vivir DENTRO de MyStats. Estados:
-//   - unlocked → badge a color, brillante.
-//   - locked   → badge en grayscale + opacity, con barra de progreso X/Y.
+// Grid de logros PERSONALES (Colección + Rachas). Vive dentro del modal
+// de Logros (AchievementsModal).
 //
-// Se agrupan por categoría con un sub-header textual (marca, país, hito,
-// constancia). La cabecera muestra el conteo total "X / Y".
+// ARQUITECTURA (v5): las colecciones por marca/país ya NO se muestran
+// aquí — esa "colección" es exactamente lo que enseña el Garaje (países →
+// marcas → coches, con medalla de tier en cada tarjeta). Tenerlas también
+// como badges era duplicar el mismo dato. Aquí quedan solo los logros que
+// NO viven en ningún otro sitio:
+//   · Colección (hitos de coches totales): Primer coche → Salón de la fama
+//   · Rachas (días seguidos): Chispa → Pleno motor
+//
+// Con 8 piezas caben sin scroll y con tarjetas grandes — el objetivo es
+// que se sientan premium, no apretadas.
+//
+// El fetch sigue computando TODOS los logros (incluidas marcas/países) vía
+// el notifier compartido, porque ese cálculo alimenta la persistencia y
+// los toasts post-victoria. Aquí solo filtramos QUÉ se muestra.
 
 import { useEffect, useMemo, useState } from "react";
-import { useT, getLocalizedCountry } from "../i18n";
+import { useT } from "../i18n";
 import { detectAndPersistNewAchievements } from "../lib/achievementsNotifier";
 import AchievementIcon from "./AchievementIcons";
 
-// Mismas convenciones de slug que Garage.jsx para que los iconos
-// (logos de marca, banderas) resuelvan correctamente sin 404s.
-function brandSlug(marca) {
-  return String(marca || "").toLowerCase().replace(/\s+/g, "-");
-}
-function countrySlug(pais) {
-  return String(pais || "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/\./g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-");
-}
+// Categorías que se MUESTRAN en este panel (las colecciones marca/país
+// se han movido al Garaje). Orden de aparición.
+const DISPLAY_CATEGORIES = ["milestone", "streak"];
 
-const CATEGORY_ORDER = ["milestone", "streak", "brand", "country"];
-
-export default function Achievements({ stats }) {
+export default function Achievements({ stats, onProgress }) {
   const { t, locale } = useT();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
 
-  // Toda la lógica de fetch + compute + persistencia vive en el notifier
-  // compartido (reusado por useGame/Repesca para los toasts post-victoria).
-  // Aquí solo nos quedamos con `items` para pintar el grid; el array
-  // `newlyUnlocked` no se usa desde MyStats — la notificación celebratoria
-  // ya pasó al ganar la partida, no al abrir el perfil.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -60,125 +53,90 @@ export default function Achievements({ stats }) {
     };
   }, [stats, t]);
 
+  // Solo hitos + rachas, en orden ascendente de dificultad.
   const groups = useMemo(() => {
     const map = new Map();
     for (const a of items) {
+      if (!DISPLAY_CATEGORIES.includes(a.category)) continue;
       if (!map.has(a.category)) map.set(a.category, []);
       map.get(a.category).push(a);
     }
-    for (const [category, arr] of map.entries()) {
-      if (category === "milestone" || category === "streak") {
-        // Hitos y rachas: orden ascendente fijo por dificultad. Esto da
-        // un orden estable e intuitivo (1 → 10 → 25 → 50 → 100, etc.),
-        // sin importar cuáles tiene desbloqueados el usuario.
-        arr.sort((a, b) => a.progress.total - b.progress.total);
-      } else {
-        // Colecciones (marca/país): primero las completadas (oro+plata
-        // todo), luego en progreso por % desc (más cerca de subir
-        // tier primero), luego intactas por nombre.
-        arr.sort((a, b) => {
-          if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-          const pa = a.progress.current / a.progress.total;
-          const pb = b.progress.current / b.progress.total;
-          if (pa !== pb) return pb - pa;
-          return String(a.group).localeCompare(String(b.group), "es");
-        });
-      }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => a.progress.total - b.progress.total);
     }
-    return CATEGORY_ORDER.filter((c) => map.has(c)).map((c) => ({
+    return DISPLAY_CATEGORIES.filter((c) => map.has(c)).map((c) => ({
       category: c,
       items: map.get(c),
     }));
   }, [items]);
 
-  // Para el contador "X / Y" mostramos algo significativo: en colecciones
-  // contamos por TIERS individuales (más motivante: "tienes 12 medallas
-  // de 60") en lugar de "8 / 40 colecciones completas".
-  let totalUnlocked = 0;
-  let totalCount = 0;
-  for (const a of items) {
-    if (Array.isArray(a.tiers) && a.tiers.length > 0) {
-      totalUnlocked += a.tiers.filter((t) => t.achieved).length;
-      totalCount += a.tiers.length;
-    } else {
-      totalCount += 1;
-      if (a.unlocked) totalUnlocked += 1;
+  // Progreso global (de lo mostrado) para el anillo del modal.
+  const totals = useMemo(() => {
+    let unlocked = 0;
+    let total = 0;
+    for (const g of groups) {
+      for (const a of g.items) {
+        total += 1;
+        if (a.unlocked) unlocked += 1;
+      }
     }
-  }
+    return { unlocked, total };
+  }, [groups]);
+
+  useEffect(() => {
+    onProgress?.(totals);
+  }, [totals, onProgress]);
 
   if (loading) {
     return (
-      <p className="text-center text-sm text-muted">
+      <p className="py-8 text-center text-sm text-muted">
         {t("achievements.loading")}
       </p>
     );
   }
   if (error) {
-    return <p className="text-center text-sm text-red-400">{error}</p>;
+    return <p className="py-8 text-center text-sm text-red-400">{error}</p>;
   }
-  if (totalCount === 0) {
+  if (totals.total === 0) {
     return (
-      <p className="text-center text-sm text-muted">
+      <p className="py-8 text-center text-sm text-muted">
         {t("achievements.empty")}
       </p>
     );
   }
 
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-display text-base tracking-widest text-white">
-          {t("achievements.sectionTitle")}
-        </h3>
-        <span className="text-xs tabular-nums text-muted">
-          {totalUnlocked} / {totalCount}
-        </span>
-      </div>
-
-      <div className="space-y-4">
-        {groups.map(({ category, items: groupItems }) => (
+    <div className="space-y-5">
+      {groups.map(({ category, items: groupItems }) => {
+        const done = groupItems.filter((a) => a.unlocked).length;
+        return (
           <section key={category}>
-            <h4 className="mb-2 text-[10px] uppercase tracking-[0.22em] text-accent">
-              {t(`achievements.category.${category}`)}
-            </h4>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div className="mb-2.5 flex items-baseline justify-between">
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+                {t(`achievements.category.${category}`)}
+              </h4>
+              <span className="text-[11px] tabular-nums text-muted">
+                {done} / {groupItems.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
               {groupItems.map((a) => (
-                <Badge
-                  key={a.id}
-                  achievement={a}
-                  locale={locale}
-                />
+                <Badge key={a.id} achievement={a} locale={locale} />
               ))}
             </div>
           </section>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
 
-// Color CSS por tier (texto y borde). Centralizado para que la card y
-// el chip usen el mismo paleta.
-function tierColors(tier) {
-  switch (tier) {
-    case "gold":
-      return { text: "text-yellow-300", border: "border-yellow-300/80" };
-    case "silver":
-      return { text: "text-zinc-300", border: "border-zinc-300/70" };
-    case "bronze":
-      return { text: "text-amber-600", border: "border-amber-700/70" };
-    default:
-      return { text: "text-accent", border: "border-accent/60" };
-  }
-}
-
 function Badge({ achievement, locale }) {
-  const { unlocked, progress, progressToNext, currentTier, nextTier, tiers } = achievement;
-  // Barra: % hacia el SIGUIENTE tier (urgencia visual "estás a punto
-  // de subir"). Si ya no hay siguiente tier, la barra usa el progreso
-  // absoluto (caso típico: hitos/rachas, o colección al máximo).
-  const barSource = progressToNext || progress;
-  const pct = Math.min(100, Math.round((barSource.current / barSource.total) * 100));
+  const { unlocked, progress } = achievement;
+  const pct = Math.min(
+    100,
+    Math.round((progress.current / progress.total) * 100)
+  );
   const title =
     achievement.title?.[locale] ||
     achievement.title?.es ||
@@ -190,127 +148,69 @@ function Badge({ achievement, locale }) {
     achievement.description?.en ||
     "";
 
-  // Tier visual de referencia para borde:
-  //   - colección con currentTier → ese color
-  //   - colección sin desbloquear → borde sutil blanco
-  //   - hitos/rachas: accent si unlocked, blanco si no
-  const isCollection = Array.isArray(tiers) && tiers.length > 0;
-  const borderClass = unlocked
-    ? tierColors(isCollection ? currentTier : "gold").border
-    : currentTier
-    ? tierColors(currentTier).border
-    : "border-white/10";
-
-  // El icono queda atenuado solo cuando NO hay nada conseguido en el
-  // grupo (colecciones con currentTier=null o hitos/rachas no unlocked).
-  const muted = isCollection ? !currentTier : !unlocked;
-
   return (
     <div
       className={`
-        group relative aspect-square overflow-hidden rounded-lg
-        border ${borderClass}
-        bg-white/[0.04] p-2
-        ${muted ? "opacity-55" : ""}
-        transition hover:opacity-100 hover:border-accent/70
+        group relative flex flex-col items-center gap-2 overflow-hidden
+        rounded-2xl border px-2 py-3.5 text-center transition-all duration-300
+        ${unlocked
+          ? "border-accent/40 bg-accent/[0.07] shadow-[0_0_22px_-8px_rgba(232,200,122,0.6)]"
+          : "border-white/[0.06] bg-white/[0.02]"}
       `}
       title={`${title} — ${description}`}
     >
-      <div className="flex h-full w-full flex-col items-center justify-center gap-1.5">
-        <BadgeIcon achievement={achievement} muted={muted} />
+      {/* Brillo diagonal en los conseguidos. */}
+      {unlocked && (
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.07] to-transparent" />
+      )}
 
-        {/* Etiqueta de estado:
-            - Si hay tier conseguido: nombre del tier (PLATA, ORO…).
-            - Si no: ratio CONTRA EL TOTAL real del catálogo (1/8). NUNCA
-              ratio contra el siguiente tier — ahí el usuario confundiría
-              4 con "total de coches de la marca" en vez de "necesarios
-              para plata". */}
-        {isCollection ? (
-          currentTier ? (
-            <span className={`text-[9px] uppercase tracking-[0.18em] font-semibold ${tierColors(currentTier).text}`}>
-              {currentTier}
-            </span>
-          ) : (
-            <span className="text-[9px] uppercase tracking-[0.18em] text-muted">
-              {progress.current}/{progress.total}
-            </span>
-          )
-        ) : null}
+      {/* Candado en bloqueados. */}
+      {!unlocked && (
+        <span className="absolute right-2 top-2 text-white/20" aria-hidden="true">
+          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="11" width="16" height="10" rx="2" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+        </span>
+      )}
 
-        {/* Barra de progreso: en colecciones siempre la mostramos
-            (incluso con tier conseguido, indica el avance al siguiente).
-            En unlocked total (sin nextTier) la ocultamos. */}
-        {(!unlocked || (isCollection && nextTier)) && (
-          <div className="absolute inset-x-1 bottom-1 h-1 overflow-hidden rounded-full bg-white/10">
+      <span className={`relative ${unlocked ? "drop-shadow-[0_0_6px_rgba(232,200,122,0.4)]" : ""}`}>
+        <AchievementIcon
+          name={achievement.icon?.name}
+          size="h-9 w-9"
+          color={unlocked ? "text-accent" : "text-white/25"}
+        />
+      </span>
+
+      <span
+        className={`relative line-clamp-2 min-h-[1.9em] text-[10.5px] font-medium leading-tight ${
+          unlocked ? "text-white" : "text-muted"
+        }`}
+      >
+        {title}
+      </span>
+
+      {/* Estado: barra + x/y mientras está bloqueado; chip ✓ al lograrlo. */}
+      {unlocked ? (
+        <span className="relative inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
+          <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12l5 5L20 7" />
+          </svg>
+          {progress.total}
+        </span>
+      ) : (
+        <div className="relative w-full px-1">
+          <div className="h-1 overflow-hidden rounded-full bg-white/[0.08]">
             <div
-              className="h-full bg-accent/80 transition-[width] duration-500"
+              className="h-full rounded-full bg-accent/80 transition-[width] duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-        )}
-      </div>
+          <span className="mt-1 block text-[9px] tabular-nums text-muted">
+            {progress.current}/{progress.total}
+          </span>
+        </div>
+      )}
     </div>
-  );
-}
-
-function BadgeIcon({ achievement, muted }) {
-  const { icon, group } = achievement;
-  const filter = muted ? "grayscale(1)" : undefined;
-
-  if (icon.kind === "brand") {
-    const src = `/brands/${brandSlug(icon.value)}.png`;
-    return (
-      <img
-        src={src}
-        alt={group || ""}
-        draggable={false}
-        loading="lazy"
-        className="h-10 w-10 object-contain"
-        style={{ filter }}
-        onError={(e) => {
-          // Si falta el logo concreto, fallback a un texto con la inicial.
-          e.currentTarget.style.display = "none";
-          e.currentTarget.nextSibling?.removeAttribute?.("hidden");
-        }}
-      />
-    );
-  }
-
-  if (icon.kind === "country") {
-    const src = `/flags/${countrySlug(icon.value)}.jpg`;
-    return (
-      <img
-        src={src}
-        alt={group ? getLocalizedCountry(group) : ""}
-        draggable={false}
-        loading="lazy"
-        className="h-10 w-10 rounded-sm object-cover"
-        style={{ filter }}
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-      />
-    );
-  }
-
-  // SVG (hitos y rachas) — usamos el componente compartido que sabe
-  // pintar la silueta correcta y, en el caso de las rachas, repetir
-  // N veces el icono (1/2/3 llamas según la dureza).
-  if (icon.kind === "svg") {
-    return (
-      <AchievementIcon
-        name={icon.name}
-        repeat={icon.repeat || 1}
-        muted={muted}
-        size="h-7 w-7"
-      />
-    );
-  }
-
-  // Fallback (no debería darse): texto plano.
-  return (
-    <span className="font-display text-3xl leading-none" style={{ filter }}>
-      {icon.value || "?"}
-    </span>
   );
 }

@@ -1,5 +1,5 @@
 // src/App.jsx
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
@@ -88,6 +88,12 @@ export default function App() {
   // partida acaba, el score que devuelve useGame ya incluye el nuevo
   // currentStreak — lo aplicamos sin refetch.
   const [streak, setStreak] = useState(0);
+  // `revealReady` = la imagen completa (sin crop) del coche del día ya ha
+  // cargado tras terminar la partida. Lo enciende CarImage vía onRevealLoad.
+  // ResultPanel lo usa para temporizar su scroll automático: espera a que
+  // el jugador vea el coche entero antes de desplazar la vista al resultado.
+  const [revealReady, setRevealReady] = useState(false);
+  const handleRevealLoad = useCallback(() => setRevealReady(true), []);
 
   // Sin splash bloqueante. Antes había un GarageDoorSplash con duración
   // mínima de 1700 ms que el usuario fiel veía cada día (o cada sesión)
@@ -278,6 +284,14 @@ export default function App() {
     }
   }, [user, score?.persisted, score?.currentStreak]);
 
+  // Reset del gate de revelado al volver a "playing" (nueva partida sin
+  // recargar, p.ej. tras day-rollover si algún día lo hiciéramos sin reload).
+  // Mantiene la coherencia: el scroll automático solo debe ocurrir una vez
+  // por partida terminada.
+  useEffect(() => {
+    if (status === "playing") setRevealReady(false);
+  }, [status]);
+
   const today = new Date().toLocaleDateString(dateLocale, {
     weekday: "long",
     day: "numeric",
@@ -369,6 +383,7 @@ export default function App() {
             status={status}
             showHintLabel={false}
             blurred={status === "lost" && !user}
+            onRevealLoad={handleRevealLoad}
             overlay={
               status === "lost" && !user ? (
                 <LockedRevealCard />
@@ -438,6 +453,7 @@ export default function App() {
                   score={score}
                   user={user}
                   onOpenLogin={openLogin}
+                  revealReady={revealReady}
                 />
               )}
             </div>

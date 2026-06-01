@@ -1,5 +1,5 @@
 // src/components/ResultPanel.jsx
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Confetti from "./Confetti";
 import ScoreBreakdown from "./ScoreBreakdown";
 import DailyStats from "./DailyStats";
@@ -179,6 +179,7 @@ export default function ResultPanel({
   score,
   user,
   onOpenLogin,
+  revealReady = false,
 }) {
   const { t, tn } = useT();
   const won = status === "won";
@@ -204,6 +205,52 @@ export default function ResultPanel({
     if (copyResetTimerRef.current) clearTimeout(copyResetTimerRef.current);
     copyResetTimerRef.current = setTimeout(() => setJustCopied(false), 1600);
   }
+
+  // Scroll estratégico post-revelado. Secuencia pensada para el pico
+  // emocional de ganar:
+  //   1. La partida termina → este panel monta y la imagen recortada se
+  //      sustituye por la foto COMPLETA (sin crop). Esa imagen tiene que
+  //      descargarse: en red lenta o cold-start del proxy puede tardar.
+  //   2. Esperamos al evento real de carga (revealReady, que enciende
+  //      CarImage cuando la foto full ya está pintada) + el tiempo de la
+  //      transición de aspect-ratio (~750 ms). Así el jugador SIEMPRE ve
+  //      el coche entero antes de que la vista se mueva — nunca un scroll
+  //      forzado sobre una imagen a medio cargar.
+  //   3. Scroll suave que lleva el botón de Compartir al centro del
+  //      viewport: título + puntuación arriba, CTA de compartir a un toque.
+  //
+  // Techo de seguridad: si la imagen nunca avisa (error de red sostenido,
+  // watchdog del fallback agotado), a los 3.5 s scrolleamos igualmente para
+  // no dejar al jugador atrapado arriba. El ref `didScrollRef` garantiza
+  // que el scroll ocurre UNA sola vez, gane quien gane la carrera entre el
+  // revelado real y el techo.
+  const shareButtonRef = useRef(null);
+  const didScrollRef = useRef(false);
+  useEffect(() => {
+    function doScroll() {
+      if (didScrollRef.current) return;
+      const el = shareButtonRef.current;
+      if (!el) return;
+      didScrollRef.current = true;
+      const prefersReduced =
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+      el.scrollIntoView({
+        behavior: prefersReduced ? "auto" : "smooth",
+        block: "center",
+      });
+    }
+
+    const timers = [];
+    // Camino normal: la foto full ya cargó → margen para la transición de
+    // aspect-ratio → scroll.
+    if (revealReady) {
+      timers.push(setTimeout(doScroll, 800));
+    }
+    // Techo de seguridad, independiente del estado de carga.
+    timers.push(setTimeout(doScroll, 3500));
+
+    return () => timers.forEach(clearTimeout);
+  }, [revealReady]);
 
   async function handleShare() {
     haptic.impactLight();
@@ -263,12 +310,18 @@ export default function ResultPanel({
       {hasReveal ? (
         <>
           <p className="text-muted text-sm mb-1">{t("result.wasThe")}</p>
-          <p className="text-white font-medium text-base mb-1">
-            {car.marca} {car.modelo}
-          </p>
-          <p className="text-accent font-display text-xl tracking-wider mb-2">
-            {car.anio}
-          </p>
+          {/* Marca/modelo y año en una sola línea (items-baseline) en lugar
+              de tres bloques apilados. Reduce la altura del bloque de
+              revelado sin perder la jerarquía: el año mantiene su peso
+              dorado display, el nombre su peso medio en blanco. */}
+          <div className="mb-2 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5">
+            <span className="text-white font-medium text-base">
+              {car.marca} {car.modelo}
+            </span>
+            <span className="text-accent font-display text-xl tracking-wider">
+              {car.anio}
+            </span>
+          </div>
         </>
       ) : (
         // Anónimo que ha perdido: el coche queda oculto aquí; la imagen de
@@ -286,17 +339,6 @@ export default function ResultPanel({
       )}
 
       <ScoreBreakdown score={score} won={won} />
-
-      {carDescription && (
-        <div className="mb-4 rounded-lg border border-border/60 bg-bg-secondary/50 px-4 py-3 text-left">
-          <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
-            {t("result.spec")}
-          </p>
-          <p className="text-sm leading-relaxed text-white/90">
-            {carDescription}
-          </p>
-        </div>
-      )}
 
       {shareText && (
         // Card UNIFICADA: preview + acción son una sola unidad conceptual
@@ -338,6 +380,7 @@ export default function ResultPanel({
           />
 
           <button
+            ref={shareButtonRef}
             onClick={handleShare}
             aria-live="polite"
             // disabled durante el flash para evitar dobles copias accidentales
@@ -396,6 +439,22 @@ export default function ResultPanel({
       )}
 
       <DailyStats attempts={attempts} won={won} />
+
+      {/* Ficha del coche (lore): movida aquí abajo, tras el share y las
+          stats del día. Es contenido de recompensa/aprendizaje, no
+          time-sensitive — no debe empujar el botón de compartir fuera de
+          la primera pantalla. El jugador que quiere el dato lo encuentra;
+          el que solo quiere compartir y salir, no lo tiene en medio. */}
+      {carDescription && (
+        <div className="mb-4 rounded-lg border border-border/60 bg-bg-secondary/50 px-4 py-3 text-left">
+          <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
+            {t("result.spec")}
+          </p>
+          <p className="text-sm leading-relaxed text-white/90">
+            {carDescription}
+          </p>
+        </div>
+      )}
 
       <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">
         <p className="text-[10px] uppercase tracking-[0.22em] text-muted">

@@ -190,6 +190,12 @@
     "streakLabel3": "Streak 3",
     "streakLabel4plus": "Streak 4+"
   },
+  "dailyStats": {
+    "title": "Today worldwide",
+    "gamesPlayed": "{count} games played",
+    "winRate": "{pct}% win rate",
+    "betterThan": "Better than {pct}% of players"
+  },
   "toast": {
     "closeAria": "Close notification"
   },

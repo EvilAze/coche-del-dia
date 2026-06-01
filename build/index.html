@@ -36,13 +36,17 @@
 
     <title>El Coche del Día · Adivina el coche en 5 intentos</title>
     <meta name="description" content="¿Cuánto sabes de motor? Adivina la marca, modelo y año del coche del día en 5 intentos. Un nuevo reto automovilístico cada 24 horas. Juega gratis a El Coche del Día." />
-    <meta name="keywords" content="coche del día, adivina coche, wordle de coches, motor, automovilismo, simracing, trivia coches" />
+    <meta name="keywords" content="coche del día, adivina coche, wordle de coches, juego de coches, quiz coches, trivia motor, adivina marca modelo año, juego diario coches, automovilismo, simracing" />
     <meta name="author" content="El Coche del Día" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 
-    <!-- Canonical: evita penalización SEO por duplicados (www, http, etc.)
-         y consolida autoridad en el apex sin www. Tras la migración desde
-         carguessr.org (308 desde Vercel), todo el juice fluye aquí. -->
     <link rel="canonical" href="https://cochedeldia.com/" />
+    <link rel="alternate" hreflang="es" href="https://cochedeldia.com/" />
+    <link rel="alternate" hreflang="en" href="https://cochedeldia.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://cochedeldia.com/" />
+
+    <link rel="preconnect" href="https://cloud.umami.is" crossorigin />
+    <link rel="dns-prefetch" href="https://cloud.umami.is" />
 
     <!--
       Open Graph + Twitter Card.
@@ -91,10 +95,40 @@
       data-website-id="6d3e8cc0-401e-42b0-8cd4-dfc2a2748f1b"
       data-domains="cochedeldia.com,carguessr.org"
     ></script>
-      <script type="module" crossorigin src="/assets/index-DtkKlldg.js"></script>
-      <link rel="stylesheet" crossorigin href="/assets/index-ThlZnXiD.css">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "El Coche del Día",
+      "url": "https://cochedeldia.com/",
+      "description": "Adivina la marca, modelo y año del coche del día en 5 intentos. Un nuevo reto automovilístico cada 24 horas.",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "All",
+      "browserRequirements": "Requires JavaScript",
+      "inLanguage": ["es", "en"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "El Coche del Día",
+        "url": "https://cochedeldia.com/"
+      },
+      "image": "https://cochedeldia.com/og-image.jpg"
+    }
+    </script>
+      <script type="module" crossorigin src="/assets/index-DrQtFw4C.js"></script>
+      <link rel="stylesheet" crossorigin href="/assets/index-5QIp_gxy.css">
     </head>
   <body>
+    <noscript>
+      <div style="padding:2rem;text-align:center;color:#f0f0f4;background:#0a0a0b;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <h1 style="font-size:1.5rem;color:#e8c87a">El Coche del Día</h1>
+        <p style="margin-top:1rem;max-width:400px">Adivina la marca, modelo y año del coche del día en 5 intentos. Un nuevo reto automovilístico cada 24 horas. Activa JavaScript para jugar.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
   </body>
 </html>

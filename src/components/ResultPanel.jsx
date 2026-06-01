@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import Confetti from "./Confetti";
 import ScoreBreakdown from "./ScoreBreakdown";
+import DailyStats from "./DailyStats";
 import { useToast } from "./Toast";
 import { useCountdown } from "../hooks/useCountdown";
 import { useT, getCarDescription } from "../i18n";
@@ -393,6 +394,8 @@ export default function ResultPanel({
           </button>
         </div>
       )}
+
+      <DailyStats attempts={attempts} won={won} />
 
       <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">
         <p className="text-[10px] uppercase tracking-[0.22em] text-muted">

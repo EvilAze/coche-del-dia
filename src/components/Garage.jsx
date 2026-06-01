@@ -76,7 +76,7 @@ function groupCarsByBrand(cars) {
     });
 }
 
-export default function Garage({ open, onClose, user, onOpenLogin }) {
+export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchievements }) {
   const { t } = useT();
   const toast = useToast();
   const [state, setState] = useState({
@@ -472,7 +472,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         {/* Header */}
         <div className="border-b border-white/10 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               {backLabel && (
                 <BackButton onClick={onBack} label={backLabel} />
               )}
@@ -483,7 +483,23 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
                 {headerTitle}
               </h2>
             </div>
-            <CloseButton onClick={onClose} />
+            <div className="flex items-center gap-1">
+              {view === "countries" && (
+                <button
+                  type="button"
+                  onClick={() => { onClose(); onOpenAchievements?.(); }}
+                  aria-label={t("header.achievements")}
+                  title={t("header.achievements")}
+                  className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-accent/15 hover:text-accent"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="8" r="5" />
+                    <path d="M8.21 13.89 7 22l5-3 5 3-1.21-8.11" />
+                  </svg>
+                </button>
+              )}
+              <CloseButton onClick={onClose} />
+            </div>
           </div>
         </div>
 

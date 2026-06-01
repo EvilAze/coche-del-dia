@@ -1,156 +1,141 @@
 // src/components/AchievementIcons.jsx
-// ---------------------------------------------------------------------
-// Set de iconos para los logros que no son ni logo de marca ni bandera.
-//
-// Soporte para PNG (v5):
-//   Si existe un archivo PNG en /public/achievements/ con el nombre
-//   del icono, se usa en lugar del SVG. Esto permite al usuario
-//   personalizar la sección "Colección" con arte propio.
-//
-// Filosofía del rediseño (v4 — "línea refinada"):
-//   • UNA silueta confiada por icono. Cero detalle interior, cero
-//     miniaturas dentro de miniaturas. A 28-36px el detalle es ruido;
-//     lo premium es la forma limpia con aire alrededor.
-//   • Stroke 1.5 consistente, currentColor, SIN rellenos. El color
-//     (dorado si conseguido, gris tenue si bloqueado) lo aporta el
-//     contenedor — el icono solo dibuja la silueta.
-// ---------------------------------------------------------------------
+// Iconos SVG para logros. Línea fina dorada sobre fondo oscuro.
+// ViewBox 48×48 — todo el contenido centrado en y=24.
 
 const STROKE = {
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.5,
+  strokeWidth: 2,
   strokeLinecap: "round",
   strokeLinejoin: "round",
 };
 
-// Mapa de iconos que tienen versión PNG en /public/achievements/
-const PNG_ICONS = {
-  key: "/achievements/key.png",
-  garage: "/achievements/garage.png",
-  showroom: "/achievements/showroom.png",
-  vitrine: "/achievements/vitrine.png",
-  trophy: "/achievements/trophy.png",
-  spark: "/achievements/spark.png",
-  spark_fired: "/achievements/spark_fired.png",
-  piston: "/achievements/piston.png",
-};
-
 /* ============================================================
-   MILESTONES — escala de propiedad → leyenda
+   MILESTONES
    ============================================================ */
 
-// 1 coche · "Primer coche" — Llave: aro + paletón con dos dientes.
+// Volante — centrado (y7–y41, mid=24) ✓
 function KeyIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <circle cx="7" cy="12" r="3.4" />
-      <circle cx="7" cy="12" r="0.9" />
-      <path d="M10.4 12H20" />
-      <path d="M16.5 12v2.6" />
-      <path d="M20 12v2.1" />
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <circle cx="24" cy="24" r="17" />
+      <circle cx="24" cy="24" r="5" />
+      <circle cx="24" cy="24" r="1.5" strokeWidth="1.2" />
+      <path d="M24 19V7" />
+      <path d="M19.7 26.5L9.5 32.5" />
+      <path d="M28.3 26.5L38.5 32.5" />
     </svg>
   );
 }
 
-// 10 coches · "Garaje pequeño" — Garaje: tejado a dos aguas + puerta de arco.
+// Garaje — centrado (y6–y42, mid=24) ✓
 function GarageIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M3 10.5 12 4l9 6.5" />
-      <path d="M5 10v10" />
-      <path d="M19 10v10" />
-      <path d="M4 20h16" />
-      <path d="M9 20v-5a3 3 0 0 1 6 0v5" />
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M4 20L24 6l20 14" />
+      <path d="M8 20v22" />
+      <path d="M40 20v22" />
+      <path d="M6 42h36" />
+      <rect x="14" y="25" width="20" height="17" rx="1" />
+      <path d="M14 31h20M14 37h20" strokeWidth="1.2" />
+      <circle cx="24" cy="16" r="2.5" strokeWidth="1.2" />
     </svg>
   );
 }
 
-// 25 coches · "Concesionario" — Showroom: marquesina trapezoidal + escaparate.
+// Concesionario — centrado (y7–y41, mid=24) ✓
 function ShowroomIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M3 9l2-3.5h14L21 9z" />
-      <path d="M5 9v11h14V9" />
-      <path d="M7 12.5h10" />
-      <path d="M10 20v-4.5h4V20" />
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M4 12l3-5h34l3 5" />
+      <path d="M4 12h40" strokeWidth="2.5" />
+      <path d="M7 12v29" />
+      <path d="M41 12v29" />
+      <path d="M5 41h38" />
+      <rect x="10" y="16" width="11" height="21" rx="0.5" strokeWidth="1.3" />
+      <rect x="27" y="16" width="11" height="21" rx="0.5" strokeWidth="1.3" />
+      <path d="M22 41v-8h4v8" strokeWidth="1.3" />
     </svg>
   );
 }
 
-// 50 coches · "Museo" — Frontón clásico sobre columnas (lectura instantánea).
+// Museo — centrado (y5–y43, mid=24) ✓
 function MuseumIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M3 9 12 4l9 5" />
-      <path d="M5.5 9.5v8.5" />
-      <path d="M9.83 9.5v8.5" />
-      <path d="M14.16 9.5v8.5" />
-      <path d="M18.5 9.5v8.5" />
-      <path d="M4 18h16" />
-      <path d="M3 20.5h18" />
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M6 17L24 5l18 12" />
+      <path d="M8 17h32" strokeWidth="2.5" />
+      <path d="M12 17v20" />
+      <path d="M20 17v20" />
+      <path d="M28 17v20" />
+      <path d="M36 17v20" />
+      <path d="M8 37h32" strokeWidth="2" />
+      <path d="M6 40h36" strokeWidth="1.3" />
+      <path d="M4 43h40" />
+      <circle cx="24" cy="12.5" r="2" strokeWidth="1.2" />
     </svg>
   );
 }
 
-// 100 coches · "Garaje icónico" — Trofeo: copa + asas + base.
+// Trofeo — centrado (y8–y41, mid=24.5) ✓
 function TrophyIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M7.5 4h9v3a4.5 4.5 0 0 1-9 0z" />
-      <path d="M7.5 5H5.5a2 2 0 0 0 0 3.6h2" />
-      <path d="M16.5 5h2a2 2 0 0 1 0 3.6h-2" />
-      <path d="M12 11.5v4" />
-      <path d="M10.5 15.5h3v4h-3z" />
-      <path d="M9 19.5h6" />
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M15 8h18v7c0 6-4 11-9 11s-9-5-9-11z" />
+      <path d="M15 12H10a4.5 4.5 0 000 9h5" />
+      <path d="M33 12h5a4.5 4.5 0 010 9h-5" />
+      <path d="M18 11h12" strokeWidth="1" />
+      <path d="M24 26v5" />
+      <path d="M19 31h10" />
+      <rect x="17" y="33" width="14" height="4" rx="1" strokeWidth="1.3" />
+      <path d="M14 37h20v4H14z" />
     </svg>
   );
 }
 
 /* ============================================================
-   STREAKS — escala de ignición mecánica
+   STREAKS
    ============================================================ */
 
-// 7 días · "Constancia" — Bujía (silueta limpia: terminal, cerámica,
-// tuerca, rosca y electrodo, sin las líneas internas de la rosca).
-function SparkPlugIcon({ className }) {
+// Llama simple — centrado (y6–y42, mid=24) ✓
+function SparkIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M10 3.5h4v2.5h-4z" />
-      <path d="M9.5 6h5v4h-5z" />
-      <path d="M9 10h6l-1 2h-4z" />
-      <path d="M10 12h4v3h-4z" />
-      <path d="M12 15v2.5" />
-      <path d="M12 17.5h-1.8" />
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M24 6c-2 9-12 14-12 24a12 12 0 0024 0c0-10-10-15-12-24z" />
+      <path d="M24 20c-1 5-6 8-6 14a6 6 0 0012 0c0-6-5-9-6-14z" strokeWidth="1.3" />
     </svg>
   );
 }
 
-// 30 días · "Disciplina" — Bujía con chispa: misma silueta + dos arcos.
-function SparkPlugFiredIcon({ className }) {
+// Llama triple — centrado (y5–y43, mid=24) ✓
+function SparkFiredIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <path d="M10 3.5h4v2.5h-4z" />
-      <path d="M9.5 6h5v4h-5z" />
-      <path d="M9 10h6l-1 2h-4z" />
-      <path d="M10 12h4v2.5h-4z" />
-      <path d="M12 14.5v1.8" />
-      <path d="M7 16l1.6-.6" />
-      <path d="M17 16l-1.6-.6" />
-      <path d="M12 18.5l-1.4.8" />
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M24 5c-2 10-13 15-13 25a13 13 0 0026 0c0-10-11-15-13-25z" />
+      <path d="M24 17c-1 5-7 8-7 15a7 7 0 0014 0c0-7-6-10-7-15z" strokeWidth="1.3" />
+      <path d="M24 27c-.5 3-3.5 5-3.5 9a3.5 3.5 0 007 0c0-4-3-6-3.5-9z" strokeWidth="1" />
+      <path d="M8 17l-3-2M40 17l3-2" strokeWidth="1.5" />
+      <path d="M5 26h-3M43 26h3" strokeWidth="1.5" />
     </svg>
   );
 }
 
-// 100 días · "Leyenda" — Pistón: cabeza + dos anillos + biela + cigüeñal.
+// Corona — centrado (y3.5–y43, mid=23.25) ≈✓
 function PistonIcon({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...STROKE}>
-      <rect x="8" y="3.5" width="8" height="7" rx="1" />
-      <path d="M9 6.5h6" />
-      <path d="M9 8.5h6" />
-      <path d="M12 10.5v4.4" />
-      <circle cx="12" cy="17.6" r="2.6" />
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M8 30V16l8 7 8-13 8 13 8-7v14" />
+      <rect x="8" y="30" width="32" height="6" rx="1.5" />
+      <circle cx="8" cy="16" r="2" strokeWidth="1.3" />
+      <circle cx="24" cy="10" r="2.5" strokeWidth="1.3" />
+      <circle cx="40" cy="16" r="2" strokeWidth="1.3" />
+      <circle cx="16" cy="33" r="1" strokeWidth="1" />
+      <circle cx="24" cy="33" r="1" strokeWidth="1" />
+      <circle cx="32" cy="33" r="1" strokeWidth="1" />
+      <path d="M24 7.5V3.5" strokeWidth="1.3" />
+      <path d="M22.5 5h3" strokeWidth="1.3" />
+      <path d="M6 39h36" />
+      <path d="M4 43h40" strokeWidth="1.5" />
     </svg>
   );
 }
@@ -165,57 +150,25 @@ const ICONS = {
   showroom: ShowroomIcon,
   vitrine: MuseumIcon,
   trophy: TrophyIcon,
-  spark: SparkPlugIcon,
-  spark_fired: SparkPlugFiredIcon,
+  spark: SparkIcon,
+  spark_fired: SparkFiredIcon,
   piston: PistonIcon,
 
-  // Aliases retrocompatibles por si quedó algún nombre antiguo en datos.
   car: KeyIcon,
   parking: GarageIcon,
   shop: ShowroomIcon,
   museum: MuseumIcon,
   crown: TrophyIcon,
-  flame: SparkPlugIcon,
+  flame: SparkIcon,
 };
 
-/**
- * Renderiza un icono de logro por nombre.
- *
- * @param {string} name   — clave del icono en ICONS
- * @param {boolean} muted — DEPRECATED. El estado bloqueado ahora se
- *                          comunica con el color (prop `color`).
- * @param {string} size   — clases tailwind de tamaño (h-* w-*)
- * @param {string} color  — clase de color (default accent dorado)
- */
 export default function AchievementIcon({
   name,
-  // eslint-disable-next-line no-unused-vars
-  muted = false,
   size = "h-8 w-8",
   color = "text-accent",
 }) {
-  // Soporte para PNG personalizado.
-  if (PNG_ICONS[name]) {
-    // Si el color indica bloqueo (text-white/25), aplicamos filtro visual al PNG.
-    const isLocked = color.includes("white") || color.includes("25");
-    return (
-      <img
-        src={PNG_ICONS[name]}
-        alt=""
-        draggable={false}
-        className={`w-full h-full aspect-square shrink-0 object-contain object-center transition-all duration-500 scale-95 ${
-          isLocked 
-            ? "opacity-[0.35] grayscale brightness-[0.7] contrast-[1.2]" 
-            : "drop-shadow-[0_6px_12px_rgba(0,0,0,0.6)] brightness-[1.05] contrast-[1.05]"
-        }`}
-        style={{ imageRendering: "high-quality", WebkitUserDrag: "none" }}
-      />
-    );
-  }
-
   const Cmp = ICONS[name] || KeyIcon;
   return (
     <Cmp className={`${size} ${color} shrink-0 transition-colors duration-300`} />
   );
 }
-

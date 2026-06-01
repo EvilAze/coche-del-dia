@@ -326,7 +326,6 @@ export default function App() {
         onOpenRanking={openRanking}
         onOpenGarage={openGarage}
         onOpenProfile={openProfile}
-        onOpenAchievements={openAchievements}
         onOpenLogin={openLogin}
         repescaAlert={repescaAlert}
         streak={streak}
@@ -515,6 +514,7 @@ export default function App() {
         onClose={closeModal}
         user={user}
         onOpenLogin={openLogin}
+        onOpenAchievements={openAchievements}
       />
 
       <MyStats

@@ -16,6 +16,13 @@ export default function CarImage({
   blurred = false,
   overlay = null,
   showHintLabel = true,
+  // Callback que se dispara cuando la imagen de REVELADO (la completa sin
+  // crop que se sirve al ganar/perder) termina de cargar. Lo consume App
+  // para coordinar el scroll automático al panel de resultado: no tiene
+  // sentido scrollear hasta que el jugador ve el coche entero, y ese
+  // momento depende de la red (la imagen full puede tardar). Sin esto,
+  // un timeout fijo dispararía el scroll mientras la foto aún carga.
+  onRevealLoad = null,
 }) {
   const [loaded, setLoaded] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
@@ -80,8 +87,11 @@ export default function CarImage({
     if (img.complete && img.naturalWidth > 0) {
       setNaturalRatio(img.naturalWidth / img.naturalHeight);
       setLoaded(true);
+      // Imagen ya cacheada al montar (recarga con partida terminada): la
+      // foto completa está visible de inmediato, avisamos para el scroll.
+      if (status === "won" || status === "lost") onRevealLoad?.();
     }
-  }, [src, loaded]);
+  }, [src, loaded, status, onRevealLoad]);
 
   // Flash dorado de "pista desbloqueada" sólo durante la partida. Se
   // dispara al cambiar el `zoom` CSS (cada intento baja el scale).
@@ -117,6 +127,12 @@ export default function CarImage({
       setNaturalRatio(img.naturalWidth / img.naturalHeight);
     }
     setLoaded(true);
+    // Solo avisamos cuando lo que acaba de cargar es la imagen de revelado
+    // (status won/lost). Durante la partida cargan imágenes recortadas por
+    // intento — esas no deben disparar el scroll. El handler se recrea cada
+    // render, así que `status` aquí es el del render que montó este <img>:
+    // cuando carga la foto full del revelado, status ya es won/lost.
+    if (status === "won" || status === "lost") onRevealLoad?.();
   }
 
   // Aspect-ratio del contenedor:

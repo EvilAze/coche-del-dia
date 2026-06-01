@@ -30,8 +30,23 @@ export default function Privacidad() {
   useEffect(() => {
     const prevTitle = document.title;
     document.title = "Política de Privacidad · El Coche del Día";
+
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const prevDesc = metaDesc?.getAttribute("content");
+    if (metaDesc) {
+      metaDesc.setAttribute("content", "Política de privacidad de El Coche del Día. Información sobre datos recopilados, cookies y derechos del usuario.");
+    }
+
+    const canonical = document.querySelector('link[rel="canonical"]');
+    const prevCanonical = canonical?.getAttribute("href");
+    if (canonical) {
+      canonical.setAttribute("href", "https://cochedeldia.com/privacidad");
+    }
+
     return () => {
       document.title = prevTitle;
+      if (metaDesc && prevDesc) metaDesc.setAttribute("content", prevDesc);
+      if (canonical && prevCanonical) canonical.setAttribute("href", prevCanonical);
     };
   }, []);
 

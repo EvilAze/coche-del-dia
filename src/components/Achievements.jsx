@@ -106,7 +106,7 @@ export default function Achievements({ stats, onProgress }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {groups.map(({ category, items: groupItems }) => {
         const done = groupItems.filter((a) => a.unlocked).length;
         return (
@@ -115,11 +115,11 @@ export default function Achievements({ stats, onProgress }) {
               <h4 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
                 {t(`achievements.category.${category}`)}
               </h4>
-              <span className="text-[11px] tabular-nums text-muted">
+              <span className="text-[11px] tabular-nums text-white/30">
                 {done} / {groupItems.length}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-3">
               {groupItems.map((a) => (
                 <Badge key={a.id} achievement={a} locale={locale} />
               ))}
@@ -151,36 +151,38 @@ function Badge({ achievement, locale }) {
   return (
     <div
       className={`
-        group relative flex flex-col items-center gap-2 overflow-hidden
-        rounded-2xl border px-1 pt-3 pb-1.5 text-center transition-all duration-300
+        group relative flex flex-col items-center gap-1.5 overflow-hidden
+        rounded-xl border p-2.5 pb-2 text-center transition-all duration-300
         ${unlocked
-          ? "border-accent/40 bg-accent/[0.07] shadow-[0_0_22px_-8px_rgba(232,200,122,0.6)]"
+          ? "border-accent/30 bg-accent/[0.06] shadow-[0_0_20px_-6px_rgba(232,200,122,0.5)]"
           : "border-white/[0.06] bg-white/[0.02]"}
       `}
       title={`${title} — ${description}`}
     >
-      {/* Brillo diagonal en los conseguidos. */}
       {unlocked && (
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.07] to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] to-transparent" />
       )}
 
-      {/* Candado en bloqueados. */}
-      {!unlocked && (
-        <span className="absolute right-2 top-2 text-white/20" aria-hidden="true">
-          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4" y="11" width="16" height="10" rx="2" />
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-          </svg>
-        </span>
-      )}
-
-      <span className={`relative flex w-[85%] aspect-square shrink-0 items-center justify-center ${unlocked ? "drop-shadow-[0_0_6px_rgba(232,200,122,0.4)]" : ""}`}>
+      <div
+        className={`relative flex w-[65%] aspect-square shrink-0 items-center justify-center ${
+          unlocked ? "drop-shadow-[0_0_8px_rgba(232,200,122,0.3)]" : ""
+        }`}
+      >
         <AchievementIcon
           name={achievement.icon?.name}
           size="w-full h-full"
-          color={unlocked ? "text-accent" : "text-white/25"}
+          color={unlocked ? "text-accent" : "text-white/[0.08]"}
         />
-      </span>
+        {!unlocked && (
+          <span className="absolute inset-0 flex items-center justify-center text-accent/40" aria-hidden="true">
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V8a4 4 0 018 0v3" />
+              <circle cx="12" cy="15.5" r="1" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+        )}
+      </div>
 
       <span
         className={`relative line-clamp-2 min-h-[1.9em] text-[10.5px] font-medium leading-tight ${
@@ -190,9 +192,8 @@ function Badge({ achievement, locale }) {
         {title}
       </span>
 
-      {/* Estado: barra + x/y mientras está bloqueado; chip ✓ al lograrlo. */}
       {unlocked ? (
-        <span className="relative inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
+        <span className="relative inline-flex items-center gap-1 text-[9px] font-semibold tracking-wider text-accent">
           <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12l5 5L20 7" />
           </svg>
@@ -200,13 +201,13 @@ function Badge({ achievement, locale }) {
         </span>
       ) : (
         <div className="relative w-full px-1">
-          <div className="h-1 overflow-hidden rounded-full bg-white/[0.08]">
+          <div className="h-[2px] overflow-hidden rounded-full bg-white/[0.08]">
             <div
-              className="h-full rounded-full bg-accent/80 transition-[width] duration-500"
+              className="h-full rounded-full bg-accent/60 transition-[width] duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className="mt-1 block text-[9px] tabular-nums text-muted">
+          <span className="mt-0.5 block text-[9px] tabular-nums text-muted">
             {progress.current}/{progress.total}
           </span>
         </div>

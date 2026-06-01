@@ -34,10 +34,9 @@ function UserIcon() {
 function PodiumIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 13h6v8H3z" />
-      <path d="M9 7h6v14H9z" />
-      <path d="M15 15h6v6h-6z" />
-      <path d="M9 11h6" />
+      <rect x="3" y="13" width="5" height="8" rx="1" />
+      <rect x="9" y="6" width="6" height="15" rx="1" />
+      <rect x="16" y="15" width="5" height="6" rx="1" />
     </svg>
   );
 }
@@ -45,10 +44,10 @@ function PodiumIcon() {
 function GarageIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 10.5 12 4l9 6.5" />
-      <path d="M5 10v11" />
-      <path d="M19 10v11" />
-      <path d="M8 21v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6" />
+      <path d="M3 10L12 4l9 6" />
+      <path d="M5 10v11h14V10" />
+      <path d="M9 21v-7h6v7" />
+      <path d="M9 17.5h6" strokeWidth="1" />
     </svg>
   );
 }
@@ -343,7 +342,6 @@ export default function HeaderSandwich({
   onOpenRanking,
   onOpenGarage,
   onOpenProfile,
-  onOpenAchievements,
   onOpenLogin,
   user,
   repescaAlert = false,
@@ -445,20 +443,6 @@ export default function HeaderSandwich({
                 />
               )}
             </button>
-
-            {/* Logros: solo con sesión (el cómputo necesita datos del
-                usuario). Para anónimos no tiene sentido el acceso. */}
-            {user && (
-              <button
-                type="button"
-                onClick={() => { haptic.impactLight(); onOpenAchievements?.(); }}
-                aria-label={t("header.achievements")}
-                title={t("header.achievements")}
-                className={iconBtn}
-              >
-                <MedalIcon />
-              </button>
-            )}
 
             <button
               type="button"

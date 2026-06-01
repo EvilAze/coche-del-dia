@@ -39,6 +39,7 @@ function detectInitialLocale() {
 }
 
 let currentLocale = detectInitialLocale();
+document.documentElement.lang = currentLocale;
 const listeners = new Set();
 
 function lookup(dict, key) {
@@ -88,6 +89,7 @@ export function getDateLocale() {
 export function setLocale(locale) {
   if (!SUPPORTED.includes(locale) || locale === currentLocale) return;
   currentLocale = locale;
+  document.documentElement.lang = locale;
   try {
     localStorage.setItem(STORAGE_KEY, locale);
   } catch {

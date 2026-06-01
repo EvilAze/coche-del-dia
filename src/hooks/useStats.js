@@ -8,6 +8,25 @@ const EMPTY_STATS = {
   last_played_date: null,
 };
 
+// ── Streak freshness check ──────────────────────────────────────────────
+// La BD almacena current_streak como el último valor calculado, pero NO lo
+// resetea hasta que el jugador vuelve a jugar (dentro de record_daily_result_v2).
+// Si el jugador no entra un día, la BD sigue teniendo el streak viejo.
+// Esta función comprueba si last_played_date es hoy o ayer en zona Madrid
+// (la misma que usa el servidor para todo). Si no, la racha está rota.
+function getMadridDateStr(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+  }).format(date);
+}
+
+function isStreakAlive(lastPlayedDate) {
+  if (!lastPlayedDate) return false;
+  const today = getMadridDateStr();
+  const yesterday = getMadridDateStr(new Date(Date.now() - 86_400_000));
+  return lastPlayedDate === today || lastPlayedDate === yesterday;
+}
+
 function cleanDisplayName(value) {
   return String(value || "").trim();
 }
@@ -57,26 +76,29 @@ export async function getMyMaxStreak() {
   return data?.max_streak ?? 0;
 }
 
-// Lectura ligera del streak actual para el badge del header. No traemos
-// max_streak ni total_wins porque para el chip basta con current_streak.
-// Si la fila no existe (usuario nuevo que aún no ha jugado), devolvemos 0.
+// Lectura ligera del streak actual para el badge del header. Traemos
+// también last_played_date para comprobar si la racha sigue viva — si el
+// jugador no entró ayer ni hoy, la racha está rota y mostramos 0 aunque
+// la BD aún tenga el valor viejo (se reseteará cuando juegue de nuevo).
 export async function getMyStreak(userId) {
   if (!userId) return 0;
 
   const { data, error } = await supabase
     .from("stats")
-    .select("current_streak")
+    .select("current_streak, last_played_date")
     .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {
-    // No fallar el render del header por esto: si la query revienta, el
-    // badge simplemente no aparece. Log para detectar regresiones.
     console.error("[getMyStreak]", error);
     return 0;
   }
 
-  return data?.current_streak ?? 0;
+  const streak = data?.current_streak ?? 0;
+  if (streak === 0) return 0;
+
+  // Si last_played_date no es hoy ni ayer (Madrid), la racha está rota.
+  return isStreakAlive(data?.last_played_date) ? streak : 0;
 }
 
 export async function saveDisplayName(displayName) {
@@ -154,10 +176,17 @@ export async function getMyStats() {
 
   if (statsError) throw statsError;
 
+  // Aplicamos la misma comprobación de frescura que en getMyStreak:
+  // si la racha lleva más de un día sin actividad, la mostramos como 0.
+  const cleanStats = stats ? { ...stats } : { ...EMPTY_STATS };
+  if (cleanStats.current_streak > 0 && !isStreakAlive(cleanStats.last_played_date)) {
+    cleanStats.current_streak = 0;
+  }
+
   return {
     user,
     profile,
-    stats: stats || EMPTY_STATS,
+    stats: cleanStats,
   };
 }
 

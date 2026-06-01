@@ -90,18 +90,6 @@ function getShareDate() {
   return `${day}/${month}`;
 }
 
-// Aviso temporal de rebrand: aparece al final del share text para que la
-// audiencia histórica de carguessr.org (que vive en el canal de Telegram
-// donde se postean los resultados) reconozca la migración cuando vea
-// shares con el dominio nuevo. Es self-targeting perfecto — la nota
-// llega exactamente a quien necesita verla, sin esfuerzo de comunicación.
-//
-// Auto-expiración programada: a partir de la fecha REBRAND_NOTICE_UNTIL
-// el aviso desaparece solo. No depende de que nadie se acuerde de
-// borrarlo. 6-8 semanas tras la migración basta — quien iba a actualizar
-// el bookmark ya lo ha hecho.
-const REBRAND_NOTICE_UNTIL = new Date("2026-08-01T00:00:00Z");
-
 function buildShareText(guesses, streak = 0) {
   // Formato Wordle-style con tres bloques de información, cada uno con rol
   // distinto — sin redundancia entre ellos:
@@ -126,17 +114,6 @@ function buildShareText(guesses, streak = 0) {
   //      decisión deliberada: cada share genera un preview con el
   //      wordmark dorado + GT-R en el chat del receptor. Marketing
   //      gratis vs ahorrar 50 px de altura en el mensaje.
-  //
-  //   4. AVISO REBRAND (temporal, hasta REBRAND_NOTICE_UNTIL)
-  //        "cochedeldia.com (antes Carguessr)"
-  //      En la misma línea del dominio nuevo, separado por paréntesis.
-  //      Usamos "Carguessr" con C mayúscula y SIN ".org" deliberadamente:
-  //        • Sin TLD → WhatsApp/Telegram no lo detectan como URL → no
-  //          se convierte en link clicable y todo el tráfico se desvía
-  //          al dominio nuevo. Cero trucos de unicode necesarios.
-  //        • Mayúscula → lee como nombre de marca, no como URL truncada.
-  //        • Los usuarios del Telegram histórico conocen el sitio por
-  //          su nombre "Carguessr", no por su TLD. La info no se pierde.
   const lines = guesses.map((g) => {
     const m = g.marca.status === "correct" ? "✅" : "❌";
     const mo = g.modelo.status === "correct" ? "✅" : "❌";
@@ -150,15 +127,7 @@ function buildShareText(guesses, streak = 0) {
   // contraproducente.
   const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
 
-  // Aviso rebrand: paréntesis añadido al final de la línea del dominio
-  // si aún estamos en la ventana. "Carguessr" sin TLD → no se detecta
-  // como URL en WhatsApp/Telegram. Tras REBRAND_NOTICE_UNTIL se omite
-  // limpiamente sin tocar más código.
-  const rebrandNotice = Date.now() < REBRAND_NOTICE_UNTIL.getTime()
-    ? " (antes Carguessr)"
-    : "";
-
-  return `Coche del Día · ${getShareDate()}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com${rebrandNotice}`;
+  return `Coche del Día · ${getShareDate()}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la

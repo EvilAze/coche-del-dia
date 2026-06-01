@@ -190,6 +190,12 @@
     "streakLabel3": "Racha 3",
     "streakLabel4plus": "Racha 4+"
   },
+  "dailyStats": {
+    "title": "Hoy en el mundo",
+    "gamesPlayed": "{count} partidas",
+    "winRate": "{pct}% acierto",
+    "betterThan": "Mejor que el {pct}% de los jugadores"
+  },
   "toast": {
     "closeAria": "Cerrar notificación"
   },

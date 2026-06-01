@@ -294,6 +294,24 @@ export default async function handler(req, res) {
       }
     }
 
+    // -------- 8.bis Daily stats (best-effort) ----------------------------
+    //   Incrementa los contadores agregados del día para el componente
+    //   DailyStats (distribución de intentos, win rate, etc.). Se ejecuta
+    //   para TODOS los jugadores (logueados y anónimos) porque las stats
+    //   globales necesitan representar a toda la audiencia.
+    //   Best-effort: si falla, no afecta al resultado de la partida.
+    if (isGameOver) {
+      try {
+        await supabaseAdmin.rpc("increment_daily_stats", {
+          p_date: today,
+          p_won: result.win,
+          p_attempt: attemptNumber,
+        });
+      } catch (err) {
+        console.error("[validate-guess] increment_daily_stats:", err);
+      }
+    }
+
     // -------- 9. Política de revelado ------------------------------------
     //   Política asimétrica intencional según (status, autenticación):
     //

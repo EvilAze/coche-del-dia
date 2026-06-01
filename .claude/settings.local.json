@@ -104,7 +104,8 @@
       "Bash(node -e \"try{const j=require\\('./src/i18n/locales/en.json'\\);console.log\\('EN parses OK'\\)}catch\\(e\\){console.log\\('EN PARSE ERROR:',e.message\\)}\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/es.json','utf8'\\)\\);console.log\\('ES OK'\\)\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/en.json','utf8'\\)\\);console.log\\('EN OK'\\)\")",
-      "Bash(node -e \"['src/i18n/locales/es.json','src/i18n/locales/en.json'].forEach\\(f=>{JSON.parse\\(require\\('fs'\\).readFileSync\\(f,'utf8'\\)\\);console.log\\(f,'OK'\\)}\\)\")"
+      "Bash(node -e \"['src/i18n/locales/es.json','src/i18n/locales/en.json'].forEach\\(f=>{JSON.parse\\(require\\('fs'\\).readFileSync\\(f,'utf8'\\)\\);console.log\\(f,'OK'\\)}\\)\")",
+      "Bash(git checkout *)"
     ]
   }
 }

@@ -23,8 +23,15 @@ function getMadridDateStr(date = new Date()) {
 function isStreakAlive(lastPlayedDate) {
   if (!lastPlayedDate) return false;
   const today = getMadridDateStr();
-  const yesterday = getMadridDateStr(new Date(Date.now() - 86_400_000));
-  return lastPlayedDate === today || lastPlayedDate === yesterday;
+  if (lastPlayedDate === today) return true;
+  // "Ayer" calculado como día calendario, no como 24h en ms.
+  // Date.now() - 86_400_000 falla durante los cambios de hora en España
+  // (±1h, último domingo de marzo y octubre). Parseamos la fecha de hoy
+  // en Madrid a mediodía (lejos de cualquier borde DST) y restamos un día.
+  const d = new Date(today + "T12:00:00");
+  d.setDate(d.getDate() - 1);
+  const yesterday = getMadridDateStr(d);
+  return lastPlayedDate === yesterday;
 }
 
 function cleanDisplayName(value) {

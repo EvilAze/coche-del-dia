@@ -120,6 +120,22 @@ function SparkFiredIcon({ className }) {
   );
 }
 
+// Llama doble "spark_double" — nivel intermedio de la escalera de racha.
+// Una llama principal alta + una compañera más baja al lado. Footprint y
+// altura INTERMEDIOS entre spark (1 llama) y blaze (3 llamas), para que la
+// progresión 1→2→3 sea visualmente monótona y ninguno se vea "más pequeño".
+// Mismo lenguaje línea-arte. Dedicado a la escalera de bonus (NO toca
+// spark_fired, que sigue en Logros). Centrado/equilibrado, y7–y41.
+function SparkDoubleIcon({ className }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M28 7c-2 8-10 13-10 22a10 10 0 0020 0c0-9-8-13-10-22z" />
+      <path d="M28 20c-1 4.5-5 7-5 12a5 5 0 0010 0c0-5-4-7.5-5-12z" strokeWidth="1.3" />
+      <path d="M14 17c-1.3 5.5-5.5 7-5.5 12a5.5 5.5 0 0011 0c0-5-4.2-6.5-5.5-12z" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 // Llama triple "blaze" — la cúspide de la racha. Flama central alta + dos
 // flamas laterales + núcleo interno. Mismo lenguaje línea-arte que spark /
 // spark_fired, pero claramente MÁS intensa (tres lenguas en vez de una).
@@ -167,6 +183,7 @@ const ICONS = {
   trophy: TrophyIcon,
   spark: SparkIcon,
   spark_fired: SparkFiredIcon,
+  spark_double: SparkDoubleIcon,
   blaze: BlazeIcon,
   piston: PistonIcon,
 

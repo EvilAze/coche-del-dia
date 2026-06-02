@@ -5,6 +5,7 @@ import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
+import LanguageStrip from "./LanguageStrip";
 
 function StatCard({ label, value }) {
   return (
@@ -182,6 +183,12 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
                 </svg>
               </span>
             </button>
+
+            {/* Selector de idioma: reubicado aquí desde el antiguo popover
+                del header. El perfil es el hogar natural de los ajustes. */}
+            <div className="mt-5 border-t border-white/10 pt-4">
+              <LanguageStrip />
+            </div>
 
             <div className="mt-5 flex justify-center">
               <button

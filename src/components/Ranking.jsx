@@ -4,6 +4,7 @@ import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
+import AchievementIcon from "./AchievementIcons";
 import ScoringHelpModal from "./ScoringHelpModal";
 import PublicProfile from "./PublicProfile";
 import { track } from "../lib/analytics";
@@ -43,9 +44,9 @@ function HelpButton({ onClick }) {
 
 function getStreakDisplay(streak) {
   if (!streak || streak < 2) return null;
-  if (streak >= 4) return { fires: "🔥🔥🔥", bonus: "+3", onFire: true };
-  if (streak === 3) return { fires: "🔥🔥", bonus: "+2", onFire: false };
-  return { fires: "🔥", bonus: "+1", onFire: false };
+  if (streak >= 4) return { icon: "blaze", bonus: "+3", onFire: true };
+  if (streak === 3) return { icon: "spark_fired", bonus: "+2", onFire: false };
+  return { icon: "spark", bonus: "+1", onFire: false };
 }
 
 function StreakBadge({ streak }) {
@@ -62,8 +63,8 @@ function StreakBadge({ streak }) {
       title={t("ranking.streakTitle", { count: streak })}
       aria-label={t("ranking.streakAria", { count: streak, bonus: display.bonus })}
     >
-      <span className="text-sm tracking-tighter">{display.fires}</span>
-      <span className="text-xs font-semibold text-amber-400">
+      <AchievementIcon name={display.icon} size="h-4 w-4" color="text-accent" />
+      <span className="text-xs font-semibold text-accent">
         {display.bonus}
       </span>
     </span>

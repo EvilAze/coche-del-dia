@@ -120,6 +120,21 @@ function SparkFiredIcon({ className }) {
   );
 }
 
+// Llama triple "blaze" — la cúspide de la racha. Flama central alta + dos
+// flamas laterales + núcleo interno. Mismo lenguaje línea-arte que spark /
+// spark_fired, pero claramente MÁS intensa (tres lenguas en vez de una).
+// Centrada en x=24 (y5–y40, mid≈24).
+function BlazeIcon({ className }) {
+  return (
+    <svg viewBox="0 0 48 48" className={className} {...STROKE}>
+      <path d="M24 5c-2 10-11 14-11 23a11 11 0 0022 0c0-9-9-13-11-23z" />
+      <path d="M24 19c-1 5-5.5 8-5.5 13a5.5 5.5 0 0011 0c0-5-4.5-8-5.5-13z" strokeWidth="1.3" />
+      <path d="M11 20c-1 4-4 5.5-4 9.5a4 4 0 008 0c0-4-3-5.5-4-9.5z" strokeWidth="1.4" />
+      <path d="M37 20c-1 4-4 5.5-4 9.5a4 4 0 008 0c0-4-3-5.5-4-9.5z" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 // Corona — centrado (y3.5–y43, mid=23.25) ≈✓
 function PistonIcon({ className }) {
   return (
@@ -152,6 +167,7 @@ const ICONS = {
   trophy: TrophyIcon,
   spark: SparkIcon,
   spark_fired: SparkFiredIcon,
+  blaze: BlazeIcon,
   piston: PistonIcon,
 
   car: KeyIcon,

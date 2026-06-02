@@ -14,6 +14,7 @@ import MyStats from "./components/MyStats";
 import AchievementsModal from "./components/AchievementsModal";
 import NicknameModal from "./components/NicknameModal";
 import CloseButton from "./components/CloseButton";
+import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
 import { useGame } from "./hooks/useGame";
 import { useEscape } from "./hooks/useEscape";
@@ -516,6 +517,13 @@ export default function App() {
           </svg>
           {t("common.continueWithGoogle")}
         </button>
+
+        {/* Selector de idioma para usuarios anónimos. Antes vivía en el
+            popover del header; al quitarlo, este modal (al que llega el
+            anónimo desde el icono de perfil) es su nuevo hogar. */}
+        <div className="mt-6 border-t border-border pt-4 text-left">
+          <LanguageStrip />
+        </div>
       </ModalShell>
 
       <Ranking

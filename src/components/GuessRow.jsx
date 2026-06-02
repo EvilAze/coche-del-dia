@@ -106,12 +106,16 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca, pending,
     <div
       className={`
         flex min-w-0 items-center justify-between gap-2
-        rounded-md border px-2 py-1.5 min-h-[36px]
-        sm:rounded-lg sm:px-2.5 sm:py-2 sm:min-h-[42px]
+        rounded-md border px-2 py-1 min-h-[30px]
+        sm:rounded-lg sm:px-2.5 sm:min-h-[34px]
         ${animClass} ${s.cell}
       `}
       style={{ ...animStyle, transformStyle: "preserve-3d", backfaceVisibility: "hidden" }}
       aria-busy={pending || undefined}
+      // Etiqueta accesible: al quitar el label VISIBLE de cada celda (para
+      // compactar las filas), conservamos el contexto para lectores de
+      // pantalla aquí. p.ej. "Marca: Acura".
+      aria-label={pending ? undefined : `${label}: ${value || "—"}`}
     >
       {/* Capa de shimmer solo en modo pending: barrido diagonal de luz sobre
           el fondo gris. inset-0 para cubrir la celda, pointer-events-none
@@ -128,28 +132,19 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca, pending,
         />
       )}
 
-      {/* Bloque de texto a la izquierda: label arriba, valor justo debajo. */}
-      <div className="relative min-w-0 overflow-hidden">
-        <span
-          className="
-            mb-0.5 block truncate text-[10px] uppercase tracking-[0.08em] text-muted
-            sm:text-[11px] sm:tracking-widest
-          "
-        >
-          {label}
-        </span>
-
-        <span
-          className={`
-            block truncate font-medium leading-tight
-            text-xs sm:text-sm
-            ${pending ? "text-muted/80" : "text-white"}
-            ${isYear ? "tabular-nums" : ""}
-          `}
-        >
-          {value || "—"}
-        </span>
-      </div>
+      {/* Una sola línea: el valor. La etiqueta (MARCA/MODELO/AÑO) ya no se
+          repite por fila — vive una vez en la cabecera de columnas, lo que
+          recorta ~35-40% de altura por fila. */}
+      <span
+        className={`
+          relative min-w-0 flex-1 truncate font-medium leading-tight
+          text-xs sm:text-sm
+          ${pending ? "text-muted/80" : "text-white"}
+          ${isYear ? "tabular-nums" : ""}
+        `}
+      >
+        {value || "—"}
+      </span>
 
       {/* Indicador a la derecha. items-center del padre lo centra verticalmente. */}
       {pending ? (
@@ -198,6 +193,27 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca, pending,
   );
 }
 
+// Plantilla de columnas compartida por la cabecera y por cada fila, para que
+// las tres columnas (marca / modelo / año) queden perfectamente alineadas.
+const GRID_COLS =
+  "grid w-full min-w-0 grid-cols-[0.85fr_minmax(0,1fr)_82px] gap-1 sm:grid-cols-[0.9fr_minmax(0,1fr)_96px] sm:gap-1.5";
+
+// Cabecera de columnas: se renderiza UNA vez sobre las filas (no por fila).
+// Aquí viven ahora las etiquetas MARCA / MODELO / AÑO que antes se repetían
+// en cada celda.
+export function GuessRowHeader() {
+  const { t } = useT();
+  const cls =
+    "truncate px-2 text-[10px] uppercase tracking-[0.08em] text-muted sm:text-[11px] sm:tracking-widest";
+  return (
+    <div className={GRID_COLS} aria-hidden="true">
+      <span className={cls}>{t("guess.labelMarca")}</span>
+      <span className={cls}>{t("guess.labelModelo")}</span>
+      <span className={cls}>{t("guess.labelAnio")}</span>
+    </div>
+  );
+}
+
 export default function GuessRow({ guess, index, pending = false, justRevealed = false }) {
   const { t } = useT();
 
@@ -217,11 +233,7 @@ export default function GuessRow({ guess, index, pending = false, justRevealed =
 
   return (
     <div
-      className={`
-        grid w-full min-w-0 grid-cols-[0.85fr_minmax(0,1fr)_82px]
-        gap-1 ${containerAnim}
-        sm:grid-cols-[0.9fr_minmax(0,1fr)_96px] sm:gap-1.5
-      `}
+      className={`${GRID_COLS} ${containerAnim}`}
       style={{ ...containerStyle, perspective: "600px" }}
     >
       <Cell

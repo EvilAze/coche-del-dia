@@ -32,7 +32,7 @@ export default function ScoringHelpModal({ open, onClose }) {
     },
     {
       labelKey: "scoring.streakLabel3",
-      icon: "spark_fired",
+      icon: "spark_double",
       bonus: "+2",
       iconColor: "text-accent/80",
       ring: "border-accent/40",

@@ -45,7 +45,7 @@ function HelpButton({ onClick }) {
 function getStreakDisplay(streak) {
   if (!streak || streak < 2) return null;
   if (streak >= 4) return { icon: "blaze", bonus: "+3", onFire: true };
-  if (streak === 3) return { icon: "spark_fired", bonus: "+2", onFire: false };
+  if (streak === 3) return { icon: "spark_double", bonus: "+2", onFire: false };
   return { icon: "spark", bonus: "+1", onFire: false };
 }
 

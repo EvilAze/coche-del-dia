@@ -2,6 +2,7 @@ import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
+import AchievementIcon from "./AchievementIcons";
 
 const BASE_POINTS = [
   { attempt: 1, points: 10 },
@@ -16,11 +17,36 @@ export default function ScoringHelpModal({ open, onClose }) {
   const { t } = useT();
   useEscape(open, onClose);
 
-  // Las labels van por i18n; el resto (fuegos, bonus) son universales.
+  // "Escalera de calor": tres niveles de racha que escalan en intensidad.
+  // Llamas línea-arte (no emoji — coherencia con Logros y sin el bug de
+  // Windows donde 🔥 sale gris). El calor sube de izquierda a derecha vía
+  // icono distinto + color + glow del medallón.
   const STREAK_BONUS = [
-    { labelKey: "scoring.streakLabel2", fires: "🔥", bonus: "+1" },
-    { labelKey: "scoring.streakLabel3", fires: "🔥🔥", bonus: "+2" },
-    { labelKey: "scoring.streakLabel4plus", fires: "🔥🔥🔥", bonus: "+3" },
+    {
+      labelKey: "scoring.streakLabel2",
+      icon: "spark",
+      bonus: "+1",
+      iconColor: "text-accent/55",
+      ring: "border-accent/20",
+      glow: "0 0 12px rgba(232,200,122,0.10)",
+    },
+    {
+      labelKey: "scoring.streakLabel3",
+      icon: "spark_fired",
+      bonus: "+2",
+      iconColor: "text-accent/80",
+      ring: "border-accent/40",
+      glow: "0 0 16px rgba(232,200,122,0.20)",
+    },
+    {
+      labelKey: "scoring.streakLabel4plus",
+      icon: "blaze",
+      bonus: "+3",
+      iconColor: "text-accent",
+      ring: "border-accent/70",
+      glow: "0 0 24px rgba(232,200,122,0.34)",
+      peak: true,
+    },
   ];
 
   return (
@@ -87,26 +113,53 @@ export default function ScoringHelpModal({ open, onClose }) {
             {t("scoring.bonusBody")}
           </p>
 
-          <div className="grid grid-cols-3 gap-2">
-            {STREAK_BONUS.map((row) => (
-              <div
-                key={row.labelKey}
-                className="
-                  flex flex-col items-center justify-center gap-1
-                  rounded-xl border border-accent/20 bg-accent/[0.06] px-2 py-3
-                "
-              >
-                <span className="text-lg leading-none tracking-tighter">
-                  {row.fires}
-                </span>
-                <span className="text-[10px] uppercase tracking-widest text-muted">
-                  {t(row.labelKey)}
-                </span>
-                <span className="font-display text-xl tabular-nums text-accent leading-none">
-                  {row.bonus}
-                </span>
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-transparent px-3 pb-4 pt-5">
+            {/* Hairline dorada superior: mismo detalle premium que StatCard. */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
+
+            <div className="relative">
+              {/* Raíl de calor: se enciende de tenue (izq) a intenso (der),
+                  pasando por el centro de los tres medallones. El fondo sólido
+                  de cada medallón lo enmascara → "brasas en un alambre". */}
+              <div className="pointer-events-none absolute left-[17%] right-[17%] top-7 h-px bg-gradient-to-r from-accent/15 via-accent/45 to-accent/90" />
+
+              <div className="grid grid-cols-3 gap-2">
+                {STREAK_BONUS.map((row) => (
+                  <div
+                    key={row.labelKey}
+                    className="relative flex flex-col items-center gap-2 text-center"
+                  >
+                    <div className="relative">
+                      {/* Halo pulsante solo en el nivel cúspide (Racha 4+). */}
+                      {row.peak && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-0 rounded-full motion-safe:animate-pulse"
+                          style={{ boxShadow: "0 0 22px rgba(232,200,122,0.45)" }}
+                        />
+                      )}
+                      <div
+                        className={`relative flex h-14 w-14 items-center justify-center rounded-full border ${row.ring} bg-bg-primary`}
+                        style={{ boxShadow: row.glow }}
+                      >
+                        <AchievementIcon
+                          name={row.icon}
+                          size="h-7 w-7"
+                          color={row.iconColor}
+                        />
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                      {t(row.labelKey)}
+                    </span>
+                    <span className="font-display text-2xl leading-none tabular-nums text-accent">
+                      {row.bonus}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
 
           <p className="mt-3 text-xs text-muted">

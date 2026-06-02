@@ -4,7 +4,7 @@ import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
 import CarImage from "./components/CarImage";
-import GuessRow from "./components/GuessRow";
+import GuessLog from "./components/GuessLog";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import Header from "./components/HeaderSandwich";
@@ -347,25 +347,20 @@ export default function App() {
       />
 
       <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 sm:px-4">
-        <header className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-b border-border py-4">
-          <div className="min-w-0">
-            <h1 className="font-display text-[1.8rem] leading-none tracking-[0.12em] text-accent min-[380px]:text-4xl min-[380px]:tracking-widest">
-              {t("app.title")}
-            </h1>
-            <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted">
-              {today}
-            </p>
-          </div>
-
-          <div className="shrink-0 text-right">
-            <div className="font-display leading-none text-accent">
-              <span className="text-2xl tabular-nums">{maxAttempts - attempts}</span>
-              <span className="text-base text-muted">/{maxAttempts}</span>
-            </div>
-            <div className="text-[10px] uppercase tracking-widest text-muted">
-              {t("app.attempts")}
-            </div>
-          </div>
+        <header className="w-full min-w-0 border-b border-border py-4">
+          {/* Cabecera reservada a marca: título + fecha. El estado de juego
+              (intentos) vive bajo la imagen, en la zona de juego. */}
+          {/* Sheen metálico contenido: un brillo champán en el remate
+              superior que cae a oro y oro oscuro. bg-clip-text para el
+              acabado embossed. Sutil a propósito — luz sobre metal, no
+              "letras de oro". Ambos extremos siguen siendo oro alto sobre
+              negro → contraste accesible. */}
+          <h1 className="bg-gradient-to-b from-[#fbf1d4] via-accent to-accent-dark bg-clip-text font-display text-[1.8rem] leading-none tracking-[0.12em] text-transparent min-[380px]:text-4xl min-[380px]:tracking-widest">
+            {t("app.title")}
+          </h1>
+          <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted">
+            {today}
+          </p>
         </header>
 
         <main className="w-full min-w-0">
@@ -396,6 +391,7 @@ export default function App() {
               ayuda textual aquí es ruido para un juego diario rápido. La
               imagen sirve de pista visual implícita (más zoom out por intento). */}
 
+
           {/* Todo el bloque bajo la imagen (filas de intentos + separador +
               formulario/resultado) entra como una sola unidad con un
               fade-in suave cuando llega la data. El `key="content"` fuerza
@@ -411,26 +407,13 @@ export default function App() {
                   estado real del server. */}
           {dataReady ? (
             <div key="content" className="animate-fade-in">
-              {(guesses.length > 0 || pendingGuess) && (
-                <div className="mb-4 mt-3 flex w-full min-w-0 flex-col gap-2">
-                  {guesses.map((g, i) => (
-                    <GuessRow
-                      key={i}
-                      guess={g}
-                      index={i}
-                      justRevealed={i === justRevealedIndex}
-                    />
-                  ))}
-                  {pendingGuess && (
-                    <GuessRow
-                      key="pending"
-                      guess={pendingGuess}
-                      index={guesses.length}
-                      pending
-                    />
-                  )}
-                </div>
-              )}
+              <GuessLog
+                guesses={guesses}
+                pendingGuess={pendingGuess}
+                justRevealedIndex={justRevealedIndex}
+                attempts={attempts}
+                maxAttempts={maxAttempts}
+              />
 
               {(guesses.length > 0 || pendingGuess) && (
                 <div className="my-4 h-px bg-border" />

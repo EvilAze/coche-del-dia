@@ -147,7 +147,9 @@ export default function Autocomplete({
           focus-ring
           h-11 w-full min-w-0 rounded-lg border
           bg-bg-secondary px-3 text-sm text-white transition-colors
-          placeholder:text-muted focus:border-accent
+          shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
+          placeholder:text-muted/70 focus:border-accent
+          enabled:hover:border-accent/40
           disabled:cursor-not-allowed disabled:opacity-40
           ${invalid && !open
             ? "border-red-500/70 bg-red-500/5"

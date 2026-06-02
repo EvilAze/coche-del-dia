@@ -328,7 +328,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             onChange={setMarca}
             onSelect={setMarca}
             options={availableMarcas}
-            placeholder=""
+            placeholder={t("guess.placeholderMarca")}
             disabled={formDisabled}
             invalid={marcaInvalida}
           />
@@ -397,7 +397,9 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
                 focus-ring
                 h-11 w-full min-w-0 rounded-lg border border-border-strong
                 bg-bg-secondary pl-3 pr-7 text-sm text-white
-                transition-colors focus:border-accent placeholder:text-muted
+                shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
+                transition-colors focus:border-accent placeholder:text-muted/70
+                enabled:hover:border-accent/40
                 disabled:cursor-not-allowed disabled:opacity-40
                 [appearance:textfield]
                 [&::-webkit-inner-spin-button]:appearance-none

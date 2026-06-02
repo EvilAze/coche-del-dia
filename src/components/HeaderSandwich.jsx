@@ -113,6 +113,31 @@ export default function HeaderSandwich({
 }) {
   const { t } = useT();
 
+  // Auto-hide del header: se oculta al hacer scroll hacia ABAJO (libera aire
+  // para el contenido) y reaparece al SUBIR (la navegación vuelve a un toque).
+  // Patrón premium tipo app nativa. Throttle con rAF; umbral para no ocultarse
+  // pegado al top; delta mínimo para evitar jitter.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (Math.abs(y - lastY) >= 4) {
+          if (y > lastY && y > 80) setHidden(true);
+          else if (y < lastY) setHidden(false);
+          lastY = y;
+        }
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const showStreak = Boolean(user) && streak > 0;
 
   // Click del botón de usuario: atajo directo. Logueado → abre el perfil;
@@ -126,7 +151,15 @@ export default function HeaderSandwich({
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#0d0c0a]/90 backdrop-blur-xl">
+    <header
+      className={`
+        sticky top-0 z-50 w-full bg-[#0d0c0a]/90 backdrop-blur-xl
+        transition-[transform,opacity] duration-300 ease-out
+        ${hidden
+          ? "pointer-events-none opacity-0 motion-safe:-translate-y-full"
+          : "translate-y-0 opacity-100"}
+      `}
+    >
       <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
 
         {/* IZQUIERDA: botón de usuario, siempre presente */}

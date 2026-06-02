@@ -6,6 +6,7 @@ import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import LanguageStrip from "./LanguageStrip";
+import PodiumMedals from "./PodiumMedals";
 
 function StatCard({ label, value }) {
   return (
@@ -157,6 +158,11 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
               <StatCard label={t("myStats.statStreak")} value={stats.current_streak} />
               <StatCard label={t("myStats.statMaxStreak")} value={stats.max_streak} />
               <StatCard label={t("myStats.statWins")} value={stats.total_wins} />
+            </div>
+
+            {/* Podios mensuales (🥇🥈🥉). Solo se renderiza si tiene alguno. */}
+            <div className="mt-4 empty:hidden">
+              <PodiumMedals userId={state.user?.id} />
             </div>
 
             {/* Acceso a Logros: vive en su propio destino, no embebido aquí.

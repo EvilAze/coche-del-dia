@@ -266,6 +266,7 @@ export async function getLeaderboard() {
       max_streak,
       total_wins,
       total_points,
+      last_played_date,
       profile:profiles (
         display_name
       )
@@ -283,7 +284,12 @@ export async function getLeaderboard() {
       rank: index + 1,
       userId: row.user_id,
       displayName: row.profile.display_name,
-      currentStreak: row.current_streak || 0,
+      // Misma regla de frescura que el header: si no jugó hoy ni ayer
+      // (Madrid), la racha está rota aunque la BD aún tenga el valor viejo
+      // (se resetea cuando vuelve a jugar). Evita mostrar 🔥 fantasma.
+      currentStreak: isStreakAlive(row.last_played_date)
+        ? row.current_streak || 0
+        : 0,
       maxStreak: row.max_streak || 0,
       totalWins: row.total_wins || 0,
       totalPoints: row.total_points || 0,
@@ -309,7 +315,10 @@ export async function getMonthlyLeaderboard() {
     rank: row.rank,
     userId: row.user_id,
     displayName: row.display_name,
-    currentStreak: row.current_streak || 0,
+    // Misma comprobación de frescura que getLeaderboard / el header.
+    currentStreak: isStreakAlive(row.last_played_date)
+      ? row.current_streak || 0
+      : 0,
     maxStreak: row.max_streak || 0,
     totalWins: row.total_wins || 0,
     totalPoints: row.total_points || 0,

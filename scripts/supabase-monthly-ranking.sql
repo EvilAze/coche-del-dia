@@ -37,6 +37,10 @@
 -- sesión). Solo expone agregados + datos ya públicos (nickname, puntos), nunca
 -- los intentos individuales. Mismo criterio que get_public_profile.
 
+-- DROP previo: añadir/quitar columnas de RETURNS TABLE cambia la firma de
+-- retorno y CREATE OR REPLACE no lo permite. Es seguro re-ejecutar.
+DROP FUNCTION IF EXISTS public.get_monthly_leaderboard(date, int);
+
 CREATE OR REPLACE FUNCTION public.get_monthly_leaderboard(
   p_month date DEFAULT NULL,
   p_limit int DEFAULT 1000
@@ -47,6 +51,7 @@ RETURNS TABLE (
   display_name text,
   current_streak int,
   max_streak int,
+  last_played_date date,
   total_wins int,
   total_points int
 )
@@ -101,6 +106,7 @@ AS $$
     p.display_name,
     COALESCE(s.current_streak, 0)::int AS current_streak,
     COALESCE(s.max_streak, 0)::int     AS max_streak,
+    s.last_played_date                 AS last_played_date,
     a.wins   AS total_wins,
     a.points AS total_points
   FROM agg a

@@ -344,25 +344,10 @@ export default function App() {
         onOpenLogin={openLogin}
         repescaAlert={repescaAlert}
         streak={streak}
+        date={today}
       />
 
-      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 sm:px-4">
-        <header className="w-full min-w-0 border-b border-border py-4">
-          {/* Cabecera reservada a marca: título + fecha. El estado de juego
-              (intentos) vive bajo la imagen, en la zona de juego. */}
-          {/* Sheen metálico contenido: un brillo champán en el remate
-              superior que cae a oro y oro oscuro. bg-clip-text para el
-              acabado embossed. Sutil a propósito — luz sobre metal, no
-              "letras de oro". Ambos extremos siguen siendo oro alto sobre
-              negro → contraste accesible. */}
-          <h1 className="bg-gradient-to-b from-[#fbf1d4] via-accent to-accent-dark bg-clip-text font-display text-[1.8rem] leading-none tracking-[0.12em] text-transparent min-[380px]:text-4xl min-[380px]:tracking-widest">
-            {t("app.title")}
-          </h1>
-          <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted">
-            {today}
-          </p>
-        </header>
-
+      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-4 sm:px-4">
         <main className="w-full min-w-0">
           {/* CarImage siempre montado: cuando car es null, internamente cae
               al skeleton (animate-pulse sobre bg-bg-secondary/60) con el

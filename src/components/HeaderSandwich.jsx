@@ -110,6 +110,7 @@ export default function HeaderSandwich({
   user,
   repescaAlert = false,
   streak = 0,
+  date = "",
 }) {
   const { t } = useT();
 
@@ -160,10 +161,25 @@ export default function HeaderSandwich({
           : "translate-y-0 opacity-100"}
       `}
     >
-      <div className="relative mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
+      <div className="relative mx-auto flex w-full max-w-md items-center justify-between gap-3 px-3 py-2.5">
 
-        {/* IZQUIERDA: botón de usuario, siempre presente */}
-        <div className="relative z-10">
+        {/* MARCA: wordmark + fecha, a la izquierda. Una sola línea con las
+            acciones a la derecha → header compacto, sin hueco muerto. */}
+        <div className="min-w-0">
+          {/* Sheen metálico contenido (champán → oro → oro oscuro). Tamaño de
+              wordmark (no hero): convive con las acciones en la misma fila. */}
+          <h1 className="truncate bg-gradient-to-b from-[#fbf1d4] via-accent to-accent-dark bg-clip-text font-display text-2xl leading-none tracking-wider text-transparent min-[380px]:text-3xl">
+            {t("app.title")}
+          </h1>
+          {date && (
+            <p className="mt-1 truncate text-[10px] uppercase tracking-[0.2em] text-muted">
+              {date}
+            </p>
+          )}
+        </div>
+
+        {/* ACCIONES: usuario (+racha), garaje, ranking — todas visibles. */}
+        <div className="flex shrink-0 items-center">
           <button
             type="button"
             onClick={handleUserClick}
@@ -183,58 +199,40 @@ export default function HeaderSandwich({
             <UserIcon />
             {showStreak && <StreakBadge value={streak} />}
           </button>
+
+          <button
+            type="button"
+            onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
+            aria-label={t("header.garage")}
+            title={t("header.garage")}
+            className={`relative ${iconBtn}`}
+          >
+            <GarageIcon />
+            {repescaAlert && (
+              // Dot de alerta: gold + soft glow, atado al "hombro" del icono.
+              <span
+                aria-hidden="true"
+                className="
+                  pointer-events-none absolute right-2 top-2
+                  h-2.5 w-2.5 rounded-full bg-accent
+                  shadow-[0_0_6px_rgba(232,200,122,0.65)]
+                  ring-2 ring-[#0d0c0a] animate-pulse
+                "
+              />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
+            aria-label={t("header.ranking")}
+            title={t("header.ranking")}
+            className={iconBtn}
+          >
+            <PodiumIcon />
+          </button>
         </div>
-
-          {/* CENTRO: vacío intencionalmente. Tras la migración a
-              "El Coche del Día", la marca verbal vive en favicon, share
-              card, OG image y splash — no en el header persistente. Es
-              la decisión que toman Apple Music, Spotify, Linear, etc.:
-              dentro de la app, el header es UI funcional, no escaparate.
-              El usuario recurrente no necesita que le recuerden cada
-              sesión dónde está. La mirada se libera para el contenido
-              (el coche borroso del día). */}
-
-          {/* DERECHA: Garaje + Ranking */}
-          <div className="relative z-10 flex items-center">
-
-            <button
-              type="button"
-              onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
-              aria-label={t("header.garage")}
-              title={t("header.garage")}
-              className={`relative ${iconBtn}`}
-            >
-              <GarageIcon />
-              {repescaAlert && (
-                // Dot de alerta: gold (mismo idioma que el accent) + soft
-                // glow para que vibre sin gritar. Posicionado dentro del
-                // botón, sobre el "hombro" derecho del icono del garaje
-                // (donde el tejado se une al pilar) — se siente atado al
-                // icono en lugar de flotando en el borde del botón.
-                <span
-                  aria-hidden="true"
-                  className="
-                    pointer-events-none absolute right-2 top-2
-                    h-2.5 w-2.5 rounded-full bg-accent
-                    shadow-[0_0_6px_rgba(232,200,122,0.65)]
-                    ring-2 ring-[#0d0c0a] animate-pulse
-                  "
-                />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
-              aria-label={t("header.ranking")}
-              title={t("header.ranking")}
-              className={iconBtn}
-            >
-              <PodiumIcon />
-            </button>
-
-          </div>
-        </div>
+      </div>
 
       {/* Línea inferior con gradiente dorado sutil */}
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/25 to-transparent" />

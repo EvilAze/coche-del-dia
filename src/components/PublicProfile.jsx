@@ -19,6 +19,7 @@ import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import AchievementIcon from "./AchievementIcons";
+import PodiumMedals from "./PodiumMedals";
 
 function StatCard({ label, value }) {
   return (
@@ -189,6 +190,11 @@ export default function PublicProfile({ open, onClose, userId }) {
           </div>
 
           <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-white/10 px-5 pt-4">
+            {/* Podios mensuales (🥇🥈🥉). Solo se renderiza si tiene alguno. */}
+            <div className="mb-4 empty:hidden">
+              <PodiumMedals userId={userId} />
+            </div>
+
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-display text-base tracking-widest text-white">
                 {t("publicProfile.medalsTitle")}

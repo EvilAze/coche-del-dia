@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getLeaderboard } from "../hooks/useStats";
+import { getLeaderboard, getMonthlyLeaderboard } from "../hooks/useStats";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
@@ -77,6 +77,9 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
     players: [],
     error: "",
   });
+  // Pestaña activa: "month" (ranking del mes en curso, por defecto para que
+  // los recién llegados vean un marcador alcanzable) o "all" (histórico).
+  const [tab, setTab] = useState("month");
   const [helpOpen, setHelpOpen] = useState(false);
   // Modal de perfil público al clicar una fila del ranking. Guardamos
   // el userId del jugador objetivo; null = cerrado.
@@ -85,21 +88,35 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
   // NO hacer clicable su propia fila — ya tiene su MyStats privado.
   const currentUserId = user?.id || null;
 
+  // Al cerrar el modal, volvemos a la pestaña mensual para la próxima apertura.
+  useEffect(() => {
+    if (!open) setTab("month");
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
 
+    let cancelled = false;
     setState({ loading: true, players: [], error: "" });
 
-    getLeaderboard()
-      .then((players) => setState({ loading: false, players, error: "" }))
-      .catch(() =>
-        setState({
-          loading: false,
-          players: [],
-          error: t("ranking.errorLoad"),
-        })
-      );
-  }, [open]);
+    const fetcher = tab === "month" ? getMonthlyLeaderboard : getLeaderboard;
+    fetcher()
+      .then((players) => {
+        if (!cancelled) setState({ loading: false, players, error: "" });
+      })
+      .catch(() => {
+        if (!cancelled)
+          setState({
+            loading: false,
+            players: [],
+            error: t("ranking.errorLoad"),
+          });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, tab]);
 
   useEscape(open && !helpOpen, onClose);
 
@@ -127,13 +144,48 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
           <CloseButton onClick={onClose} />
         </div>
 
+        {/* Switcher de pestañas: Este mes / Histórico. El mensual va primero
+            y es el default — un recién llegado ve un marcador alcanzable. */}
+        <div
+          role="tablist"
+          aria-label={t("ranking.tabsAria")}
+          className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1"
+        >
+          {[
+            { id: "month", label: t("ranking.tabMonth") },
+            { id: "all", label: t("ranking.tabAll") },
+          ].map((tabDef) => {
+            const active = tab === tabDef.id;
+            return (
+              <button
+                key={tabDef.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(tabDef.id)}
+                className={`
+                  rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em]
+                  transition active:scale-[0.98]
+                  ${
+                    active
+                      ? "bg-accent/15 text-accent shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                      : "text-muted hover:text-white"
+                  }
+                `}
+              >
+                {tabDef.label}
+              </button>
+            );
+          })}
+        </div>
+
         {state.loading ? (
           <p className="text-sm text-muted">{t("ranking.loading")}</p>
         ) : state.error ? (
           <p className="text-sm text-red-400">{state.error}</p>
         ) : state.players.length === 0 ? (
           <p className="text-sm text-muted">
-            {t("ranking.empty")}
+            {tab === "month" ? t("ranking.emptyMonth") : t("ranking.empty")}
           </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-white/10">
@@ -207,7 +259,9 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         <StreakBadge streak={player.currentStreak} />
                       </div>
                       <p className="mt-0.5 text-xs text-muted">
-                        {t("ranking.bestStreak", { value: player.maxStreak })}
+                        {tab === "month"
+                          ? t("ranking.monthWins", { value: player.totalWins })
+                          : t("ranking.bestStreak", { value: player.maxStreak })}
                       </p>
                     </div>
 

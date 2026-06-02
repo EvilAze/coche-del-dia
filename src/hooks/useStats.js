@@ -289,3 +289,55 @@ export async function getLeaderboard() {
       totalPoints: row.total_points || 0,
     }));
 }
+
+// Ranking MENSUAL del mes en curso. A diferencia de getLeaderboard (que lee
+// el acumulado de stats), esto deriva los puntos base ganados este mes desde
+// user_guesses vía la RPC get_monthly_leaderboard (ver
+// scripts/supabase-monthly-ranking.sql). Devuelve el mismo shape que
+// getLeaderboard para que Ranking.jsx reutilice el render de filas.
+//
+// p_month = NULL → la RPC usa el mes actual en zona Madrid.
+export async function getMonthlyLeaderboard() {
+  const { data, error } = await supabase.rpc("get_monthly_leaderboard", {
+    p_month: null,
+    p_limit: 1000,
+  });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    rank: row.rank,
+    userId: row.user_id,
+    displayName: row.display_name,
+    currentStreak: row.current_streak || 0,
+    maxStreak: row.max_streak || 0,
+    totalWins: row.total_wins || 0,
+    totalPoints: row.total_points || 0,
+  }));
+}
+
+// Medallas de podio de un usuario (top 1/2/3 de meses cerrados). Lee la tabla
+// pública monthly_podium directamente (SELECT abierto a todos). Devuelve un
+// array ordenado del mes más reciente al más antiguo:
+//   [{ month: "2026-05-01", rank: 1, points: 87 }, ...]
+// `month` es el primer día del mes (string ISO date) — el componente lo
+// formatea con Intl según el locale activo.
+export async function getMonthlyMedals(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("monthly_podium")
+    .select("month, rank, points")
+    .eq("user_id", userId)
+    .order("month", { ascending: false });
+
+  if (error) {
+    console.error("[getMonthlyMedals]", error);
+    return [];
+  }
+
+  return (data || []).map((row) => ({
+    month: row.month,
+    rank: row.rank,
+    points: row.points,
+  }));
+}

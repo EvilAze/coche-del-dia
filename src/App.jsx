@@ -416,54 +416,24 @@ export default function App() {
       <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-4 sm:px-4">
         <main className="w-full min-w-0">
           {/* Dateline + tagline centrados sobre la imagen: la fecha del reto y
-              el "gist" del juego. Da contexto instantáneo al recién llegado
-              SIN modal forzado; el detalle completo vive en el "?" de la
-              esquina de la imagen. */}
+              el "gist" del juego (contexto instantáneo, sin modal forzado).
+              El "?" — anclado junto a la tagline (no flotando sobre la imagen,
+              que ahora es tap-to-ampliar) — abre el detalle completo. */}
           <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted">
             {today}
           </p>
-          <p className="mb-3 mt-1 text-center text-xs text-muted/80">
-            {t("app.tagline")}
-          </p>
-
-          {/* CarImage siempre montado: cuando car es null, internamente cae
-              al skeleton (animate-pulse sobre bg-bg-secondary/60) con el
-              mismo aspect-ratio 1:1 y borde que tendrá la imagen final.
-              Cuando car llega, src cambia y el LQIP base64 entra como
-              fondo blureado, luego el AVIF crossfade encima. Cero overlay
-              que ocultar y cero tiempo muerto entre estados.
-
-              Envuelto en relative para anclar el botón "?" (cómo se juega)
-              en la esquina superior derecha, patrón estilo Cardle. */}
-          <div className="relative">
-            <CarImage
-              src={car?.img ?? null}
-              blurData={car?.blurData ?? null}
-              zoom={zoom}
-              hintIndex={hintIndex}
-              totalHints={totalHints}
-              status={status}
-              showHintLabel={false}
-              blurred={status === "lost" && !user}
-              onRevealLoad={handleRevealLoad}
-              overlay={
-                status === "lost" && !user ? (
-                  <LockedRevealCard />
-                ) : null
-              }
-            />
-
-            {/* Botón "?" → Cómo se juega. Opt-in, nunca bloquea. Pulsa solo en
-                la primera visita (howtoPulse) para guiar al recién llegado. */}
+          <div className="mb-3 mt-1 flex items-center justify-center gap-2">
+            <p className="text-xs text-muted/80">{t("app.tagline")}</p>
+            {/* "?" → Cómo se juega. Opt-in, nunca bloquea. Pulsa solo en la
+                primera visita (howtoPulse) para guiar al recién llegado. */}
             <button
               type="button"
               onClick={openHowTo}
               aria-label={t("app.howToPlayAria")}
               title={t("app.howToPlayAria")}
               className="
-                absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center
-                rounded-full border border-white/15 bg-black/40 text-white/80
-                backdrop-blur-sm transition
+                relative flex h-5 w-5 shrink-0 items-center justify-center
+                rounded-full border border-white/15 text-muted transition
                 hover:border-accent/60 hover:text-accent active:scale-90
               "
             >
@@ -475,10 +445,10 @@ export default function App() {
               )}
               <svg
                 viewBox="0 0 24 24"
-                className="h-4 w-4"
+                className="h-3 w-3"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.2"
+                strokeWidth="2.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden="true"
@@ -488,6 +458,26 @@ export default function App() {
               </svg>
             </button>
           </div>
+
+          {/* CarImage siempre montado: skeleton/LQIP/AVIF con crossfade. La
+              imagen es tap-to-ampliar (lightbox al MISMO nivel de zoom del
+              intento) — gestionado dentro de CarImage. */}
+          <CarImage
+            src={car?.img ?? null}
+            blurData={car?.blurData ?? null}
+            zoom={zoom}
+            hintIndex={hintIndex}
+            totalHints={totalHints}
+            status={status}
+            showHintLabel={false}
+            blurred={status === "lost" && !user}
+            onRevealLoad={handleRevealLoad}
+            overlay={
+              status === "lost" && !user ? (
+                <LockedRevealCard />
+              ) : null
+            }
+          />
 
           {/* Sin leyenda ✓/✕: son símbolos universalmente reconocibles. Toda
               ayuda textual aquí es ruido para un juego diario rápido. La

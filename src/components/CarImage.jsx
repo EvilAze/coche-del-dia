@@ -1,6 +1,8 @@
 // src/components/CarImage.jsx
 import { useEffect, useRef, useState } from "react";
 import { haptic } from "../lib/haptics";
+import { useEscape } from "../hooks/useEscape";
+import { useT } from "../i18n";
 
 // Aspect ratio por defecto mientras la imagen aún no ha cargado.
 // Se reemplaza por el natural (img.naturalWidth/Height) al onLoad.
@@ -120,6 +122,15 @@ export default function CarImage({
   // animación arrancaría desde scale=1 y el "pop" no tendría amplitud.
   const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
   const showLabel = showHintLabel && status === "playing" && hintIndex != null && totalHints;
+
+  // Tap-to-ampliar: la imagen se puede abrir en grande (lightbox) al MISMO
+  // nivel de zoom del intento. NO revela más coche (mismo src + mismo
+  // scale(zoom)), solo facilita la vista. Excluida cuando está bloqueada/
+  // borrosa (anónimo que perdió) o aún sin cargar.
+  const { t } = useT();
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = loaded && !blurred && Boolean(src);
+  useEscape(expanded, () => setExpanded(false));
 
   function handleImageLoad(e) {
     const img = e.currentTarget;
@@ -325,6 +336,76 @@ export default function CarImage({
                 }`}
               />
             ))}
+          </div>
+        </div>
+      )}
+      {/* Capa clicable para ampliar: cubre la imagen (los usuarios ya intentan
+          tocarla). Transparente salvo el icono de "ampliar" en una esquina.
+          Solo cuando se puede ampliar (cargada y no bloqueada). */}
+      {canExpand && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          aria-label={t("app.enlargeImage")}
+          className="group absolute inset-0 z-[5] cursor-zoom-in"
+        >
+          <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/70 backdrop-blur-sm transition group-hover:border-accent/60 group-hover:text-accent">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
+            </svg>
+          </span>
+        </button>
+      )}
+
+      {/* Lightbox: mismo recorte (src + scale(zoom)) en grande → MISMO nivel de
+          zoom del intento, sin revelar más. position:fixed cubre el viewport
+          aunque el contenedor tenga overflow-hidden. */}
+      {expanded && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm animate-fade-in"
+          onClick={() => setExpanded(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("app.enlargeImage")}
+        >
+          <div
+            className="relative aspect-square w-full max-w-[min(92vw,92vh)] overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <picture>
+              {isApiProxy && (
+                <source
+                  type="image/avif"
+                  srcSet={`${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
+                  sizes="92vw"
+                />
+              )}
+              {isApiProxy && (
+                <source
+                  type="image/webp"
+                  srcSet={`${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
+                  sizes="92vw"
+                />
+              )}
+              <img
+                src={isApiProxy ? `${src}&f=jpeg&w=1920` : src}
+                alt="Coche del día"
+                draggable={false}
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
+              />
+            </picture>
+
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              aria-label={t("common.close")}
+              className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/50 text-white/80 backdrop-blur-sm transition hover:border-accent/60 hover:text-accent active:scale-90"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
           </div>
         </div>
       )}

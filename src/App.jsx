@@ -1,5 +1,5 @@
 // src/App.jsx
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
@@ -8,12 +8,17 @@ import GuessLog from "./components/GuessLog";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import Header from "./components/HeaderSandwich";
-import Ranking from "./components/Ranking";
-import Garage from "./components/Garage";
-import MyStats from "./components/MyStats";
-import AchievementsModal from "./components/AchievementsModal";
-import NicknameModal from "./components/NicknameModal";
 import CloseButton from "./components/CloseButton";
+
+// Modales lazy: viven todos detrás de un clic, así que NO entran en el bundle
+// inicial. Se descargan la primera vez que se abren y, una vez montados, se
+// mantienen (ver `mounted` más abajo) para que las animaciones de salida de
+// ModalShell/AnimatePresence sigan funcionando.
+const Ranking = lazy(() => import("./components/Ranking"));
+const Garage = lazy(() => import("./components/Garage"));
+const MyStats = lazy(() => import("./components/MyStats"));
+const AchievementsModal = lazy(() => import("./components/AchievementsModal"));
+const NicknameModal = lazy(() => import("./components/NicknameModal"));
 import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
 import { useGame } from "./hooks/useGame";
@@ -79,6 +84,13 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
+  // Modales lazy ya montados al menos una vez. Una vez montado, un modal
+  // permanece en el árbol para que su animación de salida (AnimatePresence)
+  // pueda completarse al cerrarse.
+  const [mounted, setMounted] = useState({});
+  const mountModal = useCallback((key) => {
+    setMounted((m) => (m[key] ? m : { ...m, [key]: true }));
+  }, []);
   // Badge ámbar del icono del Garaje: true cuando hay repesca disponible
   // hoy y al menos un coche "missed" (ya fue coche del día y no se ganó).
   // Lo calculamos con una llamada ligera a /api/garage tras login.
@@ -212,21 +224,26 @@ export default function App() {
   }, [user, activeModal]);
 
   function openRanking() {
+    mountModal("ranking");
     setActiveModal("ranking");
   }
 
   function openGarage() {
+    mountModal("garage");
     setActiveModal("garage");
   }
 
   function openProfile() {
+    mountModal("profile");
     setActiveModal("profile");
   }
 
   function openAchievements() {
+    mountModal("achievements");
     setActiveModal("achievements");
   }
 
+  // Login va por ModalShell inline (no lazy), no necesita mountModal.
   function openLogin() {
     setActiveModal("login");
   }
@@ -241,6 +258,37 @@ export default function App() {
     setCheckingProfile(false);
     setActiveModal(null);
   }
+
+  // NicknameModal se abre solo (onboarding) cuando un usuario logueado no
+  // tiene nick. Como es lazy, lo marcamos para montar en cuanto esa condición
+  // se cumple.
+  const nicknameOpen = Boolean(user && !checkingProfile && !profile?.display_name);
+  useEffect(() => {
+    if (nicknameOpen) mountModal("nickname");
+  }, [nicknameOpen, mountModal]);
+
+  // Prefetch de los chunks de modales ligeros cuando el navegador está OCIOSO.
+  // El bundle inicial sigue ligero (no se ejecutan al cargar), pero al pulsar
+  // se abren al instante porque el chunk ya está en caché → preserva el flujo
+  // premium sin penalizar el primer paint. Garaje se deja fuera a propósito
+  // (chunk pesado por framer-motion; acción deliberada y menos frecuente).
+  // Respetamos Save-Data: si el usuario pide ahorro de datos, no prefetcheamos.
+  useEffect(() => {
+    if (navigator.connection?.saveData) return;
+    const prefetch = () => {
+      import("./components/Ranking");
+      import("./components/MyStats");
+      import("./components/AchievementsModal");
+      import("./components/NicknameModal");
+    };
+    const ric = window.requestIdleCallback;
+    if (ric) {
+      const id = ric(prefetch, { timeout: 4000 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const t = setTimeout(prefetch, 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   useEscape(activeModal === "login", closeModal);
 
@@ -494,40 +542,56 @@ export default function App() {
         </div>
       </ModalShell>
 
-      <Ranking
-        open={activeModal === "ranking"}
-        onClose={closeModal}
-        user={user}
-        onOpenLogin={openLogin}
-      />
+      {/* Modales lazy: solo se montan tras su primera apertura (mounted.*) y,
+          una vez montados, permanecen para conservar la animación de salida.
+          Un único Suspense (fallback null) cubre el lapso de descarga del
+          chunk en la primera apertura. */}
+      <Suspense fallback={null}>
+        {mounted.ranking && (
+          <Ranking
+            open={activeModal === "ranking"}
+            onClose={closeModal}
+            user={user}
+            onOpenLogin={openLogin}
+          />
+        )}
 
-      <Garage
-        open={activeModal === "garage"}
-        onClose={closeModal}
-        user={user}
-        onOpenLogin={openLogin}
-        onOpenAchievements={openAchievements}
-      />
+        {mounted.garage && (
+          <Garage
+            open={activeModal === "garage"}
+            onClose={closeModal}
+            user={user}
+            onOpenLogin={openLogin}
+            onOpenAchievements={openAchievements}
+          />
+        )}
 
-      <MyStats
-        open={activeModal === "profile"}
-        onClose={closeModal}
-        onSignedOut={handleSignedOut}
-        onOpenAchievements={openAchievements}
-      />
+        {mounted.profile && (
+          <MyStats
+            open={activeModal === "profile"}
+            onClose={closeModal}
+            onSignedOut={handleSignedOut}
+            onOpenAchievements={openAchievements}
+          />
+        )}
 
-      <AchievementsModal
-        open={activeModal === "achievements"}
-        onClose={closeModal}
-      />
+        {mounted.achievements && (
+          <AchievementsModal
+            open={activeModal === "achievements"}
+            onClose={closeModal}
+          />
+        )}
 
-      <NicknameModal
-        open={Boolean(user && !checkingProfile && !profile?.display_name)}
-        onSaved={(nextProfile) => {
-          setProfile(nextProfile);
-          setActiveModal(null);
-        }}
-      />
+        {mounted.nickname && (
+          <NicknameModal
+            open={nicknameOpen}
+            onSaved={(nextProfile) => {
+              setProfile(nextProfile);
+              setActiveModal(null);
+            }}
+          />
+        )}
+      </Suspense>
 
       {/* Day rollover: no dismissable por backdrop ni por ESC. Lo único
           que puede hacer el usuario es recargar la página. Si dejamos

@@ -1,0 +1,17 @@
+// vitest.config.mjs
+// Config DEDICADA de tests, separada de vite.config.js a propósito:
+//   - Los tests son lógica pura (JS, sin JSX) → no necesitan
+//     @vitejs/plugin-react. Cargarlo aquí, además, rompía: vitest carga la
+//     config vía CJS y ese plugin es ESM-only.
+//   - Al existir vitest.config, vitest la prioriza y NO carga vite.config.js,
+//     evitando el conflicto.
+// Este fichero es .mjs (ESM) para importar limpio de "vitest/config".
+
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.{js,jsx}"],
+  },
+});

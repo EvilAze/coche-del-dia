@@ -1,4 +1,5 @@
 import { supabase } from "../supabaseClient";
+import { isStreakAlive } from "../lib/dates";
 
 const EMPTY_STATS = {
   current_streak: 0,
@@ -8,31 +9,8 @@ const EMPTY_STATS = {
   last_played_date: null,
 };
 
-// ── Streak freshness check ──────────────────────────────────────────────
-// La BD almacena current_streak como el último valor calculado, pero NO lo
-// resetea hasta que el jugador vuelve a jugar (dentro de record_daily_result_v2).
-// Si el jugador no entra un día, la BD sigue teniendo el streak viejo.
-// Esta función comprueba si last_played_date es hoy o ayer en zona Madrid
-// (la misma que usa el servidor para todo). Si no, la racha está rota.
-function getMadridDateStr(date = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-  }).format(date);
-}
-
-function isStreakAlive(lastPlayedDate) {
-  if (!lastPlayedDate) return false;
-  const today = getMadridDateStr();
-  if (lastPlayedDate === today) return true;
-  // "Ayer" calculado como día calendario, no como 24h en ms.
-  // Date.now() - 86_400_000 falla durante los cambios de hora en España
-  // (±1h, último domingo de marzo y octubre). Parseamos la fecha de hoy
-  // en Madrid a mediodía (lejos de cualquier borde DST) y restamos un día.
-  const d = new Date(today + "T12:00:00");
-  d.setDate(d.getDate() - 1);
-  const yesterday = getMadridDateStr(d);
-  return lastPlayedDate === yesterday;
-}
+// La comprobación de frescura de la racha (isStreakAlive) vive ahora en
+// src/lib/dates.js — módulo puro y testeable. Ver allí la explicación.
 
 function cleanDisplayName(value) {
   return String(value || "").trim();

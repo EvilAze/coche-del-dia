@@ -18,9 +18,8 @@ initSentry();
 reportWebVitals();
 
 // El usuario normal solo carga <App />. Las rutas secundarias
-// (admin-tools, repesca, privacidad, header-test) se piden bajo demanda
-// para no engordar el bundle inicial.
-const HeaderTest = lazy(() => import("./HeaderTest"));
+// (admin-tools, repesca, privacidad) se piden bajo demanda para no engordar
+// el bundle inicial.
 const Repesca = lazy(() => import("./Repesca"));
 const Privacidad = lazy(() => import("./Privacidad"));
 const AdminTools = lazy(() => import("./admin/AdminTools"));
@@ -64,10 +63,6 @@ const isPrivacy =
   pathname.startsWith("/privacy") ||
   pathname.startsWith("/politica-de-privacidad");
 
-const isHeaderTest =
-  pathname.startsWith("/header-test") ||
-  /(\?|&)header-test(=|&|$)/.test(search);
-
 const isAnyAdminTools =
   isAdminTools || isLegacyEditCar || isLegacyAddCar || isLegacyPreview;
 
@@ -76,7 +71,6 @@ const isAnyAdminTools =
 function pickRoute() {
   if (isAnyAdminTools) return <AdminTools defaultTab={legacyTab()} />;
   if (isRepesca) return <Repesca />;
-  if (isHeaderTest) return <HeaderTest />;
   if (isPrivacy) return <Privacidad />;
   return <App />;
 }
@@ -84,7 +78,6 @@ function pickRoute() {
 const isMainApp = !(
   isAnyAdminTools ||
   isRepesca ||
-  isHeaderTest ||
   isPrivacy
 );
 

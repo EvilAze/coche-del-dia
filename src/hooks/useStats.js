@@ -7,6 +7,7 @@ const EMPTY_STATS = {
   total_wins: 0,
   total_points: 0,
   last_played_date: null,
+  streak_freezes: 1, // default de la BD (todos arrancan con 1)
 };
 
 // La comprobación de frescura de la racha (isStreakAlive) vive ahora en
@@ -70,7 +71,7 @@ export async function getMyStreak(userId) {
 
   const { data, error } = await supabase
     .from("stats")
-    .select("current_streak, last_played_date")
+    .select("current_streak, last_played_date, streak_freezes")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -82,8 +83,11 @@ export async function getMyStreak(userId) {
   const streak = data?.current_streak ?? 0;
   if (streak === 0) return 0;
 
-  // Si last_played_date no es hoy ni ayer (Madrid), la racha está rota.
-  return isStreakAlive(data?.last_played_date) ? streak : 0;
+  // Si last_played_date no es hoy ni ayer (Madrid), la racha está rota —
+  // salvo que un congelado cubra el hueco de un día (entonces sigue viva).
+  return isStreakAlive(data?.last_played_date, new Date(), data?.streak_freezes ?? 0)
+    ? streak
+    : 0;
 }
 
 export async function saveDisplayName(displayName) {
@@ -152,7 +156,7 @@ export async function getMyStats() {
     supabase
       .from("stats")
       .select(
-        "current_streak, max_streak, total_wins, total_points, last_played_date, achievements_unlocked"
+        "current_streak, max_streak, total_wins, total_points, last_played_date, achievements_unlocked, streak_freezes"
       )
       .eq("user_id", user.id)
       .maybeSingle(),
@@ -161,10 +165,14 @@ export async function getMyStats() {
 
   if (statsError) throw statsError;
 
-  // Aplicamos la misma comprobación de frescura que en getMyStreak:
-  // si la racha lleva más de un día sin actividad, la mostramos como 0.
+  // Aplicamos la misma comprobación de frescura que en getMyStreak: si la
+  // racha lleva más de un día sin actividad la mostramos como 0 — salvo que un
+  // congelado cubra el hueco de un día.
   const cleanStats = stats ? { ...stats } : { ...EMPTY_STATS };
-  if (cleanStats.current_streak > 0 && !isStreakAlive(cleanStats.last_played_date)) {
+  if (
+    cleanStats.current_streak > 0 &&
+    !isStreakAlive(cleanStats.last_played_date, new Date(), cleanStats.streak_freezes ?? 0)
+  ) {
     cleanStats.current_streak = 0;
   }
 

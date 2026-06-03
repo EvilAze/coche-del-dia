@@ -49,4 +49,23 @@ describe("isStreakAlive", () => {
     expect(isStreakAlive("2026-06-30", firstOfMonth)).toBe(true);
     expect(isStreakAlive("2026-06-29", firstOfMonth)).toBe(false);
   });
+
+  describe("con streak freeze", () => {
+    it("anteayer + congelado disponible → sigue viva", () => {
+      expect(isStreakAlive("2026-06-01", now, 1)).toBe(true);
+    });
+
+    it("anteayer SIN congelados → rota", () => {
+      expect(isStreakAlive("2026-06-01", now, 0)).toBe(false);
+    });
+
+    it("el congelado NO cubre un hueco de 2+ días", () => {
+      expect(isStreakAlive("2026-05-31", now, 2)).toBe(false);
+    });
+
+    it("hoy/ayer siguen vivos independientemente de congelados", () => {
+      expect(isStreakAlive("2026-06-03", now, 0)).toBe(true);
+      expect(isStreakAlive("2026-06-02", now, 0)).toBe(true);
+    });
+  });
 });

@@ -340,6 +340,27 @@ export default function ResultPanel({
 
       <ScoreBreakdown score={score} won={won} />
 
+      {/* Streak freeze: aviso cuando un congelado ha salvado la racha hoy.
+          Solo ocurre al ganar tras faltar exactamente un día. */}
+      {score?.freezeUsed && (
+        <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-accent/30 bg-accent/[0.07] px-3 py-2 text-xs font-medium text-accent">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 2v20M3.34 7l17.32 10M20.66 7L3.34 17" />
+            <path d="M12 5.2 9.8 6.8M12 5.2l2.2 1.6M12 18.8 9.8 17.2M12 18.8l2.2-1.6" />
+          </svg>
+          {t("result.streakSaved")}
+        </div>
+      )}
+
       {shareText && (
         // Card UNIFICADA: preview + acción son una sola unidad conceptual
         // ("esto es lo que vas a compartir" + "hazlo"). Antes vivían en

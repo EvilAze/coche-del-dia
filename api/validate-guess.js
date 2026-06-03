@@ -285,6 +285,13 @@ export default async function handler(req, res) {
             maxStreak: persisted.maxStreak,
             totalScore: persisted.totalScore,
             alreadyRecorded: persisted.alreadyRecorded === true,
+            // Streak freeze: el RPC indica si se gastó un congelado para salvar
+            // la racha hoy, y cuántos quedan.
+            freezeUsed: persisted.freezeUsed === true,
+            streakFreezes:
+              typeof persisted.streakFreezes === "number"
+                ? persisted.streakFreezes
+                : null,
             persisted: true,
           };
         }

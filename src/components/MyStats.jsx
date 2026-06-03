@@ -50,6 +50,74 @@ function LockIcon() {
   );
 }
 
+// Copo de nieve línea-arte (no emoji — coherencia + cross-platform).
+function FreezeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 2v20M3.34 7l17.32 10M20.66 7L3.34 17" />
+      <path d="M12 5.2 9.8 6.8M12 5.2l2.2 1.6M12 18.8 9.8 17.2M12 18.8l2.2-1.6" />
+      <path d="M5.1 9.1 5.5 6.6M5.1 9.1 2.6 9.5M18.9 14.9l-.4 2.5M18.9 14.9l2.5.4M18.9 9.1l-.4 2.5M18.9 9.1l2.5-.4M5.1 14.9l.4 2.5M5.1 14.9l-2.5.4" />
+    </svg>
+  );
+}
+
+// Tope de congelados — sincronizado con v_freeze_cap en
+// scripts/supabase-streak-freeze.sql. Si cambias uno, cambia el otro.
+const FREEZE_CAP = 2;
+
+// Fila de inventario de congelados: icono + texto adaptativo + pips de
+// capacidad (lleno = disponible). Discreto y autoexplicativo, sin números
+// sueltos que requieran contexto.
+function FreezeRow({ count }) {
+  const { t } = useT();
+  const freezes = Math.max(0, Math.min(FREEZE_CAP, count ?? 0));
+  const has = freezes > 0;
+
+  return (
+    <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+      <span className="flex min-w-0 items-center gap-2.5">
+        <span className={has ? "text-accent" : "text-muted"}>
+          <FreezeIcon />
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-medium text-white">
+            {t("myStats.streakFreezes")}
+          </span>
+          <span className="truncate text-[11px] leading-tight text-muted">
+            {has ? t("myStats.streakFreezesHelp") : t("myStats.streakFreezesEarn")}
+          </span>
+        </span>
+      </span>
+
+      {/* Capacidad como pips (máx FREEZE_CAP): lleno = disponible. */}
+      <span
+        className="flex shrink-0 items-center gap-1.5"
+        role="img"
+        aria-label={t("myStats.streakFreezesCount", { count: freezes, max: FREEZE_CAP })}
+      >
+        {Array.from({ length: FREEZE_CAP }).map((_, i) => (
+          <span
+            key={i}
+            className={`h-2.5 w-2.5 rounded-full transition-colors ${
+              i < freezes ? "bg-accent" : "border border-border-strong bg-transparent"
+            }`}
+            style={i < freezes ? { boxShadow: "0 0 6px rgba(232,200,122,0.45)" } : undefined}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
 export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements }) {
   const { t } = useT();
   const [state, setState] = useState({
@@ -159,6 +227,9 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
               <StatCard label={t("myStats.statMaxStreak")} value={stats.max_streak} />
               <StatCard label={t("myStats.statWins")} value={stats.total_wins} />
             </div>
+
+            {/* Inventario de congelados de racha. */}
+            <FreezeRow count={stats.streak_freezes} />
 
             {/* Podios mensuales (🥇🥈🥉). Solo se renderiza si tiene alguno. */}
             <div className="mt-4 empty:hidden">

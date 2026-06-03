@@ -83,6 +83,7 @@
   "result": {
     "wonTitle": "¡ACERTASTE!",
     "lostTitle": "SIN SUERTE",
+    "streakSaved": "¡Racha salvada con un congelado!",
     "wasThe": "Era el",
     "lockedAnswer": "La respuesta está bloqueada. Inicia sesión para verla.",
     "achievedIn": {
@@ -119,7 +120,11 @@
     "nickPermanentAria": "Nick permanente",
     "statStreak": "Racha",
     "statMaxStreak": "Máxima",
-    "statWins": "Aciertos"
+    "statWins": "Aciertos",
+    "streakFreezes": "Congelados de racha",
+    "streakFreezesHelp": "Protegen tu racha si faltas un día",
+    "streakFreezesEarn": "Ganas 1 cada 10 días de racha",
+    "streakFreezesCount": "{count} de {max} congelados"
   },
   "achievements": {
     "sectionTitle": "Logros",

@@ -14,7 +14,6 @@
 
 import { useT } from "../i18n";
 import GuessRow, { GuessRowHeader } from "./GuessRow";
-import AttemptDots from "./AttemptDots";
 
 export default function GuessLog({
   guesses = [],
@@ -48,7 +47,23 @@ export default function GuessLog({
         <span className="text-[10px] uppercase tracking-[0.22em] text-muted">
           {t("app.attempts")}
         </span>
-        <AttemptDots attempts={attempts} max={maxAttempts} />
+        {/* Pips de intentos: gastados = dorado (con glow), restantes = gris
+            translúcido. Inline aquí (no AttemptDots, que es el indicador
+            rojo/verde de la repesca). */}
+        <span className="flex items-center gap-1" aria-hidden="true">
+          {Array.from({ length: maxAttempts }).map((_, i) => {
+            const used = i < attempts;
+            return (
+              <span
+                key={i}
+                className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${
+                  used ? "bg-accent" : "bg-white/15"
+                }`}
+                style={used ? { boxShadow: "0 0 5px rgba(232,200,122,0.45)" } : undefined}
+              />
+            );
+          })}
+        </span>
       </div>
 
       {/* Cabecera única de columnas. */}

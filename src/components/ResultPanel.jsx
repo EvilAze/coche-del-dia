@@ -340,13 +340,15 @@ export default function ResultPanel({
 
       <ScoreBreakdown score={score} won={won} />
 
-      {/* Streak freeze: aviso cuando un congelado ha salvado la racha hoy.
-          Solo ocurre al ganar tras faltar exactamente un día. */}
+      {/* Streak freeze: aviso AUTOEXPLICATIVO cuando un congelado ha salvado la
+          racha. Solo ocurre al ganar tras faltar exactamente un día — el
+          momento orgánico para contar el "por qué" (faltaste → se usó). El
+          cuerpo explica la causa para que se entienda aunque sea la 1ª vez. */}
       {score?.freezeUsed && (
-        <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-accent/30 bg-accent/[0.07] px-3 py-2 text-xs font-medium text-accent">
+        <div className="mb-3 flex items-start gap-2.5 rounded-lg border border-accent/30 bg-accent/[0.07] px-3 py-2.5 text-left">
           <svg
             viewBox="0 0 24 24"
-            className="h-4 w-4 shrink-0"
+            className="mt-0.5 h-4 w-4 shrink-0 text-accent"
             fill="none"
             stroke="currentColor"
             strokeWidth="1.6"
@@ -354,10 +356,17 @@ export default function ResultPanel({
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M12 2v20M3.34 7l17.32 10M20.66 7L3.34 17" />
-            <path d="M12 5.2 9.8 6.8M12 5.2l2.2 1.6M12 18.8 9.8 17.2M12 18.8l2.2-1.6" />
+            <path d="M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z" />
+            <path d="M9 12l2 2 4-4.2" />
           </svg>
-          {t("result.streakSaved")}
+          <span className="flex flex-col">
+            <span className="text-xs font-semibold text-accent">
+              {t("result.streakSavedTitle")}
+            </span>
+            <span className="text-[11px] leading-snug text-muted">
+              {t("result.streakSavedBody")}
+            </span>
+          </span>
         </div>
       )}
 

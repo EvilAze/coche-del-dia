@@ -392,11 +392,17 @@ export default function App() {
         onOpenLogin={openLogin}
         repescaAlert={repescaAlert}
         streak={streak}
-        date={today}
       />
 
       <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-4 sm:px-4">
         <main className="w-full min-w-0">
+          {/* Dateline: la fecha del reto, centrada sobre la imagen. Vive aquí
+              (no en el header) para aligerar la cabecera y dar contexto justo
+              donde está el coche a adivinar. */}
+          <p className="mb-3 text-center text-[10px] uppercase tracking-[0.28em] text-muted">
+            {today}
+          </p>
+
           {/* CarImage siempre montado: cuando car es null, internamente cae
               al skeleton (animate-pulse sobre bg-bg-secondary/60) con el
               mismo aspect-ratio 1:1 y borde que tendrá la imagen final.

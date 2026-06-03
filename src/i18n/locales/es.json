@@ -25,24 +25,6 @@
     "loginPitch": "Guarda tu progreso, desbloquea tu garaje y compite en el ranking.",
     "language": "Idioma"
   },
-  "streak": {
-    "ariaChip": "Racha de {count} días. Ver detalles.",
-    "titleChip": {
-      "one": "Llevas {count} día de racha",
-      "other": "Llevas {count} días de racha"
-    },
-    "current": "Racha en curso",
-    "daysShort": {
-      "one": "día",
-      "other": "días"
-    },
-    "keepGoing": "Sigue así, no la pierdas.",
-    "personalRecord": "¡Es tu récord personal! No la pierdas.",
-    "record": "Récord",
-    "nextMilestone": "Próximo hito",
-    "howScoringWorks": "Cómo funcionan los puntos",
-    "popoverLabel": "Detalles de tu racha"
-  },
   "app": {
     "loadingCar": "Aparcando coche...",
     "title": "Coche del Día",
@@ -83,7 +65,8 @@
   "result": {
     "wonTitle": "¡ACERTASTE!",
     "lostTitle": "SIN SUERTE",
-    "streakSaved": "¡Racha salvada con un congelado!",
+    "streakSavedTitle": "¡Racha salvada!",
+    "streakSavedBody": "Faltaste un día, pero un escudo protegió tu racha.",
     "wasThe": "Era el",
     "lockedAnswer": "La respuesta está bloqueada. Inicia sesión para verla.",
     "achievedIn": {
@@ -121,10 +104,10 @@
     "statStreak": "Racha",
     "statMaxStreak": "Máxima",
     "statWins": "Aciertos",
-    "streakFreezes": "Congelados de racha",
-    "streakFreezesHelp": "Protegen tu racha si faltas un día",
+    "streakFreezes": "Escudo de racha",
+    "streakFreezesHelp": "Protege tu racha si faltas un día",
     "streakFreezesEarn": "Ganas 1 cada 10 días de racha",
-    "streakFreezesCount": "{count} de {max} congelados"
+    "streakFreezesCount": "{count} de {max} escudos"
   },
   "achievements": {
     "sectionTitle": "Logros",

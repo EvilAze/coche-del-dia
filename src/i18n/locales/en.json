@@ -83,6 +83,7 @@
   "result": {
     "wonTitle": "YOU GOT IT!",
     "lostTitle": "NO LUCK",
+    "streakSaved": "Streak saved with a freeze!",
     "wasThe": "It was the",
     "lockedAnswer": "The answer is locked. Sign in to see it.",
     "achievedIn": {
@@ -119,7 +120,11 @@
     "nickPermanentAria": "Permanent nick",
     "statStreak": "Streak",
     "statMaxStreak": "Best",
-    "statWins": "Wins"
+    "statWins": "Wins",
+    "streakFreezes": "Streak freezes",
+    "streakFreezesHelp": "Protect your streak if you miss a day",
+    "streakFreezesEarn": "Earn 1 every 10-day streak",
+    "streakFreezesCount": "{count} of {max} freezes"
   },
   "achievements": {
     "sectionTitle": "Achievements",

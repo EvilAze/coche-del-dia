@@ -11,21 +11,30 @@ export function getMadridDateStr(date = new Date()) {
   }).format(date);
 }
 
+// Resta `days` días naturales a una fecha "YYYY-MM-DD" de Madrid y devuelve
+// la fecha resultante en el mismo formato. Anclamos a mediodía (lejos de los
+// bordes DST) para que el cálculo no se desvíe en los cambios de hora.
+function shiftMadridDay(todayStr, days) {
+  const d = new Date(todayStr + "T12:00:00");
+  d.setDate(d.getDate() - days);
+  return getMadridDateStr(d);
+}
+
 // ¿La racha sigue viva? La BD guarda current_streak con el último valor
 // calculado pero NO lo resetea hasta que el jugador vuelve a jugar. La racha
-// está viva si el último día jugado es HOY u AYER en zona Madrid; si no, está
-// rota aunque la BD aún tenga el valor antiguo.
+// está viva si el último día jugado es HOY u AYER en zona Madrid.
 //
-// `now` es inyectable para tests deterministas (por defecto, el momento real).
-export function isStreakAlive(lastPlayedDate, now = new Date()) {
+// Con streak freeze: si faltó EXACTAMENTE un día (jugó anteayer) pero tiene
+// congelados disponibles, la racha sigue viva — se salvará al volver a jugar.
+//
+// `now` es inyectable para tests deterministas. `streakFreezes` por defecto 0
+// (los callers sin inventario se comportan como antes).
+export function isStreakAlive(lastPlayedDate, now = new Date(), streakFreezes = 0) {
   if (!lastPlayedDate) return false;
   const today = getMadridDateStr(now);
   if (lastPlayedDate === today) return true;
-  // "Ayer" como día calendario, no como 24h en ms: Date.now() - 86_400_000
-  // falla en los cambios de hora (±1h, último domingo de marzo y octubre).
-  // Anclamos a mediodía (lejos de cualquier borde DST) y restamos un día.
-  const d = new Date(today + "T12:00:00");
-  d.setDate(d.getDate() - 1);
-  const yesterday = getMadridDateStr(d);
-  return lastPlayedDate === yesterday;
+  if (lastPlayedDate === shiftMadridDay(today, 1)) return true; // ayer
+  // Hueco de un día cubierto por un congelado disponible.
+  if (streakFreezes > 0 && lastPlayedDate === shiftMadridDay(today, 2)) return true;
+  return false;
 }

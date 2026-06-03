@@ -110,7 +110,6 @@ export default function HeaderSandwich({
   user,
   repescaAlert = false,
   streak = 0,
-  date = "",
 }) {
   const { t } = useT();
 
@@ -163,19 +162,15 @@ export default function HeaderSandwich({
     >
       <div className="relative mx-auto flex w-full max-w-md items-center justify-between gap-3 px-3 py-2.5">
 
-        {/* MARCA: wordmark + fecha, a la izquierda. Una sola línea con las
-            acciones a la derecha → header compacto, sin hueco muerto. */}
+        {/* MARCA: wordmark a la izquierda, en una sola línea con las acciones
+            a la derecha. La fecha vive ahora como "dateline" centrado sobre la
+            imagen (App.jsx), no aquí — header más ligero. */}
         <div className="min-w-0">
           {/* Sheen metálico contenido (champán → oro → oro oscuro). Tamaño de
               wordmark (no hero): convive con las acciones en la misma fila. */}
           <h1 className="truncate bg-gradient-to-b from-[#fbf1d4] via-accent to-accent-dark bg-clip-text font-display text-2xl leading-none tracking-wider text-transparent min-[380px]:text-3xl">
             {t("app.title")}
           </h1>
-          {date && (
-            <p className="mt-1 truncate text-[10px] uppercase tracking-[0.2em] text-muted">
-              {date}
-            </p>
-          )}
         </div>
 
         {/* ACCIONES: usuario (+racha), garaje, ranking — todas visibles. */}

@@ -17,6 +17,7 @@ import { supabase } from "./supabaseClient";
 import CarImage from "./components/CarImage";
 import AttemptDots from "./components/AttemptDots";
 import GuessRow from "./components/GuessRow";
+import AchievementIcon from "./components/AchievementIcons";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import { useToast } from "./components/Toast";
@@ -483,13 +484,15 @@ export default function Repesca() {
         {isVeteran && phase === "playing" && (
           <div
             className="
-              mt-3 rounded-lg border border-amber-400/40 bg-amber-500/10
-              px-3 py-2 text-[12px] leading-snug text-amber-100
+              mt-3 flex items-start gap-2 rounded-lg border border-amber-400/40
+              bg-amber-500/10 px-3 py-2 text-[12px] leading-snug text-amber-100
             "
             role="note"
           >
-            <span className="mr-1.5 font-display text-amber-300">🔥</span>
-            {t("repesca.veteranExplain")}
+            {/* Llama SVG (no emoji) en el ámbar de la nota, coherente con el
+                resto de llamas de la app. */}
+            <AchievementIcon name="spark" size="h-4 w-4" color="text-amber-300" />
+            <span>{t("repesca.veteranExplain")}</span>
           </div>
         )}
 

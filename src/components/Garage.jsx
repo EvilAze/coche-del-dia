@@ -18,6 +18,7 @@ import { useT, getCarDescription, getLocalizedCountry } from "../i18n";
 import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
+import AchievementIcon from "./AchievementIcons";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
 import { track } from "../lib/analytics";
 import { flagImagePath } from "../data/countries";
@@ -735,7 +736,7 @@ function CountryCard({ country, onClick }) {
         >
           {getLocalizedCountry(country.pais)}
         </p>
-        <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
+        <p className="mt-1 text-xs font-medium tabular-nums text-muted">
           {country.unlocked} / {country.total}
         </p>
       </div>
@@ -779,7 +780,7 @@ function BrandsMenu({
           >
             {getLocalizedCountry(country.pais)}
           </p>
-          <p className="mt-2 text-xs font-medium tabular-nums text-gray-300">
+          <p className="mt-2 text-xs font-medium tabular-nums text-muted">
             {t("garage.countryCount", { unlocked: country.unlocked, total: country.total })}
           </p>
         </div>
@@ -918,7 +919,7 @@ function BrandShowroom({
               {brand.marca}
             </p>
           )}
-          <p className="mt-1 text-xs font-medium tabular-nums text-gray-300">
+          <p className="mt-1 text-xs font-medium tabular-nums text-muted">
             {t("garage.brandCount", { unlocked: brand.unlocked, total: brand.total })}
           </p>
           <div className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-white/10">
@@ -990,7 +991,7 @@ function UnlockedCard({ car, onClick }) {
         <p className="truncate text-sm font-bold text-white">
           {car.modelo}
         </p>
-        <p className="text-[10px] tabular-nums text-gray-400">{car.anio}</p>
+        <p className="text-[10px] tabular-nums text-muted">{car.anio}</p>
       </div>
 
       <div className="absolute right-1.5 top-1.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
@@ -1110,7 +1111,7 @@ function CarDetail({ open, car, onClose }) {
             <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-white">
               {displayCar.modelo}
             </h3>
-            <p className="mt-0.5 font-display text-base tabular-nums text-gray-400">
+            <p className="mt-0.5 font-display text-base tabular-nums text-muted">
               {displayCar.anio}
             </p>
 
@@ -1405,7 +1406,10 @@ function RepescaHelpModal({ open, onClose }) {
             <HelpRow icon="½" title={t("garage.repescaHelpHalf")}>
               {t("garage.repescaHelpHalfDesc")}
             </HelpRow>
-            <HelpRow icon="🔥" title={t("garage.repescaHelpNoStreak")}>
+            <HelpRow
+              icon={<AchievementIcon name="spark" size="h-4 w-4" />}
+              title={t("garage.repescaHelpNoStreak")}
+            >
               {t("garage.repescaHelpNoStreakDesc")}
             </HelpRow>
             <HelpRow icon="🏅" title={t("garage.repescaHelpVeteran")}>

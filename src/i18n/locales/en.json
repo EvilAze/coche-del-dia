@@ -25,24 +25,6 @@
     "loginPitch": "Save your progress, unlock your garage and climb the ranking.",
     "language": "Language"
   },
-  "streak": {
-    "ariaChip": "Streak of {count} days. See details.",
-    "titleChip": {
-      "one": "You're on a {count} day streak",
-      "other": "You're on a {count} day streak"
-    },
-    "current": "Current streak",
-    "daysShort": {
-      "one": "day",
-      "other": "days"
-    },
-    "keepGoing": "Keep it up, don't lose it.",
-    "personalRecord": "It's your personal best! Don't lose it.",
-    "record": "Best",
-    "nextMilestone": "Next milestone",
-    "howScoringWorks": "How scoring works",
-    "popoverLabel": "Streak details"
-  },
   "app": {
     "loadingCar": "Parking the car...",
     "title": "Car of the Day",
@@ -83,7 +65,8 @@
   "result": {
     "wonTitle": "YOU GOT IT!",
     "lostTitle": "NO LUCK",
-    "streakSaved": "Streak saved with a freeze!",
+    "streakSavedTitle": "Streak saved!",
+    "streakSavedBody": "You missed a day, but a shield protected your streak.",
     "wasThe": "It was the",
     "lockedAnswer": "The answer is locked. Sign in to see it.",
     "achievedIn": {
@@ -121,10 +104,10 @@
     "statStreak": "Streak",
     "statMaxStreak": "Best",
     "statWins": "Wins",
-    "streakFreezes": "Streak freezes",
-    "streakFreezesHelp": "Protect your streak if you miss a day",
+    "streakFreezes": "Streak shield",
+    "streakFreezesHelp": "Protects your streak if you miss a day",
     "streakFreezesEarn": "Earn 1 every 10-day streak",
-    "streakFreezesCount": "{count} of {max} freezes"
+    "streakFreezesCount": "{count} of {max} shields"
   },
   "achievements": {
     "sectionTitle": "Achievements",

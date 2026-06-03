@@ -119,7 +119,14 @@
       "Bash(ls vite.config.*)",
       "Bash(ls node_modules/.bin/vitest)",
       "Bash(npx vitest *)",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('vercel.json','utf8'\\)\\);console.log\\('vercel.json válido ✓'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('vercel.json','utf8'\\)\\);console.log\\('vercel.json válido ✓'\\)\")",
+      "Bash(node -e \"['es','en'].forEach\\(l=>JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/'+l+'.json','utf8'\\)\\)\\);console.log\\('i18n OK'\\)\")",
+      "Bash(sed -n '/\"streak\": {/,/^  },/p' src/i18n/locales/es.json)",
+      "Bash(sed -n '/\"streak\": {/,/^  },/p' src/i18n/locales/en.json)",
+      "Bash(grep -rn 't\\(\"streak\\\\.\\\\|t\\(`streak\\\\.\\\\|\"streak\\\\.\"' src --include=*.jsx --include=*.js)",
+      "Bash(node -e \"['es','en'].forEach\\(l=>JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/'+l+'.json','utf8'\\)\\)\\);console.log\\('i18n JSON OK'\\)\")",
+      "Bash(grep -v \"//\")",
+      "Bash(sed -n '1,20p' src/components/AttemptDots.jsx)"
     ]
   }
 }

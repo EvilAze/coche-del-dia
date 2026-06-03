@@ -50,8 +50,11 @@ function LockIcon() {
   );
 }
 
-// Copo de nieve línea-arte (no emoji — coherencia + cross-platform).
-function FreezeIcon() {
+// Escudo línea-arte con check (no emoji — coherencia + cross-platform). La
+// metáfora de escudo lee como "protección" sin pirueta mental, y suena natural
+// en ES/EN ("escudo" / "shield"). El modelo de datos interno sigue siendo
+// streak_freezes; solo la cara visible es un escudo.
+function ShieldIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -63,9 +66,8 @@ function FreezeIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M12 2v20M3.34 7l17.32 10M20.66 7L3.34 17" />
-      <path d="M12 5.2 9.8 6.8M12 5.2l2.2 1.6M12 18.8 9.8 17.2M12 18.8l2.2-1.6" />
-      <path d="M5.1 9.1 5.5 6.6M5.1 9.1 2.6 9.5M18.9 14.9l-.4 2.5M18.9 14.9l2.5.4M18.9 9.1l-.4 2.5M18.9 9.1l2.5-.4M5.1 14.9l.4 2.5M5.1 14.9l-2.5.4" />
+      <path d="M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z" />
+      <path d="M9 12l2 2 4-4.2" />
     </svg>
   );
 }
@@ -74,10 +76,10 @@ function FreezeIcon() {
 // scripts/supabase-streak-freeze.sql. Si cambias uno, cambia el otro.
 const FREEZE_CAP = 2;
 
-// Fila de inventario de congelados: icono + texto adaptativo + pips de
-// capacidad (lleno = disponible). Discreto y autoexplicativo, sin números
-// sueltos que requieran contexto.
-function FreezeRow({ count }) {
+// Fila de inventario de escudos: icono + texto adaptativo + pips de capacidad
+// (lleno = disponible). Discreto y autoexplicativo, sin números sueltos que
+// requieran contexto.
+function ShieldRow({ count }) {
   const { t } = useT();
   const freezes = Math.max(0, Math.min(FREEZE_CAP, count ?? 0));
   const has = freezes > 0;
@@ -86,7 +88,7 @@ function FreezeRow({ count }) {
     <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
       <span className="flex min-w-0 items-center gap-2.5">
         <span className={has ? "text-accent" : "text-muted"}>
-          <FreezeIcon />
+          <ShieldIcon />
         </span>
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-medium text-white">
@@ -215,7 +217,7 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
                     <LockIcon />
                   </span>
                 </div>
-                <p className="mt-0.5 truncate text-sm text-gray-400">{email}</p>
+                <p className="mt-0.5 truncate text-sm text-muted">{email}</p>
                 {state.error && (
                   <p className="mt-2 text-sm text-red-400">{state.error}</p>
                 )}
@@ -228,8 +230,8 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
               <StatCard label={t("myStats.statWins")} value={stats.total_wins} />
             </div>
 
-            {/* Inventario de congelados de racha. */}
-            <FreezeRow count={stats.streak_freezes} />
+            {/* Inventario de escudos de racha. */}
+            <ShieldRow count={stats.streak_freezes} />
 
             {/* Podios mensuales (🥇🥈🥉). Solo se renderiza si tiene alguno. */}
             <div className="mt-4 empty:hidden">

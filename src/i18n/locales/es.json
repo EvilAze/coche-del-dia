@@ -28,6 +28,8 @@
   "app": {
     "loadingCar": "Aparcando coche...",
     "title": "Coche del Día",
+    "tagline": "Adivina marca, modelo y año en 5 intentos",
+    "howToPlayAria": "Cómo se juega",
     "attempts": "intentos",
     "attemptsRemainingAria": "{count} de {max} intentos restantes",
     "lockedCar": "Coche bloqueado",
@@ -56,6 +58,22 @@
     "yearAlreadyTried": "Ya probaste ese año",
     "modelAlreadyTried": "Ya probaste ese modelo",
     "marcaAlreadyTried": "Ya probaste esa marca"
+  },
+  "howto": {
+    "tag": "El juego",
+    "title": "Cómo se juega",
+    "intro": "Adivina el coche del día: su marca, modelo y año.",
+    "rule1Title": "5 intentos",
+    "rule1": "Tienes cinco oportunidades para acertarlo.",
+    "rule2Title": "La imagen se revela",
+    "rule2": "Con cada fallo verás un poco más del coche.",
+    "rule3Title": "Pistas por color",
+    "rule3": "Verde = correcto, rojo = incorrecto. La flecha del año indica si el real es mayor o menor; la bandera, que acertaste el país.",
+    "rule4Title": "El año, con margen",
+    "rule4": "Cuenta como acierto con ±2 años de diferencia.",
+    "rule5Title": "Cada día, un coche",
+    "rule5": "Vuelve cada 24 h por un coche nuevo y mantén tu racha.",
+    "cta": "¡A jugar!"
   },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",

@@ -19,6 +19,7 @@ const Garage = lazy(() => import("./components/Garage"));
 const MyStats = lazy(() => import("./components/MyStats"));
 const AchievementsModal = lazy(() => import("./components/AchievementsModal"));
 const NicknameModal = lazy(() => import("./components/NicknameModal"));
+const HowToPlayModal = lazy(() => import("./components/HowToPlayModal"));
 import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
 import { useGame } from "./hooks/useGame";
@@ -90,6 +91,17 @@ export default function App() {
   const [mounted, setMounted] = useState({});
   const mountModal = useCallback((key) => {
     setMounted((m) => (m[key] ? m : { ...m, [key]: true }));
+  }, []);
+  // "?" de ayuda: pulsa sutilmente SOLO en la primera visita para invitar al
+  // recién llegado, sin modal forzado (evita la fricción de entrada). Se apaga
+  // al abrir el "cómo se juega".
+  const [howtoPulse, setHowtoPulse] = useState(false);
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("ccd_howto_seen")) setHowtoPulse(true);
+    } catch {
+      // localStorage puede fallar (modo privado/iframe): sin pulso, sin drama.
+    }
   }, []);
   // Badge ámbar del icono del Garaje: true cuando hay repesca disponible
   // hoy y al menos un coche "missed" (ya fue coche del día y no se ganó).
@@ -248,6 +260,13 @@ export default function App() {
     setActiveModal("login");
   }
 
+  function openHowTo() {
+    try { localStorage.setItem("ccd_howto_seen", "1"); } catch { /* ignore */ }
+    setHowtoPulse(false);
+    mountModal("howto");
+    setActiveModal("howto");
+  }
+
   function closeModal() {
     setActiveModal(null);
   }
@@ -396,11 +415,15 @@ export default function App() {
 
       <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-4 sm:px-4">
         <main className="w-full min-w-0">
-          {/* Dateline: la fecha del reto, centrada sobre la imagen. Vive aquí
-              (no en el header) para aligerar la cabecera y dar contexto justo
-              donde está el coche a adivinar. */}
-          <p className="mb-3 text-center text-[10px] uppercase tracking-[0.28em] text-muted">
+          {/* Dateline + tagline centrados sobre la imagen: la fecha del reto y
+              el "gist" del juego. Da contexto instantáneo al recién llegado
+              SIN modal forzado; el detalle completo vive en el "?" de la
+              esquina de la imagen. */}
+          <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted">
             {today}
+          </p>
+          <p className="mb-3 mt-1 text-center text-xs text-muted/80">
+            {t("app.tagline")}
           </p>
 
           {/* CarImage siempre montado: cuando car es null, internamente cae
@@ -408,23 +431,63 @@ export default function App() {
               mismo aspect-ratio 1:1 y borde que tendrá la imagen final.
               Cuando car llega, src cambia y el LQIP base64 entra como
               fondo blureado, luego el AVIF crossfade encima. Cero overlay
-              que ocultar y cero tiempo muerto entre estados. */}
-          <CarImage
-            src={car?.img ?? null}
-            blurData={car?.blurData ?? null}
-            zoom={zoom}
-            hintIndex={hintIndex}
-            totalHints={totalHints}
-            status={status}
-            showHintLabel={false}
-            blurred={status === "lost" && !user}
-            onRevealLoad={handleRevealLoad}
-            overlay={
-              status === "lost" && !user ? (
-                <LockedRevealCard />
-              ) : null
-            }
-          />
+              que ocultar y cero tiempo muerto entre estados.
+
+              Envuelto en relative para anclar el botón "?" (cómo se juega)
+              en la esquina superior derecha, patrón estilo Cardle. */}
+          <div className="relative">
+            <CarImage
+              src={car?.img ?? null}
+              blurData={car?.blurData ?? null}
+              zoom={zoom}
+              hintIndex={hintIndex}
+              totalHints={totalHints}
+              status={status}
+              showHintLabel={false}
+              blurred={status === "lost" && !user}
+              onRevealLoad={handleRevealLoad}
+              overlay={
+                status === "lost" && !user ? (
+                  <LockedRevealCard />
+                ) : null
+              }
+            />
+
+            {/* Botón "?" → Cómo se juega. Opt-in, nunca bloquea. Pulsa solo en
+                la primera visita (howtoPulse) para guiar al recién llegado. */}
+            <button
+              type="button"
+              onClick={openHowTo}
+              aria-label={t("app.howToPlayAria")}
+              title={t("app.howToPlayAria")}
+              className="
+                absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center
+                rounded-full border border-white/15 bg-black/40 text-white/80
+                backdrop-blur-sm transition
+                hover:border-accent/60 hover:text-accent active:scale-90
+              "
+            >
+              {howtoPulse && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-full border border-accent/50 motion-safe:animate-ping"
+                />
+              )}
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2.5-3 4.5" />
+                <path d="M12 18h.01" />
+              </svg>
+            </button>
+          </div>
 
           {/* Sin leyenda ✓/✕: son símbolos universalmente reconocibles. Toda
               ayuda textual aquí es ruido para un juego diario rápido. La
@@ -596,6 +659,10 @@ export default function App() {
               setActiveModal(null);
             }}
           />
+        )}
+
+        {mounted.howto && (
+          <HowToPlayModal open={activeModal === "howto"} onClose={closeModal} />
         )}
       </Suspense>
 

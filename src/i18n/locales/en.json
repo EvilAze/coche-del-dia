@@ -28,6 +28,8 @@
   "app": {
     "loadingCar": "Parking the car...",
     "title": "Car of the Day",
+    "tagline": "Guess the make, model and year in 5 tries",
+    "howToPlayAria": "How to play",
     "attempts": "attempts",
     "attemptsRemainingAria": "{count} of {max} attempts left",
     "lockedCar": "Car locked",
@@ -56,6 +58,22 @@
     "yearAlreadyTried": "You already tried that year",
     "modelAlreadyTried": "You already tried that model",
     "marcaAlreadyTried": "You already tried that make"
+  },
+  "howto": {
+    "tag": "The game",
+    "title": "How to play",
+    "intro": "Guess the car of the day: its make, model and year.",
+    "rule1Title": "5 tries",
+    "rule1": "You have five chances to nail it.",
+    "rule2Title": "The image reveals",
+    "rule2": "Each wrong guess shows a bit more of the car.",
+    "rule3Title": "Color hints",
+    "rule3": "Green = correct, red = wrong. The year arrow shows if the real one is higher or lower; the flag means you got the country.",
+    "rule4Title": "Year has leeway",
+    "rule4": "It counts as correct within ±2 years.",
+    "rule5Title": "A car every day",
+    "rule5": "Come back every 24h for a new car and keep your streak.",
+    "cta": "Let's play!"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",

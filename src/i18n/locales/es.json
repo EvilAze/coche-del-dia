@@ -30,6 +30,7 @@
     "title": "Coche del Día",
     "tagline": "Adivina marca, modelo y año en 5 intentos",
     "howToPlayAria": "Cómo se juega",
+    "enlargeImage": "Ampliar imagen",
     "attempts": "intentos",
     "attemptsRemainingAria": "{count} de {max} intentos restantes",
     "lockedCar": "Coche bloqueado",

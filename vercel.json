@@ -1,6 +1,6 @@
 {
   "framework": "vite",
-  "buildCommand": "vite build",
+  "buildCommand": "vitest run && vite build",
   "devCommand": "vite --port $PORT",
   "outputDirectory": "build",
 

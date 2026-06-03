@@ -105,7 +105,21 @@
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/es.json','utf8'\\)\\);console.log\\('ES OK'\\)\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/en.json','utf8'\\)\\);console.log\\('EN OK'\\)\")",
       "Bash(node -e \"['src/i18n/locales/es.json','src/i18n/locales/en.json'].forEach\\(f=>{JSON.parse\\(require\\('fs'\\).readFileSync\\(f,'utf8'\\)\\);console.log\\(f,'OK'\\)}\\)\")",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(grep -n \"^import .*components/\\\\\\(Ranking\\\\|Garage\\\\|MyStats\\\\|Achievements\\\\|Login\\\\|Nickname\\\\|PublicProfile\\\\|DailyStats\\\\|ScoringHelp\\\\\\)\" src/App.jsx)",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(cd /c/Users/Ruben/Downloads/coche-del-dia_1)",
+      "Bash(rm -f src/components/AttemptsGauge.jsx)",
+      "Bash(grep -rn \"AttemptsGauge\" src)",
+      "Bash(rm -f src/HeaderTest.jsx)",
+      "Bash(grep -rn \"HeaderTest\" src)",
+      "Bash(rm -f src/components/GarageDoorSplash.jsx)",
+      "Bash(grep -rn \"GarageDoorSplash\" src)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('package.json','utf8'\\)\\); console.log\\('package.json válido ✓'\\)\")",
+      "Bash(ls vite.config.*)",
+      "Bash(ls node_modules/.bin/vitest)",
+      "Bash(npx vitest *)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('vercel.json','utf8'\\)\\);console.log\\('vercel.json válido ✓'\\)\")"
     ]
   }
 }

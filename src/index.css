@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+/* Las fuentes (Bebas Neue + DM Sans) se cargan vía <link> en index.html con
+   preconnect, NO con @import aquí: el @import en CSS crea una cascada serial
+   (CSS → descubre @import → descarga el CSS de Google → woff2) que retrasa el
+   render del título. Ver el <head> de index.html. */
 
 @tailwind base;
 @tailwind components;

@@ -6,6 +6,20 @@
     <meta name="theme-color" content="#0a0a0b" />
 
     <!--
+      Fuentes (Bebas Neue + DM Sans). Cargadas aquí con preconnect + <link>
+      en lugar de @import en el CSS: el @import encadena descargas en serie y
+      retrasa el render del título (el elemento más visible de la página). El
+      preconnect abre la conexión a gstatic antes de necesitarla; display=swap
+      evita el texto invisible (FOIT). gstatic va crossorigin (sirve los woff2).
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap"
+    />
+
+    <!--
       Favicons en orden de preferencia para los distintos consumidores:
         - favicon.ico (legacy, fallback universal Windows / Safari antiguos
           / Google Search Console; el .ico es multi-resolución y resuelve
@@ -119,8 +133,8 @@
       "image": "https://cochedeldia.com/og-image.jpg"
     }
     </script>
-      <script type="module" crossorigin src="/assets/index-BwD6Bdfb.js"></script>
-      <link rel="stylesheet" crossorigin href="/assets/index-DvykPTNv.css">
+      <script type="module" crossorigin src="/assets/index-D_5zZgcQ.js"></script>
+      <link rel="stylesheet" crossorigin href="/assets/index-DKNs4H6x.css">
     </head>
   <body>
     <noscript>

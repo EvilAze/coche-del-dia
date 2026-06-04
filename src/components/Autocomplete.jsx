@@ -1,6 +1,7 @@
 // src/components/Autocomplete.jsx
 import { useEffect, useRef, useState } from "react";
 import { haptic } from "../lib/haptics";
+import { flagImagePath } from "../data/countries";
 
 export default function Autocomplete({
   value,
@@ -10,6 +11,9 @@ export default function Autocomplete({
   placeholder = "",
   disabled = false,
   id,
+  // Opcional: función option → país, para pintar la bandera junto a cada
+  // sugerencia (lo usa MARCA; MODELO no la pasa). Devuelve null si no aplica.
+  optionFlag = null,
   // Si true, pinta el input con borde rojo SOLO cuando está fuera de foco
   // (el dropdown cerrado). La idea: mientras el usuario tipea, no le damos
   // feedback negativo — quizá está a medio escribir. Solo cuando ya ha
@@ -172,7 +176,8 @@ export default function Autocomplete({
           [&::-webkit-search-cancel-button]:appearance-none
           [&::-webkit-search-decoration]:appearance-none
           h-11 w-full min-w-0 rounded-lg border
-          bg-bg-secondary px-3 text-sm text-white transition-colors
+          bg-bg-secondary px-3 text-sm text-white
+          transition-[color,background-color,border-color,opacity] duration-200
           shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
           placeholder:text-muted/70 focus:border-accent
           enabled:hover:border-accent/40
@@ -203,6 +208,7 @@ export default function Autocomplete({
             const before = option.slice(0, idx);
             const match = option.slice(idx, idx + query.length);
             const after = option.slice(idx + query.length);
+            const pais = optionFlag ? optionFlag(option) : null;
 
             return (
               <li
@@ -212,7 +218,8 @@ export default function Autocomplete({
                 onClick={() => handleSelect(option)}
                 onMouseEnter={() => setHighlighted(i)}
                 className={`
-                  cursor-pointer px-3 py-2.5 text-sm transition-colors
+                  flex cursor-pointer items-center justify-between gap-2
+                  px-3 py-2.5 text-sm transition-colors
                   touch-pan-y select-none
                   ${
                     i === highlighted
@@ -222,14 +229,25 @@ export default function Autocomplete({
                   ${i < filtered.length - 1 ? "border-b border-border" : ""}
                 `}
               >
-                {query && idx !== -1 ? (
-                  <>
-                    {before}
-                    <span className="font-semibold text-accent">{match}</span>
-                    {after}
-                  </>
-                ) : (
-                  option
+                <span className="min-w-0 truncate">
+                  {query && idx !== -1 ? (
+                    <>
+                      {before}
+                      <span className="font-semibold text-accent">{match}</span>
+                      {after}
+                    </>
+                  ) : (
+                    option
+                  )}
+                </span>
+                {pais && (
+                  <img
+                    src={flagImagePath(pais)}
+                    alt=""
+                    draggable={false}
+                    loading="lazy"
+                    className="h-3.5 w-[22px] shrink-0 rounded-sm object-cover shadow-[0_1px_2px_rgba(0,0,0,0.4)]"
+                  />
                 )}
               </li>
             );

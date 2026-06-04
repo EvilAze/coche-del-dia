@@ -143,6 +143,17 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     return filtered.length > 0 ? filtered : MARCAS;
   }, [MARCAS, triedWrongMarcas]);
 
+  // Mapa marca → país, para pintar la bandera junto a cada sugerencia de MARCA
+  // en el desplegable (reconocimiento visual instantáneo). Cada marca tiene un
+  // país en el catálogo; tomamos el primero que aparezca.
+  const marcaPais = useMemo(() => {
+    const m = {};
+    for (const c of CARS) {
+      if (c.marca && c.pais && !m[c.marca]) m[c.marca] = c.pais;
+    }
+    return m;
+  }, [CARS]);
+
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
@@ -300,6 +311,16 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const fieldsEmpty = !marca || !modelo || !anio;
   const buttonDisabled = formDisabled || fieldsEmpty;
 
+  // Pista del año: dirección del ÚLTIMO intento si el año no fue correcto.
+  // "up" = el año real es MAYOR; "down" = menor. La mostramos junto al campo
+  // AÑO para tener la pista clave arriba (zona de acción), sin mirar el
+  // historial que vive abajo.
+  const lastGuess = guesses[guesses.length - 1];
+  const yearDir =
+    lastGuess && lastGuess.anio?.status !== "correct"
+      ? lastGuess.anio?.direction || null
+      : null;
+
   return (
     // autoComplete="off" A NIVEL DE FORMULARIO: Chrome/Android suele ignorar
     // el `autocomplete="off"` por-campo pero respeta el del <form>, y es lo que
@@ -336,6 +357,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             placeholder={t("guess.placeholderMarca")}
             disabled={formDisabled}
             invalid={marcaInvalida}
+            optionFlag={(option) => marcaPais[option] || null}
           />
         </label>
 
@@ -429,9 +451,33 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               }}
             />
           </div>
-          <span className="mt-0.5 block px-1 text-[9px] leading-tight text-muted/55">
-            {t("guess.yearsToleranceHelp")}
-          </span>
+          {yearDir ? (
+            // Pista direccional del año (del último intento), en el cobre/ámbar
+            // que ya usa la flecha del año en las filas de intento.
+            <span className="mt-0.5 flex items-center gap-1 px-1 text-[10px] font-medium leading-tight text-orange-300">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-3 w-3 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                {yearDir === "up" ? (
+                  <path d="M12 19V5m-7 7l7-7 7 7" />
+                ) : (
+                  <path d="M12 5v14m-7-7l7 7 7-7" />
+                )}
+              </svg>
+              {t(yearDir === "up" ? "guess.yearHintHigher" : "guess.yearHintLower")}
+            </span>
+          ) : (
+            <span className="mt-0.5 block px-1 text-[9px] leading-tight text-muted/55">
+              {t("guess.yearsToleranceHelp")}
+            </span>
+          )}
         </label>
       </div>
 

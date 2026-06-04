@@ -1,8 +1,8 @@
 // src/components/GuessLog.jsx
 // Panel de telemetría de intentos (opción B): tabla compacta SIEMPRE visible.
 //
-//   ┌ INTENTOS                                   ● ● ● ○ ○   ← dots (consumidos
-//   │ MARCA            MODELO              AÑO                  en oro)
+//   ┌ INTENTOS                                   ● ● ● ● ●   ← "shift lights"
+//   │ MARCA            MODELO              AÑO                  (verde→ámbar→rojo)
 //   │ [Audi ✓]         [A2 ✕]             [2015 ↑]           ← filas compactas
 //   │ ...                                                       alineadas a grid
 //
@@ -19,8 +19,6 @@ export default function GuessLog({
   guesses = [],
   pendingGuess = null,
   justRevealedIndex = -1,
-  attempts = 0,
-  maxAttempts = 5,
 }) {
   const { t } = useT();
 
@@ -32,54 +30,21 @@ export default function GuessLog({
         relative mb-4 mt-3 w-full min-w-0 overflow-hidden
         rounded-xl border border-white/[0.07] bg-white/[0.015] p-2.5 sm:p-3
       "
-      role="group"
-      aria-label={t("app.attemptsRemainingAria", {
-        count: Math.max(0, maxAttempts - attempts),
-        max: maxAttempts,
-      })}
+      aria-label={t("guessLog.label")}
     >
       {/* Hairline dorada superior: mismo detalle premium que StatCard, ata el
           panel al lenguaje visual del resto de la web. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
 
-      {/* Barra de telemetría: etiqueta + dots de intentos a la derecha. */}
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-[0.22em] text-muted">
-          {t("app.attempts")}
-        </span>
-        {/* Pips de intentos: gastados = dorado (con glow), restantes = gris
-            translúcido. */}
-        <span className="flex items-center gap-1" aria-hidden="true">
-          {Array.from({ length: maxAttempts }).map((_, i) => {
-            const used = i < attempts;
-            return (
-              <span
-                key={i}
-                className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${
-                  used ? "bg-accent" : "bg-white/15"
-                }`}
-                style={used ? { boxShadow: "0 0 5px rgba(232,200,122,0.45)" } : undefined}
-              />
-            );
-          })}
-        </span>
-      </div>
-
-      {/* Cabecera única de columnas. */}
+      {/* Cabecera única de columnas. (El indicador de intentos — shift lights —
+          vive ahora arriba, en la zona de acción, no aquí.) */}
       <GuessRowHeader />
 
-      {/* Filas en orden cronológico (más antiguo arriba); el intento en curso
-          (pending) cierra la lista abajo. Cada fila entra con su animación
-          (slide-up / flip-reveal) ya definida en GuessRow. */}
+      {/* Más RECIENTE arriba: el panel vive bajo el formulario, así que el
+          intento recién hecho queda pegado al botón "Adivinar" (feedback
+          inmediato) y los antiguos más abajo. El intento en curso (pending) va
+          el primero. Cada fila entra con su animación (slide-up / flip-reveal). */}
       <div className="mt-1.5 flex flex-col gap-1.5">
-        {guesses.map((g, i) => (
-          <GuessRow
-            key={i}
-            guess={g}
-            index={i}
-            justRevealed={i === justRevealedIndex}
-          />
-        ))}
         {pendingGuess && (
           <GuessRow
             key="pending"
@@ -88,6 +53,17 @@ export default function GuessLog({
             pending
           />
         )}
+        {guesses
+          .map((g, i) => ({ g, i }))
+          .reverse()
+          .map(({ g, i }) => (
+            <GuessRow
+              key={i}
+              guess={g}
+              index={i}
+              justRevealed={i === justRevealedIndex}
+            />
+          ))}
       </div>
     </div>
   );

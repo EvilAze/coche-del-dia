@@ -52,6 +52,8 @@
     "showAll": "Ver todos ({count})",
     "collapse": "Contraer",
     "yearsToleranceHelp": "±2 años aceptados",
+    "yearHintHigher": "Más alto",
+    "yearHintLower": "Más bajo",
     "submit": "ADIVINAR",
     "submitting": "COMPROBANDO",
     "yearStepperUp": "Año +1",
@@ -75,6 +77,9 @@
     "rule5Title": "Cada día, un coche",
     "rule5": "Vuelve cada 24 h por un coche nuevo y mantén tu racha.",
     "cta": "¡A jugar!"
+  },
+  "guessLog": {
+    "label": "Historial de intentos"
   },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",

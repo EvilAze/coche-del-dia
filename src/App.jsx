@@ -5,6 +5,7 @@ import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
 import CarImage from "./components/CarImage";
 import GuessLog from "./components/GuessLog";
+import ShiftLights from "./components/ShiftLights";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import Header from "./components/HeaderSandwich";
@@ -479,6 +480,12 @@ export default function App() {
             }
           />
 
+          {/* Shift lights de intentos en la zona de acción (entre imagen y
+              formulario): la urgencia se ve mientras juegas. Solo en partida. */}
+          {dataReady && status === "playing" && (
+            <ShiftLights attempts={attempts} maxAttempts={maxAttempts} />
+          )}
+
           {/* Sin leyenda ✓/✕: son símbolos universalmente reconocibles. Toda
               ayuda textual aquí es ruido para un juego diario rápido. La
               imagen sirve de pista visual implícita (más zoom out por intento). */}
@@ -499,18 +506,10 @@ export default function App() {
                   estado real del server. */}
           {dataReady ? (
             <div key="content" className="animate-fade-in">
-              <GuessLog
-                guesses={guesses}
-                pendingGuess={pendingGuess}
-                justRevealedIndex={justRevealedIndex}
-                attempts={attempts}
-                maxAttempts={maxAttempts}
-              />
-
-              {(guesses.length > 0 || pendingGuess) && (
-                <div className="my-4 h-px bg-border" />
-              )}
-
+              {/* Zona de acción FIJA bajo la imagen: formulario (o resultado)
+                  arriba, historial debajo. Así los cajones + "Adivinar" no se
+                  desplazan hacia abajo al acumular intentos — el núcleo del
+                  juego (imagen → teclear → adivinar) queda estable y a mano. */}
               {status === "playing" ? (
                 <GuessForm
                   onSubmit={submitGuess}
@@ -532,6 +531,16 @@ export default function App() {
                   revealReady={revealReady}
                 />
               )}
+
+              {(guesses.length > 0 || pendingGuess) && (
+                <div className="my-4 h-px bg-border" />
+              )}
+
+              <GuessLog
+                guesses={guesses}
+                pendingGuess={pendingGuess}
+                justRevealedIndex={justRevealedIndex}
+              />
             </div>
           ) : (
             // Reserva visual mientras llega el estado de la partida:

@@ -52,6 +52,8 @@
     "showAll": "Show all ({count})",
     "collapse": "Collapse",
     "yearsToleranceHelp": "±2 years allowed",
+    "yearHintHigher": "Higher",
+    "yearHintLower": "Lower",
     "submit": "GUESS",
     "submitting": "CHECKING",
     "yearStepperUp": "Year +1",
@@ -75,6 +77,9 @@
     "rule5Title": "A car every day",
     "rule5": "Come back every 24h for a new car and keep your streak.",
     "cta": "Let's play!"
+  },
+  "guessLog": {
+    "label": "Guess history"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",

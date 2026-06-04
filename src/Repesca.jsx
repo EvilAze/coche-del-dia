@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabaseClient";
 import CarImage from "./components/CarImage";
 import GuessLog from "./components/GuessLog";
+import ShiftLights from "./components/ShiftLights";
 import AchievementIcon from "./components/AchievementIcons";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
@@ -486,14 +487,13 @@ export default function Repesca() {
             status={phase}
           />
 
-          <GuessLog
-            guesses={guesses}
-            attempts={attempts}
-            maxAttempts={effectiveMaxAttempts}
-          />
+          {/* Shift lights de intentos en la zona de acción. Solo en partida. */}
+          {phase === "playing" && (
+            <ShiftLights attempts={attempts} maxAttempts={effectiveMaxAttempts} />
+          )}
 
-          {guesses.length > 0 && <div className="my-4 h-px bg-border" />}
-
+          {/* Zona de acción FIJA bajo la imagen (igual que el juego principal):
+              formulario/resultado arriba, historial debajo. */}
           {phase === "loading" ? null : phase === "playing" ? (
             <GuessForm
               onSubmit={submitGuess}
@@ -512,6 +512,10 @@ export default function Repesca() {
               showDailyStats={false}
             />
           )}
+
+          {guesses.length > 0 && <div className="my-4 h-px bg-border" />}
+
+          <GuessLog guesses={guesses} />
         </main>
       </div>
     </div>

@@ -320,20 +320,28 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
       //     blob queda en la cache HTTP y /repesca lo reusa al instante.
       // Consumimos .blob() para que la respuesta se descargue entera y el
       // navegador la guarde (si solo leyéramos headers, podría no cachear).
-      try {
-        fetch(
-          `/api/repesca/image?carId=${encodeURIComponent(serverPickedId)}&phase=playing`,
-          { headers: { Authorization: `Bearer ${session.access_token}` } }
-        )
-          .then((r) => (r.ok ? r.blob() : null))
-          .catch(() => {});
-      } catch {
-        // El preload nunca debe romper el flujo de la repesca.
-      }
+      const preload = (async () => {
+        try {
+          const r = await fetch(
+            `/api/repesca/image?carId=${encodeURIComponent(serverPickedId)}&phase=playing`,
+            { headers: { Authorization: `Bearer ${session.access_token}` } }
+          );
+          if (r.ok) await r.blob();
+        } catch {
+          // El preload nunca debe romper el flujo de la repesca.
+        }
+      })();
 
-      // Ahora sí esperamos al tiempo mínimo de animación antes de navegar,
-      // para no truncar el barajeo si el POST resolvió muy rápido.
+      // Navegamos cuando se cumplan AMBAS: (1) el tiempo mínimo de animación
+      // (para no truncar el barajeo) y (2) que la imagen esté ya en la cache
+      // del navegador. Así, al acabar "eligiendo coche", /repesca la pinta al
+      // instante en vez de empezar a cargarla entonces. Tope de seguridad para
+      // no colgar el flujo si el server se atasca (sharp en frío).
       await minDelay;
+      await Promise.race([
+        preload,
+        new Promise((resolve) => setTimeout(resolve, 2500)),
+      ]);
       window.location.href = `/repesca?id=${encodeURIComponent(serverPickedId)}`;
     } catch (err) {
       console.error("[Garage] random repesca:", err);

@@ -239,12 +239,9 @@
     "buttonExit": "Exit",
     "headerTitle": "RESCUE",
     "modeSubheader": "Rescue Mode · one per day",
-    "pageTitle": "Catch up on a car",
     "gameRulesNote": "Half points · doesn't affect your streak",
-    "attemptsLabel": "attempts",
     "veteranBadge": "Veteran Mode",
-    "veteranExplain": "You already saw this car when you failed it. You get 1 attempt and no hints: exact make, model and year.",
-    "veteranRulesNote": "1 attempt · no hints"
+    "veteranExplain": "You already saw this car when you failed it. You get 1 attempt and no hints: exact make, model and year."
   },
   "garage": {
     "errorNoSession": "Not signed in",

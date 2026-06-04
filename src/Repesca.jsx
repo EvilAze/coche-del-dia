@@ -509,6 +509,7 @@ export default function Repesca() {
               shareText={shareText}
               score={score}
               user={user}
+              showDailyStats={false}
             />
           )}
         </main>

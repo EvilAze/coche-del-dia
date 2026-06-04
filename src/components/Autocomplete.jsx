@@ -127,6 +127,18 @@ export default function Autocomplete({
           cancelScheduledClose();
           setHighlighted(0);
           setOpen(true);
+          // Móvil: el desplegable abre DEBAJO del input y, si el campo está
+          // bajo (p.ej. Modelo), queda tras el teclado. Subimos el input hacia
+          // arriba para que el dropdown quepa sobre el teclado. Solo en táctil
+          // (en desktop sería un salto innecesario). El delay espera a que el
+          // teclado termine de animar. `scroll-mt` (abajo) deja sitio al header
+          // y a la etiqueta.
+          const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
+          if (coarse) {
+            window.setTimeout(() => {
+              inputRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+            }, 280);
+          }
         }}
         onBlur={scheduleClose}
         onKeyDown={handleKeyDown}
@@ -144,7 +156,7 @@ export default function Autocomplete({
         data-1p-ignore="true"
         data-lpignore="true"
         className={`
-          focus-ring
+          focus-ring scroll-mt-24
           h-11 w-full min-w-0 rounded-lg border
           bg-bg-secondary px-3 text-sm text-white transition-colors
           shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]

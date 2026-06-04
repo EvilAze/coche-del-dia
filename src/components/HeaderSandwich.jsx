@@ -160,7 +160,7 @@ export default function HeaderSandwich({
           : "translate-y-0 opacity-100"}
       `}
     >
-      <div className="relative mx-auto flex w-full max-w-md items-center justify-between gap-3 px-3 py-1.5">
+      <div className="relative mx-auto flex w-full max-w-md items-center justify-between gap-3 px-3 py-1">
 
         {/* MARCA: wordmark a la izquierda, en una sola línea con las acciones
             a la derecha. La fecha vive ahora como "dateline" centrado sobre la
@@ -173,8 +173,12 @@ export default function HeaderSandwich({
           </h1>
         </div>
 
-        {/* ACCIONES: usuario (+racha), garaje, ranking — todas visibles. */}
-        <div className="flex shrink-0 items-center">
+        {/* ACCIONES: usuario (+racha), garaje, ranking — todas visibles.
+            El wordmark es tipografía display en mayúsculas con leading-none:
+            sus glifos se asientan en la parte alta de la caja de línea, así
+            que las acciones, centradas geométricamente, se leían un pelín por
+            debajo del título. Un -translate-y-px las sube a la misma línea. */}
+        <div className="flex shrink-0 items-center -translate-y-px">
           <button
             type="button"
             onClick={handleUserClick}

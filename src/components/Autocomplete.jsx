@@ -119,11 +119,15 @@ export default function Autocomplete({
       <input
         ref={inputRef}
         id={id}
-        type="text"
+        // type="search" (no "text"): Chrome Android NO ofrece autofill de
+        // contraseñas/tarjetas/direcciones (los 3 iconos sobre el teclado) en
+        // campos de búsqueda — y semánticamente esto ES un buscador/filtro, no
+        // un dato personal. Es la palanca fiable que `autocomplete="off"` no
+        // consigue en Chrome Android. El CSS de abajo oculta la "×" nativa y
+        // normaliza el aspecto para que no cambie nada visual.
+        type="search"
         // ARIA de combobox: correcto para un autocompletado (mejora lectores
-        // de pantalla) y, de paso, algunos navegadores lo tratan como widget
-        // personalizado y NO ofrecen su autofill (Chrome Android es terco y
-        // puede ignorarlo igualmente — es una limitación suya, no nuestra).
+        // de pantalla).
         role="combobox"
         aria-autocomplete="list"
         aria-expanded={open && filtered.length > 0}
@@ -164,7 +168,9 @@ export default function Autocomplete({
         data-1p-ignore="true"
         data-lpignore="true"
         className={`
-          focus-ring scroll-mt-24
+          focus-ring scroll-mt-24 appearance-none
+          [&::-webkit-search-cancel-button]:appearance-none
+          [&::-webkit-search-decoration]:appearance-none
           h-11 w-full min-w-0 rounded-lg border
           bg-bg-secondary px-3 text-sm text-white transition-colors
           shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]

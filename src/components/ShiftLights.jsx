@@ -11,12 +11,11 @@ export default function ShiftLights({ attempts = 0, maxAttempts = 5 }) {
   const { t } = useT();
 
   return (
-    // Pastilla "readout" pensada para ANIDARSE en el borde inferior-centro de
-    // la imagen (la posiciona CarImage). Fondo glass para verse sobre la foto.
-    // Sin la palabra "INTENTOS": las luces son un elemento visual distinto de
-    // los labels del formulario, así no "chocan". aria-label da el conteo.
+    // Solo las luces (sin la palabra "INTENTOS"): viven en la repisa del marco
+    // (la coloca CarImage), no sobre la foto, así que no necesitan pastilla ni
+    // fondo. aria-label da el conteo accesible.
     <div
-      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 shadow-lg shadow-black/40 backdrop-blur-md"
+      className="flex items-center gap-2"
       role="img"
       aria-label={t("app.attemptsRemainingAria", {
         count: Math.max(0, maxAttempts - attempts),

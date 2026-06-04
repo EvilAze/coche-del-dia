@@ -35,15 +35,17 @@ export default function ShiftLights({ attempts = 0, maxAttempts = 5 }) {
         let cls = "bg-white/15"; // gastado (apagado)
         let glow;
         if (!spent) {
+          // Mismos tonos, pero más apagados (shade 500 + glow tenue) para que
+          // no resalten en exceso sobre la imagen.
           if (tone === "red") {
-            cls = "bg-red-500";
-            glow = "0 0 7px rgba(239,68,68,0.65)";
+            cls = "bg-red-500/90";
+            glow = "0 0 4px rgba(239,68,68,0.4)";
           } else if (tone === "amber") {
-            cls = "bg-amber-400";
-            glow = "0 0 7px rgba(251,191,36,0.6)";
+            cls = "bg-amber-500/90";
+            glow = "0 0 4px rgba(245,158,11,0.35)";
           } else {
-            cls = "bg-green-400";
-            glow = "0 0 6px rgba(74,222,128,0.55)";
+            cls = "bg-green-500/90";
+            glow = "0 0 4px rgba(34,197,94,0.3)";
           }
         }
         return (

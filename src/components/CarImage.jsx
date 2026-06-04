@@ -166,7 +166,7 @@ export default function CarImage({
       className={`
         relative mb-3 mt-4 mx-auto w-full overflow-hidden rounded-xl
         border border-border bg-bg-tertiary shadow-md shadow-black/40
-        ${!isRevealed ? "max-w-[18rem]" : "max-w-full"}
+        ${!isRevealed ? "max-w-[21rem]" : "max-w-full"}
         sm:max-w-full
       `}
       onContextMenu={(e) => e.preventDefault()}

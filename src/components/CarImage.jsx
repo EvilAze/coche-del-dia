@@ -22,6 +22,11 @@ export default function CarImage({
   // las shift lights de intentos como "readout"). Decorativo: pointer-events
   // off para no interferir con el tap-to-ampliar.
   bottomCenter = null,
+  // Nodo opcional anclado en la esquina inferior-DERECHA de la imagen (lo usa
+  // el indicador de intentos del juego principal). La izquierda la ocupa el
+  // botón de ampliar. Overlay discreto y pointer-events off; como la imagen es
+  // tap-to-ampliar, si molesta se ve sin interrupciones con un solo clic.
+  bottomRight = null,
   // Callback que se dispara cuando la imagen de REVELADO (la completa sin
   // crop que se sirve al ganar/perder) termina de cargar. Lo consume App
   // para coordinar el scroll automático al panel de resultado: no tiene
@@ -164,8 +169,8 @@ export default function CarImage({
   return (
     <div
       className={`
-        relative mt-4 mx-auto w-full
-        ${bottomCenter ? "mb-6" : "mb-3"}
+        relative mb-3 mt-4 mx-auto w-full overflow-hidden rounded-xl
+        border border-border bg-bg-tertiary shadow-md shadow-black/40
         ${!isRevealed ? "max-w-[22rem]" : "max-w-full"}
         sm:max-w-full
       `}
@@ -174,15 +179,9 @@ export default function CarImage({
         transition: "max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      {/* MARCO: borde + fondo + redondeo + sombra. Su overflow-hidden recorta
-          la foto (y su zoom) a las esquinas redondeadas. CLAVE: la PASTILLA de
-          intentos NO vive aquí dentro sino en el wrapper de arriba, por eso
-          puede sobresalir del borde inferior y quedar EMBEBIDA en el marco
-          (el filete inferior parece fluir y envolverla) sin recortarse. */}
-      <div className="relative w-full overflow-hidden rounded-xl border border-border bg-bg-tertiary shadow-md shadow-black/40">
       {/* ÁREA DE IMAGEN: cuadrada en juego, aspecto natural al revelar. Tiene
-          su PROPIO overflow-hidden para recortar el zoom. El aspect-ratio (y
-          su animación) vive aquí. */}
+          su PROPIO overflow-hidden para recortar el zoom sin invadir la repisa
+          inferior. El aspect-ratio (y su animación) vive aquí. */}
       <div
         className="relative w-full overflow-hidden"
         onContextMenu={(e) => e.preventDefault()}
@@ -371,21 +370,25 @@ export default function CarImage({
           </span>
         </button>
       )}
-      </div>
-      </div>{/* /MARCO */}
 
-      {/* PASTILLA de intentos EMBEBIDA en el marco: sobresale a medias del
-          borde inferior (translate-y-1/2), con el MISMO fondo y borde que el
-          marco. Al estar fuera del overflow del marco y dibujarse por encima,
-          tapa el tramo de filete que queda detrás → el borde inferior parece
-          fluir y envolver la pastilla (la "línea verde"), sin franjas negras a
-          los lados (lo "rojo") y sin invadir la foto más que su sombra inferior.
-          pointer-events-none → el tap-para-ampliar sigue activo debajo. */}
+      {/* Indicador de intentos: overlay discreto en la esquina inferior-derecha
+          (la izquierda la ocupa el botón de ampliar). Mismo lenguaje de "chip"
+          que ese botón → integrado con los controles sobre la imagen.
+          pointer-events-none: el tap-para-ampliar sigue activo debajo. */}
+      {bottomRight && (
+        <div className="pointer-events-none absolute bottom-2 right-2 z-[6]">
+          {bottomRight}
+        </div>
+      )}
+      </div>
+
+      {/* REPISA: extensión del marco por debajo donde se anidan las shift
+          lights de intentos. Forma parte del frame (mismo borde redondeado),
+          separada de la foto por un filete sutil. Solo en partida (el caller
+          pasa bottomCenter únicamente entonces). */}
       {bottomCenter && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex translate-y-1/2 justify-center">
-          <div className="rounded-full border border-border bg-bg-tertiary px-4 py-1.5 shadow-md shadow-black/40">
-            {bottomCenter}
-          </div>
+        <div className="flex items-center justify-center border-t border-white/[0.06] py-2.5">
+          {bottomCenter}
         </div>
       )}
 

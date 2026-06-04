@@ -4,8 +4,8 @@ import { supabase } from "./supabaseClient";
 import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
 import CarImage from "./components/CarImage";
+import AttemptDots from "./components/AttemptDots";
 import GuessLog from "./components/GuessLog";
-import ShiftLights from "./components/ShiftLights";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import Header from "./components/HeaderSandwich";
@@ -478,11 +478,12 @@ export default function App() {
                 <LockedRevealCard />
               ) : null
             }
-            // Shift lights de intentos anidadas al pie de la imagen (solo en
-            // partida) → ancladas, no flotando, y el formulario sube pegado.
-            bottomCenter={
+            // Puntos de intentos: overlay discreto en la esquina inferior-
+            // derecha de la imagen (solo en partida). La foto es tap-to-ampliar,
+            // así que un indicador sutil no la "interrumpe" de verdad.
+            bottomRight={
               dataReady && status === "playing" ? (
-                <ShiftLights attempts={attempts} maxAttempts={maxAttempts} />
+                <AttemptDots attempts={attempts} maxAttempts={maxAttempts} />
               ) : null
             }
           />

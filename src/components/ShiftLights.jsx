@@ -11,13 +11,12 @@ export default function ShiftLights({ attempts = 0, maxAttempts = 5 }) {
   const { t } = useT();
 
   return (
-    // Solo las luces (sin la palabra "INTENTOS"): un elemento visual distinto
-    // de los labels de texto del formulario → no "choca" con "MARCA". Margen
-    // asimétrico: pegado a la imagen arriba, con aire antes del formulario
-    // abajo, para que se lea como parte del "guess zone" y no como cabecera
-    // del formulario. El aria-label da el conteo accesible (la "?" lo explica).
+    // Pastilla "readout" pensada para ANIDARSE en el borde inferior-centro de
+    // la imagen (la posiciona CarImage). Fondo glass para verse sobre la foto.
+    // Sin la palabra "INTENTOS": las luces son un elemento visual distinto de
+    // los labels del formulario, así no "chocan". aria-label da el conteo.
     <div
-      className="mb-6 mt-1 flex items-center justify-center gap-2"
+      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 shadow-lg shadow-black/40 backdrop-blur-md"
       role="img"
       aria-label={t("app.attemptsRemainingAria", {
         count: Math.max(0, maxAttempts - attempts),

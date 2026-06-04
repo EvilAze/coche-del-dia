@@ -485,12 +485,12 @@ export default function Repesca() {
             hintIndex={hintIndex}
             totalHints={totalHints}
             status={phase}
+            bottomCenter={
+              phase === "playing" ? (
+                <ShiftLights attempts={attempts} maxAttempts={effectiveMaxAttempts} />
+              ) : null
+            }
           />
-
-          {/* Shift lights de intentos en la zona de acción. Solo en partida. */}
-          {phase === "playing" && (
-            <ShiftLights attempts={attempts} maxAttempts={effectiveMaxAttempts} />
-          )}
 
           {/* Zona de acción FIJA bajo la imagen (igual que el juego principal):
               formulario/resultado arriba, historial debajo. */}

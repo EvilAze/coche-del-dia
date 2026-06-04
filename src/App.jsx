@@ -478,13 +478,14 @@ export default function App() {
                 <LockedRevealCard />
               ) : null
             }
+            // Shift lights de intentos anidadas al pie de la imagen (solo en
+            // partida) → ancladas, no flotando, y el formulario sube pegado.
+            bottomCenter={
+              dataReady && status === "playing" ? (
+                <ShiftLights attempts={attempts} maxAttempts={maxAttempts} />
+              ) : null
+            }
           />
-
-          {/* Shift lights de intentos en la zona de acción (entre imagen y
-              formulario): la urgencia se ve mientras juegas. Solo en partida. */}
-          {dataReady && status === "playing" && (
-            <ShiftLights attempts={attempts} maxAttempts={maxAttempts} />
-          )}
 
           {/* Sin leyenda ✓/✕: son símbolos universalmente reconocibles. Toda
               ayuda textual aquí es ruido para un juego diario rápido. La

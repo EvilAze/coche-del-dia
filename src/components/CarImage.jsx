@@ -18,6 +18,10 @@ export default function CarImage({
   blurred = false,
   overlay = null,
   showHintLabel = true,
+  // Nodo opcional anidado en el borde inferior-centro de la imagen (lo usan
+  // las shift lights de intentos como "readout"). Decorativo: pointer-events
+  // off para no interferir con el tap-to-ampliar.
+  bottomCenter = null,
   // Callback que se dispara cuando la imagen de REVELADO (la completa sin
   // crop que se sirve al ganar/perder) termina de cargar. Lo consume App
   // para coordinar el scroll automático al panel de resultado: no tiene
@@ -339,6 +343,15 @@ export default function CarImage({
           </div>
         </div>
       )}
+      {/* Shift lights de intentos anidadas al pie de la imagen, centradas
+          (readout de salpicadero). Dentro del marco (bottom-2) para no chocar
+          con el overflow-hidden que recorta el zoom. */}
+      {bottomCenter && loaded && (
+        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2">
+          {bottomCenter}
+        </div>
+      )}
+
       {/* Capa clicable para ampliar: cubre la imagen (los usuarios ya intentan
           tocarla). Transparente salvo el icono de "ampliar" en una esquina.
           Solo cuando se puede ampliar (cargada y no bloqueada). */}

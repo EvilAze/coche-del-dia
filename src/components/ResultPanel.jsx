@@ -180,6 +180,10 @@ export default function ResultPanel({
   user,
   onOpenLogin,
   revealReady = false,
+  // "Hoy en el mundo" (DailyStats) solo tiene sentido en el juego diario: son
+  // las stats del coche de HOY. En repesca (coche pasado, otras reglas) sería
+  // engañoso, así que el caller lo desactiva.
+  showDailyStats = true,
 }) {
   const { t, tn } = useT();
   const won = status === "won";
@@ -468,7 +472,7 @@ export default function ResultPanel({
         </div>
       )}
 
-      <DailyStats attempts={attempts} won={won} />
+      {showDailyStats && <DailyStats attempts={attempts} won={won} />}
 
       {/* Ficha del coche (lore): movida aquí abajo, tras el share y las
           stats del día. Es contenido de recompensa/aprendizaje, no

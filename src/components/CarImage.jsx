@@ -166,20 +166,25 @@ export default function CarImage({
       className={`
         relative mb-3 mt-4 mx-auto w-full overflow-hidden rounded-xl
         border border-border bg-bg-tertiary shadow-md shadow-black/40
-        ${!isRevealed ? "max-w-[21rem]" : "max-w-full"}
+        ${!isRevealed ? "max-w-[22rem]" : "max-w-full"}
         sm:max-w-full
       `}
-      onContextMenu={(e) => e.preventDefault()}
       style={{
-        aspectRatio: containerAspect,
-        // Animación coreografiada al revelar: el aspect-ratio sale del 1:1
-        // hacia el natural, y el max-width pasa del cap móvil al 100% del
-        // contenedor padre, ambos sobre la misma curva y duración para que
-        // se sienta como un único movimiento.
-        transition:
-          "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1), max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
+        // El max-width pasa del cap (durante el juego) al 100% al revelar.
+        transition: "max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
+      {/* ÁREA DE IMAGEN: cuadrada en juego, aspecto natural al revelar. Tiene
+          su PROPIO overflow-hidden para recortar el zoom sin invadir la repisa
+          inferior. El aspect-ratio (y su animación) vive aquí. */}
+      <div
+        className="relative w-full overflow-hidden"
+        onContextMenu={(e) => e.preventDefault()}
+        style={{
+          aspectRatio: containerAspect,
+          transition: "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+      >
       {/*
         Skeleton base: SIEMPRE montado, en la capa de abajo. Da la textura
         "cargando" mientras no hay ni LQIP ni imagen real (caso src=null
@@ -343,15 +348,6 @@ export default function CarImage({
           </div>
         </div>
       )}
-      {/* Shift lights de intentos anidadas al pie de la imagen, centradas
-          (readout de salpicadero). Dentro del marco (bottom-2) para no chocar
-          con el overflow-hidden que recorta el zoom. */}
-      {bottomCenter && loaded && (
-        <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 -translate-x-1/2">
-          {bottomCenter}
-        </div>
-      )}
-
       {/* Capa clicable para ampliar: cubre la imagen (los usuarios ya intentan
           tocarla). Transparente salvo el icono de "ampliar" en una esquina.
           Solo cuando se puede ampliar (cargada y no bloqueada). */}
@@ -368,6 +364,17 @@ export default function CarImage({
             </svg>
           </span>
         </button>
+      )}
+      </div>
+
+      {/* REPISA: extensión del marco por debajo donde se anidan las shift
+          lights de intentos. Forma parte del frame (mismo borde redondeado),
+          separada de la foto por un filete sutil. Solo en partida (el caller
+          pasa bottomCenter únicamente entonces). */}
+      {bottomCenter && (
+        <div className="flex items-center justify-center border-t border-white/[0.06] py-2.5">
+          {bottomCenter}
+        </div>
       )}
 
       {/* Lightbox: mismo recorte (src + scale(zoom)) en grande → MISMO nivel de

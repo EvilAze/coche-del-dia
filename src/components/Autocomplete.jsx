@@ -120,6 +120,14 @@ export default function Autocomplete({
         ref={inputRef}
         id={id}
         type="text"
+        // ARIA de combobox: correcto para un autocompletado (mejora lectores
+        // de pantalla) y, de paso, algunos navegadores lo tratan como widget
+        // personalizado y NO ofrecen su autofill (Chrome Android es terco y
+        // puede ignorarlo igualmente — es una limitación suya, no nuestra).
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open && filtered.length > 0}
+        aria-controls={id ? `${id}-listbox` : undefined}
         value={value}
         onChange={handleInputChange}
         onFocus={() => {
@@ -173,6 +181,7 @@ export default function Autocomplete({
         <ul
           ref={listRef}
           role="listbox"
+          id={id ? `${id}-listbox` : undefined}
           className="
             absolute left-0 right-0 z-[9999] mt-1
             max-h-[40dvh] overflow-y-auto overscroll-contain touch-pan-y

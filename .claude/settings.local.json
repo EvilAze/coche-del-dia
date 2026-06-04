@@ -127,7 +127,9 @@
       "Bash(node -e \"['es','en'].forEach\\(l=>JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/locales/'+l+'.json','utf8'\\)\\)\\);console.log\\('i18n JSON OK'\\)\")",
       "Bash(grep -v \"//\")",
       "Bash(sed -n '1,20p' src/components/AttemptDots.jsx)",
-      "Bash(grep -rln \"howToPlay\\\\|HowToPlay\\\\|tutorial\\\\|Tutorial\\\\|instruccion\\\\|cómo se juega\\\\|comoSeJuega\\\\|onboarding\\\\|firstVisit\\\\|hasSeen\\\\|hasPlayed\" src)"
+      "Bash(grep -rln \"howToPlay\\\\|HowToPlay\\\\|tutorial\\\\|Tutorial\\\\|instruccion\\\\|cómo se juega\\\\|comoSeJuega\\\\|onboarding\\\\|firstVisit\\\\|hasSeen\\\\|hasPlayed\" src)",
+      "Bash(cat .vercel/project.json)",
+      "mcp__e39113b8-0f1b-4022-b5f9-2340e17e1015__list_deployments"
     ]
   }
 }

@@ -239,12 +239,9 @@
     "buttonExit": "Salir",
     "headerTitle": "REPESCA",
     "modeSubheader": "Modo Repesca · una al día",
-    "pageTitle": "Recuperar coche",
     "gameRulesNote": "Puntos a la mitad · no afecta a tu racha",
-    "attemptsLabel": "intentos",
     "veteranBadge": "Modo Veterano",
-    "veteranExplain": "Ya viste este coche al fallarlo. Tienes 1 intento y sin pistas: marca, modelo y año exactos.",
-    "veteranRulesNote": "1 intento · sin pistas"
+    "veteranExplain": "Ya viste este coche al fallarlo. Tienes 1 intento y sin pistas: marca, modelo y año exactos."
   },
   "garage": {
     "errorNoSession": "Sin sesión",

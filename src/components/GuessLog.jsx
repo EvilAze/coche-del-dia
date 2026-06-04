@@ -48,8 +48,7 @@ export default function GuessLog({
           {t("app.attempts")}
         </span>
         {/* Pips de intentos: gastados = dorado (con glow), restantes = gris
-            translúcido. Inline aquí (no AttemptDots, que es el indicador
-            rojo/verde de la repesca). */}
+            translúcido. */}
         <span className="flex items-center gap-1" aria-hidden="true">
           {Array.from({ length: maxAttempts }).map((_, i) => {
             const used = i < attempts;

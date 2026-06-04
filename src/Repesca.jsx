@@ -15,8 +15,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabaseClient";
 import CarImage from "./components/CarImage";
-import AttemptDots from "./components/AttemptDots";
-import GuessRow from "./components/GuessRow";
+import GuessLog from "./components/GuessLog";
 import AchievementIcon from "./components/AchievementIcons";
 import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
@@ -412,7 +411,7 @@ export default function Repesca() {
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
       {/* Header simple, sin sticky para no robar espacio vertical */}
-      <header className="border-b border-white/10 bg-[#08080a]/90 backdrop-blur-xl">
+      <header className="border-b border-white/10 bg-[#0d0c0a]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
           <button
             type="button"
@@ -451,52 +450,33 @@ export default function Repesca() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 sm:px-4">
-        <header className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-b border-border py-4">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-accent">
-              {isVeteran ? t("repesca.veteranBadge") : t("repesca.modeSubheader")}
-            </p>
-            <h1 className="mt-1 font-display text-[1.6rem] leading-none tracking-[0.12em] text-white">
-              {t("repesca.pageTitle")}
-            </h1>
-            <p className="mt-1 truncate text-[10px] uppercase tracking-[0.22em] text-muted">
-              {isVeteran
-                ? t("repesca.veteranRulesNote")
-                : t("repesca.gameRulesNote")}
-            </p>
-          </div>
-
-          <div className="shrink-0 text-right">
-            <div className="font-display text-2xl leading-none text-accent">
-              {/* Durante el bootstrap (phase === "loading") el modo aún no
-                  llegó del servidor, así que evitar pintar "5" para que
-                  luego salte a "1" en veteranos. Un guión es suficiente
-                  como placeholder visual de 1-2 frames. */}
-              {phase === "loading" ? "—" : effectiveMaxAttempts - attempts}
-            </div>
-            <div className="text-[10px] uppercase tracking-widest text-muted">
-              {t("repesca.attemptsLabel")}
-            </div>
-          </div>
-        </header>
-
-        {isVeteran && phase === "playing" && (
-          <div
-            className="
-              mt-3 flex items-start gap-2 rounded-lg border border-amber-400/40
-              bg-amber-500/10 px-3 py-2 text-[12px] leading-snug text-amber-100
-            "
-            role="note"
-          >
-            {/* Llama SVG (no emoji) en el ámbar de la nota, coherente con el
-                resto de llamas de la app. */}
-            <AchievementIcon name="spark" size="h-4 w-4" color="text-amber-300" />
-            <span>{t("repesca.veteranExplain")}</span>
-          </div>
-        )}
-
+      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-4 sm:px-4">
         <main className="w-full min-w-0">
+          {/* Contexto del modo, centrado sobre la imagen — mismo patrón que el
+              dateline/tagline del juego principal (cabecera ligera). */}
+          <p className="text-center text-[10px] uppercase tracking-[0.28em] text-accent">
+            {isVeteran ? t("repesca.veteranBadge") : t("repesca.modeSubheader")}
+          </p>
+          {!isVeteran && (
+            <p className="mb-3 mt-1 text-center text-xs text-muted/80">
+              {t("repesca.gameRulesNote")}
+            </p>
+          )}
+
+          {/* Nota veterano: reglas más duras (1 intento, sin pistas). */}
+          {isVeteran && phase === "playing" && (
+            <div
+              className="
+                mb-3 mt-1 flex items-start gap-2 rounded-lg border border-amber-400/40
+                bg-amber-500/10 px-3 py-2 text-[12px] leading-snug text-amber-100
+              "
+              role="note"
+            >
+              <AchievementIcon name="spark" size="h-4 w-4" color="text-amber-300" />
+              <span>{t("repesca.veteranExplain")}</span>
+            </div>
+          )}
+
           <CarImage
             src={car.img}
             blurData={car.blurData}
@@ -506,24 +486,20 @@ export default function Repesca() {
             status={phase}
           />
 
-          <AttemptDots
+          <GuessLog
+            guesses={guesses}
             attempts={attempts}
-            max={effectiveMaxAttempts}
-            won={phase === "won"}
+            maxAttempts={effectiveMaxAttempts}
           />
-
-          {guesses.length > 0 && (
-            <div className="mb-4 mt-3 flex w-full min-w-0 flex-col gap-2">
-              {guesses.map((g, i) => (
-                <GuessRow key={i} guess={g} index={i} />
-              ))}
-            </div>
-          )}
 
           {guesses.length > 0 && <div className="my-4 h-px bg-border" />}
 
           {phase === "loading" ? null : phase === "playing" ? (
-            <GuessForm onSubmit={submitGuess} isSubmitting={isSubmitting} />
+            <GuessForm
+              onSubmit={submitGuess}
+              isSubmitting={isSubmitting}
+              guesses={guesses}
+            />
           ) : (
             <ResultPanel
               status={phase}

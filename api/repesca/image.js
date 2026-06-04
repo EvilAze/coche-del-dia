@@ -125,9 +125,14 @@ export default async function handler(req, res) {
     let outBuffer = originalBuffer;
     let outContentType = originalContentType;
 
-    // Durante la partida (NO terminada), recortamos a un cuadrado central
-    // del 58,8% del lado menor — mismo cálculo que daily-image z=5.
+    // FORMATO: WebP en ambos casos (crop y revelado). Antes el crop salía en
+    // JPEG q80, que se veía notablemente peor que el AVIF/WebP del juego
+    // principal. Usamos WebP (no AVIF) porque la imagen viaja como blob y se
+    // pinta en un <img> sin <picture> de fallback: AVIF rompería en Safari
+    // < 16.4, mientras que WebP es seguro en todos los navegadores actuales.
     if (!isFinished) {
+      // Durante la partida recortamos a un cuadrado central del 58,8% del lado
+      // menor — mismo cálculo que daily-image z=5.
       try {
         const meta = await sharp(originalBuffer).metadata();
         if (meta?.width && meta?.height) {
@@ -141,14 +146,27 @@ export default async function handler(req, res) {
           outBuffer = await sharp(originalBuffer)
             .rotate()
             .extract({ left, top, width: size, height: size })
-            .jpeg({ quality: 80, mozjpeg: true })
+            .webp({ quality: 82 })
             .toBuffer();
-          outContentType = "image/jpeg";
+          outContentType = "image/webp";
         }
       } catch (err) {
         // Si sharp falla, mejor no entregar la imagen completa por accidente.
         console.error("[repesca/image] sharp crop:", err?.message || err);
         return res.status(500).json({ error: "Image processing failed" });
+      }
+    } else {
+      // Revelado completo: re-encode a WebP (orientación normalizada + menor
+      // peso), para igualar la calidad/formato del juego principal.
+      try {
+        outBuffer = await sharp(originalBuffer)
+          .rotate()
+          .webp({ quality: 82 })
+          .toBuffer();
+        outContentType = "image/webp";
+      } catch (err) {
+        // Degradación segura: servimos el original sin bloquear el reveal.
+        console.error("[repesca/image] sharp webp full:", err?.message || err);
       }
     }
 

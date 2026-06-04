@@ -301,7 +301,12 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const buttonDisabled = formDisabled || fieldsEmpty;
 
   return (
-    <form onSubmit={handleSubmit} className="w-full min-w-0">
+    // autoComplete="off" A NIVEL DE FORMULARIO: Chrome/Android suele ignorar
+    // el `autocomplete="off"` por-campo pero respeta el del <form>, y es lo que
+    // dispara la barra de autofill del sistema (llave/tarjeta/ubicación) sobre
+    // el teclado. Este no es un formulario de datos personales, así que lo
+    // desactivamos por completo.
+    <form onSubmit={handleSubmit} autoComplete="off" className="w-full min-w-0">
       <div
         ref={shakeBoxRef}
         // Al terminar la animación, retiramos la clase para que el siguiente

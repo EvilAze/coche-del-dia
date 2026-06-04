@@ -160,7 +160,7 @@ export default function HeaderSandwich({
           : "translate-y-0 opacity-100"}
       `}
     >
-      <div className="relative mx-auto flex w-full max-w-md items-center justify-between gap-3 px-3 py-2.5">
+      <div className="relative mx-auto flex w-full max-w-md items-center justify-between gap-3 px-3 py-1.5">
 
         {/* MARCA: wordmark a la izquierda, en una sola línea con las acciones
             a la derecha. La fecha vive ahora como "dateline" centrado sobre la

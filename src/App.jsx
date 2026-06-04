@@ -414,7 +414,7 @@ export default function App() {
         streak={streak}
       />
 
-      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-4 sm:px-4">
+      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-2 sm:px-4">
         <main className="w-full min-w-0">
           {/* Dateline + tagline centrados sobre la imagen: la fecha del reto y
               el "gist" del juego (contexto instantáneo, sin modal forzado).

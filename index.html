@@ -6,17 +6,22 @@
     <meta name="theme-color" content="#0a0a0b" />
 
     <!--
-      Fuentes (Bebas Neue + DM Sans). Cargadas aquí con preconnect + <link>
-      en lugar de @import en el CSS: el @import encadena descargas en serie y
-      retrasa el render del título (el elemento más visible de la página). El
-      preconnect abre la conexión a gstatic antes de necesitarla; display=swap
-      evita el texto invisible (FOIT). gstatic va crossorigin (sirve los woff2).
+      Fuentes cargadas aquí con preconnect + <link> en lugar de @import en el
+      CSS: el @import encadena descargas en serie y retrasa el render del título
+      (el elemento más visible de la página). El preconnect abre la conexión a
+      gstatic antes de necesitarla; display=swap evita el texto invisible (FOIT).
+      gstatic va crossorigin (sirve los woff2).
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Sistema único "menta": Archivo (display + cuerpo) + Space Mono (etiquetas
+      técnicas). Sustituye a Bebas Neue + DM Sans en toda la web — la pantalla de
+      juego y los apartados comparten ahora la misma identidad tipográfica.
+    -->
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap"
     />
 
     <!--

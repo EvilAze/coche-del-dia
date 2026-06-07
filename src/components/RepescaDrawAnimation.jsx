@@ -169,7 +169,7 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                     ${
                       veteran
                         ? "border-amber-400/70 bg-gradient-to-br from-amber-950/80 to-[#1a0f00] shadow-[0_0_28px_rgba(251,191,36,0.35)]"
-                        : "border-accent/70 bg-gradient-to-br from-[#1f1f24] to-[#0a0a0c] shadow-[0_0_28px_rgba(255,191,0,0.25)]"
+                        : "border-accent/70 bg-gradient-to-br from-[#1f1f24] to-[#0d1014] shadow-[0_0_28px_rgba(255,191,0,0.25)]"
                     }
                   `}
                   style={{

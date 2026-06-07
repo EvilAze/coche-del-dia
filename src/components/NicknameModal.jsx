@@ -49,7 +49,7 @@ export default function NicknameModal({ open, onSaved }) {
       onClose={() => {}}
       dismissOnBackdrop={false}
       backdropClassName="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 px-4 backdrop-blur-md"
-      panelClassName="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111113] p-6 text-center shadow-2xl"
+      panelClassName="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0d1014] p-6 text-center shadow-2xl"
     >
       <form onSubmit={handleSubmit}>
         <p className="text-[10px] uppercase tracking-[0.28em] text-accent">

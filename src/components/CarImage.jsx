@@ -34,6 +34,13 @@ export default function CarImage({
   // momento depende de la red (la imagen full puede tardar). Sin esto,
   // un timeout fijo dispararía el scroll mientras la foto aún carga.
   onRevealLoad = null,
+  // Variante "configurador" (rediseño premium): la foto vive en un marco 4:3
+  // (.cdd-stage-frame) y se le superpone un HUD de cámara (`hud`). Cambia SOLO
+  // el chrome visual; el pipeline de imagen y el zoom/crop (coherencia de
+  // seguridad con el servidor) quedan intactos. Desactiva la viñeta, el
+  // tap-to-ampliar y la etiqueta de pista propios del diseño anterior.
+  configurator = false,
+  hud = null,
 }) {
   const [loaded, setLoaded] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
@@ -138,6 +145,10 @@ export default function CarImage({
   // borrosa (anónimo que perdió) o aún sin cargar.
   const { t } = useT();
   const [expanded, setExpanded] = useState(false);
+  // Tap-para-ampliar disponible también en el configurador (toda la foto es
+  // tappable). El HUD va con pointer-events:none, así que el toque pasa al botón
+  // de zoom de abajo; solo ocultamos el icono de esquina en modo configurador
+  // para que no choque visualmente con el HUD (ver más abajo).
   const canExpand = loaded && !blurred && Boolean(src);
   useEscape(expanded, () => setExpanded(false));
 
@@ -168,27 +179,40 @@ export default function CarImage({
 
   return (
     <div
-      className={`
+      className={
+        configurator
+          ? // Marco 4:3 del configurador (.cdd-stage-frame da aspect/borde/sombra).
+            "cdd-stage-frame"
+          : `
         relative mb-3 mt-4 mx-auto w-full overflow-hidden rounded-xl
         border border-border bg-bg-tertiary shadow-md shadow-black/40
         ${!isRevealed ? "max-w-[22rem]" : "max-w-full"}
         sm:max-w-full
-      `}
-      style={{
-        // El max-width pasa del cap (durante el juego) al 100% al revelar.
-        transition: "max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
+      `
+      }
+      style={
+        configurator
+          ? undefined
+          : {
+              // El max-width pasa del cap (durante el juego) al 100% al revelar.
+              transition: "max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
+            }
+      }
     >
       {/* ÁREA DE IMAGEN: cuadrada en juego, aspecto natural al revelar. Tiene
           su PROPIO overflow-hidden para recortar el zoom sin invadir la repisa
           inferior. El aspect-ratio (y su animación) vive aquí. */}
       <div
-        className="relative w-full overflow-hidden"
+        className={configurator ? "absolute inset-0 overflow-hidden" : "relative w-full overflow-hidden"}
         onContextMenu={(e) => e.preventDefault()}
-        style={{
-          aspectRatio: containerAspect,
-          transition: "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
+        style={
+          configurator
+            ? undefined
+            : {
+                aspectRatio: containerAspect,
+                transition: "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1)",
+              }
+        }
       >
       {/*
         Skeleton base: SIEMPRE montado, en la capa de abajo. Da la textura
@@ -313,8 +337,9 @@ export default function CarImage({
         />
       )}
 
-      {/* Viñeta decorativa: sólo cuando la imagen ya está visible */}
-      {loaded && (
+      {/* Viñeta decorativa: sólo cuando la imagen ya está visible. En modo
+          configurador el diseño aporta su propio grano/HUD, así que se omite. */}
+      {loaded && !configurator && (
         <div
           className="pointer-events-none absolute inset-0 transition-opacity duration-700"
           style={{
@@ -363,11 +388,16 @@ export default function CarImage({
           aria-label={t("app.enlargeImage")}
           className="group absolute inset-0 z-[5] cursor-zoom-in"
         >
-          <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/70 backdrop-blur-sm transition group-hover:border-accent/60 group-hover:text-accent">
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
-            </svg>
-          </span>
+          {/* En configurador no pintamos el icono de esquina (chocaría con el
+              HUD "· INTENTO" abajo-izquierda): toda la foto es tappable y el
+              encuadre de visor ya invita a tocarla. En el resto de modos sí. */}
+          {!configurator && (
+            <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/70 backdrop-blur-sm transition group-hover:border-accent/60 group-hover:text-accent">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
+              </svg>
+            </span>
+          )}
         </button>
       )}
 
@@ -381,6 +411,10 @@ export default function CarImage({
         </div>
       )}
       </div>
+
+      {/* HUD del configurador (crosshair, ZOOM%, INTENTO, puntos, grano):
+          superpuesto al marco, fuera del área de imagen para que no escale. */}
+      {configurator && hud}
 
       {/* REPISA: extensión del marco por debajo donde se anidan las shift
           lights de intentos. Forma parte del frame (mismo borde redondeado),

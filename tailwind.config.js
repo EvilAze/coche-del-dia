@@ -4,32 +4,31 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        display: ["'Bebas Neue'", "cursive"],
-        body: ["'DM Sans'", "sans-serif"],
+        // Sistema único "menta": Archivo manda en display y cuerpo (antes
+        // Bebas Neue / DM Sans), Space Mono para etiquetas técnicas. Coincide
+        // con la pantalla de juego para que toda la web sea coherente.
+        display: ["'Archivo'", "sans-serif"],
+        body: ["'Archivo'", "sans-serif"],
+        mono: ["'Space Mono'", "monospace"],
       },
       colors: {
+        // Paleta fría "Platino menta": fondos grafito, acento menta #7af0c8.
         bg: {
-          primary: "#0a0a0b",
-          secondary: "#111113",
-          tertiary: "#1a1a1f",
+          primary: "#0d1014",
+          secondary: "#14181e",
+          tertiary: "#1b212a",
         },
         border: {
-          DEFAULT: "#2a2a32",
-          strong: "#3a3a45",
+          DEFAULT: "#252b34",
+          strong: "#333b46",
         },
         accent: {
-          DEFAULT: "#e8c87a",
-          dark: "#c4a455",
-          glow: "rgba(232,200,122,0.15)",
+          DEFAULT: "#7af0c8",
+          dark: "#5bd3ab",
+          glow: "rgba(122,240,200,0.15)",
         },
-        // Gris cálido neutral: mismo nivel de brillo que el #9a9aab anterior
-        // pero con undertone cálido (R>G>B) en vez de frío azulado (B>R>G).
-        // Razón: con la paleta cobre/oro establecida (título, flecha año,
-        // bandera misma-nacionalidad, botón ADIVINAR), el muted anterior leía
-        // como "azulado residual" contra el resto. Este tono integra sin
-        // robar protagonismo. Cambio global porque text-muted aparece en ~160
-        // sitios y el problema era sistémico, no puntual.
-        muted: "#a39d97",
+        // Gris frío neutral (antes cálido #a39d97): integra con la menta.
+        muted: "#8b95a3",
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease forwards",

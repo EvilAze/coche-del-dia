@@ -28,7 +28,7 @@ export default function ScoringHelpModal({ open, onClose }) {
       bonus: "+1",
       iconColor: "text-accent/55",
       ring: "border-accent/20",
-      glow: "0 0 12px rgba(232,200,122,0.10)",
+      glow: "0 0 12px rgba(122,240,200,0.10)",
     },
     {
       labelKey: "scoring.streakLabel3",
@@ -36,7 +36,7 @@ export default function ScoringHelpModal({ open, onClose }) {
       bonus: "+2",
       iconColor: "text-accent/80",
       ring: "border-accent/40",
-      glow: "0 0 16px rgba(232,200,122,0.20)",
+      glow: "0 0 16px rgba(122,240,200,0.20)",
     },
     {
       labelKey: "scoring.streakLabel4plus",
@@ -44,7 +44,7 @@ export default function ScoringHelpModal({ open, onClose }) {
       bonus: "+3",
       iconColor: "text-accent",
       ring: "border-accent/70",
-      glow: "0 0 24px rgba(232,200,122,0.34)",
+      glow: "0 0 24px rgba(122,240,200,0.34)",
       peak: true,
     },
   ];
@@ -58,7 +58,7 @@ export default function ScoringHelpModal({ open, onClose }) {
       // de URL desplegada el modal siga cabiendo. overflow-y-auto +
       // overscroll-contain para que el scroll quede aislado al modal y no
       // se propague al body al llegar al final del contenido.
-      panelClassName="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
+      panelClassName="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#0d1014] p-5 shadow-2xl"
     >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
@@ -135,7 +135,7 @@ export default function ScoringHelpModal({ open, onClose }) {
                         <span
                           aria-hidden="true"
                           className="absolute inset-0 rounded-full motion-safe:animate-pulse"
-                          style={{ boxShadow: "0 0 22px rgba(232,200,122,0.45)" }}
+                          style={{ boxShadow: "0 0 22px rgba(122,240,200,0.45)" }}
                         />
                       )}
                       <div

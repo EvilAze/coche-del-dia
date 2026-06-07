@@ -127,7 +127,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
       open={open}
       onClose={onClose}
       backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
-      panelClassName="w-full max-w-md rounded-2xl border border-white/10 bg-[#101014] p-5 shadow-2xl"
+      panelClassName="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1014] p-5 shadow-2xl"
     >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
@@ -280,8 +280,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
 
               {!user && state.players.length > 3 && (
                 <>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[#101014]/80 to-[#101014]" />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#101014]/88 to-[#101014] sm:hidden" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[#0d1014]/80 to-[#0d1014]" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#0d1014]/88 to-[#0d1014] sm:hidden" />
                 </>
               )}
             </div>

@@ -97,23 +97,24 @@ function ErrorFallback() {
         justifyContent: "center",
         padding: "1.5rem",
         textAlign: "center",
-        backgroundColor: "#0a0a0b",
+        backgroundColor: "#0d1014",
         color: "#f0f0f4",
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Archivo', sans-serif",
       }}
     >
       <p
         style={{
-          fontFamily: "'Bebas Neue', cursive",
-          fontSize: "2rem",
-          letterSpacing: "0.18em",
-          color: "#e8c87a",
+          fontFamily: "'Archivo', sans-serif",
+          fontWeight: 800,
+          fontSize: "1.7rem",
+          letterSpacing: "-0.01em",
+          color: "#7af0c8",
           margin: 0,
         }}
       >
         ALGO FALLÓ
       </p>
-      <p style={{ marginTop: "0.75rem", color: "#9a9aab", maxWidth: 380 }}>
+      <p style={{ marginTop: "0.75rem", color: "#8b95a3", maxWidth: 380 }}>
         Hemos tenido un problema cargando la página. Vuelve a intentarlo
         en un momento — si persiste, recarga.
       </p>
@@ -123,10 +124,10 @@ function ErrorFallback() {
         style={{
           marginTop: "1.5rem",
           padding: "0.65rem 1.5rem",
-          border: "1px solid #e8c87a",
+          border: "1px solid #7af0c8",
           borderRadius: "0.5rem",
           background: "transparent",
-          color: "#e8c87a",
+          color: "#7af0c8",
           textTransform: "uppercase",
           letterSpacing: "0.14em",
           fontSize: "0.75rem",

@@ -112,7 +112,7 @@ function ShieldRow({ count }) {
             className={`h-2.5 w-2.5 rounded-full transition-colors ${
               i < freezes ? "bg-accent" : "border border-border-strong bg-transparent"
             }`}
-            style={i < freezes ? { boxShadow: "0 0 6px rgba(232,200,122,0.45)" } : undefined}
+            style={i < freezes ? { boxShadow: "0 0 6px rgba(122,240,200,0.45)" } : undefined}
           />
         ))}
       </span>
@@ -183,7 +183,7 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
       open={open}
       onClose={onClose}
       backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
-      panelClassName="flex w-full max-w-sm flex-col rounded-2xl border border-white/10 bg-[#111113] p-5 shadow-2xl"
+      panelClassName="flex w-full max-w-sm flex-col rounded-2xl border border-white/10 bg-[#0d1014] p-5 shadow-2xl"
     >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-widest text-white">

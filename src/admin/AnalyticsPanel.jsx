@@ -356,7 +356,7 @@ function DauLineChart({ series }) {
       <text x={PAD.left - 6} y={H - PAD.bottom} textAnchor="end" dominantBaseline="middle" fill="rgba(255,255,255,0.5)" fontSize="10">0</text>
       <text x={PAD.left - 6} y={PAD.top} textAnchor="end" dominantBaseline="middle" fill="rgba(255,255,255,0.5)" fontSize="10">{maxY}</text>
       {/* Área de fondo */}
-      <path d={area} fill="rgba(232, 200, 122, 0.12)" />
+      <path d={area} fill="rgba(122, 240, 200, 0.12)" />
       {/* Línea principal */}
       <path d={path} fill="none" stroke="#e8c87a" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       {/* Puntos */}

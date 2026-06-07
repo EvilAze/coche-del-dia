@@ -154,7 +154,7 @@ function Badge({ achievement, locale }) {
         group relative flex flex-col items-center gap-1.5 overflow-hidden
         rounded-xl border p-2.5 pb-2 text-center transition-all duration-300
         ${unlocked
-          ? "border-accent/30 bg-accent/[0.06] shadow-[0_0_20px_-6px_rgba(232,200,122,0.5)]"
+          ? "border-accent/30 bg-accent/[0.06] shadow-[0_0_20px_-6px_rgba(122,240,200,0.5)]"
           : "border-white/[0.06] bg-white/[0.02]"}
       `}
       title={`${title} — ${description}`}
@@ -165,7 +165,7 @@ function Badge({ achievement, locale }) {
 
       <div
         className={`relative flex w-[65%] aspect-square shrink-0 items-center justify-center ${
-          unlocked ? "drop-shadow-[0_0_8px_rgba(232,200,122,0.3)]" : ""
+          unlocked ? "drop-shadow-[0_0_8px_rgba(122,240,200,0.3)]" : ""
         }`}
       >
         <AchievementIcon

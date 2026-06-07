@@ -438,7 +438,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             key="garage-panel"
             className="
               relative flex w-full max-w-md flex-col overflow-hidden
-              border-x border-white/10 bg-[#0a0a0c] shadow-2xl
+              border-x border-white/10 bg-[#0d1014] shadow-2xl
             "
             onClick={(e) => e.stopPropagation()}
             initial={{ y: 24, opacity: 0, scale: 0.98 }}
@@ -769,7 +769,7 @@ function BrandsMenu({
           - SIN `border-b` blanco: en oscuro renderiza como una línea
             "más clara" en el filo inferior.
           - Gradient terminado a opacidad 1 (mismo color que el fondo
-            del modal `#0a0a0c`): así el corte con la zona inferior es
+            del modal `#0d1014`): así el corte con la zona inferior es
             invisible, en lugar de dejar pasar un 10% de la bandera
             (bordes blancos de Union Jack/Países Bajos delataban el corte). */}
       <div
@@ -993,7 +993,7 @@ function UnlockedCard({ car, onClick }) {
 
       {/* Etiqueta con jerarquía: marca pequeña amarilla, modelo blanco bold */}
       <div className="absolute inset-x-0 bottom-0 p-2.5 text-left">
-        <p className="truncate text-xs font-medium uppercase tracking-widest text-yellow-500">
+        <p className="truncate text-xs font-medium uppercase tracking-widest text-accent">
           {car.marca}
         </p>
         <p className="truncate text-sm font-bold text-white">
@@ -1096,7 +1096,7 @@ function CarDetail({ open, car, onClose }) {
       open={open}
       onClose={onClose}
       backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/30 bg-[#0a0a0c] shadow-2xl"
+      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/30 bg-[#0d1014] shadow-2xl"
     >
       {displayCar && (
         <>
@@ -1113,7 +1113,7 @@ function CarDetail({ open, car, onClose }) {
           </div>
 
           <div className="p-4">
-            <p className="text-xs font-medium uppercase tracking-widest text-yellow-500">
+            <p className="text-xs font-medium uppercase tracking-widest text-accent">
               {displayCar.marca}
             </p>
             <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-white">
@@ -1163,7 +1163,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
       onClose={onCancel}
       dismissOnBackdrop={!starting}
       backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/40 bg-[#0a0a0c] shadow-2xl"
+      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/40 bg-[#0d1014] shadow-2xl"
     >
         <div className="px-5 py-5 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
@@ -1379,7 +1379,7 @@ function RepescaHelpModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/30 bg-[#0a0a0c] shadow-2xl"
+      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/30 bg-[#0d1014] shadow-2xl"
     >
         <div className="absolute right-2 top-2 z-10">
           <CloseButton onClick={onClose} />

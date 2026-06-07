@@ -70,7 +70,7 @@ export default function AchievementsModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
-      panelClassName="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111113] shadow-2xl"
+      panelClassName="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0d1014] shadow-2xl"
     >
       {/* Cabecera con anillo de progreso. */}
       <div className="flex items-center gap-4 border-b border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-5">

@@ -239,6 +239,16 @@ body,
   box-shadow: 0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 1px var(--line-2);
 }
 
+/* Lightbox de la foto: MISMA proporción que el escenario (4:3 móvil · 16:11
+   desktop). Crítico para la COHERENCIA DE DIFICULTAD: con object-cover + la misma
+   escala, igualar la proporción garantiza el MISMO recorte — ni un píxel más de
+   coche que en el intento actual. El ancho se calcula para que el alto quepa en
+   pantalla. */
+.cdd-lightbox-frame { width: min(94vw, calc(80vh * 4 / 3)); aspect-ratio: 4 / 3; }
+@media (min-width: 1000px) {
+  .cdd-lightbox-frame { width: min(82vw, calc(82vh * 16 / 11)); aspect-ratio: 16 / 11; }
+}
+
 .cdd-hud { position: absolute; inset: 0; pointer-events: none; z-index: 7; }
 .cdd-hud-tl { position: absolute; top: 11px; left: 11px; color: color-mix(in oklab, var(--accent) 75%, #fff 0%); opacity: .85; }
 .cdd-hud-tr { position: absolute; top: 13px; right: 13px; font-size: 11px; color: var(--cdd-text);

@@ -438,7 +438,13 @@ export default function CarImage({
           aria-label={t("app.enlargeImage")}
         >
           <div
-            className="relative aspect-square w-full max-w-[min(92vw,92vh)] overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+            className={
+              configurator
+                ? // MISMA proporción que el escenario → mismo recorte, sin revelar
+                  // más coche (coherencia de dificultad). Tamaño en la clase CSS.
+                  "cdd-lightbox-frame relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+                : "relative aspect-square w-full max-w-[min(92vw,92vh)] overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+            }
             onClick={(e) => e.stopPropagation()}
           >
             <picture>

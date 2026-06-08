@@ -132,9 +132,11 @@ export default function Configurator({
             </div>
 
             <div className="cdd-col cdd-col-panel">
-              {/* Zona de acción ANCLADA bajo la imagen: el formulario (o el botón
-                  de resultado) va arriba y NO se desplaza al acumular intentos. El
-                  historial vive debajo (más-reciente-primero) y hace scroll. */}
+              {/* Zona de acción ANCLADA al fondo del fold: el formulario (o el
+                  botón de resultado) cierra el viewport, así «Adivinar» queda
+                  siempre visible. El historial de intentos NO va aquí: dentro del
+                  fold inflaría la columna y encogería la foto hasta su mínimo.
+                  Vive bajo el fold (ver abajo). */}
               {dataReady &&
                 (!ended ? (
                   <GuessForm
@@ -151,15 +153,21 @@ export default function Configurator({
                     <span>{t("cdd.viewResult")}</span>
                   </button>
                 ))}
-              <AttemptList
-                guesses={guesses}
-                pendingGuess={pendingGuess}
-                justRevealedIndex={justRevealedIndex}
-                tolerance={tolerance}
-              />
             </div>
           </div>
         </div>
+
+        {/* Historial de intentos: FUERA del fold a propósito. Así no compite por
+            el alto con la foto (que llena el viewport) y «Adivinar» cae al fondo;
+            los intentos quedan fuera de pantalla hasta hacer scroll. Más-reciente-
+            primero (lo ordena AttemptList). En desktop se realinea bajo la columna
+            del formulario vía CSS. */}
+        <AttemptList
+          guesses={guesses}
+          pendingGuess={pendingGuess}
+          justRevealedIndex={justRevealedIndex}
+          tolerance={tolerance}
+        />
 
         <footer className="cdd-footer cdd-mono">
           <a className="cdd-foot-link" href="/privacidad">{t("app.footerPrivacy")}</a>

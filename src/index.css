@@ -245,9 +245,6 @@ body,
   background: color-mix(in oklab, var(--bg2) 60%, transparent); backdrop-filter: blur(6px);
   padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); }
 .cdd-hud-bl { position: absolute; bottom: 13px; left: 13px; font-size: 10px; color: var(--cdd-muted); }
-.cdd-hud-br { position: absolute; bottom: 12px; right: 13px; display: flex; gap: 6px; }
-.cdd-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--line); }
-.cdd-dot.on { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px -1px var(--accent); }
 .cdd-grain { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: .28; mix-blend-mode: overlay;
   background:
     repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.12) 2px 3px),

@@ -90,8 +90,8 @@ async function readRepescaState(authClient, userId, carId, today) {
       modelo: row.car_data.modelo,
       anio: row.car_data.anio,
       pais: row.car_data.pais,
-      description: isWon ? (row.car_data.description ?? null) : null,
-      description_en: isWon ? (row.car_data.description_en ?? null) : null,
+      description: row.car_data.description ?? null,
+      description_en: row.car_data.description_en ?? null,
     };
   }
   return {

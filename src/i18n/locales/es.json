@@ -107,7 +107,7 @@
     "endLose": "FALLADO · {max}/{max}",
     "tabFicha": "FICHA",
     "tabShare": "COMPARTIR",
-    "copyResult": "COPIAR RESULTADO",
+    "copyResult": "COMPARTIR RESULTADO",
     "copied": "¡COPIADO!",
     "nextCar": "PRÓXIMO COCHE EN",
     "seeGame": "VER MI PARTIDA",
@@ -265,7 +265,7 @@
     "title": "Hoy en el mundo",
     "gamesPlayed": "{count} partidas",
     "winRate": "{pct}% acierto",
-    "betterThan": "Mejor que el {pct}% de los jugadores"
+    "betterThan": "Lo has hecho mejor que el {pct}% de jugadores"
   },
   "toast": {
     "closeAria": "Cerrar notificación"

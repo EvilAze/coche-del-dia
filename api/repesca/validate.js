@@ -313,8 +313,8 @@ export default async function handler(req, res) {
         modelo: realCar.modelo,
         anio: realCar.anio,
         pais: realCar.pais,
-        description: result.win ? realCar.description : null,
-        description_en: result.win ? realCar.description_en : null,
+        description: realCar.description ?? null,
+        description_en: realCar.description_en ?? null,
       };
     }
 

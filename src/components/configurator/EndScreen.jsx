@@ -87,13 +87,18 @@ export default function EndScreen({
   async function copyShare() {
     haptic.impactLight();
     try {
-      if (navigator.share) { await navigator.share({ text: shareText }); return; }
+      let finalShareText = shareText;
+      if (won && daily.betterThanPct > 0) {
+        finalShareText += "\n" + t("dailyStats.betterThan", { pct: daily.betterThanPct });
+      }
+
+      if (navigator.share) { await navigator.share({ text: finalShareText }); return; }
       let ok = false;
       if (navigator.clipboard && window.isSecureContext !== false) {
-        await navigator.clipboard.writeText(shareText);
+        await navigator.clipboard.writeText(finalShareText);
         ok = true;
       } else {
-        ok = legacyCopy(shareText);
+        ok = legacyCopy(finalShareText);
       }
       if (ok) {
         haptic.success();
@@ -178,11 +183,7 @@ export default function EndScreen({
             <button className="cdd-submit cdd-share-btn" onClick={copyShare}>
               <Icon d={I.share} size={17} /> <span>{copied ? t("cdd.copied") : t("cdd.copyResult")}</span>
             </button>
-            <div className="cdd-sheet cdd-sheet-3">
-              <Stat k={t("cdd.statStreak")} v={"🔥 " + streak} accent />
-              <Stat k={t("cdd.statAttempts")} v={won ? attempts : "—"} />
-              <Stat k={t("cdd.statResult")} v={won ? `${attempts}/${max}` : `X/${max}`} />
-            </div>
+            
 
             {/* CTA de registro para anónimos que ganan (conserva la pieza de
                 producción: no perder racha/estadísticas). */}

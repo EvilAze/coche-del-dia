@@ -264,8 +264,8 @@ export default async function handler(request) {
         // (marca, modelo, año, país) se revela en ambos casos para que
         // el usuario sepa qué falló. La ficha de lore queda reservada
         // como recompensa para victorias.
-        description: isWon ? (liveCar.description ?? null) : null,
-        description_en: isWon ? (liveCar.description_en ?? null) : null,
+        description: liveCar.description ?? null,
+        description_en: liveCar.description_en ?? null,
       };
     }
     revealToken = signedToken;

@@ -73,82 +73,91 @@ export default function Configurator({
     <div className={"cdd-app theme-" + theme} style={{ "--accent": accent }}>
       <div className="cdd-ambient" />
       <div className="cdd-shell">
-        <Header
-          streak={streak}
-          user={user}
-          repescaAlert={repescaAlert}
-          onOpenProfile={onOpenProfile}
-          onOpenLogin={onOpenLogin}
-          onOpenRanking={onOpenRanking}
-          onOpenGarage={onOpenGarage}
-        />
+        {/* El "fold": cabecera + intro + escenario + formulario ocupan el
+            viewport (100svh en móvil, vía .cdd-fold en index.css). El escenario
+            usa flex:1 y absorbe TODO el alto libre, así la foto es lo más grande
+            posible y el CTA «Adivinar» queda completo sin scroll. El historial de
+            intentos (dentro del panel) y el pie fluyen justo debajo del fold.
+            En desktop .cdd-fold es un contenedor neutro: manda el grid de dos
+            columnas (ver @media min-width:1000px). */}
+        <div className="cdd-fold">
+          <Header
+            streak={streak}
+            user={user}
+            repescaAlert={repescaAlert}
+            onOpenProfile={onOpenProfile}
+            onOpenLogin={onOpenLogin}
+            onOpenRanking={onOpenRanking}
+            onOpenGarage={onOpenGarage}
+          />
 
-        <div className="cdd-intro">
-          {/* Meta-row: fecha (con barrita de acento, vía CSS) a la izquierda y
-              el "?" de ayuda realineado a la derecha. */}
-          <div className="cdd-metarow">
-            <span className="cdd-date cdd-mono">{dateLabel}</span>
-            {onOpenHowTo && (
-              <button
-                type="button"
-                onClick={onOpenHowTo}
-                aria-label={t("cdd.helpAria")}
-                title={t("cdd.helpAria")}
-                className={"cdd-iconbtn" + (howtoPulse ? " cdd-help-pulse" : "")}
-                style={{ height: 24, minWidth: 24, padding: 0, borderRadius: 8 }}
-              >
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>?</span>
-              </button>
-            )}
-          </div>
-          <h1 className="cdd-h1">
-            {t("cdd.guess")} <em>{t("cdd.wordMarca")}</em>, <em>{t("cdd.wordModelo")}</em> {conn}{" "}
-            <em>{t("cdd.wordAnio")}</em>
-          </h1>
-          <p className="cdd-sub">{t("cdd.introSub", { max: maxAttempts })}</p>
-        </div>
-
-        <div className="cdd-main">
-          <div className="cdd-col cdd-col-stage">
-            <ZoomStage
-              car={car}
-              zoom={zoom}
-              status={status}
-              attempts={attempts}
-              maxAttempts={maxAttempts}
-              hintIndex={hintIndex}
-              totalHints={totalHints}
-              blurred={status === "lost" && !user}
-              onRevealLoad={onRevealLoad}
-            />
-          </div>
-
-          <div className="cdd-col cdd-col-panel">
-            {/* Zona de acción ANCLADA bajo la imagen: el formulario (o el botón
-                de resultado) va arriba y NO se desplaza al acumular intentos. El
-                historial vive debajo (más-reciente-primero) y hace scroll. */}
-            {dataReady &&
-              (!ended ? (
-                <GuessForm
-                  onSubmit={submitGuess}
-                  isSubmitting={isSubmitting}
-                  guesses={guesses}
-                  tolerance={tolerance}
-                />
-              ) : (
-                <button className="cdd-submit" onClick={() => setShowEnd(true)}>
-                  {/* Etiqueta neutra: re-abre el panel de resultado/compartir. No
-                      dice "VER REVELADO" porque el coche ya está revelado en el
-                      escenario; sirve igual para ganar, perder y respuesta bloqueada. */}
-                  <span>{t("cdd.viewResult")}</span>
+          <div className="cdd-intro">
+            {/* Meta-row: fecha (con barrita de acento, vía CSS) a la izquierda y
+                el "?" de ayuda realineado a la derecha. */}
+            <div className="cdd-metarow">
+              <span className="cdd-date cdd-mono">{dateLabel}</span>
+              {onOpenHowTo && (
+                <button
+                  type="button"
+                  onClick={onOpenHowTo}
+                  aria-label={t("cdd.helpAria")}
+                  title={t("cdd.helpAria")}
+                  className={"cdd-iconbtn" + (howtoPulse ? " cdd-help-pulse" : "")}
+                  style={{ height: 24, minWidth: 24, padding: 0, borderRadius: 8 }}
+                >
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>?</span>
                 </button>
-              ))}
-            <AttemptList
-              guesses={guesses}
-              pendingGuess={pendingGuess}
-              justRevealedIndex={justRevealedIndex}
-              tolerance={tolerance}
-            />
+              )}
+            </div>
+            <h1 className="cdd-h1">
+              {t("cdd.guess")} <em>{t("cdd.wordMarca")}</em>, <em>{t("cdd.wordModelo")}</em> {conn}{" "}
+              <em>{t("cdd.wordAnio")}</em>
+            </h1>
+            <p className="cdd-sub">{t("cdd.introSub", { max: maxAttempts })}</p>
+          </div>
+
+          <div className="cdd-main">
+            <div className="cdd-col cdd-col-stage">
+              <ZoomStage
+                car={car}
+                zoom={zoom}
+                status={status}
+                attempts={attempts}
+                maxAttempts={maxAttempts}
+                hintIndex={hintIndex}
+                totalHints={totalHints}
+                blurred={status === "lost" && !user}
+                onRevealLoad={onRevealLoad}
+              />
+            </div>
+
+            <div className="cdd-col cdd-col-panel">
+              {/* Zona de acción ANCLADA bajo la imagen: el formulario (o el botón
+                  de resultado) va arriba y NO se desplaza al acumular intentos. El
+                  historial vive debajo (más-reciente-primero) y hace scroll. */}
+              {dataReady &&
+                (!ended ? (
+                  <GuessForm
+                    onSubmit={submitGuess}
+                    isSubmitting={isSubmitting}
+                    guesses={guesses}
+                    tolerance={tolerance}
+                  />
+                ) : (
+                  <button className="cdd-submit" onClick={() => setShowEnd(true)}>
+                    {/* Etiqueta neutra: re-abre el panel de resultado/compartir. No
+                        dice "VER REVELADO" porque el coche ya está revelado en el
+                        escenario; sirve igual para ganar, perder y respuesta bloqueada. */}
+                    <span>{t("cdd.viewResult")}</span>
+                  </button>
+                ))}
+              <AttemptList
+                guesses={guesses}
+                pendingGuess={pendingGuess}
+                justRevealedIndex={justRevealedIndex}
+                tolerance={tolerance}
+              />
+            </div>
           </div>
         </div>
 

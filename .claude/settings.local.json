@@ -153,7 +153,11 @@
       "Bash(rm -rf d4)",
       "Bash(mkdir d4 *)",
       "Bash(tar -xzf design4.bin -C d4)",
-      "Bash(node -e \"const es=require\\('./src/i18n/locales/es.json'\\); console.log\\('es.dailyStats:', JSON.stringify\\(es.dailyStats\\)\\); const en=require\\('./src/i18n/locales/en.json'\\); console.log\\('en.dailyStats:', JSON.stringify\\(en.dailyStats\\)\\);\")"
+      "Bash(node -e \"const es=require\\('./src/i18n/locales/es.json'\\); console.log\\('es.dailyStats:', JSON.stringify\\(es.dailyStats\\)\\); const en=require\\('./src/i18n/locales/en.json'\\); console.log\\('en.dailyStats:', JSON.stringify\\(en.dailyStats\\)\\);\")",
+      "Bash(curl -s -D - \"https://api.anthropic.com/v1/design/h/PI4_Axdxxob-othk28DlRA\" -o /tmp/design_bundle.html -w \"HTTP %{http_code}\\\\nSize: %{size_download} bytes\\\\nContent-Type: %{content_type}\\\\n\")",
+      "Bash(rm -rf design_extract)",
+      "Bash(mkdir design_extract)",
+      "Bash(tar -xzf design_bundle.html -C design_extract)"
     ]
   }
 }

@@ -181,8 +181,7 @@ export default function CarImage({
     <div
       className={
         configurator
-          ? // Marco 4:3 del configurador (.cdd-stage-frame da aspect/borde/sombra).
-            "cdd-stage-frame"
+          ? `cdd-stage-frame${isRevealed && loaded ? " revealed" : ""}`
           : `
         relative mb-3 mt-4 mx-auto w-full overflow-hidden rounded-xl
         border border-border bg-bg-tertiary shadow-md shadow-black/40
@@ -192,7 +191,10 @@ export default function CarImage({
       }
       style={
         configurator
-          ? undefined
+          ? {
+              aspectRatio: isRevealed && loaded ? containerAspect : undefined,
+              transition: isRevealed ? "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1)" : undefined,
+            }
           : {
               // El max-width pasa del cap (durante el juego) al 100% al revelar.
               transition: "max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",

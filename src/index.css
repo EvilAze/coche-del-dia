@@ -432,6 +432,55 @@ body,
   font-size: 11px; cursor: pointer; }
 .cdd-end-close:hover { border-color: var(--accent); color: var(--accent); }
 
+/* ── Móvil: foto a tamaño máximo con «Adivinar» siempre visible ──
+   Port del prototipo refinado (Claude Design). El "fold" —cabecera + intro +
+   escenario + formulario— ocupa exactamente el viewport (100svh): el escenario
+   deja su proporción fija y crece con flex:1, absorbiendo TODO el alto libre, así
+   la foto es lo más grande posible y el CTA «Adivinar» queda completo en el
+   primer pintado, sin scroll. El historial de intentos (dentro del panel, flex
+   fijo) y el pie fluyen justo debajo del fold (scroll). Al acumular intentos el
+   panel crece y la foto cede lo justo, manteniendo el botón visible.
+
+   SOLO móvil (<1000px): en desktop manda el grid de dos columnas (más abajo) y
+   .cdd-fold es un contenedor neutro. Es reparto vertical puro: NO toca el zoom,
+   el crop ni la dificultad (eso lo controla el juego/servidor). Ojo: el escenario
+   pasa a proporción variable, así que el recorte deja de ser 5:4 fijo — la
+   coherencia con el lightbox (.cdd-lightbox-frame) la decide quien ajuste la
+   dificultad. */
+@media (max-width: 999px) {
+  /* El fold llena el viewport; -14px = el padding-top del shell (abajo). */
+  .cdd-fold {
+    min-height: calc(100svh - 14px);
+    box-sizing: border-box; padding-bottom: 16px;
+    display: flex; flex-direction: column;
+  }
+  /* La foto absorbe el alto sobrante: cada nivel propaga el flex-grow con
+     min-height:0 para poder ceder espacio cuando entran los intentos. */
+  .cdd-fold .cdd-main { flex: 1 1 auto; min-height: 0; margin-bottom: 0; gap: 12px; }
+  .cdd-fold .cdd-col { gap: 12px; }
+  .cdd-fold .cdd-col-stage { flex: 1 1 auto; min-height: 0; }
+  .cdd-fold .cdd-stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  /* El marco abandona el aspect-ratio fijo y crece; min-height evita que
+     colapse en pantallas muy bajas. CarImage llena el marco (absolute inset-0
+     object-cover) a cualquier tamaño, así que el pipeline de imagen no cambia. */
+  .cdd-fold .cdd-stage-frame { aspect-ratio: auto; flex: 1 1 auto; min-height: 150px; }
+  .cdd-fold .cdd-col-panel { flex: none; }
+
+  /* Ritmo más ceñido para regalar alto a la foto (sin sentirse apretado). */
+  .cdd-shell { padding: 14px 18px 16px; }
+  .cdd-header { margin-bottom: 8px; }
+  .cdd-intro { gap: 6px; margin-bottom: 8px; }
+  .cdd-h1 { line-height: 1.0; }
+  .cdd-sub { font-size: 13.5px; line-height: 1.4; }
+  .cdd-form { gap: 10px; }
+  .cdd-field { gap: 6px; }
+  /* Inputs un punto más compactos manteniendo el área táctil (~44px). */
+  .cdd-input { padding: 11px 14px; }
+  .cdd-submit { height: 54px; }
+  /* Con menos padding en el input, los steppers de año recuperan ese punto. */
+  .cdd-year-steps button { height: 21px; }
+}
+
 /* ── Desktop ── */
 @media (min-width: 1000px) {
   .cdd-shell { max-width: 1080px; padding: 32px 32px 56px; gap: 0; }

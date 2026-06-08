@@ -213,18 +213,17 @@ body,
   background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 
 /* ── Intro (compactada para ganar alto y hacer la foto más cuadrada) ── */
-.cdd-intro { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
-/* Fila meta: fecha a la izquierda · "?" a la derecha (antes el "?" colgaba pegado) */
-.cdd-metarow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cdd-intro { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
 .cdd-date { font-size: 11.5px; color: var(--accent); display: inline-flex; align-items: center; gap: 9px; }
 /* Marcador editorial: barrita de acento antes de la fecha */
 .cdd-date::before { content: ""; width: 14px; height: 2px; border-radius: 2px;
   background: var(--accent); box-shadow: 0 0 10px -1px var(--accent); }
-/* Reequilibrado: con el wordmark más presente arriba, el H1 baja un punto su
-   máximo (35→32) para que sean jerarquía, no dos titulares compitiendo. */
-.cdd-h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(26px, 7vw, 32px); line-height: 1.02; letter-spacing: -.025em; margin: 0; text-wrap: balance; }
+/* H1 (subtítulo del juego "Adivina marca, modelo y año"): una sola línea con
+   ellipsis para no comerse alto del fold en móvil. Estilos centralizados aquí
+   (antes iban inline en Configurator.jsx, resto del rediseño). */
+.cdd-h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(15px, 4vw, 20px); line-height: 1.05; letter-spacing: -.02em; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-h1 em { font-style: normal; color: var(--accent); }
-.cdd-sub { margin: 0; color: var(--cdd-muted); font-size: 14.5px; line-height: 1.5; max-width: 42ch; text-wrap: pretty; }
 
 /* ── Main / columnas (margen propio; antes lo daba el gap del shell) ── */
 .cdd-main { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; }
@@ -238,6 +237,38 @@ body,
   background: var(--surface);
   box-shadow: 0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 1px var(--line-2);
 }
+
+/* ── Revelado: pedestal de la foto completa ──
+   Al terminar la partida la foto se muestra COMPLETA (object-contain, la pinta
+   CarImage). Para que no quede "flotando", la anclamos con un pedestal: un fondo
+   ambiental (la propia foto desenfocada) que llena el marco, un halo de acento
+   bajo el coche y una sombra proyectada más marcada. La foto en sí lleva su
+   drop-shadow desde CarImage. */
+.cdd-stage-frame.revealed {
+  box-shadow: 0 44px 90px -34px rgba(0,0,0,.9), inset 0 0 0 1px var(--line-2);
+}
+.cdd-reveal-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+  filter: blur(36px) saturate(1.3) brightness(.5); transform: scale(1.25);
+}
+/* Viñeta sobre el fondo ambiental: enfoca la atención en el coche y evita que
+   los bordes desenfocados compitan con la foto. */
+.cdd-reveal-bg::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(120% 100% at 50% 40%, transparent 28%, rgba(0,0,0,.6) 100%);
+}
+/* Halo/pedestal de acento bajo el coche: le da peso y lo "apoya" en la UI. */
+.cdd-reveal-floor {
+  position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%);
+  width: 62%; height: 15%; z-index: 0; border-radius: 50%;
+  background: radial-gradient(ellipse at center, color-mix(in oklab, var(--accent) 26%, transparent), transparent 70%);
+  filter: blur(9px); opacity: .8; pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cdd-reveal-floor { animation: cddFloorIn .8s cubic-bezier(.16,1,.3,1) both; }
+}
+@keyframes cddFloorIn { from { opacity: 0; transform: translateX(-50%) scaleX(.6); } }
 
 /* Lightbox de la foto: MISMA proporción que el escenario (4:3 móvil · 16:11
    desktop). Crítico para la COHERENCIA DE DIFICULTAD: con object-cover + la misma
@@ -259,16 +290,6 @@ body,
   background:
     repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.12) 2px 3px),
     radial-gradient(120% 90% at 50% 0%, transparent 60%, rgba(0,0,0,.45)); }
-
-/* ── Pistas (año/origen revelados solo desde el feedback del servidor) ── */
-.cdd-hints { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.cdd-hint { display: flex; flex-direction: column; gap: 4px; padding: 9px 10px; border-radius: 11px;
-  background: var(--surface); border: 1px solid var(--line); }
-.cdd-hint-k { font-size: 9px; color: var(--faint); }
-.cdd-hint-v { font-size: 13px; color: var(--faint); font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
-.cdd-hint.open { border-color: color-mix(in oklab, var(--accent) 35%, var(--line)); }
-.cdd-hint.open .cdd-hint-k { color: var(--accent); }
-.cdd-hint.open .cdd-hint-v { color: var(--cdd-text); }
 
 /* ── Intentos ── */
 /* El historial vive bajo el fold (fuera del viewport hasta hacer scroll), como
@@ -360,16 +381,24 @@ body,
 .cdd-foot-link:hover { color: var(--accent); }
 
 /* ── End screen ── */
-.cdd-end { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; }
+/* Modal de fin de partida: centrado y SIEMPRE contenido en el viewport. El
+   padding respeta las safe-areas (notch / barra de gestos) y la tarjeta nunca
+   supera el alto disponible: si el contenido es más alto, scrollea dentro de la
+   propia tarjeta (overflow-y) en vez de desbordar la pantalla. */
+.cdd-end { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
 .cdd-end-scrim { position: absolute; inset: 0; background: color-mix(in oklab, var(--bg2) 88%, transparent); animation: cddFade .3s ease; }
 @supports (backdrop-filter: blur(2px)) { .cdd-end-scrim { background: color-mix(in oklab, var(--bg2) 72%, transparent); backdrop-filter: blur(10px); } }
-.cdd-end-card { position: relative; width: 100%; max-width: 460px; max-height: 94svh; overflow-y: auto; overscroll-behavior: contain;
+.cdd-end-card { position: relative; width: 100%; max-width: 460px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg); border: 1px solid var(--line); border-radius: 20px;
   box-shadow: 0 50px 90px -40px rgba(0,0,0,.9); animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
 @keyframes cddFade { from { opacity: 0; } }
 @keyframes cddRise { from { opacity: 0; transform: translateY(22px) scale(.98); } }
 
-.cdd-reveal { position: relative; height: 230px; overflow: hidden; border-radius: 20px 20px 0 0; background: var(--surface); }
+/* Banda de revelado: alto fluido (clamp) para que en pantallas bajas no empuje
+   el resto del contenido fuera de la tarjeta. */
+.cdd-reveal { position: relative; height: clamp(150px, 24svh, 230px); overflow: hidden; border-radius: 20px 20px 0 0; background: var(--surface); }
 .cdd-reveal .cdd-reveal-grad { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 4%, transparent 60%); z-index: 2; }
 .cdd-reveal-head { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
 .cdd-verdict { font-size: 10px; align-self: flex-start; padding: 4px 9px; border-radius: 6px; }
@@ -415,12 +444,6 @@ body,
   border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--line));
   font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
 
-.cdd-meters { display: flex; flex-direction: column; gap: 8px; }
-.cdd-meter-k { font-size: 9px; color: var(--faint); margin-bottom: 6px; }
-.cdd-meter-bar { height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
-.cdd-meter-bar span { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width 1s cubic-bezier(.16,1,.3,1); }
-.cdd-meter-v { font-family: var(--font-mono); font-size: 12px; color: var(--accent); margin-top: 6px; }
-
 .cdd-grid { font-family: var(--font-mono); font-size: 17px; line-height: 1.5; margin: 0; padding: 14px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; }
 .cdd-share-btn { height: 50px; }
@@ -445,10 +468,10 @@ body,
 
    SOLO móvil (<1000px): en desktop manda el grid de dos columnas (más abajo) y
    .cdd-fold es un contenedor neutro. Es reparto vertical puro: NO toca el zoom,
-   el crop ni la dificultad (eso lo controla el juego/servidor). Ojo: el escenario
-   pasa a proporción variable, así que el recorte deja de ser 5:4 fijo — la
-   coherencia con el lightbox (.cdd-lightbox-frame) la decide quien ajuste la
-   dificultad. */
+   el crop ni la dificultad (eso lo controla el juego/servidor). El escenario es
+   un CUADRADO ESTRICTO (1:1) en todos los dispositivos, así object-cover muestra
+   EXACTAMENTE el mismo recorte del coche tanto en un iPhone SE como en un S25
+   Ultra — misma dificultad. El lightbox (.cdd-lightbox-frame) replica ese 1:1. */
 @media (max-width: 999px) {
   /* El fold llena el viewport; -14px = el padding-top del shell (abajo). */
   .cdd-fold {
@@ -462,19 +485,30 @@ body,
   .cdd-fold .cdd-col { gap: 12px; }
   .cdd-fold .cdd-col-stage { flex: 1 1 auto; min-height: 0; }
   .cdd-fold .cdd-stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-  /* El marco abandona el aspect-ratio fijo y crece; min-height evita que
-     colapse en pantallas muy bajas. CarImage llena el marco (absolute inset-0
-     object-cover) a cualquier tamaño, así que el pipeline de imagen no cambia. */
-  .cdd-fold .cdd-stage-frame { aspect-ratio: 1 / 1; width: 100%; max-height: 100%; height: auto; flex: none; }
-  .cdd-fold .cdd-stage.revealed .cdd-stage-frame { flex: none; width: 100%; max-height: 100%; height: auto; }
+
+  /* CUADRADO QUE SIEMPRE CABE — clave para la coherencia entre dispositivos.
+     Hacemos del escenario un "container" de consulta de tamaño y pedimos el lado
+     MENOR de su caja (100cqmin): el marco es un cuadrado del tamaño del lado más
+     corto, así cabe entero tanto si la pantalla limita por ancho (móviles altos
+     tipo S25 Ultra) como por alto (móviles bajos tipo iPhone SE). Resultado: 1:1
+     EXACTO siempre → mismo recorte, misma dificultad. El bug anterior
+     (width:100% + max-height:100%) degeneraba en un rectángulo apaisado en
+     pantallas bajas y revelaba coche de más por los lados. */
+  .cdd-fold .cdd-stage { container-type: size; }
+  .cdd-fold .cdd-stage:not(.revealed) .cdd-stage-frame {
+    width: 100cqmin; height: 100cqmin; aspect-ratio: 1 / 1; flex: none;
+  }
+  /* Revelado: el marco llena el escenario (la foto va contenida sobre el pedestal,
+     ver .cdd-stage-frame.revealed). Llenar el hueco evita que la foto quede
+     "flotando" con un vacío debajo. */
+  .cdd-fold .cdd-stage.revealed .cdd-stage-frame {
+    width: 100%; height: 100%; aspect-ratio: auto; flex: none;
+  }
   .cdd-fold .cdd-col-panel { flex: none; }
 
   /* Ritmo más ceñido para regalar alto a la foto (sin sentirse apretado). */
   .cdd-shell { padding: 8px 12px 10px; }
   .cdd-header { margin-bottom: 4px; }
-  .cdd-intro { gap: 2px; margin-bottom: 6px; }
-  .cdd-h1 { line-height: 1.0; }
-  .cdd-sub { font-size: 13.5px; line-height: 1.4; }
   .cdd-form { gap: 10px; }
   .cdd-field { gap: 6px; }
   /* Inputs un punto más compactos manteniendo el área táctil (~44px). */
@@ -484,13 +518,25 @@ body,
   .cdd-year-steps button { height: 21px; }
 }
 
+/* Pantallas bajas (móvil apaisado, ventanas cortas): el modal de fin de partida
+   aprieta su ritmo vertical para no necesitar scroll interno. */
+@media (max-height: 720px) {
+  .cdd-reveal { height: clamp(120px, 20svh, 170px); }
+  .cdd-end-tabs { padding-top: 12px; }
+  .cdd-end-body { padding-top: 10px; gap: 10px; }
+  .cdd-next { margin-top: 6px; }
+  .cdd-end-close { margin-top: 8px; margin-bottom: 12px; }
+}
+
 /* ── Desktop ── */
 @media (min-width: 1000px) {
   .cdd-shell { max-width: 1080px; padding: 32px 32px 56px; gap: 0; }
   .cdd-main { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start; margin-bottom: 36px; }
   .cdd-stage-frame { aspect-ratio: 1 / 1; }
   .cdd-title { font-size: 28px; }
-  .cdd-h1 { font-size: clamp(34px, 4vw, 46px); }
+  /* H1 una línea: en desktop sobra ancho, lo subimos un punto sin arriesgar el
+     ellipsis (la frase es corta). */
+  .cdd-h1 { font-size: clamp(18px, 2.2vw, 26px); }
   .cdd-intro { max-width: 720px; }
   .cdd-col-panel { position: sticky; top: 28px; }
   /* El historial salió del panel sticky (ahora vive bajo el fold). Lo alineamos

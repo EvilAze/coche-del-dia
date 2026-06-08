@@ -131,8 +131,13 @@ export default function CarImage({
 
   const isWinReveal = status === "won";
   // Estado "revelado": el juego ha terminado, por victoria o derrota.
-  // El contenedor abandona el cuadrado 1:1 y vuelve a su aspecto natural.
   const isRevealed = status === "won" || status === "lost";
+  // En el configurador, al revelar mostramos la foto COMPLETA contenida
+  // (object-contain) sobre un pedestal (fondo desenfocado + halo + sombra) para
+  // anclarla a la UI en vez de dejarla "flotando". El marco lo dimensiona el CSS
+  // (.cdd-stage.revealed .cdd-stage-frame), no morfamos aspect-ratio aquí.
+  // En el resto de modos (Repesca, admin) se mantiene el comportamiento clásico.
+  const revealPedestal = configurator && isRevealed;
   // Punto de partida de la keyframe revealWin cuando se gana: el último
   // zoom CSS activo (p.ej. 1.667 si ganó en el 2º intento). Sin esto, la
   // animación arrancaría desde scale=1 y el "pop" no tendría amplitud.
@@ -191,10 +196,9 @@ export default function CarImage({
       }
       style={
         configurator
-          ? {
-              aspectRatio: isRevealed && loaded ? containerAspect : undefined,
-              transition: isRevealed ? "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1)" : undefined,
-            }
+          ? // El tamaño/forma del marco lo controla el CSS (1:1 en juego, llena el
+            // escenario al revelar). No fijamos aspect-ratio inline para no pisarlo.
+            undefined
           : {
               // El max-width pasa del cap (durante el juego) al 100% al revelar.
               transition: "max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
@@ -263,6 +267,21 @@ export default function CarImage({
         />
       )}
 
+      {/* Pedestal del revelado (solo configurador): un fondo ambiental con la
+          propia foto muy desenfocada llena el marco para que el "letterbox" del
+          object-contain no sea un vacío negro, y un halo de acento bajo el coche
+          le da peso. Decorativo y detrás de la foto (z-index 0). */}
+      {revealPedestal && loaded && (
+        <>
+          <div
+            aria-hidden="true"
+            className="cdd-reveal-bg"
+            style={{ backgroundImage: `url(${isApiProxy ? `${src}&f=jpeg&w=1280` : src})` }}
+          />
+          <div aria-hidden="true" className="cdd-reveal-floor" />
+        </>
+      )}
+
       {/*
         <picture> con AVIF / WebP / JPEG (fallback):
           - El navegador elige el primer <source> que entiende. Safari 16+,
@@ -316,7 +335,7 @@ export default function CarImage({
           decoding="async"
           onLoad={handleImageLoad}
           onError={handleImageError}
-          className={`absolute inset-0 h-full w-full object-cover ${isWinReveal && loaded ? "animate-reveal-win" : ""}`}
+          className={`absolute inset-0 h-full w-full ${revealPedestal ? "object-contain" : "object-cover"} ${isWinReveal && loaded ? "animate-reveal-win" : ""}`}
           style={{
             opacity: loaded ? 1 : 0,
             transformOrigin: "center center",
@@ -324,7 +343,15 @@ export default function CarImage({
             transition: isWinReveal
               ? "opacity 0.25s ease-out"
               : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out",
-            filter: blurred ? "blur(18px) saturate(0.85)" : undefined,
+            // Revelado en pedestal: la foto respira (padding) y proyecta sombra,
+            // lo que la convierte en "tarjeta" flotante sobre el fondo ambiental.
+            // El blur de la derrota anónima tiene prioridad sobre el drop-shadow.
+            filter: blurred
+              ? "blur(18px) saturate(0.85)"
+              : revealPedestal
+                ? "drop-shadow(0 26px 34px rgba(0,0,0,.55))"
+                : undefined,
+            padding: revealPedestal ? "6% 6% 9%" : undefined,
             "--zoom-from": zoomFrom,
           }}
         />

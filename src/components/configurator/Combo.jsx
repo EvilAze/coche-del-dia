@@ -33,9 +33,14 @@ export default function Combo({
 
   // Texto visible: el valor elegido, o lo que el usuario está tecleando.
   const text = value || q;
+  // Sin recorte: hay más de 80 marcas, así que un `.slice(0, 80)` cortaba la
+  // lista alfabética por la "R" y ocultaba todo lo posterior (Seat, Tesla,
+  // Volkswagen…). La lista es acotada (marcas/modelos) y el desplegable ya
+  // hace scroll, así que renderizamos todas las coincidencias (como el
+  // Autocomplete de producción).
   const filtered = useMemo(() => {
     const needle = norm(value ? "" : q);
-    return options.filter((o) => norm(o).includes(needle)).slice(0, 80);
+    return options.filter((o) => norm(o).includes(needle));
   }, [q, value, options]);
 
   useEffect(() => { setHi(0); }, [q, value, open]);

@@ -178,17 +178,20 @@ export default function EndScreen({
 
         {(!hasReveal || tab === "compartir") && (
           <div className="cdd-end-body">
+            {/* Micro-encabezado: da contexto a la cuadrícula de cuadritos. */}
+            <div className="cdd-mono cdd-grid-k">{t("cdd.yourGame")}</div>
             <pre className="cdd-grid">{grid}</pre>
             <Percentile data={daily} won={won} />
+            {/* CTA primario de esta pantalla: compartir (momento viral). */}
             <button className="cdd-submit cdd-share-btn" onClick={copyShare}>
               <Icon d={I.share} size={17} /> <span>{copied ? t("cdd.copied") : t("cdd.copyResult")}</span>
             </button>
-            
 
             {/* CTA de registro para anónimos que ganan (conserva la pieza de
-                producción: no perder racha/estadísticas). */}
+                producción: no perder racha/estadísticas). Estilo SECUNDARIO
+                (ghost): es otra clase de acción y no debe competir con compartir. */}
             {won && !user && (
-              <button className="cdd-submit" onClick={onOpenLogin} style={{ marginTop: 2 }}>
+              <button className="cdd-submit cdd-submit--ghost" onClick={onOpenLogin}>
                 <span>{t("result.saveProgressCta")}</span>
               </button>
             )}

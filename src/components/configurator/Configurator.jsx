@@ -78,7 +78,7 @@ export default function Configurator({
             intentos (dentro del panel) y el pie fluyen justo debajo del fold.
             En desktop .cdd-fold es un contenedor neutro: manda el grid de dos
             columnas (ver @media min-width:1000px). */}
-        <div className="cdd-fold">
+        <div className={"cdd-fold" + (ended ? " is-ended" : "")}>
           <Header
             streak={streak}
             user={user}

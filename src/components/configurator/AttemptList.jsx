@@ -15,15 +15,18 @@ import { Icon, I } from "./icons";
 // Stagger del flip por celda (efecto "carta volteándose").
 const FLIP_STAGGER_MS = 130;
 
-function Chip({ tone, pending, children, sub, flag, flip, delay }) {
+function Chip({ tone, pending, children, sub, flag, mark, flip, delay }) {
   return (
     <div
       className={"cdd-chip " + (pending ? "is-pending" : "tone-" + tone) + (flip ? " flip" : "")}
       style={flip ? { animationDelay: delay } : undefined}
     >
       <span className="cdd-chip-main">
-        {children}
+        {/* El texto va aislado (la bandera/flecha fuera) para poder partir en
+            hasta 2 líneas con line-clamp sin que se descoloque el icono. */}
+        <span className="cdd-chip-text">{children}</span>
         {flag && <img className="cdd-flag" src={flag} alt="" draggable={false} />}
+        {mark && <span className="cdd-chip-mark">{mark}</span>}
       </span>
       {sub && <span className="cdd-chip-sub">{sub}</span>}
     </div>
@@ -72,9 +75,14 @@ function AttemptRow({ g, index, tolerance, pending, fresh }) {
       <div className="cdd-attempt-chips">
         <Chip tone={marcaTone} sub={marcaSub} flag={marcaFlag} flip={fresh} delay={d(0)}>{g.marca?.val}</Chip>
         <Chip tone={modeloTone} flip={fresh} delay={d(1)}>{g.modelo?.val}</Chip>
-        <Chip tone={anioTone} sub={anioSub} flip={fresh} delay={d(2)}>
+        <Chip
+          tone={anioTone}
+          sub={anioSub}
+          flip={fresh}
+          delay={d(2)}
+          mark={anioIcon ? <Icon d={anioIcon === "up" ? I.arrowU : I.arrowD} size={14} /> : null}
+        >
           {g.anio?.val}
-          {anioIcon && <Icon d={anioIcon === "up" ? I.arrowU : I.arrowD} size={14} />}
         </Chip>
       </div>
     </div>

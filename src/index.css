@@ -275,9 +275,13 @@ body,
 .cdd-attempt { display: flex; align-items: stretch; gap: 10px; }
 .cdd-attempt-no { display: flex; align-items: center; font-size: 11px; color: var(--faint); width: 22px; flex: none; font-family: var(--font-mono); }
 .cdd-attempt-chips { display: grid; grid-template-columns: 1.1fr 1.4fr 1fr; gap: 8px; flex: 1; min-width: 0; perspective: 700px; }
-.cdd-chip { display: flex; flex-direction: column; gap: 2px; justify-content: center; align-items: flex-start;
-  padding: 9px 11px; border-radius: 11px; min-height: 46px; font-size: 13.5px; font-weight: 600; line-height: 1.1; min-width: 0; }
-.cdd-chip-main { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cdd-chip { display: flex; flex-direction: column; gap: 3px; justify-content: center; align-items: flex-start;
+  padding: 9px 11px; border-radius: 11px; min-height: 46px; font-size: 12.5px; font-weight: 600; line-height: 1.15; min-width: 0; }
+.cdd-chip-main { display: flex; align-items: center; gap: 5px; max-width: 100%; min-width: 0; width: 100%; }
+/* Texto del chip: hasta 2 líneas, nunca trunca con "…". La marca/flecha quedan
+   fuera (flex: none) para no descolocarse. overflow-wrap parte tokens larguísimos. */
+.cdd-chip-text { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.18; overflow-wrap: anywhere; }
+.cdd-chip-mark { display: inline-flex; flex: none; }
 .cdd-chip-sub { font-size: 8.5px; font-weight: 400; opacity: .9; font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
 .cdd-chip .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
 .tone-good { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 24px -10px var(--accent); }

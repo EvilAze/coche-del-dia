@@ -271,7 +271,9 @@ body,
 .cdd-hint.open .cdd-hint-v { color: var(--cdd-text); }
 
 /* ── Intentos ── */
-.cdd-attempts { display: flex; flex-direction: column; gap: 9px; }
+/* El historial vive bajo el fold (fuera del viewport hasta hacer scroll), como
+   bloque propio del shell: se da su propio respiro respecto al formulario. */
+.cdd-attempts { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
 .cdd-attempt { display: flex; align-items: stretch; gap: 10px; }
 .cdd-attempt-no { display: flex; align-items: center; font-size: 11px; color: var(--faint); width: 22px; flex: none; font-family: var(--font-mono); }
 .cdd-attempt-chips { display: grid; grid-template-columns: 1.1fr 1.4fr 1fr; gap: 8px; flex: 1; min-width: 0; perspective: 700px; }
@@ -353,7 +355,7 @@ body,
 
 /* ── Footer ── */
 .cdd-footer { display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--faint);
-  border-top: 1px solid var(--line); padding-top: 16px; }
+  border-top: 1px solid var(--line); padding-top: 16px; margin-top: 20px; }
 .cdd-foot-link { background: transparent; border: 0; color: var(--cdd-muted); cursor: pointer; font: inherit; letter-spacing: .12em; text-decoration: none; }
 .cdd-foot-link:hover { color: var(--accent); }
 
@@ -490,6 +492,10 @@ body,
   .cdd-h1 { font-size: clamp(34px, 4vw, 46px); }
   .cdd-intro { max-width: 720px; }
   .cdd-col-panel { position: sticky; top: 28px; }
+  /* El historial salió del panel sticky (ahora vive bajo el fold). Lo alineamos
+     bajo la columna del formulario (track derecho ~.85fr del grid) para conservar
+     el equilibrio de dos columnas en vez de ocupar todo el ancho. */
+  .cdd-attempts { max-width: 420px; margin-left: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

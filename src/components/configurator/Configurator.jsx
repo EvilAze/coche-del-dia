@@ -46,7 +46,7 @@ export default function Configurator({
   theme = DEFAULT_THEME,
   accent = DEFAULT_ACCENT,
 }) {
-  const { t, locale, dateLocale } = useT();
+  const { t, locale } = useT();
   const ended = status !== "playing";
   const won = status === "won";
 
@@ -64,9 +64,7 @@ export default function Configurator({
     prevStatus.current = status;
   }, [status, ended]);
 
-  const dateLabel = new Date()
-    .toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })
-    .toUpperCase();
+  // Conector del H1 según idioma ("marca, modelo y/and año").
   const conn = locale === "es" ? "y" : "and";
 
   return (
@@ -93,15 +91,11 @@ export default function Configurator({
             howtoPulse={howtoPulse}
           />
 
-          <div className="cdd-intro" style={{ marginBottom: "8px", gap: "2px" }}>
-            {/* Meta-row: fecha (con barrita de acento, vía CSS) a la izquierda y
-                el "?" de ayuda realineado a la derecha. */}
-            
-            <h1 className="cdd-h1" style={{ fontSize: "clamp(15px, 4vw, 20px)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div className="cdd-intro">
+            <h1 className="cdd-h1">
               {t("cdd.guess")} <em>{t("cdd.wordMarca")}</em>, <em>{t("cdd.wordModelo")}</em> {conn}{" "}
               <em>{t("cdd.wordAnio")}</em>
             </h1>
-            
           </div>
 
           <div className="cdd-main">

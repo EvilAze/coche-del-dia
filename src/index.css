@@ -187,12 +187,12 @@ body,
    uniforme de 22px arrastraba todo y dejaba demasiado aire header↔fecha). */
 .cdd-shell {
   position: relative; z-index: 1; width: 100%; max-width: 480px; margin: 0 auto;
-  padding: 22px 18px 40px; display: flex; flex-direction: column; gap: 0;
+  padding: 18px 18px 40px; display: flex; flex-direction: column; gap: 0;
 }
 .cdd-mono { font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 
-/* ── Cabecera (más ceñida: ~26px → 18px de aire hacia la fecha) ── */
-.cdd-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0; margin-bottom: 18px; }
+/* ── Cabecera (ceñida; compactada para hacer la foto más cuadrada) ── */
+.cdd-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0; margin-bottom: 14px; }
 .cdd-wordmark { display: flex; align-items: center; min-width: 0; }
 /* Sin badge "CDD": el wordmark "Coche del Día" es ahora el protagonista de la
    barra — más grande y rotundo, con el acento reservado para fecha + H1. */
@@ -212,8 +212,8 @@ body,
 .cdd-iconbtn .cdd-alert-dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%;
   background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 
-/* ── Intro (gap interno más generoso + margen propio hacia el main) ── */
-.cdd-intro { display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; }
+/* ── Intro (compactada para ganar alto y hacer la foto más cuadrada) ── */
+.cdd-intro { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 /* Fila meta: fecha a la izquierda · "?" a la derecha (antes el "?" colgaba pegado) */
 .cdd-metarow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .cdd-date { font-size: 11.5px; color: var(--accent); display: inline-flex; align-items: center; gap: 9px; }
@@ -233,7 +233,7 @@ body,
 /* ── Escenario / zoom ── */
 .cdd-stage { width: 100%; }
 .cdd-stage-frame {
-  position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
+  position: relative; width: 100%; aspect-ratio: 5 / 4; overflow: hidden;
   border-radius: 16px; border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: 0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 1px var(--line-2);
@@ -244,7 +244,7 @@ body,
    escala, igualar la proporción garantiza el MISMO recorte — ni un píxel más de
    coche que en el intento actual. El ancho se calcula para que el alto quepa en
    pantalla. */
-.cdd-lightbox-frame { width: min(94vw, calc(80vh * 4 / 3)); aspect-ratio: 4 / 3; }
+.cdd-lightbox-frame { width: min(94vw, calc(80vh * 5 / 4)); aspect-ratio: 5 / 4; }
 @media (min-width: 1000px) {
   .cdd-lightbox-frame { width: min(82vw, calc(82vh * 16 / 11)); aspect-ratio: 16 / 11; }
 }

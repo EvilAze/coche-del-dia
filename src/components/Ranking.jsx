@@ -233,8 +233,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         : undefined
                     }
                     className={`
-                      grid w-full grid-cols-[2.5rem_minmax(0,1fr)_5rem]
-                      items-center px-3 py-3 bg-black/10 text-left
+                      grid w-full grid-cols-[2.1rem_minmax(0,1fr)_4.25rem]
+                      items-center px-3 py-2.5 bg-black/10 text-left
                       ${!user && index < 2 ? "border-b border-white/10" : ""}
                       ${!user && index === 3 ? "border-t border-white/20" : ""}
                       ${RowTag === "button" ? "transition hover:bg-white/[0.06] active:scale-[0.99]" : ""}
@@ -248,18 +248,18 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         : undefined
                     }
                   >
-                    <div className="font-display text-2xl text-accent">
+                    <div className="font-display text-xl text-accent">
                       {player.rank}
                     </div>
 
                     <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate font-display text-xl uppercase tracking-wider text-white">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <p className="truncate font-display text-base uppercase tracking-[0.02em] text-white">
                           {player.displayName}
                         </p>
                         <StreakBadge streak={player.currentStreak} />
                       </div>
-                      <p className="mt-0.5 text-xs text-muted">
+                      <p className="mt-0.5 text-[11px] text-muted">
                         {tab === "month"
                           ? t("ranking.monthWins", { value: player.totalWins })
                           : t("ranking.bestStreak", { value: player.maxStreak })}
@@ -267,7 +267,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     </div>
 
                     <div className="text-right">
-                      <div className="font-display text-3xl leading-none text-white">
+                      <div className="font-display text-2xl leading-none text-white">
                         {player.totalPoints}
                       </div>
                       <div className="text-[10px] uppercase tracking-widest text-muted">

@@ -149,7 +149,7 @@ export default function CarImage({
   // tappable). El HUD va con pointer-events:none, así que el toque pasa al botón
   // de zoom de abajo; solo ocultamos el icono de esquina en modo configurador
   // para que no choque visualmente con el HUD (ver más abajo).
-  const canExpand = loaded && !blurred && Boolean(src);
+  const canExpand = loaded && !blurred && Boolean(src) && status === "playing";
   useEscape(expanded, () => setExpanded(false));
 
   function handleImageLoad(e) {

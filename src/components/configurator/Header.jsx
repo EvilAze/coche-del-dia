@@ -16,8 +16,14 @@ export default function Header({
   onOpenLogin,
   onOpenRanking,
   onOpenGarage,
+  onOpenHowTo,
+  howtoPulse = false,
 }) {
-  const { t } = useT();
+  const { t, dateLocale } = useT();
+
+  const dateLabel = new Date()
+    .toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })
+    .toUpperCase();
 
   // Pop de la píldora de racha cuando SUBE (tras ganar): un latido breve que
   // celebra el incremento sin ser estridente.
@@ -38,7 +44,10 @@ export default function Header({
   return (
     <header className="cdd-header">
       <div className="cdd-wordmark">
-        <span className="cdd-title">{t("app.title")}</span>
+        <div className="flex flex-col">
+          <span className="cdd-title" style={{ fontSize: "clamp(18px, 5vw, 22px)", lineHeight: "1" }}>{t("app.title")}</span>
+          <span className="cdd-date cdd-mono" style={{ fontSize: "9px", marginTop: "2px", gap: "6px" }}>{dateLabel}</span>
+        </div>
       </div>
       <nav className="cdd-nav">
         {streak > 0 && (

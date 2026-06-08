@@ -233,7 +233,7 @@ body,
 /* ── Escenario / zoom ── */
 .cdd-stage { width: 100%; }
 .cdd-stage-frame {
-  position: relative; width: 100%; aspect-ratio: 5 / 4; overflow: hidden;
+  position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
   border-radius: 16px; border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: 0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 1px var(--line-2);
@@ -244,9 +244,9 @@ body,
    escala, igualar la proporción garantiza el MISMO recorte — ni un píxel más de
    coche que en el intento actual. El ancho se calcula para que el alto quepa en
    pantalla. */
-.cdd-lightbox-frame { width: min(94vw, calc(80vh * 5 / 4)); aspect-ratio: 5 / 4; }
+.cdd-lightbox-frame { width: min(94vw, 80vh); aspect-ratio: 1 / 1; }
 @media (min-width: 1000px) {
-  .cdd-lightbox-frame { width: min(82vw, calc(82vh * 16 / 11)); aspect-ratio: 16 / 11; }
+  .cdd-lightbox-frame { width: min(82vw, 82vh); aspect-ratio: 1 / 1; }
 }
 
 .cdd-hud { position: absolute; inset: 0; pointer-events: none; z-index: 7; }
@@ -452,7 +452,7 @@ body,
 @media (max-width: 999px) {
   /* El fold llena el viewport; -14px = el padding-top del shell (abajo). */
   .cdd-fold {
-    min-height: calc(100svh - 14px);
+    height: calc(100svh - 14px);
     box-sizing: border-box; padding-bottom: 16px;
     display: flex; flex-direction: column;
   }
@@ -461,17 +461,18 @@ body,
   .cdd-fold .cdd-main { flex: 1 1 auto; min-height: 0; margin-bottom: 0; gap: 12px; }
   .cdd-fold .cdd-col { gap: 12px; }
   .cdd-fold .cdd-col-stage { flex: 1 1 auto; min-height: 0; }
-  .cdd-fold .cdd-stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .cdd-fold .cdd-stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
   /* El marco abandona el aspect-ratio fijo y crece; min-height evita que
      colapse en pantallas muy bajas. CarImage llena el marco (absolute inset-0
      object-cover) a cualquier tamaño, así que el pipeline de imagen no cambia. */
-  .cdd-fold .cdd-stage-frame { aspect-ratio: auto; flex: 1 1 auto; min-height: 150px; }
+  .cdd-fold .cdd-stage-frame { aspect-ratio: 1 / 1; width: 100%; max-height: 100%; height: auto; flex: none; }
+  .cdd-fold .cdd-stage.revealed .cdd-stage-frame { flex: none; width: 100%; max-height: 100%; height: auto; }
   .cdd-fold .cdd-col-panel { flex: none; }
 
   /* Ritmo más ceñido para regalar alto a la foto (sin sentirse apretado). */
-  .cdd-shell { padding: 14px 18px 16px; }
-  .cdd-header { margin-bottom: 8px; }
-  .cdd-intro { gap: 6px; margin-bottom: 8px; }
+  .cdd-shell { padding: 8px 12px 10px; }
+  .cdd-header { margin-bottom: 4px; }
+  .cdd-intro { gap: 2px; margin-bottom: 6px; }
   .cdd-h1 { line-height: 1.0; }
   .cdd-sub { font-size: 13.5px; line-height: 1.4; }
   .cdd-form { gap: 10px; }
@@ -487,7 +488,7 @@ body,
 @media (min-width: 1000px) {
   .cdd-shell { max-width: 1080px; padding: 32px 32px 56px; gap: 0; }
   .cdd-main { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start; margin-bottom: 36px; }
-  .cdd-stage-frame { aspect-ratio: 16 / 11; }
+  .cdd-stage-frame { aspect-ratio: 1 / 1; }
   .cdd-title { font-size: 28px; }
   .cdd-h1 { font-size: clamp(34px, 4vw, 46px); }
   .cdd-intro { max-width: 720px; }

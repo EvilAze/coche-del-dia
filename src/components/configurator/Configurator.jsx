@@ -89,31 +89,19 @@ export default function Configurator({
             onOpenLogin={onOpenLogin}
             onOpenRanking={onOpenRanking}
             onOpenGarage={onOpenGarage}
+            onOpenHowTo={onOpenHowTo}
+            howtoPulse={howtoPulse}
           />
 
-          <div className="cdd-intro">
+          <div className="cdd-intro" style={{ marginBottom: "8px", gap: "2px" }}>
             {/* Meta-row: fecha (con barrita de acento, vía CSS) a la izquierda y
                 el "?" de ayuda realineado a la derecha. */}
-            <div className="cdd-metarow">
-              <span className="cdd-date cdd-mono">{dateLabel}</span>
-              {onOpenHowTo && (
-                <button
-                  type="button"
-                  onClick={onOpenHowTo}
-                  aria-label={t("cdd.helpAria")}
-                  title={t("cdd.helpAria")}
-                  className={"cdd-iconbtn" + (howtoPulse ? " cdd-help-pulse" : "")}
-                  style={{ height: 24, minWidth: 24, padding: 0, borderRadius: 8 }}
-                >
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>?</span>
-                </button>
-              )}
-            </div>
-            <h1 className="cdd-h1">
+            
+            <h1 className="cdd-h1" style={{ fontSize: "clamp(15px, 4vw, 20px)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {t("cdd.guess")} <em>{t("cdd.wordMarca")}</em>, <em>{t("cdd.wordModelo")}</em> {conn}{" "}
               <em>{t("cdd.wordAnio")}</em>
             </h1>
-            <p className="cdd-sub">{t("cdd.introSub", { max: maxAttempts })}</p>
+            
           </div>
 
           <div className="cdd-main">

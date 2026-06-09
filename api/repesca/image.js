@@ -14,16 +14,14 @@ import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { methodGuard } from "../_lib/http.js";
 import { captureServerError } from "../_lib/sentry.js";
+import { clampZoomBase, cropPctForAttempt, ZOOM_ATTEMPTS } from "../_lib/zoom.js";
 
-// Mismo crop fijo que /api/daily-image durante la partida: 58,8% central
-// (= 1 / 1.7, el último nivel de zoom del juego). El cliente termina de
-// "cerrar" el zoom por CSS sobre este 58,8%. Antes servíamos la imagen
-// ENTERA en repesca y el zoom era 100% client-side — con DevTools veías
-// el coche desnudo nada más arrancar.
-//
-// Si actualizas ZOOM_LEVELS en useGame.js / Repesca.jsx hay que ajustar
-// también este valor: debe ser exactamente 1 / max(ZOOM_LEVELS).
-const CROP_PCT_PLAYING = 0.588;
+// Crop durante la partida = el del ÚLTIMO intento (el más amplio que ve un
+// jugador legítimo), igual que /api/daily-image. Ahora es POR COCHE: depende
+// de su zoom_base (cropPctForAttempt). El cliente cierra el resto por CSS con
+// los mismos scales que el juego diario (src/lib/zoom.js). Antes servíamos la
+// imagen ENTERA en repesca y el zoom era client-side — con DevTools veías el
+// coche desnudo nada más arrancar.
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,16 +94,17 @@ export default async function handler(req, res) {
     const isFinished =
       guessRow?.status === "won" || guessRow?.status === "lost";
 
-    // Cargar URL real del CDN para este coche.
+    // Cargar URL real del CDN + zoom_base para este coche.
     const { data: row, error: fetchErr } = await getSupabaseAdmin()
       .from("cars")
-      .select("image_url")
+      .select("image_url, zoom_base")
       .eq("id", carId)
       .single();
     if (fetchErr || !row?.image_url) {
       console.error("[repesca/image] read car:", fetchErr);
       return res.status(500).json({ error: "Failed to load car" });
     }
+    const zoomBase = clampZoomBase(row.zoom_base);
 
     // Fetch server-side de los bytes y proxy al cliente.
     let upstream;
@@ -131,8 +130,8 @@ export default async function handler(req, res) {
     // pinta en un <img> sin <picture> de fallback: AVIF rompería en Safari
     // < 16.4, mientras que WebP es seguro en todos los navegadores actuales.
     if (!isFinished) {
-      // Durante la partida recortamos a un cuadrado central del 58,8% del lado
-      // menor — mismo cálculo que daily-image z=5.
+      // Durante la partida recortamos al cuadrado del último intento (el más
+      // amplio), según el zoom_base del coche — mismo cálculo que daily-image.
       try {
         const meta = await sharp(originalBuffer).metadata();
         if (meta?.width && meta?.height) {
@@ -140,7 +139,7 @@ export default async function handler(req, res) {
           const W = rotated90 ? meta.height : meta.width;
           const H = rotated90 ? meta.width : meta.height;
           const minDim = Math.min(W, H);
-          const size = Math.max(1, Math.round(minDim * CROP_PCT_PLAYING));
+          const size = Math.max(1, Math.round(minDim * cropPctForAttempt(ZOOM_ATTEMPTS, zoomBase)));
           const left = Math.max(0, Math.round((W - size) / 2));
           const top = Math.max(0, Math.round((H - size) / 2));
           outBuffer = await sharp(originalBuffer)

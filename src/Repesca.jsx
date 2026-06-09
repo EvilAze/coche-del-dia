@@ -25,17 +25,13 @@ import { useT } from "./i18n";
 import { notifyAchievementsAfterWin } from "./hooks/useGame";
 import { track } from "./lib/analytics";
 import { haptic } from "./lib/haptics";
+import { cssZoomLevels, ZOOM_ATTEMPTS, DEFAULT_ZOOM_BASE } from "./lib/zoom.js";
 
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
-// Mismos zooms lógicos que el modo diario (ver src/hooks/useGame.js).
-// Aquí los aplicamos como CSS scale absoluto sobre el crop server-side
-// (api/repesca/image.js sirve el crop 1/1.7 = 58.8% central durante la
-// partida). Intervalos regulares de 0.5 para suavizar la curva.
-const ZOOM_LEVELS = [3.7, 3.2, 2.7, 2.2, 1.7];
-// En Modo Veterano no hay zoom progresivo: arrancamos siempre en el
-// nivel menos cerrado (el del último intento del modo normal).
-const VETERAN_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
+// El zoom escalonado es el MISMO sistema que el juego diario y POR COCHE: los
+// scales CSS se derivan del zoom_base del coche (cssZoomLevels, src/lib/zoom.js)
+// y se aplican sobre el crop del último intento que sirve api/repesca/image.js.
 
 function getCarIdFromUrl() {
   try {
@@ -77,6 +73,9 @@ export default function Repesca() {
   // como fondo borroso mientras llega la foto real → mismo efecto
   // "blur-up" que el juego principal. Identidad visual compartida.
   const [blurData, setBlurData] = useState(null);
+  // Zoom inicial del coche (lo da /api/repesca/start). De él se derivan los
+  // scales CSS por intento, igual que en el juego diario. Default 3.7.
+  const [zoomBase, setZoomBase] = useState(DEFAULT_ZOOM_BASE);
 
   // noindex + título de pestaña.
   useEffect(() => {
@@ -158,6 +157,7 @@ export default function Repesca() {
 
         // LQIP para el blur-up (puede venir null si la lectura falló server-side).
         if (startBody.blurData) setBlurData(startBody.blurData);
+        if (Number.isFinite(startBody.zoomBase)) setZoomBase(startBody.zoomBase);
 
         setGuesses(existingGuesses);
         if (existingStatus === "won" || existingStatus === "lost") {
@@ -238,19 +238,22 @@ export default function Repesca() {
   const isVeteran = mode === "veteran";
   const effectiveMaxAttempts = isVeteran ? MAX_ATTEMPTS_VETERAN : MAX_ATTEMPTS;
   const attempts = guesses.length;
-  const zoomIndex = Math.min(attempts, ZOOM_LEVELS.length - 1);
-  // En Veterano no hay pistas progresivas: zoom fijo en el nivel menos
-  // cerrado. En normal, sigue el patrón habitual.
+  const zoomIndex = Math.min(attempts, ZOOM_ATTEMPTS - 1);
+  // Scales CSS por intento derivados del zoom_base del coche (mismo sistema que
+  // el juego diario). El último vale 1.0 (ya se ve todo el crop servido).
+  const zoomLevels = cssZoomLevels(zoomBase);
+  // En Veterano no hay pistas progresivas: zoom fijo en el nivel menos cerrado
+  // (el del último intento = scale 1.0). En normal, sigue el patrón habitual.
   const zoom =
     phase === "playing"
       ? isVeteran
-        ? VETERAN_ZOOM
-        : ZOOM_LEVELS[zoomIndex]
+        ? zoomLevels[zoomLevels.length - 1]
+        : zoomLevels[zoomIndex]
       : 1.0;
   // En Veterano no hay pistas progresivas: pasamos hintIndex null para que
   // CarImage no muestre el indicador interno de pista.
   const hintIndex = phase === "playing" && !isVeteran ? zoomIndex : null;
-  const totalHints = ZOOM_LEVELS.length;
+  const totalHints = ZOOM_ATTEMPTS;
 
   // Estado tipo `car` que espera CarImage / ResultPanel. `img` arranca
   // como null y se rellena cuando la blob: URL está lista — CarImage ya

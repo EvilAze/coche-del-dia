@@ -11,6 +11,8 @@ import { supabase } from "../supabaseClient";
 import { useFreshCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
 import FocusPicker from "./FocusPicker";
+import ZoomBaseField from "./ZoomBaseField";
+import { DEFAULT_ZOOM_BASE } from "../lib/zoom.js";
 
 const STORAGE_BUCKET = "cars_images";
 const CURRENT_YEAR = new Date().getFullYear();
@@ -27,6 +29,8 @@ const initialForm = {
   // por defecto del servidor antes de existir las columnas).
   focus_x: 0.5,
   focus_y: 0.5,
+  // Zoom inicial (dificultad). Por defecto = el de siempre; se ajusta por coche.
+  zoom_base: DEFAULT_ZOOM_BASE,
 };
 
 function sanitizeFilename(name) {
@@ -193,6 +197,7 @@ export default function AddCarPanel({
           image_url: imageUrl,
           focus_x: form.focus_x,
           focus_y: form.focus_y,
+          zoom_base: form.zoom_base,
         }),
       });
       const addBody = await addRes.json().catch(() => ({}));
@@ -451,6 +456,26 @@ export default function AddCarPanel({
               onChange={({ x, y }) =>
                 setForm((prev) => ({ ...prev, focus_x: x, focus_y: y }))
               }
+              zoomBase={form.zoom_base}
+              disabled={isSubmitting}
+            />
+          </Field>
+        )}
+
+        {previewUrl && (
+          <Field
+            label={
+              <>
+                Nivel de zoom inicial
+                <span className="ml-2 normal-case tracking-normal text-muted">
+                  · sube para coches muy reconocibles
+                </span>
+              </>
+            }
+          >
+            <ZoomBaseField
+              value={form.zoom_base}
+              onChange={(v) => setForm((prev) => ({ ...prev, zoom_base: v }))}
               disabled={isSubmitting}
             />
           </Field>

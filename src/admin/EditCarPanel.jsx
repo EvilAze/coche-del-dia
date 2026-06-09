@@ -89,6 +89,10 @@ export default function EditCarPanel({
   // Intel de dificultad observada (DDA Arquitectura A). La rellena el GET de
   // save-car desde la telemetría; null si el coche aún no tiene datos.
   const [difficulty, setDifficulty] = useState(null);
+  // Análisis de imagen con IA (DDA Arquitectura B). Estado local de la llamada.
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+  const [aiError, setAiError] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loadingCar, setLoadingCar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,6 +115,8 @@ export default function EditCarPanel({
       setForm(initialForm);
       setOriginalForm(initialForm);
       setDifficulty(null);
+      setAiResult(null);
+      setAiError(null);
       setPreviewUrl(null);
       setFeedback(null);
       setDeleteConfirm(false);
@@ -159,6 +165,8 @@ export default function EditCarPanel({
         setForm(next);
         setOriginalForm(next);
         setDifficulty(data.difficulty ?? null);
+        setAiResult(null);
+        setAiError(null);
         setPreviewUrl(null);
       } catch (err) {
         if (!cancelled) {
@@ -237,6 +245,53 @@ export default function EditCarPanel({
       setFeedback({ type: "error", message: err?.message || "No se pudo borrar el coche." });
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  // DDA Arquitectura B: pide a la IA que analice la foto guardada y rellena
+  // zoom_base + punto focal con su sugerencia (queda dirty → se guarda con el
+  // botón normal). Human-in-loop: el admin revisa antes de guardar. Analiza la
+  // imagen YA guardada (form.img); si hay una foto nueva sin guardar, primero
+  // hay que guardarla.
+  async function handleAnalyze() {
+    if (aiAnalyzing || !form.img) return;
+    setAiAnalyzing(true);
+    setAiError(null);
+    try {
+      const {
+        data: { session: s },
+      } = await supabase.auth.getSession();
+      if (!s) throw new Error("Sin sesión");
+
+      const res = await fetch("/api/admin/analyze-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${s.access_token}`,
+        },
+        body: JSON.stringify({
+          image_url: form.img,
+          marca: form.marca,
+          modelo: form.modelo,
+          anio: form.anio,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+      setAiResult(data);
+      // Aplica zoom + foco sugeridos al formulario (no guarda solo).
+      setForm((prev) => ({
+        ...prev,
+        zoom_base: data.suggestedZoomBase,
+        focus_x: data.focusX,
+        focus_y: data.focusY,
+      }));
+    } catch (err) {
+      console.error("[EditCarPanel] analyze:", err);
+      setAiError(err?.message || "No se pudo analizar la imagen.");
+    } finally {
+      setAiAnalyzing(false);
     }
   }
 
@@ -571,6 +626,28 @@ export default function EditCarPanel({
               />
             </Field>
 
+            {/* Asistente IA (DDA Arquitectura B): analiza la foto guardada y
+                propone zoom inicial + punto focal en frío. Rellena el
+                formulario; el admin revisa y guarda. */}
+            <Field
+              label={
+                <>
+                  Asistente de dificultad (IA)
+                  <span className="ml-2 normal-case tracking-normal text-muted">
+                    · analiza la foto y sugiere zoom + foco
+                  </span>
+                </>
+              }
+            >
+              <AiAssistant
+                analyzing={aiAnalyzing}
+                result={aiResult}
+                error={aiError}
+                disabled={isSubmitting || !form.img}
+                onAnalyze={handleAnalyze}
+              />
+            </Field>
+
             {/* Punto focal del zoom. La imagen activa es la nueva foto
                 seleccionada (previewUrl) si la hay, o la actual guardada
                 (form.img). Reseteamos el foco a 0.5/0.5 cuando el admin
@@ -845,6 +922,55 @@ function Metric({ label, value }) {
     <div className="rounded-lg bg-white/5 px-2 py-1.5">
       <div className="font-display text-sm text-white">{value}</div>
       <div className="text-[9px] uppercase tracking-widest text-muted">{label}</div>
+    </div>
+  );
+}
+
+// Asistente IA (DDA Arq. B): botón de análisis + resultado. Al aplicar, el
+// zoom y el foco ya quedan rellenos en el formulario (dirty); aquí solo se
+// muestra qué propuso y por qué.
+function AiAssistant({ analyzing, result, error, disabled, onAnalyze }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={onAnalyze}
+        disabled={disabled || analyzing}
+        className="self-start rounded-lg border border-accent/40 bg-accent/10 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {analyzing ? "Analizando…" : "✨ Analizar con IA"}
+      </button>
+
+      {!result && !error && (
+        <p className="text-[11px] text-muted">
+          Mide cuán reconocible es el coche en la foto y rellena el zoom inicial
+          y el punto focal. Analiza la imagen ya guardada.
+        </p>
+      )}
+
+      {error && (
+        <p className="text-[11px] text-red-300">{error}</p>
+      )}
+
+      {result && (
+        <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-3">
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <Metric label="iconicidad" value={`${result.iconicidad}/10`} />
+            <Metric label="zoom sugerido" value={`${result.suggestedZoomBase?.toFixed(1)}×`} />
+          </div>
+          {result.rasgoDistintivo && (
+            <p className="text-[11px] text-white/80">
+              Rasgo: <span className="text-white">{result.rasgoDistintivo}</span>
+            </p>
+          )}
+          {result.razon && (
+            <p className="text-[11px] text-muted">{result.razon}</p>
+          )}
+          <p className="text-[10px] text-emerald-300/80">
+            Aplicado al zoom y al foco. Revisa y pulsa «Guardar cambios».
+          </p>
+        </div>
+      )}
     </div>
   );
 }

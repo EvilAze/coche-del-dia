@@ -37,6 +37,17 @@
 //   - EDGE_CONFIG_ID     → id del store (ecfg_...), visible en su dashboard
 //   - VERCEL_TEAM_ID     → solo si el proyecto está bajo un team (opcional)
 // Si faltan, el cron sigue calentando igual; solo se salta la escritura.
+//
+// PASO 4 (dificultad / DDA Arquitectura A): tras calentar, dispara la RPC
+// recompute_car_difficulty() (service_role). Relee daily_stats atribuido a cada
+// coche y deja en cars.suggested_zoom_base el zoom_base propuesto para que el
+// admin lo revise. Va aquí (piggyback) en vez de en un cron propio para no
+// superar el límite de 2 cron jobs del plan Hobby. Best-effort: si falla, el
+// warming —que es el trabajo principal— no se ve afectado. Va aquí (y no en su
+// propio endpoint) también para no gastar uno de los 12 slots de función
+// serverless de Hobby. Ver scripts/2026-06-difficulty-observatory.sql.
+
+import { getSupabaseAdmin } from "../_lib/supabase.js";
 
 /**
  * Escribe (upsert) un item en Vercel Edge Config vía REST API. La SDK
@@ -194,6 +205,35 @@ export default async function handler(req, res) {
       ms: Date.now() - step3Start,
       ...ecResult,
     });
+
+    // ---- PASO 4: recalcular dificultad por telemetría (DDA Arq. A) ------
+    // Piggyback best-effort: relee daily_stats y deja suggested_zoom_base por
+    // coche. NO usamos los fetches HTTP de arriba — llamamos la RPC directa con
+    // service_role (la lógica vive en Supabase). Un fallo aquí no debe tumbar
+    // el resultado del warming, así que va en su propio try/catch.
+    const step4Start = Date.now();
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      if (!supabaseAdmin) {
+        result.steps.push({ step: "recalc-difficulty", skipped: true, reason: "admin envs ausentes" });
+      } else {
+        const { data, error } = await supabaseAdmin.rpc("recompute_car_difficulty");
+        result.steps.push({
+          step: "recalc-difficulty",
+          ms: Date.now() - step4Start,
+          ...(error
+            ? { ok: false, error: error.message || "RPC failed" }
+            : { ok: true, carsRecomputed: typeof data === "number" ? data : data ?? null }),
+        });
+      }
+    } catch (err) {
+      result.steps.push({
+        step: "recalc-difficulty",
+        ms: Date.now() - step4Start,
+        ok: false,
+        error: err?.message || "uncaught",
+      });
+    }
 
     result.ok = true;
     result.totalMs = Date.now() - t0;

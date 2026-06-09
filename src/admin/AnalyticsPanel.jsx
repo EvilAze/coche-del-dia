@@ -179,6 +179,9 @@ export default function AnalyticsPanel() {
             />
           </div>
 
+          {/* ROW 1.5 · Dificultad global (DDA Arq. A) */}
+          {data.difficulty && <GlobalDifficultyCard d={data.difficulty} />}
+
           {/* ROW 2 · DAU chart */}
           <Card title="Usuarios activos por día (DAU)">
             <DauLineChart series={data.engagement.dauSeries} />
@@ -272,6 +275,73 @@ function Card({ title, children, action }) {
       </div>
       {children}
     </section>
+  );
+}
+
+// Tarjeta de dificultad GLOBAL: la señal agregada fiable a baja escala.
+// Histórica (no depende del rango). Compara el coste medio con el objetivo y
+// recomienda nudge del default de zoom cuando hay deriva.
+function GlobalDifficultyCard({ d }) {
+  const target = d.targetCost ?? 3.5;
+  const cost = d.cost;
+  // Veredicto según desviación del objetivo (mismas bandas que el editor).
+  let verdict = "—", verdictClass = "text-muted";
+  if (cost != null) {
+    if (cost < target - 0.5) { verdict = "tienden a fácil"; verdictClass = "text-amber-300"; }
+    else if (cost > target + 0.7) { verdict = "tienden a difícil"; verdictClass = "text-rose-300"; }
+    else { verdict = "equilibrados"; verdictClass = "text-emerald-300"; }
+  }
+  // ¿Merece la pena tocar el default? Solo si la sugerencia se separa del actual.
+  const cur = d.currentDefaultBase;
+  const sug = d.suggestedDefaultBase;
+  const nudge =
+    typeof sug === "number" && typeof cur === "number" && Math.abs(sug - cur) >= 0.1
+      ? sug
+      : null;
+
+  return (
+    <Card title="Dificultad global (histórico)">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs text-muted">
+          {d.totalGames.toLocaleString("es")} partidas · {d.carsMeasured.toLocaleString("es")} coches medidos
+        </p>
+        <span className={`text-xs font-semibold ${verdictClass}`}>{verdict}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <MiniStat label="coste medio" value={cost == null ? "—" : cost.toFixed(2)} hint={`objetivo ${target.toFixed(1)}`} />
+        <MiniStat label="intento medio (ganadas)" value={d.meanWinningAttempt == null ? "—" : d.meanWinningAttempt.toFixed(2)} />
+        <MiniStat label="≤3 intentos" value={pct(d.pBy3)} />
+        <MiniStat label="fallo" value={pct(d.failRate)} />
+      </div>
+      <div className="mt-3 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs">
+        {d.totalGames < 100 ? (
+          <span className="text-amber-300/80">
+            Muestra aún pequeña (&lt;100 partidas): la señal global se vuelve fiable
+            con más jornadas acumuladas.
+          </span>
+        ) : nudge ? (
+          <span className="text-white/85">
+            Recomendación: mover el <span className="text-accent">default de zoom</span>{" "}
+            de {cur.toFixed(1)}× a <span className="text-accent font-semibold">{nudge.toFixed(1)}×</span>{" "}
+            (DEFAULT_ZOOM_BASE en api/_lib/zoom.js + src/lib/zoom.js).
+          </span>
+        ) : (
+          <span className="text-emerald-300/80">
+            El default de zoom ({cur?.toFixed(1)}×) está bien calibrado: sin deriva apreciable.
+          </span>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function MiniStat({ label, value, hint }) {
+  return (
+    <div className="rounded-lg bg-white/[0.04] px-3 py-2">
+      <div className="font-display text-lg tracking-wider text-white">{value}</div>
+      <div className="text-[10px] uppercase tracking-widest text-muted">{label}</div>
+      {hint && <div className="text-[9px] text-muted/70">{hint}</div>}
+    </div>
   );
 }
 

@@ -13,6 +13,8 @@ import { supabase } from "../supabaseClient";
 import { useFreshCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
 import FocusPicker from "./FocusPicker";
+import ZoomBaseField from "./ZoomBaseField";
+import { DEFAULT_ZOOM_BASE } from "../lib/zoom.js";
 
 const STORAGE_BUCKET = "cars_images";
 const CURRENT_YEAR = new Date().getFullYear();
@@ -39,6 +41,8 @@ const initialForm = {
   // comportamiento histórico).
   focus_x: 0.5,
   focus_y: 0.5,
+  // Zoom inicial (dificultad). Default = comportamiento histórico.
+  zoom_base: DEFAULT_ZOOM_BASE,
 };
 
 export default function EditCarPanel({
@@ -145,6 +149,8 @@ export default function EditCarPanel({
           file: null,
           focus_x: typeof data.focus_x === "number" ? data.focus_x : 0.5,
           focus_y: typeof data.focus_y === "number" ? data.focus_y : 0.5,
+          zoom_base:
+            typeof data.zoom_base === "number" ? data.zoom_base : DEFAULT_ZOOM_BASE,
         };
         setForm(next);
         setOriginalForm(next);
@@ -190,7 +196,8 @@ export default function EditCarPanel({
       form.description_en !== originalForm.description_en ||
       form.file != null ||
       form.focus_x !== originalForm.focus_x ||
-      form.focus_y !== originalForm.focus_y
+      form.focus_y !== originalForm.focus_y ||
+      form.zoom_base !== originalForm.zoom_base
     );
   }, [form, originalForm, selectedCarId]);
 
@@ -297,6 +304,7 @@ export default function EditCarPanel({
       if (newImageUrl) patch.image_url = newImageUrl;
       if (form.focus_x !== originalForm.focus_x) patch.focus_x = form.focus_x;
       if (form.focus_y !== originalForm.focus_y) patch.focus_y = form.focus_y;
+      if (form.zoom_base !== originalForm.zoom_base) patch.zoom_base = form.zoom_base;
 
       const res = await fetch("/api/admin/save-car", {
         method: "POST",
@@ -329,6 +337,8 @@ export default function EditCarPanel({
         file: null,
         focus_x: typeof updated.focus_x === "number" ? updated.focus_x : 0.5,
         focus_y: typeof updated.focus_y === "number" ? updated.focus_y : 0.5,
+        zoom_base:
+          typeof updated.zoom_base === "number" ? updated.zoom_base : DEFAULT_ZOOM_BASE,
       };
       setForm(nextForm);
       setOriginalForm(nextForm);
@@ -578,6 +588,24 @@ export default function EditCarPanel({
                 onChange={({ x, y }) =>
                   setForm((prev) => ({ ...prev, focus_x: x, focus_y: y }))
                 }
+                zoomBase={form.zoom_base}
+                disabled={isSubmitting}
+              />
+            </Field>
+
+            <Field
+              label={
+                <>
+                  Nivel de zoom inicial
+                  <span className="ml-2 normal-case tracking-normal text-muted">
+                    · sube para coches muy reconocibles
+                  </span>
+                </>
+              }
+            >
+              <ZoomBaseField
+                value={form.zoom_base}
+                onChange={(v) => setForm((prev) => ({ ...prev, zoom_base: v }))}
                 disabled={isSubmitting}
               />
             </Field>

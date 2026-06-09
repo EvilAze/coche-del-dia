@@ -39,6 +39,7 @@ import { signRevealToken } from "./_lib/edge/reveal-token.js";
 import { readAnonSession, buildSetCookie } from "./_lib/edge/anon-session.js";
 import { sha1Hex } from "./_lib/edge/crypto.js";
 import { logSessionStart } from "./_lib/edge/audit.js";
+import { clampZoomBase } from "./_lib/zoom.js";
 
 export const config = {
   runtime: "edge",
@@ -136,7 +137,7 @@ export default async function handler(request) {
   const [imgResult, gameResult] = await Promise.all([
     supabaseAdmin
       .from("cars")
-      .select("image_url, blur_data")
+      .select("image_url, blur_data, zoom_base")
       .eq("id", todayCarId)
       .maybeSingle(),
     user
@@ -157,12 +158,18 @@ export default async function handler(request) {
     console.error("[get-daily-car] read image_url:", imgRowErr);
   }
 
+  // Zoom base del coche de hoy. El cliente lo usa para calcular los scales CSS
+  // por intento; clampZoomBase cae al default 3.7 si la columna no existe aún.
+  const zoomBase = clampZoomBase(imgRow?.zoom_base);
+
   // Cache-buster sha1 corto. Si admin reemplaza la foto desde
   // /admin/edit-car, image_url cambia → hash cambia → CDN sirve la nueva
   // al instante. Si solo edita texto, image_url no se toca y el CDN
-  // mantiene el hit caliente.
+  // mantiene el hit caliente. Incluimos también el zoom_base: si admin ajusta
+  // la dificultad del coche del día, el crop que sirve daily-image cambia, así
+  // que el hash debe invalidar la entrada cacheada.
   const imgVersion = imgRow?.image_url
-    ? (await sha1Hex(imgRow.image_url)).slice(0, 8)
+    ? (await sha1Hex(`${imgRow.image_url}:${zoomBase}`)).slice(0, 8)
     : "0";
   const dailyImgUrl = `/api/daily-image?d=${today}&v=${imgVersion}`;
   const blurData = imgRow?.blur_data || null;
@@ -171,6 +178,7 @@ export default async function handler(request) {
     date: today,
     img: dailyImgUrl,
     blurData,
+    zoomBase,
     guesses: [],
     status: "playing",
     reveal: null,
@@ -275,6 +283,7 @@ export default async function handler(request) {
     date: today,
     img: dailyImgUrl,
     blurData,
+    zoomBase,
     guesses,
     status,
     reveal,

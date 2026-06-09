@@ -6,24 +6,19 @@ import { detectAndPersistNewAchievements } from "../lib/achievementsNotifier";
 import { track } from "../lib/analytics";
 import { haptic } from "../lib/haptics";
 import { useT } from "../i18n";
+// Niveles de zoom CSS aplicados sobre la imagen `?z=5` que sirve el servidor
+// durante la partida. AHORA son POR COCHE: dependen de su `zoomBase` (el zoom
+// lógico del intento 1, que llega en la respuesta de get-daily-car). El
+// servidor solo entrega el crop del intento 5 (el más amplio) y el cliente
+// cierra el resto con CSS para los intentos 1..4 — un atacante con DevTools
+// nunca ve más imagen que un jugador legítimo en intento 5.
+//
+// La fórmula está centralizada en src/lib/zoom.js (réplica de api/_lib/zoom.js).
+// Para el base por defecto (3.7) cssZoomLevels reproduce [2.176, 1.882, 1.588,
+// 1.294, 1.0] — el comportamiento histórico exacto.
+import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 
 const MAX_ATTEMPTS = 5;
-
-// Niveles de zoom CSS aplicados sobre la imagen `?z=5` (crop 58.8% central)
-// que sirve el servidor durante la partida.
-//
-// Los zooms lógicos del juego son [3.7, 3.2, 2.7, 2.2, 1.7] — intervalos
-// regulares de 0.5 para que la dificultad baje de forma uniforme y el
-// último intento no sea demasiado revelador (antes el salto 2.4 → 1.8
-// regalaba mucha imagen). El servidor solo entrega el crop más amplio
-// (58.8% = 1/1.7) y el cliente cierra el resto con CSS para los intentos
-// 1..4. Un atacante con DevTools nunca ve más imagen que un jugador
-// legítimo en intento 5.
-//
-// Cada valor CSS = ZOOM_LOGICO / 1.7. Si tocas estos números también
-// hay que actualizarlos en api/daily-image.js (Z_TO_CROP_PCT) y en
-// src/admin/FocusPicker.jsx (ZOOM_PREVIEWS).
-const ZOOM_LEVELS = [2.176, 1.882, 1.588, 1.294, 1.0];
 
 function getTodayKey() {
   const options = {
@@ -356,15 +351,17 @@ export function useGame() {
   }, [user]);
 
   const attempts = guesses.length;
-  const zoomIndex = Math.min(attempts, ZOOM_LEVELS.length - 1);
-  // El zoom es un scale CSS aplicado sobre la imagen `?z=5` que ya viene
-  // recortada al 55.6% central. Con cada intento, el scale baja → la imagen
-  // se "aleja" mostrando más coche, hasta scale=1.0 en el intento 5 (no
-  // queda más zoom que aplicar, ya ves todo el crop). Al revelar (won/lost),
-  // el servidor sirve la imagen completa y volvemos a scale=1.0.
-  const zoom = status === "playing" ? ZOOM_LEVELS[zoomIndex] : 1.0;
+  const zoomIndex = Math.min(attempts, ZOOM_ATTEMPTS - 1);
+  // Scales CSS por intento, derivados del zoom_base del coche de hoy (llega en
+  // car.zoomBase). Si aún no hay coche o es un coche sin la columna, cssZoomLevels
+  // cae al default 3.7. El zoom es un scale aplicado sobre la imagen `?z=5` (el
+  // crop del intento 5): con cada intento baja → la imagen se "aleja" mostrando
+  // más coche, hasta scale=1.0 en el intento 5. Al revelar (won/lost), el
+  // servidor sirve la imagen completa y volvemos a scale=1.0.
+  const zoomLevels = cssZoomLevels(car?.zoomBase);
+  const zoom = status === "playing" ? zoomLevels[zoomIndex] : 1.0;
   const hintIndex = status === "playing" ? zoomIndex : null;
-  const totalHints = ZOOM_LEVELS.length;
+  const totalHints = ZOOM_ATTEMPTS;
 
   // Durante la partida pedimos siempre el crop más amplio (z=5). El cliente
   // termina de "cerrar" el zoom con CSS. Cuando el juego termina añadimos

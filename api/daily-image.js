@@ -33,6 +33,7 @@ import { todayInMadrid } from "./_lib/date.js";
 import { methodGuard } from "./_lib/http.js";
 import { getClientIp } from "./_lib/rate-limit.js";
 import { logCanary } from "./_lib/audit.js";
+import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
@@ -57,25 +58,15 @@ const FORMAT_MIME = {
 // estaría viendo en ese intento, antes de devolverla. La imagen completa
 // nunca sale del servidor mientras el juego está activo.
 //
-// Los porcentajes son `1 / ZOOM_LEVEL`. Los zooms se distribuyen en
-// intervalos regulares de 0.5 para que la curva de dificultad sea
-// uniforme:
-//   z=1 (intento 1, zoom 3.7x) → 27.0% del lado menor.
-//   z=2 (intento 2, zoom 3.2x) → 31.3%.
-//   z=3 (intento 3, zoom 2.7x) → 37.0%.
-//   z=4 (intento 4, zoom 2.2x) → 45.5%.
-//   z=5 (intento 5, zoom 1.7x) → 58.8%.
+// El porcentaje del crop es `1 / zoom_del_intento`, y el zoom depende del
+// `zoom_base` de CADA coche (cars.zoom_base): intento z → base - 0.5*(z-1).
+// La fórmula vive en _lib/zoom.js (compartida conceptualmente con el cliente,
+// src/lib/zoom.js). Para el base por defecto (3.7) reproduce los valores
+// históricos: z=1 → 27.0%, z=2 → 31.3%, z=3 → 37.0%, z=4 → 45.5%, z=5 → 58.8%.
 // Si no se pasa `z` o el valor está fuera del set, NO se aplica crop:
 // devolvemos la imagen completa. El cliente solo debería pedir sin `z`
 // cuando el juego ha terminado (status=won|lost) y queremos revelar.
 const ALLOWED_Z = new Set([1, 2, 3, 4, 5]);
-const Z_TO_CROP_PCT = {
-  1: 0.270,
-  2: 0.313,
-  3: 0.370,
-  4: 0.455,
-  5: 0.588,
-};
 
 // Si llega un Bearer, intentamos identificar al usuario para gatear el
 // reveal a su `user_guesses.status`. Es opcional: el flujo normal de
@@ -132,13 +123,16 @@ export default async function handler(req, res) {
   //    histórico.
   const { data: row, error: fetchErr } = await supabaseAdmin
     .from("cars")
-    .select("image_url, focus_x, focus_y")
+    .select("image_url, focus_x, focus_y, zoom_base")
     .eq("id", carId)
     .single();
   if (fetchErr || !row?.image_url) {
     console.error("[daily-image] fetch car:", fetchErr);
     return res.status(500).json({ message: "Failed to load daily car" });
   }
+  // Zoom base por coche (dificultad). clampZoomBase cae al default 3.7 si la
+  // fila es de antes de la columna o trae un valor fuera de rango.
+  const zoomBase = clampZoomBase(row.zoom_base);
   const focusX =
     Number.isFinite(row.focus_x) && row.focus_x >= 0 && row.focus_x <= 1
       ? row.focus_x
@@ -274,7 +268,7 @@ export default async function handler(req, res) {
           // esquina y el `size` es grande (intento 5). En esos casos el
           // cuadrado se "pega" al borde — visualmente lógico.
           const minDim = Math.min(W, H);
-          const size = Math.max(1, Math.round(minDim * Z_TO_CROP_PCT[wantedZ]));
+          const size = Math.max(1, Math.round(minDim * cropPctForAttempt(wantedZ, zoomBase)));
           const rawLeft = Math.round(W * focusX - size / 2);
           const rawTop = Math.round(H * focusY - size / 2);
           const left = Math.max(0, Math.min(W - size, rawLeft));

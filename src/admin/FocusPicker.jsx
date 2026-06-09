@@ -13,16 +13,11 @@
 // en el panel padre.
 
 import { useEffect, useRef, useState } from "react";
-
-// Mismos valores que daily-image.js Z_TO_CROP_PCT. Si esto se actualiza
-// en el servidor, hay que actualizarlo también aquí — y en useGame.js.
-const ZOOM_PREVIEWS = [
-  { label: "1", cropPct: 0.270 },
-  { label: "2", cropPct: 0.313 },
-  { label: "3", cropPct: 0.370 },
-  { label: "4", cropPct: 0.455 },
-  { label: "5", cropPct: 0.588 },
-];
+import {
+  cropPctForAttempt,
+  DEFAULT_ZOOM_BASE,
+  ZOOM_ATTEMPTS,
+} from "../lib/zoom.js";
 
 function clamp01(n) {
   if (!Number.isFinite(n)) return 0.5;
@@ -36,6 +31,10 @@ export default function FocusPicker({
   value = { x: 0.5, y: 0.5 },
   onChange,
   disabled = false,
+  // Zoom inicial del coche (intento 1). Las miniaturas simulan el crop de cada
+  // intento a partir de él, así el admin ve EN VIVO el efecto de subir/bajar
+  // la dificultad. Default = comportamiento histórico.
+  zoomBase = DEFAULT_ZOOM_BASE,
 }) {
   const containerRef = useRef(null);
   const [dragging, setDragging] = useState(false);
@@ -202,13 +201,13 @@ export default function FocusPicker({
         </button>
       </div>
 
-      {/* Tira de previews de los 5 niveles de zoom */}
+      {/* Tira de previews de los 5 niveles de zoom (derivados del zoomBase). */}
       <div className="grid grid-cols-5 gap-2">
-        {ZOOM_PREVIEWS.map((z) => (
+        {Array.from({ length: ZOOM_ATTEMPTS }, (_, i) => (
           <ZoomThumb
-            key={z.label}
-            label={z.label}
-            cropPct={z.cropPct}
+            key={i}
+            label={String(i + 1)}
+            cropPct={cropPctForAttempt(i + 1, zoomBase)}
             src={src}
             dims={dims}
             focusX={px}

@@ -30,6 +30,7 @@ import { requireUser } from "../_lib/auth.js";
 import { todayInMadrid } from "../_lib/date.js";
 import { parseBody, methodGuard } from "../_lib/http.js";
 import { captureServerError } from "../_lib/sentry.js";
+import { clampZoomBase } from "../_lib/zoom.js";
 
 // Modo Veterano: si el usuario tiene alguna fila lost previa para este
 // coche, significa que ya lo vio revelado al fallar (sea en daily o en
@@ -297,13 +298,15 @@ export default async function handler(req, res) {
     // ~24px brutalmente desenfocada, no revela el coche. Si la lectura
     // falla, seguimos sin LQIP (CarImage cae a su skeleton pulsante).
     let blurData = null;
+    let zoomBase = clampZoomBase(undefined); // default si falla la lectura
     try {
       const { data: blurRow } = await getSupabaseAdmin()
         .from("cars")
-        .select("blur_data")
+        .select("blur_data, zoom_base")
         .eq("id", carId)
         .maybeSingle();
       blurData = blurRow?.blur_data || null;
+      zoomBase = clampZoomBase(blurRow?.zoom_base);
     } catch (err) {
       console.error("[repesca/start] read blur_data:", err?.message || err);
     }
@@ -316,6 +319,9 @@ export default async function handler(req, res) {
       mode,
       maxAttempts,
       blurData,
+      // Zoom inicial del coche: el cliente calcula con él los scales CSS por
+      // intento, igual que el juego diario. Default 3.7 si no hay columna.
+      zoomBase,
     });
   } catch (err) {
     console.error("[repesca/start] UNCAUGHT:", err && err.stack ? err.stack : err);

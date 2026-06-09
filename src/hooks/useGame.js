@@ -14,8 +14,9 @@ import { useT } from "../i18n";
 // nunca ve más imagen que un jugador legítimo en intento 5.
 //
 // La fórmula está centralizada en src/lib/zoom.js (réplica de api/_lib/zoom.js).
-// Para el base por defecto (3.7) cssZoomLevels reproduce [2.176, 1.882, 1.588,
-// 1.294, 1.0] — el comportamiento histórico exacto.
+// Con la curva logarítmica ease-out (EASE 0.7) y base por defecto (3.7),
+// cssZoomLevels da [2.176, 1.621, 1.348, 1.152, 1.0]. El intento 5 sigue en 1.0
+// (extremo intacto), solo se redistribuyen los intermedios para revelar antes.
 import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 
 const MAX_ATTEMPTS = 5;

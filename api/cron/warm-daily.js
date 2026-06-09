@@ -43,8 +43,9 @@
 // coche y deja en cars.suggested_zoom_base el zoom_base propuesto para que el
 // admin lo revise. Va aquí (piggyback) en vez de en un cron propio para no
 // superar el límite de 2 cron jobs del plan Hobby. Best-effort: si falla, el
-// warming —que es el trabajo principal— no se ve afectado.
-// Ver scripts/2026-06-difficulty-observatory.sql y api/cron/recalc-difficulty.js.
+// warming —que es el trabajo principal— no se ve afectado. Va aquí (y no en su
+// propio endpoint) también para no gastar uno de los 12 slots de función
+// serverless de Hobby. Ver scripts/2026-06-difficulty-observatory.sql.
 
 import { getSupabaseAdmin } from "../_lib/supabase.js";
 

@@ -86,6 +86,9 @@ export default function EditCarPanel({
 
   const [form, setForm] = useState(initialForm);
   const [originalForm, setOriginalForm] = useState(initialForm);
+  // Intel de dificultad observada (DDA Arquitectura A). La rellena el GET de
+  // save-car desde la telemetría; null si el coche aún no tiene datos.
+  const [difficulty, setDifficulty] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loadingCar, setLoadingCar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,6 +110,7 @@ export default function EditCarPanel({
     if (!selectedCarId) {
       setForm(initialForm);
       setOriginalForm(initialForm);
+      setDifficulty(null);
       setPreviewUrl(null);
       setFeedback(null);
       setDeleteConfirm(false);
@@ -154,6 +158,7 @@ export default function EditCarPanel({
         };
         setForm(next);
         setOriginalForm(next);
+        setDifficulty(data.difficulty ?? null);
         setPreviewUrl(null);
       } catch (err) {
         if (!cancelled) {
@@ -608,6 +613,14 @@ export default function EditCarPanel({
                 onChange={(v) => setForm((prev) => ({ ...prev, zoom_base: v }))}
                 disabled={isSubmitting}
               />
+              <DifficultyIntel
+                difficulty={difficulty}
+                currentZoomBase={form.zoom_base}
+                disabled={isSubmitting}
+                onApply={(suggested) =>
+                  setForm((prev) => ({ ...prev, zoom_base: suggested }))
+                }
+              />
             </Field>
 
             {typeof onOpenPreview === "function" && (
@@ -735,5 +748,102 @@ function Field({ label, children }) {
       </span>
       {children}
     </label>
+  );
+}
+
+// Coste objetivo del controlador de dificultad (DDA Arq. A). Réplica del default
+// p_target_cost de recompute_car_difficulty (scripts/2026-06-difficulty-observatory.sql):
+// si lo cambias allí, cámbialo aquí para que la etiqueta coincida.
+const TARGET_COST = 3.5;
+
+// Bloque de telemetría bajo el slider de zoom: muestra la dificultad REAL medida
+// del coche y, si hay sugerencia, un botón para aplicarla al slider (queda
+// "dirty" → se guarda con el botón normal). Human-in-loop: nada se aplica solo.
+function DifficultyIntel({ difficulty, currentZoomBase, onApply, disabled }) {
+  if (!difficulty) {
+    return (
+      <p className="mt-2 text-[11px] leading-relaxed text-muted">
+        Sin datos de telemetría todavía. La dificultad se mide cuando el coche
+        sale como coche del día y lo juega suficiente gente.
+      </p>
+    );
+  }
+
+  const { n, cost, pBy3, failRate, suggestedZoomBase, computedAt } = difficulty;
+
+  // Lectura humana del coste vs objetivo (moda intento 3-4).
+  let verdict, verdictClass;
+  if (cost == null) {
+    verdict = "sin coste";
+    verdictClass = "text-muted";
+  } else if (cost < TARGET_COST - 0.5) {
+    verdict = "demasiado fácil";
+    verdictClass = "text-amber-300";
+  } else if (cost > TARGET_COST + 0.7) {
+    verdict = "demasiado difícil";
+    verdictClass = "text-red-300";
+  } else {
+    verdict = "equilibrado";
+    verdictClass = "text-green-300";
+  }
+
+  const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
+  // ¿La sugerencia difiere de forma apreciable del valor actual del slider?
+  const canApply =
+    typeof suggestedZoomBase === "number" &&
+    Math.abs(suggestedZoomBase - currentZoomBase) >= 0.1;
+
+  return (
+    <div className="mt-2 flex flex-col gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-3">
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted">
+        <span>Dificultad observada</span>
+        <span className={`normal-case tracking-normal ${verdictClass}`}>
+          {verdict}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <Metric label="partidas" value={n != null ? n.toLocaleString("es") : "—"} />
+        <Metric label="coste medio" value={cost == null ? "—" : cost.toFixed(2)} />
+        <Metric label="≤3 intentos" value={pct(pBy3)} />
+      </div>
+      <div className="text-[10px] text-muted">
+        Fallo (no adivinó): <span className="text-white/80">{pct(failRate)}</span>
+        {" · "}objetivo de coste ~{TARGET_COST.toFixed(1)} (moda intento 3-4)
+      </div>
+
+      {suggestedZoomBase == null ? (
+        <p className="text-[11px] text-muted">
+          Aún no hay sugerencia: hacen falta más partidas para fiarse de la señal.
+        </p>
+      ) : canApply ? (
+        <button
+          type="button"
+          onClick={() => onApply?.(suggestedZoomBase)}
+          disabled={disabled}
+          className="self-start rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-[11px] uppercase tracking-widest text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Aplicar sugerencia: {suggestedZoomBase.toFixed(1)}×
+        </button>
+      ) : (
+        <p className="text-[11px] text-green-300/80">
+          La sugerencia ({suggestedZoomBase.toFixed(1)}×) coincide con el valor actual.
+        </p>
+      )}
+
+      {computedAt && (
+        <p className="text-[10px] text-muted/70">
+          Medido: {new Date(computedAt).toLocaleDateString("es")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Metric({ label, value }) {
+  return (
+    <div className="rounded-lg bg-white/5 px-2 py-1.5">
+      <div className="font-display text-sm text-white">{value}</div>
+      <div className="text-[9px] uppercase tracking-widest text-muted">{label}</div>
+    </div>
   );
 }

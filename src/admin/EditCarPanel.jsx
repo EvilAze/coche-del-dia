@@ -813,7 +813,8 @@ function DifficultyIntel({ difficulty, currentZoomBase, onApply, disabled }) {
 
       {suggestedZoomBase == null ? (
         <p className="text-[11px] text-muted">
-          Aún no hay sugerencia: hacen falta más partidas para fiarse de la señal.
+          Sin sugerencia: este coche no se desvía del objetivo más allá del ruido
+          (o aún faltan partidas). Solo se sugiere ante señales claras.
         </p>
       ) : canApply ? (
         <button

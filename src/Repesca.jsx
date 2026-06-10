@@ -22,7 +22,7 @@ import GuessForm from "./components/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import { useToast } from "./components/Toast";
 import { useT } from "./i18n";
-import { notifyAchievementsAfterWin } from "./hooks/useGame";
+import { notifyAchievementsAfterWin } from "./lib/achievementsNotifier";
 import { track } from "./lib/analytics";
 import { haptic } from "./lib/haptics";
 import { cssZoomLevels, ZOOM_ATTEMPTS, DEFAULT_ZOOM_BASE } from "./lib/zoom.js";

@@ -29,6 +29,19 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
 
+  // Cadena de foco (QoL móvil): elegir marca → foco al modelo (su desplegable
+  // se abre solo vía onFocus); elegir modelo → foco al año (teclado numérico).
+  // Sin esto, cada paso obligaba a cerrar el teclado y tocar el campo
+  // siguiente: 4 aperturas/cierres de teclado por intento. El foco se mueve
+  // SOLO en selecciones reales del usuario (onPick), nunca en resets
+  // programáticos post-submit. rAF: espera al re-render que habilita el campo
+  // destino (modelo está disabled hasta que marca es válida).
+  const modeloInputRef = useRef(null);
+  const anioInputRef = useRef(null);
+  const focusNext = (ref) => {
+    requestAnimationFrame(() => ref.current?.focus());
+  };
+
   // ── Conjuntos de "ya intentado sin éxito" (idéntico a GuessForm prod) ──
   const triedWrongMarcas = useMemo(() => {
     const set = new Set();
@@ -149,22 +162,27 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           label={t("cdd.labelMarca")}
           value={marca}
           onChange={(v) => { setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
+          onPick={() => focusNext(modeloInputRef)}
           options={availableMarcas}
           placeholder={t("cdd.comboPlaceholder")}
           disabled={formDisabled}
           invalid={marcaInvalida}
           optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
+          enterKeyHint="next"
         />
         <Combo
           label={t("cdd.labelModelo")}
           value={modelo}
           onChange={setModelo}
+          onPick={() => focusNext(anioInputRef)}
+          inputRef={modeloInputRef}
           options={modelOptions}
           placeholder={marcaValida ? t("cdd.comboPlaceholder") : t("cdd.comboModeloDisabled")}
           disabled={formDisabled || !marcaValida}
           invalid={modeloInvalido}
+          enterKeyHint="next"
         />
-        <YearField value={anio} onChange={setAnio} tolerance={tolerance} />
+        <YearField value={anio} onChange={setAnio} tolerance={tolerance} inputRef={anioInputRef} />
         <button type="submit" className="cdd-submit" disabled={!canSubmit} aria-busy={isSubmitting}>
           <span>{isSubmitting ? t("cdd.submitting") : t("cdd.submit")}</span>
         </button>

@@ -35,7 +35,10 @@ function Chip({ tone, pending, children, sub, flag, mark, flip, delay }) {
   );
 }
 
-function AttemptRow({ g, index, tolerance, pending, fresh }) {
+// Exportada: el Configurator la reusa para la "fila viva" del último intento
+// DENTRO del fold (feedback visible sin scroll). Aquí sigue pintando el
+// historial completo bajo el fold.
+export function AttemptRow({ g, index, tolerance, pending, fresh }) {
   const { t } = useT();
   // Delay del flip por celda cuando la fila es la recién revelada.
   const d = (i) => (fresh ? i * FLIP_STAGGER_MS + "ms" : undefined);

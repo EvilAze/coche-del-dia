@@ -249,11 +249,20 @@ body,
 }
 
 .cdd-hud { position: absolute; inset: 0; pointer-events: none; z-index: 7; }
-.cdd-hud-tl { position: absolute; top: 11px; left: 11px; color: color-mix(in oklab, var(--accent) 75%, #fff 0%); opacity: .85; }
+/* Crosshair a opacidad baja: es atrezzo de cámara, no un control — a .85
+   parecía un botón tocable (es pointer-events:none). */
+.cdd-hud-tl { position: absolute; top: 11px; left: 11px; color: color-mix(in oklab, var(--accent) 75%, #fff 0%); opacity: .45; }
 .cdd-hud-tr { position: absolute; top: 13px; right: 13px; font-size: 11px; color: var(--cdd-text);
   background: color-mix(in oklab, var(--bg2) 60%, transparent); backdrop-filter: blur(6px);
-  padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); }
-.cdd-hud-bl { position: absolute; bottom: 13px; left: 13px; font-size: 10px; color: var(--cdd-muted); }
+  padding: 5px 9px; border-radius: 6px; border: 1px solid var(--line);
+  display: flex; align-items: center; gap: 7px; }
+/* Pips de intento dentro de la pill: gastado (fallo previo, rojo apagado),
+   actual (accent con halo), restante (tenue). Sustituyen al texto suelto
+   "INTENTO n/5" de abajo-izquierda, ilegible sobre carrocerías claras. */
+.cdd-pips { display: flex; align-items: center; gap: 4px; }
+.cdd-pip { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.16); }
+.cdd-pip.spent { background: rgba(226,96,96,.8); }
+.cdd-pip.now { background: var(--accent); box-shadow: 0 0 8px -1px var(--accent); }
 .cdd-grain { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: .28; mix-blend-mode: overlay;
   background:
     repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.12) 2px 3px),
@@ -263,6 +272,9 @@ body,
 /* El historial vive bajo el fold (fuera del viewport hasta hacer scroll), como
    bloque propio del shell: se da su propio respiro respecto al formulario. */
 .cdd-attempts { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
+/* Fila viva del último intento, DENTRO del fold sobre el formulario: feedback
+   visible sin scroll (el flip-reveal/pending ocurrían fuera de pantalla). */
+.cdd-live-attempt { margin-bottom: 10px; }
 .cdd-attempt { display: flex; align-items: stretch; gap: 10px; }
 .cdd-attempt-no { display: flex; align-items: center; font-size: 11px; color: var(--faint); width: 22px; flex: none; font-family: var(--font-mono); }
 .cdd-attempt-chips { display: grid; grid-template-columns: 1.1fr 1.4fr 1fr; gap: 8px; flex: 1; min-width: 0; perspective: 700px; }

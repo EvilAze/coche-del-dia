@@ -29,9 +29,10 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
 
-  // Cadena de foco para no abrir/cerrar el teclado 4 veces por intento:
-  // elegir marca → enfoca modelo; elegir modelo → enfoca año. Refs a los dos
-  // campos "siguientes".
+  // Cadena de foco (QoL móvil) para no abrir/cerrar el teclado 4 veces por
+  // intento: elegir marca → enfoca modelo; elegir modelo → enfoca año. El foco
+  // se mueve SOLO en selecciones reales del usuario (onCommit del Combo),
+  // nunca en resets programáticos post-submit.
   const modeloRef = useRef(null);
   const anioRef = useRef(null);
 
@@ -125,7 +126,17 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     if (formDisabled) return;
 
     if (!marcaValida || !modeloValido || !anioValido) {
+      // El botón ya NO se deshabilita por campos incompletos (solo cambia de
+      // aspecto): un botón muerto no explica nada. Tocarlo con el intento a
+      // medias hace shake + nombra el PRIMER campo que falta — frustración
+      // convertida en guía (auditoría UX #5).
       haptic.warning(); triggerShake();
+      const missing = !marcaValida
+        ? t("guess.missingMarca")
+        : !modeloValido
+        ? t("guess.missingModelo")
+        : t("guess.missingAnio");
+      toast.push(missing, { type: "error" });
       return;
     }
     if (triedWrongMarcas.has(marca.toLowerCase())) {
@@ -167,27 +178,37 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           value={marca}
           onChange={(v) => { setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
           onCommit={() => focusSoon(modeloRef)}
-          enterKeyHint="next"
           options={availableMarcas}
           placeholder={t("cdd.comboPlaceholder")}
           disabled={formDisabled}
           invalid={marcaInvalida}
           optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
+          enterKeyHint="next"
         />
         <Combo
           label={t("cdd.labelModelo")}
           value={modelo}
           onChange={setModelo}
           onCommit={() => focusSoon(anioRef)}
-          enterKeyHint="next"
           inputRef={modeloRef}
           options={modelOptions}
           placeholder={marcaValida ? t("cdd.comboPlaceholder") : t("cdd.comboModeloDisabled")}
           disabled={formDisabled || !marcaValida}
           invalid={modeloInvalido}
+          enterKeyHint="next"
         />
         <YearField value={anio} onChange={setAnio} tolerance={tolerance} inputRef={anioRef} />
-        <button type="submit" className="cdd-submit" disabled={!canSubmit} aria-busy={isSubmitting}>
+        {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
+            Con campos incompletos el botón queda tocable con aspecto apagado
+            (.is-incomplete): el tap dispara el shake + toast de arriba. La
+            transición CSS apagado→accent al completarse el formulario es el
+            micro-feedback de "listo para disparar". */}
+        <button
+          type="submit"
+          className={"cdd-submit" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
+          disabled={formDisabled}
+          aria-busy={isSubmitting}
+        >
           <span>{isSubmitting ? t("cdd.submitting") : t("cdd.submit")}</span>
         </button>
       </form>

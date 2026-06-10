@@ -60,7 +60,10 @@
     "yearStepperDown": "Year -1",
     "yearAlreadyTried": "You already tried that year",
     "modelAlreadyTried": "You already tried that model",
-    "marcaAlreadyTried": "You already tried that make"
+    "marcaAlreadyTried": "You already tried that make",
+    "missingMarca": "Pick a make from the list",
+    "missingModelo": "Pick a model from the list",
+    "missingAnio": "Enter a valid year (4 digits)"
   },
   "howto": {
     "tag": "The game",
@@ -92,8 +95,9 @@
     "comboPlaceholder": "Type or pick…",
     "comboModeloDisabled": "Pick a make first",
     "noMatches": "No matches",
-    "yearPlaceholder": "e.g. 1992",
-    "yearTolerance": "±{n} accepted",
+    "yearPlaceholder": "YYYY",
+    "yearTolerance": "±{n} years",
+    "decadesAria": "Quick decade",
     "labelMarca": "MAKE",
     "labelModelo": "MODEL",
     "labelAnio": "YEAR",
@@ -266,7 +270,8 @@
     "title": "Today worldwide",
     "gamesPlayed": "{count} games played",
     "winRate": "{pct}% win rate",
-    "betterThan": "Better than {pct}% of players"
+    "betterThan": "Better than {pct}% of players",
+    "betterThanShare": "Better than {pct}% of players"
   },
   "toast": {
     "closeAria": "Close notification"

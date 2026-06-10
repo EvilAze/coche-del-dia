@@ -24,7 +24,15 @@ export function Icon({ d, size = 20, vb = 24, ...p }) {
 export const I = {
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5 20a7 7 0 0 1 14 0",
   home: ["M4 11 12 4l8 7", "M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"],
-  garage: ["M4 11 12 4l8 7", "M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9", "M9 20v-5h6v5"],
+  // Garaje = silueta de coche, no casa+puerta: el dibujo anterior (techo a dos
+  // aguas) se leía como "inicio/home" en el header — auditoría UX. Un coche
+  // comunica "tu colección" sin etiqueta.
+  garage: [
+    "M4 16v-2.6l1.9-4.6A2 2 0 0 1 7.7 7.5h8.6a2 2 0 0 1 1.8 1.3L20 13.4V16",
+    "M4 13.4h16",
+    "M6.4 16.2a1.7 1.7 0 1 0 3.4 0 1.7 1.7 0 1 0-3.4 0",
+    "M14.2 16.2a1.7 1.7 0 1 0 3.4 0 1.7 1.7 0 1 0-3.4 0",
+  ],
   stats: ["M5 20V10", "M12 20V4", "M19 20v-7"],
   help: "M9.2 9a2.8 2.8 0 1 1 4 2.5c-1 .6-1.7 1-1.7 2.2M12 17.2h.01",
   arrowU: "M12 19V5M6 11l6-6 6 6",

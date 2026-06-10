@@ -29,6 +29,23 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
 
+  // Cadena de foco para no abrir/cerrar el teclado 4 veces por intento:
+  // elegir marca → enfoca modelo; elegir modelo → enfoca año. Refs a los dos
+  // campos "siguientes".
+  const modeloRef = useRef(null);
+  const anioRef = useRef(null);
+
+  // El campo siguiente puede acabar de habilitarse en ESTE mismo render (modelo
+  // se activa al elegir una marca válida), así que esperamos al frame siguiente
+  // para enfocarlo ya habilitado. Enfocar dentro del gesto de selección hace
+  // que el teclado del siguiente campo se abra solo, evitando el baile manual.
+  const focusSoon = (ref) => {
+    requestAnimationFrame(() => {
+      const el = ref.current;
+      if (el && !el.disabled) el.focus();
+    });
+  };
+
   // ── Conjuntos de "ya intentado sin éxito" (idéntico a GuessForm prod) ──
   const triedWrongMarcas = useMemo(() => {
     const set = new Set();
@@ -149,6 +166,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           label={t("cdd.labelMarca")}
           value={marca}
           onChange={(v) => { setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
+          onCommit={() => focusSoon(modeloRef)}
+          enterKeyHint="next"
           options={availableMarcas}
           placeholder={t("cdd.comboPlaceholder")}
           disabled={formDisabled}
@@ -159,12 +178,15 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           label={t("cdd.labelModelo")}
           value={modelo}
           onChange={setModelo}
+          onCommit={() => focusSoon(anioRef)}
+          enterKeyHint="next"
+          inputRef={modeloRef}
           options={modelOptions}
           placeholder={marcaValida ? t("cdd.comboPlaceholder") : t("cdd.comboModeloDisabled")}
           disabled={formDisabled || !marcaValida}
           invalid={modeloInvalido}
         />
-        <YearField value={anio} onChange={setAnio} tolerance={tolerance} />
+        <YearField value={anio} onChange={setAnio} tolerance={tolerance} inputRef={anioRef} />
         <button type="submit" className="cdd-submit" disabled={!canSubmit} aria-busy={isSubmitting}>
           <span>{isSubmitting ? t("cdd.submitting") : t("cdd.submit")}</span>
         </button>

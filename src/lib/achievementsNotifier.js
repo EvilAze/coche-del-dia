@@ -13,7 +13,8 @@
 
 import { computeAchievements, buildPersistDiff } from "./achievements";
 import { loadCatalog } from "../data/catalog";
-import { getMyWonCarIds, persistAchievementUnlocks } from "../hooks/useStats";
+import { getMyStats, getMyWonCarIds, persistAchievementUnlocks } from "./statsService";
+import { track } from "./analytics";
 
 /**
  * Carga catálogo + wins del usuario, computa logros, detecta diff vs el
@@ -61,4 +62,59 @@ export async function detectAndPersistNewAchievements({ stats }) {
 
   const newlyUnlocked = items.filter((a) => diff[a.id] !== undefined);
   return { items, newlyUnlocked };
+}
+
+// Helper compartido entre useGame.js y Repesca.jsx: tras ganar una partida,
+// refresca stats (que ya están actualizadas server-side por
+// record_daily_result_v2 o por la propia /api/repesca/validate), detecta
+// logros nuevos y los pinta como toasts staggered. Máximo 3 individuales —
+// si hay más, agrega el resto en uno solo para no spamear.
+//
+// Vive aquí (y no en hooks/) porque NO usa hooks: recibe toast y t por
+// parámetro para poder llamarse fuera de un componente React.
+export async function notifyAchievementsAfterWin({ toast, t, locale }) {
+  try {
+    // Refetch stats: la victoria que acaba de pasar ha actualizado al
+    // menos current_streak/max_streak/total_wins/total_points + posibles
+    // achievements ya persistidos (si el usuario tenía MyStats abierto en
+    // sesiones anteriores). Necesitamos el snapshot fresco.
+    const { stats } = await getMyStats();
+    if (!stats) return;
+    const { newlyUnlocked } = await detectAndPersistNewAchievements({ stats });
+    if (newlyUnlocked.length === 0) return;
+
+    const MAX_INDIVIDUAL = 3;
+    const head = newlyUnlocked.slice(0, MAX_INDIVIDUAL);
+    const rest = newlyUnlocked.length - head.length;
+
+    head.forEach((a, i) => {
+      const title =
+        a.title?.[locale] || a.title?.es || a.title?.en || "Logro";
+      track("achievement_unlocked", {
+        id: a.id,
+        category: a.category,
+        tier: a.currentTier || null,
+      });
+      // Stagger: 600 ms entre toasts. Da tiempo a leer cada uno sin que
+      // pisen al anterior (el Toast por defecto dura ~3-4s).
+      setTimeout(() => {
+        toast.push(`🏅 ${t("achievements.toastUnlocked")} ${title}`, {
+          type: "success",
+        });
+      }, i * 600);
+    });
+
+    if (rest > 0) {
+      setTimeout(() => {
+        toast.push(
+          `🏅 ${t("achievements.toastMore", { count: rest })}`,
+          { type: "success" }
+        );
+      }, head.length * 600);
+    }
+  } catch (err) {
+    // No interferir nunca con el flujo de victoria. Si la notificación
+    // falla, el usuario verá los logros la próxima vez que abra MyStats.
+    console.warn("[achievementsNotifier] post-win:", err);
+  }
 }

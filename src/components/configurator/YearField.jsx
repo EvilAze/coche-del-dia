@@ -13,7 +13,7 @@
 //     ecuador de la década (p.ej. 1995) — submittable al instante con la
 //     tolerancia ±2 — y el teclado numérico/steppers afinan desde ahí.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 
@@ -27,6 +27,9 @@ const DECADES = [1960, 1970, 1980, 1990, 2000, 2010, 2020];
 export default function YearField({ value, onChange, tolerance, inputRef = null }) {
   const { t } = useT();
   const [focused, setFocused] = useState(false);
+  // Ref interno (además del externo de la cadena de foco): lo necesita el
+  // scrollIntoView de abajo aunque el padre no pase inputRef.
+  const innerRef = useRef(null);
   const clamp = (v) => Math.max(MIN_YEAR, Math.min(MAX_YEAR, v));
   const step = (delta) => {
     haptic.selection();
@@ -44,7 +47,10 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
       </label>
       <div className="cdd-year">
         <input
-          ref={inputRef}
+          ref={(el) => {
+            innerRef.current = el;
+            if (inputRef) inputRef.current = el;
+          }}
           className="cdd-input cdd-year-input"
           inputMode="numeric"
           // "go" y no "done": Enter aquí ENVÍA el intento (submit del form),
@@ -55,7 +61,20 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
           data-lpignore="true"
           placeholder={t("cdd.yearPlaceholder")}
           value={value || ""}
-          onFocus={() => setFocused(true)}
+          onFocus={() => {
+            setFocused(true);
+            // Mismo patrón que Combo (su línea ~85): en pantallas táctiles,
+            // sube el campo por encima del teclado recién abierto. Este es el
+            // campo MÁS BAJO del fold — sin esto, el teclado lo tapa seguro.
+            // 280ms ≈ animación de apertura del teclado. block:"start" deja
+            // sitio debajo para el overlay de décadas.
+            const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
+            if (coarse) {
+              window.setTimeout(() => {
+                innerRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+              }, 280);
+            }
+          }}
           onBlur={() => setFocused(false)}
           onChange={(e) => {
             const d = e.target.value.replace(/\D/g, "").slice(0, 4);

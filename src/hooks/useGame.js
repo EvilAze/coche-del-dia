@@ -87,34 +87,39 @@ function getShareDate() {
 }
 
 function buildShareText(guesses, streak = 0) {
-  // Formato Wordle-style con tres bloques de información, cada uno con rol
-  // distinto — sin redundancia entre ellos:
+  // Formato "Wordle canon" (iteración tras ver el mensaje en chats reales):
   //
-  //   1. CABECERA  → identificador + fecha [+ racha]
-  //        "Coche del Día · 24/05 · 🔥7"
+  //   1. CABECERA  → identificador + fecha + SCORE [+ racha]
+  //        "Coche del Día · 24/05 · 2/5 · 🔥7"
   //      • Nombre sin artículo: más compacto sin perder identidad.
   //      • Fecha sin año: nadie comparte resultados de meses atrás.
+  //      • Score "N/5" ("X/5" en derrota), como Wordle: el receptor NO
+  //        debería tener que contar filas y deducir — es lo primero que
+  //        el mensaje tiene que comunicar. (Revierte la decisión inicial
+  //        de omitirlo: en el chat real se echaba de menos.)
   //      • Racha (solo si > 0): peso emocional → "no quiero romperla" =
   //        share-bait. El 🔥 es universal para streak.
-  //      • NO incluimos "N/5" tipo Wordle: con máx 5 filas de 3 celdas,
-  //        la cuadrícula ES trivialmente parseable a ojo (contar filas =
-  //        score, última fila ✅✅✅ = victoria). Repetir esa info en
-  //        número es ruido. Wordle lo lleva por su grid de 6x5 más densa.
   //
-  //   2. CUADRÍCULA → resultados visuales (contiene score + win/loss)
+  //   2. CUADRÍCULA → el "viaje", separada por líneas en blanco
   //        🟥🟥🟩 / 🟩🟥🟩 / 🟩🟩🟩
+  //      Las líneas solo-emoji se renderizan GRANDES en Telegram/WhatsApp
+  //      (jumbo) — deliberado: ese render gigante es el meme de Wordle y
+  //      nuestro gancho visual. Las líneas en blanco la enmarcan para que
+  //      respire como bloque y no se pegue a cabecera/cierre.
   //      Espejo EXACTO de shareGrid en configurator/EndScreen.jsx (el
   //      preview del panel de compartir) — lo que ves es lo que se copia.
   //      Si cambias un mapeo, cambia el otro. Lenguaje: 🟩 acierto · 🟨 SOLO
   //      mismo-país en marca (tercer estado real del juego) · 🟥 fallo
   //      (rojo y no negro: ⬛ se funde con el tema oscuro de los chats).
   //
-  //   3. DOMINIO   → en línea propia, sin texto alrededor
+  //   3. DOMINIO   → SIEMPRE la última línea, sin texto alrededor
   //        "cochedeldia.com"
   //      Esto SÍ activa el OG card preview en WhatsApp/Telegram —
   //      decisión deliberada: cada share genera un preview con el
   //      wordmark dorado + GT-R en el chat del receptor. Marketing
   //      gratis vs ahorrar 50 px de altura en el mensaje.
+  //      EndScreen inserta el percentil ("Mejor que el N%…") JUSTO ANTES
+  //      de esta línea — cuenta con que el dominio cierra el mensaje.
   const lines = guesses.map((g) => {
     const m = g.marca.status === "correct" ? "🟩" : g.marca.status === "partial" ? "🟨" : "🟥";
     const mo = g.modelo.status === "correct" ? "🟩" : "🟥";
@@ -123,12 +128,22 @@ function buildShareText(guesses, streak = 0) {
     return m + mo + a;
   });
 
+  // Victoria = última fila con las tres celdas correctas (no hay otra forma
+  // de ganar y la partida se cierra ahí). Derrota → "X/5" estilo Wordle.
+  const last = guesses[guesses.length - 1];
+  const won =
+    last &&
+    last.marca.status === "correct" &&
+    last.modelo.status === "correct" &&
+    last.anio.status === "correct";
+  const score = `${won ? guesses.length : "X"}/${MAX_ATTEMPTS}`;
+
   // Racha: solo se incluye si hay racha real (>0). Los anónimos pasan
   // streak=0 por defecto y se omite limpiamente. Un "🔥0" sería
   // contraproducente.
   const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
 
-  return `Coche del Día · ${getShareDate()}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
+  return `Coche del Día · ${getShareDate()} · ${score}${streakChunk}\n\n${lines.join("\n")}\n\ncochedeldia.com`;
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la

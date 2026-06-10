@@ -61,14 +61,16 @@ function FlameIcon({ className = "h-3 w-3" }) {
 }
 
 // Preview visual de lo que se va a compartir. Antes pintábamos shareText
-// crudo en font-mono (parecía un bloque de código). Esto renderiza el
-// mismo grid binario (✅/❌ por celda → verde/rojo) en forma de tiles
-// que respetan la paleta del juego — los mismos tonos apagados que ya
-// están viendo los usuarios en las GuessRow justo encima de este panel.
+// crudo en font-mono (parecía un bloque de código). Esto renderiza un
+// grid binario (acierto→verde / resto→rojo) en forma de tiles que
+// respetan la paleta del juego.
 //
-// IMPORTANTE: el `shareText` que se copia al portapapeles NO cambia (se
-// mantiene exactamente el formato que el bot/Telegram/WhatsApp reconocen).
-// Esto es SOLO la previsualización visual en pantalla.
+// NOTA (legacy): este panel ya NO es la UI principal del juego — el flujo
+// vivo de compartir es configurator/EndScreen.jsx (su shareGrid usa el
+// lenguaje 🟩/🟨/🟥 de buildShareText, useGame.js). Aquí solo lo usa
+// Repesca, que pasa shareText="" → este bloque nunca se renderiza. Si se
+// reviviera, habría que actualizar este preview al mapeo actual (🟨 para
+// mismo-país en marca).
 //
 // Decisiones de diseño tras el primer pase:
 //   - Paleta apagada (#1a2f1a / #2a1a1a + borde) en lugar de red-500/
@@ -124,11 +126,9 @@ function ShareGridPreview({ guesses, streak, shareText }) {
         {guesses.map((g, i) => (
           <div key={i} className="flex gap-1.5">
             {[g.marca, g.modelo, g.anio].map((cell, j) => {
-              // Binario, igual que el shareText: solo "correct" cuenta
-              // como verde; "partial" / "country" / "wrong" caen a rojo.
-              // Si la previsualización mintiera (mostrando "partial" como
-              // verde) no coincidiría con los emojis ✅/❌ del mensaje
-              // copiado — peor UX que ser fiel al formato compartido.
+              // Binario: solo "correct" cuenta como verde; el resto cae a
+              // rojo. (Legacy: ver nota del componente — el mapeo vivo con
+              // 🟨 para mismo-país está en EndScreen/buildShareText.)
               const ok = cell?.status === "correct";
               const delayMs = REVEAL_BASE_MS + (i * 3 + j) * REVEAL_STAGGER_MS;
               return (

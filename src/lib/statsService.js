@@ -264,7 +264,10 @@ export async function getLeaderboard() {
 
   if (error) throw error;
 
-  return data
+  // Guard de null: PostgREST puede devolver `data: null` (sin error) en
+  // ciertos escenarios; sin esto, `.filter` revienta con TypeError. Mismo
+  // criterio defensivo que getMonthlyLeaderboard, que ya hacía `(data || [])`.
+  return (data || [])
     .filter((row) => row.profile?.display_name)
     .map((row, index) => ({
       rank: index + 1,

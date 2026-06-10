@@ -121,7 +121,17 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     if (formDisabled) return;
 
     if (!marcaValida || !modeloValido || !anioValido) {
+      // El botón ya NO se deshabilita por campos incompletos (solo cambia de
+      // aspecto): un botón muerto no explica nada. Tocarlo con el intento a
+      // medias hace shake + nombra el PRIMER campo que falta — frustración
+      // convertida en guía (auditoría UX #5).
       haptic.warning(); triggerShake();
+      const missing = !marcaValida
+        ? t("guess.missingMarca")
+        : !modeloValido
+        ? t("guess.missingModelo")
+        : t("guess.missingAnio");
+      toast.push(missing, { type: "error" });
       return;
     }
     if (triedWrongMarcas.has(marca.toLowerCase())) {
@@ -183,7 +193,17 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           enterKeyHint="next"
         />
         <YearField value={anio} onChange={setAnio} tolerance={tolerance} inputRef={anioInputRef} />
-        <button type="submit" className="cdd-submit" disabled={!canSubmit} aria-busy={isSubmitting}>
+        {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
+            Con campos incompletos el botón queda tocable con aspecto apagado
+            (.is-incomplete): el tap dispara el shake + toast de arriba. La
+            transición CSS apagado→accent al completarse el formulario es el
+            micro-feedback de "listo para disparar". */}
+        <button
+          type="submit"
+          className={"cdd-submit" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
+          disabled={formDisabled}
+          aria-busy={isSubmitting}
+        >
           <span>{isSubmitting ? t("cdd.submitting") : t("cdd.submit")}</span>
         </button>
       </form>

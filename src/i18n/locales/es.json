@@ -270,7 +270,8 @@
     "title": "Hoy en el mundo",
     "gamesPlayed": "{count} partidas",
     "winRate": "{pct}% acierto",
-    "betterThan": "Lo has hecho mejor que el {pct}% de jugadores"
+    "betterThan": "Lo has hecho mejor que el {pct}% de jugadores",
+    "betterThanShare": "Mejor que el {pct}% de jugadores"
   },
   "toast": {
     "closeAria": "Cerrar notificación"

@@ -270,7 +270,8 @@
     "title": "Today worldwide",
     "gamesPlayed": "{count} games played",
     "winRate": "{pct}% win rate",
-    "betterThan": "Better than {pct}% of players"
+    "betterThan": "Better than {pct}% of players",
+    "betterThanShare": "Better than {pct}% of players"
   },
   "toast": {
     "closeAria": "Close notification"

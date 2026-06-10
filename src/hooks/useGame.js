@@ -91,7 +91,9 @@ function getShareDate() {
   return `${day}/${month}`;
 }
 
-function buildShareText(guesses, streak = 0) {
+// maxAttempts llega como parámetro: el valor real vive en el estado del hook
+// (lo manda el servidor en get-daily-car) y esta función es pura de módulo.
+function buildShareText(guesses, streak = 0, maxAttempts = DEFAULT_MAX_ATTEMPTS) {
   // Formato "Wordle canon" (iteración tras ver el mensaje en chats reales):
   //
   //   1. CABECERA  → identificador + fecha + SCORE [+ racha]
@@ -143,7 +145,7 @@ function buildShareText(guesses, streak = 0) {
     last.marca.status === "correct" &&
     last.modelo.status === "correct" &&
     last.anio.status === "correct";
-  const score = `${won ? guesses.length : "X"}/${MAX_ATTEMPTS}`;
+  const score = `${won ? guesses.length : "X"}/${maxAttempts}`;
 
   // Racha: solo se incluye si hay racha real (>0). Los anónimos pasan
   // streak=0 por defecto y se omite limpiamente. Un "🔥0" sería
@@ -577,6 +579,6 @@ export function useGame() {
     score,
     maxAttempts,
     submitGuess,
-    buildShareText: (streak = 0) => buildShareText(guesses, streak),
+    buildShareText: (streak = 0) => buildShareText(guesses, streak, maxAttempts),
   };
 }

@@ -41,6 +41,14 @@ import { sha1Hex } from "./_lib/edge/crypto.js";
 import { logSessionStart } from "./_lib/edge/audit.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 
+// Intentos máximos de la partida diaria. Este valor viaja al cliente en la
+// respuesta para que la UI no tenga que hardcodearlo — pero es SOLO
+// informativo: la validación real (cortar la partida al 5º intento) vive en
+// api/validate-guess.js con su propia constante, porque el servidor nunca
+// puede fiarse de un valor que ha pasado por el navegador. Si cambias el
+// número, cámbialo también allí.
+const MAX_ATTEMPTS = 5;
+
 export const config = {
   runtime: "edge",
   // Pinneamos a Frankfurt: el Edge se ejecuta físicamente cerca del
@@ -179,6 +187,7 @@ export default async function handler(request) {
     img: dailyImgUrl,
     blurData,
     zoomBase,
+    maxAttempts: MAX_ATTEMPTS,
     guesses: [],
     status: "playing",
     reveal: null,
@@ -284,6 +293,7 @@ export default async function handler(request) {
     img: dailyImgUrl,
     blurData,
     zoomBase,
+    maxAttempts: MAX_ATTEMPTS,
     guesses,
     status,
     reveal,

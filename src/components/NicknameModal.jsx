@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { saveDisplayName } from "../hooks/useStats";
+import { saveDisplayName } from "../lib/statsService";
 import { useT } from "../i18n";
 import ModalShell from "./ModalShell";
 
@@ -26,8 +26,8 @@ export default function NicknameModal({ open, onSaved }) {
       const profile = await saveDisplayName(clean);
       onSaved(profile);
     } catch (err) {
-      // Mapeamos códigos conocidos a strings traducidos; si no, mostramos el
-      // mensaje crudo del backend o un genérico de save.
+      // Mapeamos cÃ³digos conocidos a strings traducidos; si no, mostramos el
+      // mensaje crudo del backend o un genÃ©rico de save.
       let msg;
       if (err?.code === "DUPLICATE_DISPLAY_NAME") msg = t("nickname.errorDuplicate");
       else if (err?.code === "DISPLAY_NAME_LOCKED") msg = t("nickname.errorLocked");
@@ -40,7 +40,7 @@ export default function NicknameModal({ open, onSaved }) {
 
   return (
     // dismissOnBackdrop=false: el nickname es obligatorio antes de jugar
-    // logueado. Cerrar tocando fuera dejaría al usuario en un estado raro
+    // logueado. Cerrar tocando fuera dejarÃ­a al usuario en un estado raro
     // (logueado pero sin display_name) que el resto del flujo ya esquiva.
     <ModalShell
       open={open}

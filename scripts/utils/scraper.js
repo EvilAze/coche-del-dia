@@ -18,8 +18,8 @@ const CAR_LIST = require("./carList");
 
 // ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
 const CONFIG = {
-  outputDir: path.resolve(__dirname, "./public/coches"),
-  outputJs: path.resolve(__dirname, "./src/data/cars.js"),
+  outputDir: path.resolve(__dirname, "../../public/coches"),
+  outputJs: path.resolve(__dirname, "../../src/data/cars.js"),
   delayMs: 2500,          // pausa entre descargas (ms) — NO bajar de 1500
   userAgent: "CocheDelDiaBot/1.0 (juego educativo; contacto: tu@email.com)",
   timeoutMs: 15000,

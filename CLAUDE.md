@@ -39,7 +39,7 @@ api/                  Endpoints Vercel (cada archivo = una ruta)
 
 lib/admin-handlers/   Lógica de los handlers admin (separada de api/)
 scripts/              SQL de migraciones Supabase + scripts de test/diagnóstico
-build/                Output del build (versionado). NO editar a mano.
+build/                Output del build (ignorado en git; Vercel compila en cada deploy). NO editar a mano.
 middleware.js         Edge Middleware (preload de la imagen hero solo en "/")
 vercel.json           Rewrites SPA, headers de seguridad, crons
 ```
@@ -84,5 +84,5 @@ Cliente único con `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. Lanza si falt
 8. **Sentry solo captura errores** (performance y replay OFF para no agotar el free tier). PII scrubbing agresivo: no mandes tokens, emails ni pistas del coche. Sin DSN → no-op.
 9. **No degradar la home.** El middleware y los fallbacks deben fallar en silencio: si Edge Config/cron/envs faltan, la página carga igual, solo sin la optimización.
 10. **Comentarios en español explicando el porqué** en cualquier código nuevo, igual que el existente. Respeta las decisiones de latencia (edge `fra1`, paralelización de I/O) documentadas en los handlers.
-11. **No editar `build/` a mano** — es output generado y versionado.
+11. **No editar `build/` a mano** — es output generado y está ignorado en git (Vercel lo compila en cada deploy).
 12. **Verificación**: el usuario revisa en su propio `vercel dev`. No levantes servidores de preview ni asumas un flujo de verify automático.

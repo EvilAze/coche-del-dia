@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMyStats } from "../hooks/useStats";
+import { getMyStats } from "../lib/statsService";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
@@ -50,8 +50,8 @@ function LockIcon() {
   );
 }
 
-// Escudo línea-arte con check (no emoji — coherencia + cross-platform). La
-// metáfora de escudo lee como "protección" sin pirueta mental, y suena natural
+// Escudo lÃ­nea-arte con check (no emoji â€” coherencia + cross-platform). La
+// metÃ¡fora de escudo lee como "protecciÃ³n" sin pirueta mental, y suena natural
 // en ES/EN ("escudo" / "shield"). El modelo de datos interno sigue siendo
 // streak_freezes; solo la cara visible es un escudo.
 function ShieldIcon() {
@@ -72,12 +72,12 @@ function ShieldIcon() {
   );
 }
 
-// Tope de congelados — sincronizado con v_freeze_cap en
+// Tope de congelados â€” sincronizado con v_freeze_cap en
 // scripts/supabase-streak-freeze.sql. Si cambias uno, cambia el otro.
 const FREEZE_CAP = 2;
 
 // Fila de inventario de escudos: icono + texto adaptativo + pips de capacidad
-// (lleno = disponible). Discreto y autoexplicativo, sin números sueltos que
+// (lleno = disponible). Discreto y autoexplicativo, sin nÃºmeros sueltos que
 // requieran contexto.
 function ShieldRow({ count }) {
   const { t } = useT();
@@ -100,7 +100,7 @@ function ShieldRow({ count }) {
         </span>
       </span>
 
-      {/* Capacidad como pips (máx FREEZE_CAP): lleno = disponible. */}
+      {/* Capacidad como pips (mÃ¡x FREEZE_CAP): lleno = disponible. */}
       <span
         className="flex shrink-0 items-center gap-1.5"
         role="img"
@@ -233,13 +233,13 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
             {/* Inventario de escudos de racha. */}
             <ShieldRow count={stats.streak_freezes} />
 
-            {/* Podios mensuales (🥇🥈🥉). Solo se renderiza si tiene alguno. */}
+            {/* Podios mensuales (ðŸ¥‡ðŸ¥ˆðŸ¥‰). Solo se renderiza si tiene alguno. */}
             <div className="mt-4 empty:hidden">
               <PodiumMedals userId={state.user?.id} />
             </div>
 
-            {/* Acceso a Logros: vive en su propio destino, no embebido aquí.
-                Este botón es el puente desde el perfil. */}
+            {/* Acceso a Logros: vive en su propio destino, no embebido aquÃ­.
+                Este botÃ³n es el puente desde el perfil. */}
             <button
               type="button"
               onClick={() => { onClose?.(); onOpenAchievements?.(); }}
@@ -263,7 +263,7 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
               </span>
             </button>
 
-            {/* Selector de idioma: reubicado aquí desde el antiguo popover
+            {/* Selector de idioma: reubicado aquÃ­ desde el antiguo popover
                 del header. El perfil es el hogar natural de los ajustes. */}
             <div className="mt-5 border-t border-white/10 pt-4">
               <LanguageStrip />

@@ -12,6 +12,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["src/**/*.test.{js,jsx}"],
+    // api/**: los helpers puros de _lib (compare-guess, zoom…) también se
+    // testean aquí — son JS plano sin runtime de Vercel, vitest los traga.
+    include: ["src/**/*.test.{js,jsx}", "api/**/*.test.js"],
   },
 });

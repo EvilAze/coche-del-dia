@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuración de rutas
-const dirCoches = path.join(__dirname, 'public', 'coches');
-const archivoSalida = path.join(__dirname, 'src', 'data', 'cars.js');
+const dirCoches = path.join(__dirname, '..', '..', 'public', 'coches');
+const archivoSalida = path.join(__dirname, '..', '..', 'src', 'data', 'cars.js');
 
 console.log("🔍 Escaneando carpeta de imágenes...");
 

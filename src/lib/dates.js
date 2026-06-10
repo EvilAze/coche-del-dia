@@ -1,6 +1,7 @@
 // src/lib/dates.js
-// Helpers de fecha PUROS (sin dependencias) extraídos de useStats para poder
-// testearlos sin arrastrar supabaseClient (que exige env vars al importarse).
+// Helpers de fecha PUROS (sin dependencias) extraídos de statsService para
+// poder testearlos sin arrastrar supabaseClient (que exige env vars al
+// importarse).
 //
 // La zona horaria del juego es Europe/Madrid (la misma que usa el servidor),
 // así el corte de día coincide cliente/servidor.

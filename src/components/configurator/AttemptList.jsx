@@ -3,7 +3,9 @@
 // del servidor (status correct/partial/wrong + dirección de año) al lenguaje de
 // tonos del diseño: good (acierto sólido), near (cerca), off (fallo).
 //   · marca: correct→good · partial (misma nacionalidad)→near + bandera · wrong→off
-//   · modelo: correct→good · (marca correcta)→near · wrong→off
+//   · modelo: correct→good · wrong→off (sin "near": acertar la marca ya se
+//     celebra en SU chip; teñir el modelo de "cerca" duplicaba la señal y se
+//     confundía con el estado mismo-país de marca)
 //   · año: correct→good (±tol) · wrong→off + flecha ↑/↓ + MÁS NUEVO/ANTIGUO
 // Incluye la fila "pendiente" (esperando al servidor) con shimmer neutro, y el
 // flip-reveal secuencial (marca→modelo→año) en el intento recién validado.
@@ -57,8 +59,9 @@ function AttemptRow({ g, index, tolerance, pending, fresh }) {
   const marcaFlag = mSt === "partial" && g.marca?.pais ? flagImagePath(g.marca.pais) : null;
   const marcaSub = mSt === "partial" ? t("cdd.sameCountry") : null;
 
-  // modelo
-  const modeloTone = g.modelo?.status === "correct" ? "good" : mSt === "correct" ? "near" : "off";
+  // modelo — binario: o aciertas o fallas. El "near" por marca-correcta se
+  // retiró (se confundía con el near de mismo-país en la celda marca).
+  const modeloTone = g.modelo?.status === "correct" ? "good" : "off";
 
   // año
   const aSt = g.anio?.status;

@@ -34,13 +34,20 @@ function legacyCopy(text) {
   }
 }
 
+// Lenguaje visual de la cuadrícula (espejo de buildShareText en useGame.js —
+// el preview DEBE coincidir 1:1 con lo que se copia; si cambias uno, cambia el
+// otro):
+//   🟩 acierto · 🟨 SOLO mismo-país en marca (el único tercer estado del
+//   juego) · 🟥 fallo.
+// Rojo en vez de negro para el fallo: en los chats con tema oscuro ⬛ se
+// fundía con el fondo y la cuadrícula parecía tener huecos. Sin flechas de
+// año: para el receptor no significan nada sin contexto y rompían la rejilla.
 function shareGrid(guesses) {
   return guesses
     .map((g) => {
-      const m = g.marca?.status === "correct" ? "🟩" : g.marca?.status === "partial" ? "🟨" : "⬛";
-      const mo = g.modelo?.status === "correct" ? "🟩" : g.marca?.status === "correct" ? "🟨" : "⬛";
-      const an =
-        g.anio?.status === "correct" ? "🟩" : g.anio?.direction === "up" ? "🔼" : "🔽";
+      const m = g.marca?.status === "correct" ? "🟩" : g.marca?.status === "partial" ? "🟨" : "🟥";
+      const mo = g.modelo?.status === "correct" ? "🟩" : "🟥";
+      const an = g.anio?.status === "correct" ? "🟩" : "🟥";
       return m + mo + an;
     })
     .join("\n");

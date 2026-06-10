@@ -102,7 +102,12 @@ function buildShareText(guesses, streak = 0) {
   //        número es ruido. Wordle lo lleva por su grid de 6x5 más densa.
   //
   //   2. CUADRÍCULA → resultados visuales (contiene score + win/loss)
-  //        ✅❌❌ / ✅✅❌ / ✅✅✅
+  //        🟥🟥🟩 / 🟩🟥🟩 / 🟩🟩🟩
+  //      Espejo EXACTO de shareGrid en configurator/EndScreen.jsx (el
+  //      preview del panel de compartir) — lo que ves es lo que se copia.
+  //      Si cambias un mapeo, cambia el otro. Lenguaje: 🟩 acierto · 🟨 SOLO
+  //      mismo-país en marca (tercer estado real del juego) · 🟥 fallo
+  //      (rojo y no negro: ⬛ se funde con el tema oscuro de los chats).
   //
   //   3. DOMINIO   → en línea propia, sin texto alrededor
   //        "cochedeldia.com"
@@ -111,9 +116,9 @@ function buildShareText(guesses, streak = 0) {
   //      wordmark dorado + GT-R en el chat del receptor. Marketing
   //      gratis vs ahorrar 50 px de altura en el mensaje.
   const lines = guesses.map((g) => {
-    const m = g.marca.status === "correct" ? "✅" : "❌";
-    const mo = g.modelo.status === "correct" ? "✅" : "❌";
-    const a = g.anio.status === "correct" ? "✅" : "❌";
+    const m = g.marca.status === "correct" ? "🟩" : g.marca.status === "partial" ? "🟨" : "🟥";
+    const mo = g.modelo.status === "correct" ? "🟩" : "🟥";
+    const a = g.anio.status === "correct" ? "🟩" : "🟥";
 
     return m + mo + a;
   });

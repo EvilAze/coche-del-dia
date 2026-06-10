@@ -69,7 +69,7 @@ const STREAK_THRESHOLDS = [
 function slugify(value) {
   return String(value || "")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
     .replace(/\s+/g, "-")

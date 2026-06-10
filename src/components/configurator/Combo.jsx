@@ -22,14 +22,30 @@ export default function Combo({
   disabled = false,
   invalid = false,
   optionFlag = null,
+  // Cadena de foco (marca→modelo→año): el padre nos pasa un ref para poder
+  // enfocar este input programáticamente, y un onCommit que disparamos al
+  // elegir una opción para que avance al siguiente campo. enterKeyHint deja
+  // que el teclado móvil muestre "siguiente" en marca/modelo en vez de la lupa.
+  inputRef = null,
+  onCommit = null,
+  enterKeyHint = "search",
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [hi, setHi] = useState(0);
   const ref = useRef(null);
-  const inputRef = useRef(null);
+  const innerRef = useRef(null);
   const listRef = useRef(null);
+
+  // Ref combinado: mantenemos el ref interno (lo usamos para el auto-scroll en
+  // móvil) y, si el padre pasó inputRef, lo sincronizamos para que pueda
+  // enfocar el input desde la cadena de foco.
+  const setInputRef = (node) => {
+    innerRef.current = node;
+    if (typeof inputRef === "function") inputRef(node);
+    else if (inputRef) inputRef.current = node;
+  };
 
   // Texto visible: el valor elegido, o lo que el usuario está tecleando.
   const text = value || q;
@@ -66,6 +82,9 @@ export default function Combo({
     onChange(o);
     setQ("");
     setOpen(false);
+    // Avanza la cadena de foco al siguiente campo (lo gestiona el padre, que
+    // sabe cuál es y espera al frame siguiente por si acaba de habilitarse).
+    onCommit?.();
   }
 
   function onFocus() {
@@ -74,7 +93,7 @@ export default function Combo({
     const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
     if (coarse) {
       window.setTimeout(() => {
-        inputRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+        innerRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
       }, 280);
     }
   }
@@ -94,10 +113,10 @@ export default function Combo({
       </label>
       <div className={"cdd-combo" + (disabled ? " is-disabled" : "") + (open ? " is-open" : "") + (invalid && !open ? " is-invalid" : "")}>
         <input
-          ref={inputRef}
+          ref={setInputRef}
           className="cdd-input"
           type="search"
-          enterKeyHint="search"
+          enterKeyHint={enterKeyHint}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

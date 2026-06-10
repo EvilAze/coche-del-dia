@@ -1,10 +1,17 @@
 // src/App.jsx
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
-import { getMyProfile, getMyStreak } from "./hooks/useStats";
 
 import Configurator from "./components/configurator/Configurator";
 import CloseButton from "./components/CloseButton";
+import LanguageStrip from "./components/LanguageStrip";
+import ModalShell from "./components/ModalShell";
+import { useGame } from "./hooks/useGame";
+import { useAuthSession } from "./hooks/useAuthSession";
+import { useModalState } from "./hooks/useModalState";
+import { useEscape } from "./hooks/useEscape";
+import { useDayRollover } from "./hooks/useDayRollover";
+import { useT } from "./i18n";
 
 // Modales lazy: viven todos detrás de un clic, así que NO entran en el bundle
 // inicial. Se descargan la primera vez que se abren y, una vez montados, se
@@ -16,26 +23,29 @@ const MyStats = lazy(() => import("./components/MyStats"));
 const AchievementsModal = lazy(() => import("./components/AchievementsModal"));
 const NicknameModal = lazy(() => import("./components/NicknameModal"));
 const HowToPlayModal = lazy(() => import("./components/HowToPlayModal"));
-import LanguageStrip from "./components/LanguageStrip";
-import ModalShell from "./components/ModalShell";
-import { useGame } from "./hooks/useGame";
-import { useEscape } from "./hooks/useEscape";
-import { useDayRollover } from "./hooks/useDayRollover";
-import { useT } from "./i18n";
 
 export default function App() {
   const { t } = useT();
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [checkingProfile, setCheckingProfile] = useState(true);
-  const [activeModal, setActiveModal] = useState(null);
-  // Modales lazy ya montados al menos una vez. Una vez montado, un modal
-  // permanece en el árbol para que su animación de salida (AnimatePresence)
-  // pueda completarse al cerrarse.
-  const [mounted, setMounted] = useState({});
-  const mountModal = useCallback((key) => {
-    setMounted((m) => (m[key] ? m : { ...m, [key]: true }));
-  }, []);
+  // Sesión + perfil + racha: la lógica de auth vive en useAuthSession; aquí
+  // solo consumimos el estado y los setters que necesitan otros flujos.
+  const {
+    user,
+    profile,
+    setProfile,
+    checkingProfile,
+    streak,
+    setStreak,
+    resetAuth,
+  } = useAuthSession();
+  // Overlays globales: modal activo + mapa de modales lazy ya montados.
+  const {
+    activeModal,
+    setActiveModal,
+    mounted,
+    mountModal,
+    openModal,
+    closeModal,
+  } = useModalState();
   // "?" de ayuda: pulsa sutilmente SOLO en la primera visita para invitar al
   // recién llegado, sin modal forzado (evita la fricción de entrada). Se apaga
   // al abrir el "cómo se juega".
@@ -51,12 +61,6 @@ export default function App() {
   // hoy y al menos un coche "missed" (ya fue coche del día y no se ganó).
   // Lo calculamos con una llamada ligera a /api/garage tras login.
   const [repescaAlert, setRepescaAlert] = useState(false);
-  // Racha actual del usuario logueado, visible como badge del header.
-  // 0 (o null si anónimo) = no se pinta el badge. Se sincroniza en dos
-  // momentos: (1) al hacer login, leemos de Supabase; (2) cuando una
-  // partida acaba, el score que devuelve useGame ya incluye el nuevo
-  // currentStreak — lo aplicamos sin refetch.
-  const [streak, setStreak] = useState(0);
   // `revealReady` = la imagen completa (sin crop) del coche del día ya ha
   // cargado tras terminar la partida. Lo enciende CarImage vía onRevealLoad.
   // ResultPanel lo usa para temporizar su scroll automático: espera a que
@@ -79,64 +83,13 @@ export default function App() {
   // intro opcional (link "Ver intro" en footer) o como animación de
   // arranque de PWA — no como bloqueo del primer paint.
 
-  // Gate de re-sincronización: onAuthStateChange dispara TOKEN_REFRESHED
-  // cada vez que el browser recupera el foco de la pestaña, con un user
-  // de igual id pero referencia nueva. Sin este ref, cada vuelta a la
-  // pestaña refetchea profile + streak (y arriba en useGame, dispara el
-  // re-init de la partida → pantalla "Aparcando coche"). Sentinel
-  // undefined = "nunca sincronizado" para distinguir del null = "sesión
-  // anónima ya procesada".
-  const lastUserIdRef = useRef(undefined);
-
+  // Al perder la sesión (logout desde otra pestaña, token caducado…),
+  // cerramos cualquier modal abierto: la mayoría muestran datos del usuario
+  // que ya no existe. Antes esto vivía dentro del sync de auth; ahora la
+  // sesión es responsabilidad de useAuthSession y la UI reacciona aquí.
   useEffect(() => {
-    async function syncUser(session) {
-      const nextUser = session?.user ?? null;
-      const nextId = nextUser?.id ?? null;
-      if (lastUserIdRef.current === nextId) return;
-      lastUserIdRef.current = nextId;
-
-      setUser(nextUser);
-
-      if (!nextUser) {
-        setProfile(null);
-        setStreak(0);
-        setCheckingProfile(false);
-        setActiveModal(null);
-        return;
-      }
-
-      setCheckingProfile(true);
-
-      try {
-        // Paralelizamos: el profile y el streak son lecturas independientes.
-        // Promise.all → cualquiera de los dos puede fallar sin afectar al
-        // otro porque getMyStreak ya devuelve 0 en error y getMyProfile
-        // tira → lo cazamos en el catch general.
-        const [nextProfile, nextStreak] = await Promise.all([
-          getMyProfile(nextUser.id),
-          getMyStreak(nextUser.id),
-        ]);
-        setProfile(nextProfile);
-        setStreak(nextStreak);
-      } catch (error) {
-        console.error("Error cargando perfil:", error);
-        setProfile(null);
-        setStreak(0);
-      } finally {
-        setCheckingProfile(false);
-      }
-    }
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      syncUser(session);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      syncUser(session);
-    });
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
+    if (!user) closeModal();
+  }, [user, closeModal]);
 
   // Radar de repesca: tras login, miramos si hay repesca disponible Y
   // al menos un coche "missed" en el catálogo. Una sola petición ligera;
@@ -179,25 +132,10 @@ export default function App() {
     // navegado a /repesca, jugado, y vuelto. activeModal === null tras eso.
   }, [user, activeModal]);
 
-  function openRanking() {
-    mountModal("ranking");
-    setActiveModal("ranking");
-  }
-
-  function openGarage() {
-    mountModal("garage");
-    setActiveModal("garage");
-  }
-
-  function openProfile() {
-    mountModal("profile");
-    setActiveModal("profile");
-  }
-
-  function openAchievements() {
-    mountModal("achievements");
-    setActiveModal("achievements");
-  }
+  const openRanking = () => openModal("ranking");
+  const openGarage = () => openModal("garage");
+  const openProfile = () => openModal("profile");
+  const openAchievements = () => openModal("achievements");
 
   // Login va por ModalShell inline (no lazy), no necesita mountModal.
   function openLogin() {
@@ -207,19 +145,12 @@ export default function App() {
   function openHowTo() {
     try { localStorage.setItem("ccd_howto_seen", "1"); } catch { /* ignore */ }
     setHowtoPulse(false);
-    mountModal("howto");
-    setActiveModal("howto");
-  }
-
-  function closeModal() {
-    setActiveModal(null);
+    openModal("howto");
   }
 
   function handleSignedOut() {
-    setUser(null);
-    setProfile(null);
-    setCheckingProfile(false);
-    setActiveModal(null);
+    resetAuth();
+    closeModal();
   }
 
   // NicknameModal se abre solo (onboarding) cuando un usuario logueado no

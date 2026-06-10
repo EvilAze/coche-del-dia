@@ -20,14 +20,10 @@ import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { parseBody, methodGuard } from "./_lib/http.js";
 import { logGuessAttempt } from "./_lib/audit.js";
+import { compareGuess } from "./_lib/compare-guess.js";
 
-const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
 const BASE_POINTS_BY_ATTEMPT = { 1: 10, 2: 6, 3: 4, 4: 3, 5: 2, 6: 1 };
-
-function normalize(value) {
-  return String(value || "").trim().toLowerCase();
-}
 
 function basePointsFor(attemptNumber, won) {
   if (!won) return 0;
@@ -192,36 +188,8 @@ export default async function handler(req, res) {
     }
 
     // -------- 6. Comparación ---------------------------------------------
-    const anioNum = parseInt(guessAnio, 10);
-    const anioCorrect =
-      Number.isFinite(anioNum) &&
-      Math.abs(anioNum - realCar.anio) <= ANIO_CORRECT_MARGIN;
-
-    const marcaOk = normalize(guessRow.make) === normalize(realCar.marca);
-    const modeloOk = normalize(guessRow.model) === normalize(realCar.modelo);
-    const paisOk =
-      !marcaOk &&
-      guessRow.pais &&
-      realCar.pais &&
-      guessRow.pais === realCar.pais;
-
-    const result = {
-      marca: {
-        val: guessRow.make,
-        status: marcaOk ? "correct" : paisOk ? "partial" : "wrong",
-        pais: guessRow.pais,
-      },
-      modelo: {
-        val: guessRow.model,
-        status: modeloOk ? "correct" : "wrong",
-      },
-      anio: {
-        val: String(guessAnio),
-        status: anioCorrect ? "correct" : "wrong",
-        direction: anioCorrect ? null : anioNum < realCar.anio ? "up" : "down",
-      },
-      win: marcaOk && modeloOk && anioCorrect,
-    };
+    //   Función pura en _lib/compare-guess.js (testeada en Vitest).
+    const result = compareGuess({ realCar, guessRow, guessAnio });
 
     const isGameOver = result.win || attemptNumber >= MAX_ATTEMPTS;
     const newStatus = result.win

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { useToast } from "../components/Toast";
-import { getMyStats } from "./useStats";
-import { detectAndPersistNewAchievements } from "../lib/achievementsNotifier";
+import { notifyAchievementsAfterWin } from "../lib/achievementsNotifier";
 import { track } from "../lib/analytics";
 import { haptic } from "../lib/haptics";
 import { useT } from "../i18n";
@@ -18,7 +17,13 @@ import { useT } from "../i18n";
 // 1.294, 1.0] — el comportamiento histórico exacto.
 import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 
-const MAX_ATTEMPTS = 5;
+// Fallback de intentos máximos mientras /api/get-daily-car no ha respondido
+// (o si una respuesta antigua no trae el campo). La fuente de verdad es el
+// servidor: get-daily-car incluye `maxAttempts` en su JSON y lo guardamos en
+// estado. OJO: este valor solo gobierna la UI — la validación real de
+// "partida terminada" la hace api/validate-guess.js con SU constante,
+// porque un valor que pasa por el navegador es manipulable con DevTools.
+const DEFAULT_MAX_ATTEMPTS = 5;
 
 function getTodayKey() {
   const options = {
@@ -145,61 +150,6 @@ function buildCarState({ img, blurData, reveal }) {
   };
 }
 
-// Helper compartido con Repesca.jsx: tras ganar una partida, refresca
-// stats (que ya están actualizadas server-side por record_daily_result_v2
-// o por la propia /api/repesca/validate), detecta logros nuevos y los
-// pinta como toasts staggered. Máximo 3 individuales — si hay más,
-// agrega el resto en uno solo para no spamear.
-//
-// Importable desde useGame y desde Repesca. NO usa hooks (recibe toast
-// y t por parámetro) para poder llamarse fuera de un componente React.
-export async function notifyAchievementsAfterWin({ toast, t, locale }) {
-  try {
-    // Refetch stats: la victoria que acaba de pasar ha actualizado al
-    // menos current_streak/max_streak/total_wins/total_points + posibles
-    // achievements ya persistidos (si el usuario tenía MyStats abierto en
-    // sesiones anteriores). Necesitamos el snapshot fresco.
-    const { stats } = await getMyStats();
-    if (!stats) return;
-    const { newlyUnlocked } = await detectAndPersistNewAchievements({ stats });
-    if (newlyUnlocked.length === 0) return;
-
-    const MAX_INDIVIDUAL = 3;
-    const head = newlyUnlocked.slice(0, MAX_INDIVIDUAL);
-    const rest = newlyUnlocked.length - head.length;
-
-    head.forEach((a, i) => {
-      const title =
-        a.title?.[locale] || a.title?.es || a.title?.en || "Logro";
-      track("achievement_unlocked", {
-        id: a.id,
-        category: a.category,
-        tier: a.currentTier || null,
-      });
-      // Stagger: 600 ms entre toasts. Da tiempo a leer cada uno sin que
-      // pisen al anterior (el Toast por defecto dura ~3-4s).
-      setTimeout(() => {
-        toast.push(`🏅 ${t("achievements.toastUnlocked")} ${title}`, {
-          type: "success",
-        });
-      }, i * 600);
-    });
-
-    if (rest > 0) {
-      setTimeout(() => {
-        toast.push(
-          `🏅 ${t("achievements.toastMore", { count: rest })}`,
-          { type: "success" }
-        );
-      }, head.length * 600);
-    }
-  } catch (err) {
-    // No interferir nunca con el flujo de victoria. Si la notificación
-    // falla, el usuario verá los logros la próxima vez que abra MyStats.
-    console.warn("[achievementsNotifier] post-win:", err);
-  }
-}
-
 export function useGame() {
   // Snapshot anon leído UNA sola vez al montar. Si existe, pre-pintamos
   // el resultado del reto y omitimos el primer paso de loading — la
@@ -239,6 +189,8 @@ export function useGame() {
   // Se resetea a -1 al inicializar y cuando entra una nueva pending.
   const [justRevealedIndex, setJustRevealedIndex] = useState(-1);
   const [status, setStatus] = useState(initialAnon?.status ?? "playing");
+  // Intentos máximos según el servidor (ver DEFAULT_MAX_ATTEMPTS arriba).
+  const [maxAttempts, setMaxAttempts] = useState(DEFAULT_MAX_ATTEMPTS);
   const [user, setUser] = useState(null);
   const [score, setScore] = useState(null);
   const { t, locale } = useT();
@@ -307,8 +259,11 @@ export function useGame() {
           credentials: "same-origin",
         });
         const daily = await res.json();
-        // daily = { date, img, guesses, status, reveal, revealToken }
+        // daily = { date, img, maxAttempts, guesses, status, reveal, revealToken }
         setRevealToken(daily.revealToken || null);
+        if (Number.isInteger(daily.maxAttempts) && daily.maxAttempts > 0) {
+          setMaxAttempts(daily.maxAttempts);
+        }
 
         let initialGuesses = Array.isArray(daily.guesses) ? daily.guesses : [];
         let initialStatus = daily.status || "playing";
@@ -506,7 +461,7 @@ export function useGame() {
       let newStatus = "playing";
 
       if (result.win) newStatus = "won";
-      else if (newGuesses.length >= MAX_ATTEMPTS) newStatus = "lost";
+      else if (newGuesses.length >= maxAttempts) newStatus = "lost";
 
       if (newStatus === "won") {
         haptic.success();
@@ -597,7 +552,7 @@ export function useGame() {
     hintIndex,
     totalHints,
     score,
-    maxAttempts: MAX_ATTEMPTS,
+    maxAttempts,
     submitGuess,
     buildShareText: (streak = 0) => buildShareText(guesses, streak),
   };

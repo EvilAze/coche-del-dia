@@ -1,18 +1,18 @@
 // src/components/PublicProfile.jsx
 // Modal read-only con el perfil de OTRO usuario (no el actual).
-// Reutiliza la misma estética de MyStats pero:
+// Reutiliza la misma estÃ©tica de MyStats pero:
 //   - Sin email (privado, no se expone).
-//   - Sin botón Sign out (no eres tú).
+//   - Sin botÃ³n Sign out (no eres tÃº).
 //   - Logros: SOLO los conseguidos. No mostramos progreso pendiente
 //     (eso es info personal). Si no tiene ninguno, mensaje amable.
 //
 // Datos vienen de la RPC `get_public_profile` (ver scripts/supabase-
-// public-profile-rpc.sql). Solo expone campos que ya son públicos en
+// public-profile-rpc.sql). Solo expone campos que ya son pÃºblicos en
 // el leaderboard + lista de coches ganados.
 
 import { useEffect, useMemo, useState } from "react";
 import { useT, getLocalizedCountry } from "../i18n";
-import { getPublicProfile } from "../hooks/useStats";
+import { getPublicProfile } from "../lib/statsService";
 import { loadCatalog } from "../data/catalog";
 import { computeAchievements } from "../lib/achievements";
 import { useEscape } from "../hooks/useEscape";
@@ -32,7 +32,7 @@ function StatCard({ label, value }) {
   );
 }
 
-// Slugs idénticos a Garage.jsx y Achievements.jsx — claves para que los
+// Slugs idÃ©nticos a Garage.jsx y Achievements.jsx â€” claves para que los
 // logos de marca y banderas resuelvan correctamente.
 function brandSlug(marca) {
   return String(marca || "").toLowerCase().replace(/\s+/g, "-");
@@ -40,7 +40,7 @@ function brandSlug(marca) {
 function countrySlug(pais) {
   return String(pais || "")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[Ì€-Í¯]/g, "")
     .replace(/\./g, "")
     .toLowerCase()
     .trim()
@@ -65,8 +65,8 @@ export default function PublicProfile({ open, onClose, userId }) {
           cars: catalog?.cars || [],
           wonCarIds: profile?.wonCarIds || [],
           stats: profile?.stats || {},
-          // Si el otro usuario tenía oro en una marca antes de que
-          // ampliáramos el catálogo, terceros lo siguen viendo en oro.
+          // Si el otro usuario tenÃ­a oro en una marca antes de que
+          // ampliÃ¡ramos el catÃ¡logo, terceros lo siguen viendo en oro.
           persistedUnlocks: profile?.achievementsUnlocked || {},
         });
         setState({
@@ -78,8 +78,8 @@ export default function PublicProfile({ open, onClose, userId }) {
       .catch((err) => {
         console.error("[PublicProfile]", err);
         if (cancelled) return;
-        // Detectamos el caso específico de "RPC no existe" para dar un
-        // mensaje útil en dev: la causa más común es haber olvidado
+        // Detectamos el caso especÃ­fico de "RPC no existe" para dar un
+        // mensaje Ãºtil en dev: la causa mÃ¡s comÃºn es haber olvidado
         // ejecutar scripts/supabase-public-profile-rpc.sql en Supabase.
         const msg = String(err?.message || "").toLowerCase();
         const rpcMissing =
@@ -100,8 +100,8 @@ export default function PublicProfile({ open, onClose, userId }) {
   }, [open, userId, t]);
 
   // Filtramos los logros que vamos a mostrar:
-  //   - Colecciones (marca/país): solo si tienen currentTier (al menos
-  //     un tier conseguido). Ocultamos las que aún no han iniciado.
+  //   - Colecciones (marca/paÃ­s): solo si tienen currentTier (al menos
+  //     un tier conseguido). Ocultamos las que aÃºn no han iniciado.
   //   - Hitos / rachas: solo los unlocked.
   const visibleAchievements = useMemo(() => {
     const items = state.data?.achievements || [];
@@ -113,7 +113,7 @@ export default function PublicProfile({ open, onClose, userId }) {
     });
   }, [state.data]);
 
-  // Agrupar visualmente por categoría, mismo orden que Achievements.jsx.
+  // Agrupar visualmente por categorÃ­a, mismo orden que Achievements.jsx.
   const groups = useMemo(() => {
     const map = new Map();
     for (const a of visibleAchievements) {
@@ -190,7 +190,7 @@ export default function PublicProfile({ open, onClose, userId }) {
           </div>
 
           <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-white/10 px-5 pt-4">
-            {/* Podios mensuales (🥇🥈🥉). Solo se renderiza si tiene alguno. */}
+            {/* Podios mensuales (ðŸ¥‡ðŸ¥ˆðŸ¥‰). Solo se renderiza si tiene alguno. */}
             <div className="mb-4 empty:hidden">
               <PodiumMedals userId={userId} />
             </div>
@@ -231,8 +231,8 @@ export default function PublicProfile({ open, onClose, userId }) {
   );
 }
 
-// Versión simplificada del Badge: solo estado conseguido, sin barra de
-// progreso (lo no conseguido no se muestra aquí), sin etiqueta "X/Y".
+// VersiÃ³n simplificada del Badge: solo estado conseguido, sin barra de
+// progreso (lo no conseguido no se muestra aquÃ­), sin etiqueta "X/Y".
 function PublicBadge({ achievement, locale }) {
   const { icon, currentTier, tiers, group } = achievement;
   const isCollection = Array.isArray(tiers) && tiers.length > 0;
@@ -310,7 +310,7 @@ function PublicBadge({ achievement, locale }) {
   return (
     <div
       className={`group relative aspect-square overflow-hidden rounded-lg border ${borderClass} bg-white/[0.04] p-2`}
-      title={`${title} — ${description}`}
+      title={`${title} â€” ${description}`}
     >
       <div className="flex h-full w-full flex-col items-center justify-center gap-1">
         {iconNode}

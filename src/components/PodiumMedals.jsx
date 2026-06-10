@@ -1,19 +1,19 @@
 // src/components/PodiumMedals.jsx
-// Medallas de PODIO mensual de un usuario: 🥇🥈🥉 "Primero en mayo de 2026".
-// Autónomo: recibe un userId y se encarga de pedir sus medallas a
-// getMonthlyMedals (lee la tabla pública monthly_podium). Mientras carga o si
-// no hay ninguna, no renderiza nada — el padre no necesita gestionar estado.
+// Medallas de PODIO mensual de un usuario: ðŸ¥‡ðŸ¥ˆðŸ¥‰ "Primero en mayo de 2026".
+// AutÃ³nomo: recibe un userId y se encarga de pedir sus medallas a
+// getMonthlyMedals (lee la tabla pÃºblica monthly_podium). Mientras carga o si
+// no hay ninguna, no renderiza nada â€” el padre no necesita gestionar estado.
 //
 // Las medallas las materializa el cron mensual (api/cron/monthly-podium.js)
 // sobre meses CERRADOS; ver scripts/supabase-monthly-ranking.sql.
 
 import { useEffect, useState } from "react";
 import { useT } from "../i18n";
-import { getMonthlyMedals } from "../hooks/useStats";
+import { getMonthlyMedals } from "../lib/statsService";
 
-const MEDAL_EMOJI = { 1: "🥇", 2: "🥈", 3: "🥉" };
+const MEDAL_EMOJI = { 1: "ðŸ¥‡", 2: "ðŸ¥ˆ", 3: "ðŸ¥‰" };
 
-// Estilo del borde/etiqueta según el puesto, en sintonía con los tiers de
+// Estilo del borde/etiqueta segÃºn el puesto, en sintonÃ­a con los tiers de
 // logros (oro/plata/bronce) que ya usa PublicProfile.
 const RANK_STYLE = {
   1: { border: "border-yellow-300/70", text: "text-yellow-300" },
@@ -22,7 +22,7 @@ const RANK_STYLE = {
 };
 
 function formatMonth(monthStr, dateLocale) {
-  // monthStr = "2026-05-01". Anclamos a mediodía para que el cambio de zona
+  // monthStr = "2026-05-01". Anclamos a mediodÃ­a para que el cambio de zona
   // horaria al formatear no nos desplace al mes anterior.
   const d = new Date(`${monthStr}T12:00:00`);
   if (Number.isNaN(d.getTime())) return monthStr;
@@ -77,7 +77,7 @@ export default function PodiumMedals({ userId }) {
               title={t("podium.medalAria", { place, month: monthLabel })}
             >
               <span className="text-base leading-none" aria-hidden="true">
-                {MEDAL_EMOJI[m.rank] || "🏅"}
+                {MEDAL_EMOJI[m.rank] || "ðŸ…"}
               </span>
               <span className="flex flex-col leading-tight">
                 <span className={`text-[10px] font-semibold uppercase tracking-wider ${style.text}`}>

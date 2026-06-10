@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getLeaderboard, getMonthlyLeaderboard } from "../hooks/useStats";
+import { getLeaderboard, getMonthlyLeaderboard } from "../lib/statsService";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
@@ -78,18 +78,18 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
     players: [],
     error: "",
   });
-  // Pestaña activa: "month" (ranking del mes en curso, por defecto para que
-  // los recién llegados vean un marcador alcanzable) o "all" (histórico).
+  // PestaÃ±a activa: "month" (ranking del mes en curso, por defecto para que
+  // los reciÃ©n llegados vean un marcador alcanzable) o "all" (histÃ³rico).
   const [tab, setTab] = useState("month");
   const [helpOpen, setHelpOpen] = useState(false);
-  // Modal de perfil público al clicar una fila del ranking. Guardamos
+  // Modal de perfil pÃºblico al clicar una fila del ranking. Guardamos
   // el userId del jugador objetivo; null = cerrado.
   const [openProfileId, setOpenProfileId] = useState(null);
   // userId del usuario actual (logueado), si lo hay. Lo usamos para
-  // NO hacer clicable su propia fila — ya tiene su MyStats privado.
+  // NO hacer clicable su propia fila â€” ya tiene su MyStats privado.
   const currentUserId = user?.id || null;
 
-  // Al cerrar el modal, volvemos a la pestaña mensual para la próxima apertura.
+  // Al cerrar el modal, volvemos a la pestaÃ±a mensual para la prÃ³xima apertura.
   useEffect(() => {
     if (!open) setTab("month");
   }, [open]);
@@ -145,8 +145,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
           <CloseButton onClick={onClose} />
         </div>
 
-        {/* Switcher de pestañas: Este mes / Histórico. El mensual va primero
-            y es el default — un recién llegado ve un marcador alcanzable. */}
+        {/* Switcher de pestaÃ±as: Este mes / HistÃ³rico. El mensual va primero
+            y es el default â€” un reciÃ©n llegado ve un marcador alcanzable. */}
         <div
           role="tablist"
           aria-label={t("ranking.tabsAria")}
@@ -212,10 +212,10 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             >
               {state.players.map((player, index) => {
                 // Solo usuarios LOGUEADOS pueden abrir perfiles ajenos.
-                // Para visitantes anónimos el ranking es informativo
-                // pero no interactivo — abrir perfiles requiere estar
+                // Para visitantes anÃ³nimos el ranking es informativo
+                // pero no interactivo â€” abrir perfiles requiere estar
                 // dentro del juego.
-                // Además: tu propia fila nunca es clicable (tienes
+                // AdemÃ¡s: tu propia fila nunca es clicable (tienes
                 // MyStats para verte a ti).
                 const isSelf = currentUserId && currentUserId === player.userId;
                 const isClickable = !!user && !isSelf;
@@ -312,7 +312,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
     </ModalShell>
 
     {/* Sub-modal hermano (no anidado): ahora cada uno gestiona su propio
-        backdrop y su propia animación de entrada/salida. */}
+        backdrop y su propia animaciÃ³n de entrada/salida. */}
     <ScoringHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     <PublicProfile
       open={!!openProfileId}

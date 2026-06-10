@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
+import ErrorFallback from "./components/ErrorFallback";
 import { ToastProvider } from "./components/Toast";
 import { initSentry, SentryErrorBoundary } from "./lib/sentry";
 import { reportWebVitals } from "./lib/webVitals";
@@ -80,65 +81,6 @@ const isMainApp = !(
   isRepesca ||
   isPrivacy
 );
-
-// Fallback de la ErrorBoundary: si el árbol React peta durante el render,
-// mostramos algo decente en vez de la pantalla blanca de la muerte.
-// Mantenemos el tono visual del resto de la app (dark + accent) y damos
-// al usuario una salida: refrescar. El error ya ha llegado a Sentry
-// automáticamente en este punto, no necesitamos hacer nada más aquí.
-function ErrorFallback() {
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1.5rem",
-        textAlign: "center",
-        backgroundColor: "#0d1014",
-        color: "#f0f0f4",
-        fontFamily: "'Archivo', sans-serif",
-      }}
-    >
-      <p
-        style={{
-          fontFamily: "'Archivo', sans-serif",
-          fontWeight: 800,
-          fontSize: "1.7rem",
-          letterSpacing: "-0.01em",
-          color: "#7af0c8",
-          margin: 0,
-        }}
-      >
-        ALGO FALLÓ
-      </p>
-      <p style={{ marginTop: "0.75rem", color: "#8b95a3", maxWidth: 380 }}>
-        Hemos tenido un problema cargando la página. Vuelve a intentarlo
-        en un momento — si persiste, recarga.
-      </p>
-      <button
-        type="button"
-        onClick={() => window.location.reload()}
-        style={{
-          marginTop: "1.5rem",
-          padding: "0.65rem 1.5rem",
-          border: "1px solid #7af0c8",
-          borderRadius: "0.5rem",
-          background: "transparent",
-          color: "#7af0c8",
-          textTransform: "uppercase",
-          letterSpacing: "0.14em",
-          fontSize: "0.75rem",
-          cursor: "pointer",
-        }}
-      >
-        Recargar
-      </button>
-    </div>
-  );
-}
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

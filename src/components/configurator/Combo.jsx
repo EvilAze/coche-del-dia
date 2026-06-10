@@ -24,8 +24,9 @@ export default function Combo({
   optionFlag = null,
   // Cadena de foco (marca→modelo→año): el padre nos pasa un ref para poder
   // enfocar este input programáticamente, y un onCommit que disparamos al
-  // elegir una opción para que avance al siguiente campo. enterKeyHint deja
-  // que el teclado móvil muestre "siguiente" en marca/modelo en vez de la lupa.
+  // elegir una opción REAL (no al teclear) para que avance al siguiente campo.
+  // enterKeyHint deja que el teclado móvil muestre "siguiente" en marca/modelo
+  // en vez de la lupa.
   inputRef = null,
   onCommit = null,
   enterKeyHint = "search",

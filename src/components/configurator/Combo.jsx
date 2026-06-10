@@ -22,6 +22,13 @@ export default function Combo({
   disabled = false,
   invalid = false,
   optionFlag = null,
+  // Cadena de foco del formulario (marca→modelo→año): onPick avisa de una
+  // SELECCIÓN real (no de tecleo) para que el padre mueva el foco al campo
+  // siguiente; inputRef expone el <input> para recibir ese foco; enterKeyHint
+  // pinta la tecla de acción del teclado móvil acorde al paso ("next"/"go").
+  onPick = null,
+  inputRef: externalInputRef = null,
+  enterKeyHint = "search",
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
@@ -66,6 +73,7 @@ export default function Combo({
     onChange(o);
     setQ("");
     setOpen(false);
+    onPick?.(o);
   }
 
   function onFocus() {
@@ -94,10 +102,13 @@ export default function Combo({
       </label>
       <div className={"cdd-combo" + (disabled ? " is-disabled" : "") + (open ? " is-open" : "") + (invalid && !open ? " is-invalid" : "")}>
         <input
-          ref={inputRef}
+          ref={(el) => {
+            inputRef.current = el;
+            if (externalInputRef) externalInputRef.current = el;
+          }}
           className="cdd-input"
           type="search"
-          enterKeyHint="search"
+          enterKeyHint={enterKeyHint}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

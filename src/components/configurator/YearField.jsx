@@ -9,7 +9,9 @@ import { Icon, I } from "./icons";
 const MIN_YEAR = 1886;
 const MAX_YEAR = new Date().getFullYear();
 
-export default function YearField({ value, onChange, tolerance }) {
+// inputRef: expone el <input> para la cadena de foco del formulario (al elegir
+// modelo, el foco salta aquí y el teclado pasa a numérico solo).
+export default function YearField({ value, onChange, tolerance, inputRef = null }) {
   const { t } = useT();
   const clamp = (v) => Math.max(MIN_YEAR, Math.min(MAX_YEAR, v));
   const step = (delta) => {
@@ -25,9 +27,12 @@ export default function YearField({ value, onChange, tolerance }) {
       </label>
       <div className="cdd-year">
         <input
+          ref={inputRef}
           className="cdd-input cdd-year-input"
           inputMode="numeric"
-          enterKeyHint="done"
+          // "go" y no "done": Enter aquí ENVÍA el intento (submit del form),
+          // así el pulgar nunca tiene que viajar hasta el botón.
+          enterKeyHint="go"
           autoComplete="off"
           data-1p-ignore="true"
           data-lpignore="true"

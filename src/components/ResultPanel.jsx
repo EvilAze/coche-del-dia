@@ -67,10 +67,9 @@ function FlameIcon({ className = "h-3 w-3" }) {
 //
 // NOTA (legacy): este panel ya NO es la UI principal del juego — el flujo
 // vivo de compartir es configurator/EndScreen.jsx (su shareGrid usa el
-// lenguaje 🟩/🟨/🟥 de buildShareText, useGame.js). Aquí solo lo usa
-// Repesca, que pasa shareText="" → este bloque nunca se renderiza. Si se
-// reviviera, habría que actualizar este preview al mapeo actual (🟨 para
-// mismo-país en marca).
+// lenguaje binario ✅/❌ de buildShareText, useGame.js — mismo binarismo
+// que estos tiles, así que el preview vuelve a ser fiel). Aquí solo lo usa
+// Repesca, que pasa shareText="" → este bloque nunca se renderiza.
 //
 // Decisiones de diseño tras el primer pase:
 //   - Paleta apagada (#1a2f1a / #2a1a1a + borde) en lugar de red-500/
@@ -127,8 +126,7 @@ function ShareGridPreview({ guesses, streak, shareText }) {
           <div key={i} className="flex gap-1.5">
             {[g.marca, g.modelo, g.anio].map((cell, j) => {
               // Binario: solo "correct" cuenta como verde; el resto cae a
-              // rojo. (Legacy: ver nota del componente — el mapeo vivo con
-              // 🟨 para mismo-país está en EndScreen/buildShareText.)
+              // rojo — mismo criterio que el ✅/❌ del shareText actual.
               const ok = cell?.status === "correct";
               const delayMs = REVEAL_BASE_MS + (i * 3 + j) * REVEAL_STAGGER_MS;
               return (

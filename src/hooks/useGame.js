@@ -100,17 +100,19 @@ function buildShareText(guesses, streak = 0) {
   //      • Racha (solo si > 0): peso emocional → "no quiero romperla" =
   //        share-bait. El 🔥 es universal para streak.
   //
-  //   2. CUADRÍCULA → el "viaje", separada por líneas en blanco
-  //        🟥🟥🟩 / 🟩🟥🟩 / 🟩🟩🟩
-  //      Las líneas solo-emoji se renderizan GRANDES en Telegram/WhatsApp
-  //      (jumbo) — deliberado: ese render gigante es el meme de Wordle y
-  //      nuestro gancho visual. Las líneas en blanco la enmarcan para que
-  //      respire como bloque y no se pegue a cabecera/cierre.
-  //      Espejo EXACTO de shareGrid en configurator/EndScreen.jsx (el
-  //      preview del panel de compartir) — lo que ves es lo que se copia.
-  //      Si cambias un mapeo, cambia el otro. Lenguaje: 🟩 acierto · 🟨 SOLO
-  //      mismo-país en marca (tercer estado real del juego) · 🟥 fallo
-  //      (rojo y no negro: ⬛ se funde con el tema oscuro de los chats).
+  //   2. CUADRÍCULA → compacta, una línea por intento, sin líneas en blanco
+  //        ✅❌✅ / ✅✅✅
+  //      Glifos ✅/❌ y no cuadrados de color (iteración con contexto real:
+  //      la mayoría de shares van a un grupo de Telegram concurrido):
+  //        · forma + color, no solo color → legible en scroll rápido y
+  //          para daltónicos (los cuadrados solo se distinguían por color);
+  //        · semántica universal, sin leyenda que deducir;
+  //        · sin líneas en blanco: en un grupo, el alto del mensaje es
+  //          espacio robado a la conversación.
+  //      BINARIO a propósito: el "mismo país" (marca partial) cae a ❌ —
+  //      la marca ES incorrecta; el matiz con bandera vive en el juego,
+  //      donde aporta. Espejo EXACTO de shareGrid en EndScreen.jsx (el
+  //      preview del panel) — si cambias un mapeo, cambia el otro.
   //
   //   3. DOMINIO   → SIEMPRE la última línea, sin texto alrededor
   //        "cochedeldia.com"
@@ -121,9 +123,9 @@ function buildShareText(guesses, streak = 0) {
   //      EndScreen inserta el percentil ("Mejor que el N%…") JUSTO ANTES
   //      de esta línea — cuenta con que el dominio cierra el mensaje.
   const lines = guesses.map((g) => {
-    const m = g.marca.status === "correct" ? "🟩" : g.marca.status === "partial" ? "🟨" : "🟥";
-    const mo = g.modelo.status === "correct" ? "🟩" : "🟥";
-    const a = g.anio.status === "correct" ? "🟩" : "🟥";
+    const m = g.marca.status === "correct" ? "✅" : "❌";
+    const mo = g.modelo.status === "correct" ? "✅" : "❌";
+    const a = g.anio.status === "correct" ? "✅" : "❌";
 
     return m + mo + a;
   });
@@ -143,7 +145,7 @@ function buildShareText(guesses, streak = 0) {
   // contraproducente.
   const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
 
-  return `Coche del Día · ${getShareDate()} · ${score}${streakChunk}\n\n${lines.join("\n")}\n\ncochedeldia.com`;
+  return `Coche del Día · ${getShareDate()} · ${score}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la

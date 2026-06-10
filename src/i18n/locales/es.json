@@ -60,7 +60,10 @@
     "yearStepperDown": "Año -1",
     "yearAlreadyTried": "Ya probaste ese año",
     "modelAlreadyTried": "Ya probaste ese modelo",
-    "marcaAlreadyTried": "Ya probaste esa marca"
+    "marcaAlreadyTried": "Ya probaste esa marca",
+    "missingMarca": "Elige una marca de la lista",
+    "missingModelo": "Elige un modelo de la lista",
+    "missingAnio": "Pon un año válido (4 cifras)"
   },
   "howto": {
     "tag": "El juego",
@@ -92,8 +95,9 @@
     "comboPlaceholder": "Escribe o elige…",
     "comboModeloDisabled": "Elige marca primero",
     "noMatches": "Sin coincidencias",
-    "yearPlaceholder": "ej. 1992",
-    "yearTolerance": "±{n} aceptados",
+    "yearPlaceholder": "AAAA",
+    "yearTolerance": "±{n} años",
+    "decadesAria": "Década rápida",
     "labelMarca": "MARCA",
     "labelModelo": "MODELO",
     "labelAnio": "AÑO",

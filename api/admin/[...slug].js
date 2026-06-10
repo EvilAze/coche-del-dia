@@ -31,13 +31,15 @@ import audit from "../../lib/admin-handlers/audit.js";
 import saveCar from "../../lib/admin-handlers/save-car.js";
 import schedule from "../../lib/admin-handlers/schedule.js";
 import translate from "../../lib/admin-handlers/translate.js";
+import analyzeImage from "../../lib/admin-handlers/analyze-image.js";
 
 const ROUTES = {
-  "analytics": analytics,
-  "audit":     audit,
-  "save-car":  saveCar,
-  "schedule":  schedule,
-  "translate": translate,
+  "analytics":     analytics,
+  "audit":         audit,
+  "save-car":      saveCar,
+  "schedule":      schedule,
+  "translate":     translate,
+  "analyze-image": analyzeImage,
 };
 
 export default async function handler(req, res) {

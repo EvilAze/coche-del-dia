@@ -2,14 +2,18 @@
 // Fuente de verdad del zoom escalonado del juego (lado CLIENTE). Réplica de
 // api/_lib/zoom.js (CLAUDE.md #7) — si cambias una, cambia la otra.
 //
-// Cada coche tiene un "zoom base" (= zoom lógico del intento 1). Los 5 intentos
-// bajan en saltos fijos: zoom_i = base - ZOOM_STEP*(i-1). El servidor sirve
+// Cada coche tiene un "zoom base" (= zoom lógico del intento 1). La curva es
+// LOGARÍTMICA CON EASING: log-lerp entre intento 1 (= base) e intento 5
+// (= base-2), deformada por ZOOM_EASE (ease-out: revela antes, "Aha!" al 3-4).
+// ZOOM_STEP define el span de los extremos, no un salto fijo. El servidor sirve
 // SIEMPRE el crop del intento 5 (1/(base-2)) durante la partida; el cliente
-// "cierra" el zoom con un scale CSS por intento sobre esa imagen.
+// "cierra" el zoom con un scale CSS por intento sobre esa imagen. Los extremos
+// no cambian respecto a la versión lineal: solo se redistribuyen los intermedios.
 
 export const DEFAULT_ZOOM_BASE = 3.7;
 export const ZOOM_STEP = 0.5;
 export const ZOOM_ATTEMPTS = 5;
+export const ZOOM_EASE = 0.7;
 export const ZOOM_BASE_MIN = 3.2;
 export const ZOOM_BASE_MAX = 6.0;
 
@@ -23,9 +27,16 @@ export function clampZoomBase(value) {
   return n;
 }
 
-// Zoom lógico del intento z (1..5).
+// Zoom lógico del intento z (1..ATTEMPTS). Curva logarítmica con easing:
+// log-lerp entre intento 1 (= base) e intento N (= base - STEP*(N-1)), con el
+// progreso deformado por ZOOM_EASE. Extremos exactos para cualquier EASE.
 export function zoomForAttempt(z, base = DEFAULT_ZOOM_BASE) {
-  return clampZoomBase(base) - ZOOM_STEP * (z - 1);
+  const b = clampZoomBase(base);
+  if (ZOOM_ATTEMPTS <= 1) return b;
+  const zEnd = b - ZOOM_STEP * (ZOOM_ATTEMPTS - 1); // zoom del intento N (extremo)
+  const t = (z - 1) / (ZOOM_ATTEMPTS - 1); // progreso normalizado 0..1
+  const f = Math.pow(t, ZOOM_EASE); // easing (ease-out con EASE<1)
+  return Math.exp(Math.log(b) + f * (Math.log(zEnd) - Math.log(b)));
 }
 
 // Porcentaje del lado menor recortado para el intento z (para las previews del
@@ -35,12 +46,14 @@ export function cropPctForAttempt(z, base = DEFAULT_ZOOM_BASE) {
   return Math.max(0.05, Math.min(0.95, pct));
 }
 
-// Scales CSS por intento (1..5) que el cliente aplica sobre la imagen ?z=5 que
-// sirve el servidor (= crop del intento 5). scale_i = zoom_i / zoom_5, así el
-// intento 5 queda en 1.0 (ya se ve todo el crop). Para base=3.7 reproduce
-// exactamente [2.176, 1.882, 1.588, 1.294, 1.0].
+// Scales CSS por intento (1..N) que el cliente aplica sobre la imagen ?z=N que
+// sirve el servidor (= crop del intento N). scale_i = zoom_i / zoom_N, así el
+// intento N queda en 1.0 (ya se ve todo el crop). Deriva de zoomForAttempt para
+// no divergir de la curva (CLAUDE.md #7). Con la curva ease-out (EASE 0.7) y
+// base=3.7 da [2.176, 1.621, 1.348, 1.152, 1.0].
 export function cssZoomLevels(base = DEFAULT_ZOOM_BASE) {
-  const b = clampZoomBase(base);
-  const end = b - ZOOM_STEP * (ZOOM_ATTEMPTS - 1); // zoom del intento 5
-  return Array.from({ length: ZOOM_ATTEMPTS }, (_, i) => (b - ZOOM_STEP * i) / end);
+  const end = zoomForAttempt(ZOOM_ATTEMPTS, base);
+  return Array.from({ length: ZOOM_ATTEMPTS }, (_, i) =>
+    zoomForAttempt(i + 1, base) / end
+  );
 }

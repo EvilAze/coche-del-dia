@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
     "@sentry/node": "^8.55.2",
     "@sentry/react": "^8.55.2",
     "@supabase/supabase-js": "^2.105.3",

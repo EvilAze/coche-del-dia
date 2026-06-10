@@ -13,8 +13,9 @@ import { useT } from "../i18n";
 // nunca ve más imagen que un jugador legítimo en intento 5.
 //
 // La fórmula está centralizada en src/lib/zoom.js (réplica de api/_lib/zoom.js).
-// Para el base por defecto (3.7) cssZoomLevels reproduce [2.176, 1.882, 1.588,
-// 1.294, 1.0] — el comportamiento histórico exacto.
+// Con la curva logarítmica ease-out (EASE 0.7) y base por defecto (3.7),
+// cssZoomLevels da [2.176, 1.621, 1.348, 1.152, 1.0]. El intento 5 sigue en 1.0
+// (extremo intacto), solo se redistribuyen los intermedios para revelar antes.
 import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 
 // Fallback de intentos máximos mientras /api/get-daily-car no ha respondido
@@ -91,29 +92,41 @@ function getShareDate() {
 }
 
 function buildShareText(guesses, streak = 0) {
-  // Formato Wordle-style con tres bloques de información, cada uno con rol
-  // distinto — sin redundancia entre ellos:
+  // Formato "Wordle canon" (iteración tras ver el mensaje en chats reales):
   //
-  //   1. CABECERA  → identificador + fecha [+ racha]
-  //        "Coche del Día · 24/05 · 🔥7"
+  //   1. CABECERA  → identificador + fecha + SCORE [+ racha]
+  //        "Coche del Día · 24/05 · 2/5 · 🔥7"
   //      • Nombre sin artículo: más compacto sin perder identidad.
   //      • Fecha sin año: nadie comparte resultados de meses atrás.
+  //      • Score "N/5" ("X/5" en derrota), como Wordle: el receptor NO
+  //        debería tener que contar filas y deducir — es lo primero que
+  //        el mensaje tiene que comunicar. (Revierte la decisión inicial
+  //        de omitirlo: en el chat real se echaba de menos.)
   //      • Racha (solo si > 0): peso emocional → "no quiero romperla" =
   //        share-bait. El 🔥 es universal para streak.
-  //      • NO incluimos "N/5" tipo Wordle: con máx 5 filas de 3 celdas,
-  //        la cuadrícula ES trivialmente parseable a ojo (contar filas =
-  //        score, última fila ✅✅✅ = victoria). Repetir esa info en
-  //        número es ruido. Wordle lo lleva por su grid de 6x5 más densa.
   //
-  //   2. CUADRÍCULA → resultados visuales (contiene score + win/loss)
-  //        ✅❌❌ / ✅✅❌ / ✅✅✅
+  //   2. CUADRÍCULA → compacta, una línea por intento, sin líneas en blanco
+  //        ✅❌✅ / ✅✅✅
+  //      Glifos ✅/❌ y no cuadrados de color (iteración con contexto real:
+  //      la mayoría de shares van a un grupo de Telegram concurrido):
+  //        · forma + color, no solo color → legible en scroll rápido y
+  //          para daltónicos (los cuadrados solo se distinguían por color);
+  //        · semántica universal, sin leyenda que deducir;
+  //        · sin líneas en blanco: en un grupo, el alto del mensaje es
+  //          espacio robado a la conversación.
+  //      BINARIO a propósito: el "mismo país" (marca partial) cae a ❌ —
+  //      la marca ES incorrecta; el matiz con bandera vive en el juego,
+  //      donde aporta. Espejo EXACTO de shareGrid en EndScreen.jsx (el
+  //      preview del panel) — si cambias un mapeo, cambia el otro.
   //
-  //   3. DOMINIO   → en línea propia, sin texto alrededor
+  //   3. DOMINIO   → SIEMPRE la última línea, sin texto alrededor
   //        "cochedeldia.com"
   //      Esto SÍ activa el OG card preview en WhatsApp/Telegram —
   //      decisión deliberada: cada share genera un preview con el
   //      wordmark dorado + GT-R en el chat del receptor. Marketing
   //      gratis vs ahorrar 50 px de altura en el mensaje.
+  //      EndScreen inserta el percentil ("Mejor que el N%…") JUSTO ANTES
+  //      de esta línea — cuenta con que el dominio cierra el mensaje.
   const lines = guesses.map((g) => {
     const m = g.marca.status === "correct" ? "✅" : "❌";
     const mo = g.modelo.status === "correct" ? "✅" : "❌";
@@ -122,12 +135,22 @@ function buildShareText(guesses, streak = 0) {
     return m + mo + a;
   });
 
+  // Victoria = última fila con las tres celdas correctas (no hay otra forma
+  // de ganar y la partida se cierra ahí). Derrota → "X/5" estilo Wordle.
+  const last = guesses[guesses.length - 1];
+  const won =
+    last &&
+    last.marca.status === "correct" &&
+    last.modelo.status === "correct" &&
+    last.anio.status === "correct";
+  const score = `${won ? guesses.length : "X"}/${MAX_ATTEMPTS}`;
+
   // Racha: solo se incluye si hay racha real (>0). Los anónimos pasan
   // streak=0 por defecto y se omite limpiamente. Un "🔥0" sería
   // contraproducente.
   const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
 
-  return `Coche del Día · ${getShareDate()}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
+  return `Coche del Día · ${getShareDate()} · ${score}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la

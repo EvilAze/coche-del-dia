@@ -105,7 +105,15 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
       .then((players) => {
         if (!cancelled) setState({ loading: false, players, error: "" });
       })
-      .catch(() => {
+      .catch((err) => {
+        // No nos tragamos el error: lo logueamos con la pestaña activa para
+        // poder diagnosticar por qué falla el ranking (típicamente un error
+        // de PostgREST/Supabase: RPC ausente, relación no encontrada, GRANT
+        // revocado…). Antes este catch descartaba `err` y la única señal era
+        // el mensaje genérico de la UI, imposible de depurar en producción.
+        // Un error de leaderboard no contiene PII ni pistas del coche, así
+        // que es seguro consolearlo (CLAUDE.md #8).
+        console.error(`[Ranking] fallo cargando "${tab}"`, err);
         if (!cancelled)
           setState({
             loading: false,

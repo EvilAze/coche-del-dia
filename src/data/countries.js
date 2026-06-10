@@ -67,7 +67,7 @@ export function codeFor(pais) {
 export function slugifyCountry(pais) {
   return String(pais || "")
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/\./g, "")
     .toLowerCase()
     .trim()

@@ -22,7 +22,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 function sanitizeFilename(name) {
   return name
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .toLowerCase();

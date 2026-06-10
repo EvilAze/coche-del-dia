@@ -271,7 +271,7 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar }) {
 // Replica EXACTAMENTE lo que ve el jugador con el rediseño "configurador":
 //
 //   - Steps 1-5: marco cuadrado (.cdd-stage-frame, 1:1) con el HUD real
-//     (StageHud: crosshair, ZOOM%, · INTENTO N/5, grano). El recorte se
+//     (StageHud: crosshair, pips de intento N/5, grano). El recorte se
 //     simula server-side con background-position (misma matemática que
 //     FocusPicker.ZoomThumb), porque aquí trabajamos con la imagen completa
 //     y no con el crop ya servido por /api/daily-image.

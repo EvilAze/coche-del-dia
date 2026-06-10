@@ -34,13 +34,20 @@ function legacyCopy(text) {
   }
 }
 
+// Lenguaje visual de la cuadrícula (espejo de buildShareText en useGame.js —
+// el preview DEBE coincidir 1:1 con lo que se copia; si cambias uno, cambia el
+// otro):
+//   ✅ acierto · ❌ fallo. BINARIO: el "mismo país" (marca partial) es ❌
+//   porque la marca ES incorrecta — el matiz con bandera vive en el juego.
+// ✅/❌ y no cuadrados de color: forma + color (legible en scroll rápido y
+// para daltónicos) y semántica universal sin leyenda. Sin flechas de año:
+// para el receptor no significan nada sin contexto y rompían la rejilla.
 function shareGrid(guesses) {
   return guesses
     .map((g) => {
-      const m = g.marca?.status === "correct" ? "🟩" : g.marca?.status === "partial" ? "🟨" : "⬛";
-      const mo = g.modelo?.status === "correct" ? "🟩" : g.marca?.status === "correct" ? "🟨" : "⬛";
-      const an =
-        g.anio?.status === "correct" ? "🟩" : g.anio?.direction === "up" ? "🔼" : "🔽";
+      const m = g.marca?.status === "correct" ? "✅" : "❌";
+      const mo = g.modelo?.status === "correct" ? "✅" : "❌";
+      const an = g.anio?.status === "correct" ? "✅" : "❌";
       return m + mo + an;
     })
     .join("\n");
@@ -87,9 +94,20 @@ export default function EndScreen({
   async function copyShare() {
     haptic.impactLight();
     try {
+      // El percentil va JUSTO ANTES del dominio (última línea), no después:
+      // colgado tras el enlace parecía una nota al pie desconectada, y el
+      // dominio debe cerrar el mensaje (activa el OG preview y hace de firma).
+      // Versión corta del copy (betterThanShare): en el chat cada carácter
+      // cuenta; la UI conserva la frase completa (betterThan).
       let finalShareText = shareText;
       if (won && daily.betterThanPct > 0) {
-        finalShareText += "\n" + t("dailyStats.betterThan", { pct: daily.betterThanPct });
+        const lines = shareText.split("\n");
+        const domain = lines.pop();
+        finalShareText = [
+          ...lines,
+          t("dailyStats.betterThanShare", { pct: daily.betterThanPct }),
+          domain,
+        ].join("\n");
       }
 
       if (navigator.share) { await navigator.share({ text: finalShareText }); return; }

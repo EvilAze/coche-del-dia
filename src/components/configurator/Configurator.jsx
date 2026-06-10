@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import Header from "./Header";
 import ZoomStage from "./ZoomStage";
-import AttemptList from "./AttemptList";
+import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
 
@@ -116,9 +116,33 @@ export default function Configurator({
             <div className="cdd-col cdd-col-panel">
               {/* Zona de acción ANCLADA al fondo del fold: el formulario (o el
                   botón de resultado) cierra el viewport, así «Adivinar» queda
-                  siempre visible. El historial de intentos NO va aquí: dentro del
-                  fold inflaría la columna y encogería la foto hasta su mínimo.
-                  Vive bajo el fold (ver abajo). */}
+                  siempre visible. El historial COMPLETO no va aquí (inflaría la
+                  columna y encogería la foto; vive bajo el fold, ver abajo) —
+                  pero SÍ va la "fila viva" del último intento: sin ella, el
+                  shimmer de pending y el flip-reveal ocurrían fuera de pantalla
+                  y el jugador pulsaba Adivinar sin ver feedback ninguno. Una
+                  fila (~46px) es el coste justo en alto de foto. Se duplica a
+                  propósito en el historial de abajo: esto es el "estado vivo",
+                  aquello el registro completo. */}
+              {dataReady && !ended && (pendingGuess || guesses.length > 0) && (
+                <div className="cdd-live-attempt" aria-live="polite">
+                  {pendingGuess ? (
+                    <AttemptRow
+                      g={pendingGuess}
+                      index={guesses.length}
+                      tolerance={tolerance}
+                      pending
+                    />
+                  ) : (
+                    <AttemptRow
+                      g={guesses[guesses.length - 1]}
+                      index={guesses.length - 1}
+                      tolerance={tolerance}
+                      fresh={justRevealedIndex === guesses.length - 1}
+                    />
+                  )}
+                </div>
+              )}
               {dataReady &&
                 (!ended ? (
                   <GuessForm

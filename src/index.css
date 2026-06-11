@@ -199,7 +199,7 @@ body,
 /* Valores compactos (antes duplicados inline en Header.jsx; centralizados aquí
    como el resto del rediseño): clamp ceñido que regala alto al fold. */
 .cdd-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(18px, 5vw, 22px); letter-spacing: -.02em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cdd-nav { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.cdd-nav { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .cdd-iconbtn {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;
@@ -209,32 +209,32 @@ body,
 }
 .cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
 
-/* ── Píldora de estado (HÉROE de la barra): racha + puesto en el ranking ──
-   El ranking asciende de icono mudo a estado vivo. A diferencia de las
-   utilidades (gris), va tintada de acento: la jerarquía se establece por COLOR
-   y contraste, no por tamaño — es el elemento dominante porque es la palanca de
-   retención. Iconos en acento, números en texto claro (dos-tono legible sobre
-   el tinte translúcido). font-variant tabular para que el puesto no salte. */
+/* ── Píldora de estado: racha + puesto en el ranking ──
+   El ranking asciende de icono mudo a estado vivo (muestra el puesto). Es el
+   foco de la barra, pero SOBRIO: mismo "material" que los iconbtn (fondo
+   surface, no un relleno de acento que grite), con el acento reservado a los
+   ICONOS y un borde tenue. Los números van en texto claro. Así destaca por
+   contenido (el #N) sin chillar. tabular-nums para que el puesto no salte. */
 .cdd-statuspill {
   position: relative;
-  display: inline-flex; align-items: center; gap: 7px; flex: none;
-  height: 36px; padding: 0 11px; border-radius: 10px;
-  background: color-mix(in oklab, var(--accent) 13%, transparent);
-  border: 1px solid color-mix(in oklab, var(--accent) 38%, var(--line));
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  height: 36px; padding: 0 10px; border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--line));
   color: var(--accent);
   font-family: var(--font-mono); font-size: 13px;
   font-variant-numeric: tabular-nums;
   cursor: pointer; transition: .18s;
 }
 .cdd-statuspill:hover {
-  background: color-mix(in oklab, var(--accent) 20%, transparent);
-  border-color: color-mix(in oklab, var(--accent) 58%, var(--line));
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 50%, var(--line));
 }
 .cdd-statuspill .seg { display: inline-flex; align-items: center; gap: 4px; }
 .cdd-statuspill b { color: var(--cdd-text); font-weight: 700; }
 .cdd-statuspill .divider {
   width: 1px; height: 14px; flex: none;
-  background: color-mix(in oklab, var(--accent) 32%, transparent);
+  background: var(--line);
 }
 
 /* Punto de alerta de repesca sobre el icono de garaje */
@@ -245,17 +245,24 @@ body,
 /* 10.5px y no los 9px que iban inline en Header: mono caps por debajo de 10px
    con tracking .12em se empasta en DPI bajo (auditoría UX, mismo criterio que
    .cdd-label). El tracking baja a .08em por la misma razón. */
-.cdd-date { font-size: 10.5px; letter-spacing: .08em; margin-top: 2px; color: var(--accent); display: inline-flex; align-items: center; gap: 6px; }
+/* nowrap: la fecha NUNCA se parte en dos líneas. Si la barra apura el ancho,
+   antes cede el wordmark (ellipsis) que la fecha — partir "JUEVES, 11 DE /
+   JUNIO" se veía roto. */
+.cdd-date { font-size: 10.5px; letter-spacing: .08em; margin-top: 2px; color: var(--accent); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 /* Marcador editorial: barrita de acento antes de la fecha */
-.cdd-date::before { content: ""; width: 14px; height: 2px; border-radius: 2px;
+.cdd-date::before { content: ""; width: 14px; height: 2px; border-radius: 2px; flex: none;
   background: var(--accent); box-shadow: 0 0 10px -1px var(--accent); }
-/* La fila de intro con el subtítulo "Adivina marca, modelo y año" (.cdd-intro
-   + .cdd-h1) se eliminó: duplicaba las etiquetas del formulario y robaba alto
-   al fold. El h1 sobrevive sr-only (Configurator) y el "?" se mudó al header. */
+
+/* ── Intro de onboarding (SOLO primera visita; ver Configurator) ── */
+/* Fila: H1 (subtítulo del juego, flex con ellipsis) + "?" de ayuda. En el día a
+   día no se pinta (barra limpia); solo guía al recién llegado la primera vez. */
+.cdd-intro { display: flex; flex-direction: row; align-items: center; gap: 10px; margin-bottom: 8px; }
+.cdd-h1 { flex: 1 1 auto; min-width: 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(15px, 4vw, 20px); line-height: 1.05; letter-spacing: -.02em; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdd-h1 em { font-style: normal; color: var(--accent); }
 /* "?" de ayuda: redondo y menor que los iconbtn de la barra (jerarquía: es
-   ayuda, no navegación). 26px VISUALES para no engordar la fila del header —
-   en el fold ese alto sale de la foto — pero ~44px TÁCTILES vía ::after
-   invisible (los toques en el halo cuentan). */
+   ayuda, no navegación). 26px VISUALES para que la fila apenas crezca sobre la
+   línea del H1 — pero ~44px TÁCTILES vía ::after invisible. */
 .cdd-helpbtn { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 50%;
   background: var(--surface); border: 1px solid var(--line);
@@ -681,6 +688,10 @@ body,
   .cdd-main { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start; margin-bottom: 36px; }
   .cdd-stage-frame { aspect-ratio: 1 / 1; }
   .cdd-title { font-size: 28px; }
+  /* Intro (solo primera visita): en desktop sobra ancho, subimos el H1 un punto
+     sin arriesgar el ellipsis (la frase es corta). */
+  .cdd-h1 { font-size: clamp(18px, 2.2vw, 26px); }
+  .cdd-intro { max-width: 720px; }
   .cdd-col-panel { position: sticky; top: 28px; }
   /* El historial salió del panel sticky (ahora vive bajo el fold). Lo alineamos
      bajo la columna del formulario (track derecho ~.85fr del grid) para conservar

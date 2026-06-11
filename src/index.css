@@ -198,43 +198,58 @@ body,
    barra — más grande y rotundo, con el acento reservado para fecha + H1. */
 /* Valores compactos (antes duplicados inline en Header.jsx; centralizados aquí
    como el resto del rediseño): clamp ceñido que regala alto al fold. */
-.cdd-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(18px, 5vw, 22px); letter-spacing: -.02em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cdd-nav { display: flex; align-items: center; gap: 7px; min-width: 0; }
+/* Wordmark adelgazado (antes 800 / clamp 18-22): en vertical no necesita gritar
+   cada día. Más ligero y pequeño → el header baja ~35% y la foto sube. */
+.cdd-title { font-family: var(--font-display); font-weight: 700; font-size: clamp(16px, 4.2vw, 19px); letter-spacing: -.01em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdd-nav { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .cdd-iconbtn {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-  height: 36px; min-width: 36px; padding: 0 8px; border-radius: 10px; flex: none;
+  height: 32px; min-width: 32px; padding: 0 7px; border-radius: 9px; flex: none;
   background: var(--surface); border: 1px solid var(--line); color: var(--cdd-muted);
   cursor: pointer; transition: .18s;
 }
 .cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
 
-/* ── Píldora de estado (HÉROE de la barra): racha + puesto en el ranking ──
-   El ranking asciende de icono mudo a estado vivo. A diferencia de las
-   utilidades (gris), va tintada de acento: la jerarquía se establece por COLOR
-   y contraste, no por tamaño — es el elemento dominante porque es la palanca de
-   retención. Iconos en acento, números en texto claro (dos-tono legible sobre
-   el tinte translúcido). font-variant tabular para que el puesto no salte. */
+/* ── Píldora de estado: racha + puesto en el ranking ──
+   El ranking asciende de icono mudo a estado vivo (muestra el puesto). Compacta
+   (32px) pero CON algo de peso: un tinte tenue de acento de fondo para que el
+   puesto destaque como la palanca de retención que es. Iconos en acento,
+   números en texto claro. tabular-nums para que el #N no salte al subir. */
 .cdd-statuspill {
   position: relative;
-  display: inline-flex; align-items: center; gap: 7px; flex: none;
-  height: 36px; padding: 0 11px; border-radius: 10px;
-  background: color-mix(in oklab, var(--accent) 13%, transparent);
-  border: 1px solid color-mix(in oklab, var(--accent) 38%, var(--line));
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  height: 32px; padding: 0 9px; border-radius: 9px;
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
   color: var(--accent);
-  font-family: var(--font-mono); font-size: 13px;
+  font-family: var(--font-mono); font-size: 12px;
   font-variant-numeric: tabular-nums;
   cursor: pointer; transition: .18s;
 }
 .cdd-statuspill:hover {
-  background: color-mix(in oklab, var(--accent) 20%, transparent);
-  border-color: color-mix(in oklab, var(--accent) 58%, var(--line));
+  background: color-mix(in oklab, var(--accent) 16%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 50%, var(--line));
 }
 .cdd-statuspill .seg { display: inline-flex; align-items: center; gap: 4px; }
 .cdd-statuspill b { color: var(--cdd-text); font-weight: 700; }
 .cdd-statuspill .divider {
-  width: 1px; height: 14px; flex: none;
-  background: color-mix(in oklab, var(--accent) 32%, transparent);
+  width: 1px; height: 13px; flex: none;
+  background: color-mix(in oklab, var(--accent) 22%, var(--line));
+}
+
+/* Variante CTA (anónimo / sin datos): "Compite →" BIEN visible — relleno de
+   acento con tinta oscura del tema. Es la palanca de conversión al ranking, así
+   que aquí sí grita (a propósito), no se atenúa a un icono. */
+.cdd-statuspill.cta {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.cdd-statuspill.cta b { color: var(--accent-ink); }
+.cdd-statuspill.cta:hover {
+  background: color-mix(in oklab, var(--accent) 88%, white);
+  border-color: color-mix(in oklab, var(--accent) 88%, white);
 }
 
 /* Punto de alerta de repesca sobre el icono de garaje */
@@ -245,32 +260,34 @@ body,
 /* 10.5px y no los 9px que iban inline en Header: mono caps por debajo de 10px
    con tracking .12em se empasta en DPI bajo (auditoría UX, mismo criterio que
    .cdd-label). El tracking baja a .08em por la misma razón. */
-.cdd-date { font-size: 10.5px; letter-spacing: .08em; margin-top: 2px; color: var(--accent); display: inline-flex; align-items: center; gap: 6px; }
+/* nowrap: la fecha NUNCA se parte en dos líneas. Si la barra apura el ancho,
+   antes cede el wordmark (ellipsis) que la fecha — partir "JUEVES, 11 DE /
+   JUNIO" se veía roto. */
+.cdd-date { font-size: 10px; letter-spacing: .08em; margin-top: 3px; color: var(--cdd-muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 /* Marcador editorial: barrita de acento antes de la fecha */
-.cdd-date::before { content: ""; width: 14px; height: 2px; border-radius: 2px;
+.cdd-date::before { content: ""; width: 14px; height: 2px; border-radius: 2px; flex: none;
   background: var(--accent); box-shadow: 0 0 10px -1px var(--accent); }
-/* La fila de intro con el subtítulo "Adivina marca, modelo y año" (.cdd-intro
-   + .cdd-h1) se eliminó: duplicaba las etiquetas del formulario y robaba alto
-   al fold. El h1 sobrevive sr-only (Configurator) y el "?" se mudó al header. */
-/* "?" de ayuda: redondo y menor que los iconbtn de la barra (jerarquía: es
-   ayuda, no navegación). 26px VISUALES para no engordar la fila del header —
-   en el fold ese alto sale de la foto — pero ~44px TÁCTILES vía ::after
-   invisible (los toques en el halo cuentan). */
-.cdd-helpbtn { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 50%;
+
+/* ── Onboarding (SOLO primera visita; ver Configurator) ── */
+/* NO es el subtítulo del juego (ese se eliminó): es una pista de ayuda — un chip
+   "Cómo se juega" que guía al recién llegado hacia el modal de reglas. En el día
+   a día no se pinta (barra limpia). */
+.cdd-intro { display: flex; align-items: center; margin-bottom: 8px; }
+.cdd-helpchip { position: relative; display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px; border-radius: 999px;
   background: var(--surface); border: 1px solid var(--line);
-  color: var(--cdd-muted); cursor: pointer; transition: .18s; }
-.cdd-helpbtn::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
-.cdd-helpbtn:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
-/* Primera visita: latido suave del halo que invita a abrir "cómo se juega" sin
-   modal forzado. Se apaga al abrirlo (App quita la clase). */
-.cdd-helpbtn.pulse { color: var(--accent); animation: cddHelpPulse 2.2s ease-in-out infinite; }
+  color: var(--cdd-muted); font-family: var(--font-body); font-size: 12.5px;
+  cursor: pointer; transition: .18s; }
+.cdd-helpchip:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+/* Latido suave que invita a abrir "cómo se juega" sin modal forzado. Se apaga
+   al abrirlo (App pone howtoPulse=false). */
+.cdd-helpchip.pulse { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); animation: cddHelpPulse 2.2s ease-in-out infinite; }
 @keyframes cddHelpPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 45%, transparent); }
-  50% { box-shadow: 0 0 0 7px transparent; }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 40%, transparent); }
+  50% { box-shadow: 0 0 0 6px transparent; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cdd-helpbtn.pulse { animation: none; }
+  .cdd-helpchip.pulse { animation: none; }
 }
 
 /* ── Main / columnas (margen propio; antes lo daba el gap del shell) ── */
@@ -484,7 +501,7 @@ body,
 @keyframes cddShake { 10%,90%{transform:translateX(-1px)} 30%,70%{transform:translateX(-4px)} 50%{transform:translateX(4px)} }
 
 /* ── Footer ── */
-.cdd-footer { display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--faint);
+.cdd-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; font-size: 10px; color: var(--faint);
   border-top: 1px solid var(--line); padding-top: 16px; margin-top: 20px; }
 .cdd-foot-link { background: transparent; border: 0; color: var(--cdd-muted); cursor: pointer; font: inherit; letter-spacing: .12em; text-decoration: none; }
 .cdd-foot-link:hover { color: var(--accent); }
@@ -680,7 +697,7 @@ body,
   .cdd-shell { max-width: 1080px; padding: 32px 32px 56px; gap: 0; }
   .cdd-main { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start; margin-bottom: 36px; }
   .cdd-stage-frame { aspect-ratio: 1 / 1; }
-  .cdd-title { font-size: 28px; }
+  .cdd-title { font-size: 24px; }
   .cdd-col-panel { position: sticky; top: 28px; }
   /* El historial salió del panel sticky (ahora vive bajo el fold). Lo alineamos
      bajo la columna del formulario (track derecho ~.85fr del grid) para conservar

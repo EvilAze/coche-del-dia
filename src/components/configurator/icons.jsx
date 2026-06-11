@@ -24,14 +24,15 @@ export function Icon({ d, size = 20, vb = 24, ...p }) {
 export const I = {
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5 20a7 7 0 0 1 14 0",
   home: ["M4 11 12 4l8 7", "M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9"],
-  // Garaje = silueta de coche, no casa+puerta: el dibujo anterior (techo a dos
-  // aguas) se leía como "inicio/home" en el header — auditoría UX. Un coche
-  // comunica "tu colección" sin etiqueta.
+  // Garaje = álbum (icono "album" de Lucide), no silueta de coche: el garaje ES
+  // el álbum de cromos (colección por marca/país), así que el símbolo dice lo
+  // que hay dentro. La silueta de coche anterior se leía recargada y redundante
+  // (el garaje ya va de coches) — auditoría UX. Cuadrado con marcador, una sola
+  // forma limpia que pega con el 🏆 del ranking y el 👤 del perfil sin repetir
+  // "vehículo".
   garage: [
-    "M4 16v-2.6l1.9-4.6A2 2 0 0 1 7.7 7.5h8.6a2 2 0 0 1 1.8 1.3L20 13.4V16",
-    "M4 13.4h16",
-    "M6.4 16.2a1.7 1.7 0 1 0 3.4 0 1.7 1.7 0 1 0-3.4 0",
-    "M14.2 16.2a1.7 1.7 0 1 0 3.4 0 1.7 1.7 0 1 0-3.4 0",
+    "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z",
+    "M11 3v8l3-3 3 3V3",
   ],
   stats: ["M5 20V10", "M12 20V4", "M19 20v-7"],
   // Trofeo: el ranking deja de ser una barra-stats anónima y pasa a ser el
@@ -47,6 +48,7 @@ export const I = {
   help: "M9.2 9a2.8 2.8 0 1 1 4 2.5c-1 .6-1.7 1-1.7 2.2M12 17.2h.01",
   arrowU: "M12 19V5M6 11l6-6 6 6",
   arrowD: "M12 5v14M6 13l6 6 6-6",
+  arrowR: "M5 12h13M12 6l6 6-6 6",
   check: "M5 12.5 10 17l9-10",
   x: "M7 7l10 10M17 7 7 17",
   share: ["M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7", "M12 3v13", "M8 7l4-4 4 4"],

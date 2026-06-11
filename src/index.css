@@ -198,27 +198,50 @@ body,
    barra — más grande y rotundo, con el acento reservado para fecha + H1. */
 /* Valores compactos (antes duplicados inline en Header.jsx; centralizados aquí
    como el resto del rediseño): clamp ceñido que regala alto al fold. */
-.cdd-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(18px, 5vw, 22px); letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
-.cdd-nav { display: flex; align-items: center; gap: 7px; }
-.cdd-iconbtn, .cdd-streakpill {
+.cdd-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(18px, 5vw, 22px); letter-spacing: -.02em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdd-nav { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.cdd-iconbtn {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   height: 36px; min-width: 36px; padding: 0 8px; border-radius: 10px; flex: none;
   background: var(--surface); border: 1px solid var(--line); color: var(--cdd-muted);
   cursor: pointer; transition: .18s;
 }
-.cdd-iconbtn:hover, .cdd-streakpill:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
-.cdd-streakpill { color: var(--accent); font-family: var(--font-mono); font-size: 13px; }
-.cdd-streakpill b { color: var(--cdd-text); }
+.cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+
+/* ── Píldora de estado (HÉROE de la barra): racha + puesto en el ranking ──
+   El ranking asciende de icono mudo a estado vivo. A diferencia de las
+   utilidades (gris), va tintada de acento: la jerarquía se establece por COLOR
+   y contraste, no por tamaño — es el elemento dominante porque es la palanca de
+   retención. Iconos en acento, números en texto claro (dos-tono legible sobre
+   el tinte translúcido). font-variant tabular para que el puesto no salte. */
+.cdd-statuspill {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  height: 36px; padding: 0 11px; border-radius: 10px;
+  background: color-mix(in oklab, var(--accent) 13%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 38%, var(--line));
+  color: var(--accent);
+  font-family: var(--font-mono); font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: .18s;
+}
+.cdd-statuspill:hover {
+  background: color-mix(in oklab, var(--accent) 20%, transparent);
+  border-color: color-mix(in oklab, var(--accent) 58%, var(--line));
+}
+.cdd-statuspill .seg { display: inline-flex; align-items: center; gap: 4px; }
+.cdd-statuspill b { color: var(--cdd-text); font-weight: 700; }
+.cdd-statuspill .divider {
+  width: 1px; height: 14px; flex: none;
+  background: color-mix(in oklab, var(--accent) 32%, transparent);
+}
+
 /* Punto de alerta de repesca sobre el icono de garaje */
 .cdd-iconbtn .cdd-alert-dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%;
   background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 
-/* ── Intro (compactada para ganar alto y hacer la foto más cuadrada) ── */
-/* Fila: H1 (flex con ellipsis) + "?" de ayuda. El botón vive aquí y no en la
-   barra superior porque allí saturaba en móvil — y la duda "¿cómo se juega?"
-   nace justo donde se resume la regla. */
-.cdd-intro { display: flex; flex-direction: row; align-items: center; gap: 10px; margin-bottom: 8px; }
+/* ── Dateline (bajo el wordmark, dentro del header) ── */
 /* 10.5px y no los 9px que iban inline en Header: mono caps por debajo de 10px
    con tracking .12em se empasta en DPI bajo (auditoría UX, mismo criterio que
    .cdd-label). El tracking baja a .08em por la misma razón. */
@@ -226,16 +249,13 @@ body,
 /* Marcador editorial: barrita de acento antes de la fecha */
 .cdd-date::before { content: ""; width: 14px; height: 2px; border-radius: 2px;
   background: var(--accent); box-shadow: 0 0 10px -1px var(--accent); }
-/* H1 (subtítulo del juego "Adivina marca, modelo y año"): una sola línea con
-   ellipsis para no comerse alto del fold en móvil. Estilos centralizados aquí
-   (antes iban inline en Configurator.jsx, resto del rediseño). */
-.cdd-h1 { flex: 1 1 auto; min-width: 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(15px, 4vw, 20px); line-height: 1.05; letter-spacing: -.02em; margin: 0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cdd-h1 em { font-style: normal; color: var(--accent); }
+/* La fila de intro con el subtítulo "Adivina marca, modelo y año" (.cdd-intro
+   + .cdd-h1) se eliminó: duplicaba las etiquetas del formulario y robaba alto
+   al fold. El h1 sobrevive sr-only (Configurator) y el "?" se mudó al header. */
 /* "?" de ayuda: redondo y menor que los iconbtn de la barra (jerarquía: es
-   ayuda, no navegación). 26px VISUALES para que la fila de la intro apenas
-   crezca sobre la línea del H1 — en el fold ese alto sale de la foto — pero
-   ~44px TÁCTILES vía ::after invisible (los toques en el halo cuentan). */
+   ayuda, no navegación). 26px VISUALES para no engordar la fila del header —
+   en el fold ese alto sale de la foto — pero ~44px TÁCTILES vía ::after
+   invisible (los toques en el halo cuentan). */
 .cdd-helpbtn { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; border-radius: 50%;
   background: var(--surface); border: 1px solid var(--line);
@@ -364,11 +384,11 @@ body,
 /* Flip-reveal por celda en el intento recién validado (efecto "carta") */
 .cdd-chip.flip { animation: cddFlip .5s cubic-bezier(.34,1.4,.64,1) both; transform-origin: center; backface-visibility: hidden; }
 @keyframes cddFlip { 0% { opacity: 0; transform: rotateX(88deg); } 55% { opacity: 1; transform: rotateX(-12deg); } 100% { opacity: 1; transform: rotateX(0); } }
-/* Pop de la píldora de racha al subir */
-.cdd-streakpill.pop { animation: cddStreakPop .44s cubic-bezier(.34,1.56,.64,1); }
-@keyframes cddStreakPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+/* Pop de la píldora de estado al subir la racha */
+.cdd-statuspill.pop { animation: cddStreakPop .44s cubic-bezier(.34,1.56,.64,1); }
+@keyframes cddStreakPop { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
-  .cdd-chip.flip, .cdd-streakpill.pop { animation: none !important; }
+  .cdd-chip.flip, .cdd-statuspill.pop { animation: none !important; }
   .cdd-dist-bar { transition: none !important; }
 }
 
@@ -632,7 +652,10 @@ body,
 
   /* Ritmo más ceñido para regalar alto a la foto (sin sentirse apretado). */
   .cdd-shell { padding: 8px 12px 10px; }
-  .cdd-header { margin-bottom: 4px; }
+  /* 8px (antes 4): al eliminar la fila de intro, el header quedaba pegado a la
+     foto — la intro hacía de colchón. Un respiro mínimo en su lugar; el grueso
+     del alto recuperado sigue yendo a la foto. */
+  .cdd-header { margin-bottom: 8px; }
   .cdd-form { gap: 10px; }
   .cdd-field { gap: 6px; }
   /* Inputs un punto más compactos manteniendo el área táctil (~44px). */
@@ -658,10 +681,6 @@ body,
   .cdd-main { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start; margin-bottom: 36px; }
   .cdd-stage-frame { aspect-ratio: 1 / 1; }
   .cdd-title { font-size: 28px; }
-  /* H1 una línea: en desktop sobra ancho, lo subimos un punto sin arriesgar el
-     ellipsis (la frase es corta). */
-  .cdd-h1 { font-size: clamp(18px, 2.2vw, 26px); }
-  .cdd-intro { max-width: 720px; }
   .cdd-col-panel { position: sticky; top: 28px; }
   /* El historial salió del panel sticky (ahora vive bajo el fold). Lo alineamos
      bajo la columna del formulario (track derecho ~.85fr del grid) para conservar

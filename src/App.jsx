@@ -6,6 +6,7 @@ import Configurator from "./components/configurator/Configurator";
 import CloseButton from "./components/CloseButton";
 import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
+import { getMyMonthlyRank } from "./lib/statsService";
 import { useGame } from "./hooks/useGame";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useModalState } from "./hooks/useModalState";
@@ -35,6 +36,8 @@ export default function App() {
     checkingProfile,
     streak,
     setStreak,
+    rank,
+    setRank,
     resetAuth,
   } = useAuthSession();
   // Overlays globales: modal activo + mapa de modales lazy ya montados.
@@ -224,6 +227,13 @@ export default function App() {
     if (!user) return;
     if (score?.persisted && typeof score.currentStreak === "number") {
       setStreak(score.currentStreak);
+      // El resultado persistido también cambia mis puntos del mes → mi puesto
+      // puede haber subido. Refrescamos la píldora de estado. Solo aplicamos si
+      // llega un puesto real: así un fallo transitorio (null) NO borra el valor
+      // bueno que ya tenía la píldora (evita el parpadeo "tengo puesto → nada").
+      getMyMonthlyRank(user.id).then((next) => {
+        if (next) setRank(next);
+      });
     }
   }, [user, score?.persisted, score?.currentStreak]);
 
@@ -291,6 +301,7 @@ export default function App() {
         isSubmitting={isSubmitting}
         submitGuess={submitGuess}
         streak={streak}
+        rank={rank}
         user={user}
         repescaAlert={repescaAlert}
         shareText={buildShareText(streak)}

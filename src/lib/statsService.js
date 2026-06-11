@@ -90,6 +90,35 @@ export async function getMyStreak(userId) {
     : 0;
 }
 
+// Mi puesto en el ranking MENSUAL (el que el modal abre por defecto), para la
+// píldora de estado del header. Una sola RPC barata: el servidor calcula el
+// leaderboard completo pero solo devuelve mi fila (rank + total), así que NO
+// arrastramos las 1000 filas del leaderboard al cliente solo para situar al
+// jugador. Devuelve null si no estoy rankeado (sin puntos del mes o sin nick)
+// → la píldora cae a solo-racha. Nunca lanza: el header no debe romperse por
+// esto (mismo criterio defensivo que getMyStreak).
+export async function getMyMonthlyRank(userId) {
+  if (!userId) return null;
+
+  const { data, error } = await supabase.rpc("get_my_monthly_rank", {
+    p_user_id: userId,
+    p_month: null,
+  });
+
+  if (error) {
+    console.error("[getMyMonthlyRank]", error);
+    return null;
+  }
+
+  // La RPC devuelve TABLE (una fila): PostgREST la entrega como array.
+  const row = Array.isArray(data) ? data[0] : data;
+  const rank = row?.rank ?? null;
+  // Sin puesto propio no pintamos puesto (total puede venir aunque rank sea
+  // null porque haya otros jugadores, pero a la píldora solo le importa el mío).
+  if (!rank || rank < 1) return null;
+  return { rank, total: row?.total ?? null };
+}
+
 export async function saveDisplayName(displayName) {
   const user = await getCurrentUser();
 

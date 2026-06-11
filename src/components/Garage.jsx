@@ -152,6 +152,20 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
     setSelectedBrand(null);
   }, [selectedCountry]);
 
+  // Instrumentación: una vez por apertura (logueado o no — el anónimo rebota
+  // al login, pero su apertura ES interés por la colección y queremos medirlo).
+  // Sin esto estábamos a ciegas sobre cuánta gente abre el garaje, justo el
+  // dato que decide si la colección merece su sitio.
+  const trackedOpenRef = useRef(false);
+  useEffect(() => {
+    if (open && !trackedOpenRef.current) {
+      trackedOpenRef.current = true;
+      track("garage_open", { auth: user ? "user" : "anon" });
+    } else if (!open) {
+      trackedOpenRef.current = false;
+    }
+  }, [open, user]);
+
   // Fetch al abrir, solo logueado.
   useEffect(() => {
     if (!open || !user) return;

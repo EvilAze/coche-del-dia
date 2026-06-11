@@ -13,7 +13,8 @@
 // Convención de eventos:
 //   - achievement_unlocked  { id, category, tier? }  — al desbloquear medalla
 //   - profile_view          { source }                — abrir perfil ajeno
-//   - garage_open           {}                        — abrir el garaje
+//   - garage_open           { auth }                  — abrir el garaje (auth: user|anon)
+//   - garage_from_endscreen {}                        — abrir garaje desde el desbloqueo de la victoria
 //   - repesca_start         { mode }                  — iniciar repesca
 //   - repesca_win           { mode, attempts }        — ganarla
 //   - daily_win             { attempts }              — ganar partida diaria

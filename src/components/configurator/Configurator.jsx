@@ -240,6 +240,7 @@ export default function Configurator({
           shareText={shareText}
           user={user}
           onOpenLogin={onOpenLogin}
+          onOpenGarage={onOpenGarage}
           onClose={() => setShowEnd(false)}
         />
       )}

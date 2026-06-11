@@ -7,7 +7,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import Header from "./Header";
-import { Icon, I } from "./icons";
 import ZoomStage from "./ZoomStage";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
@@ -34,6 +33,7 @@ export default function Configurator({
   isSubmitting,
   submitGuess,
   streak,
+  rank,
   user,
   repescaAlert,
   shareText,
@@ -113,33 +113,27 @@ export default function Configurator({
         <div className={"cdd-fold" + (ended ? " is-ended" : "")}>
           <Header
             streak={streak}
+            rank={rank}
             user={user}
             repescaAlert={repescaAlert}
             onOpenProfile={onOpenProfile}
             onOpenLogin={onOpenLogin}
             onOpenRanking={onOpenRanking}
             onOpenGarage={onOpenGarage}
+            onOpenHowTo={onOpenHowTo}
+            howtoPulse={howtoPulse}
           />
 
-          <div className="cdd-intro">
-            <h1 className="cdd-h1">
-              {t("cdd.guess")} <em>{t("cdd.wordMarca")}</em>, <em>{t("cdd.wordModelo")}</em> {conn}{" "}
-              <em>{t("cdd.wordAnio")}</em>
-            </h1>
-            {/* "?" de ayuda junto al H1 (no en la barra: allí saturaba en móvil).
-                Contextualmente es su sitio — la duda "¿cómo se juega?" nace justo
-                donde se resume la regla. `howtoPulse` (primera visita) le da un
-                latido sutil que invita al novato sin modal forzado. */}
-            <button
-              type="button"
-              className={"cdd-helpbtn" + (howtoPulse ? " pulse" : "")}
-              aria-label={t("cdd.helpAria")}
-              title={t("cdd.helpAria")}
-              onClick={onOpenHowTo}
-            >
-              <Icon d={I.help} size={15} />
-            </button>
-          </div>
+          {/* El subtítulo "Adivina marca, modelo y año" YA NO se pinta: duplicaba
+              literalmente las etiquetas del formulario (MARCA · MODELO · AÑO) y
+              su fila robaba alto crítico al fold en móvil. Lo conservamos como
+              <h1> sr-only por semántica/SEO (es el único h1 de la página) y el
+              onboarding del recién llegado lo lleva ahora el "?" del header, que
+              late en la primera visita (howtoPulse). */}
+          <h1 className="sr-only">
+            {t("cdd.guess")} {t("cdd.wordMarca")}, {t("cdd.wordModelo")} {conn}{" "}
+            {t("cdd.wordAnio")}
+          </h1>
 
           <div className="cdd-main">
             <div className="cdd-col cdd-col-stage" ref={stageColRef}>

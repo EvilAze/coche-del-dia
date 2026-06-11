@@ -137,7 +137,7 @@ export default function Configurator({
               title={t("cdd.helpAria")}
               onClick={onOpenHowTo}
             >
-              <Icon d={I.help} size={17} />
+              <Icon d={I.help} size={15} />
             </button>
           </div>
 

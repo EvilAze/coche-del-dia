@@ -232,12 +232,15 @@ body,
 .cdd-h1 { flex: 1 1 auto; min-width: 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(15px, 4vw, 20px); line-height: 1.05; letter-spacing: -.02em; margin: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-h1 em { font-style: normal; color: var(--accent); }
-/* "?" de ayuda: redondo y un punto menor que los iconbtn de la barra (jerarquía:
-   es ayuda, no navegación). Mismo lenguaje visual que .cdd-iconbtn. */
-.cdd-helpbtn { flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%;
+/* "?" de ayuda: redondo y menor que los iconbtn de la barra (jerarquía: es
+   ayuda, no navegación). 26px VISUALES para que la fila de la intro apenas
+   crezca sobre la línea del H1 — en el fold ese alto sale de la foto — pero
+   ~44px TÁCTILES vía ::after invisible (los toques en el halo cuentan). */
+.cdd-helpbtn { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
   background: var(--surface); border: 1px solid var(--line);
   color: var(--cdd-muted); cursor: pointer; transition: .18s; }
+.cdd-helpbtn::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
 .cdd-helpbtn:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
 /* Primera visita: latido suave del halo que invita a abrir "cómo se juega" sin
    modal forzado. Se apaga al abrirlo (App quita la clase). */
@@ -408,16 +411,17 @@ body,
 .cdd-opt-empty { color: var(--faint); cursor: default; }
 .cdd-opt .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
 .cdd-year-input { padding-right: 6px; }
-.cdd-year-steps { display: flex; flex-direction: column; padding: 4px 6px; gap: 4px; }
+/* Steppers EN FILA (− +), no apilados: la pila definía el alto del campo
+   (60px con targets dignos) y en el fold cada px de alto sale de la FOTO.
+   En fila, el campo vuelve al alto del input (~42px) y los targets CRECEN
+   (36×32 por botón) — más área táctil Y más foto, sin tradeoff. */
+.cdd-year-steps { display: flex; flex-direction: row; align-items: center; padding: 0 6px 0 0; gap: 6px; }
 /* Glifos +/− tipográficos (no flechas ↑/↓: ese glifo ya significa "el año real
    es más nuevo/antiguo" en el feedback del intento — mismo símbolo, otra
-   semántica, confusión gratis).
-   36×22 y no 30×19: apilados no llegan a los 44px canónicos (inflarían el
-   fold), pero son ajuste fino — el camino principal es teclear/décadas; aún
-   así el target gana ~40% de área y separación (auditoría UX #3). */
-.cdd-year-steps button { width: 36px; height: 22px; display: flex; align-items: center; justify-content: center;
-  background: var(--surface2); border: 1px solid var(--line); border-radius: 6px; color: var(--cdd-muted); cursor: pointer;
-  font-size: 15px; font-weight: 700; line-height: 1; padding: 0; }
+   semántica, confusión gratis). */
+.cdd-year-steps button { width: 36px; height: 32px; display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; color: var(--cdd-muted); cursor: pointer;
+  font-size: 16px; font-weight: 700; line-height: 1; padding: 0; }
 .cdd-year-steps button:hover { color: var(--accent); border-color: var(--accent); }
 /* Décadas rápidas: overlay absoluto bajo el campo de año (cero layout shift,
    mismo patrón que .cdd-listbox). Visible solo con el campo enfocado y vacío. */
@@ -615,9 +619,8 @@ body,
   /* Inputs un punto más compactos manteniendo el área táctil (~44px). */
   .cdd-input { padding: 11px 14px; }
   .cdd-submit { height: 54px; }
-  /* En táctil los steppers SUBEN (no bajan): es donde el dedo necesita área.
-     El input pierde padding (arriba) y lo absorben los botones. */
-  .cdd-year-steps button { height: 24px; }
+  /* Steppers en fila: ya no definen el alto del campo, no hay nada que
+     compactar en móvil (el alto lo manda el padding del input, arriba). */
 }
 
 /* Pantallas bajas (móvil apaisado, ventanas cortas): el modal de fin de partida

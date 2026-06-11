@@ -146,33 +146,29 @@ export default function Configurator({
             onOpenGarage={onOpenGarage}
           />
 
-          {/* El subtítulo "Adivina marca, modelo y año" duplica las etiquetas del
-              formulario (MARCA · MODELO · AÑO) y su fila roba alto al fold, así
-              que en el día a día NO se pinta — sobrevive como <h1> sr-only por
-              semántica/SEO. PERO en la primera visita sí mostramos la fila
-              completa con el "?" de ayuda: es el onboarding del novato (el "?"
-              late para invitar al "cómo se juega" sin modal forzado). */}
-          {showIntro ? (
+          {/* El subtítulo "Adivina marca, modelo y año" se eliminó a propósito:
+              duplicaba las etiquetas del formulario (MARCA · MODELO · AÑO) y
+              robaba alto al fold. NUNCA se pinta visible — sobrevive como <h1>
+              sr-only por semántica/SEO. */}
+          <h1 className="sr-only">
+            {t("cdd.guess")} {t("cdd.wordMarca")}, {t("cdd.wordModelo")} {conn}{" "}
+            {t("cdd.wordAnio")}
+          </h1>
+
+          {/* Primera visita: SOLO una pista de ayuda (no el subtítulo) para
+              guiar al novato hacia el "cómo se juega". Late para invitar sin
+              modal forzado; en el día a día no se pinta (barra limpia). */}
+          {showIntro && (
             <div className="cdd-intro">
-              <h1 className="cdd-h1">
-                {t("cdd.guess")} <em>{t("cdd.wordMarca")}</em>, <em>{t("cdd.wordModelo")}</em> {conn}{" "}
-                <em>{t("cdd.wordAnio")}</em>
-              </h1>
               <button
                 type="button"
-                className={"cdd-helpbtn" + (howtoPulse ? " pulse" : "")}
-                aria-label={t("cdd.helpAria")}
-                title={t("cdd.helpAria")}
+                className={"cdd-helpchip" + (howtoPulse ? " pulse" : "")}
                 onClick={onOpenHowTo}
               >
                 <Icon d={I.help} size={15} />
+                <span>{t("cdd.helpAria")}</span>
               </button>
             </div>
-          ) : (
-            <h1 className="sr-only">
-              {t("cdd.guess")} {t("cdd.wordMarca")}, {t("cdd.wordModelo")} {conn}{" "}
-              {t("cdd.wordAnio")}
-            </h1>
           )}
 
           <div className="cdd-main">

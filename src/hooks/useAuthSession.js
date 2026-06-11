@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { getMyProfile, getMyStreak } from "../lib/statsService";
+import { getMyProfile, getMyStreak, getMyMonthlyRank } from "../lib/statsService";
 
 export function useAuthSession() {
   const [user, setUser] = useState(null);
@@ -22,6 +22,12 @@ export function useAuthSession() {
   // partida acaba, el score que devuelve useGame ya incluye el nuevo
   // currentStreak — el caller lo aplica vía setStreak sin refetch.
   const [streak, setStreak] = useState(0);
+  // Puesto en el ranking MENSUAL del usuario logueado, para la píldora de
+  // estado del header. null = anónimo o aún sin puesto este mes (sin puntos /
+  // sin nick) → la píldora cae a solo-racha. Shape: { rank, total } | null.
+  // Se sincroniza en login junto a profile+streak, y App lo refresca tras un
+  // resultado persistido (ganar sube puntos del mes → puede cambiar el puesto).
+  const [rank, setRank] = useState(null);
 
   // Gate de re-sincronización: onAuthStateChange dispara TOKEN_REFRESHED
   // cada vez que el browser recupera el foco de la pestaña, con un user
@@ -44,6 +50,7 @@ export function useAuthSession() {
       if (!nextUser) {
         setProfile(null);
         setStreak(0);
+        setRank(null);
         setCheckingProfile(false);
         return;
       }
@@ -51,20 +58,23 @@ export function useAuthSession() {
       setCheckingProfile(true);
 
       try {
-        // Paralelizamos: el profile y el streak son lecturas independientes.
-        // Promise.all → cualquiera de los dos puede fallar sin afectar al
-        // otro porque getMyStreak ya devuelve 0 en error y getMyProfile
-        // tira → lo cazamos en el catch general.
-        const [nextProfile, nextStreak] = await Promise.all([
+        // Paralelizamos: profile, streak y rank son lecturas independientes.
+        // Promise.all → cualquiera puede fallar sin afectar a las otras porque
+        // getMyStreak y getMyMonthlyRank ya devuelven su valor neutro (0 / null)
+        // en error; solo getMyProfile tira → lo cazamos en el catch general.
+        const [nextProfile, nextStreak, nextRank] = await Promise.all([
           getMyProfile(nextUser.id),
           getMyStreak(nextUser.id),
+          getMyMonthlyRank(nextUser.id),
         ]);
         setProfile(nextProfile);
         setStreak(nextStreak);
+        setRank(nextRank);
       } catch (error) {
         console.error("Error cargando perfil:", error);
         setProfile(null);
         setStreak(0);
+        setRank(null);
       } finally {
         setCheckingProfile(false);
       }
@@ -89,6 +99,7 @@ export function useAuthSession() {
     setUser(null);
     setProfile(null);
     setStreak(0);
+    setRank(null);
     setCheckingProfile(false);
   }
 
@@ -99,6 +110,8 @@ export function useAuthSession() {
     checkingProfile,
     streak,
     setStreak,
+    rank,
+    setRank,
     resetAuth,
   };
 }

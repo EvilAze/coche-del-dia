@@ -274,3 +274,52 @@ GRANT EXECUTE ON FUNCTION public.snapshot_previous_month_podium() TO service_rol
 -- Para revisar qué saldría en un mes concreto antes de nada (read-only):
 --
 --   SELECT * FROM public.get_monthly_leaderboard('2026-05-01', 10);
+
+
+-- ============================================================================
+-- 7) MI PUESTO MENSUAL: get_my_monthly_rank(p_user_id, p_month)
+-- ============================================================================
+-- Devuelve SOLO la posición de p_user_id en el ranking mensual (el que el modal
+-- de Ranking abre por defecto) + el total de jugadores rankeados. La consume la
+-- píldora de estado del header (src/lib/statsService.getMyMonthlyRank): un único
+-- round-trip barato que NO arrastra las 1000 filas del leaderboard al cliente
+-- solo para situar al jugador — el cálculo pesado se queda en el servidor y por
+-- el cable viaja una sola fila.
+--
+-- Reutiliza get_monthly_leaderboard para que el número de la píldora coincida
+-- EXACTAMENTE con el que el jugador ve al abrir el modal (misma derivación de
+-- puntos, mismo desempate). p_limit grande para incluir también puestos >1000.
+-- rank = NULL si el jugador no está rankeado (sin puntos del mes o sin nick) →
+-- la píldora cae a solo-racha.
+--
+-- SECURITY DEFINER por la misma razón que get_monthly_leaderboard (lee
+-- user_guesses). Solo expone rank + total, ambos datos ya públicos.
+
+DROP FUNCTION IF EXISTS public.get_my_monthly_rank(uuid, date);
+
+CREATE OR REPLACE FUNCTION public.get_my_monthly_rank(
+  p_user_id uuid,
+  p_month date DEFAULT NULL
+)
+RETURNS TABLE (
+  rank int,
+  total int
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH lb AS (
+    SELECT mlb.rank, mlb.user_id
+    FROM public.get_monthly_leaderboard(p_month, 1000000) mlb
+  )
+  SELECT
+    (SELECT lb.rank FROM lb WHERE lb.user_id = p_user_id)::int AS rank,
+    (SELECT count(*) FROM lb)::int                            AS total;
+$$;
+
+-- Lectura pública (rank/total ya son públicos vía leaderboard). anon no tiene
+-- user_id propio pero se concede por simetría con get_monthly_leaderboard.
+REVOKE ALL ON FUNCTION public.get_my_monthly_rank(uuid, date) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_my_monthly_rank(uuid, date) TO anon, authenticated;

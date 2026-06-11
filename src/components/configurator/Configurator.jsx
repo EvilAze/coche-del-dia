@@ -7,10 +7,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import Header from "./Header";
+import { Icon, I } from "./icons";
 import ZoomStage from "./ZoomStage";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
+import PhotoPeek from "./PhotoPeek";
 
 // Dirección visual por defecto: Platino Eléctrico con acento menta (#7af0c8).
 const DEFAULT_THEME = "platino";
@@ -67,6 +69,36 @@ export default function Configurator({
   // Conector del H1 según idioma ("marca, modelo y/and año").
   const conn = locale === "es" ? "y" : "and";
 
+  // PhotoPeek (auditoría UX #7): cuando el escenario sale del viewport durante
+  // la partida (auto-scroll al enfocar un campo + teclado en móvil, o scroll
+  // manual al historial), una miniatura flotante mantiene la foto a un vistazo
+  // — elegir marca/modelo sin verla es jugar a ciegas. Observamos GEOMETRÍA
+  // (IntersectionObserver), no foco: así también cubre el scroll manual y se
+  // apaga sola si el teclado se cierra y la foto vuelve a verse.
+  const stageColRef = useRef(null);
+  const [stageOffscreen, setStageOffscreen] = useState(false);
+  useEffect(() => {
+    const el = stageColRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(
+      // < 0.15 y no === 0: con un 15% visible la foto ya no sirve para
+      // comparar; el umbral intermedio evita parpadeo en el borde justo.
+      ([entry]) => setStageOffscreen(entry.intersectionRatio < 0.15),
+      { threshold: [0, 0.15, 0.3] }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // Tap en la miniatura: cerrar teclado (blur) y volver al escenario. El blur
+  // va primero — con el teclado abierto el viewport visual está encogido y el
+  // scroll calcularía mal el destino.
+  const scrollBackToStage = () => {
+    document.activeElement?.blur?.();
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    stageColRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+  };
+
   return (
     <div className={"cdd-app theme-" + theme} style={{ "--accent": accent }}>
       <div className="cdd-ambient" />
@@ -87,8 +119,6 @@ export default function Configurator({
             onOpenLogin={onOpenLogin}
             onOpenRanking={onOpenRanking}
             onOpenGarage={onOpenGarage}
-            onOpenHowTo={onOpenHowTo}
-            howtoPulse={howtoPulse}
           />
 
           <div className="cdd-intro">
@@ -96,10 +126,23 @@ export default function Configurator({
               {t("cdd.guess")} <em>{t("cdd.wordMarca")}</em>, <em>{t("cdd.wordModelo")}</em> {conn}{" "}
               <em>{t("cdd.wordAnio")}</em>
             </h1>
+            {/* "?" de ayuda junto al H1 (no en la barra: allí saturaba en móvil).
+                Contextualmente es su sitio — la duda "¿cómo se juega?" nace justo
+                donde se resume la regla. `howtoPulse` (primera visita) le da un
+                latido sutil que invita al novato sin modal forzado. */}
+            <button
+              type="button"
+              className={"cdd-helpbtn" + (howtoPulse ? " pulse" : "")}
+              aria-label={t("cdd.helpAria")}
+              title={t("cdd.helpAria")}
+              onClick={onOpenHowTo}
+            >
+              <Icon d={I.help} size={15} />
+            </button>
           </div>
 
           <div className="cdd-main">
-            <div className="cdd-col cdd-col-stage">
+            <div className="cdd-col cdd-col-stage" ref={stageColRef}>
               <ZoomStage
                 car={car}
                 zoom={zoom}
@@ -180,6 +223,12 @@ export default function Configurator({
           <span>© {new Date().getFullYear()} · {t("app.title")}</span>
         </footer>
       </div>
+
+      {/* Miniatura flotante: solo en partida (al revelar, la foto ya no es un
+          secreto que custodiar ni una referencia que necesitar). */}
+      {dataReady && !ended && stageOffscreen && (
+        <PhotoPeek src={car?.img} zoom={zoom} onClick={scrollBackToStage} />
+      )}
 
       {showEnd && ended && (
         <EndScreen

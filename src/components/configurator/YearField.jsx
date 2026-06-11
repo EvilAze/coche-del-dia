@@ -83,9 +83,11 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
           onWheel={(e) => e.currentTarget.blur()}
         />
         <div className="cdd-year-steps">
-          {/* aria-label numérico explícito; el glifo visible es tipográfico. */}
-          <button type="button" aria-label="+1" onClick={() => step(1)}>+</button>
+          {/* aria-label numérico explícito; el glifo visible es tipográfico.
+              Lado a lado (− +), no apilados: targets más grandes SIN engordar
+              el alto del campo — en el fold, cada px de alto sale de la foto. */}
           <button type="button" aria-label="-1" onClick={() => step(-1)}>−</button>
+          <button type="button" aria-label="+1" onClick={() => step(1)}>+</button>
         </div>
         {showDecades && (
           <div className="cdd-decades" role="group" aria-label={t("cdd.decadesAria")}>

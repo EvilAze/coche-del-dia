@@ -499,6 +499,25 @@ body,
 .cdd-reveal-meta { font-size: 10px; color: var(--cdd-muted); margin-top: 3px; display: inline-flex; align-items: center; gap: 6px; }
 .cdd-reveal-meta .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
 
+/* Tira de desbloqueo de cromo (victoria): cierra el bucle juego→colección sin
+   eclipsar COMPARTIR. Tintada y fina (~40px), NO rellena: es una nota
+   celebratoria tappable, no un CTA primario. El botón de compartir (relleno
+   accent, 50px) sigue siendo el único elemento dominante de la pantalla. */
+.cdd-unlock { display: flex; align-items: center; gap: 10px; width: calc(100% - 36px); margin: 14px 18px 0;
+  padding: 9px 12px; border-radius: 11px; cursor: pointer; text-align: left;
+  background: color-mix(in oklab, var(--accent) 9%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
+  color: var(--accent); transition: .18s; }
+.cdd-unlock:hover { background: color-mix(in oklab, var(--accent) 15%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--line)); }
+.cdd-unlock:active { transform: scale(.99); }
+.cdd-unlock-text { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.cdd-unlock-kicker { flex: none; font-size: 9px; color: var(--accent); }
+.cdd-unlock-name { min-width: 0; font-size: 13px; font-weight: 700; color: var(--cdd-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdd-unlock-chev { flex: none; opacity: .75; }
+@media (prefers-reduced-motion: reduce) { .cdd-unlock:active { transform: none; } }
+
 .cdd-end-tabs { display: flex; gap: 8px; padding: 16px 18px 0; }
 .cdd-tab { flex: 1; padding: 10px; font-size: 10px; border-radius: 9px; cursor: pointer;
   background: var(--surface); border: 1px solid var(--line); color: var(--cdd-muted); }

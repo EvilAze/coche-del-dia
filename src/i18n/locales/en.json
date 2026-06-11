@@ -129,7 +129,8 @@
     "garageAria": "My garage",
     "garageRepescaAria": "My garage · rescue available",
     "helpAria": "How to play",
-    "peekAria": "Back to the photo"
+    "peekAria": "Back to the photo",
+    "unlockKicker": "New sticker"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",

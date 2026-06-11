@@ -110,6 +110,43 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [marca]);
 
+  // ── Carry-forward TRAS RECARGA (cierre del punto #1 de la auditoría) ──
+  // Los aciertos parciales viven en `guesses` (fuente de verdad del servidor),
+  // pero el estado del formulario nace vacío en cada carga: el post-submit de
+  // handleSubmit solo conserva los campos correctos DENTRO de la sesión. Los
+  // navegadores in-app (Telegram, Google app — el grueso del tráfico móvil)
+  // recargan la página con cualquier cambio de app, así que el jugador que
+  // volvía a mitad de partida tenía que reescribir marca/modelo ya acertados.
+  // Derivamos el valor "resuelto" de cada campo desde el historial y lo
+  // aplicamos UNA sola vez por valor (ref): si el usuario borra el campo a
+  // propósito después, no se lo rellenamos otra vez en cada render.
+  const solved = useMemo(() => {
+    const s = { marca: null, modelo: null, anio: null };
+    for (const g of guesses) {
+      if (g?.marca?.status === "correct" && g.marca.val) s.marca = g.marca.val;
+      if (g?.modelo?.status === "correct" && g.modelo.val) s.modelo = g.modelo.val;
+      if (g?.anio?.status === "correct" && g.anio.val != null) s.anio = g.anio.val;
+    }
+    return s;
+  }, [guesses]);
+
+  const prefilledRef = useRef({ marca: null, modelo: null, anio: null });
+  useEffect(() => {
+    if (solved.marca && prefilledRef.current.marca !== solved.marca) {
+      prefilledRef.current.marca = solved.marca;
+      setMarca(solved.marca);
+    }
+    if (solved.modelo && prefilledRef.current.modelo !== solved.modelo) {
+      prefilledRef.current.modelo = solved.modelo;
+      setModelo(solved.modelo);
+    }
+    if (solved.anio != null && prefilledRef.current.anio !== solved.anio) {
+      prefilledRef.current.anio = solved.anio;
+      const n = parseInt(solved.anio, 10);
+      if (!isNaN(n)) setAnio(n);
+    }
+  }, [solved]);
+
   function triggerShake() {
     setShake(false);
     // Force re-trigger en el siguiente frame.

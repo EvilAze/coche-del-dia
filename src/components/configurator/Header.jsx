@@ -1,17 +1,18 @@
 // src/components/configurator/Header.jsx
 // Cabecera del configurador: wordmark CDD + fecha (izq.) y, a la derecha, la
 // PÍLDORA DE ESTADO (racha + puesto en el ranking) como elemento héroe, seguida
-// de las utilidades en gris (garaje, perfil) y el "?" de ayuda.
+// de las utilidades en gris (garaje, perfil). Tres elementos a la derecha y
+// nada más: la barra debe caber holgada en móvil (≤360px) sin desbordar.
 //
-// Dos decisiones de jerarquía visual (auditoría UX, dir. Platino):
-//  1) El ranking deja de ser un icono mudo entre tres iguales y asciende a
-//     ESTADO VIVO: la píldora muestra el puesto del jugador (🏆#42). El número
-//     es el verdadero gancho de retención del juego diario ("voy 42º"), no una
-//     pantalla que abrir; por eso vive en la barra, no escondido tras un icono.
-//  2) El subtítulo "Adivina marca, modelo y año" ya NO se pinta ni ocupa fila:
-//     duplicaba las etiquetas del formulario y robaba alto al fold (lo conserva
-//     sr-only Configurator). El "?" de ayuda se mudó aquí desde esa fila y sigue
-//     latiendo en la primera visita (howtoPulse) para guiar al recién llegado.
+// Jerarquía visual (auditoría UX, dir. Platino): el ranking deja de ser un
+// icono mudo entre tres iguales y asciende a ESTADO VIVO — la píldora muestra el
+// puesto del jugador (🏆#42). El número es el gancho de retención del juego
+// diario ("voy 42º"), no una pantalla que abrir; por eso vive en la barra.
+//
+// El "?" de ayuda y el subtítulo del juego NO viven aquí: ocupaban demasiado y
+// desbordaban la fila. El subtítulo sobrevive sr-only (Configurator) y el "?"
+// vuelve solo en la primera visita, dentro de la intro de onboarding que pinta
+// Configurator — la barra del día a día queda limpia.
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
@@ -27,8 +28,6 @@ export default function Header({
   onOpenLogin,
   onOpenRanking,
   onOpenGarage,
-  onOpenHowTo,
-  howtoPulse = false,
 }) {
   const { t, dateLocale } = useT();
 
@@ -84,7 +83,7 @@ export default function Header({
             anónimo. Tinte de acento = es el elemento dominante de la barra. */}
         <button
           type="button"
-          className={"cdd-statuspill" + (pop ? " pop" : "")}
+          className={"cdd-statuspill" + (showStatus ? "" : " cta") + (pop ? " pop" : "")}
           onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
           aria-label={statusAria}
           title={statusAria}
@@ -93,20 +92,22 @@ export default function Header({
             <>
               {hasStreak && (
                 <span className="seg">
-                  <Icon d={I.flame} size={15} /> <b>{streak}</b>
+                  <Icon d={I.flame} size={14} /> <b>{streak}</b>
                 </span>
               )}
               {hasStreak && hasRank && <span className="divider" aria-hidden="true" />}
               {hasRank && (
                 <span className="seg">
-                  <Icon d={I.trophy} size={15} /> <b className="tabular-nums">#{rank.rank}</b>
+                  <Icon d={I.trophy} size={14} /> <b className="tabular-nums">#{rank.rank}</b>
                 </span>
               )}
             </>
           ) : (
+            // CTA para anónimos / sin datos: "Compite →" BIEN visible (relleno de
+            // acento) — es la palanca de conversión al ranking, no se atenúa.
             <span className="seg">
-              <Icon d={I.trophy} size={15} /> <b>{t("cdd.competeLabel")}</b>
-              <Icon d={I.chevR} size={14} />
+              <Icon d={I.trophy} size={14} /> <b>{t("cdd.competeLabel")}</b>
+              <Icon d={I.arrowR} size={14} />
             </span>
           )}
         </button>
@@ -130,19 +131,6 @@ export default function Header({
           onClick={() => { haptic.impactLight(); (user ? onOpenProfile : onOpenLogin)?.(); }}
         >
           <Icon d={I.user} size={18} />
-        </button>
-
-        {/* "?" de ayuda: menor que las utilidades (jerarquía: es ayuda, no
-            navegación). Late en la primera visita para guiar al recién llegado,
-            ahora que el subtítulo del juego ya no se pinta. */}
-        <button
-          type="button"
-          className={"cdd-helpbtn" + (howtoPulse ? " pulse" : "")}
-          aria-label={t("cdd.helpAria")}
-          title={t("cdd.helpAria")}
-          onClick={onOpenHowTo}
-        >
-          <Icon d={I.help} size={15} />
         </button>
       </nav>
     </header>

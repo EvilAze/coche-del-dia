@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import Header from "./Header";
+import { Icon, I } from "./icons";
 import ZoomStage from "./ZoomStage";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
@@ -51,6 +52,29 @@ export default function Configurator({
   const { t, locale } = useT();
   const ended = status !== "playing";
   const won = status === "won";
+
+  // Onboarding del recién llegado: la fila de intro (subtítulo "Adivina marca,
+  // modelo y año" + "?") se pinta SOLO en la primera visita. El día a día queda
+  // con la barra limpia (sin subtítulo ni "?"). Lectura SÍNCRONA de localStorage
+  // en el initializer para que la decisión sea correcta en el primer render —
+  // si esperásemos a un useEffect, la fila aparecería de golpe (CLS). El flag se
+  // marca al montar, así que la intro se ve una vez y desaparece para siempre.
+  const [showIntro] = useState(() => {
+    try {
+      return !localStorage.getItem("ccd_intro_seen");
+    } catch {
+      // localStorage puede fallar (modo privado/iframe): sin intro, sin drama.
+      return false;
+    }
+  });
+  useEffect(() => {
+    if (!showIntro) return;
+    try {
+      localStorage.setItem("ccd_intro_seen", "1");
+    } catch {
+      /* ignore */
+    }
+  }, [showIntro]);
 
   // Revelado: se auto-abre SOLO cuando la partida termina en esta sesión
   // (transición playing → ended). Si el usuario llega con la partida ya cerrada,
@@ -120,20 +144,32 @@ export default function Configurator({
             onOpenLogin={onOpenLogin}
             onOpenRanking={onOpenRanking}
             onOpenGarage={onOpenGarage}
-            onOpenHowTo={onOpenHowTo}
-            howtoPulse={howtoPulse}
           />
 
-          {/* El subtítulo "Adivina marca, modelo y año" YA NO se pinta: duplicaba
-              literalmente las etiquetas del formulario (MARCA · MODELO · AÑO) y
-              su fila robaba alto crítico al fold en móvil. Lo conservamos como
-              <h1> sr-only por semántica/SEO (es el único h1 de la página) y el
-              onboarding del recién llegado lo lleva ahora el "?" del header, que
-              late en la primera visita (howtoPulse). */}
+          {/* El subtítulo "Adivina marca, modelo y año" se eliminó a propósito:
+              duplicaba las etiquetas del formulario (MARCA · MODELO · AÑO) y
+              robaba alto al fold. NUNCA se pinta visible — sobrevive como <h1>
+              sr-only por semántica/SEO. */}
           <h1 className="sr-only">
             {t("cdd.guess")} {t("cdd.wordMarca")}, {t("cdd.wordModelo")} {conn}{" "}
             {t("cdd.wordAnio")}
           </h1>
+
+          {/* Primera visita: SOLO una pista de ayuda (no el subtítulo) para
+              guiar al novato hacia el "cómo se juega". Late para invitar sin
+              modal forzado; en el día a día no se pinta (barra limpia). */}
+          {showIntro && (
+            <div className="cdd-intro">
+              <button
+                type="button"
+                className={"cdd-helpchip" + (howtoPulse ? " pulse" : "")}
+                onClick={onOpenHowTo}
+              >
+                <Icon d={I.help} size={15} />
+                <span>{t("cdd.helpAria")}</span>
+              </button>
+            </div>
+          )}
 
           <div className="cdd-main">
             <div className="cdd-col cdd-col-stage" ref={stageColRef}>
@@ -213,6 +249,12 @@ export default function Configurator({
         />
 
         <footer className="cdd-footer cdd-mono">
+          {/* "Cómo se juega" vive aquí en el día a día (la barra superior queda
+              limpia); en la primera visita además se muestra arriba el chip que
+              guía al novato. Botón, no <a>, porque abre el modal de reglas. */}
+          <button type="button" className="cdd-foot-link" onClick={onOpenHowTo}>
+            {t("cdd.helpAria")}
+          </button>
           <a className="cdd-foot-link" href="/privacidad">{t("app.footerPrivacy")}</a>
           <span>© {new Date().getFullYear()} · {t("app.title")}</span>
         </footer>

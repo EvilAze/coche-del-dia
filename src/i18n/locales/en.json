@@ -128,7 +128,8 @@
     "statsAria": "Ranking",
     "garageAria": "My garage",
     "garageRepescaAria": "My garage · rescue available",
-    "helpAria": "How to play"
+    "helpAria": "How to play",
+    "peekAria": "Back to the photo"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",

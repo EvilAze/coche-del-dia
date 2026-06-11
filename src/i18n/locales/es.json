@@ -127,7 +127,9 @@
     "profileAria": "Perfil",
     "statsAria": "Ranking",
     "garageAria": "Mi garaje",
-    "helpAria": "Cómo se juega"
+    "garageRepescaAria": "Mi garaje · repesca disponible",
+    "helpAria": "Cómo se juega",
+    "peekAria": "Volver a la foto"
   },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",

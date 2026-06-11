@@ -196,7 +196,9 @@ body,
 .cdd-wordmark { display: flex; align-items: center; min-width: 0; }
 /* Sin badge "CDD": el wordmark "Coche del Día" es ahora el protagonista de la
    barra — más grande y rotundo, con el acento reservado para fecha + H1. */
-.cdd-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(19px, 5.6vw, 24px); letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
+/* Valores compactos (antes duplicados inline en Header.jsx; centralizados aquí
+   como el resto del rediseño): clamp ceñido que regala alto al fold. */
+.cdd-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(18px, 5vw, 22px); letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
 .cdd-nav { display: flex; align-items: center; gap: 7px; }
 .cdd-iconbtn, .cdd-streakpill {
   position: relative;
@@ -213,17 +215,40 @@ body,
   background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 
 /* ── Intro (compactada para ganar alto y hacer la foto más cuadrada) ── */
-.cdd-intro { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
-.cdd-date { font-size: 11.5px; color: var(--accent); display: inline-flex; align-items: center; gap: 9px; }
+/* Fila: H1 (flex con ellipsis) + "?" de ayuda. El botón vive aquí y no en la
+   barra superior porque allí saturaba en móvil — y la duda "¿cómo se juega?"
+   nace justo donde se resume la regla. */
+.cdd-intro { display: flex; flex-direction: row; align-items: center; gap: 10px; margin-bottom: 8px; }
+/* 10.5px y no los 9px que iban inline en Header: mono caps por debajo de 10px
+   con tracking .12em se empasta en DPI bajo (auditoría UX, mismo criterio que
+   .cdd-label). El tracking baja a .08em por la misma razón. */
+.cdd-date { font-size: 10.5px; letter-spacing: .08em; margin-top: 2px; color: var(--accent); display: inline-flex; align-items: center; gap: 6px; }
 /* Marcador editorial: barrita de acento antes de la fecha */
 .cdd-date::before { content: ""; width: 14px; height: 2px; border-radius: 2px;
   background: var(--accent); box-shadow: 0 0 10px -1px var(--accent); }
 /* H1 (subtítulo del juego "Adivina marca, modelo y año"): una sola línea con
    ellipsis para no comerse alto del fold en móvil. Estilos centralizados aquí
    (antes iban inline en Configurator.jsx, resto del rediseño). */
-.cdd-h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(15px, 4vw, 20px); line-height: 1.05; letter-spacing: -.02em; margin: 0;
+.cdd-h1 { flex: 1 1 auto; min-width: 0; font-family: var(--font-display); font-weight: 800; font-size: clamp(15px, 4vw, 20px); line-height: 1.05; letter-spacing: -.02em; margin: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-h1 em { font-style: normal; color: var(--accent); }
+/* "?" de ayuda: redondo y un punto menor que los iconbtn de la barra (jerarquía:
+   es ayuda, no navegación). Mismo lenguaje visual que .cdd-iconbtn. */
+.cdd-helpbtn { flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--line);
+  color: var(--cdd-muted); cursor: pointer; transition: .18s; }
+.cdd-helpbtn:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+/* Primera visita: latido suave del halo que invita a abrir "cómo se juega" sin
+   modal forzado. Se apaga al abrirlo (App quita la clase). */
+.cdd-helpbtn.pulse { color: var(--accent); animation: cddHelpPulse 2.2s ease-in-out infinite; }
+@keyframes cddHelpPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 45%, transparent); }
+  50% { box-shadow: 0 0 0 7px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cdd-helpbtn.pulse { animation: none; }
+}
 
 /* ── Main / columnas (margen propio; antes lo daba el gap del shell) ── */
 .cdd-main { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; }
@@ -276,7 +301,9 @@ body,
    visible sin scroll (el flip-reveal/pending ocurrían fuera de pantalla). */
 .cdd-live-attempt { margin-bottom: 10px; }
 .cdd-attempt { display: flex; align-items: stretch; gap: 10px; }
-.cdd-attempt-no { display: flex; align-items: center; font-size: 11px; color: var(--faint); width: 22px; flex: none; font-family: var(--font-mono); }
+/* Muted y no faint: el "01" es el ancla para leer el historial ("¿qué probé
+   en el 2?") y con faint era prácticamente invisible (auditoría UX #15). */
+.cdd-attempt-no { display: flex; align-items: center; font-size: 11px; color: var(--cdd-muted); width: 22px; flex: none; font-family: var(--font-mono); }
 .cdd-attempt-chips { display: grid; grid-template-columns: 1.1fr 1.4fr 1fr; gap: 8px; flex: 1; min-width: 0; perspective: 700px; }
 .cdd-chip { display: flex; flex-direction: column; gap: 3px; justify-content: center; align-items: flex-start;
   padding: 9px 11px; border-radius: 11px; min-height: 46px; font-size: 12.5px; font-weight: 600; line-height: 1.15; min-width: 0; }
@@ -325,7 +352,11 @@ body,
 .cdd-combo.is-invalid { border-color: color-mix(in oklab, #d9604e 60%, var(--line)); }
 .cdd-input { flex: 1; width: 100%; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--cdd-text);
   font-family: var(--font-body); font-size: 15px; font-weight: 500; padding: 14px 14px; -webkit-appearance: none; appearance: none; }
-.cdd-input::placeholder { color: var(--faint); }
+/* Placeholder en muted, no faint: "Escribe o elige…" es la invitación a la
+   acción principal y con --faint quedaba a ~2.9:1 sobre --surface (auditoría
+   UX #13). El combo deshabilitado (modelo sin marca) ya se atenúa entero vía
+   .is-disabled { opacity:.5 }, así que conserva su jerarquía de "aún no". */
+.cdd-input::placeholder { color: var(--cdd-muted); }
 .cdd-input::-webkit-search-cancel-button, .cdd-input::-webkit-search-decoration { -webkit-appearance: none; }
 .cdd-combo-caret { background: transparent; border: 0; color: var(--cdd-muted); padding: 0 12px; cursor: pointer; display: flex; }
 .cdd-listbox { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
@@ -339,13 +370,16 @@ body,
 .cdd-opt-empty { color: var(--faint); cursor: default; }
 .cdd-opt .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
 .cdd-year-input { padding-right: 6px; }
-.cdd-year-steps { display: flex; flex-direction: column; padding: 4px 6px; gap: 3px; }
+.cdd-year-steps { display: flex; flex-direction: column; padding: 4px 6px; gap: 4px; }
 /* Glifos +/− tipográficos (no flechas ↑/↓: ese glifo ya significa "el año real
    es más nuevo/antiguo" en el feedback del intento — mismo símbolo, otra
-   semántica, confusión gratis). */
-.cdd-year-steps button { width: 30px; height: 19px; display: flex; align-items: center; justify-content: center;
+   semántica, confusión gratis).
+   36×22 y no 30×19: apilados no llegan a los 44px canónicos (inflarían el
+   fold), pero son ajuste fino — el camino principal es teclear/décadas; aún
+   así el target gana ~40% de área y separación (auditoría UX #3). */
+.cdd-year-steps button { width: 36px; height: 22px; display: flex; align-items: center; justify-content: center;
   background: var(--surface2); border: 1px solid var(--line); border-radius: 6px; color: var(--cdd-muted); cursor: pointer;
-  font-size: 14px; font-weight: 700; line-height: 1; padding: 0; }
+  font-size: 15px; font-weight: 700; line-height: 1; padding: 0; }
 .cdd-year-steps button:hover { color: var(--accent); border-color: var(--accent); }
 /* Décadas rápidas: overlay absoluto bajo el campo de año (cero layout shift,
    mismo patrón que .cdd-listbox). Visible solo con el campo enfocado y vacío. */
@@ -365,12 +399,17 @@ body,
   box-shadow: 0 14px 34px -14px var(--accent); }
 .cdd-submit:hover:not(:disabled):not(.is-incomplete) { transform: translateY(-1px); box-shadow: 0 18px 40px -14px var(--accent); }
 .cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(0); }
-.cdd-submit:disabled { background: var(--surface2); color: var(--faint); box-shadow: none; cursor: not-allowed; }
+/* Label en --cdd-muted y no --faint: --faint sobre --surface2 da ~2.7:1 y el
+   CTA (el texto más importante de la pantalla) se leía como "roto" (auditoría
+   UX #2). Con muted ronda 5:1 — apagado pero legible, también en disabled. */
+.cdd-submit:disabled { background: var(--surface2); color: var(--cdd-muted); box-shadow: none; cursor: not-allowed; }
 /* Formulario incompleto: mismo aspecto apagado que disabled pero TOCABLE — el
    tap dispara shake + toast con el campo que falta (un botón muerto no explica
    nada). Al completarse, la transition .18s del botón anima apagado→accent:
-   micro-feedback de "listo para disparar". */
-.cdd-submit.is-incomplete { background: var(--surface2); color: var(--faint); box-shadow: none; }
+   micro-feedback de "listo para disparar". El ring interior mantiene la
+   affordance de botón mientras está apagado (sin sombra ni relleno accent). */
+.cdd-submit.is-incomplete { background: var(--surface2); color: var(--cdd-muted);
+  box-shadow: inset 0 0 0 1px var(--line); }
 /* Variante SECUNDARIA (ghost): borde de acento sobre fondo transparente. Para
    acciones que no deben competir con el CTA primario en la misma pantalla
    (p.ej. "guardar progreso" junto a "compartir"). Menos alto y sin sombra. */
@@ -538,8 +577,9 @@ body,
   /* Inputs un punto más compactos manteniendo el área táctil (~44px). */
   .cdd-input { padding: 11px 14px; }
   .cdd-submit { height: 54px; }
-  /* Con menos padding en el input, los steppers de año recuperan ese punto. */
-  .cdd-year-steps button { height: 21px; }
+  /* En táctil los steppers SUBEN (no bajan): es donde el dedo necesita área.
+     El input pierde padding (arriba) y lo absorben los botones. */
+  .cdd-year-steps button { height: 24px; }
 }
 
 /* Pantallas bajas (móvil apaisado, ventanas cortas): el modal de fin de partida

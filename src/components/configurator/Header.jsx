@@ -1,7 +1,7 @@
 // src/components/configurator/Header.jsx
 // Cabecera del configurador: wordmark CDD + pastilla de racha + accesos
-// (perfil/login · ranking · garaje). El "?" de ayuda vive en la intro, junto a
-// la fecha, para no saturar la barra en móvil.
+// (perfil/login · ranking · garaje). El "?" de ayuda vive en la intro, junto al
+// H1 (lo renderiza Configurator), para no saturar la barra en móvil.
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
@@ -16,8 +16,6 @@ export default function Header({
   onOpenLogin,
   onOpenRanking,
   onOpenGarage,
-  onOpenHowTo,
-  howtoPulse = false,
 }) {
   const { t, dateLocale } = useT();
 
@@ -44,9 +42,12 @@ export default function Header({
   return (
     <header className="cdd-header">
       <div className="cdd-wordmark">
+        {/* Estilos en index.css (.cdd-title/.cdd-date), no inline: la fecha iba
+            forzada a 9px con tracking .12em — mono caps a ese cuerpo se empasta
+            en pantallas de DPI bajo (auditoría UX, mismo criterio que labels). */}
         <div className="flex flex-col">
-          <span className="cdd-title" style={{ fontSize: "clamp(18px, 5vw, 22px)", lineHeight: "1" }}>{t("app.title")}</span>
-          <span className="cdd-date cdd-mono" style={{ fontSize: "9px", marginTop: "2px", gap: "6px" }}>{dateLabel}</span>
+          <span className="cdd-title">{t("app.title")}</span>
+          <span className="cdd-date cdd-mono">{dateLabel}</span>
         </div>
       </div>
       <nav className="cdd-nav">
@@ -55,9 +56,12 @@ export default function Header({
             <Icon d={I.flame} size={15} /> <b>{streak}</b>
           </span>
         )}
+        {/* title = tooltip nativo en desktop: los iconos sin etiqueta obligaban
+            a adivinar (auditoría UX #6); en táctil no estorba. */}
         <button
           className="cdd-iconbtn"
           aria-label={t("cdd.profileAria")}
+          title={t("cdd.profileAria")}
           onClick={() => { haptic.impactLight(); (user ? onOpenProfile : onOpenLogin)?.(); }}
         >
           <Icon d={I.user} size={18} />
@@ -65,13 +69,17 @@ export default function Header({
         <button
           className="cdd-iconbtn"
           aria-label={t("cdd.statsAria")}
+          title={t("cdd.statsAria")}
           onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
         >
           <Icon d={I.stats} size={18} />
         </button>
+        {/* Con repesca disponible, el tooltip/aria EXPLICA el punto de alerta:
+            un badge sin texto obliga a adivinar qué hay de nuevo (auditoría #6). */}
         <button
           className="cdd-iconbtn"
-          aria-label={t("cdd.garageAria")}
+          aria-label={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
+          title={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
           onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
         >
           <Icon d={I.garage} size={18} />

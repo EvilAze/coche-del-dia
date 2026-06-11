@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import Header from "./Header";
+import { Icon, I } from "./icons";
 import ZoomStage from "./ZoomStage";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
@@ -87,8 +88,6 @@ export default function Configurator({
             onOpenLogin={onOpenLogin}
             onOpenRanking={onOpenRanking}
             onOpenGarage={onOpenGarage}
-            onOpenHowTo={onOpenHowTo}
-            howtoPulse={howtoPulse}
           />
 
           <div className="cdd-intro">
@@ -96,6 +95,19 @@ export default function Configurator({
               {t("cdd.guess")} <em>{t("cdd.wordMarca")}</em>, <em>{t("cdd.wordModelo")}</em> {conn}{" "}
               <em>{t("cdd.wordAnio")}</em>
             </h1>
+            {/* "?" de ayuda junto al H1 (no en la barra: allí saturaba en móvil).
+                Contextualmente es su sitio — la duda "¿cómo se juega?" nace justo
+                donde se resume la regla. `howtoPulse` (primera visita) le da un
+                latido sutil que invita al novato sin modal forzado. */}
+            <button
+              type="button"
+              className={"cdd-helpbtn" + (howtoPulse ? " pulse" : "")}
+              aria-label={t("cdd.helpAria")}
+              title={t("cdd.helpAria")}
+              onClick={onOpenHowTo}
+            >
+              <Icon d={I.help} size={17} />
+            </button>
           </div>
 
           <div className="cdd-main">

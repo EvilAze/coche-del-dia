@@ -249,6 +249,12 @@ export default function Configurator({
         />
 
         <footer className="cdd-footer cdd-mono">
+          {/* "Cómo se juega" vive aquí en el día a día (la barra superior queda
+              limpia); en la primera visita además se muestra arriba el chip que
+              guía al novato. Botón, no <a>, porque abre el modal de reglas. */}
+          <button type="button" className="cdd-foot-link" onClick={onOpenHowTo}>
+            {t("cdd.helpAria")}
+          </button>
           <a className="cdd-foot-link" href="/privacidad">{t("app.footerPrivacy")}</a>
           <span>© {new Date().getFullYear()} · {t("app.title")}</span>
         </footer>

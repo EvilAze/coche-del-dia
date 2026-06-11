@@ -83,7 +83,7 @@ export default function Header({
             anónimo. Tinte de acento = es el elemento dominante de la barra. */}
         <button
           type="button"
-          className={"cdd-statuspill" + (pop ? " pop" : "")}
+          className={"cdd-statuspill" + (showStatus ? "" : " cta") + (pop ? " pop" : "")}
           onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
           aria-label={statusAria}
           title={statusAria}
@@ -92,20 +92,22 @@ export default function Header({
             <>
               {hasStreak && (
                 <span className="seg">
-                  <Icon d={I.flame} size={15} /> <b>{streak}</b>
+                  <Icon d={I.flame} size={14} /> <b>{streak}</b>
                 </span>
               )}
               {hasStreak && hasRank && <span className="divider" aria-hidden="true" />}
               {hasRank && (
                 <span className="seg">
-                  <Icon d={I.trophy} size={15} /> <b className="tabular-nums">#{rank.rank}</b>
+                  <Icon d={I.trophy} size={14} /> <b className="tabular-nums">#{rank.rank}</b>
                 </span>
               )}
             </>
           ) : (
+            // CTA para anónimos / sin datos: "Compite →" BIEN visible (relleno de
+            // acento) — es la palanca de conversión al ranking, no se atenúa.
             <span className="seg">
-              <Icon d={I.trophy} size={15} /> <b>{t("cdd.competeLabel")}</b>
-              <Icon d={I.chevR} size={14} />
+              <Icon d={I.trophy} size={14} /> <b>{t("cdd.competeLabel")}</b>
+              <Icon d={I.arrowR} size={14} />
             </span>
           )}
         </button>

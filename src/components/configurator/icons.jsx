@@ -34,6 +34,16 @@ export const I = {
     "M14.2 16.2a1.7 1.7 0 1 0 3.4 0 1.7 1.7 0 1 0-3.4 0",
   ],
   stats: ["M5 20V10", "M12 20V4", "M19 20v-7"],
+  // Trofeo: el ranking deja de ser una barra-stats anónima y pasa a ser el
+  // "puesto" del jugador dentro de la píldora de estado del header.
+  trophy: [
+    "M8 4h8v4.5a4 4 0 0 1-8 0V4Z",
+    "M8 5.5H5.6a1.8 1.8 0 0 0 0 3.6H8",
+    "M16 5.5h2.4a1.8 1.8 0 0 1 0 3.6H16",
+    "M12 12.5V16",
+    "M9 20h6",
+    "M10 20a2 2 0 0 1 4 0",
+  ],
   help: "M9.2 9a2.8 2.8 0 1 1 4 2.5c-1 .6-1.7 1-1.7 2.2M12 17.2h.01",
   arrowU: "M12 19V5M6 11l6-6 6 6",
   arrowD: "M12 5v14M6 13l6 6 6-6",

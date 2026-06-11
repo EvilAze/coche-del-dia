@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useT, getCarDescription, getLocalizedCountry } from "../../i18n";
 import { haptic } from "../../lib/haptics";
+import { track } from "../../lib/analytics";
 import { flagImagePath } from "../../data/countries";
 import { useToast } from "../Toast";
 import Confetti from "../Confetti";
@@ -72,6 +73,7 @@ export default function EndScreen({
   user,
   onClose,
   onOpenLogin,
+  onOpenGarage,
 }) {
   const { t, tn } = useT();
   const toast = useToast();
@@ -171,6 +173,31 @@ export default function EndScreen({
             )}
           </div>
         </div>
+
+        {/* Desbloqueo de cromo: cierra el bucle juego→colección JUSTO en el
+            pico de dopamina (ganar). Antes el desbloqueo ocurría en silencio
+            en el servidor y nada en la victoria apuntaba al garaje — la
+            colección era un huérfano. Solo logueado (el anónimo no persiste
+            colección; a ese ya le habla el CTA de "guardar progreso").
+            DELIBERADAMENTE subordinado a COMPARTIR: tira tintada y fina, no un
+            botón relleno — compartir sigue siendo el único CTA primario y la
+            palanca de captación. Tappable → abre el garaje (+ evento para medir
+            si el bucle realmente tira). */}
+        {won && user && hasReveal && (
+          <button
+            type="button"
+            className="cdd-unlock"
+            aria-label={t("cdd.garageAria")}
+            onClick={() => { haptic.impactLight(); track("garage_from_endscreen"); onOpenGarage?.(); }}
+          >
+            <Icon d={I.garage} size={16} />
+            <span className="cdd-unlock-text">
+              <span className="cdd-unlock-kicker cdd-mono">{t("cdd.unlockKicker")}</span>
+              <span className="cdd-unlock-name">{car.modelo}</span>
+            </span>
+            <Icon d={I.chevR} size={16} className="cdd-unlock-chev" />
+          </button>
+        )}
 
         {/* Tabs (solo si hay revelado que mostrar) */}
         {hasReveal && (

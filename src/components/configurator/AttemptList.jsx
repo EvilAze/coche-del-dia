@@ -1,34 +1,46 @@
 // src/components/configurator/AttemptList.jsx
-// Intentos como filas de chips (marca / modelo / año). Mapea el feedback REAL
-// del servidor (status correct/partial/wrong + dirección de año) al lenguaje de
-// tonos del diseño: good (acierto sólido), near (cerca), off (fallo).
-//   · marca: correct→good · partial (misma nacionalidad)→near + bandera · wrong→off
-//   · modelo: correct→good · wrong→off (sin "near": acertar la marca ya se
-//     celebra en SU chip; teñir el modelo de "cerca" duplicaba la señal y se
-//     confundía con el estado mismo-país de marca)
-//   · año: correct→good (±tol) · wrong→off + flecha ↑/↓ + MÁS NUEVO/ANTIGUO
-// Incluye la fila "pendiente" (esperando al servidor) con shimmer neutro, y el
-// flip-reveal secuencial (marca→modelo→año) en el intento recién validado.
+// Intentos como filas de chips (marca / modelo / año). Mapea el feedback REAL del
+// servidor (status correct/partial/wrong + dirección de año) al lenguaje de tonos
+// del diseño: good (acierto) / near (mismo país) / off (fallo, rojo).
+//   · marca:  correct→good+✓ · partial (misma nacionalidad)→near+bandera · wrong→off+✕
+//   · modelo: correct→good+✓ · wrong→off+✕
+//   · año:    correct→good+✓ (±tol) · wrong→off(rojo) + flecha ↑/↓ + MÁS NUEVO/ANTIGUO
+// Doble codificación color+icono (accesible). El nombre va a UNA línea con
+// auto-ajuste (useFitText): los nombres largos encogen en vez de partir en dos.
+// Incluye la fila "pendiente" (shimmer neutro) y el flip-reveal por celda.
 
 import { useT } from "../../i18n";
 import { flagImagePath } from "../../data/countries";
 import { Icon, I } from "./icons";
+import { useFitText } from "../../hooks/useFitText";
 
 // Stagger del flip por celda (efecto "carta volteándose").
 const FLIP_STAGGER_MS = 130;
 
-function Chip({ tone, pending, children, sub, flag, mark, flip, delay }) {
+// Icono de estado para marca/modelo: ✓ acierto, ✕ fallo. (partial usa bandera,
+// no icono; por eso devuelve null en cualquier otro status.)
+function statusMark(status) {
+  if (status === "correct") return <Icon d={I.check} size={14} />;
+  if (status === "wrong") return <Icon d={I.x} size={13} />;
+  return null;
+}
+
+function Chip({ tone, pending, children, sub, flag, mark, srStatus, fitKey, flip, delay }) {
+  // Auto-ajuste del nombre a una sola línea: el ref va al span de texto y el hook
+  // lo encoge solo si no cabe (lee el tamaño base del CSS).
+  const textRef = useFitText(fitKey);
   return (
     <div
       className={"cdd-chip " + (pending ? "is-pending" : "tone-" + tone) + (flip ? " flip" : "")}
       style={flip ? { animationDelay: delay } : undefined}
     >
       <span className="cdd-chip-main">
-        {/* El texto va aislado (la bandera/flecha fuera) para poder partir en
-            hasta 2 líneas con line-clamp sin que se descoloque el icono. */}
-        <span className="cdd-chip-text">{children}</span>
+        <span className="cdd-chip-text" ref={textRef}>{children}</span>
         {flag && <img className="cdd-flag" src={flag} alt="" draggable={false} />}
         {mark && <span className="cdd-chip-mark">{mark}</span>}
+        {/* Estado para lectores de pantalla: el valor visible ya se lee; aquí solo
+            añadimos la palabra de estado cuando no hay subtexto que la dé. */}
+        {srStatus && <span className="sr-only">{srStatus}</span>}
       </span>
       {sub && <span className="cdd-chip-sub">{sub}</span>}
     </div>
@@ -36,8 +48,7 @@ function Chip({ tone, pending, children, sub, flag, mark, flip, delay }) {
 }
 
 // Exportada: el Configurator la reusa para la "fila viva" del último intento
-// DENTRO del fold (feedback visible sin scroll). Aquí sigue pintando el
-// historial completo bajo el fold.
+// dentro del fold (feedback visible sin scroll).
 export function AttemptRow({ g, index, tolerance, pending, fresh }) {
   const { t } = useT();
   // Delay del flip por celda cuando la fila es la recién revelada.
@@ -48,9 +59,9 @@ export function AttemptRow({ g, index, tolerance, pending, fresh }) {
       <div className="cdd-attempt">
         <div className="cdd-attempt-no">{String(index + 1).padStart(2, "0")}</div>
         <div className="cdd-attempt-chips">
-          <Chip pending>{g.marca?.val || "—"}</Chip>
-          <Chip pending>{g.modelo?.val || "—"}</Chip>
-          <Chip pending>{g.anio?.val || "—"}</Chip>
+          <Chip pending fitKey={g.marca?.val}>{g.marca?.val || "—"}</Chip>
+          <Chip pending fitKey={g.modelo?.val}>{g.modelo?.val || "—"}</Chip>
+          <Chip pending fitKey={String(g.anio?.val ?? "")}>{g.anio?.val || "—"}</Chip>
         </div>
       </div>
     );
@@ -61,35 +72,39 @@ export function AttemptRow({ g, index, tolerance, pending, fresh }) {
   const marcaTone = mSt === "correct" ? "good" : mSt === "partial" ? "near" : "off";
   const marcaFlag = mSt === "partial" && g.marca?.pais ? flagImagePath(g.marca.pais) : null;
   const marcaSub = mSt === "partial" ? t("cdd.sameCountry") : null;
+  // partial → bandera (no icono). correct → ✓, wrong → ✕.
+  const marcaMark = mSt === "partial" ? null : statusMark(mSt);
+  const marcaSr = mSt === "correct" ? t("cdd.srCorrect") : mSt === "wrong" ? t("cdd.srWrong") : null;
 
-  // modelo — binario: o aciertas o fallas. El "near" por marca-correcta se
-  // retiró (se confundía con el near de mismo-país en la celda marca).
-  const modeloTone = g.modelo?.status === "correct" ? "good" : "off";
+  // modelo — binario: o aciertas o fallas.
+  const moSt = g.modelo?.status;
+  const modeloTone = moSt === "correct" ? "good" : "off";
+  const modeloMark = statusMark(moSt);
+  const modeloSr = moSt === "correct" ? t("cdd.srCorrect") : t("cdd.srWrong");
 
   // año
   const aSt = g.anio?.status;
-  let anioTone = "off", anioSub = null, anioIcon = null;
-  if (aSt === "correct") { anioTone = "good"; anioSub = "±" + tolerance; }
-  else {
-    anioIcon = g.anio?.direction; // 'up' = el real es mayor (más nuevo)
-    anioSub = anioIcon === "up" ? t("cdd.yearNewer") : anioIcon === "down" ? t("cdd.yearOlder") : null;
+  let anioTone = "off", anioSub = null, anioMark = null, anioSr = null;
+  if (aSt === "correct") {
+    anioTone = "good";
+    anioSub = "±" + tolerance;
+    anioMark = <Icon d={I.check} size={14} />;
+    anioSr = t("cdd.srCorrect");
+  } else {
+    const dir = g.anio?.direction; // 'up' = el real es mayor (más nuevo)
+    anioSub = dir === "up" ? t("cdd.yearNewer") : dir === "down" ? t("cdd.yearOlder") : null;
+    anioMark = dir ? <Icon d={dir === "up" ? I.arrowU : I.arrowD} size={14} /> : null;
+    // El subtexto (MÁS NUEVO/ANTIGUO) ya lo lee el lector de pantalla; no lo
+    // duplicamos en un sr-only aparte.
   }
 
   return (
     <div className="cdd-attempt">
       <div className="cdd-attempt-no">{String(index + 1).padStart(2, "0")}</div>
       <div className="cdd-attempt-chips">
-        <Chip tone={marcaTone} sub={marcaSub} flag={marcaFlag} flip={fresh} delay={d(0)}>{g.marca?.val}</Chip>
-        <Chip tone={modeloTone} flip={fresh} delay={d(1)}>{g.modelo?.val}</Chip>
-        <Chip
-          tone={anioTone}
-          sub={anioSub}
-          flip={fresh}
-          delay={d(2)}
-          mark={anioIcon ? <Icon d={anioIcon === "up" ? I.arrowU : I.arrowD} size={14} /> : null}
-        >
-          {g.anio?.val}
-        </Chip>
+        <Chip tone={marcaTone} sub={marcaSub} flag={marcaFlag} mark={marcaMark} srStatus={marcaSr} fitKey={g.marca?.val} flip={fresh} delay={d(0)}>{g.marca?.val}</Chip>
+        <Chip tone={modeloTone} mark={modeloMark} srStatus={modeloSr} fitKey={g.modelo?.val} flip={fresh} delay={d(1)}>{g.modelo?.val}</Chip>
+        <Chip tone={anioTone} sub={anioSub} mark={anioMark} srStatus={anioSr} fitKey={String(g.anio?.val ?? "")} flip={fresh} delay={d(2)}>{g.anio?.val}</Chip>
       </div>
     </div>
   );
@@ -97,10 +112,9 @@ export function AttemptRow({ g, index, tolerance, pending, fresh }) {
 
 export default function AttemptList({ guesses = [], pendingGuess = null, justRevealedIndex = -1, tolerance = 2 }) {
   if (!guesses.length && !pendingGuess) return null;
-  // Más RECIENTE primero: el historial vive DEBAJO del formulario, así que el
-  // intento recién hecho (o el pendiente) queda pegado al botón → feedback
-  // inmediato sin scroll. Conservamos el número real de intento (i+1). El intento
-  // recién validado (justRevealedIndex) hace el flip-reveal por celda.
+  // Más RECIENTE primero: el historial vive bajo el formulario, así el intento
+  // recién hecho (o el pendiente) queda pegado al botón. Conservamos el número
+  // real de intento (i+1). El recién validado (justRevealedIndex) hace flip-reveal.
   return (
     <div className="cdd-attempts">
       {pendingGuess && (

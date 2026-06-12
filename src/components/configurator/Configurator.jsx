@@ -174,6 +174,9 @@ export default function Configurator({
 
           <div className="cdd-main">
             <div className="cdd-col cdd-col-stage" ref={stageColRef}>
+              {/* Progreso de intentos DENTRO del marco, borde inferior (no en una
+                  fila aparte que reste alto a la foto): restantes en menta, ámbar a
+                  2, rojo pulsante en el último. Se oculta al revelar. */}
               <ZoomStage
                 car={car}
                 zoom={zoom}
@@ -182,10 +185,10 @@ export default function Configurator({
                 totalHints={totalHints}
                 blurred={status === "lost" && !user}
                 onRevealLoad={onRevealLoad}
+                progress={
+                  <AttemptProgress attempts={attempts} maxAttempts={maxAttempts} revealed={ended} />
+                }
               />
-              {/* Progreso de intentos BAJO la foto (no encima): restantes en menta,
-                  ámbar a 2, rojo pulsante en el último. Se oculta al revelar. */}
-              <AttemptProgress attempts={attempts} maxAttempts={maxAttempts} revealed={ended} />
             </div>
 
             <div className="cdd-col cdd-col-panel">

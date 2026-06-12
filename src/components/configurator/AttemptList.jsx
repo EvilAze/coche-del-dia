@@ -80,7 +80,7 @@ export function AttemptRow({ g, index, tolerance, pending, fresh }) {
   const moSt = g.modelo?.status;
   const modeloTone = moSt === "correct" ? "good" : "off";
   const modeloMark = statusMark(moSt);
-  const modeloSr = moSt === "correct" ? t("cdd.srCorrect") : t("cdd.srWrong");
+  const modeloSr = moSt === "correct" ? t("cdd.srCorrect") : moSt === "wrong" ? t("cdd.srWrong") : null;
 
   // año
   const aSt = g.anio?.status;

@@ -76,6 +76,80 @@
       focus-visible:ring-offset-0;
   }
 
+  /* ─────────────────────────────────────────────────────────────────────
+     Sistema "Liquid Glass" — utilidades reutilizables
+     ---------------------------------------------------------------------
+     Superficie de cristal: relleno traslúcido + desenfoque del fondo
+     (backdrop-filter) + canto de luz superior (inset highlight) + borde
+     tenue. Es la pieza base del rediseño premium; la usan tanto componentes
+     con clases Tailwind (header, modales) como bloques sueltos.
+
+     Por qué `saturate(160%)`: el blur por sí solo "apaga" el fondo; saturar
+     recupera la viveza del acento que se filtra a través del cristal, que es
+     lo que da la sensación de vidrio real y no de panel opaco.
+     Degradación elegante: sin soporte de backdrop-filter, el relleno sube a
+     un tono sólido (vía @supports abajo) para no quedar ilegible. */
+  .glass {
+    background-color: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+  }
+  .glass-strong {
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+  }
+  /* Fallback cuando el navegador no soporta el desenfoque: relleno sólido para
+     mantener el contraste del texto (no degradar la legibilidad). */
+  @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    .glass { background-color: #14181e; }
+    .glass-strong { background-color: #1b212a; }
+  }
+  /* Scrim de modal: oscurece + DESENFOCA la página de fondo (blur fuerte) para
+     el efecto "liquid glass" — el contenido detrás se funde en vidrio. Sustituye
+     al antiguo bg-black/80 + backdrop-blur-sm (4px), apenas perceptible. */
+  .modal-scrim {
+    background: rgba(4, 6, 9, 0.62);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
+  /* Panel de modal Liquid Glass: superficie translúcida (legible: 84% sobre el
+     scrim oscuro) + blur fuerte + canto de luz superior + sombra flotante.
+     Solo define material (fondo/borde/sombra/blur/radio); cada modal conserva
+     sus clases de layout (max-w, flex, overflow…). */
+  .modal-panel-glass {
+    background: color-mix(in oklab, #14181e 84%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 18px;
+    box-shadow: 0 32px 70px -28px rgba(0, 0, 0, 0.88), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(24px) saturate(175%);
+    -webkit-backdrop-filter: blur(24px) saturate(175%);
+  }
+  @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    .modal-scrim { background: rgba(4, 6, 9, 0.86); }
+    .modal-panel-glass { background: #14181e; }
+  }
+
+  /* Realce de borde al pasar el ratón sobre una superficie de cristal. */
+  .glass-hover {
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+  .glass-hover:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  /* Acento ORO premium (texto). Para etiquetas/valores de momentos de alta
+     gama (racha, victoria, podio). El halo es opcional vía .text-gold-glow. */
+  .text-gold { color: #e8c87a; }
+  .text-gold-glow { color: #e8c87a; text-shadow: 0 0 18px rgba(232, 200, 122, 0.45); }
+  /* Relleno oro con tinta oscura legible (chips/badges premium). */
+  .fill-gold { background-color: #e8c87a; color: #1a1306; }
+
   .scrollbar-premium {
     scrollbar-width: thin;
     scrollbar-color: rgba(122, 240, 200, 0.35) transparent;
@@ -162,6 +236,14 @@ body,
   --line: rgba(255,255,255,.09); --line-2: rgba(255,255,255,.05);
   --cdd-text: #eef2f6; --cdd-muted: #8b95a3; --faint: #586675;
   --accent-ink: #05131d; --good-ink: #05131d;
+  /* Oro premium: acento metálico reservado a momentos de alta gama (racha,
+     victoria, podio). Tinta oscura para texto sobre relleno oro (contraste AA). */
+  --gold: #e8c87a; --gold-ink: #1a1306; --gold-glow: rgba(232,200,122,.38);
+  /* Cristal líquido: relleno traslúcido + canto de luz. Tokens para que todas
+     las superficies premium compartan la misma física (translucidez + blur). */
+  --glass-fill: rgba(255,255,255,.045); --glass-fill-2: rgba(255,255,255,.07);
+  --glass-edge: inset 0 1px 0 rgba(255,255,255,.06);
+  --glass-blur: 18px;
   --font-display: 'Archivo', sans-serif; --font-body: 'Archivo', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 500px at 50% -8%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
@@ -171,6 +253,11 @@ body,
   --line: rgba(255,238,220,.10); --line-2: rgba(255,238,220,.05);
   --cdd-text: #f4ece1; --cdd-muted: #a4917c; --faint: #74634f;
   --accent-ink: #1a0d04; --good-ink: #1a0d04;
+  /* En tema cobre el oro y el acento conviven cálidos; el oro tira a ámbar. */
+  --gold: #e8c87a; --gold-ink: #1a0d04; --gold-glow: rgba(232,200,122,.42);
+  --glass-fill: rgba(255,238,220,.05); --glass-fill-2: rgba(255,238,220,.08);
+  --glass-edge: inset 0 1px 0 rgba(255,238,220,.07);
+  --glass-blur: 18px;
   --font-display: 'Sora', sans-serif; --font-body: 'Sora', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 520px at 50% -8%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 72%);
@@ -206,10 +293,15 @@ body,
   position: relative;
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   height: 32px; min-width: 32px; padding: 0 7px; border-radius: 9px; flex: none;
-  background: var(--surface); border: 1px solid var(--line); color: var(--cdd-muted);
+  /* Cristal líquido: relleno traslúcido + desenfoque del fondo (deja pasar el
+     halo ambiente del acento) en vez del antiguo panel opaco --surface. */
+  background: var(--glass-fill); border: 1px solid var(--line); color: var(--cdd-muted);
+  box-shadow: var(--glass-edge);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   cursor: pointer; transition: .18s;
 }
-.cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+.cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); background: var(--glass-fill-2); }
 
 /* ── Píldora de estado: racha + puesto en el ranking ──
    El ranking asciende de icono mudo a estado vivo (muestra el puesto). Compacta
@@ -220,13 +312,21 @@ body,
   position: relative;
   display: inline-flex; align-items: center; gap: 5px; flex: none;
   height: 32px; padding: 0 9px; border-radius: 9px;
-  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  background: color-mix(in oklab, var(--accent) 10%, var(--glass-fill));
   border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
   color: var(--accent);
+  box-shadow: var(--glass-edge);
+  backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
   font-family: var(--font-mono); font-size: 12px;
   font-variant-numeric: tabular-nums;
   cursor: pointer; transition: .18s;
 }
+/* Racha = oro premium: icono + número en oro con halo tenue. El puesto
+   (.seg-rank) hereda el acento menta de la píldora — dos motores de retorno,
+   dos colores: menta "actúa/sube", oro "lo que ya has acumulado". */
+.cdd-statuspill .seg-streak { color: var(--gold); }
+.cdd-statuspill .seg-streak b { color: var(--gold); text-shadow: 0 0 12px var(--gold-glow); }
 .cdd-statuspill:hover {
   background: color-mix(in oklab, var(--accent) 16%, var(--surface));
   border-color: color-mix(in oklab, var(--accent) 50%, var(--line));
@@ -275,7 +375,9 @@ body,
 .cdd-intro { display: flex; align-items: center; margin-bottom: 8px; }
 .cdd-helpchip { position: relative; display: inline-flex; align-items: center; gap: 6px;
   height: 30px; padding: 0 12px; border-radius: 999px;
-  background: var(--surface); border: 1px solid var(--line);
+  background: var(--glass-fill); border: 1px solid var(--line); box-shadow: var(--glass-edge);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   color: var(--cdd-muted); font-family: var(--font-body); font-size: 12.5px;
   cursor: pointer; transition: .18s; }
 .cdd-helpchip:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
@@ -298,9 +400,11 @@ body,
 .cdd-stage { width: 100%; }
 .cdd-stage-frame {
   position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
-  border-radius: 16px; border: 1px solid var(--line);
+  border-radius: 18px; border: 1px solid var(--line);
   background: var(--surface);
-  box-shadow: 0 30px 60px -30px rgba(0,0,0,.8), inset 0 0 0 1px var(--line-2);
+  /* Elevación flotante "Liquid Glass": sombra profunda + canto de luz superior
+     (inset highlight) que define el borde del cristal sobre el fondo grafito. */
+  box-shadow: 0 34px 64px -30px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 1px var(--line-2);
 }
 
 /* Lightbox de la foto: MISMA proporción que el escenario (4:3 móvil · 16:11
@@ -417,7 +521,11 @@ body,
 .cdd-label { font-size: 11px; color: var(--cdd-muted); display: flex; align-items: center; justify-content: space-between; }
 .cdd-label-hint { font-family: var(--font-mono); font-size: 10px; color: var(--faint); text-transform: none; letter-spacing: .02em; }
 .cdd-combo, .cdd-year { position: relative; display: flex; align-items: center;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; transition: .18s; }
+  background: var(--glass-fill); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--glass-edge);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  transition: .18s; }
 .cdd-combo.is-open, .cdd-combo:focus-within, .cdd-year:focus-within {
   border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
 .cdd-combo.is-disabled { opacity: .5; }
@@ -440,8 +548,12 @@ body,
 .cdd-listbox { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
   max-height: min(260px, 42dvh); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   margin: 0; padding: 6px; list-style: none;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-  box-shadow: 0 26px 50px -24px rgba(0,0,0,.85); }
+  /* Overlay flotante: cristal reforzado (más opaco + blur fuerte) para que el
+     texto de las opciones quede legible sobre lo que tape. */
+  background: color-mix(in oklab, var(--surface) 78%, transparent); border: 1px solid var(--line-2); border-radius: 14px;
+  box-shadow: 0 26px 50px -24px rgba(0,0,0,.85), var(--glass-edge);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%); }
 .cdd-opt { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--cdd-text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cdd-opt:hover, .cdd-opt.hi { background: var(--surface2); }
 .cdd-opt.sel { color: var(--accent); }
@@ -464,8 +576,10 @@ body,
    mismo patrón que .cdd-listbox). Visible solo con el campo enfocado y vacío. */
 .cdd-decades { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
   display: flex; gap: 5px; padding: 6px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8); }
+  background: color-mix(in oklab, var(--surface) 78%, transparent); border: 1px solid var(--line-2); border-radius: 14px;
+  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8), var(--glass-edge);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%); }
 .cdd-decade { flex: 1; padding: 8px 0; min-width: 0; text-align: center;
   background: var(--surface2); border: 1px solid var(--line); border-radius: 8px;
   color: var(--cdd-text); font-size: 11px; cursor: pointer; transition: .15s; }
@@ -528,7 +642,9 @@ body,
 .cdd-reveal .cdd-reveal-grad { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 4%, transparent 60%); z-index: 2; }
 .cdd-reveal-head { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
 .cdd-verdict { font-size: 10px; align-self: flex-start; padding: 4px 9px; border-radius: 6px; }
-.cdd-verdict.win { color: var(--accent-ink); background: var(--accent); }
+/* Victoria = oro premium (el pico celebratorio del juego). El resto del modal
+   conserva la menta (compartir, reloj) para no saturar; el oro marca el logro. */
+.cdd-verdict.win { color: var(--gold-ink); background: var(--gold); box-shadow: 0 0 24px -8px var(--gold-glow); }
 .cdd-verdict.lose { color: var(--cdd-text); background: color-mix(in oklab, #d9604e 30%, var(--surface)); border: 1px solid #d9604e; }
 .cdd-reveal-name { display: flex; flex-direction: column; line-height: 1; }
 .cdd-reveal-brand { font-family: var(--font-mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
@@ -540,16 +656,18 @@ body,
    eclipsar COMPARTIR. Tintada y fina (~40px), NO rellena: es una nota
    celebratoria tappable, no un CTA primario. El botón de compartir (relleno
    accent, 50px) sigue siendo el único elemento dominante de la pantalla. */
+/* Desbloqueo de cromo (victoria) = oro: "has ganado una pieza de colección".
+   Tintado en oro premium, no en menta, para diferenciarlo del flujo de acción. */
 .cdd-unlock { display: flex; align-items: center; gap: 10px; width: calc(100% - 36px); margin: 14px 18px 0;
   padding: 9px 12px; border-radius: 11px; cursor: pointer; text-align: left;
-  background: color-mix(in oklab, var(--accent) 9%, var(--surface));
-  border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
-  color: var(--accent); transition: .18s; }
-.cdd-unlock:hover { background: color-mix(in oklab, var(--accent) 15%, var(--surface));
-  border-color: color-mix(in oklab, var(--accent) 55%, var(--line)); }
+  background: color-mix(in oklab, var(--gold) 9%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--gold) 30%, var(--line));
+  color: var(--gold); transition: .18s; }
+.cdd-unlock:hover { background: color-mix(in oklab, var(--gold) 15%, var(--surface));
+  border-color: color-mix(in oklab, var(--gold) 55%, var(--line)); }
 .cdd-unlock:active { transform: scale(.99); }
 .cdd-unlock-text { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
-.cdd-unlock-kicker { flex: none; font-size: 9px; color: var(--accent); }
+.cdd-unlock-kicker { flex: none; font-size: 9px; color: var(--gold); }
 .cdd-unlock-name { min-width: 0; font-size: 13px; font-weight: 700; color: var(--cdd-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-unlock-chev { flex: none; opacity: .75; }

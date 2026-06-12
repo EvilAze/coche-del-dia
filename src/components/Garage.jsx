@@ -1109,8 +1109,8 @@ function CarDetail({ open, car, onClose }) {
     <ModalShell
       open={open}
       onClose={onClose}
-      backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/30 bg-[#0d1014] shadow-2xl"
+      backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
+      panelClassName="modal-panel-glass relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
     >
       {displayCar && (
         <>
@@ -1176,8 +1176,8 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
       open={open}
       onClose={onCancel}
       dismissOnBackdrop={!starting}
-      backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/40 bg-[#0d1014] shadow-2xl"
+      backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
+      panelClassName="modal-panel-glass relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
     >
         <div className="px-5 py-5 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
@@ -1392,8 +1392,8 @@ function RepescaHelpModal({ open, onClose }) {
     <ModalShell
       open={open}
       onClose={onClose}
-      backdropClassName="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      panelClassName="relative w-full max-w-sm overflow-hidden rounded-2xl border border-accent/30 bg-[#0d1014] shadow-2xl"
+      backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
+      panelClassName="modal-panel-glass relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
     >
         <div className="absolute right-2 top-2 z-10">
           <CloseButton onClick={onClose} />

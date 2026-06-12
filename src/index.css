@@ -109,6 +109,31 @@
     .glass { background-color: #14181e; }
     .glass-strong { background-color: #1b212a; }
   }
+  /* Scrim de modal: oscurece + DESENFOCA la página de fondo (blur fuerte) para
+     el efecto "liquid glass" — el contenido detrás se funde en vidrio. Sustituye
+     al antiguo bg-black/80 + backdrop-blur-sm (4px), apenas perceptible. */
+  .modal-scrim {
+    background: rgba(4, 6, 9, 0.62);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
+  /* Panel de modal Liquid Glass: superficie translúcida (legible: 84% sobre el
+     scrim oscuro) + blur fuerte + canto de luz superior + sombra flotante.
+     Solo define material (fondo/borde/sombra/blur/radio); cada modal conserva
+     sus clases de layout (max-w, flex, overflow…). */
+  .modal-panel-glass {
+    background: color-mix(in oklab, #14181e 84%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 18px;
+    box-shadow: 0 32px 70px -28px rgba(0, 0, 0, 0.88), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(24px) saturate(175%);
+    -webkit-backdrop-filter: blur(24px) saturate(175%);
+  }
+  @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    .modal-scrim { background: rgba(4, 6, 9, 0.86); }
+    .modal-panel-glass { background: #14181e; }
+  }
+
   /* Realce de borde al pasar el ratón sobre una superficie de cristal. */
   .glass-hover {
     transition: border-color 0.2s ease, background-color 0.2s ease;

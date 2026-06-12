@@ -319,8 +319,8 @@ export default function App() {
       <ModalShell
         open={activeModal === "login"}
         onClose={closeModal}
-        backdropClassName="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-        panelClassName="relative w-full max-w-sm rounded-2xl border border-border bg-bg-primary p-6 text-center shadow-2xl"
+        backdropClassName="modal-scrim fixed inset-0 z-[100] flex items-center justify-center p-4"
+        panelClassName="modal-panel-glass relative w-full max-w-sm p-6 text-center"
       >
         <div className="absolute right-2 top-2">
           <CloseButton onClick={closeModal} />
@@ -417,8 +417,8 @@ export default function App() {
         open={staleDay}
         onClose={() => {}}
         dismissOnBackdrop={false}
-        backdropClassName="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-        panelClassName="relative w-full max-w-sm rounded-2xl border border-accent/40 bg-bg-primary p-6 text-center shadow-2xl"
+        backdropClassName="modal-scrim fixed inset-0 z-[110] flex items-center justify-center p-4"
+        panelClassName="modal-panel-glass relative w-full max-w-sm p-6 text-center ring-1 ring-accent/40"
       >
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-2xl">
           🚗

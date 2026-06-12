@@ -8,12 +8,29 @@ import ModalShell from "./ModalShell";
 import LanguageStrip from "./LanguageStrip";
 import PodiumMedals from "./PodiumMedals";
 
-function StatCard({ label, value }) {
+// tone="gold" reserva el oro premium a las rachas (logro acumulado); el resto
+// de stats usa el acento menta. Misma jerarquia menta=accion / oro=valor.
+function StatCard({ label, value, tone = "accent" }) {
+  const gold = tone === "gold";
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center transition hover:border-accent/30">
-      {/* Hairline dorada superior: detalle premium discreto. */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
-      <div className="font-display text-3xl tabular-nums text-accent">{value}</div>
+    <div
+      className={`relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center transition ${
+        gold ? "hover:border-gold/40" : "hover:border-accent/30"
+      }`}
+    >
+      {/* Hairline superior: detalle premium discreto (oro o menta segun tono). */}
+      <div
+        className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${
+          gold ? "via-gold/50" : "via-accent/40"
+        }`}
+      />
+      <div
+        className={`font-display text-3xl tabular-nums ${
+          gold ? "text-gold" : "text-accent"
+        }`}
+      >
+        {value}
+      </div>
       <div className="mt-1 text-[10px] uppercase tracking-widest text-muted">
         {label}
       </div>
@@ -182,8 +199,8 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
     <ModalShell
       open={open}
       onClose={onClose}
-      backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
-      panelClassName="flex w-full max-w-sm flex-col rounded-2xl border border-white/10 bg-[#0d1014] p-5 shadow-2xl"
+      backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
+      panelClassName="modal-panel-glass flex w-full max-w-sm flex-col p-5"
     >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-widest text-white">
@@ -225,8 +242,8 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <StatCard label={t("myStats.statStreak")} value={stats.current_streak} />
-              <StatCard label={t("myStats.statMaxStreak")} value={stats.max_streak} />
+              <StatCard label={t("myStats.statStreak")} value={stats.current_streak} tone="gold" />
+              <StatCard label={t("myStats.statMaxStreak")} value={stats.max_streak} tone="gold" />
               <StatCard label={t("myStats.statWins")} value={stats.total_wins} />
             </div>
 

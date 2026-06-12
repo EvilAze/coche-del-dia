@@ -456,16 +456,19 @@ body,
     repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.12) 2px 3px),
     radial-gradient(120% 90% at 50% 0%, transparent 60%, rgba(0,0,0,.45)); }
 
-/* ── Barra de progreso de intentos (AttemptProgress), BAJO la imagen ──
-   Sustituye a los pips que vivían SOBRE la foto. Es deliberadamente DISCRETA (sin
-   texto ni halo, fina): no debe competir con la foto, que es la protagonista. El
-   único canal es el COLOR de los segmentos RESTANTES, que vira con la urgencia; el
-   tono lo fija cuántos quedan, no la posición de la casilla. */
-.cdd-progress { display: flex; margin-top: 8px; padding: 0 2px; }
+/* ── Barra de progreso de intentos (AttemptProgress) ──
+   Vive DENTRO del marco, anclada al borde inferior de la foto (sobre la viñeta
+   ::after que oscurece esa franja → legible sobre carrocerías claras). Así no
+   ocupa una fila propia que reste alto a la imagen. Es deliberadamente DISCRETA
+   (sin texto ni halo, fina): el único canal es el COLOR de los segmentos
+   RESTANTES, que vira con la urgencia; el tono lo fija cuántos quedan, no la
+   posición. La foto es tap-para-ampliar y el lightbox no pinta la barra: un toque
+   muestra la imagen limpia. */
+.cdd-progress { display: flex; }
 .cdd-progress-track { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
-/* Segmento vivo (restante): plano, sin halo. Gastado: aún más apagado. */
+/* Segmento vivo (restante): plano, sin halo. Gastado: tenue (track sobre la foto). */
 .cdd-progress-seg { flex: 1; height: 4px; border-radius: 2px; background: var(--accent); transition: background .3s; }
-.cdd-progress-seg.spent { background: rgba(255,255,255,.10); }
+.cdd-progress-seg.spent { background: rgba(255,255,255,.22); }
 /* Urgencia: quedan 2 → ámbar; queda 1 → rojo y los segmentos vivos laten. Ese
    pulse es el ÚNICO momento en que la barra reclama atención (última oportunidad);
    el resto del tiempo es un hilo de color discreto. */

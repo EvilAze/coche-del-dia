@@ -33,9 +33,10 @@ export function useFitText(value, { min = 10 } = {}) {
 
     measure();
 
-    // El ancho lo manda el chip (padre del span). Observar su tamaño NO crea
-    // bucle de ResizeObserver: cambiar el font-size del hijo no altera el tamaño
-    // del chip (es celda de grid con ancho fijo + min-height), solo el texto.
+    // El ancho lo manda el contenedor del texto (parentElement = .cdd-chip-main,
+    // al 100% de la celda de grid). Observar su tamaño NO crea bucle de
+    // ResizeObserver: encoger el font-size del span no ensancha al padre (su ancho
+    // lo fija el grid del chip, no el contenido), solo cambia el texto.
     const parent = el.parentElement;
     if (typeof ResizeObserver === "undefined" || !parent) return;
     const ro = new ResizeObserver(measure);

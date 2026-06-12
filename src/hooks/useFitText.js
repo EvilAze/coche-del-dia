@@ -37,10 +37,13 @@ export function useFitText(value, { min = 10 } = {}) {
     // bucle de ResizeObserver: cambiar el font-size del hijo no altera el tamaño
     // del chip (es celda de grid con ancho fijo + min-height), solo el texto.
     const parent = el.parentElement;
-    if (typeof ResizeObserver === "undefined" || !parent) return undefined;
+    if (typeof ResizeObserver === "undefined" || !parent) return;
     const ro = new ResizeObserver(measure);
     ro.observe(parent);
     return () => ro.disconnect();
+    // 'value' debe ser el texto primitivo (string/número) del chip: es lo que
+    // determina cuándo hay que volver a medir. No pasar objetos/arrays (su
+    // referencia cambia en cada render y remediría de más).
   }, [value, min]);
 
   return ref;

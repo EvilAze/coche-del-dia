@@ -91,13 +91,15 @@ export default function Header({
           {showStatus ? (
             <>
               {hasStreak && (
-                <span className="seg">
+                // Racha = oro premium (logro acumulado, "esto es valioso"); el
+                // puesto se queda en acento (acción). Distinción solo de color.
+                <span className="seg seg-streak">
                   <Icon d={I.flame} size={14} /> <b>{streak}</b>
                 </span>
               )}
               {hasStreak && hasRank && <span className="divider" aria-hidden="true" />}
               {hasRank && (
-                <span className="seg">
+                <span className="seg seg-rank">
                   <Icon d={I.trophy} size={14} /> <b className="tabular-nums">#{rank.rank}</b>
                 </span>
               )}

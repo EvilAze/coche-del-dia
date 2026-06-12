@@ -499,8 +499,17 @@ body,
    bloque propio del shell: se da su propio respiro respecto al formulario. */
 .cdd-attempts { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
 /* Fila viva del último intento, DENTRO del fold sobre el formulario: feedback
-   visible sin scroll (el flip-reveal/pending ocurrían fuera de pantalla). */
-.cdd-live-attempt { margin-bottom: 10px; }
+   visible sin scroll (el flip-reveal/pending ocurrían fuera de pantalla).
+   Aquí cada píxel de alto se lo come la foto (la protagonista del fold), así que
+   esta fila va MÁS COMPACTA que el historial de abajo: chips más bajos, menos
+   padding/gap y SIN margin-bottom (el gap de .cdd-col ya separa del formulario;
+   sumar margin duplicaba el aire). El historial bajo el fold conserva su tamaño
+   holgado porque no compite por el alto del viewport. */
+.cdd-live-attempt { margin-bottom: 0; }
+.cdd-live-attempt .cdd-attempt-chips { gap: 6px; }
+.cdd-live-attempt .cdd-chip {
+  min-height: 34px; padding: 5px 10px; border-radius: 9px; gap: 2px;
+}
 .cdd-attempt { display: flex; align-items: stretch; gap: 10px; }
 /* Muted y no faint: el "01" es el ancla para leer el historial ("¿qué probé
    en el 2?") y con faint era prácticamente invisible (auditoría UX #15). */
@@ -557,7 +566,14 @@ body,
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   transition: .18s; }
 .cdd-combo.is-open, .cdd-combo:focus-within, .cdd-year:focus-within {
-  border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
+  border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+  /* CLAVE de apilamiento: el backdrop-filter de .cdd-combo/.cdd-year (efecto
+     cristal) crea un stacking context PROPIO en cada campo, así que el
+     z-index:30 del .cdd-listbox queda ATRAPADO dentro del combo y no puede
+     dibujarse sobre los campos siguientes — MODELO/AÑO se pintaban ENCIMA del
+     desplegable de MARCA. Al abrir/enfocar subimos el campo activo por encima
+     de sus hermanos para que su desplegable (listbox / décadas) mande. */
+  z-index: 40; }
 .cdd-combo.is-disabled { opacity: .5; }
 .cdd-combo.is-invalid { border-color: color-mix(in oklab, #d9604e 60%, var(--line)); }
 .cdd-input { flex: 1; width: 100%; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--cdd-text);

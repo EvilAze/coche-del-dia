@@ -502,7 +502,7 @@ body,
 /* ── Intentos ── */
 /* El historial vive bajo el fold (fuera del viewport hasta hacer scroll), como
    bloque propio del shell: se da su propio respiro respecto al formulario. */
-.cdd-attempts { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
+.cdd-attempts { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 /* Fila viva del último intento, DENTRO del fold sobre el formulario: feedback
    visible sin scroll (el flip-reveal/pending ocurrían fuera de pantalla).
    Aquí cada píxel de alto se lo come la foto (la protagonista del fold), así que
@@ -512,22 +512,39 @@ body,
    holgado porque no compite por el alto del viewport. */
 .cdd-live-attempt { margin-bottom: 0; }
 .cdd-live-attempt .cdd-attempt-chips { gap: 6px; }
+/* La 'fila viva' compite por el alto del fold con la foto: nombre un punto más
+   pequeño (12px) y meta más ceñida que en el historial de abajo. */
 .cdd-live-attempt .cdd-chip {
-  min-height: 34px; padding: 5px 10px; border-radius: 9px; gap: 2px;
+  min-height: 36px; padding: 5px 10px; border-radius: 9px; gap: 2px; font-size: 12px;
 }
-.cdd-attempt { display: flex; align-items: stretch; gap: 10px; }
-/* Muted y no faint: el "01" es el ancla para leer el historial ("¿qué probé
-   en el 2?") y con faint era prácticamente invisible (auditoría UX #15). */
-.cdd-attempt-no { display: flex; align-items: center; font-size: 11px; color: var(--cdd-muted); width: 22px; flex: none; font-family: var(--font-mono); }
-.cdd-attempt-chips { display: grid; grid-template-columns: 1.1fr 1.4fr 1fr; gap: 8px; flex: 1; min-width: 0; perspective: 700px; }
-.cdd-chip { display: flex; flex-direction: column; gap: 3px; justify-content: center; align-items: flex-start;
-  padding: 9px 11px; border-radius: 11px; min-height: 46px; font-size: 12.5px; font-weight: 600; line-height: 1.15; min-width: 0; }
-.cdd-chip-main { display: flex; align-items: center; gap: 5px; max-width: 100%; min-width: 0; width: 100%; }
-/* Una sola línea: el nombre largo lo encoge useFitText (no parte en 2). flex:1
-   para que clientWidth sea el ancho disponible que mide el hook. */
-.cdd-chip-text { min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; line-height: 1.18; }
+.cdd-live-attempt .cdd-chip-meta { min-height: 12px; gap: 4px; }
+/* La fila de un intento ES directamente la rejilla de 3 celdas (marca/modelo/año).
+   Ya no hay columna con el número de intento (01,02…): el HUD general dice en qué
+   intento vas, y en móvil esos ~32px de ancho son oxígeno que necesitan los
+   nombres largos. El grid (no flex) sigue siendo lo correcto: alinea las 3 celdas
+   entre filas y reparte el ancho proporcionalmente (el modelo, el nombre más
+   largo, se lleva el track más ancho). */
+.cdd-attempt-chips { display: grid; grid-template-columns: 1.1fr 1.4fr 1fr; gap: 8px; min-width: 0; perspective: 700px; }
+/* Chip en 2 zonas APILADAS: fila 1 = nombre a ancho completo, fila 2 = meta de
+   estado. Separarlas en vertical es la clave del rediseño: el nombre nunca compite
+   con el icono por el ancho horizontal. min-height fija un suelo común para que
+   todas las celdas de una fila midan igual aunque su meta varíe (✓ suelto vs
+   bandera + etiqueta). */
+.cdd-chip { display: flex; flex-direction: column; gap: 2px; justify-content: center; align-items: flex-start;
+  padding: 6px 12px; border-radius: 12px; min-height: 40px; font-size: 13px; font-weight: 600; line-height: 1.15; min-width: 0; }
+/* Fila 1 = solo el nombre, a ancho completo: nada le roba espacio horizontal. */
+.cdd-chip-main { display: block; width: 100%; min-width: 0; }
+/* Una sola línea: el nombre largo lo encoge useFitText (no parte en 2). Al ocupar
+   el 100% del ancho, su clientWidth ES el ancho disponible que mide el hook. */
+.cdd-chip-text { display: block; width: 100%; min-width: 0; white-space: nowrap; overflow: hidden; line-height: 1.18; }
+/* Fila 2 = meta de estado: icono/bandera + (opcional) etiqueta. min-height la
+   reserva aunque solo haya un ✓/✕, para que la altura no baile entre celdas. */
+.cdd-chip-meta { display: flex; align-items: center; gap: 5px; min-width: 0; max-width: 100%; min-height: 14px; }
 .cdd-chip-mark { display: inline-flex; flex: none; }
-.cdd-chip-sub { font-size: 8.5px; font-weight: 400; opacity: .9; font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+/* Etiqueta de estado (MISMO PAÍS / ±2 / MÁS NUEVO…): mono en versalitas. nowrap +
+   ellipsis como red de seguridad: un literal largo (EN "SAME COUNTRY") recorta en
+   vez de saltar a 2 líneas y descuadrar la altura de la fila. */
+.cdd-chip-sub { font-size: 8.5px; font-weight: 400; opacity: .9; font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-chip .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
 .tone-good { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 24px -10px var(--accent); }
 .tone-good .cdd-chip-sub { color: var(--accent-ink); opacity: .7; }

@@ -49,7 +49,7 @@ vercel.json           Rewrites SPA, headers de seguridad, crons
 - **JavaScript, no TypeScript.** Componentes `.jsx`, módulos ES (`import`/`export`).
 - **Comentarios en español, explicando el *porqué*.** El código del proyecto documenta densamente las decisiones de diseño y los trade-offs (latencia, seguridad, free tier). Mantén ese estilo: comenta la razón, no lo obvio.
 - **Componentes de UI**: funciones React con hooks. Estado y lógica de negocio van a `src/hooks/`; los componentes consumen esos hooks. La lógica reutilizable de cálculo va a `src/lib/` (con sus `*.test.js` al lado).
-- **Tailwind**: usa los tokens del tema (`bg-primary`, `accent`, `text-muted`, `font-display`/`font-body`), no hex sueltos. La paleta es dark + acento cobre/oro (`#e8c87a`). Las animaciones están centralizadas en `tailwind.config.js`.
+- **Tailwind**: usa los tokens del tema (`bg-primary`, `accent`, `text-muted`, `font-display`/`font-body`), no hex sueltos. La paleta es dark + **acento menta `#7af0c8`** (token `accent`, inyectado en `--accent` desde `Configurator.jsx`; tema "Platino Eléctrico"). El **oro `#e8c87a` (token `gold`/`--gold`) NO es el acento base**: está RESERVADO a momentos premium (racha, victoria, podio, logros). La menta es "acción/acierto", el oro es "esto es valioso". Las animaciones están centralizadas en `tailwind.config.js`.
 - **Code-splitting**: solo `App` carga eager. Rutas secundarias (admin, repesca, privacidad) van con `React.lazy` + `Suspense`.
 - **i18n**: textos visibles pasan por el sistema `useT()` / locales `es`/`en`. No hardcodear strings de cara al usuario.
 - **Rutas**: el ruteo es manual en `src/index.jsx` leyendo `window.location` (no hay router lib). El SPA rewrite vive en `vercel.json`.

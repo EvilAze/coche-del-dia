@@ -239,6 +239,7 @@ body,
   /* Fallo: rojo sobrio reutilizado del pip gastado (#e26060). Tinte oscuro para
      el chip, versión clara para el ✕/flecha (contraste sobre el chip rojo). */
   --bad: #e26060; --bad-ink: #f0a39c; --bad-sub: #d98b83;
+  --warn: #eab44e;
   /* Oro premium: acento metálico reservado a momentos de alta gama (racha,
      victoria, podio). Tinta oscura para texto sobre relleno oro (contraste AA). */
   --gold: #e8c87a; --gold-ink: #1a1306; --gold-glow: rgba(232,200,122,.38);
@@ -258,6 +259,7 @@ body,
   --accent-ink: #1a0d04; --good-ink: #1a0d04;
   /* Mismo rojo de fallo que Platino (coherente con el pip gastado). */
   --bad: #e26060; --bad-ink: #f0a39c; --bad-sub: #d98b83;
+  --warn: #eab44e;
   /* En tema cobre el oro y el acento conviven cálidos; el oro tira a ámbar. */
   --gold: #e8c87a; --gold-ink: #1a0d04; --gold-glow: rgba(232,200,122,.42);
   --glass-fill: rgba(255,238,220,.05); --glass-fill-2: rgba(255,238,220,.08);
@@ -355,18 +357,20 @@ body,
   background: color-mix(in oklab, var(--accent) 22%, var(--line));
 }
 
-/* Variante CTA (anónimo / sin datos): "Compite →" BIEN visible — relleno de
-   acento con tinta oscura del tema. Es la palanca de conversión al ranking, así
-   que aquí sí grita (a propósito), no se atenúa a un icono. */
+/* Variante CTA (anónimo / sin datos): "Compite →" en GHOST — texto y borde de
+   acento sobre fondo translúcido, NO relleno macizo. Al entrar, la tarea del
+   jugador es jugar (mirar foto → adivinar); el acento macizo se reserva para el
+   CTA real (ADIVINAR) y para los aciertos. Sigue siendo descubrible —y el modal de
+   ranking trae su propio login para el anónimo— sin robarle el foco al juego. */
 .cdd-statuspill.cta {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  background: var(--glass-fill);
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--line));
+  color: var(--accent);
 }
-.cdd-statuspill.cta b { color: var(--accent-ink); }
+.cdd-statuspill.cta b { color: var(--accent); }
 .cdd-statuspill.cta:hover {
-  background: color-mix(in oklab, var(--accent) 88%, white);
-  border-color: color-mix(in oklab, var(--accent) 88%, white);
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 60%, var(--line));
 }
 
 /* Punto de alerta de repesca sobre el icono de garaje */
@@ -447,25 +451,31 @@ body,
 /* Crosshair a opacidad baja: es atrezzo de cámara, no un control — a .85
    parecía un botón tocable (es pointer-events:none). */
 .cdd-hud-tl { position: absolute; top: 11px; left: 11px; color: color-mix(in oklab, var(--accent) 75%, #fff 0%); opacity: .45; }
-/* Polish premium #5: pildora del contador mas nitida — blur+saturacion mas
-   fuertes y tabular-nums para que "n/5" no salte de ancho al avanzar. */
-.cdd-hud-tr { position: absolute; top: 13px; right: 13px; font-size: 11px; color: var(--cdd-text);
-  background: color-mix(in oklab, var(--bg2) 55%, transparent);
-  backdrop-filter: blur(10px) saturate(160%); -webkit-backdrop-filter: blur(10px) saturate(160%);
-  padding: 5px 10px; border-radius: 7px; border: 1px solid var(--line);
-  font-variant-numeric: tabular-nums;
-  display: flex; align-items: center; gap: 7px; }
-/* Pips de intento dentro de la pill: gastado (fallo previo, rojo apagado),
-   actual (accent con halo), restante (tenue). Sustituyen al texto suelto
-   "INTENTO n/5" de abajo-izquierda, ilegible sobre carrocerías claras. */
-.cdd-pips { display: flex; align-items: center; gap: 4px; }
-.cdd-pip { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.16); }
-.cdd-pip.spent { background: rgba(226,96,96,.8); }
-.cdd-pip.now { background: var(--accent); box-shadow: 0 0 8px -1px var(--accent); }
 .cdd-grain { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: .28; mix-blend-mode: overlay;
   background:
     repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.12) 2px 3px),
     radial-gradient(120% 90% at 50% 0%, transparent 60%, rgba(0,0,0,.45)); }
+
+/* ── Barra de progreso de intentos (AttemptProgress), BAJO la imagen ──
+   Sustituye a los pips que vivían SOBRE la foto (y pintaban en rojo los gastados,
+   un "sello de fracaso" sobre la protagonista). Aquí encendemos los RESTANTES; el
+   tono lo fija la urgencia (cuántos quedan), no la posición de la casilla. */
+.cdd-progress { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 0 2px; }
+.cdd-progress-track { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+/* Segmento vivo (restante): acento con halo tenue. Gastado: plano y apagado. */
+.cdd-progress-seg { flex: 1; height: 5px; border-radius: 3px; background: var(--accent);
+  box-shadow: 0 0 10px -4px var(--accent); transition: background .3s, box-shadow .3s; }
+.cdd-progress-seg.spent { background: rgba(255,255,255,.12); box-shadow: none; }
+.cdd-progress-label { flex: none; font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--accent); opacity: .85; }
+/* Urgencia: quedan 2 → ámbar; queda 1 → rojo y los segmentos vivos laten. Un solo
+   tono a la vez (lo dicta el nº de restantes), nunca arcoíris por posición. */
+.cdd-progress.tone-warn .cdd-progress-seg:not(.spent) { background: var(--warn); box-shadow: 0 0 10px -4px var(--warn); }
+.cdd-progress.tone-warn .cdd-progress-label { color: var(--warn); }
+.cdd-progress.tone-danger .cdd-progress-seg:not(.spent) { background: var(--bad); box-shadow: 0 0 10px -4px var(--bad);
+  animation: cddPulse 1.1s ease-in-out infinite; }
+.cdd-progress.tone-danger .cdd-progress-label { color: var(--bad); }
+@keyframes cddPulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
 /* ── PhotoPeek: miniatura flotante de la foto (auditoría UX #7) ──
    Aparece cuando el escenario sale del viewport en plena partida (teclado
@@ -578,7 +588,8 @@ body,
 .cdd-statuspill.pop { animation: cddStreakPop .44s cubic-bezier(.34,1.56,.64,1); }
 @keyframes cddStreakPop { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
-  .cdd-chip.flip, .cdd-statuspill.pop { animation: none !important; }
+  .cdd-chip.flip, .cdd-statuspill.pop,
+  .cdd-progress.tone-danger .cdd-progress-seg:not(.spent) { animation: none !important; }
   .cdd-dist-bar { transition: none !important; }
 }
 

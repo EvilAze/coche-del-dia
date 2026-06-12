@@ -41,6 +41,12 @@ export default function CarImage({
   // tap-to-ampliar y la etiqueta de pista propios del diseño anterior.
   configurator = false,
   hud = null,
+  // Barra de progreso de intentos anclada al BORDE INFERIOR de la imagen (dentro
+  // del marco), por encima de la viñeta ::after que ya oscurece esa franja para
+  // contener carrocerías claras → legible sobre cualquier coche. pointer-events
+  // off: el tap-para-ampliar sigue activo debajo y el lightbox NO la pinta, así
+  // que un toque muestra la foto limpia. Solo en modo configurador.
+  bottomBar = null,
 }) {
   const [loaded, setLoaded] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
@@ -417,9 +423,19 @@ export default function CarImage({
       )}
       </div>
 
-      {/* HUD del configurador (crosshair, ZOOM%, INTENTO, puntos, grano):
-          superpuesto al marco, fuera del área de imagen para que no escale. */}
+      {/* HUD del configurador (crosshair + grano): superpuesto al marco, fuera del
+          área de imagen para que no escale. */}
       {configurator && hud}
+
+      {/* Barra de progreso de intentos: anclada al borde inferior del marco, por
+          ENCIMA de la viñeta ::after (z5) y del HUD (z7). pointer-events:none para
+          no robar el tap-para-ampliar. El inset (left/right/bottom-2) la mantiene
+          fuera de la curva de las esquinas redondeadas, que el marco recorta. */}
+      {configurator && bottomBar && (
+        <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-[8]">
+          {bottomBar}
+        </div>
+      )}
 
       {/* REPISA: extensión del marco por debajo donde se anidan las shift
           lights de intentos. Forma parte del frame (mismo borde redondeado),

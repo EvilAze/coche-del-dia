@@ -269,7 +269,19 @@ body,
   font-family: var(--font-body); -webkit-font-smoothing: antialiased;
   overflow-x: clip;
 }
-.cdd-ambient { position: fixed; inset: 0; background: var(--ambient); pointer-events: none; z-index: 0; opacity: .7; }
+/* Fondo "aurora": dos halos (menta + oro) que derivan muy lento. Da vida
+   premium continua a TODA la pantalla sin distraer (28s, GPU via transform).
+   Usa los tokens del tema, asi funciona en platino y cobre. */
+.cdd-ambient { position: fixed; inset: -8%; pointer-events: none; z-index: 0; opacity: .8;
+  background:
+    radial-gradient(820px 480px at 20% -6%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%),
+    radial-gradient(680px 440px at 84% 4%, color-mix(in oklab, var(--gold) 16%, transparent), transparent 72%);
+  animation: cddAurora 28s ease-in-out infinite alternate; }
+@keyframes cddAurora {
+  0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
+  100% { transform: translate3d(3%, 2%, 0) scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) { .cdd-ambient { animation: none; } }
 /* Ritmo vertical intencional: gap:0 + margen propio por bloque (antes un gap
    uniforme de 22px arrastraba todo y dejaba demasiado aire header↔fecha). */
 .cdd-shell {
@@ -406,7 +418,7 @@ body,
      (inset highlight) que define el borde del cristal sobre el fondo grafito.
      Polish premium #4: borde un punto mas claro para rematar el bisel; la
      viñeta inferior va en ::after (un inset box-shadow quedaria DETRAS del <img>). */
-  box-shadow: 0 34px 64px -30px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 1px var(--line-2);
+  box-shadow: 0 34px 64px -30px rgba(0,0,0,.85), 0 0 60px -26px color-mix(in oklab, var(--accent) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 1px var(--line-2);
 }
 /* Viñeta inferior por ENCIMA de la foto (z entre la imagen y el HUD/grain):
    contiene las carrocerías claras para que no sangren hacia la UI oscura. */
@@ -508,7 +520,8 @@ body,
 .tone-near { background: color-mix(in oklab, var(--accent) 10%, var(--surface)); color: var(--cdd-text);
   border: 1px dashed color-mix(in oklab, var(--accent) 55%, var(--line)); }
 .tone-near .cdd-chip-sub { color: var(--accent); }
-.tone-off { background: var(--surface); color: var(--cdd-muted); border: 1px solid var(--line); }
+.tone-off { background: linear-gradient(180deg, var(--surface2), var(--surface)); color: var(--cdd-muted);
+  border: 1px solid var(--line); box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
 /* Fila pendiente (esperando al servidor): shimmer neutro */
 .cdd-chip.is-pending { background: var(--surface); border: 1px solid var(--line); color: var(--faint); position: relative; overflow: hidden; }
 .cdd-chip.is-pending::after { content: ""; position: absolute; inset: 0;
@@ -603,10 +616,13 @@ body,
 .cdd-decade:hover, .cdd-decade:active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 
 .cdd-submit { width: 100%; height: 56px; border: 0; border-radius: 13px; cursor: pointer;
-  background: var(--accent); color: var(--accent-ink); font-family: var(--font-display);
+  /* Acabado glossy: degradado vertical + canto de luz superior = boton "jugoso"
+     y apetecible cuando esta activo (los estados inactivos lo sobrescriben). */
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 90%, #fff), var(--accent));
+  color: var(--accent-ink); font-family: var(--font-display);
   font-weight: 800; font-size: 14px; letter-spacing: .14em; text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 9px; transition: .18s;
-  box-shadow: 0 14px 34px -14px var(--accent); }
+  box-shadow: 0 16px 36px -12px var(--accent), inset 0 1px 0 rgba(255,255,255,.4); }
 .cdd-submit:hover:not(:disabled):not(.is-incomplete) { transform: translateY(-1px); box-shadow: 0 18px 40px -14px var(--accent); }
 .cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(0); }
 /* Label en --cdd-muted y no --faint: --faint sobre --surface2 da ~2.7:1 y el

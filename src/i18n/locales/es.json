@@ -107,6 +107,8 @@
     "yearNewer": "MÁS NUEVO",
     "yearOlder": "MÁS ANTIGUO",
     "sameCountry": "MISMO PAÍS",
+    "srCorrect": "correcto",
+    "srWrong": "incorrecto",
     "endWin": "ACERTADO · {n}/{max}",
     "endLose": "FALLADO · {max}/{max}",
     "tabFicha": "FICHA",

@@ -107,6 +107,8 @@
     "yearNewer": "NEWER",
     "yearOlder": "OLDER",
     "sameCountry": "SAME COUNTRY",
+    "srCorrect": "correct",
+    "srWrong": "wrong",
     "endWin": "SOLVED · {n}/{max}",
     "endLose": "MISSED · {max}/{max}",
     "tabFicha": "SPECS",

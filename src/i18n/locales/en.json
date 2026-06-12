@@ -102,8 +102,6 @@
     "labelModelo": "MODEL",
     "labelAnio": "YEAR",
     "zoom": "ZOOM",
-    "attemptsLeftOne": "1 left",
-    "attemptsLeftMany": "{count} left",
     "yearNewer": "NEWER",
     "yearOlder": "OLDER",
     "sameCountry": "SAME COUNTRY",

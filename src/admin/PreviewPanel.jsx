@@ -271,7 +271,7 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar }) {
 // Replica EXACTAMENTE lo que ve el jugador con el rediseño "configurador":
 //
 //   - Steps 1-5: marco cuadrado (.cdd-stage-frame, 1:1) con el HUD real
-//     (StageHud: crosshair, pips de intento N/5, grano). El recorte se
+//     (StageHud: crosshair + grano). El recorte se
 //     simula server-side con background-position (misma matemática que
 //     FocusPicker.ZoomThumb), porque aquí trabajamos con la imagen completa
 //     y no con el crop ya servido por /api/daily-image.
@@ -365,8 +365,9 @@ function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) 
                 "background-size 0.6s cubic-bezier(0.4,0,0.2,1), background-position 0.6s cubic-bezier(0.4,0,0.2,1)",
             }}
           />
-          {/* HUD real del juego (crosshair · ZOOM% · INTENTO · grano). */}
-          <StageHud attempts={step - 1} maxAttempts={ZOOM_ATTEMPTS} />
+          {/* HUD real del juego (crosshair + grano). El contador de intentos ya no
+              vive sobre la foto (se movió a AttemptProgress, bajo la imagen). */}
+          <StageHud revealed={false} />
         </div>
       </div>
     </div>

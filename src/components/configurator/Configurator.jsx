@@ -202,14 +202,12 @@ export default function Configurator({
                   {pendingGuess ? (
                     <AttemptRow
                       g={pendingGuess}
-                      index={guesses.length}
                       tolerance={tolerance}
                       pending
                     />
                   ) : (
                     <AttemptRow
                       g={guesses[guesses.length - 1]}
-                      index={guesses.length - 1}
                       tolerance={tolerance}
                       fresh={justRevealedIndex === guesses.length - 1}
                     />

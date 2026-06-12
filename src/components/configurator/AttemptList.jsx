@@ -5,8 +5,13 @@
 //   · marca:  correct→good+✓ · partial (misma nacionalidad)→near+bandera · wrong→off+✕
 //   · modelo: correct→good+✓ · wrong→off+✕
 //   · año:    correct→good+✓ (±tol) · wrong→off(rojo) + flecha ↑/↓ + MÁS NUEVO/ANTIGUO
-// Doble codificación color+icono (accesible). El nombre va a UNA línea con
-// auto-ajuste (useFitText): los nombres largos encogen en vez de partir en dos.
+// Doble codificación color+icono (accesible).
+//
+// Anatomía del chip (2 zonas APILADAS, no en línea): fila 1 = NOMBRE a ancho
+// completo (useFitText lo encoge a UNA línea sin partirlo); fila 2 = META de
+// estado (✓/✕, bandera, dirección). Separarlas en vertical es lo que evita que un
+// nombre largo pelee con el icono por el ancho y acabe cortándose. La fila ya NO
+// lleva número de intento (el HUD lo dice; en móvil esos px son oxígeno).
 // Incluye la fila "pendiente" (shimmer neutro) y el flip-reveal por celda.
 
 import { useT } from "../../i18n";
@@ -27,8 +32,13 @@ function statusMark(status) {
 
 function Chip({ tone, pending, children, sub, flag, mark, srStatus, fitKey, flip, delay }) {
   // Auto-ajuste del nombre a una sola línea: el ref va al span de texto y el hook
-  // lo encoge solo si no cabe (lee el tamaño base del CSS).
+  // lo encoge solo si no cabe (lee el tamaño base del CSS). Como el nombre ocupa
+  // ahora TODA la fila (la meta vive debajo), el hook dispone del ancho completo
+  // de la celda: encoge con holgura en vez de toparse con el icono y cortarse.
   const textRef = useFitText(fitKey);
+  // La meta (fila 2) solo se pinta si hay algo de estado que mostrar; así la fila
+  // "pendiente" (sin estado) queda a una sola línea sin reservar hueco vacío.
+  const hasMeta = mark || flag || sub;
   return (
     <div
       className={"cdd-chip " + (pending ? "is-pending" : "tone-" + tone) + (flip ? " flip" : "")}
@@ -36,33 +46,35 @@ function Chip({ tone, pending, children, sub, flag, mark, srStatus, fitKey, flip
     >
       <span className="cdd-chip-main">
         <span className="cdd-chip-text" ref={textRef}>{children}</span>
-        {flag && <img className="cdd-flag" src={flag} alt="" draggable={false} />}
-        {mark && <span className="cdd-chip-mark">{mark}</span>}
         {/* Estado para lectores de pantalla: el valor visible ya se lee; aquí solo
-            añadimos la palabra de estado cuando no hay subtexto que la dé. */}
+            añadimos la palabra de estado cuando no la da el subtexto (los ✓/✕ y
+            flechas son SVG aria-hidden, decorativos). */}
         {srStatus && <span className="sr-only">{srStatus}</span>}
       </span>
-      {sub && <span className="cdd-chip-sub">{sub}</span>}
+      {hasMeta && (
+        <span className="cdd-chip-meta">
+          {flag && <img className="cdd-flag" src={flag} alt="" draggable={false} />}
+          {mark && <span className="cdd-chip-mark">{mark}</span>}
+          {sub && <span className="cdd-chip-sub">{sub}</span>}
+        </span>
+      )}
     </div>
   );
 }
 
 // Exportada: el Configurator la reusa para la "fila viva" del último intento
 // dentro del fold (feedback visible sin scroll).
-export function AttemptRow({ g, index, tolerance, pending, fresh }) {
+export function AttemptRow({ g, tolerance, pending, fresh }) {
   const { t } = useT();
   // Delay del flip por celda cuando la fila es la recién revelada.
   const d = (i) => (fresh ? i * FLIP_STAGGER_MS + "ms" : undefined);
 
   if (pending) {
     return (
-      <div className="cdd-attempt">
-        <div className="cdd-attempt-no">{String(index + 1).padStart(2, "0")}</div>
-        <div className="cdd-attempt-chips">
-          <Chip pending fitKey={g.marca?.val}>{g.marca?.val || "—"}</Chip>
-          <Chip pending fitKey={g.modelo?.val}>{g.modelo?.val || "—"}</Chip>
-          <Chip pending fitKey={String(g.anio?.val ?? "")}>{g.anio?.val || "—"}</Chip>
-        </div>
+      <div className="cdd-attempt-chips">
+        <Chip pending fitKey={g.marca?.val}>{g.marca?.val || "—"}</Chip>
+        <Chip pending fitKey={g.modelo?.val}>{g.modelo?.val || "—"}</Chip>
+        <Chip pending fitKey={String(g.anio?.val ?? "")}>{g.anio?.val || "—"}</Chip>
       </div>
     );
   }
@@ -99,13 +111,10 @@ export function AttemptRow({ g, index, tolerance, pending, fresh }) {
   }
 
   return (
-    <div className="cdd-attempt">
-      <div className="cdd-attempt-no">{String(index + 1).padStart(2, "0")}</div>
-      <div className="cdd-attempt-chips">
-        <Chip tone={marcaTone} sub={marcaSub} flag={marcaFlag} mark={marcaMark} srStatus={marcaSr} fitKey={g.marca?.val} flip={fresh} delay={d(0)}>{g.marca?.val}</Chip>
-        <Chip tone={modeloTone} mark={modeloMark} srStatus={modeloSr} fitKey={g.modelo?.val} flip={fresh} delay={d(1)}>{g.modelo?.val}</Chip>
-        <Chip tone={anioTone} sub={anioSub} mark={anioMark} srStatus={anioSr} fitKey={String(g.anio?.val ?? "")} flip={fresh} delay={d(2)}>{g.anio?.val}</Chip>
-      </div>
+    <div className="cdd-attempt-chips">
+      <Chip tone={marcaTone} sub={marcaSub} flag={marcaFlag} mark={marcaMark} srStatus={marcaSr} fitKey={g.marca?.val} flip={fresh} delay={d(0)}>{g.marca?.val}</Chip>
+      <Chip tone={modeloTone} mark={modeloMark} srStatus={modeloSr} fitKey={g.modelo?.val} flip={fresh} delay={d(1)}>{g.modelo?.val}</Chip>
+      <Chip tone={anioTone} sub={anioSub} mark={anioMark} srStatus={anioSr} fitKey={String(g.anio?.val ?? "")} flip={fresh} delay={d(2)}>{g.anio?.val}</Chip>
     </div>
   );
 }
@@ -118,13 +127,13 @@ export default function AttemptList({ guesses = [], pendingGuess = null, justRev
   return (
     <div className="cdd-attempts">
       {pendingGuess && (
-        <AttemptRow key="pending" g={pendingGuess} index={guesses.length} tolerance={tolerance} pending />
+        <AttemptRow key="pending" g={pendingGuess} tolerance={tolerance} pending />
       )}
       {guesses
         .map((g, i) => ({ g, i }))
         .reverse()
         .map(({ g, i }) => (
-          <AttemptRow key={i} g={g} index={i} tolerance={tolerance} fresh={i === justRevealedIndex} />
+          <AttemptRow key={i} g={g} tolerance={tolerance} fresh={i === justRevealedIndex} />
         ))}
     </div>
   );

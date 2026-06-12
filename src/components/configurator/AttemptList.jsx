@@ -4,7 +4,7 @@
 // del diseño: good (acierto) / near (mismo país) / off (fallo, rojo).
 //   · marca:  correct→good+✓ · partial (misma nacionalidad)→near+bandera · wrong→off+✕
 //   · modelo: correct→good+✓ · wrong→off+✕
-//   · año:    correct→good+✓ (±tol) · wrong→off(rojo) + flecha ↑/↓ + MÁS NUEVO/ANTIGUO
+//   · año:    correct→good+✓ (±tol) · wrong→off(rojo) + flecha ↑/↓ (la dirección)
 // Doble codificación color+icono (accesible).
 //
 // Anatomía del chip (2 zonas APILADAS, no en línea): fila 1 = NOMBRE a ancho
@@ -36,6 +36,12 @@ function Chip({ tone, pending, children, sub, flag, mark, srStatus, fitKey, flip
   // ahora TODA la fila (la meta vive debajo), el hook dispone del ancho completo
   // de la celda: encoge con holgura en vez de toparse con el icono y cortarse.
   const textRef = useFitText(fitKey);
+  // Mismo shrink-to-fit para el SUBTEXTO de la fila 2 (MISMO PAÍS / SAME COUNTRY /
+  // ±2): comparte línea con la bandera o la flecha en la celda más estrecha, así
+  // que sin esto se cortaba con ellipsis ("MISMO PA…"). Suelo más bajo (7.5px) que
+  // el del nombre porque la base ya es 8.5px; es una micro-etiqueta redundante
+  // (color + icono ya codifican el estado), así que encoger un pelo es legible.
+  const subRef = useFitText(sub, { min: 7.5 });
   // La meta (fila 2) solo se pinta si hay algo de estado que mostrar; así la fila
   // "pendiente" (sin estado) queda a una sola línea sin reservar hueco vacío.
   const hasMeta = mark || flag || sub;
@@ -55,7 +61,7 @@ function Chip({ tone, pending, children, sub, flag, mark, srStatus, fitKey, flip
         <span className="cdd-chip-meta">
           {flag && <img className="cdd-flag" src={flag} alt="" draggable={false} />}
           {mark && <span className="cdd-chip-mark">{mark}</span>}
-          {sub && <span className="cdd-chip-sub">{sub}</span>}
+          {sub && <span className="cdd-chip-sub" ref={subRef}>{sub}</span>}
         </span>
       )}
     </div>
@@ -104,10 +110,12 @@ export function AttemptRow({ g, tolerance, pending, fresh }) {
     anioSr = t("cdd.srCorrect");
   } else {
     const dir = g.anio?.direction; // 'up' = el real es mayor (más nuevo)
-    anioSub = dir === "up" ? t("cdd.yearNewer") : dir === "down" ? t("cdd.yearOlder") : null;
     anioMark = dir ? <Icon d={dir === "up" ? I.arrowU : I.arrowD} size={14} /> : null;
-    // El subtexto (MÁS NUEVO/ANTIGUO) ya lo lee el lector de pantalla; no lo
-    // duplicamos en un sr-only aparte.
+    // La flecha ↑/↓ ya comunica la dirección visualmente; quitamos el texto
+    // "MÁS NUEVO/ANTIGUO" para descargar la celda más estrecha (el año). Pero la
+    // flecha es SVG decorativo (aria-hidden), así que la dirección pasa al sr-only
+    // para no perder la pista en lectores de pantalla.
+    anioSr = dir === "up" ? t("cdd.yearNewer") : dir === "down" ? t("cdd.yearOlder") : t("cdd.srWrong");
   }
 
   return (

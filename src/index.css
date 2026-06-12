@@ -524,7 +524,10 @@ body,
    nombres largos. El grid (no flex) sigue siendo lo correcto: alinea las 3 celdas
    entre filas y reparte el ancho proporcionalmente (el modelo, el nombre más
    largo, se lleva el track más ancho). */
-.cdd-attempt-chips { display: grid; grid-template-columns: 1.1fr 1.4fr 1fr; gap: 8px; min-width: 0; perspective: 700px; }
+/* Reparto de tracks: modelo el más ancho (nombres más largos). Marca un punto más
+   que año porque, además de la marca, carga el subtexto más largo (MISMO PAÍS /
+   SAME COUNTRY); el año, sin ya el texto MÁS NUEVO/ANTIGUO, es el que menos pide. */
+.cdd-attempt-chips { display: grid; grid-template-columns: 1.15fr 1.4fr 0.95fr; gap: 8px; min-width: 0; perspective: 700px; }
 /* Chip en 2 zonas APILADAS: fila 1 = nombre a ancho completo, fila 2 = meta de
    estado. Separarlas en vertical es la clave del rediseño: el nombre nunca compite
    con el icono por el ancho horizontal. min-height fija un suelo común para que
@@ -541,10 +544,11 @@ body,
    reserva aunque solo haya un ✓/✕, para que la altura no baile entre celdas. */
 .cdd-chip-meta { display: flex; align-items: center; gap: 5px; min-width: 0; max-width: 100%; min-height: 14px; }
 .cdd-chip-mark { display: inline-flex; flex: none; }
-/* Etiqueta de estado (MISMO PAÍS / ±2 / MÁS NUEVO…): mono en versalitas. nowrap +
-   ellipsis como red de seguridad: un literal largo (EN "SAME COUNTRY") recorta en
-   vez de saltar a 2 líneas y descuadrar la altura de la fila. */
-.cdd-chip-sub { font-size: 8.5px; font-weight: 400; opacity: .9; font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Etiqueta de estado (MISMO PAÍS / SAME COUNTRY / ±2): mono en versalitas. El
+   shrink-to-fit (useFitText con min 7.5px) la encoge a UNA línea si compite por el
+   ancho con la bandera/flecha; el ellipsis queda solo como última red por debajo
+   de ese suelo. letter-spacing bajo (.04em) para que casi nunca tenga que encoger. */
+.cdd-chip-sub { font-size: 8.5px; font-weight: 400; opacity: .9; font-family: var(--font-mono); letter-spacing: .04em; text-transform: uppercase; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-chip .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
 .tone-good { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 24px -10px var(--accent); }
 .tone-good .cdd-chip-sub { color: var(--accent-ink); opacity: .7; }

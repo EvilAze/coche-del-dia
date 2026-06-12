@@ -9,6 +9,7 @@ import { useT } from "../../i18n";
 import Header from "./Header";
 import { Icon, I } from "./icons";
 import ZoomStage from "./ZoomStage";
+import AttemptProgress from "./AttemptProgress";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
@@ -177,13 +178,14 @@ export default function Configurator({
                 car={car}
                 zoom={zoom}
                 status={status}
-                attempts={attempts}
-                maxAttempts={maxAttempts}
                 hintIndex={hintIndex}
                 totalHints={totalHints}
                 blurred={status === "lost" && !user}
                 onRevealLoad={onRevealLoad}
               />
+              {/* Progreso de intentos BAJO la foto (no encima): restantes en menta,
+                  ámbar a 2, rojo pulsante en el último. Se oculta al revelar. */}
+              <AttemptProgress attempts={attempts} maxAttempts={maxAttempts} revealed={ended} />
             </div>
 
             <div className="cdd-col cdd-col-panel">

@@ -134,8 +134,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
     <ModalShell
       open={open}
       onClose={onClose}
-      backdropClassName="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm"
-      panelClassName="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d1014] p-5 shadow-2xl"
+      backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
+      panelClassName="modal-panel-glass w-full max-w-md p-5"
     >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
@@ -256,7 +256,13 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         : undefined
                     }
                   >
-                    <div className="font-display text-xl text-accent">
+                    <div
+                      className={`font-display text-xl ${
+                        player.rank === 1
+                          ? "text-gold drop-shadow-[0_0_10px_rgba(232,200,122,0.5)]"
+                          : "text-accent"
+                      }`}
+                    >
                       {player.rank}
                     </div>
 

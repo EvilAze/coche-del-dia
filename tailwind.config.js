@@ -27,8 +27,30 @@ module.exports = {
           dark: "#5bd3ab",
           glow: "rgba(122,240,200,0.15)",
         },
+        // Oro premium: acento metálico RESERVADO a momentos de alta gama
+        // (rachas, victoria, podio, logros). No compite con la menta (acción):
+        // la menta es "haz clic / acertaste", el oro es "esto es valioso".
+        // Reconcilia la marca cobre/oro histórica como capa de lujo, no como base.
+        gold: {
+          DEFAULT: "#e8c87a",
+          dark: "#caa856",
+          ink: "#1a1306", // tinta oscura para texto sobre relleno oro (contraste AA)
+          glow: "rgba(232,200,122,0.15)",
+        },
         // Gris frío neutral (antes cálido #a39d97): integra con la menta.
         muted: "#8b95a3",
+      },
+      // Sombras del sistema Liquid Glass: elevación flotante + halo interior de
+      // luz (inset top) que da el "canto" del cristal. Centralizadas para que
+      // todas las tarjetas premium compartan la misma física de luz.
+      boxShadow: {
+        glass: "0 16px 40px -16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
+        "glass-lg": "0 30px 60px -28px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.07)",
+        "glow-accent": "0 0 28px -8px rgba(122,240,200,0.45)",
+        "glow-gold": "0 0 28px -8px rgba(232,200,122,0.45)",
+      },
+      backdropBlur: {
+        glass: "18px",
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease forwards",

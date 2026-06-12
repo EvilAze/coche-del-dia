@@ -16,7 +16,7 @@ const MEDAL_EMOJI = { 1: "ðŸ¥‡", 2: "ðŸ¥ˆ", 3: "ðŸ¥‰" };
 // Estilo del borde/etiqueta segÃºn el puesto, en sintonÃ­a con los tiers de
 // logros (oro/plata/bronce) que ya usa PublicProfile.
 const RANK_STYLE = {
-  1: { border: "border-yellow-300/70", text: "text-yellow-300" },
+  1: { border: "border-gold/70", text: "text-gold" },
   2: { border: "border-zinc-300/60", text: "text-zinc-300" },
   3: { border: "border-amber-700/60", text: "text-amber-600" },
 };

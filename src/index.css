@@ -236,6 +236,9 @@ body,
   --line: rgba(255,255,255,.09); --line-2: rgba(255,255,255,.05);
   --cdd-text: #eef2f6; --cdd-muted: #8b95a3; --faint: #586675;
   --accent-ink: #05131d; --good-ink: #05131d;
+  /* Fallo: rojo sobrio reutilizado del pip gastado (#e26060). Tinte oscuro para
+     el chip, versión clara para el ✕/flecha (contraste sobre el chip rojo). */
+  --bad: #e26060; --bad-ink: #f0a39c; --bad-sub: #d98b83;
   /* Oro premium: acento metálico reservado a momentos de alta gama (racha,
      victoria, podio). Tinta oscura para texto sobre relleno oro (contraste AA). */
   --gold: #e8c87a; --gold-ink: #1a1306; --gold-glow: rgba(232,200,122,.38);
@@ -253,6 +256,8 @@ body,
   --line: rgba(255,238,220,.10); --line-2: rgba(255,238,220,.05);
   --cdd-text: #f4ece1; --cdd-muted: #a4917c; --faint: #74634f;
   --accent-ink: #1a0d04; --good-ink: #1a0d04;
+  /* Mismo rojo de fallo que Platino (coherente con el pip gastado). */
+  --bad: #e26060; --bad-ink: #f0a39c; --bad-sub: #d98b83;
   /* En tema cobre el oro y el acento conviven cálidos; el oro tira a ámbar. */
   --gold: #e8c87a; --gold-ink: #1a0d04; --gold-glow: rgba(232,200,122,.42);
   --glass-fill: rgba(255,238,220,.05); --glass-fill-2: rgba(255,238,220,.08);
@@ -520,17 +525,27 @@ body,
 .cdd-chip-main { display: flex; align-items: center; gap: 5px; max-width: 100%; min-width: 0; width: 100%; }
 /* Texto del chip: hasta 2 líneas, nunca trunca con "…". La marca/flecha quedan
    fuera (flex: none) para no descolocarse. overflow-wrap parte tokens larguísimos. */
-.cdd-chip-text { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.18; overflow-wrap: anywhere; }
+/* Una sola línea: el nombre largo lo encoge useFitText (no parte en 2). flex:1
+   para que clientWidth sea el ancho disponible que mide el hook. */
+.cdd-chip-text { min-width: 0; flex: 1; white-space: nowrap; overflow: hidden; line-height: 1.18; }
 .cdd-chip-mark { display: inline-flex; flex: none; }
 .cdd-chip-sub { font-size: 8.5px; font-weight: 400; opacity: .9; font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
 .cdd-chip .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
 .tone-good { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 24px -10px var(--accent); }
 .tone-good .cdd-chip-sub { color: var(--accent-ink); opacity: .7; }
+.tone-good .cdd-chip-mark { color: var(--accent-ink); }
 .tone-near { background: color-mix(in oklab, var(--accent) 10%, var(--surface)); color: var(--cdd-text);
   border: 1px dashed color-mix(in oklab, var(--accent) 55%, var(--line)); }
 .tone-near .cdd-chip-sub { color: var(--accent); }
-.tone-off { background: linear-gradient(180deg, var(--surface2), var(--surface)); color: var(--cdd-muted);
-  border: 1px solid var(--line); box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
+/* Refuerzo del estado "mismo país": la bandera manda un punto más que en el
+   resto de chips (es el icono que explica el "casi"). */
+.tone-near .cdd-flag { width: 20px; height: 13px; }
+/* Fallo: rojo apagado + texto BLANCO (no muted). El paso de cdd-muted a cdd-text
+   es lo que convierte el chip de "casilla inactiva" en "esto está mal". */
+.tone-off { background: color-mix(in oklab, var(--bad) 15%, var(--surface)); color: var(--cdd-text);
+  border: 1px solid color-mix(in oklab, var(--bad) 50%, var(--line)); }
+.tone-off .cdd-chip-mark { color: var(--bad-ink); }
+.tone-off .cdd-chip-sub { color: var(--bad-sub); }
 /* Fila pendiente (esperando al servidor): shimmer neutro */
 .cdd-chip.is-pending { background: var(--surface); border: 1px solid var(--line); color: var(--faint); position: relative; overflow: hidden; }
 .cdd-chip.is-pending::after { content: ""; position: absolute; inset: 0;

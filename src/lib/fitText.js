@@ -11,6 +11,9 @@
 const SAFETY = 0.97;
 
 export function fitFontSize({ scrollWidth, clientWidth, base, min }) {
+  // Suelo por encima (o igual) de la base: encoger no tiene sentido — esta función
+  // NUNCA agranda. Devolvemos la base tal cual.
+  if (min >= base) return base;
   // Primer paint antes del layout (medidas a 0): no encogemos.
   if (!(clientWidth > 0) || !(scrollWidth > 0)) return base;
   // Ya cabe al tamaño base.

@@ -20,4 +20,8 @@ describe("fitFontSize", () => {
     expect(fitFontSize({ scrollWidth: 200, clientWidth: 0, base: 12.5, min: 10 })).toBe(12.5);
     expect(fitFontSize({ scrollWidth: 0, clientWidth: 100, base: 12.5, min: 10 })).toBe(12.5);
   });
+
+  it("nunca agranda: si el suelo (min) es >= la base, devuelve la base", () => {
+    expect(fitFontSize({ scrollWidth: 200, clientWidth: 100, base: 9, min: 10 })).toBe(9);
+  });
 });

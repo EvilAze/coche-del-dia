@@ -201,6 +201,11 @@ export default function AnalyticsPanel() {
             />
           </div>
 
+          {/* ROW 3.5 · Uso del ranking (palanca) */}
+          <Card title="Uso del ranking (palanca)">
+            <RankingUsageCard usage={data.engagement.rankingUsage} />
+          </Card>
+
           {/* ROW 4 · Win rate + Streak distribution */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <Card title="Distribución de resultados">
@@ -613,6 +618,52 @@ function UserHistoryTable({ history }) {
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// Card de "uso del ranking": pulsaciones del evento `ranking_open` (contador
+// propio en Supabase, tabla feature_events) y su proporción sobre las partidas
+// del periodo. El % es un proxy (pulsaciones totales / partidas, no únicos).
+function RankingUsageCard({ usage }) {
+  if (!usage) {
+    return (
+      <div className="rounded-lg border border-rose-400/30 bg-rose-500/[0.05] px-3 py-2 text-xs text-rose-200/90">
+        No se pudo leer el contador de uso del ranking. Revisa los logs del endpoint admin.
+      </div>
+    );
+  }
+  if (usage.migrationPending) {
+    return (
+      <div className="rounded-lg border border-amber-400/30 bg-amber-500/[0.05] px-3 py-2 text-xs text-amber-200/90">
+        Falta crear la tabla de contadores. Aplica{" "}
+        <code className="text-amber-100">scripts/2026-06-feature-events.sql</code> en Supabase y
+        las pulsaciones del ranking empezarán a contarse aquí.
+      </div>
+    );
+  }
+  const perPlayPct = usage.perPlay == null ? null : usage.perPlay * 100;
+  return (
+    <div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <MiniStat label="pulsaciones" value={usage.pulsaciones.toLocaleString("es")} hint="aperturas del ranking" />
+        <MiniStat
+          label="por partida"
+          value={perPlayPct == null ? "—" : `${perPlayPct.toFixed(0)}%`}
+          hint={`${usage.activity.toLocaleString("es")} partidas`}
+        />
+        <MiniStat
+          label="logueados / anón"
+          value={`${usage.byUser.toLocaleString("es")} / ${usage.byAnon.toLocaleString("es")}`}
+          hint="reparto de aperturas"
+        />
+      </div>
+      <p className="mt-3 text-[10px] leading-relaxed text-muted">
+        "Por partida" = pulsaciones totales / partidas del periodo (daily_stats, incluye
+        anónimos). Es un proxy de uso: cuenta aperturas, no usuarios únicos, así que puede
+        superar el 100% si la gente abre el ranking varias veces. Útil para ver si la palanca
+        se toca, no para % exacto de usuarios.
+      </p>
     </div>
   );
 }

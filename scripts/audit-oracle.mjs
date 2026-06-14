@@ -50,17 +50,28 @@ await loadEmails();
 let emailNeedle = null;
 if (arg && !isDate) emailNeedle = arg.toLowerCase();
 
-let q = admin
-  .from("guess_audit")
-  .select("ts, mode, game_date, car_id, user_id, is_anon, attempt_number, ip_hash, ua, guess_make, guess_model, guess_year, win")
-  .order("ts", { ascending: true });
-if (isDate) q = q.eq("game_date", arg);
-
-const { data: rows, error } = await q;
-if (error) {
-  console.error("Error leyendo guess_audit:", error.message || error);
-  console.error("(¿Aplicaste scripts/supabase-guess-audit.sql en Supabase?)");
-  process.exit(2);
+// Paginación obligatoria: PostgREST corta en 1000 filas por defecto. Sin esto
+// el script analizaba solo las 1000 MÁS ANTIGUAS y daba falsos "0 oráculos"
+// en cuanto la tabla pasaba de ese tamaño (un win reciente fuera del corte no
+// se veía). Traemos bloques de 1000 con .range() hasta agotar.
+const PAGE = 1000;
+const rows = [];
+for (let from = 0; ; from += PAGE) {
+  let q = admin
+    .from("guess_audit")
+    .select("ts, mode, game_date, car_id, user_id, is_anon, attempt_number, ip_hash, ua, guess_make, guess_model, guess_year, win")
+    .order("ts", { ascending: true })
+    .range(from, from + PAGE - 1);
+  if (isDate) q = q.eq("game_date", arg);
+  const { data, error } = await q;
+  if (error) {
+    console.error("Error leyendo guess_audit:", error.message || error);
+    console.error("(¿Aplicaste scripts/supabase-guess-audit.sql en Supabase?)");
+    process.exit(2);
+  }
+  if (!data?.length) break;
+  rows.push(...data);
+  if (data.length < PAGE) break; // última página
 }
 if (!rows?.length) {
   console.log("Sin filas de auditoría todavía. Vuelve cuando se hayan jugado partidas con el logging activo.");
@@ -71,6 +82,12 @@ if (!rows?.length) {
 const groups = new Map();
 for (const r of rows) {
   if (!r.ip_hash) continue;
+  // Fuera eventos que no son intentos de guess: session_start (mera visita
+  // a la home) y canary (token forjado). Si los metiéramos, una visita
+  // anónima POSTERIOR al win desde la misma IP (router compartido, el propio
+  // usuario deslogueado) dispararía un falso "oráculo". El sondeo real deja
+  // INTENTOS, no visitas. Coherente con el filtro del handler admin.
+  if (r.mode === "canary" || r.mode === "session_start") continue;
   const k = `${r.game_date}|${r.car_id}|${r.ip_hash}`;
   if (!groups.has(k)) groups.set(k, []);
   groups.get(k).push(r);

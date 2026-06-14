@@ -356,19 +356,31 @@ export default function App() {
 
       {/* Modales lazy: solo se montan tras su primera apertura (mounted.*) y,
           una vez montados, permanecen para conservar la animación de salida.
-          Un único Suspense (fallback null) cubre el lapso de descarga del
-          chunk en la primera apertura. */}
-      <Suspense fallback={null}>
-        {mounted.ranking && (
+          Cada uno lleva su PROPIO <Suspense> a propósito (no uno compartido):
+          si un modal lazy aún no tiene su chunk en caché, suspende mientras
+          descarga. Con un Suspense compartido, esa suspensión reemplazaba por
+          `fallback={null}` a TODOS los modales del boundary —incluido el
+          Garaje, que estuviera a media animación de salida—. Al arrancar el
+          Garaje del árbol en pleno exit, framer-motion (AnimatePresence) perdía
+          el control de la salida y dejaba su backdrop `bg-black/85` colgado y
+          opaco encima de todo, capturando los clics → la página parecía
+          congelada y había que recargar (caso típico: abrir "Logros" desde el
+          Garaje, que cierra el Garaje y monta el modal lazy a la vez).
+          Aislando el Suspense por modal, la suspensión de uno nunca desmonta a
+          otro: el Garaje completa su salida limpiamente. */}
+      {mounted.ranking && (
+        <Suspense fallback={null}>
           <Ranking
             open={activeModal === "ranking"}
             onClose={closeModal}
             user={user}
             onOpenLogin={openLogin}
           />
-        )}
+        </Suspense>
+      )}
 
-        {mounted.garage && (
+      {mounted.garage && (
+        <Suspense fallback={null}>
           <Garage
             open={activeModal === "garage"}
             onClose={closeModal}
@@ -376,25 +388,31 @@ export default function App() {
             onOpenLogin={openLogin}
             onOpenAchievements={openAchievements}
           />
-        )}
+        </Suspense>
+      )}
 
-        {mounted.profile && (
+      {mounted.profile && (
+        <Suspense fallback={null}>
           <MyStats
             open={activeModal === "profile"}
             onClose={closeModal}
             onSignedOut={handleSignedOut}
             onOpenAchievements={openAchievements}
           />
-        )}
+        </Suspense>
+      )}
 
-        {mounted.achievements && (
+      {mounted.achievements && (
+        <Suspense fallback={null}>
           <AchievementsModal
             open={activeModal === "achievements"}
             onClose={closeModal}
           />
-        )}
+        </Suspense>
+      )}
 
-        {mounted.nickname && (
+      {mounted.nickname && (
+        <Suspense fallback={null}>
           <NicknameModal
             open={nicknameOpen}
             onSaved={(nextProfile) => {
@@ -402,12 +420,14 @@ export default function App() {
               setActiveModal(null);
             }}
           />
-        )}
+        </Suspense>
+      )}
 
-        {mounted.howto && (
+      {mounted.howto && (
+        <Suspense fallback={null}>
           <HowToPlayModal open={activeModal === "howto"} onClose={closeModal} />
-        )}
-      </Suspense>
+        </Suspense>
+      )}
 
       {/* Day rollover: no dismissable por backdrop ni por ESC. Lo único
           que puede hacer el usuario es recargar la página. Si dejamos

@@ -62,16 +62,51 @@ jobs:
           printf '%s\n' "$AGE_DRYRUN_PRIVATE_KEY" > key.txt
           age -d -i key.txt -o dump.sql.gz dump.sql.gz.age
           rm -f key.txt
-          # -v ON_ERROR_STOP=1: el restore falla si cualquier sentencia falla.
-          gunzip -c dump.sql.gz | psql -v ON_ERROR_STOP=1 \
-            "postgresql://postgres:postgres@localhost:5432/postgres"
+
+          PGURL="postgresql://postgres:postgres@localhost:5432/postgres"
+
+          # Un dump de Supabase referencia roles propios (supabase_admin, anon,
+          # authenticated, service_role...) que NO existen en un Postgres
+          # vanilla; sin ellos, cada `ALTER ... OWNER TO`/`GRANT` aborta. Los
+          # pre-creamos para que el restore avance. (En un desastre real
+          # restaurarías en un proyecto Supabase nuevo, que ya los tiene.)
+          psql "$PGURL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE r text;
+          BEGIN
+            FOREACH r IN ARRAY ARRAY[
+              'supabase_admin','supabase_auth_admin','supabase_storage_admin',
+              'supabase_read_only_user','supabase_realtime_admin','authenticator',
+              'anon','authenticated','service_role','dashboard_user','pgbouncer',
+              'pgsodium_keyholder','pgsodium_keyiduser','pgsodium_keymaker'
+            ] LOOP
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) THEN
+                EXECUTE format('CREATE ROLE %I', r);
+              END IF;
+            END LOOP;
+          END $$;
+          SQL
+
+          # Restauramos SIN ON_ERROR_STOP: el dump crea extensiones de Supabase
+          # (pgsodium, pg_graphql, vault...) ausentes en Postgres vanilla, y no
+          # queremos abortar por eso — esto es una PRUEBA DE HUMO de que los
+          # datos de la app restauran. El gate real son las aserciones de
+          # tablas del paso siguiente, que SÍ fallan si algo crítico no llegó.
+          gunzip -c dump.sql.gz | psql "$PGURL" 2>&1 | tail -20 || true
+          echo "[restore] aplicado (errores de roles/extensiones de Supabase ignorados a propósito)"
 
       - name: Verificar tablas clave restauradas
         run: |
+          PGURL="postgresql://postgres:postgres@localhost:5432/postgres"
           for t in cars user_guesses daily_stats guess_audit monthly_podium; do
-            psql -tA "postgresql://postgres:postgres@localhost:5432/postgres" \
-              -c "select 'public.${t}'::regclass;" >/dev/null \
+            psql -tA "$PGURL" -c "select 'public.${t}'::regclass;" >/dev/null \
               || { echo "FALTA tabla public.${t} tras restore"; exit 1; }
             echo "ok - public.${t} restaurada"
           done
+          # Más allá de que exista el esquema: confirmamos que los DATOS
+          # restauraron. cars siempre tiene filas (catálogo); si saliera 0,
+          # el COPY no cargó y el backup no serviría para un restore real.
+          cars_rows="$(psql -tA "$PGURL" -c "select count(*) from public.cars;")"
+          echo "public.cars tiene $cars_rows filas"
+          [ "$cars_rows" -ge 1 ] || { echo "ERROR: public.cars sin datos tras restore"; exit 1; }
           echo "RESTORE DRY-RUN OK"

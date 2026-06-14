@@ -9,3 +9,10 @@ node_modules
 # (vercel.json → buildCommand), así que versionarlo solo metía ruido de
 # hashes en cada commit.
 build/
+
+# Claves age de los backups de la DB (recuperación + CI). NUNCA se commitean:
+# la pública va a GitHub Secrets y la privada de recuperación se guarda offline.
+# Ver docs/runbooks/db-backup-restore.md.
+key-*.txt
+*.age
+AGE-SECRET-KEY*

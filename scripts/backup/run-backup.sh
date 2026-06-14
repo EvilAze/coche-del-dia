@@ -42,9 +42,31 @@ echo "[backup] pg_dump $DATE ..."
 # --no-owner/--no-privileges OMITIDOS a propósito: queremos grants y RLS en
 # el dump (alcance: esquema+datos completos, ver spec). -Fp (plain) para que
 # verify-dump pueda zgrep las sentencias CREATE TABLE.
-pg_dump --format=plain --no-password "$SUPABASE_DB_URL" | gzip > "$dump"
+#
+# Capturamos el stderr de pg_dump y comprobamos el pipeline con pipefail: si
+# pg_dump falla (conexión, pooler en modo TRANSACCIÓN que no soporta pg_dump,
+# permisos), queremos ver SU error real, no un críptico "broken pipe" del
+# gzip de aguas abajo.
+err_log="$work/pg_dump.err"
+if ! pg_dump --format=plain --no-password "$SUPABASE_DB_URL" 2>"$err_log" | gzip > "$dump"; then
+  echo "[backup] ERROR: pg_dump falló. stderr:" >&2
+  cat "$err_log" >&2
+  exit 1
+fi
+# pg_dump puede salir 0 pero con avisos o un dump incompleto: mostramos su
+# stderr (si hay) y el tamaño del dump para diagnosticar.
+[ -s "$err_log" ] && { echo "[backup] stderr de pg_dump:" >&2; cat "$err_log" >&2; }
+echo "[backup] dump: $(stat -c%s "$dump") bytes comprimidos"
 
-bash "$HERE/verify-dump.sh" "$dump"
+# Si verify falla, volcamos diagnóstico: qué se respaldó realmente (¿vacío?,
+# ¿otro schema?, ¿error embebido?) y qué tablas contiene.
+if ! bash "$HERE/verify-dump.sh" "$dump"; then
+  echo "[backup] --- primeras 40 líneas del dump (diagnóstico) ---" >&2
+  gunzip -c "$dump" | head -40 >&2 || true
+  echo "[backup] --- CREATE TABLE encontradas en el dump ---" >&2
+  gunzip -c "$dump" | grep -E "^CREATE TABLE" >&2 || echo "(ninguna)" >&2
+  exit 1
+fi
 
 echo "[backup] cifrando con age ..."
 recipients=(-r "$AGE_PUBLIC_KEY")

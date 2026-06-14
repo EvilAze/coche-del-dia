@@ -137,10 +137,19 @@ export default function App() {
   }, [user, activeModal]);
 
   const openRanking = () => {
-    // Analytics (Umami): medir cuánto se usa la "palanca" del ranking. `auth`
-    // distingue logueado/anónimo, misma convención que garage_open. El panel
-    // admin de Analítica lee este contador vía la API de Umami.
-    track("ranking_open", { auth: user ? "user" : "anon" });
+    // Medir cuánto se usa la "palanca" del ranking. Dos sumideros:
+    //   1) Umami (track): visible en el dashboard de Umami (free tier).
+    //   2) Contador propio en Supabase: lo lee el panel admin de Analítica.
+    //      La API de Umami es de pago, así que el panel NO puede leer de ahí;
+    //      en su lugar incrementamos una RPC SECURITY DEFINER (no requiere
+    //      permiso de escritura del cliente, corre como owner). Misma
+    //      convención `auth` que garage_open.
+    const auth = user ? "user" : "anon";
+    track("ranking_open", { auth });
+    // Fire-and-forget: jamás bloquear ni romper la apertura del ranking.
+    supabase
+      .rpc("increment_feature_event", { p_event: "ranking_open", p_auth: auth })
+      .then(undefined, () => {});
     openModal("ranking");
   };
   const openGarage = () => openModal("garage");

@@ -622,43 +622,47 @@ function UserHistoryTable({ history }) {
   );
 }
 
-// Card de "uso del ranking": pulsaciones del evento `ranking_open` (Umami) y
-// su proporción sobre las visitas del periodo. Estados: sin API key, error de
-// Umami, o datos. El % es un proxy (pulsaciones totales / visitas, no únicos).
+// Card de "uso del ranking": pulsaciones del evento `ranking_open` (contador
+// propio en Supabase, tabla feature_events) y su proporción sobre las partidas
+// del periodo. El % es un proxy (pulsaciones totales / partidas, no únicos).
 function RankingUsageCard({ usage }) {
-  if (!usage || usage.configured === false) {
-    return (
-      <div className="rounded-lg border border-amber-400/30 bg-amber-500/[0.05] px-3 py-2 text-xs text-amber-200/90">
-        Falta <code className="text-amber-100">UMAMI_API_KEY</code> en el entorno. Genera una
-        API key en Umami Cloud (Settings → API keys) y añádela en Vercel para ver las
-        pulsaciones del ranking aquí.
-      </div>
-    );
-  }
-  if (usage.error) {
+  if (!usage) {
     return (
       <div className="rounded-lg border border-rose-400/30 bg-rose-500/[0.05] px-3 py-2 text-xs text-rose-200/90">
-        No se pudo leer la API de Umami (¿key inválida o rate-limit?). El evento se sigue
-        registrando; reintenta en unos segundos.
+        No se pudo leer el contador de uso del ranking. Revisa los logs del endpoint admin.
       </div>
     );
   }
-  const perVisitPct = usage.perVisit == null ? null : usage.perVisit * 100;
+  if (usage.migrationPending) {
+    return (
+      <div className="rounded-lg border border-amber-400/30 bg-amber-500/[0.05] px-3 py-2 text-xs text-amber-200/90">
+        Falta crear la tabla de contadores. Aplica{" "}
+        <code className="text-amber-100">scripts/2026-06-feature-events.sql</code> en Supabase y
+        las pulsaciones del ranking empezarán a contarse aquí.
+      </div>
+    );
+  }
+  const perPlayPct = usage.perPlay == null ? null : usage.perPlay * 100;
   return (
     <div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <MiniStat label="pulsaciones" value={usage.pulsaciones.toLocaleString("es")} hint="aperturas del ranking" />
         <MiniStat
-          label="por visita"
-          value={perVisitPct == null ? "—" : `${perVisitPct.toFixed(0)}%`}
-          hint={`${usage.visits.toLocaleString("es")} visitas`}
+          label="por partida"
+          value={perPlayPct == null ? "—" : `${perPlayPct.toFixed(0)}%`}
+          hint={`${usage.activity.toLocaleString("es")} partidas`}
         />
-        <MiniStat label="visitantes" value={usage.visitors.toLocaleString("es")} hint="únicos en el periodo" />
+        <MiniStat
+          label="logueados / anón"
+          value={`${usage.byUser.toLocaleString("es")} / ${usage.byAnon.toLocaleString("es")}`}
+          hint="reparto de aperturas"
+        />
       </div>
       <p className="mt-3 text-[10px] leading-relaxed text-muted">
-        "Por visita" = pulsaciones totales / visitas del periodo (Umami). Es un proxy de uso:
-        cuenta aperturas, no usuarios únicos, así que puede superar el 100% si la gente abre el
-        ranking varias veces. Útil para ver si la palanca se toca, no para % exacto de usuarios.
+        "Por partida" = pulsaciones totales / partidas del periodo (daily_stats, incluye
+        anónimos). Es un proxy de uso: cuenta aperturas, no usuarios únicos, así que puede
+        superar el 100% si la gente abre el ranking varias veces. Útil para ver si la palanca
+        se toca, no para % exacto de usuarios.
       </p>
     </div>
   );

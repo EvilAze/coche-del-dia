@@ -136,6 +136,16 @@ export default function AuditPanel() {
               Huella de oráculo: % de victorias clavando marca+modelo+año a la 1ª en frío.
               Independiente de la IP. Necesita ≥5 partidas daily en el rango.
             </p>
+            {data.population && data.population.users > 0 && (
+              <p className="text-[10px] text-muted">
+                Línea base poblacional ({data.population.users} jugadores):
+                media de acierto frío a la 1ª{" "}
+                <span className="text-white/80">{pct(data.population.meanColdExactRate)}</span>,
+                σ <span className="text-white/80">{pct(data.population.stdColdExactRate)}</span>.
+                La columna <span className="text-white/80">σ</span> es cuántas desviaciones
+                típicas por encima de la media está cada cuenta (≥3σ = muy improbable por azar).
+              </p>
+            )}
             {(!data.suspects || data.suspects.length === 0) ? (
               <div className="rounded-xl border border-border bg-bg-secondary/40 p-4 text-center text-xs text-muted">
                 Sin datos suficientes en este rango (prueba "Todo").
@@ -149,6 +159,7 @@ export default function AuditPanel() {
                       <th className="px-2 py-2 text-right">Part.</th>
                       <th className="px-2 py-2 text-right">Win%</th>
                       <th className="px-2 py-2 text-right">1ª frío</th>
+                      <th className="px-2 py-2 text-right" title="Desviaciones típicas por encima de la media poblacional de acierto frío a la 1ª. ≥3σ = muy improbable por azar.">σ</th>
                       <th className="px-2 py-2 text-right" title="Tiempo mediano desde abrir el juego hasta ganar (solo wins con session_start logueado)">t→win</th>
                       <th className="px-2 py-2 text-right">Score</th>
                     </tr>
@@ -161,6 +172,9 @@ export default function AuditPanel() {
                         <td className="px-2 py-1.5 text-right text-muted">{pct(s.winRate)}</td>
                         <td className="px-2 py-1.5 text-right text-muted">
                           {s.coldExact}/{s.games} ({pct(s.coldExactRate)})
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          <ZScoreCell z={s.coldExactZ} />
                         </td>
                         <td className="px-2 py-1.5 text-right">
                           <TimeToWinCell ttw={s.timeToWin} />
@@ -299,6 +313,20 @@ function TimeToWinCell({ ttw }) {
       {humanDur(ttw.medianSec)} <span className="text-[9px] opacity-60">(n={ttw.n})</span>
     </span>
   );
+}
+
+// Pastilla de z-score (σ sobre la media poblacional de acierto frío a la 1ª).
+// ≥3σ rojo (muy improbable por azar), ≥2σ ámbar (a vigilar), resto neutro.
+// null/undefined → "—" (no había base poblacional, p.ej. <2 jugadores).
+function ZScoreCell({ z }) {
+  if (z === null || z === undefined) return <span className="text-muted">—</span>;
+  const tone =
+    z >= 3 ? "text-red-300 font-semibold"
+    : z >= 2 ? "text-amber-300"
+    : "text-muted";
+  // Signo explícito: un +2.4 se lee mucho mejor que 2.4 en una tabla de sospecha.
+  const label = `${z > 0 ? "+" : ""}${z.toFixed(1)}σ`;
+  return <span className={tone}>{label}</span>;
 }
 
 // Pastilla de score 0-100: verde bajo, ámbar medio, rojo alto.

@@ -303,14 +303,7 @@ body,
   /* Oro premium: acento metálico reservado a momentos de alta gama (racha,
      victoria, podio). Tinta oscura para texto sobre relleno oro (contraste AA). */
   --gold: #e8c87a; --gold-ink: #1a1306; --gold-glow: rgba(232,200,122,.38);
-  /* Cristal líquido: relleno traslúcido + canto de luz. Tokens para que todas
-     las superficies premium compartan la misma física (translucidez + blur). */
-  /* Alias finos: los nombres antiguos heredan del sistema --mat-* (fuente
-     única), así las reglas .cdd-* que aún los referencian quedan unificadas
-     sin editarlas una a una. */
-  --glass-fill: var(--mat-fill-1); --glass-fill-2: var(--mat-fill-3);
-  --glass-edge: var(--edge);
-  --glass-blur: var(--mat-blur-1);
+  /* Cristal líquido: ver el sistema --mat-* abajo (fuente única). */
   /* ── Sistema de material unificado (refactor Cristal Líquido) ──
      Dos ejes que antes iban mezclados en cada superficie: MATERIAL (relleno
      translúcido + blur + saturación = la refracción) y LUZ (canto + rim
@@ -342,10 +335,7 @@ body,
   --warn: #eab44e;
   /* En tema cobre el oro y el acento conviven cálidos; el oro tira a ámbar. */
   --gold: #e8c87a; --gold-ink: #1a0d04; --gold-glow: rgba(232,200,122,.42);
-  /* Alias finos sobre --mat-* (fuente única), variante cálida. */
-  --glass-fill: var(--mat-fill-1); --glass-fill-2: var(--mat-fill-3);
-  --glass-edge: var(--edge);
-  --glass-blur: var(--mat-blur-1);
+  /* Cristal líquido: ver el sistema --mat-* abajo (fuente única, cálido). */
   /* Material unificado, variante cálida del tema cobre (ver platino). */
   --mat-fill-1: rgba(255,238,220,.055); --mat-fill-2: rgba(255,238,220,.075); --mat-fill-3: rgba(255,238,220,.095);
   --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
@@ -407,13 +397,13 @@ body,
   height: 32px; min-width: 32px; padding: 0 7px; border-radius: 9px; flex: none;
   /* Cristal líquido: relleno traslúcido + desenfoque del fondo (deja pasar el
      halo ambiente del acento) en vez del antiguo panel opaco --surface. */
-  background: var(--glass-fill); border: 1px solid var(--line); color: var(--cdd-muted);
-  box-shadow: var(--glass-edge);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--mat-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--mat-sat));
+  background: var(--mat-fill-1); border: 1px solid var(--line); color: var(--cdd-muted);
+  box-shadow: var(--edge);
+  backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
+  -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   cursor: pointer; transition: .18s;
 }
-.cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); background: var(--glass-fill-2); }
+.cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); background: var(--mat-fill-3); }
 
 /* ── Píldora de estado: racha + puesto en el ranking ──
    El ranking asciende de icono mudo a estado vivo (muestra el puesto). Compacta
@@ -424,12 +414,12 @@ body,
   position: relative;
   display: inline-flex; align-items: center; gap: 5px; flex: none;
   height: 32px; padding: 0 9px; border-radius: 9px;
-  background: color-mix(in oklab, var(--accent) 10%, var(--glass-fill));
+  background: color-mix(in oklab, var(--accent) 10%, var(--mat-fill-1));
   border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
   color: var(--accent);
-  box-shadow: var(--glass-edge);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--mat-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--mat-sat));
+  box-shadow: var(--edge);
+  backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
+  -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   font-family: var(--font-mono); font-size: 12px;
   font-variant-numeric: tabular-nums;
   cursor: pointer; transition: .18s;
@@ -456,7 +446,7 @@ body,
    CTA real (ADIVINAR) y para los aciertos. Sigue siendo descubrible —y el modal de
    ranking trae su propio login para el anónimo— sin robarle el foco al juego. */
 .cdd-statuspill.cta {
-  background: var(--glass-fill);
+  background: var(--mat-fill-1);
   border-color: color-mix(in oklab, var(--accent) 45%, var(--line));
   color: var(--accent);
 }
@@ -489,9 +479,9 @@ body,
 .cdd-intro { display: flex; align-items: center; margin-bottom: 8px; }
 .cdd-helpchip { position: relative; display: inline-flex; align-items: center; gap: 6px;
   height: 30px; padding: 0 12px; border-radius: 999px;
-  background: var(--glass-fill); border: 1px solid var(--line); box-shadow: var(--glass-edge);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--mat-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--mat-sat));
+  background: var(--mat-fill-1); border: 1px solid var(--line); box-shadow: var(--edge);
+  backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
+  -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   color: var(--cdd-muted); font-family: var(--font-body); font-size: 12.5px;
   cursor: pointer; transition: .18s; }
 .cdd-helpchip:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
@@ -713,10 +703,10 @@ body,
 .cdd-combo, .cdd-year { position: relative; display: flex; align-items: center;
   /* Polish premium #1: profundidad de vidrio — borde un punto mas claro + lift
      sutil para que el campo "flote" sobre el grafito en vez de leerse plano. */
-  background: var(--glass-fill); border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
-  box-shadow: var(--glass-edge), 0 2px 10px -6px rgba(0,0,0,.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--mat-sat));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--mat-sat));
+  background: var(--mat-fill-1); border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
+  box-shadow: var(--edge), 0 2px 10px -6px rgba(0,0,0,.6);
+  backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
+  -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   transition: .18s; }
 .cdd-combo.is-open, .cdd-combo:focus-within, .cdd-year:focus-within {
   border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
@@ -750,7 +740,7 @@ body,
   /* Overlay flotante: cristal reforzado (más opaco + blur fuerte) para que el
      texto de las opciones quede legible sobre lo que tape. */
   background: color-mix(in oklab, var(--surface) 78%, transparent); border: 1px solid var(--line-2); border-radius: 14px;
-  box-shadow: 0 26px 50px -24px rgba(0,0,0,.85), var(--glass-edge);
+  box-shadow: 0 26px 50px -24px rgba(0,0,0,.85), var(--edge);
   backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
   -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat)); }
 .cdd-opt { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--cdd-text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -776,7 +766,7 @@ body,
 .cdd-decades { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
   display: flex; gap: 5px; padding: 6px;
   background: color-mix(in oklab, var(--surface) 78%, transparent); border: 1px solid var(--line-2); border-radius: 14px;
-  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8), var(--glass-edge);
+  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8), var(--edge);
   backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
   -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat)); }
 .cdd-decade { flex: 1; padding: 8px 0; min-width: 0; text-align: center;

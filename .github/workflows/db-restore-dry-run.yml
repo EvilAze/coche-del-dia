@@ -1,0 +1,74 @@
+name: db-restore-dry-run
+
+# Solo manual. Baja el último daily de R2, lo descifra con la clave de CI
+# y lo restaura en un Postgres EFÍMERO del runner para verificar que el
+# backup restaura de verdad. Nunca toca producción.
+#
+# Requiere el secret AGE_DRYRUN_PRIVATE_KEY (par de AGE_DRYRUN_PUBLIC_KEY).
+# Si no lo configuras, no podrás usar este workflow: verifica restores a
+# mano con tu clave offline siguiendo docs/runbooks/db-backup-restore.md.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  restore-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Instalar PostgreSQL client 17 (PGDG) y age
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17 age
+
+      - name: Descargar el último daily de R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          ep="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          latest="$(aws s3 --endpoint-url "$ep" ls "s3://${R2_BUCKET}/daily/" \
+            | awk '{print $4}' | grep -v '/$' | sort | tail -n1)"
+          test -n "$latest" || { echo "no hay backups en daily/"; exit 1; }
+          echo "Restaurando: $latest"
+          aws s3 --endpoint-url "$ep" cp "s3://${R2_BUCKET}/daily/${latest}" dump.sql.gz.age
+
+      - name: Descifrar y restaurar en Postgres efímero
+        env:
+          AGE_DRYRUN_PRIVATE_KEY: ${{ secrets.AGE_DRYRUN_PRIVATE_KEY }}
+        run: |
+          test -n "$AGE_DRYRUN_PRIVATE_KEY" || { echo "falta AGE_DRYRUN_PRIVATE_KEY"; exit 1; }
+          printf '%s\n' "$AGE_DRYRUN_PRIVATE_KEY" > key.txt
+          age -d -i key.txt -o dump.sql.gz dump.sql.gz.age
+          rm -f key.txt
+          # -v ON_ERROR_STOP=1: el restore falla si cualquier sentencia falla.
+          gunzip -c dump.sql.gz | psql -v ON_ERROR_STOP=1 \
+            "postgresql://postgres:postgres@localhost:5432/postgres"
+
+      - name: Verificar tablas clave restauradas
+        run: |
+          for t in cars user_guesses daily_stats guess_audit monthly_podium; do
+            psql -tA "postgresql://postgres:postgres@localhost:5432/postgres" \
+              -c "select 'public.${t}'::regclass;" >/dev/null \
+              || { echo "FALTA tabla public.${t} tras restore"; exit 1; }
+            echo "ok - public.${t} restaurada"
+          done
+          echo "RESTORE DRY-RUN OK"

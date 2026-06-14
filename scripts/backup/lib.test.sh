@@ -71,5 +71,21 @@ else
   check "verify-dump dump vacío rechazado" "rechazado" "rechazado"
 fi
 
+# Regresión: con un dump GRANDE (las tablas al principio y mucho contenido
+# después) un `zgrep -q` bajo pipefail daba falso negativo por SIGPIPE/Broken
+# pipe. Este fixture lo reproduce; debe ACEPTARSE. Los fixtures pequeños de
+# arriba no cazaban el bug porque el gzip terminaba antes del early-exit.
+big="$tmp/big.sql.gz"
+{ for t in cars user_guesses daily_stats guess_audit monthly_podium; do
+    printf 'CREATE TABLE public.%s (id int);\n' "$t"
+  done
+  yes "INSERT INTO public.cars VALUES (1, 'relleno relleno relleno');" | head -200000
+} | gzip > "$big"
+if bash "$HERE/verify-dump.sh" "$big" >/dev/null 2>&1; then
+  check "verify-dump dump grande aceptado (regresión SIGPIPE)" "ok" "ok"
+else
+  check "verify-dump dump grande aceptado (regresión SIGPIPE)" "ok" "fallo"
+fi
+
 if [ "$fail" -ne 0 ]; then echo "TESTS FALLIDOS"; exit 1; fi
 echo "TODOS LOS TESTS OK"

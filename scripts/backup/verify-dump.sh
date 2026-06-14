@@ -17,8 +17,18 @@ REQUIRED_TABLES=(cars user_guesses daily_stats guess_audit monthly_podium)
 [ -s "$dump" ] || { echo "[verify] ERROR: dump inexistente o vacío: $dump" >&2; exit 1; }
 gzip -t "$dump" 2>/dev/null || { echo "[verify] ERROR: gzip corrupto: $dump" >&2; exit 1; }
 
+# Descomprimimos a un fichero temporal y hacemos grep SOBRE EL FICHERO (no por
+# pipe). Con `set -o pipefail`, un `zgrep -q` que encuentra el match y sale
+# antes de tiempo provoca SIGPIPE en el gzip de aguas arriba ("Broken pipe"),
+# y el pipeline se reporta como FALLO aunque la tabla exista. Solo se nota con
+# dumps grandes (el match aparece lejos del final, donde el gzip aún escribe).
+# Grep sobre fichero no tiene pipe que romper, así que evita el falso negativo.
+sql="$(mktemp)"
+trap 'rm -f "$sql"' EXIT
+gunzip -c "$dump" > "$sql"
+
 for t in "${REQUIRED_TABLES[@]}"; do
-  if ! zgrep -qE "CREATE TABLE (public\.)?${t}\b" "$dump"; then
+  if ! grep -qE "CREATE TABLE (public\.)?${t}\b" "$sql"; then
     echo "[verify] ERROR: falta la tabla '$t' en el dump" >&2
     exit 1
   fi

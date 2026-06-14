@@ -222,10 +222,10 @@ export default function AnalyticsPanel() {
             <HardestCarsTable cars={data.gameplay.hardestCars} />
           </Card>
 
-          {/* ROW 6 · Últimos logins */}
-          <Card title="Últimos logins">
-            <LastLoginsTable
-              logins={data.users.lastLogins}
+          {/* ROW 6 · Usuarios registrados (directorio completo) */}
+          <Card title="Usuarios registrados">
+            <UsersTable
+              users={data.users.directory}
               selectedUserId={selectedUser?.id}
               onSelect={(u) => setSelectedUser(u)}
             />
@@ -234,7 +234,7 @@ export default function AnalyticsPanel() {
           {/* ROW 7 · Drill-down de usuario */}
           {selectedUser && (
             <Card
-              title={`Historial · ${maskEmail(selectedUser.email)}`}
+              title={`Historial · ${selectedUser.username || maskEmail(selectedUser.email)}`}
               action={
                 <button
                   type="button"
@@ -524,23 +524,27 @@ function HardestCarsTable({ cars }) {
   );
 }
 
-function LastLoginsTable({ logins, selectedUserId, onSelect }) {
-  if (!logins || logins.length === 0) {
-    return <div className="py-6 text-center text-sm text-muted">Sin logins registrados.</div>;
+function UsersTable({ users, selectedUserId, onSelect }) {
+  if (!users || users.length === 0) {
+    return <div className="py-6 text-center text-sm text-muted">Sin usuarios registrados.</div>;
   }
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[420px] text-xs">
         <thead>
           <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-muted">
-            <th className="pb-2 pr-3">Email</th>
+            <th className="pb-2 pr-3">Usuario</th>
             <th className="pb-2 pr-3">Último login</th>
             <th className="pb-2">Registrado</th>
           </tr>
         </thead>
         <tbody>
-          {logins.map((u) => {
+          {users.map((u) => {
             const isSel = u.id === selectedUserId;
+            // Primera columna: nombre de usuario. Si la cuenta no tiene
+            // display_name todavía, caemos al email enmascarado para que la
+            // fila siga siendo identificable. El email completo va en `title`
+            // (hover) por comodidad del admin.
             return (
               <tr
                 key={u.id}
@@ -549,7 +553,9 @@ function LastLoginsTable({ logins, selectedUserId, onSelect }) {
                   isSel ? "bg-accent/10" : "hover:bg-white/[0.03]"
                 }`}
               >
-                <td className="py-2 pr-3 text-white/90">{maskEmail(u.email)}</td>
+                <td className="py-2 pr-3 font-semibold text-white/90" title={u.email || ""}>
+                  {u.username || maskEmail(u.email)}
+                </td>
                 <td className="py-2 pr-3 text-white/70">{shortDateTime(u.lastSignInAt)}</td>
                 <td className="py-2 text-white/55">{shortDateTime(u.createdAt)}</td>
               </tr>
@@ -558,7 +564,7 @@ function LastLoginsTable({ logins, selectedUserId, onSelect }) {
         </tbody>
       </table>
       <p className="mt-2 text-[10px] text-muted">
-        Click en una fila para ver el historial de juego de ese usuario.
+        {users.length} usuarios · click en una fila para ver su historial de juego.
       </p>
     </div>
   );

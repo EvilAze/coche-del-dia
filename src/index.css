@@ -112,6 +112,7 @@
   /* Scrim de modal: oscurece + DESENFOCA la página de fondo (blur fuerte) para
      el efecto "liquid glass" — el contenido detrás se funde en vidrio. Sustituye
      al antiguo bg-black/80 + backdrop-blur-sm (4px), apenas perceptible. */
+  .scrim,
   .modal-scrim {
     background: rgba(4, 6, 9, 0.62);
     backdrop-filter: blur(10px) saturate(140%);
@@ -130,7 +131,7 @@
     -webkit-backdrop-filter: blur(24px) saturate(175%);
   }
   @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
-    .modal-scrim { background: rgba(4, 6, 9, 0.86); }
+    .scrim, .modal-scrim { background: rgba(4, 6, 9, 0.86); }
     .modal-panel-glass { background: #14181e; }
   }
 
@@ -141,6 +142,60 @@
   .glass-hover:hover {
     border-color: rgba(255, 255, 255, 0.16);
     background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  /* ── Clases componibles del material unificado ──
+     `.glass`/`.glass-strong` (arriba) son la superficie CON desenfoque para
+     piezas SOBRE la página. `.glass-panel` es la variante SIN desenfoque para
+     piezas SOBRE un scrim (modales, end-card y sus tiles): el scrim ya
+     desenfocó la página → volver a desenfocar sería ANIDAR backdrop-filter
+     (mata el framerate en móvil). Lee como cristal igual gracias al relleno
+     translúcido + rim + sombra. */
+  .glass-panel {
+    background: var(--mat-fill-3);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--elev-3), var(--edge);
+  }
+  @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    .glass-panel { background: var(--surface); }
+  }
+
+  /* Rim especular: canto superior-izquierdo brillante que decae, simulando una
+     fuente de luz cenital-lateral. Es lo que separa "caja translúcida" de
+     "cristal premium". Va por ::before enmascarado (borde-gradiente), así que
+     NO usar en elementos que ya ocupen su ::before. Intensidad por --spec. */
+  .spec { position: relative; }
+  .spec::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg,
+      rgba(255,255,255,var(--spec, .5)),
+      rgba(255,255,255,calc(var(--spec, .5) * .12)) 32%,
+      transparent 56%,
+      rgba(255,255,255,calc(var(--spec, .5) * .28)));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Lift: micro-interacción de elevación al pasar el ratón / pulsar. Solo en
+     dispositivos con hover real (en táctil no hay hover y basta el :active);
+     anulada en reduced-motion. La sombra/glow la sube cada superficie en su
+     propio :hover (esta clase solo mueve el plano). */
+  @media (hover: hover) and (pointer: fine) {
+    .lift { transition: transform .2s ease, box-shadow .2s ease; }
+    .lift:hover { transform: translateY(-2px); }
+    .lift:active { transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lift { transition: none; }
+    .lift:hover, .lift:active { transform: none; }
+  }
+
+  /* Menos transparencia (preferencia del SO): rellenos casi opacos en el
+     material translúcido — legibilidad por encima de la estética. */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-panel { background: var(--surface); }
   }
 
   /* Acento ORO premium (texto). Para etiquetas/valores de momentos de alta
@@ -248,6 +303,19 @@ body,
   --glass-fill: rgba(255,255,255,.045); --glass-fill-2: rgba(255,255,255,.07);
   --glass-edge: inset 0 1px 0 rgba(255,255,255,.06);
   --glass-blur: 18px;
+  /* ── Sistema de material unificado (refactor Cristal Líquido) ──
+     Dos ejes que antes iban mezclados en cada superficie: MATERIAL (relleno
+     translúcido + blur + saturación = la refracción) y LUZ (canto + rim
+     especular + sombra + glow = cómo le da la luz). Una sola escala para toda
+     la app: adiós a blur 4/10/18/22/24 y saturate 140/160/170/175 sueltos. */
+  --mat-fill-1: rgba(255,255,255,.05); --mat-fill-2: rgba(255,255,255,.065); --mat-fill-3: rgba(255,255,255,.085);
+  --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
+  --edge: inset 0 1px 0 rgba(255,255,255,.08); --spec: .55;
+  --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
+  --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
+  --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
+  --glow-accent: 0 0 28px -8px rgba(122,240,200,.45); --glow-gold: 0 0 28px -8px rgba(232,200,122,.45);
+  --line-strong: rgba(255,255,255,.16);
   --font-display: 'Archivo', sans-serif; --font-body: 'Archivo', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 500px at 50% -8%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
@@ -265,6 +333,15 @@ body,
   --glass-fill: rgba(255,238,220,.05); --glass-fill-2: rgba(255,238,220,.08);
   --glass-edge: inset 0 1px 0 rgba(255,238,220,.07);
   --glass-blur: 18px;
+  /* Material unificado, variante cálida del tema cobre (ver platino). */
+  --mat-fill-1: rgba(255,238,220,.055); --mat-fill-2: rgba(255,238,220,.075); --mat-fill-3: rgba(255,238,220,.095);
+  --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
+  --edge: inset 0 1px 0 rgba(255,238,220,.09); --spec: .5;
+  --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
+  --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
+  --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
+  --glow-accent: 0 0 28px -8px rgba(122,240,200,.45); --glow-gold: 0 0 28px -8px rgba(232,200,122,.45);
+  --line-strong: rgba(255,238,220,.16);
   --font-display: 'Sora', sans-serif; --font-body: 'Sora', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 520px at 50% -8%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 72%);

@@ -7,6 +7,7 @@ import CloseButton from "./components/CloseButton";
 import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
 import { getMyMonthlyRank } from "./lib/statsService";
+import { track } from "./lib/analytics";
 import { useGame } from "./hooks/useGame";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useModalState } from "./hooks/useModalState";
@@ -135,7 +136,13 @@ export default function App() {
     // navegado a /repesca, jugado, y vuelto. activeModal === null tras eso.
   }, [user, activeModal]);
 
-  const openRanking = () => openModal("ranking");
+  const openRanking = () => {
+    // Analytics (Umami): medir cuánto se usa la "palanca" del ranking. `auth`
+    // distingue logueado/anónimo, misma convención que garage_open. El panel
+    // admin de Analítica lee este contador vía la API de Umami.
+    track("ranking_open", { auth: user ? "user" : "anon" });
+    openModal("ranking");
+  };
   const openGarage = () => openModal("garage");
   const openProfile = () => openModal("profile");
   const openAchievements = () => openModal("achievements");

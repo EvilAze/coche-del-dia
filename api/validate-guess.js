@@ -13,7 +13,8 @@
 
 import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
-import { getClientIp, rateLimit } from "./_lib/rate-limit.js";
+import { getClientIp } from "./_lib/rate-limit.js";
+import { checkRateLimit } from "./_lib/ratelimit.js";
 import { captureServerError } from "./_lib/sentry.js";
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
@@ -65,9 +66,9 @@ export default async function handler(req, res) {
   //   pero un cheater con instancias warmadas distintas podría rotar entre
   //   ellas — para una web pequeña como esta es aceptable.
   const ip = getClientIp(req);
-  const limit = rateLimit(`vg:${ip}`, { max: 30, windowMs: 60_000 });
+  const limit = await checkRateLimit(ip, { max: 30, windowSec: 60, prefix: "vg" });
   if (!limit.ok) {
-    res.setHeader("Retry-After", String(Math.ceil((limit.resetAt - Date.now()) / 1000)));
+    res.setHeader("Retry-After", String(limit.retryAfter));
     return res.status(429).json({ error: "Too many requests" });
   }
 

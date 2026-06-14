@@ -40,6 +40,7 @@ import { readAnonSession, buildSetCookie } from "./_lib/edge/anon-session.js";
 import { sha1Hex } from "./_lib/edge/crypto.js";
 import { logSessionStart } from "./_lib/edge/audit.js";
 import { clampZoomBase } from "./_lib/zoom.js";
+import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
 
 // Intentos máximos de la partida diaria. Este valor viaja al cliente en la
 // respuesta para que la UI no tenga que hardcodearlo — pero es SOLO
@@ -95,6 +96,19 @@ export default async function handler(request) {
     const missing = getMissingAdminEnvs();
     console.error(`[get-daily-car] missing env vars: ${missing.join(", ")}`);
     return jsonResponse({ message: "Server misconfigured" }, { status: 500 });
+  }
+
+  // Rate limit ANTES de tocar Supabase: get-daily-car hace un RPC por visita
+  // (sin caché), así que es el endpoint que más conviene proteger de bots.
+  // 60/min/IP es generoso para un humano (refrescos/reconexiones) pero corta
+  // en seco a un script que itere. Fail-open: si Upstash falla, pasa igual.
+  const ip = getClientIpEdge(request);
+  const limit = await checkRateLimit(ip, { max: 60, windowSec: 60, prefix: "gdc" });
+  if (!limit.ok) {
+    return jsonResponse(
+      { message: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
   }
 
   const today = todayInMadrid();

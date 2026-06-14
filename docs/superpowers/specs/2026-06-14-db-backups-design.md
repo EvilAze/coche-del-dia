@@ -70,7 +70,8 @@ En GitHub → Settings → Secrets and variables → Actions:
 | Secret | Qué es | De dónde sale |
 |---|---|---|
 | `SUPABASE_DB_URL` | Connection string del Session Pooler | Supabase → Project Settings → Database → Connection string → Session pooler |
-| `AGE_PUBLIC_KEY` | Clave pública `age` para cifrar | Generada con `age-keygen`; la privada la guarda el usuario offline |
+| `AGE_PUBLIC_KEY` | Clave pública `age` de recuperación para cifrar | Generada con `age-keygen`; la privada la guarda el usuario offline |
+| `AGE_DRYRUN_PUBLIC_KEY` / `AGE_DRYRUN_PRIVATE_KEY` | *(Opcional)* Par de claves `age` solo para CI | Segundo `age-keygen`. Se añade como segundo destinatario del cifrado para que el `restore-dry-run` automático pueda descifrar sin sacar la clave de recuperación de offline. Si se omiten, el dry-run automático no funciona y la verificación se hace a mano con la clave offline. |
 | `R2_ACCOUNT_ID` | Account ID de Cloudflare | Cloudflare dashboard |
 | `R2_ACCESS_KEY_ID` | Access key del token R2 | Cloudflare → R2 → API token (Object Read & Write, acotado al bucket) |
 | `R2_SECRET_ACCESS_KEY` | Secret del token R2 | Igual |

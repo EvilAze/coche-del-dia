@@ -76,10 +76,12 @@ fi
 # pipe. Este fixture lo reproduce; debe ACEPTARSE. Los fixtures pequeños de
 # arriba no cazaban el bug porque el gzip terminaba antes del early-exit.
 big="$tmp/big.sql.gz"
+# Relleno con awk (no `yes | head`): bajo `set -o pipefail` el SIGPIPE de
+# `yes` al cerrar `head` abortaría esta misma suite de tests.
 { for t in cars user_guesses daily_stats guess_audit monthly_podium; do
     printf 'CREATE TABLE public.%s (id int);\n' "$t"
   done
-  yes "INSERT INTO public.cars VALUES (1, 'relleno relleno relleno');" | head -200000
+  awk 'BEGIN { for (i = 0; i < 200000; i++) print "INSERT INTO public.cars VALUES (1, '\''relleno relleno relleno'\'');" }'
 } | gzip > "$big"
 if bash "$HERE/verify-dump.sh" "$big" >/dev/null 2>&1; then
   check "verify-dump dump grande aceptado (regresión SIGPIPE)" "ok" "ok"

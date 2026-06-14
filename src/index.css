@@ -90,18 +90,18 @@
      Degradación elegante: sin soporte de backdrop-filter, el relleno sube a
      un tono sólido (vía @supports abajo) para no quedar ilegible. */
   .glass {
-    background-color: rgba(255, 255, 255, 0.045);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    background-color: var(--mat-fill-1);
+    border: 1px solid var(--line);
+    box-shadow: var(--edge);
+    backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
+    -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   }
   .glass-strong {
-    background-color: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(22px) saturate(170%);
-    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    background-color: var(--mat-fill-3);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--elev-1), var(--edge);
+    backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
+    -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
   }
   /* Fallback cuando el navegador no soporta el desenfoque: relleno sólido para
      mantener el contraste del texto (no degradar la legibilidad). */
@@ -122,17 +122,32 @@
      scrim oscuro) + blur fuerte + canto de luz superior + sombra flotante.
      Solo define material (fondo/borde/sombra/blur/radio); cada modal conserva
      sus clases de layout (max-w, flex, overflow…). */
+  /* Panel de modal: material translúcido SOBRE el scrim. SIN backdrop-filter
+     propio: el scrim ya desenfocó la página, así que volver a desenfocar aquí
+     anidaría dos capas de blur (el anti-patrón de perf que tenía la app). Rim
+     especular para el acabado premium. Solo material; cada modal su layout. */
   .modal-panel-glass {
-    background: color-mix(in oklab, #14181e 84%, transparent);
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    position: relative;
+    background: color-mix(in oklab, var(--surface) 86%, transparent);
+    border: 1px solid var(--line-strong);
     border-radius: 18px;
-    box-shadow: 0 32px 70px -28px rgba(0, 0, 0, 0.88), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(24px) saturate(175%);
-    -webkit-backdrop-filter: blur(24px) saturate(175%);
+    box-shadow: var(--elev-3), var(--edge);
+  }
+  .modal-panel-glass::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg,
+      rgba(255,255,255,var(--spec)),
+      rgba(255,255,255,calc(var(--spec) * .12)) 32%,
+      transparent 56%,
+      rgba(255,255,255,calc(var(--spec) * .28)));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
   }
   @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
     .scrim, .modal-scrim { background: rgba(4, 6, 9, 0.86); }
-    .modal-panel-glass { background: #14181e; }
+    .modal-panel-glass { background: var(--surface); }
   }
 
   /* Realce de borde al pasar el ratón sobre una superficie de cristal. */
@@ -195,7 +210,7 @@
   /* Menos transparencia (preferencia del SO): rellenos casi opacos en el
      material translúcido — legibilidad por encima de la estética. */
   @media (prefers-reduced-transparency: reduce) {
-    .glass-panel { background: var(--surface); }
+    .glass-panel, .modal-panel-glass { background: var(--surface); }
   }
 
   /* Acento ORO premium (texto). Para etiquetas/valores de momentos de alta

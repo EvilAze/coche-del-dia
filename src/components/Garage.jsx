@@ -441,7 +441,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
       {open && (
         <motion.div
           key="garage-backdrop"
-          className="fixed inset-0 z-[85] flex items-stretch justify-center bg-black/85 backdrop-blur-sm"
+          className="scrim fixed inset-0 z-[85] flex items-stretch justify-center"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

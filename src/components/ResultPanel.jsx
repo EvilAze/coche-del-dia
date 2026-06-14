@@ -288,7 +288,7 @@ export default function ResultPanel({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-bg-tertiary p-6 text-center animate-fade-in">
+    <div className="rounded-xl glass-strong p-6 text-center animate-fade-in">
       <Confetti active={won} />
 
       {won ? (

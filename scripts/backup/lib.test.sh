@@ -39,5 +39,37 @@ check "prune_list keep 7 de 10" "$expected" "$(printf '%s\n' "$input" | prune_li
 # prune_list: si hay menos que el tope, no borra nada
 check "prune_list nada que borrar" "" "$(printf 'daily/a\ndaily/b\n' | prune_list 7)"
 
+# --- verify-dump.sh (fixture local, sin red) ---
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+good="$tmp/good.sql.gz"
+{ printf 'CREATE TABLE public.cars (id int);\n';
+  printf 'CREATE TABLE public.user_guesses (id int);\n';
+  printf 'CREATE TABLE public.daily_stats (id int);\n';
+  printf 'CREATE TABLE public.guess_audit (id int);\n';
+  printf 'CREATE TABLE public.monthly_podium (id int);\n'; } | gzip > "$good"
+
+if bash "$HERE/verify-dump.sh" "$good" >/dev/null 2>&1; then
+  check "verify-dump dump válido" "ok" "ok"
+else
+  check "verify-dump dump válido" "ok" "fallo"
+fi
+
+bad="$tmp/bad.sql.gz"
+printf 'CREATE TABLE public.cars (id int);\n' | gzip > "$bad"  # faltan tablas
+if bash "$HERE/verify-dump.sh" "$bad" >/dev/null 2>&1; then
+  check "verify-dump dump incompleto rechazado" "rechazado" "aceptado"
+else
+  check "verify-dump dump incompleto rechazado" "rechazado" "rechazado"
+fi
+
+empty="$tmp/empty.sql.gz"
+: | gzip > "$empty"
+if bash "$HERE/verify-dump.sh" "$empty" >/dev/null 2>&1; then
+  check "verify-dump dump vacío rechazado" "rechazado" "aceptado"
+else
+  check "verify-dump dump vacío rechazado" "rechazado" "rechazado"
+fi
+
 if [ "$fail" -ne 0 ]; then echo "TESTS FALLIDOS"; exit 1; fi
 echo "TODOS LOS TESTS OK"

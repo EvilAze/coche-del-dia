@@ -133,18 +133,8 @@
     border-radius: 18px;
     box-shadow: var(--elev-3), var(--edge);
   }
-  .modal-panel-glass::before {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
-    background: linear-gradient(135deg,
-      rgba(255,255,255,var(--spec)),
-      rgba(255,255,255,calc(var(--spec) * .12)) 32%,
-      transparent 56%,
-      rgba(255,255,255,calc(var(--spec) * .28)));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-    pointer-events: none;
-  }
+  /* Bisel del panel = --edge (scroll-safe). Sin ::before: dentro de un modal con
+     scroll un ::before absoluto se desancla del borde al desplazar el contenido. */
   @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
     .scrim, .modal-scrim { background: rgba(4, 6, 9, 0.86); }
     .modal-panel-glass { background: var(--surface); }
@@ -328,7 +318,11 @@ body,
      la app: adiós a blur 4/10/18/22/24 y saturate 140/160/170/175 sueltos. */
   --mat-fill-1: rgba(255,255,255,.05); --mat-fill-2: rgba(255,255,255,.065); --mat-fill-3: rgba(255,255,255,.085);
   --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
-  --edge: inset 0 1px 0 rgba(255,255,255,.08); --spec: .55;
+  /* Canto/bisel: highlight superior + izquierdo (luz cenital-lateral). Por
+     box-shadow inset → es scroll-safe (a diferencia de un ::before que se
+     desancla dentro de un contenedor con scroll). El rim ::before fuerte se
+     reserva al escenario (hero, sin scroll). --spec gradúa ese rim. */
+  --edge: inset 0 1px 0 rgba(255,255,255,.08), inset 1px 0 0 rgba(255,255,255,.04); --spec: .55;
   --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
   --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
   --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
@@ -355,7 +349,7 @@ body,
   /* Material unificado, variante cálida del tema cobre (ver platino). */
   --mat-fill-1: rgba(255,238,220,.055); --mat-fill-2: rgba(255,238,220,.075); --mat-fill-3: rgba(255,238,220,.095);
   --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
-  --edge: inset 0 1px 0 rgba(255,238,220,.09); --spec: .5;
+  --edge: inset 0 1px 0 rgba(255,238,220,.09), inset 1px 0 0 rgba(255,238,220,.045); --spec: .5;
   --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
   --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
   --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
@@ -378,7 +372,10 @@ body,
 .cdd-ambient { position: fixed; inset: -8%; pointer-events: none; z-index: 0; opacity: .8;
   background:
     radial-gradient(820px 480px at 20% -6%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%),
-    radial-gradient(680px 440px at 84% 4%, color-mix(in oklab, var(--gold) 16%, transparent), transparent 72%);
+    radial-gradient(680px 440px at 84% 4%, color-mix(in oklab, var(--gold) 16%, transparent), transparent 72%),
+    /* 2.º foco: halo de menta bajo para dar vida a formulario/historial/pie
+       (antes la luz colgaba solo arriba y la mitad inferior se leía plana). */
+    radial-gradient(720px 460px at 62% 112%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 68%);
   animation: cddAurora 28s ease-in-out infinite alternate; }
 @keyframes cddAurora {
   0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
@@ -524,6 +521,21 @@ body,
      Polish premium #4: borde un punto mas claro para rematar el bisel; la
      viñeta inferior va en ::after (un inset box-shadow quedaria DETRAS del <img>). */
   box-shadow: 0 34px 64px -30px rgba(0,0,0,.85), 0 0 60px -26px color-mix(in oklab, var(--accent) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 1px var(--line-2);
+}
+/* Rim especular del cristal del escenario (hero → un punto más fuerte). Va por
+   ::before porque el ::after ya lo ocupa la viñeta; z:7 sobre la foto/grain pero
+   solo es el anillo de 1px del borde (no pisa el HUD, que vive con margen). */
+.cdd-stage-frame::before {
+  content: ""; position: absolute; inset: 0; z-index: 7; pointer-events: none;
+  border-radius: inherit; padding: 1px;
+  background: linear-gradient(135deg,
+    rgba(255,255,255,calc(var(--spec) * 1.15)),
+    rgba(255,255,255,calc(var(--spec) * .14)) 30%,
+    transparent 54%,
+    rgba(255,255,255,calc(var(--spec) * .3)));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
 }
 /* Viñeta inferior por ENCIMA de la foto (z entre la imagen y el HUD/grain):
    contiene las carrocerías claras para que no sangren hacia la UI oscura. */
@@ -823,8 +835,13 @@ body,
 .cdd-end-scrim { position: absolute; inset: 0; background: color-mix(in oklab, var(--bg2) 88%, transparent); animation: cddFade .3s ease; }
 @supports (backdrop-filter: blur(2px)) { .cdd-end-scrim { background: color-mix(in oklab, var(--bg2) 72%, transparent); backdrop-filter: blur(10px); } }
 .cdd-end-card { position: relative; width: 100%; max-width: 460px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
-  background: var(--bg); border: 1px solid var(--line); border-radius: 20px;
-  box-shadow: 0 50px 90px -40px rgba(0,0,0,.9); animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
+  /* Pico celebratorio acristalado: translúcido sobre el scrim (que ya desenfoca)
+     + bisel --edge. SIN backdrop-filter propio (no anidar blur sobre el scrim). */
+  background: color-mix(in oklab, var(--surface) 84%, transparent); border: 1px solid var(--line-strong); border-radius: 20px;
+  box-shadow: var(--elev-3), var(--edge); animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .cdd-end-card { background: var(--bg); }
+}
 @keyframes cddFade { from { opacity: 0; } }
 @keyframes cddRise { from { opacity: 0; transform: translateY(22px) scale(.98); } }
 
@@ -867,20 +884,20 @@ body,
 
 .cdd-end-tabs { display: flex; gap: 8px; padding: 16px 18px 0; }
 .cdd-tab { flex: 1; padding: 10px; font-size: 10px; border-radius: 9px; cursor: pointer;
-  background: var(--surface); border: 1px solid var(--line); color: var(--cdd-muted); }
+  background: var(--mat-fill-2); border: 1px solid var(--line); color: var(--cdd-muted); box-shadow: var(--edge); }
 .cdd-tab.on { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
 .cdd-end-body { padding: 14px 18px 4px; display: flex; flex-direction: column; gap: 14px; }
 
 .cdd-sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .cdd-sheet-3 { grid-template-columns: repeat(3, 1fr); }
-.cdd-stat { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; }
+.cdd-stat { background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; box-shadow: var(--edge); }
 .cdd-stat-k { font-size: 9px; color: var(--faint); margin-bottom: 4px; }
 .cdd-stat-v { font-size: 15px; font-weight: 700; }
 .cdd-stat-v.accent { color: var(--accent); }
 .cdd-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--cdd-muted); }
 
 /* Distribución de intentos (datos reales) — FICHA */
-.cdd-dist-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; }
+.cdd-dist-card { background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; box-shadow: var(--edge); }
 .cdd-dist-title { font-size: 9px; color: var(--faint); letter-spacing: .2em; margin: 0 0 9px; text-align: center; }
 .cdd-dist { display: flex; flex-direction: column; gap: 6px; }
 .cdd-dist-row { display: flex; align-items: center; gap: 8px; }
@@ -904,11 +921,11 @@ body,
 /* Cuadritos un punto más grandes y con menos padding vertical: la caja se ve
    menos vacía en victorias rápidas (pocas filas) sin agrandarla de más. */
 .cdd-grid { font-family: var(--font-mono); font-size: 22px; line-height: 1.4; margin: 0; padding: 12px 14px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; }
+  background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; box-shadow: var(--edge); }
 .cdd-share-btn { height: 50px; }
 
 .cdd-next { display: flex; align-items: center; justify-content: space-between; margin: 8px 18px 0;
-  padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  padding: 12px 14px; background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--edge); }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
 .cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
 .cdd-end-close { display: block; width: calc(100% - 36px); margin: 12px 18px 18px; padding: 13px;

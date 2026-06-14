@@ -7,6 +7,7 @@ import CloseButton from "./components/CloseButton";
 import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
 import { getMyMonthlyRank } from "./lib/statsService";
+import { track } from "./lib/analytics";
 import { useGame } from "./hooks/useGame";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useModalState } from "./hooks/useModalState";
@@ -135,7 +136,22 @@ export default function App() {
     // navegado a /repesca, jugado, y vuelto. activeModal === null tras eso.
   }, [user, activeModal]);
 
-  const openRanking = () => openModal("ranking");
+  const openRanking = () => {
+    // Medir cuánto se usa la "palanca" del ranking. Dos sumideros:
+    //   1) Umami (track): visible en el dashboard de Umami (free tier).
+    //   2) Contador propio en Supabase: lo lee el panel admin de Analítica.
+    //      La API de Umami es de pago, así que el panel NO puede leer de ahí;
+    //      en su lugar incrementamos una RPC SECURITY DEFINER (no requiere
+    //      permiso de escritura del cliente, corre como owner). Misma
+    //      convención `auth` que garage_open.
+    const auth = user ? "user" : "anon";
+    track("ranking_open", { auth });
+    // Fire-and-forget: jamás bloquear ni romper la apertura del ranking.
+    supabase
+      .rpc("increment_feature_event", { p_event: "ranking_open", p_auth: auth })
+      .then(undefined, () => {});
+    openModal("ranking");
+  };
   const openGarage = () => openModal("garage");
   const openProfile = () => openModal("profile");
   const openAchievements = () => openModal("achievements");

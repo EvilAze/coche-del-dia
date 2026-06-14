@@ -452,7 +452,7 @@ export default function CarImage({
           aunque el contenedor tenga overflow-hidden. */}
       {expanded && (
         <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm animate-fade-in"
+          className="scrim fixed inset-0 z-[120] flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setExpanded(false)}
           role="dialog"
           aria-modal="true"

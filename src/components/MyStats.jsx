@@ -200,7 +200,7 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-glass flex w-full max-w-sm flex-col p-5"
+      panelClassName="modal-panel-glass flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col overflow-y-auto overscroll-contain p-5"
     >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-2xl tracking-widest text-white">

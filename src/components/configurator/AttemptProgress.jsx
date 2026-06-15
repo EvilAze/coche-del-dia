@@ -26,9 +26,13 @@ export default function AttemptProgress({ attempts = 0, maxAttempts = 5, reveale
       aria-label={t("app.attemptsRemainingAria", { count: remaining, max: maxAttempts })}
     >
       <span className="cdd-progress-track" aria-hidden="true">
-        {Array.from({ length: maxAttempts }, (_, i) => (
-          <span key={i} className={"cdd-progress-seg" + (i < attempts ? " spent" : "")} />
-        ))}
+        {Array.from({ length: maxAttempts }, (_, i) => {
+          const cls =
+            i < attempts ? "cdd-progress-seg spent"
+            : i === attempts ? "cdd-progress-seg current"
+            : "cdd-progress-seg";
+          return <span key={i} className={cls} />;
+        })}
       </span>
     </div>
   );

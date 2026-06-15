@@ -599,15 +599,16 @@ body,
    posición. La foto es tap-para-ampliar y el lightbox no pinta la barra: un toque
    muestra la imagen limpia. */
 .cdd-progress { display: flex; }
-.cdd-progress-track { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
-/* Segmento vivo (restante): plano, sin halo. Gastado: tenue (track sobre la foto). */
-.cdd-progress-seg { flex: 1; height: 4px; border-radius: 2px; background: var(--accent); transition: background .3s; }
-.cdd-progress-seg.spent { background: rgba(255,255,255,.22); }
-/* Urgencia: quedan 2 → ámbar; queda 1 → rojo y los segmentos vivos laten. Ese
-   pulse es el ÚNICO momento en que la barra reclama atención (última oportunidad);
-   el resto del tiempo es un hilo de color discreto. */
-.cdd-progress.tone-warn .cdd-progress-seg:not(.spent) { background: var(--warn); }
-.cdd-progress.tone-danger .cdd-progress-seg:not(.spent) { background: var(--bad);
+.cdd-progress-track { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; }
+/* Dots v0: restante = punto pequeño apagado; usado = barra sólida; actual = barra
+   menta. El COLOR del 'actual' lleva la urgencia (ver tonos abajo). */
+.cdd-progress-seg { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.28); transition: width .3s, background .3s; }
+.cdd-progress-seg.spent { width: 22px; background: rgba(255,255,255,.6); }
+.cdd-progress-seg.current { width: 22px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+/* Urgencia: a falta de 2 el 'actual' vira a ámbar; en el último intento, rojo
+   pulsante (única vez que la barra reclama atención). */
+.cdd-progress.tone-warn .cdd-progress-seg.current { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.cdd-progress.tone-danger .cdd-progress-seg.current { background: var(--bad); box-shadow: 0 0 8px var(--bad);
   animation: cddPulse 1.1s ease-in-out infinite; }
 @keyframes cddPulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
 

@@ -423,9 +423,9 @@ body,
 /* Wordmark adelgazado (antes 800 / clamp 18-22): en vertical no necesita gritar
    cada día. Más ligero y pequeño → el header baja ~35% y la foto sube. */
 .cdd-title { font-family: var(--font-display); font-weight: 700; font-size: clamp(16px, 4.2vw, 19px); letter-spacing: -.01em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Aire entre acciones: glyphs libres necesitan separación generosa para leerse
-   como elementos sueltos y no como una fila apretada. */
-.cdd-nav { display: flex; align-items: center; gap: 18px; min-width: 0; }
+/* Glyphs libres ceñidos: juntos se leen como UN grupo de acciones, no como
+   iconos sueltos perdidos por la barra. */
+.cdd-nav { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .cdd-iconbtn {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center;
@@ -539,11 +539,14 @@ body,
 .cdd-stage-frame::before {
   content: ""; position: absolute; inset: 0; z-index: 7; pointer-events: none;
   border-radius: inherit; padding: 1px;
+  /* Fringe cromático en el canto: la foto tapa el fondo, así que la refracción
+     real no se ve a través — pero un canto que descompone la luz (cian-menta
+     arriba-izq, cálido abajo-der) imita ese "borde de cristal" del liquid glass. */
   background: linear-gradient(135deg,
-    rgba(255,255,255,calc(var(--spec) * 1.15)),
+    rgba(170,255,238,calc(var(--spec) * 1.05)),
     rgba(255,255,255,calc(var(--spec) * .14)) 30%,
     transparent 54%,
-    rgba(255,255,255,calc(var(--spec) * .3)));
+    rgba(255,224,196,calc(var(--spec) * .34)));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
           mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
@@ -714,13 +717,21 @@ body,
 
 /* ── Formulario ── */
 .cdd-form { display: flex; flex-direction: column; gap: 14px;
-  /* Panel único de cristal (dir. visionOS): los tres campos viven juntos como un
-     instrumento, no tres cajas sueltas. SIN backdrop-filter propio — los pozos
-     de dentro tampoco desenfocan, así no anidamos blur; el panel define el plano
-     con relleno + canto + sombra. */
+  /* Panel de cristal que REFRACTA el fondo en el canto, igual que los modales:
+     glints en las esquinas superiores + relleno translúcido + blur/refracción.
+     Los pozos de dentro YA NO llevan backdrop-filter (sería anidar): el desenfoque
+     y la refracción cromática viven SOLO aquí. */
   padding: 16px; border-radius: 24px;
-  background: linear-gradient(180deg, var(--mat-fill-2), color-mix(in oklab, var(--mat-fill-1) 50%, transparent));
-  border: 1px solid var(--line-strong); box-shadow: var(--elev-2), var(--edge); }
+  background:
+    radial-gradient(140px at 0% 0%, rgba(255,255,255,.22), transparent 70%),
+    radial-gradient(140px at 100% 0%, rgba(255,255,255,.16), transparent 70%),
+    color-mix(in oklab, var(--surface) 70%, transparent);
+  border: 1px solid var(--line-strong); box-shadow: var(--elev-2), var(--edge);
+  -webkit-backdrop-filter: blur(11px) saturate(165%);
+  backdrop-filter: blur(11px) saturate(165%); }
+@supports (backdrop-filter: url(#cdd-liquid)) {
+  .cdd-form { backdrop-filter: blur(5px) saturate(165%) url(#cdd-liquid); }
+}
 .cdd-field { display: flex; flex-direction: column; gap: 7px; position: relative; }
 /* 11px/10px y no 10/9: el mono caps por debajo de 11px se empasta en pantallas
    de DPI bajo (auditoría UX #11) — y son los labels más leídos del juego. */
@@ -734,10 +745,8 @@ body,
      lleva backdrop-filter, así que el del pozo es la ÚNICA capa de blur del
      linaje (no anidamos) y a la vez crea el stacking context del que depende el
      z-index:40 del listbox (no romper MARCA sobre MODELO/AÑO). */
-  background: rgba(0,0,0,.26); border: 1px solid rgba(255,255,255,.07); border-radius: 14px;
-  box-shadow: inset 0 2px 6px -3px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.04);
-  backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
-  -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
+  background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.07); border-radius: 14px;
+  box-shadow: inset 0 2px 6px -3px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.04);
   transition: .18s; }
 .cdd-combo.is-open, .cdd-combo:focus-within, .cdd-year:focus-within {
   border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);

@@ -7,7 +7,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import Header from "./Header";
-import { Icon, I } from "./icons";
 import ZoomStage from "./ZoomStage";
 import AttemptProgress from "./AttemptProgress";
 import AttemptList, { AttemptRow } from "./AttemptList";
@@ -60,22 +59,8 @@ export default function Configurator({
   // en el initializer para que la decisión sea correcta en el primer render —
   // si esperásemos a un useEffect, la fila aparecería de golpe (CLS). El flag se
   // marca al montar, así que la intro se ve una vez y desaparece para siempre.
-  const [showIntro] = useState(() => {
-    try {
-      return !localStorage.getItem("ccd_intro_seen");
-    } catch {
-      // localStorage puede fallar (modo privado/iframe): sin intro, sin drama.
-      return false;
-    }
-  });
-  useEffect(() => {
-    if (!showIntro) return;
-    try {
-      localStorage.setItem("ccd_intro_seen", "1");
-    } catch {
-      /* ignore */
-    }
-  }, [showIntro]);
+  // El chip "¿Cómo se juega?" de primera visita se eliminó a petición; el acceso
+  // a las reglas vive permanentemente en el footer (botón "Cómo se juega").
 
   // Revelado: se auto-abre SOLO cuando la partida termina en esta sesión
   // (transición playing → ended). Si el usuario llega con la partida ya cerrada,
@@ -156,21 +141,8 @@ export default function Configurator({
             {t("cdd.wordAnio")}
           </h1>
 
-          {/* Primera visita: SOLO una pista de ayuda (no el subtítulo) para
-              guiar al novato hacia el "cómo se juega". Late para invitar sin
-              modal forzado; en el día a día no se pinta (barra limpia). */}
-          {showIntro && (
-            <div className="cdd-intro">
-              <button
-                type="button"
-                className={"cdd-helpchip" + (howtoPulse ? " pulse" : "")}
-                onClick={onOpenHowTo}
-              >
-                <Icon d={I.help} size={15} />
-                <span>{t("cdd.helpAria")}</span>
-              </button>
-            </div>
-          )}
+          {/* (Chip de ayuda de primera visita eliminado a petición; el acceso a
+              "Cómo se juega" vive en el footer.) */}
 
           <div className="cdd-main">
             <div className="cdd-col cdd-col-stage" ref={stageColRef}>

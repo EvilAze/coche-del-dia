@@ -740,13 +740,15 @@ body,
   margin: 0; padding: 6px; list-style: none;
   /* Overlay flotante: cristal reforzado (más opaco + blur fuerte) para que el
      texto de las opciones quede legible sobre lo que tape. */
-  background: color-mix(in oklab, var(--surface) 78%, transparent); border: 1px solid var(--line-2); border-radius: 14px;
-  box-shadow: 0 26px 50px -24px rgba(0,0,0,.85), var(--edge);
+  background: color-mix(in oklab, var(--surface) 90%, transparent); border: 1px solid var(--line-strong); border-radius: 14px;
+  box-shadow: 0 32px 60px -22px rgba(0,0,0,.92), var(--edge), 0 0 0 1px rgba(0,0,0,.35);
   backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
   -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat)); }
 .cdd-opt { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--cdd-text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.cdd-opt:hover, .cdd-opt.hi { background: var(--surface2); }
-.cdd-opt.sel { color: var(--accent); }
+/* Opción resaltada: tinte de acento + barra de acento a la izquierda (da
+   profundidad y "foco" — antes era un cambio de gris apenas perceptible). */
+.cdd-opt:hover, .cdd-opt.hi { background: color-mix(in oklab, var(--accent) 15%, var(--surface2)); box-shadow: inset 2px 0 0 0 var(--accent); }
+.cdd-opt.sel { color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
 .cdd-opt-empty { color: var(--faint); cursor: default; }
 .cdd-opt .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
 .cdd-year-input { padding-right: 6px; }
@@ -775,7 +777,7 @@ body,
   color: var(--cdd-text); font-size: 11px; cursor: pointer; transition: .15s; }
 .cdd-decade:hover, .cdd-decade:active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 
-.cdd-submit { position: relative; overflow: hidden; width: 100%; height: 56px; border: 0; border-radius: 13px; cursor: pointer;
+.cdd-submit { width: 100%; height: 56px; border: 0; border-radius: 13px; cursor: pointer;
   /* Acabado glossy: degradado vertical + canto de luz superior = boton "jugoso"
      y apetecible cuando esta activo (los estados inactivos lo sobrescriben). */
   background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 90%, #fff), var(--accent));
@@ -785,15 +787,6 @@ body,
   box-shadow: 0 18px 44px -10px var(--accent), inset 0 1px 0 rgba(255,255,255,.45); }
 .cdd-submit:hover:not(:disabled):not(.is-incomplete) { transform: translateY(-1px); box-shadow: 0 22px 52px -12px var(--accent), var(--glow-accent); }
 .cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(0); }
-/* Barrido de luz lento sobre el CTA activo: el botón "respira" (premium vivo).
-   Solo cuando está activo (no disabled/incomplete) y apagado en reduced-motion. */
-.cdd-submit:not(:disabled):not(.is-incomplete)::after {
-  content: ""; position: absolute; top: 0; left: -45%; width: 38%; height: 100%; pointer-events: none;
-  background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
-  animation: cddSheen 4.8s ease-in-out infinite;
-}
-@keyframes cddSheen { 0% { left: -45%; } 55%, 100% { left: 130%; } }
-@media (prefers-reduced-motion: reduce) { .cdd-submit::after { animation: none; display: none; } }
 /* Label en --cdd-muted y no --faint: --faint sobre --surface2 da ~2.7:1 y el
    CTA (el texto más importante de la pantalla) se leía como "roto" (auditoría
    UX #2). Con muted ronda 5:1 — apagado pero legible, también en disabled. */
@@ -837,12 +830,9 @@ body,
 .cdd-end-card { position: relative; width: 100%; max-width: 460px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
   /* Pico celebratorio acristalado: translúcido sobre el scrim (que ya desenfoca)
      + bisel --edge. SIN backdrop-filter propio (no anidar blur sobre el scrim). */
-  /* Fondo en 2 capas: 1) realce reactivo que sigue al cursor (--mx/--my los
-     fija EndScreen.jsx; scroll-safe porque el background no scrollea con el
-     contenido) + 2) el relleno translúcido. + bloom de acento en la sombra. */
-  background:
-    radial-gradient(320px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.12), transparent 55%),
-    color-mix(in oklab, var(--surface) 84%, transparent);
+  /* Pico celebratorio acristalado: translúcido sobre el scrim + bloom de acento.
+     Sin luz reactiva (retirado el movimiento a petición). */
+  background: color-mix(in oklab, var(--surface) 84%, transparent);
   border: 1px solid var(--line-strong); border-radius: 20px;
   box-shadow: var(--elev-3), var(--edge), 0 0 70px -18px color-mix(in oklab, var(--accent) 42%, transparent); animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
 @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {

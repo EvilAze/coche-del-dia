@@ -7,7 +7,6 @@
 // y lo reenviamos a CarImage como `bottomBar`.
 
 import CarImage from "../CarImage";
-import StageHud from "./StageHud";
 
 export default function ZoomStage({
   car,
@@ -26,7 +25,6 @@ export default function ZoomStage({
     <div className={"cdd-stage" + (revealed ? " revealed" : "")}>
       <CarImage
         configurator
-        hud={<StageHud revealed={revealed} />}
         bottomBar={progress}
         src={car?.img ?? null}
         blurData={car?.blurData ?? null}

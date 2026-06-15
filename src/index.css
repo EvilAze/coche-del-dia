@@ -560,37 +560,15 @@ body,
 .cdd-stage { width: 100%; }
 .cdd-stage-frame {
   position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
-  border-radius: 26px; border: 1px solid var(--line-strong);
+  border-radius: 18px; border: 1px solid var(--line-strong);
   background: var(--surface);
-  /* Elevación flotante: sombra profunda + ambiente de menta MUY contenido (no
-     neón) + canto de luz. Esquinas más suaves (26px) para el lenguaje visionOS.
-     La viñeta inferior va en ::after; el rim especular en ::before. */
-  box-shadow: 0 40px 80px -34px rgba(0,0,0,.9), 0 0 70px -30px color-mix(in oklab, var(--accent) 45%, transparent), inset 0 1.5px 0 rgba(255,255,255,.14), inset 0 0 0 1px var(--line-2);
 }
-/* Rim especular del cristal del escenario (hero → un punto más fuerte). Va por
-   ::before porque el ::after ya lo ocupa la viñeta; z:7 sobre la foto/grain pero
-   solo es el anillo de 1px del borde (no pisa el HUD, que vive con margen). */
-.cdd-stage-frame::before {
-  content: ""; position: absolute; inset: 0; z-index: 7; pointer-events: none;
-  border-radius: inherit; padding: 1px;
-  /* Fringe cromático en el canto: la foto tapa el fondo, así que la refracción
-     real no se ve a través — pero un canto que descompone la luz (cian-menta
-     arriba-izq, cálido abajo-der) imita ese "borde de cristal" del liquid glass. */
-  background: linear-gradient(135deg,
-    rgba(170,255,238,calc(var(--spec) * 1.05)),
-    rgba(255,255,255,calc(var(--spec) * .14)) 30%,
-    transparent 54%,
-    rgba(255,224,196,calc(var(--spec) * .34)));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
-}
-/* Viñeta inferior por ENCIMA de la foto (z entre la imagen y el HUD/grain):
-   contiene las carrocerías claras para que no sangren hacia la UI oscura. */
+/* Viñeta inferior sutil para que la barra de progreso (dots) lea sobre
+   carrocerías claras. Sin rim especular ni fringe cromático (rediseño plano). */
 .cdd-stage-frame::after {
   content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(to top, rgba(0,0,0,.45) 0%, transparent 28%);
+  background: linear-gradient(to top, rgba(0,0,0,.4) 0%, transparent 24%);
 }
 
 /* Lightbox de la foto: MISMA proporción que el escenario (4:3 móvil · 16:11

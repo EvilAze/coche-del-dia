@@ -139,19 +139,7 @@ export default function EndScreen({
   return (
     <div className="cdd-end" role="dialog" aria-modal="true">
       <div className="cdd-end-scrim" onClick={onClose} />
-      <div
-        className="cdd-end-card"
-        onMouseMove={(e) => {
-          // Luz reactiva: el realce del fondo (--mx/--my) sigue al cursor sobre
-          // la tarjeta. Off en reduced-motion; en táctil no hay mousemove, así
-          // que simplemente no se activa (sin coste).
-          if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
-          const el = e.currentTarget;
-          const r = el.getBoundingClientRect();
-          el.style.setProperty("--mx", (((e.clientX - r.left) / r.width) * 100).toFixed(1) + "%");
-          el.style.setProperty("--my", (((e.clientY - r.top) / r.height) * 100).toFixed(1) + "%");
-        }}
-      >
+      <div className="cdd-end-card">
         {won && <Confetti active />}
 
         {/* Banda de revelado */}

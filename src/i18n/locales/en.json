@@ -86,6 +86,7 @@
   },
   "cdd": {
     "guess": "Guess the",
+    "lastAttempt": "Last guess",
     "wordMarca": "make",
     "wordModelo": "model",
     "wordAnio": "year",

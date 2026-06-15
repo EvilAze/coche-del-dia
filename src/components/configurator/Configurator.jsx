@@ -176,6 +176,7 @@ export default function Configurator({
                   aquello el registro completo. */}
               {dataReady && !ended && (pendingGuess || guesses.length > 0) && (
                 <div className="cdd-live-attempt" aria-live="polite">
+                  <span className="cdd-live-kicker cdd-mono">{t("cdd.lastAttempt")}</span>
                   {pendingGuess ? (
                     <AttemptRow
                       g={pendingGuess}

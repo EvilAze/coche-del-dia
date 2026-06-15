@@ -142,30 +142,12 @@
     </script>
     </head>
   <body>
-    <!-- Filtro de refracción "Liquid Glass": el canto del cristal dobla el fondo
-         que tiene detrás (lente). Lo usan los paneles de modal y el EndScreen vía
-         backdrop-filter: url(#cdd-liquid). Solo Chromium/Android; iOS Safari y
-         Firefox caen al desenfoque base (ver @supports en index.css). -->
-    <svg aria-hidden="true" width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden">
-      <filter id="cdd-liquid" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-        <!-- Mapa de desplazamiento: ruido fractal suave y de baja frecuencia →
-             ondas grandes "líquidas" (no grano fino). -->
-        <feTurbulence type="fractalNoise" baseFrequency="0.005 0.007" numOctaves="2" seed="11" result="n"/>
-        <feGaussianBlur in="n" stdDeviation="2" result="nb"/>
-        <!-- Aberración cromática: cada canal (R/G/B) se desplaza una cantidad
-             distinta → franjas de color en el canto, donde el desplazamiento es
-             mayor. Es el rasgo del vidrio real (la luz se descompone en el borde),
-             lo que separa "desenfoque ondulado" de "liquid glass fiel". -->
-        <feDisplacementMap in="SourceGraphic" in2="nb" scale="17" xChannelSelector="R" yChannelSelector="G" result="dR"/>
-        <feColorMatrix in="dR" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cR"/>
-        <feDisplacementMap in="SourceGraphic" in2="nb" scale="12" xChannelSelector="R" yChannelSelector="G" result="dG"/>
-        <feColorMatrix in="dG" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cG"/>
-        <feDisplacementMap in="SourceGraphic" in2="nb" scale="7" xChannelSelector="R" yChannelSelector="G" result="dB"/>
-        <feColorMatrix in="dB" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="cB"/>
-        <feBlend in="cR" in2="cG" mode="screen" result="cRG"/>
-        <feBlend in="cRG" in2="cB" mode="screen"/>
-      </filter>
-    </svg>
+    <!-- (Se retiró el filtro de refracción SVG #cdd-liquid: solo lo soportaba
+         Chromium y rompía la consistencia entre dispositivos. El "borde de
+         cristal" ahora lo dan efectos UNIVERSALES — blur + glints cromáticos en
+         las esquinas + canto — para que iPhone, Android y escritorio se vean
+         igual. Ver index.css. -->
+
     <noscript>
       <div style="padding:2rem;text-align:center;color:#f0f0f4;background:#0a0a0b;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
         <h1 style="font-size:1.5rem;color:#e8c87a">El Coche del Día</h1>

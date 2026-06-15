@@ -401,7 +401,20 @@ body,
 .cdd-mono { font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 
 /* ── Cabecera (ceñida; compactada para hacer la foto más cuadrada) ── */
-.cdd-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0; margin-bottom: 14px; }
+.cdd-header {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  /* Barra de cristal STICKY: al scrollear, frosta el contenido que pasa por
+     debajo (foto / historial) — sensación de capa física (estándar premium).
+     Inset por el padding del shell → flota como barra. Si un ancestro con
+     overflow rompiese el sticky, degrada a barra normal (no se rompe nada). */
+  margin-bottom: 14px; padding: 9px 12px; border-radius: 16px;
+  background: color-mix(in oklab, var(--bg2) 52%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: var(--edge), 0 12px 30px -20px rgba(0,0,0,.8);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
 .cdd-wordmark { display: flex; align-items: center; min-width: 0; }
 /* Sin badge "CDD": el wordmark "Coche del Día" es ahora el protagonista de la
    barra — más grande y rotundo, con el acento reservado para fecha + H1. */
@@ -592,7 +605,7 @@ body,
    z-50: sobre el contenido pero bajo EndScreen (60) y modales (100+).
    fixed + top: anclado al viewport LAYOUT — con teclado abierto lo fijado
    arriba sigue visible (lo problemático es anclar abajo). */
-.cdd-peek { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 50;
+.cdd-peek { position: fixed; top: calc(64px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 50;
   width: 96px; height: 96px; padding: 0; overflow: hidden; cursor: pointer;
   border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
   box-shadow: 0 18px 40px -16px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.35);
@@ -743,7 +756,7 @@ body,
    margen y deja el campo enfocado POR DEBAJO de la franja del PhotoPeek
    (top 10 + 96 + respiro) — sin él, la miniatura caería encima del input. */
 @media (pointer: coarse) {
-  .cdd-input { scroll-margin-top: 118px; }
+  .cdd-input { scroll-margin-top: 172px; }
 }
 /* Placeholder en muted, no faint: "Escribe o elige…" es la invitación a la
    acción principal y con --faint quedaba a ~2.9:1 sobre --surface (auditoría
@@ -1049,7 +1062,7 @@ body,
   .cdd-main { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start; margin-bottom: 36px; }
   .cdd-stage-frame { aspect-ratio: 1 / 1; }
   .cdd-title { font-size: 24px; }
-  .cdd-col-panel { position: sticky; top: 28px; }
+  .cdd-col-panel { position: sticky; top: 88px; }
   /* El historial salió del panel sticky (ahora vive bajo el fold). Lo alineamos
      bajo la columna del formulario (track derecho ~.85fr del grid) para conservar
      el equilibrio de dos columnas en vez de ocupar todo el ancho. */

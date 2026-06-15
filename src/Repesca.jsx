@@ -415,7 +415,7 @@ export default function Repesca() {
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
       {/* Header simple, sin sticky para no robar espacio vertical */}
-      <header className="border-b border-white/10 bg-[#0d0c0a]/90 backdrop-blur-xl">
+      <header className="border-b border-border bg-bg-primary/90 backdrop-blur-glass">
         <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
           <button
             type="button"

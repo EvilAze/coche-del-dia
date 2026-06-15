@@ -105,12 +105,11 @@ export default function Header({
               )}
             </>
           ) : (
-            // CTA para anónimos / sin datos: "Compite →" BIEN visible (relleno de
-            // acento) — es la palanca de conversión al ranking, no se atenúa.
-            <span className="seg">
-              <Icon d={I.trophy} size={14} /> <b>{t("cdd.competeLabel")}</b>
-              <Icon d={I.arrowR} size={14} />
-            </span>
+            // Anónimo: SOLO el glyph del trofeo, consistente con los demás iconos
+            // libres (sin texto "Compite →" descolgado en medio de la barra, que
+            // rompía la jerarquía marca-izquierda / acciones-derecha). El CTA
+            // explícito "Unirme a la competición" vive en el modal que abre.
+            <span className="seg"><Icon d={I.trophy} size={18} /></span>
           )}
         </button>
 

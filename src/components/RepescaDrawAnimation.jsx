@@ -55,8 +55,8 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
   return (
     <motion.div
       className="
+        scrim
         fixed inset-0 z-[120] flex items-center justify-center
-        bg-black/85 backdrop-blur-sm
       "
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}

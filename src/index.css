@@ -309,18 +309,18 @@ body,
      translúcido + blur + saturación = la refracción) y LUZ (canto + rim
      especular + sombra + glow = cómo le da la luz). Una sola escala para toda
      la app: adiós a blur 4/10/18/22/24 y saturate 140/160/170/175 sueltos. */
-  --mat-fill-1: rgba(255,255,255,.05); --mat-fill-2: rgba(255,255,255,.065); --mat-fill-3: rgba(255,255,255,.085);
+  --mat-fill-1: rgba(255,255,255,.075); --mat-fill-2: rgba(255,255,255,.10); --mat-fill-3: rgba(255,255,255,.14);
   --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
   /* Canto/bisel: highlight superior + izquierdo (luz cenital-lateral). Por
      box-shadow inset → es scroll-safe (a diferencia de un ::before que se
      desancla dentro de un contenedor con scroll). El rim ::before fuerte se
      reserva al escenario (hero, sin scroll). --spec gradúa ese rim. */
-  --edge: inset 0 1px 0 rgba(255,255,255,.08), inset 1px 0 0 rgba(255,255,255,.04); --spec: .55;
+  --edge: inset 0 1px 0 rgba(255,255,255,.20), inset 1px 0 0 rgba(255,255,255,.09); --spec: .85;
   --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
   --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
   --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
-  --glow-accent: 0 0 28px -8px rgba(122,240,200,.45); --glow-gold: 0 0 28px -8px rgba(232,200,122,.45);
-  --line-strong: rgba(255,255,255,.16);
+  --glow-accent: 0 0 44px -6px rgba(122,240,200,.62); --glow-gold: 0 0 44px -6px rgba(232,200,122,.62);
+  --line-strong: rgba(255,255,255,.26);
   --font-display: 'Archivo', sans-serif; --font-body: 'Archivo', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 500px at 50% -8%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
@@ -337,14 +337,14 @@ body,
   --gold: #e8c87a; --gold-ink: #1a0d04; --gold-glow: rgba(232,200,122,.42);
   /* Cristal líquido: ver el sistema --mat-* abajo (fuente única, cálido). */
   /* Material unificado, variante cálida del tema cobre (ver platino). */
-  --mat-fill-1: rgba(255,238,220,.055); --mat-fill-2: rgba(255,238,220,.075); --mat-fill-3: rgba(255,238,220,.095);
+  --mat-fill-1: rgba(255,238,220,.08); --mat-fill-2: rgba(255,238,220,.11); --mat-fill-3: rgba(255,238,220,.15);
   --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
-  --edge: inset 0 1px 0 rgba(255,238,220,.09), inset 1px 0 0 rgba(255,238,220,.045); --spec: .5;
+  --edge: inset 0 1px 0 rgba(255,238,220,.22), inset 1px 0 0 rgba(255,238,220,.10); --spec: .8;
   --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
   --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
   --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
-  --glow-accent: 0 0 28px -8px rgba(122,240,200,.45); --glow-gold: 0 0 28px -8px rgba(232,200,122,.45);
-  --line-strong: rgba(255,238,220,.16);
+  --glow-accent: 0 0 44px -6px rgba(122,240,200,.62); --glow-gold: 0 0 44px -6px rgba(232,200,122,.62);
+  --line-strong: rgba(255,238,220,.26);
   --font-display: 'Sora', sans-serif; --font-body: 'Sora', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 520px at 50% -8%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 72%);
@@ -359,13 +359,13 @@ body,
 /* Fondo "aurora": dos halos (menta + oro) que derivan muy lento. Da vida
    premium continua a TODA la pantalla sin distraer (28s, GPU via transform).
    Usa los tokens del tema, asi funciona en platino y cobre. */
-.cdd-ambient { position: fixed; inset: -8%; pointer-events: none; z-index: 0; opacity: .8;
+.cdd-ambient { position: fixed; inset: -8%; pointer-events: none; z-index: 0; opacity: .98;
   background:
-    radial-gradient(820px 480px at 20% -6%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%),
-    radial-gradient(680px 440px at 84% 4%, color-mix(in oklab, var(--gold) 16%, transparent), transparent 72%),
+    radial-gradient(900px 540px at 18% -8%, color-mix(in oklab, var(--accent) 34%, transparent), transparent 68%),
+    radial-gradient(760px 500px at 86% 2%, color-mix(in oklab, var(--gold) 26%, transparent), transparent 70%),
     /* 2.º foco: halo de menta bajo para dar vida a formulario/historial/pie
        (antes la luz colgaba solo arriba y la mitad inferior se leía plana). */
-    radial-gradient(720px 460px at 62% 112%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 68%);
+    radial-gradient(820px 520px at 62% 114%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 66%);
   animation: cddAurora 28s ease-in-out infinite alternate; }
 @keyframes cddAurora {
   0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
@@ -403,7 +403,7 @@ body,
   -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   cursor: pointer; transition: .18s;
 }
-.cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); background: var(--mat-fill-3); }
+.cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); background: var(--mat-fill-3); box-shadow: var(--edge), var(--glow-accent); }
 
 /* ── Píldora de estado: racha + puesto en el ranking ──
    El ranking asciende de icono mudo a estado vivo (muestra el puesto). Compacta
@@ -432,6 +432,7 @@ body,
 .cdd-statuspill:hover {
   background: color-mix(in oklab, var(--accent) 16%, var(--surface));
   border-color: color-mix(in oklab, var(--accent) 50%, var(--line));
+  box-shadow: var(--edge), var(--glow-accent);
 }
 .cdd-statuspill .seg { display: inline-flex; align-items: center; gap: 4px; }
 .cdd-statuspill b { color: var(--cdd-text); font-weight: 700; }
@@ -484,7 +485,7 @@ body,
   -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   color: var(--cdd-muted); font-family: var(--font-body); font-size: 12.5px;
   cursor: pointer; transition: .18s; }
-.cdd-helpchip:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+.cdd-helpchip:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); box-shadow: var(--edge), var(--glow-accent); }
 /* Latido suave que invita a abrir "cómo se juega" sin modal forzado. Se apaga
    al abrirlo (App pone howtoPulse=false). */
 .cdd-helpchip.pulse { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); animation: cddHelpPulse 2.2s ease-in-out infinite; }
@@ -510,7 +511,7 @@ body,
      (inset highlight) que define el borde del cristal sobre el fondo grafito.
      Polish premium #4: borde un punto mas claro para rematar el bisel; la
      viñeta inferior va en ::after (un inset box-shadow quedaria DETRAS del <img>). */
-  box-shadow: 0 34px 64px -30px rgba(0,0,0,.85), 0 0 60px -26px color-mix(in oklab, var(--accent) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 1px var(--line-2);
+  box-shadow: 0 34px 64px -30px rgba(0,0,0,.85), 0 0 90px -20px color-mix(in oklab, var(--accent) 78%, transparent), inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px var(--line-2);
 }
 /* Rim especular del cristal del escenario (hero → un punto más fuerte). Va por
    ::before porque el ::after ya lo ocupa la viñeta; z:7 sobre la foto/grain pero
@@ -774,16 +775,25 @@ body,
   color: var(--cdd-text); font-size: 11px; cursor: pointer; transition: .15s; }
 .cdd-decade:hover, .cdd-decade:active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 
-.cdd-submit { width: 100%; height: 56px; border: 0; border-radius: 13px; cursor: pointer;
+.cdd-submit { position: relative; overflow: hidden; width: 100%; height: 56px; border: 0; border-radius: 13px; cursor: pointer;
   /* Acabado glossy: degradado vertical + canto de luz superior = boton "jugoso"
      y apetecible cuando esta activo (los estados inactivos lo sobrescriben). */
   background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 90%, #fff), var(--accent));
   color: var(--accent-ink); font-family: var(--font-display);
   font-weight: 800; font-size: 14px; letter-spacing: .14em; text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 9px; transition: .18s;
-  box-shadow: 0 16px 36px -12px var(--accent), inset 0 1px 0 rgba(255,255,255,.4); }
-.cdd-submit:hover:not(:disabled):not(.is-incomplete) { transform: translateY(-1px); box-shadow: 0 18px 40px -14px var(--accent); }
+  box-shadow: 0 18px 44px -10px var(--accent), inset 0 1px 0 rgba(255,255,255,.45); }
+.cdd-submit:hover:not(:disabled):not(.is-incomplete) { transform: translateY(-1px); box-shadow: 0 22px 52px -12px var(--accent), var(--glow-accent); }
 .cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(0); }
+/* Barrido de luz lento sobre el CTA activo: el botón "respira" (premium vivo).
+   Solo cuando está activo (no disabled/incomplete) y apagado en reduced-motion. */
+.cdd-submit:not(:disabled):not(.is-incomplete)::after {
+  content: ""; position: absolute; top: 0; left: -45%; width: 38%; height: 100%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  animation: cddSheen 4.8s ease-in-out infinite;
+}
+@keyframes cddSheen { 0% { left: -45%; } 55%, 100% { left: 130%; } }
+@media (prefers-reduced-motion: reduce) { .cdd-submit::after { animation: none; display: none; } }
 /* Label en --cdd-muted y no --faint: --faint sobre --surface2 da ~2.7:1 y el
    CTA (el texto más importante de la pantalla) se leía como "roto" (auditoría
    UX #2). Con muted ronda 5:1 — apagado pero legible, también en disabled. */
@@ -827,8 +837,14 @@ body,
 .cdd-end-card { position: relative; width: 100%; max-width: 460px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
   /* Pico celebratorio acristalado: translúcido sobre el scrim (que ya desenfoca)
      + bisel --edge. SIN backdrop-filter propio (no anidar blur sobre el scrim). */
-  background: color-mix(in oklab, var(--surface) 84%, transparent); border: 1px solid var(--line-strong); border-radius: 20px;
-  box-shadow: var(--elev-3), var(--edge); animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
+  /* Fondo en 2 capas: 1) realce reactivo que sigue al cursor (--mx/--my los
+     fija EndScreen.jsx; scroll-safe porque el background no scrollea con el
+     contenido) + 2) el relleno translúcido. + bloom de acento en la sombra. */
+  background:
+    radial-gradient(320px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.12), transparent 55%),
+    color-mix(in oklab, var(--surface) 84%, transparent);
+  border: 1px solid var(--line-strong); border-radius: 20px;
+  box-shadow: var(--elev-3), var(--edge), 0 0 70px -18px color-mix(in oklab, var(--accent) 42%, transparent); animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
 @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
   .cdd-end-card { background: var(--bg); }
 }

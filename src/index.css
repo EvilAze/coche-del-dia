@@ -734,16 +734,11 @@ body,
 
 /* ── Formulario ── */
 .cdd-form { display: flex; flex-direction: column; gap: 14px;
-  /* Cristal líquido HIPER-REFINADO (Apple/Vercel): fondo oscuro casi transparente
-     + desenfoque fuerte + UN borde superior de 1px al ~8% que simula el reflejo
-     de la luz en el canto. Sin resplandores, glints ni sombras genéricas: la
-     elegancia está en la contención. Los pozos de dentro no desenfocan (no anidar). */
-  padding: 16px; border-radius: 24px;
-  background: color-mix(in oklab, var(--bg2) 52%, transparent);
-  border: 1px solid rgba(255,255,255,.06);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 34px -26px rgba(0,0,0,.75);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  backdrop-filter: blur(22px) saturate(150%); }
+  /* Panel plano (rediseño v0): superficie sólida + borde 1px, sin blur ni glints. */
+  padding: 16px; border-radius: 18px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: none; }
+/* Fila 2 columnas: Marca y Modelo lado a lado (v0); Año y ADIVINAR a ancho completo. */
+.cdd-form-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cdd-field { display: flex; flex-direction: column; gap: 7px; position: relative; }
 /* 11px/10px y no 10/9: el mono caps por debajo de 11px se empasta en pantallas
    de DPI bajo (auditoría UX #11) — y son los labels más leídos del juego. */
@@ -754,22 +749,14 @@ body,
 .cdd-label { font-size: 11px; letter-spacing: .26em; color: color-mix(in oklab, var(--cdd-muted) 78%, transparent); display: flex; align-items: center; justify-content: space-between; }
 .cdd-label-hint { font-family: var(--font-mono); font-size: 10px; color: var(--faint); text-transform: none; letter-spacing: .02em; }
 .cdd-combo, .cdd-year { position: relative; display: flex; align-items: center;
-  /* "Pozo" embutido en el panel: relleno oscuro + sombra interior = el campo se
-     hunde en el cristal (sensación física, dir. visionOS). El panel padre NO
-     lleva backdrop-filter, así que el del pozo es la ÚNICA capa de blur del
-     linaje (no anidamos) y a la vez crea el stacking context del que depende el
-     z-index:40 del listbox (no romper MARCA sobre MODELO/AÑO). */
-  background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.07); border-radius: 14px;
-  box-shadow: inset 0 2px 6px -3px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.04);
+  /* Campo plano (rediseño v0): superficie sólida + borde 1px. */
+  background: var(--surface2); border: 1px solid var(--line); border-radius: 12px;
   transition: .18s; }
 .cdd-combo.is-open, .cdd-combo:focus-within, .cdd-year:focus-within {
-  border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
-  /* CLAVE de apilamiento: el backdrop-filter de .cdd-combo/.cdd-year (efecto
-     cristal) crea un stacking context PROPIO en cada campo, así que el
-     z-index:30 del .cdd-listbox queda ATRAPADO dentro del combo y no puede
-     dibujarse sobre los campos siguientes — MODELO/AÑO se pintaban ENCIMA del
-     desplegable de MARCA. Al abrir/enfocar subimos el campo activo por encima
-     de sus hermanos para que su desplegable (listbox / décadas) mande. */
+  border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+  /* Subimos el campo activo sobre sus hermanos para que su desplegable (listbox /
+     décadas) se dibuje encima de los campos siguientes (no romper MARCA sobre
+     MODELO/AÑO). */
   z-index: 40; }
 .cdd-combo.is-disabled { opacity: .5; }
 .cdd-combo.is-invalid { border-color: color-mix(in oklab, #d9604e 60%, var(--line)); }
@@ -791,12 +778,9 @@ body,
 .cdd-listbox { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
   max-height: min(260px, 42dvh); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   margin: 0; padding: 6px; list-style: none;
-  /* Overlay flotante: cristal reforzado (más opaco + blur fuerte) para que el
-     texto de las opciones quede legible sobre lo que tape. */
-  background: color-mix(in oklab, var(--surface) 90%, transparent); border: 1px solid var(--line-strong); border-radius: 14px;
-  box-shadow: 0 32px 60px -22px rgba(0,0,0,.92), var(--edge), 0 0 0 1px rgba(0,0,0,.35);
-  backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
-  -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat)); }
+  /* Overlay flotante plano (rediseño v0): sólido + borde, sin blur. */
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px;
+  box-shadow: 0 24px 50px -22px rgba(0,0,0,.85); }
 .cdd-opt { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--cdd-text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 /* Opción resaltada: tinte de acento + barra de acento a la izquierda (da
    profundidad y "foco" — antes era un cambio de gris apenas perceptible). */
@@ -821,25 +805,22 @@ body,
    mismo patrón que .cdd-listbox). Visible solo con el campo enfocado y vacío. */
 .cdd-decades { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
   display: flex; gap: 5px; padding: 6px;
-  background: color-mix(in oklab, var(--surface) 78%, transparent); border: 1px solid var(--line-2); border-radius: 14px;
-  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8), var(--edge);
-  backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
-  -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat)); }
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8); }
 .cdd-decade { flex: 1; padding: 8px 0; min-width: 0; text-align: center;
   background: var(--surface2); border: 1px solid var(--line); border-radius: 8px;
   color: var(--cdd-text); font-size: 11px; cursor: pointer; transition: .15s; }
 .cdd-decade:hover, .cdd-decade:active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 
-.cdd-submit { width: 100%; height: 56px; border: 0; border-radius: 13px; cursor: pointer;
-  /* Acabado glossy: degradado vertical + canto de luz superior = boton "jugoso"
-     y apetecible cuando esta activo (los estados inactivos lo sobrescriben). */
-  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 90%, #fff), var(--accent));
+.cdd-submit { width: 100%; height: 56px; border: 0; border-radius: 12px; cursor: pointer;
+  /* Botón plano (rediseño v0): menta sólida, sin degradado ni gloss. */
+  background: var(--accent);
   color: var(--accent-ink); font-family: var(--font-display);
   font-weight: 800; font-size: 14px; letter-spacing: .14em; text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 9px; transition: .18s;
-  box-shadow: 0 10px 26px -10px color-mix(in oklab, var(--accent) 72%, transparent), inset 0 1px 0 rgba(255,255,255,.5); }
-.cdd-submit:hover:not(:disabled):not(.is-incomplete) { transform: translateY(-1px); box-shadow: 0 14px 32px -10px color-mix(in oklab, var(--accent) 82%, transparent), inset 0 1px 0 rgba(255,255,255,.55); }
-.cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(0); }
+  box-shadow: none; }
+.cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: color-mix(in oklab, var(--accent) 90%, #fff); }
+.cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: scale(.98); }
 /* Label en --cdd-muted y no --faint: --faint sobre --surface2 da ~2.7:1 y el
    CTA (el texto más importante de la pantalla) se leía como "roto" (auditoría
    UX #2). Con muted ronda 5:1 — apagado pero legible, también en disabled. */

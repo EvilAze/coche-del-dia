@@ -679,7 +679,8 @@ body,
    todas las celdas de una fila midan igual aunque su meta varíe (✓ suelto vs
    bandera + etiqueta). */
 .cdd-chip { display: flex; flex-direction: column; gap: 2px; justify-content: center; align-items: flex-start;
-  padding: 6px 12px; border-radius: 12px; min-height: 40px; font-size: 13px; font-weight: 600; line-height: 1.15; min-width: 0; }
+  padding: 6px 12px; border-radius: 10px; min-height: 40px; font-size: 13px; font-weight: 600; line-height: 1.15; min-width: 0;
+  border: 1px solid var(--line); background: var(--surface2); }
 /* Fila 1 = solo el nombre, a ancho completo: nada le roba espacio horizontal. */
 .cdd-chip-main { display: block; width: 100%; min-width: 0; }
 /* Una sola línea: el nombre largo lo encoge useFitText (no parte en 2). Al ocupar
@@ -695,21 +696,20 @@ body,
    de ese suelo. letter-spacing bajo (.04em) para que casi nunca tenga que encoger. */
 .cdd-chip-sub { font-size: 8.5px; font-weight: 400; opacity: .9; font-family: var(--font-mono); letter-spacing: .04em; text-transform: uppercase; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-chip .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
-.tone-good { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 24px -10px var(--accent); }
-.tone-good .cdd-chip-sub { color: var(--accent-ink); opacity: .7; }
-.tone-good .cdd-chip-mark { color: var(--accent-ink); }
-.tone-near { background: color-mix(in oklab, var(--accent) 10%, var(--surface)); color: var(--cdd-text);
-  border: 1px dashed color-mix(in oklab, var(--accent) 55%, var(--line)); }
-.tone-near .cdd-chip-sub { color: var(--accent); }
-/* Refuerzo del estado "mismo país": la bandera manda un punto más que en el
-   resto de chips (es el icono que explica el "casi"). */
+/* Acierto: tinte menta plano + texto/icono acento (v0; antes relleno macizo). */
+.tone-good { background: color-mix(in oklab, var(--accent) 14%, var(--surface)); color: var(--cdd-text);
+  border-color: color-mix(in oklab, var(--accent) 38%, var(--line)); box-shadow: none; }
+.tone-good .cdd-chip-sub { color: var(--accent); opacity: .8; }
+.tone-good .cdd-chip-mark { color: var(--accent); }
+/* Mismo país (partial): tinte ámbar + borde discontinuo + bandera reforzada. El
+   ámbar lo distingue del acierto (menta) y del fallo (rojo). */
+.tone-near { background: color-mix(in oklab, var(--warn) 12%, var(--surface)); color: var(--cdd-text);
+  border: 1px dashed color-mix(in oklab, var(--warn) 50%, var(--line)); }
+.tone-near .cdd-chip-sub { color: var(--warn); }
 .tone-near .cdd-flag { width: 20px; height: 13px; }
-/* Fallo: rojo apagado + texto BLANCO (no muted). El paso de cdd-muted a cdd-text
-   es lo que convierte el chip de "casilla inactiva" en "esto está mal". */
-/* Fallo: pastilla NEUTRAL translúcida (sin caja roja pesada). El rojo se reserva,
-   muy sutil, al borde y al icono ✕ — no al relleno. */
-.tone-off { background: color-mix(in oklab, var(--surface) 50%, transparent); color: var(--cdd-text);
-  border: 1px solid color-mix(in oklab, var(--bad) 32%, var(--line)); }
+/* Fallo: superficie neutra sólida + borde/icono rojo discreto (v0). */
+.tone-off { background: var(--surface2); color: var(--cdd-text);
+  border: 1px solid color-mix(in oklab, var(--bad) 28%, var(--line)); }
 .tone-off .cdd-chip-mark { color: var(--bad-ink); }
 .tone-off .cdd-chip-sub { color: var(--bad-sub); }
 /* Fila pendiente (esperando al servidor): shimmer neutro */

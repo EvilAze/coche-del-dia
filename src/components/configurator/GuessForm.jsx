@@ -210,6 +210,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
       onAnimationEnd={() => setShake(false)}
     >
       <form className="cdd-form" onSubmit={handleSubmit} autoComplete="off">
+        {/* Marca + Modelo lado a lado (rediseño v0); Año y ADIVINAR a ancho completo. */}
+        <div className="cdd-form-row2">
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
@@ -234,6 +236,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           invalid={modeloInvalido}
           enterKeyHint="next"
         />
+        </div>
         <YearField value={anio} onChange={setAnio} tolerance={tolerance} inputRef={anioRef} />
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
             Con campos incompletos el botón queda tocable con aspecto apagado

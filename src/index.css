@@ -417,21 +417,14 @@ body,
 
 .cdd-app {
   position: relative; min-height: 100svh; width: 100%;
-  background: var(--bg2); color: var(--cdd-text);
+  background: var(--bg); color: var(--cdd-text);
   font-family: var(--font-body); -webkit-font-smoothing: antialiased;
   overflow-x: clip;
 }
-/* Fondo "aurora": dos halos (menta + oro) que derivan muy lento. Da vida
-   premium continua a TODA la pantalla sin distraer (28s, GPU via transform).
-   Usa los tokens del tema, asi funciona en platino y cobre. */
-.cdd-ambient { position: fixed; inset: -8%; pointer-events: none; z-index: 0; opacity: .7;
-  /* Profundidad espacial sutil (dir. visionOS): un halo de menta arriba y un eco
-     tenue abajo. Fuera la "aurora" multicolor chillona — el fondo da DIMENSIÓN,
-     no protagonismo. El color vivo se reserva a la acción (menta) y al premio (oro). */
-  background:
-    radial-gradient(1000px 640px at 50% -16%, color-mix(in oklab, var(--accent) 15%, transparent), transparent 58%),
-    radial-gradient(820px 520px at 50% 118%, color-mix(in oklab, var(--accent) 7%, transparent), transparent 60%);
-  animation: cddAurora 28s ease-in-out infinite alternate; }
+/* Fondo plano (rediseño v0): se retira la aurora animada; el fondo es sólido
+   (var(--bg) en .cdd-app). El elemento .cdd-ambient sigue en el JSX pero no
+   pinta nada (display:none) — sin churn de componente. */
+.cdd-ambient { display: none; }
 @keyframes cddAurora {
   0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
   100% { transform: translate3d(3%, 2%, 0) scale(1.08); }
@@ -449,16 +442,12 @@ body,
 .cdd-header {
   position: sticky; top: 0; z-index: 40;
   display: flex; align-items: center; justify-content: space-between;
-  /* Barra de cristal STICKY: al scrollear, frosta el contenido que pasa por
-     debajo (foto / historial) — sensación de capa física (estándar premium).
-     Inset por el padding del shell → flota como barra. Si un ancestro con
-     overflow rompiese el sticky, degrada a barra normal (no se rompe nada). */
-  margin-bottom: 14px; padding: 9px 12px; border-radius: 16px;
-  background: color-mix(in oklab, var(--bg2) 52%, transparent);
-  border: 1px solid var(--line);
-  box-shadow: var(--edge), 0 12px 30px -20px rgba(0,0,0,.8);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
+  /* Barra sticky PLANA (rediseño v0): fondo sólido + línea inferior, sin blur ni
+     glints. Al scrollear, el contenido pasa por debajo sobre fondo opaco. */
+  margin-bottom: 14px; padding: 9px 4px; border-radius: 0;
+  background: var(--bg);
+  border: 0; border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .cdd-wordmark { display: flex; align-items: center; min-width: 0; }
 /* Sin badge "CDD": el wordmark "Coche del Día" es ahora el protagonista de la
@@ -480,7 +469,7 @@ body,
   background: none; border: 0; box-shadow: none;
   color: var(--cdd-muted); cursor: pointer; transition: color .18s, transform .15s;
 }
-.cdd-iconbtn:hover { color: var(--cdd-text); }
+.cdd-iconbtn:hover { color: var(--cdd-text); background: color-mix(in oklab, var(--cdd-text) 8%, transparent); border-radius: 10px; }
 .cdd-iconbtn:active { transform: scale(.88); }
 
 /* ── Píldora de estado: racha + puesto en el ranking ──
@@ -503,7 +492,7 @@ body,
    (.seg-rank) hereda el acento menta de la píldora — dos motores de retorno,
    dos colores: menta "actúa/sube", oro "lo que ya has acumulado". */
 .cdd-statuspill .seg-streak { color: var(--gold); }
-.cdd-statuspill .seg-streak b { color: var(--gold); text-shadow: 0 0 12px var(--gold-glow); }
+.cdd-statuspill .seg-streak b { color: var(--gold); }
 .cdd-statuspill:hover { color: var(--cdd-text); transform: translateY(-1px); }
 .cdd-statuspill:active { transform: scale(.96); }
 .cdd-statuspill .seg { display: inline-flex; align-items: center; gap: 4px; }

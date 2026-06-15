@@ -142,6 +142,12 @@
     </script>
     </head>
   <body>
+    <!-- (Se retiró el filtro de refracción SVG #cdd-liquid: solo lo soportaba
+         Chromium y rompía la consistencia entre dispositivos. El "borde de
+         cristal" ahora lo dan efectos UNIVERSALES — blur + glints cromáticos en
+         las esquinas + canto — para que iPhone, Android y escritorio se vean
+         igual. Ver index.css. -->
+
     <noscript>
       <div style="padding:2rem;text-align:center;color:#f0f0f4;background:#0a0a0b;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
         <h1 style="font-size:1.5rem;color:#e8c87a">El Coche del Día</h1>

@@ -84,24 +84,24 @@
      tenue. Es la pieza base del rediseño premium; la usan tanto componentes
      con clases Tailwind (header, modales) como bloques sueltos.
 
-     Por qué `saturate(160%)`: el blur por sí solo "apaga" el fondo; saturar
+     Por qué `saturate(var(--mat-sat))`: el blur por sí solo "apaga" el fondo; saturar
      recupera la viveza del acento que se filtra a través del cristal, que es
      lo que da la sensación de vidrio real y no de panel opaco.
      Degradación elegante: sin soporte de backdrop-filter, el relleno sube a
      un tono sólido (vía @supports abajo) para no quedar ilegible. */
   .glass {
-    background-color: rgba(255, 255, 255, 0.045);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    background-color: var(--mat-fill-1);
+    border: 1px solid var(--line);
+    box-shadow: var(--edge);
+    backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
+    -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   }
   .glass-strong {
-    background-color: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(22px) saturate(170%);
-    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    background-color: var(--mat-fill-3);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--elev-1), var(--edge);
+    backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
+    -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
   }
   /* Fallback cuando el navegador no soporta el desenfoque: relleno sólido para
      mantener el contraste del texto (no degradar la legibilidad). */
@@ -112,26 +112,48 @@
   /* Scrim de modal: oscurece + DESENFOCA la página de fondo (blur fuerte) para
      el efecto "liquid glass" — el contenido detrás se funde en vidrio. Sustituye
      al antiguo bg-black/80 + backdrop-blur-sm (4px), apenas perceptible. */
-  .modal-scrim {
+  /* Overlays SIN panel de cristal (lightbox, drawer, repesca): mantienen el
+     desenfoque del fondo. */
+  .scrim {
     background: rgba(4, 6, 9, 0.62);
     backdrop-filter: blur(10px) saturate(140%);
     -webkit-backdrop-filter: blur(10px) saturate(140%);
+  }
+  /* Scrim de modal: SOLO tinte (sin blur). Así el panel de cristal de encima
+     refracta contenido NÍTIDO — un fondo ya desenfocado no se "doblaría". */
+  .modal-scrim {
+    background: rgba(4, 6, 9, 0.66);
   }
   /* Panel de modal Liquid Glass: superficie translúcida (legible: 84% sobre el
      scrim oscuro) + blur fuerte + canto de luz superior + sombra flotante.
      Solo define material (fondo/borde/sombra/blur/radio); cada modal conserva
      sus clases de layout (max-w, flex, overflow…). */
+  /* Panel de modal: material translúcido SOBRE el scrim. SIN backdrop-filter
+     propio: el scrim ya desenfocó la página, así que volver a desenfocar aquí
+     anidaría dos capas de blur (el anti-patrón de perf que tenía la app). Rim
+     especular para el acabado premium. Solo material; cada modal su layout. */
   .modal-panel-glass {
-    background: color-mix(in oklab, #14181e 84%, transparent);
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    position: relative;
+    /* Glints de luz en las esquinas superiores (las "curvas de luz" del cristal)
+       + relleno translúcido que deja refractar el fondo a través del panel. */
+    background:
+      radial-gradient(150px at 0% 0%, rgba(150,255,235,.30), transparent 70%),
+      radial-gradient(150px at 100% 0%, rgba(255,236,210,.24), transparent 70%),
+      color-mix(in oklab, var(--surface) 80%, transparent);
+    border: 1px solid var(--line-strong);
     border-radius: 18px;
-    box-shadow: 0 32px 70px -28px rgba(0, 0, 0, 0.88), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(24px) saturate(175%);
-    -webkit-backdrop-filter: blur(24px) saturate(175%);
+    box-shadow: var(--elev-3), var(--edge), 0 0 60px -22px color-mix(in oklab, var(--accent) 30%, transparent);
+    /* Base (todos los navegadores): cristal esmerilado. */
+    -webkit-backdrop-filter: blur(11px) saturate(165%);
+    backdrop-filter: blur(11px) saturate(165%);
   }
+  /* (Sin refracción SVG: el cristal es UNIVERSAL — blur + glints cromáticos +
+     canto — para verse igual en todos los dispositivos.) */
+  /* Bisel del panel = --edge (scroll-safe). Sin ::before: dentro de un modal con
+     scroll un ::before absoluto se desancla del borde al desplazar el contenido. */
   @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
-    .modal-scrim { background: rgba(4, 6, 9, 0.86); }
-    .modal-panel-glass { background: #14181e; }
+    .scrim { background: rgba(4, 6, 9, 0.86); }
+    .modal-panel-glass { background: var(--surface); }
   }
 
   /* Realce de borde al pasar el ratón sobre una superficie de cristal. */
@@ -141,6 +163,60 @@
   .glass-hover:hover {
     border-color: rgba(255, 255, 255, 0.16);
     background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  /* ── Clases componibles del material unificado ──
+     `.glass`/`.glass-strong` (arriba) son la superficie CON desenfoque para
+     piezas SOBRE la página. `.glass-panel` es la variante SIN desenfoque para
+     piezas SOBRE un scrim (modales, end-card y sus tiles): el scrim ya
+     desenfocó la página → volver a desenfocar sería ANIDAR backdrop-filter
+     (mata el framerate en móvil). Lee como cristal igual gracias al relleno
+     translúcido + rim + sombra. */
+  .glass-panel {
+    background: var(--mat-fill-3);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--elev-3), var(--edge);
+  }
+  @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    .glass-panel { background: var(--surface); }
+  }
+
+  /* Rim especular: canto superior-izquierdo brillante que decae, simulando una
+     fuente de luz cenital-lateral. Es lo que separa "caja translúcida" de
+     "cristal premium". Va por ::before enmascarado (borde-gradiente), así que
+     NO usar en elementos que ya ocupen su ::before. Intensidad por --spec. */
+  .spec { position: relative; }
+  .spec::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg,
+      rgba(255,255,255,var(--spec, .5)),
+      rgba(255,255,255,calc(var(--spec, .5) * .12)) 32%,
+      transparent 56%,
+      rgba(255,255,255,calc(var(--spec, .5) * .28)));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Lift: micro-interacción de elevación al pasar el ratón / pulsar. Solo en
+     dispositivos con hover real (en táctil no hay hover y basta el :active);
+     anulada en reduced-motion. La sombra/glow la sube cada superficie en su
+     propio :hover (esta clase solo mueve el plano). */
+  @media (hover: hover) and (pointer: fine) {
+    .lift { transition: transform .2s ease, box-shadow .2s ease; }
+    .lift:hover { transform: translateY(-2px); }
+    .lift:active { transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lift { transition: none; }
+    .lift:hover, .lift:active { transform: none; }
+  }
+
+  /* Menos transparencia (preferencia del SO): rellenos casi opacos en el
+     material translúcido — legibilidad por encima de la estética. */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-panel, .modal-panel-glass { background: var(--surface); }
   }
 
   /* Acento ORO premium (texto). Para etiquetas/valores de momentos de alta
@@ -243,11 +319,24 @@ body,
   /* Oro premium: acento metálico reservado a momentos de alta gama (racha,
      victoria, podio). Tinta oscura para texto sobre relleno oro (contraste AA). */
   --gold: #e8c87a; --gold-ink: #1a1306; --gold-glow: rgba(232,200,122,.38);
-  /* Cristal líquido: relleno traslúcido + canto de luz. Tokens para que todas
-     las superficies premium compartan la misma física (translucidez + blur). */
-  --glass-fill: rgba(255,255,255,.045); --glass-fill-2: rgba(255,255,255,.07);
-  --glass-edge: inset 0 1px 0 rgba(255,255,255,.06);
-  --glass-blur: 18px;
+  /* Cristal líquido: ver el sistema --mat-* abajo (fuente única). */
+  /* ── Sistema de material unificado (refactor Cristal Líquido) ──
+     Dos ejes que antes iban mezclados en cada superficie: MATERIAL (relleno
+     translúcido + blur + saturación = la refracción) y LUZ (canto + rim
+     especular + sombra + glow = cómo le da la luz). Una sola escala para toda
+     la app: adiós a blur 4/10/18/22/24 y saturate 140/160/170/175 sueltos. */
+  --mat-fill-1: rgba(255,255,255,.075); --mat-fill-2: rgba(255,255,255,.10); --mat-fill-3: rgba(255,255,255,.14);
+  --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
+  /* Canto/bisel: highlight superior + izquierdo (luz cenital-lateral). Por
+     box-shadow inset → es scroll-safe (a diferencia de un ::before que se
+     desancla dentro de un contenedor con scroll). El rim ::before fuerte se
+     reserva al escenario (hero, sin scroll). --spec gradúa ese rim. */
+  --edge: inset 0 1px 0 rgba(255,255,255,.20), inset 1px 0 0 rgba(255,255,255,.09); --spec: .62;
+  --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
+  --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
+  --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
+  --glow-accent: 0 0 44px -6px rgba(122,240,200,.62); --glow-gold: 0 0 44px -6px rgba(232,200,122,.62);
+  --line-strong: rgba(255,255,255,.26);
   --font-display: 'Archivo', sans-serif; --font-body: 'Archivo', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 500px at 50% -8%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
@@ -262,9 +351,16 @@ body,
   --warn: #eab44e;
   /* En tema cobre el oro y el acento conviven cálidos; el oro tira a ámbar. */
   --gold: #e8c87a; --gold-ink: #1a0d04; --gold-glow: rgba(232,200,122,.42);
-  --glass-fill: rgba(255,238,220,.05); --glass-fill-2: rgba(255,238,220,.08);
-  --glass-edge: inset 0 1px 0 rgba(255,238,220,.07);
-  --glass-blur: 18px;
+  /* Cristal líquido: ver el sistema --mat-* abajo (fuente única, cálido). */
+  /* Material unificado, variante cálida del tema cobre (ver platino). */
+  --mat-fill-1: rgba(255,238,220,.08); --mat-fill-2: rgba(255,238,220,.11); --mat-fill-3: rgba(255,238,220,.15);
+  --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
+  --edge: inset 0 1px 0 rgba(255,238,220,.22), inset 1px 0 0 rgba(255,238,220,.10); --spec: .58;
+  --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
+  --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
+  --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
+  --glow-accent: 0 0 44px -6px rgba(122,240,200,.62); --glow-gold: 0 0 44px -6px rgba(232,200,122,.62);
+  --line-strong: rgba(255,238,220,.26);
   --font-display: 'Sora', sans-serif; --font-body: 'Sora', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 520px at 50% -8%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 72%);
@@ -279,10 +375,13 @@ body,
 /* Fondo "aurora": dos halos (menta + oro) que derivan muy lento. Da vida
    premium continua a TODA la pantalla sin distraer (28s, GPU via transform).
    Usa los tokens del tema, asi funciona en platino y cobre. */
-.cdd-ambient { position: fixed; inset: -8%; pointer-events: none; z-index: 0; opacity: .8;
+.cdd-ambient { position: fixed; inset: -8%; pointer-events: none; z-index: 0; opacity: .7;
+  /* Profundidad espacial sutil (dir. visionOS): un halo de menta arriba y un eco
+     tenue abajo. Fuera la "aurora" multicolor chillona — el fondo da DIMENSIÓN,
+     no protagonismo. El color vivo se reserva a la acción (menta) y al premio (oro). */
   background:
-    radial-gradient(820px 480px at 20% -6%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%),
-    radial-gradient(680px 440px at 84% 4%, color-mix(in oklab, var(--gold) 16%, transparent), transparent 72%);
+    radial-gradient(1000px 640px at 50% -16%, color-mix(in oklab, var(--accent) 15%, transparent), transparent 58%),
+    radial-gradient(820px 520px at 50% 118%, color-mix(in oklab, var(--accent) 7%, transparent), transparent 60%);
   animation: cddAurora 28s ease-in-out infinite alternate; }
 @keyframes cddAurora {
   0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
@@ -298,7 +397,20 @@ body,
 .cdd-mono { font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 
 /* ── Cabecera (ceñida; compactada para hacer la foto más cuadrada) ── */
-.cdd-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0; margin-bottom: 14px; }
+.cdd-header {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  /* Barra de cristal STICKY: al scrollear, frosta el contenido que pasa por
+     debajo (foto / historial) — sensación de capa física (estándar premium).
+     Inset por el padding del shell → flota como barra. Si un ancestro con
+     overflow rompiese el sticky, degrada a barra normal (no se rompe nada). */
+  margin-bottom: 14px; padding: 9px 12px; border-radius: 16px;
+  background: color-mix(in oklab, var(--bg2) 52%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: var(--edge), 0 12px 30px -20px rgba(0,0,0,.8);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
 .cdd-wordmark { display: flex; align-items: center; min-width: 0; }
 /* Sin badge "CDD": el wordmark "Coche del Día" es ahora el protagonista de la
    barra — más grande y rotundo, con el acento reservado para fecha + H1. */
@@ -307,20 +419,20 @@ body,
 /* Wordmark adelgazado (antes 800 / clamp 18-22): en vertical no necesita gritar
    cada día. Más ligero y pequeño → el header baja ~35% y la foto sube. */
 .cdd-title { font-family: var(--font-display); font-weight: 700; font-size: clamp(16px, 4.2vw, 19px); letter-spacing: -.01em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cdd-nav { display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* Glyphs libres ceñidos: juntos se leen como UN grupo de acciones, no como
+   iconos sueltos perdidos por la barra. */
+.cdd-nav { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .cdd-iconbtn {
   position: relative;
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-  height: 32px; min-width: 32px; padding: 0 7px; border-radius: 9px; flex: none;
-  /* Cristal líquido: relleno traslúcido + desenfoque del fondo (deja pasar el
-     halo ambiente del acento) en vez del antiguo panel opaco --surface. */
-  background: var(--glass-fill); border: 1px solid var(--line); color: var(--cdd-muted);
-  box-shadow: var(--glass-edge);
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  cursor: pointer; transition: .18s;
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 36px; min-width: 32px; padding: 0 2px; flex: none;
+  /* Glyphs libres (dir. visionOS): SIN contenedor — el icono respira solo. El
+     chrome (caja/borde/blur) restaba sensación premium; aquí manda el contenido. */
+  background: none; border: 0; box-shadow: none;
+  color: var(--cdd-muted); cursor: pointer; transition: color .18s, transform .15s;
 }
-.cdd-iconbtn:hover { color: var(--cdd-text); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); background: var(--glass-fill-2); }
+.cdd-iconbtn:hover { color: var(--cdd-text); }
+.cdd-iconbtn:active { transform: scale(.88); }
 
 /* ── Píldora de estado: racha + puesto en el ranking ──
    El ranking asciende de icono mudo a estado vivo (muestra el puesto). Compacta
@@ -329,27 +441,22 @@ body,
    números en texto claro. tabular-nums para que el #N no salte al subir. */
 .cdd-statuspill {
   position: relative;
-  display: inline-flex; align-items: center; gap: 5px; flex: none;
-  height: 32px; padding: 0 9px; border-radius: 9px;
-  background: color-mix(in oklab, var(--accent) 10%, var(--glass-fill));
-  border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
-  color: var(--accent);
-  box-shadow: var(--glass-edge);
-  backdrop-filter: blur(var(--glass-blur)) saturate(170%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
-  font-family: var(--font-mono); font-size: 12px;
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  height: 36px; padding: 0 2px;
+  /* Glyph libre: racha (oro) + puesto (texto), sin caja. */
+  background: none; border: 0; box-shadow: none;
+  color: var(--cdd-muted);
+  font-family: var(--font-mono); font-size: 13px;
   font-variant-numeric: tabular-nums;
-  cursor: pointer; transition: .18s;
+  cursor: pointer; transition: color .18s, transform .15s;
 }
 /* Racha = oro premium: icono + número en oro con halo tenue. El puesto
    (.seg-rank) hereda el acento menta de la píldora — dos motores de retorno,
    dos colores: menta "actúa/sube", oro "lo que ya has acumulado". */
 .cdd-statuspill .seg-streak { color: var(--gold); }
 .cdd-statuspill .seg-streak b { color: var(--gold); text-shadow: 0 0 12px var(--gold-glow); }
-.cdd-statuspill:hover {
-  background: color-mix(in oklab, var(--accent) 16%, var(--surface));
-  border-color: color-mix(in oklab, var(--accent) 50%, var(--line));
-}
+.cdd-statuspill:hover { color: var(--cdd-text); transform: translateY(-1px); }
+.cdd-statuspill:active { transform: scale(.96); }
 .cdd-statuspill .seg { display: inline-flex; align-items: center; gap: 4px; }
 .cdd-statuspill b { color: var(--cdd-text); font-weight: 700; }
 .cdd-statuspill .divider {
@@ -362,19 +469,13 @@ body,
    jugador es jugar (mirar foto → adivinar); el acento macizo se reserva para el
    CTA real (ADIVINAR) y para los aciertos. Sigue siendo descubrible —y el modal de
    ranking trae su propio login para el anónimo— sin robarle el foco al juego. */
-.cdd-statuspill.cta {
-  background: var(--glass-fill);
-  border-color: color-mix(in oklab, var(--accent) 45%, var(--line));
-  color: var(--accent);
-}
+/* CTA anónimo "Compite →": glyph libre en menta (es una acción → menta). */
+.cdd-statuspill.cta { color: var(--accent); }
 .cdd-statuspill.cta b { color: var(--accent); }
-.cdd-statuspill.cta:hover {
-  background: color-mix(in oklab, var(--accent) 12%, var(--surface));
-  border-color: color-mix(in oklab, var(--accent) 60%, var(--line));
-}
+.cdd-statuspill.cta:hover { color: var(--accent); filter: brightness(1.15); }
 
 /* Punto de alerta de repesca sobre el icono de garaje */
-.cdd-iconbtn .cdd-alert-dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%;
+.cdd-iconbtn .cdd-alert-dot { position: absolute; top: 2px; right: 0; width: 7px; height: 7px; border-radius: 50%;
   background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 
 /* ── Dateline (bajo el wordmark, dentro del header) ── */
@@ -396,12 +497,12 @@ body,
 .cdd-intro { display: flex; align-items: center; margin-bottom: 8px; }
 .cdd-helpchip { position: relative; display: inline-flex; align-items: center; gap: 6px;
   height: 30px; padding: 0 12px; border-radius: 999px;
-  background: var(--glass-fill); border: 1px solid var(--line); box-shadow: var(--glass-edge);
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  background: var(--mat-fill-1); border: 1px solid var(--line); box-shadow: var(--edge);
+  backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
+  -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
   color: var(--cdd-muted); font-family: var(--font-body); font-size: 12.5px;
   cursor: pointer; transition: .18s; }
-.cdd-helpchip:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+.cdd-helpchip:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); box-shadow: var(--edge), var(--glow-accent); }
 /* Latido suave que invita a abrir "cómo se juega" sin modal forzado. Se apaga
    al abrirlo (App pone howtoPulse=false). */
 .cdd-helpchip.pulse { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); animation: cddHelpPulse 2.2s ease-in-out infinite; }
@@ -421,13 +522,30 @@ body,
 .cdd-stage { width: 100%; }
 .cdd-stage-frame {
   position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden;
-  border-radius: 18px; border: 1px solid rgba(255,255,255,.12);
+  border-radius: 26px; border: 1px solid var(--line-strong);
   background: var(--surface);
-  /* Elevación flotante "Liquid Glass": sombra profunda + canto de luz superior
-     (inset highlight) que define el borde del cristal sobre el fondo grafito.
-     Polish premium #4: borde un punto mas claro para rematar el bisel; la
-     viñeta inferior va en ::after (un inset box-shadow quedaria DETRAS del <img>). */
-  box-shadow: 0 34px 64px -30px rgba(0,0,0,.85), 0 0 60px -26px color-mix(in oklab, var(--accent) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 1px var(--line-2);
+  /* Elevación flotante: sombra profunda + ambiente de menta MUY contenido (no
+     neón) + canto de luz. Esquinas más suaves (26px) para el lenguaje visionOS.
+     La viñeta inferior va en ::after; el rim especular en ::before. */
+  box-shadow: 0 40px 80px -34px rgba(0,0,0,.9), 0 0 70px -30px color-mix(in oklab, var(--accent) 45%, transparent), inset 0 1.5px 0 rgba(255,255,255,.14), inset 0 0 0 1px var(--line-2);
+}
+/* Rim especular del cristal del escenario (hero → un punto más fuerte). Va por
+   ::before porque el ::after ya lo ocupa la viñeta; z:7 sobre la foto/grain pero
+   solo es el anillo de 1px del borde (no pisa el HUD, que vive con margen). */
+.cdd-stage-frame::before {
+  content: ""; position: absolute; inset: 0; z-index: 7; pointer-events: none;
+  border-radius: inherit; padding: 1px;
+  /* Fringe cromático en el canto: la foto tapa el fondo, así que la refracción
+     real no se ve a través — pero un canto que descompone la luz (cian-menta
+     arriba-izq, cálido abajo-der) imita ese "borde de cristal" del liquid glass. */
+  background: linear-gradient(135deg,
+    rgba(170,255,238,calc(var(--spec) * 1.05)),
+    rgba(255,255,255,calc(var(--spec) * .14)) 30%,
+    transparent 54%,
+    rgba(255,224,196,calc(var(--spec) * .34)));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
 }
 /* Viñeta inferior por ENCIMA de la foto (z entre la imagen y el HUD/grain):
    contiene las carrocerías claras para que no sangren hacia la UI oscura. */
@@ -486,7 +604,7 @@ body,
    z-50: sobre el contenido pero bajo EndScreen (60) y modales (100+).
    fixed + top: anclado al viewport LAYOUT — con teclado abierto lo fijado
    arriba sigue visible (lo problemático es anclar abajo). */
-.cdd-peek { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 50;
+.cdd-peek { position: fixed; top: calc(64px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 50;
   width: 96px; height: 96px; padding: 0; overflow: hidden; cursor: pointer;
   border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
   box-shadow: 0 18px 40px -16px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.35);
@@ -571,8 +689,10 @@ body,
 .tone-near .cdd-flag { width: 20px; height: 13px; }
 /* Fallo: rojo apagado + texto BLANCO (no muted). El paso de cdd-muted a cdd-text
    es lo que convierte el chip de "casilla inactiva" en "esto está mal". */
-.tone-off { background: color-mix(in oklab, var(--bad) 15%, var(--surface)); color: var(--cdd-text);
-  border: 1px solid color-mix(in oklab, var(--bad) 50%, var(--line)); }
+/* Fallo: pastilla NEUTRAL translúcida (sin caja roja pesada). El rojo se reserva,
+   muy sutil, al borde y al icono ✕ — no al relleno. */
+.tone-off { background: color-mix(in oklab, var(--surface) 50%, transparent); color: var(--cdd-text);
+  border: 1px solid color-mix(in oklab, var(--bad) 32%, var(--line)); }
 .tone-off .cdd-chip-mark { color: var(--bad-ink); }
 .tone-off .cdd-chip-sub { color: var(--bad-sub); }
 /* Fila pendiente (esperando al servidor): shimmer neutro */
@@ -594,21 +714,34 @@ body,
 }
 
 /* ── Formulario ── */
-.cdd-form { display: flex; flex-direction: column; gap: 13px; }
+.cdd-form { display: flex; flex-direction: column; gap: 14px;
+  /* Cristal líquido HIPER-REFINADO (Apple/Vercel): fondo oscuro casi transparente
+     + desenfoque fuerte + UN borde superior de 1px al ~8% que simula el reflejo
+     de la luz en el canto. Sin resplandores, glints ni sombras genéricas: la
+     elegancia está en la contención. Los pozos de dentro no desenfocan (no anidar). */
+  padding: 16px; border-radius: 24px;
+  background: color-mix(in oklab, var(--bg2) 52%, transparent);
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 34px -26px rgba(0,0,0,.75);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%); }
 .cdd-field { display: flex; flex-direction: column; gap: 7px; position: relative; }
 /* 11px/10px y no 10/9: el mono caps por debajo de 11px se empasta en pantallas
    de DPI bajo (auditoría UX #11) — y son los labels más leídos del juego. */
 /* Polish premium #2: labels editoriales — mas tracking y un punto mas de
    contraste = sensacion "ficha tecnica" (jerarquia tipografica). */
-.cdd-label { font-size: 11px; letter-spacing: .16em; color: color-mix(in oklab, var(--cdd-muted) 72%, #fff); display: flex; align-items: center; justify-content: space-between; }
+/* Micro-tipografía: labels más espaciados y MÁS APAGADOS (ficha técnica). Bajar
+   su contraste hace que el valor real (blanco) destaque por jerarquía. */
+.cdd-label { font-size: 11px; letter-spacing: .26em; color: color-mix(in oklab, var(--cdd-muted) 78%, transparent); display: flex; align-items: center; justify-content: space-between; }
 .cdd-label-hint { font-family: var(--font-mono); font-size: 10px; color: var(--faint); text-transform: none; letter-spacing: .02em; }
 .cdd-combo, .cdd-year { position: relative; display: flex; align-items: center;
-  /* Polish premium #1: profundidad de vidrio — borde un punto mas claro + lift
-     sutil para que el campo "flote" sobre el grafito en vez de leerse plano. */
-  background: var(--glass-fill); border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
-  box-shadow: var(--glass-edge), 0 2px 10px -6px rgba(0,0,0,.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  /* "Pozo" embutido en el panel: relleno oscuro + sombra interior = el campo se
+     hunde en el cristal (sensación física, dir. visionOS). El panel padre NO
+     lleva backdrop-filter, así que el del pozo es la ÚNICA capa de blur del
+     linaje (no anidamos) y a la vez crea el stacking context del que depende el
+     z-index:40 del listbox (no romper MARCA sobre MODELO/AÑO). */
+  background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.07); border-radius: 14px;
+  box-shadow: inset 0 2px 6px -3px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.04);
   transition: .18s; }
 .cdd-combo.is-open, .cdd-combo:focus-within, .cdd-year:focus-within {
   border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
@@ -627,7 +760,7 @@ body,
    margen y deja el campo enfocado POR DEBAJO de la franja del PhotoPeek
    (top 10 + 96 + respiro) — sin él, la miniatura caería encima del input. */
 @media (pointer: coarse) {
-  .cdd-input { scroll-margin-top: 118px; }
+  .cdd-input { scroll-margin-top: 172px; }
 }
 /* Placeholder en muted, no faint: "Escribe o elige…" es la invitación a la
    acción principal y con --faint quedaba a ~2.9:1 sobre --surface (auditoría
@@ -641,13 +774,15 @@ body,
   margin: 0; padding: 6px; list-style: none;
   /* Overlay flotante: cristal reforzado (más opaco + blur fuerte) para que el
      texto de las opciones quede legible sobre lo que tape. */
-  background: color-mix(in oklab, var(--surface) 78%, transparent); border: 1px solid var(--line-2); border-radius: 14px;
-  box-shadow: 0 26px 50px -24px rgba(0,0,0,.85), var(--glass-edge);
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%); }
+  background: color-mix(in oklab, var(--surface) 90%, transparent); border: 1px solid var(--line-strong); border-radius: 14px;
+  box-shadow: 0 32px 60px -22px rgba(0,0,0,.92), var(--edge), 0 0 0 1px rgba(0,0,0,.35);
+  backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
+  -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat)); }
 .cdd-opt { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--cdd-text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.cdd-opt:hover, .cdd-opt.hi { background: var(--surface2); }
-.cdd-opt.sel { color: var(--accent); }
+/* Opción resaltada: tinte de acento + barra de acento a la izquierda (da
+   profundidad y "foco" — antes era un cambio de gris apenas perceptible). */
+.cdd-opt:hover, .cdd-opt.hi { background: color-mix(in oklab, var(--accent) 15%, var(--surface2)); box-shadow: inset 2px 0 0 0 var(--accent); }
+.cdd-opt.sel { color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
 .cdd-opt-empty { color: var(--faint); cursor: default; }
 .cdd-opt .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
 .cdd-year-input { padding-right: 6px; }
@@ -668,9 +803,9 @@ body,
 .cdd-decades { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
   display: flex; gap: 5px; padding: 6px;
   background: color-mix(in oklab, var(--surface) 78%, transparent); border: 1px solid var(--line-2); border-radius: 14px;
-  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8), var(--glass-edge);
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%); }
+  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8), var(--edge);
+  backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
+  -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat)); }
 .cdd-decade { flex: 1; padding: 8px 0; min-width: 0; text-align: center;
   background: var(--surface2); border: 1px solid var(--line); border-radius: 8px;
   color: var(--cdd-text); font-size: 11px; cursor: pointer; transition: .15s; }
@@ -683,8 +818,8 @@ body,
   color: var(--accent-ink); font-family: var(--font-display);
   font-weight: 800; font-size: 14px; letter-spacing: .14em; text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 9px; transition: .18s;
-  box-shadow: 0 16px 36px -12px var(--accent), inset 0 1px 0 rgba(255,255,255,.4); }
-.cdd-submit:hover:not(:disabled):not(.is-incomplete) { transform: translateY(-1px); box-shadow: 0 18px 40px -14px var(--accent); }
+  box-shadow: 0 10px 26px -10px color-mix(in oklab, var(--accent) 72%, transparent), inset 0 1px 0 rgba(255,255,255,.5); }
+.cdd-submit:hover:not(:disabled):not(.is-incomplete) { transform: translateY(-1px); box-shadow: 0 14px 32px -10px color-mix(in oklab, var(--accent) 82%, transparent), inset 0 1px 0 rgba(255,255,255,.55); }
 .cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(0); }
 /* Label en --cdd-muted y no --faint: --faint sobre --surface2 da ~2.7:1 y el
    CTA (el texto más importante de la pantalla) se leía como "roto" (auditoría
@@ -697,8 +832,13 @@ body,
    nada). Al completarse, la transition .18s del botón anima apagado→accent:
    micro-feedback de "listo para disparar". El ring interior mantiene la
    affordance de botón mientras está apagado (sin sombra ni relleno accent). */
-.cdd-submit.is-incomplete { background: var(--surface2); color: var(--cdd-muted);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 0 1px var(--line); }
+.cdd-submit.is-incomplete {
+  /* Ya NO "muerto": un lavado de acento muy sutil + aro tintado + texto que tira
+     a acento = se lee como la acción primaria ESPERANDO datos (táctil), sin
+     encenderse del todo (eso se reserva al estado completo). */
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 13%, var(--surface2)), var(--surface2));
+  color: color-mix(in oklab, var(--cdd-text) 62%, var(--accent));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, var(--line)); }
 /* Variante SECUNDARIA (ghost): borde de acento sobre fondo transparente. Para
    acciones que no deben competir con el CTA primario en la misma pantalla
    (p.ej. "guardar progreso" junto a "compartir"). Menos alto y sin sombra. */
@@ -724,11 +864,27 @@ body,
 .cdd-end { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
            max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
-.cdd-end-scrim { position: absolute; inset: 0; background: color-mix(in oklab, var(--bg2) 88%, transparent); animation: cddFade .3s ease; }
-@supports (backdrop-filter: blur(2px)) { .cdd-end-scrim { background: color-mix(in oklab, var(--bg2) 72%, transparent); backdrop-filter: blur(10px); } }
+/* Scrim del EndScreen: SOLO tinte (sin blur) para que el card de encima refracte
+   el escenario nítido. Un punto más oscuro para mantener el foco sin desenfoque. */
+.cdd-end-scrim { position: absolute; inset: 0; background: color-mix(in oklab, var(--bg2) 82%, transparent); animation: cddFade .3s ease; }
 .cdd-end-card { position: relative; width: 100%; max-width: 460px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
-  background: var(--bg); border: 1px solid var(--line); border-radius: 20px;
-  box-shadow: 0 50px 90px -40px rgba(0,0,0,.9); animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
+  /* Pico celebratorio acristalado: translúcido sobre el scrim (que ya desenfoca)
+     + bisel --edge. SIN backdrop-filter propio (no anidar blur sobre el scrim). */
+  /* Pico celebratorio acristalado: glints en esquinas + relleno translúcido +
+     bloom de acento (sin movimiento). El canto refracta el escenario (Chromium)
+     en el @supports de abajo. */
+  background:
+    radial-gradient(160px at 0% 0%, rgba(150,255,235,.30), transparent 70%),
+    radial-gradient(160px at 100% 0%, rgba(255,236,210,.24), transparent 70%),
+    color-mix(in oklab, var(--surface) 80%, transparent);
+  border: 1px solid var(--line-strong); border-radius: 20px;
+  box-shadow: var(--elev-3), var(--edge), 0 0 70px -18px color-mix(in oklab, var(--accent) 42%, transparent);
+  -webkit-backdrop-filter: blur(11px) saturate(165%);
+  backdrop-filter: blur(11px) saturate(165%);
+  animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .cdd-end-card { background: var(--bg); }
+}
 @keyframes cddFade { from { opacity: 0; } }
 @keyframes cddRise { from { opacity: 0; transform: translateY(22px) scale(.98); } }
 
@@ -771,20 +927,20 @@ body,
 
 .cdd-end-tabs { display: flex; gap: 8px; padding: 16px 18px 0; }
 .cdd-tab { flex: 1; padding: 10px; font-size: 10px; border-radius: 9px; cursor: pointer;
-  background: var(--surface); border: 1px solid var(--line); color: var(--cdd-muted); }
+  background: var(--mat-fill-2); border: 1px solid var(--line); color: var(--cdd-muted); box-shadow: var(--edge); }
 .cdd-tab.on { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
 .cdd-end-body { padding: 14px 18px 4px; display: flex; flex-direction: column; gap: 14px; }
 
 .cdd-sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .cdd-sheet-3 { grid-template-columns: repeat(3, 1fr); }
-.cdd-stat { background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; }
+.cdd-stat { background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; box-shadow: var(--edge); }
 .cdd-stat-k { font-size: 9px; color: var(--faint); margin-bottom: 4px; }
 .cdd-stat-v { font-size: 15px; font-weight: 700; }
 .cdd-stat-v.accent { color: var(--accent); }
 .cdd-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--cdd-muted); }
 
 /* Distribución de intentos (datos reales) — FICHA */
-.cdd-dist-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; }
+.cdd-dist-card { background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; box-shadow: var(--edge); }
 .cdd-dist-title { font-size: 9px; color: var(--faint); letter-spacing: .2em; margin: 0 0 9px; text-align: center; }
 .cdd-dist { display: flex; flex-direction: column; gap: 6px; }
 .cdd-dist-row { display: flex; align-items: center; gap: 8px; }
@@ -808,11 +964,11 @@ body,
 /* Cuadritos un punto más grandes y con menos padding vertical: la caja se ve
    menos vacía en victorias rápidas (pocas filas) sin agrandarla de más. */
 .cdd-grid { font-family: var(--font-mono); font-size: 22px; line-height: 1.4; margin: 0; padding: 12px 14px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; }
+  background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; box-shadow: var(--edge); }
 .cdd-share-btn { height: 50px; }
 
 .cdd-next { display: flex; align-items: center; justify-content: space-between; margin: 8px 18px 0;
-  padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  padding: 12px 14px; background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--edge); }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
 .cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
 .cdd-end-close { display: block; width: calc(100% - 36px); margin: 12px 18px 18px; padding: 13px;
@@ -912,7 +1068,7 @@ body,
   .cdd-main { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start; margin-bottom: 36px; }
   .cdd-stage-frame { aspect-ratio: 1 / 1; }
   .cdd-title { font-size: 24px; }
-  .cdd-col-panel { position: sticky; top: 28px; }
+  .cdd-col-panel { position: sticky; top: 88px; }
   /* El historial salió del panel sticky (ahora vive bajo el fold). Lo alineamos
      bajo la columna del formulario (track derecho ~.85fr del grid) para conservar
      el equilibrio de dos columnas en vez de ocupar todo el ancho. */

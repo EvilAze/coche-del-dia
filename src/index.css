@@ -656,6 +656,8 @@ body,
    sumar margin duplicaba el aire). El historial bajo el fold conserva su tamaño
    holgado porque no compite por el alto del viewport. */
 .cdd-live-attempt { margin-bottom: 0; }
+/* Kicker "ÚLTIMO INTENTO" (rediseño v0): etiqueta editorial sobre la fila viva. */
+.cdd-live-kicker { display: block; margin-bottom: 6px; font-size: 10px; letter-spacing: .14em; color: var(--cdd-muted); }
 .cdd-live-attempt .cdd-attempt-chips { gap: 6px; }
 /* La 'fila viva' compite por el alto del fold con la foto: nombre un punto más
    pequeño (12px) y meta más ceñida que en el historial de abajo. */

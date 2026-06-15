@@ -868,32 +868,20 @@ body,
    el escenario nítido. Un punto más oscuro para mantener el foco sin desenfoque. */
 .cdd-end-scrim { position: absolute; inset: 0; background: color-mix(in oklab, var(--bg2) 82%, transparent); animation: cddFade .3s ease; }
 .cdd-end-card { position: relative; width: 100%; max-width: 460px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
-  /* Pico celebratorio acristalado: translúcido sobre el scrim (que ya desenfoca)
-     + bisel --edge. SIN backdrop-filter propio (no anidar blur sobre el scrim). */
-  /* Pico celebratorio acristalado: glints en esquinas + relleno translúcido +
-     bloom de acento (sin movimiento). El canto refracta el escenario (Chromium)
-     en el @supports de abajo. */
-  background:
-    radial-gradient(160px at 0% 0%, rgba(150,255,235,.30), transparent 70%),
-    radial-gradient(160px at 100% 0%, rgba(255,236,210,.24), transparent 70%),
-    color-mix(in oklab, var(--surface) 80%, transparent);
-  border: 1px solid var(--line-strong); border-radius: 20px;
-  box-shadow: var(--elev-3), var(--edge), 0 0 70px -18px color-mix(in oklab, var(--accent) 42%, transparent);
-  -webkit-backdrop-filter: blur(11px) saturate(165%);
-  backdrop-filter: blur(11px) saturate(165%);
+  /* Tarjeta plana (rediseño v0): superficie sólida + borde, sin glints ni blur. */
+  background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: 18px;
+  box-shadow: 0 30px 70px -28px rgba(0,0,0,.9);
   animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
-@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
-  .cdd-end-card { background: var(--bg); }
-}
 @keyframes cddFade { from { opacity: 0; } }
 @keyframes cddRise { from { opacity: 0; transform: translateY(22px) scale(.98); } }
 
 /* Banda de revelado: alto fluido (clamp) para que en pantallas bajas no empuje
    el resto del contenido fuera de la tarjeta. */
-.cdd-reveal { position: relative; height: clamp(150px, 24svh, 230px); overflow: hidden; border-radius: 20px 20px 0 0; background: var(--surface); }
-.cdd-reveal .cdd-reveal-grad { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 4%, transparent 60%); z-index: 2; }
+.cdd-reveal { position: relative; height: clamp(150px, 24svh, 230px); overflow: hidden; border-radius: 18px 18px 0 0; background: var(--surface); }
+.cdd-reveal .cdd-reveal-grad { position: absolute; inset: 0; background: linear-gradient(to top, var(--surface) 4%, transparent 60%); z-index: 2; }
 .cdd-reveal-head { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
-.cdd-verdict { font-size: 10px; align-self: flex-start; padding: 4px 9px; border-radius: 6px; }
+.cdd-verdict { font-size: 10px; align-self: flex-start; padding: 5px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; letter-spacing: .08em; }
 /* Victoria = oro premium (el pico celebratorio del juego). El resto del modal
    conserva la menta (compartir, reloj) para no saturar; el oro marca el logro. */
 .cdd-verdict.win { color: var(--gold-ink); background: var(--gold); box-shadow: 0 0 24px -8px var(--gold-glow); }
@@ -927,20 +915,20 @@ body,
 
 .cdd-end-tabs { display: flex; gap: 8px; padding: 16px 18px 0; }
 .cdd-tab { flex: 1; padding: 10px; font-size: 10px; border-radius: 9px; cursor: pointer;
-  background: var(--mat-fill-2); border: 1px solid var(--line); color: var(--cdd-muted); box-shadow: var(--edge); }
+  background: var(--surface2); border: 1px solid var(--line); color: var(--cdd-muted); }
 .cdd-tab.on { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
 .cdd-end-body { padding: 14px 18px 4px; display: flex; flex-direction: column; gap: 14px; }
 
 .cdd-sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .cdd-sheet-3 { grid-template-columns: repeat(3, 1fr); }
-.cdd-stat { background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; box-shadow: var(--edge); }
+.cdd-stat { background: var(--surface2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; }
 .cdd-stat-k { font-size: 9px; color: var(--faint); margin-bottom: 4px; }
 .cdd-stat-v { font-size: 15px; font-weight: 700; }
 .cdd-stat-v.accent { color: var(--accent); }
 .cdd-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--cdd-muted); }
 
 /* Distribución de intentos (datos reales) — FICHA */
-.cdd-dist-card { background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; box-shadow: var(--edge); }
+.cdd-dist-card { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; }
 .cdd-dist-title { font-size: 9px; color: var(--faint); letter-spacing: .2em; margin: 0 0 9px; text-align: center; }
 .cdd-dist { display: flex; flex-direction: column; gap: 6px; }
 .cdd-dist-row { display: flex; align-items: center; gap: 8px; }
@@ -964,11 +952,11 @@ body,
 /* Cuadritos un punto más grandes y con menos padding vertical: la caja se ve
    menos vacía en victorias rápidas (pocas filas) sin agrandarla de más. */
 .cdd-grid { font-family: var(--font-mono); font-size: 22px; line-height: 1.4; margin: 0; padding: 12px 14px;
-  background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; box-shadow: var(--edge); }
+  background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; }
 .cdd-share-btn { height: 50px; }
 
 .cdd-next { display: flex; align-items: center; justify-content: space-between; margin: 8px 18px 0;
-  padding: 12px 14px; background: var(--mat-fill-2); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--edge); }
+  padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
 .cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
 .cdd-end-close { display: block; width: calc(100% - 36px); margin: 12px 18px 18px; padding: 13px;

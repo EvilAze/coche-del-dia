@@ -135,7 +135,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-glass w-full max-w-md p-5"
+      panelClassName="modal-panel-flat w-full max-w-md p-5"
     >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>

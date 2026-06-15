@@ -181,6 +181,55 @@
     .glass-panel { background: var(--surface); }
   }
 
+  /* ─────────────────────────────────────────────────────────────────────
+     Sistema PLANO (rediseño v0) — primitivas reutilizables (Fases 1-5)
+     ---------------------------------------------------------------------
+     Sustituyen al material "liquid glass" en superficies aplanadas. Sólido +
+     borde 1px, sin blur ni glints. Se introducen en la Fase 1 (pantalla de
+     juego) y las heredan los modales/páginas en fases posteriores. */
+  .surface-flat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 0; cursor: pointer; font-family: var(--font-display);
+    font-weight: 700; letter-spacing: .04em;
+    border-radius: 12px; transition: background-color .18s, transform .12s, border-color .18s;
+  }
+  .btn:active:not(:disabled) { transform: scale(.98); }
+  .btn--mint { background: var(--accent); color: var(--accent-ink); }
+  .btn--mint:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 90%, #fff); }
+  .btn--ghost {
+    background: transparent; color: var(--accent);
+    border: 1px solid color-mix(in oklab, var(--accent) 55%, var(--line));
+  }
+  .btn--ghost:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 10%, transparent); }
+  .btn--icon {
+    width: 36px; height: 36px; border-radius: 10px; background: transparent;
+    color: var(--cdd-muted);
+  }
+  .btn--icon:hover { background: color-mix(in oklab, var(--cdd-text) 8%, transparent); color: var(--cdd-text); }
+  .input-flat {
+    width: 100%; background: var(--surface2); color: var(--cdd-text);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; font-family: var(--font-body); font-size: 15px;
+    outline: 0; transition: border-color .18s, box-shadow .18s;
+  }
+  .input-flat::placeholder { color: var(--cdd-muted); }
+  .input-flat:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent); }
+  /* Chrome de modal PLANO (drop-in para .modal-panel-glass en fases 2-4). NO se
+     aplica a ningún modal en la Fase 1; se define aquí para herencia. */
+  .modal-panel-flat {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px -28px rgba(0,0,0,.85);
+  }
+  .scrim-flat { background: rgba(4, 6, 9, 0.72); }
+
   /* Rim especular: canto superior-izquierdo brillante que decae, simulando una
      fuente de luz cenital-lateral. Es lo que separa "caja translúcida" de
      "cristal premium". Va por ::before enmascarado (borde-gradiente), así que

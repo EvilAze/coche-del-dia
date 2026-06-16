@@ -76,109 +76,14 @@
       focus-visible:ring-offset-0;
   }
 
-  /* ─────────────────────────────────────────────────────────────────────
-     Sistema "Liquid Glass" — utilidades reutilizables
-     ---------------------------------------------------------------------
-     Superficie de cristal: relleno traslúcido + desenfoque del fondo
-     (backdrop-filter) + canto de luz superior (inset highlight) + borde
-     tenue. Es la pieza base del rediseño premium; la usan tanto componentes
-     con clases Tailwind (header, modales) como bloques sueltos.
-
-     Por qué `saturate(var(--mat-sat))`: el blur por sí solo "apaga" el fondo; saturar
-     recupera la viveza del acento que se filtra a través del cristal, que es
-     lo que da la sensación de vidrio real y no de panel opaco.
-     Degradación elegante: sin soporte de backdrop-filter, el relleno sube a
-     un tono sólido (vía @supports abajo) para no quedar ilegible. */
-  .glass {
-    background-color: var(--mat-fill-1);
-    border: 1px solid var(--line);
-    box-shadow: var(--edge);
-    backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
-    -webkit-backdrop-filter: blur(var(--mat-blur-1)) saturate(var(--mat-sat));
-  }
-  .glass-strong {
-    background-color: var(--mat-fill-3);
-    border: 1px solid var(--line-strong);
-    box-shadow: var(--elev-1), var(--edge);
-    backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
-    -webkit-backdrop-filter: blur(var(--mat-blur-2)) saturate(var(--mat-sat));
-  }
-  /* Fallback cuando el navegador no soporta el desenfoque: relleno sólido para
-     mantener el contraste del texto (no degradar la legibilidad). */
-  @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
-    .glass { background-color: #14181e; }
-    .glass-strong { background-color: #1b212a; }
-  }
-  /* Scrim de modal: oscurece + DESENFOCA la página de fondo (blur fuerte) para
-     el efecto "liquid glass" — el contenido detrás se funde en vidrio. Sustituye
-     al antiguo bg-black/80 + backdrop-blur-sm (4px), apenas perceptible. */
-  /* Overlays SIN panel de cristal (lightbox, drawer, repesca): mantienen el
-     desenfoque del fondo. */
-  .scrim {
-    background: rgba(4, 6, 9, 0.62);
-    backdrop-filter: blur(10px) saturate(140%);
-    -webkit-backdrop-filter: blur(10px) saturate(140%);
-  }
-  /* Scrim de modal: SOLO tinte (sin blur). Así el panel de cristal de encima
-     refracta contenido NÍTIDO — un fondo ya desenfocado no se "doblaría". */
+  /* (Sistema "Liquid Glass" retirado en el rediseño plano v0 — Fases 1-5.
+     `.glass`, `.glass-strong`, `.scrim`, `.modal-panel-glass`, `.glass-panel`,
+     `.glass-hover` y `.spec` se eliminaron: ya no los usa nadie. Las superficies
+     usan las primitivas planas de más abajo. Se conserva `.modal-scrim` (tinte
+     sin blur), que SÍ usan los modales aplanados.) */
+  /* Scrim de modal: SOLO tinte (sin blur). */
   .modal-scrim {
     background: rgba(4, 6, 9, 0.66);
-  }
-  /* Panel de modal Liquid Glass: superficie translúcida (legible: 84% sobre el
-     scrim oscuro) + blur fuerte + canto de luz superior + sombra flotante.
-     Solo define material (fondo/borde/sombra/blur/radio); cada modal conserva
-     sus clases de layout (max-w, flex, overflow…). */
-  /* Panel de modal: material translúcido SOBRE el scrim. SIN backdrop-filter
-     propio: el scrim ya desenfocó la página, así que volver a desenfocar aquí
-     anidaría dos capas de blur (el anti-patrón de perf que tenía la app). Rim
-     especular para el acabado premium. Solo material; cada modal su layout. */
-  .modal-panel-glass {
-    position: relative;
-    /* Glints de luz en las esquinas superiores (las "curvas de luz" del cristal)
-       + relleno translúcido que deja refractar el fondo a través del panel. */
-    background:
-      radial-gradient(150px at 0% 0%, rgba(150,255,235,.30), transparent 70%),
-      radial-gradient(150px at 100% 0%, rgba(255,236,210,.24), transparent 70%),
-      color-mix(in oklab, var(--surface) 80%, transparent);
-    border: 1px solid var(--line-strong);
-    border-radius: 18px;
-    box-shadow: var(--elev-3), var(--edge), 0 0 60px -22px color-mix(in oklab, var(--accent) 30%, transparent);
-    /* Base (todos los navegadores): cristal esmerilado. */
-    -webkit-backdrop-filter: blur(11px) saturate(165%);
-    backdrop-filter: blur(11px) saturate(165%);
-  }
-  /* (Sin refracción SVG: el cristal es UNIVERSAL — blur + glints cromáticos +
-     canto — para verse igual en todos los dispositivos.) */
-  /* Bisel del panel = --edge (scroll-safe). Sin ::before: dentro de un modal con
-     scroll un ::before absoluto se desancla del borde al desplazar el contenido. */
-  @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
-    .scrim { background: rgba(4, 6, 9, 0.86); }
-    .modal-panel-glass { background: var(--surface); }
-  }
-
-  /* Realce de borde al pasar el ratón sobre una superficie de cristal. */
-  .glass-hover {
-    transition: border-color 0.2s ease, background-color 0.2s ease;
-  }
-  .glass-hover:hover {
-    border-color: rgba(255, 255, 255, 0.16);
-    background-color: rgba(255, 255, 255, 0.06);
-  }
-
-  /* ── Clases componibles del material unificado ──
-     `.glass`/`.glass-strong` (arriba) son la superficie CON desenfoque para
-     piezas SOBRE la página. `.glass-panel` es la variante SIN desenfoque para
-     piezas SOBRE un scrim (modales, end-card y sus tiles): el scrim ya
-     desenfocó la página → volver a desenfocar sería ANIDAR backdrop-filter
-     (mata el framerate en móvil). Lee como cristal igual gracias al relleno
-     translúcido + rim + sombra. */
-  .glass-panel {
-    background: var(--mat-fill-3);
-    border: 1px solid var(--line-strong);
-    box-shadow: var(--elev-3), var(--edge);
-  }
-  @supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
-    .glass-panel { background: var(--surface); }
   }
 
   /* ─────────────────────────────────────────────────────────────────────
@@ -230,24 +135,6 @@
   }
   .scrim-flat { background: rgba(4, 6, 9, 0.72); }
 
-  /* Rim especular: canto superior-izquierdo brillante que decae, simulando una
-     fuente de luz cenital-lateral. Es lo que separa "caja translúcida" de
-     "cristal premium". Va por ::before enmascarado (borde-gradiente), así que
-     NO usar en elementos que ya ocupen su ::before. Intensidad por --spec. */
-  .spec { position: relative; }
-  .spec::before {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
-    background: linear-gradient(135deg,
-      rgba(255,255,255,var(--spec, .5)),
-      rgba(255,255,255,calc(var(--spec, .5) * .12)) 32%,
-      transparent 56%,
-      rgba(255,255,255,calc(var(--spec, .5) * .28)));
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-    pointer-events: none;
-  }
-
   /* Lift: micro-interacción de elevación al pasar el ratón / pulsar. Solo en
      dispositivos con hover real (en táctil no hay hover y basta el :active);
      anulada en reduced-motion. La sombra/glow la sube cada superficie en su
@@ -262,11 +149,6 @@
     .lift:hover, .lift:active { transform: none; }
   }
 
-  /* Menos transparencia (preferencia del SO): rellenos casi opacos en el
-     material translúcido — legibilidad por encima de la estética. */
-  @media (prefers-reduced-transparency: reduce) {
-    .glass-panel, .modal-panel-glass { background: var(--surface); }
-  }
 
   /* Acento ORO premium (texto). Para etiquetas/valores de momentos de alta
      gama (racha, victoria, podio). El halo es opcional vía .text-gold-glow. */
@@ -368,23 +250,8 @@ body,
   /* Oro premium: acento metálico reservado a momentos de alta gama (racha,
      victoria, podio). Tinta oscura para texto sobre relleno oro (contraste AA). */
   --gold: #e8c87a; --gold-ink: #1a1306; --gold-glow: rgba(232,200,122,.38);
-  /* Cristal líquido: ver el sistema --mat-* abajo (fuente única). */
-  /* ── Sistema de material unificado (refactor Cristal Líquido) ──
-     Dos ejes que antes iban mezclados en cada superficie: MATERIAL (relleno
-     translúcido + blur + saturación = la refracción) y LUZ (canto + rim
-     especular + sombra + glow = cómo le da la luz). Una sola escala para toda
-     la app: adiós a blur 4/10/18/22/24 y saturate 140/160/170/175 sueltos. */
-  --mat-fill-1: rgba(255,255,255,.075); --mat-fill-2: rgba(255,255,255,.10); --mat-fill-3: rgba(255,255,255,.14);
-  --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
-  /* Canto/bisel: highlight superior + izquierdo (luz cenital-lateral). Por
-     box-shadow inset → es scroll-safe (a diferencia de un ::before que se
-     desancla dentro de un contenedor con scroll). El rim ::before fuerte se
-     reserva al escenario (hero, sin scroll). --spec gradúa ese rim. */
-  --edge: inset 0 1px 0 rgba(255,255,255,.20), inset 1px 0 0 rgba(255,255,255,.09); --spec: .62;
-  --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
-  --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
-  --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
-  --glow-accent: 0 0 44px -6px rgba(122,240,200,.62); --glow-gold: 0 0 44px -6px rgba(232,200,122,.62);
+  /* (Material "Liquid Glass" retirado en el rediseño plano: tokens --mat, --edge,
+     --spec, --elev y --glow eliminados — sin uso tras aplanar. --line-strong se conserva.) */
   --line-strong: rgba(255,255,255,.26);
   --font-display: 'Archivo', sans-serif; --font-body: 'Archivo', sans-serif;
   --font-mono: 'Space Mono', monospace;
@@ -400,15 +267,7 @@ body,
   --warn: #eab44e;
   /* En tema cobre el oro y el acento conviven cálidos; el oro tira a ámbar. */
   --gold: #e8c87a; --gold-ink: #1a0d04; --gold-glow: rgba(232,200,122,.42);
-  /* Cristal líquido: ver el sistema --mat-* abajo (fuente única, cálido). */
-  /* Material unificado, variante cálida del tema cobre (ver platino). */
-  --mat-fill-1: rgba(255,238,220,.08); --mat-fill-2: rgba(255,238,220,.11); --mat-fill-3: rgba(255,238,220,.15);
-  --mat-blur-1: 14px; --mat-blur-2: 22px; --mat-sat: 170%;
-  --edge: inset 0 1px 0 rgba(255,238,220,.22), inset 1px 0 0 rgba(255,238,220,.10); --spec: .58;
-  --elev-1: 0 16px 40px -16px rgba(0,0,0,.55);
-  --elev-2: 0 30px 60px -28px rgba(0,0,0,.78);
-  --elev-3: 0 50px 90px -40px rgba(0,0,0,.9);
-  --glow-accent: 0 0 44px -6px rgba(122,240,200,.62); --glow-gold: 0 0 44px -6px rgba(232,200,122,.62);
+  /* (Material "Liquid Glass" retirado en el rediseño plano — ver platino.) */
   --line-strong: rgba(255,238,220,.26);
   --font-display: 'Sora', sans-serif; --font-body: 'Sora', sans-serif;
   --font-mono: 'Space Mono', monospace;

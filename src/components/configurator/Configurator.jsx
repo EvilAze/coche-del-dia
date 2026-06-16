@@ -167,12 +167,25 @@ export default function Configurator({
           />
         )}
 
-        <footer className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-          <button type="button" className="transition-colors hover:text-foreground" onClick={onOpenHowTo}>
+        {/* Footer en 3 columnas iguales: el © queda perfectamente centrado en el
+            medio (no depende del ancho de los enlaces laterales). */}
+        <footer className="mt-2 grid grid-cols-3 items-center gap-2 text-[11px] text-muted-foreground">
+          <button
+            type="button"
+            className="justify-self-start text-left transition-colors hover:text-foreground"
+            onClick={onOpenHowTo}
+          >
             {t("cdd.helpAria")}
           </button>
-          <a className="transition-colors hover:text-foreground" href="/privacidad">{t("app.footerPrivacy")}</a>
-          <span>© {new Date().getFullYear()} · {t("app.title")}</span>
+          <span className="justify-self-center whitespace-nowrap text-center">
+            © {new Date().getFullYear()} · {t("app.title")}
+          </span>
+          <a
+            className="justify-self-end text-right transition-colors hover:text-foreground"
+            href="/privacidad"
+          >
+            {t("app.footerPrivacy")}
+          </a>
         </footer>
       </main>
 

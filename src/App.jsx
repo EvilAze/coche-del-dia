@@ -338,7 +338,7 @@ export default function App() {
         backdropClassName="modal-scrim fixed inset-0 z-[100] flex items-center justify-center p-4"
         panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
       >
-        <div className="absolute right-2 top-2">
+        <div className="absolute right-4 top-4 z-10">
           <CloseButton onClick={closeModal} />
         </div>
 

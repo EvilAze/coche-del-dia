@@ -92,9 +92,11 @@
      Sustituyen al material "liquid glass" en superficies aplanadas. Sólido +
      borde 1px, sin blur ni glints. Se introducen en la Fase 1 (pantalla de
      juego) y las heredan los modales/páginas en fases posteriores. */
+  /* Superficie plana "global" (p.ej. ResultPanel de repesca, fuera del tema):
+     colores concretos por la misma razón que .modal-panel-flat. */
   .surface-flat {
-    background: var(--surface);
-    border: 1px solid var(--line);
+    background: #14181e;
+    border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 16px;
   }
   /* Botón v0: plano, font-semibold SIN tracking/display, mint sólido; disabled e
@@ -134,12 +136,15 @@
   .input-flat:focus { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 40%, transparent); }
   /* Chrome de modal PLANO (drop-in para .modal-panel-glass en fases 2-4). NO se
      aplica a ningún modal en la Fase 1; se define aquí para herencia. */
+  /* Chasis plano de modal. Colores CONCRETOS (no var(--surface)): los modales
+     se renderizan FUERA de .theme-platino (overlay a nivel de documento), donde
+     las variables del tema no existen — con var() el panel salía transparente. */
   .modal-panel-flat {
     position: relative;
-    background: var(--surface);
-    border: 1px solid var(--line-strong);
-    border-radius: 18px;
-    box-shadow: 0 24px 60px -28px rgba(0,0,0,.85);
+    background: #14181e;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.85);
   }
   .scrim-flat { background: rgba(4, 6, 9, 0.72); }
 

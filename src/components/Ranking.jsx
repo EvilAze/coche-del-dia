@@ -135,22 +135,22 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat w-full max-w-md p-5"
+      panelClassName="modal-panel-flat w-full max-w-md p-6"
     >
-        <div className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-mint">
-              {t("ranking.tag")}
-            </p>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                {t("ranking.title")}
-              </h2>
-              <HelpButton onClick={() => setHelpOpen(true)} />
-            </div>
-          </div>
-
+        {/* X anclada a la esquina de la tarjeta plana (el panel es relative). */}
+        <div className="absolute right-4 top-4 z-10">
           <CloseButton onClick={onClose} />
+        </div>
+        <div className="mb-5 pr-10">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-mint">
+            {t("ranking.tag")}
+          </p>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              {t("ranking.title")}
+            </h2>
+            <HelpButton onClick={() => setHelpOpen(true)} />
+          </div>
         </div>
 
         {/* Switcher de pestaÃ±as: Este mes / HistÃ³rico. El mensual va primero

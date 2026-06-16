@@ -153,7 +153,7 @@ export default function HeaderSandwich({
   return (
     <header
       className={`
-        sticky top-0 z-50 w-full bg-[#0d0c0a]/90 backdrop-blur-xl
+        sticky top-0 z-50 w-full bg-bg-primary
         transition-[transform,opacity] duration-300 ease-out
         ${hidden
           ? "pointer-events-none opacity-0 motion-safe:-translate-y-full"

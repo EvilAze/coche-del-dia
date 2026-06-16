@@ -22,21 +22,24 @@ export default function ZoomStage({
   const revealed = status !== "playing";
 
   return (
-    <div className={"cdd-stage" + (revealed ? " revealed" : "")}>
-      <CarImage
-        configurator
-        bottomBar={progress}
-        src={car?.img ?? null}
-        blurData={car?.blurData ?? null}
-        zoom={zoom}
-        hintIndex={hintIndex}
-        totalHints={totalHints}
-        status={status}
-        showHintLabel={false}
-        blurred={blurred}
-        overlay={overlay}
-        onRevealLoad={onRevealLoad}
-      />
-    </div>
+    <section className="flex flex-col gap-3">
+      <div className={"cdd-stage" + (revealed ? " revealed" : "")}>
+        <CarImage
+          configurator
+          src={car?.img ?? null}
+          blurData={car?.blurData ?? null}
+          zoom={zoom}
+          hintIndex={hintIndex}
+          totalHints={totalHints}
+          status={status}
+          showHintLabel={false}
+          blurred={blurred}
+          overlay={overlay}
+          onRevealLoad={onRevealLoad}
+        />
+      </div>
+      {/* Dots de progreso DEBAJO de la imagen (calcado del car-image.tsx de v0). */}
+      {progress}
+    </section>
   );
 }

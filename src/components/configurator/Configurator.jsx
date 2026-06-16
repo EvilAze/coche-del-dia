@@ -12,7 +12,6 @@ import AttemptProgress from "./AttemptProgress";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
-import PhotoPeek from "./PhotoPeek";
 
 // Dirección visual por defecto: Platino Eléctrico con acento menta (#7af0c8).
 const DEFAULT_THEME = "platino";
@@ -79,168 +78,103 @@ export default function Configurator({
   // Conector del H1 según idioma ("marca, modelo y/and año").
   const conn = locale === "es" ? "y" : "and";
 
-  // PhotoPeek (auditoría UX #7): cuando el escenario sale del viewport durante
-  // la partida (auto-scroll al enfocar un campo + teclado en móvil, o scroll
-  // manual al historial), una miniatura flotante mantiene la foto a un vistazo
-  // — elegir marca/modelo sin verla es jugar a ciegas. Observamos GEOMETRÍA
-  // (IntersectionObserver), no foco: así también cubre el scroll manual y se
-  // apaga sola si el teclado se cierra y la foto vuelve a verse.
-  const stageColRef = useRef(null);
-  const [stageOffscreen, setStageOffscreen] = useState(false);
-  useEffect(() => {
-    const el = stageColRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const obs = new IntersectionObserver(
-      // < 0.15 y no === 0: con un 15% visible la foto ya no sirve para
-      // comparar; el umbral intermedio evita parpadeo en el borde justo.
-      ([entry]) => setStageOffscreen(entry.intersectionRatio < 0.15),
-      { threshold: [0, 0.15, 0.3] }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
+  // (PhotoPeek + IntersectionObserver retirados: el rediseño v0 es scroll natural
+  // sin miniatura flotante.)
 
-  // Tap en la miniatura: cerrar teclado (blur) y volver al escenario. El blur
-  // va primero — con el teclado abierto el viewport visual está encogido y el
-  // scroll calcularía mal el destino.
-  const scrollBackToStage = () => {
-    document.activeElement?.blur?.();
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    stageColRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
-  };
+  // Historial bajo el formulario: SOLO los intentos anteriores al que ya muestra
+  // la "fila viva" de arriba (calcado del guess-history de v0, que recibe
+  // olderGuesses). Con partida terminada o intento pendiente, se muestran todos.
+  const olderGuesses =
+    ended || pendingGuess ? guesses : guesses.slice(0, -1);
 
   return (
     <div className={"cdd-app theme-" + theme} style={{ "--accent": accent }}>
-      <div className="cdd-ambient" />
-      <div className="cdd-shell">
-        {/* El "fold": cabecera + intro + escenario + formulario ocupan el
-            viewport (100svh en móvil, vía .cdd-fold en index.css). El escenario
-            usa flex:1 y absorbe TODO el alto libre, así la foto es lo más grande
-            posible y el CTA «Adivinar» queda completo sin scroll. El historial de
-            intentos (dentro del panel) y el pie fluyen justo debajo del fold.
-            En desktop .cdd-fold es un contenedor neutro: manda el grid de dos
-            columnas (ver @media min-width:1000px). */}
-        <div className={"cdd-fold" + (ended ? " is-ended" : "")}>
-          <Header
-            streak={streak}
-            rank={rank}
-            user={user}
-            repescaAlert={repescaAlert}
-            onOpenProfile={onOpenProfile}
-            onOpenLogin={onOpenLogin}
-            onOpenRanking={onOpenRanking}
-            onOpenGarage={onOpenGarage}
-          />
-
-          {/* El subtítulo "Adivina marca, modelo y año" se eliminó a propósito:
-              duplicaba las etiquetas del formulario (MARCA · MODELO · AÑO) y
-              robaba alto al fold. NUNCA se pinta visible — sobrevive como <h1>
-              sr-only por semántica/SEO. */}
-          <h1 className="sr-only">
-            {t("cdd.guess")} {t("cdd.wordMarca")}, {t("cdd.wordModelo")} {conn}{" "}
-            {t("cdd.wordAnio")}
-          </h1>
-
-          {/* (Chip de ayuda de primera visita eliminado a petición; el acceso a
-              "Cómo se juega" vive en el footer.) */}
-
-          <div className="cdd-main">
-            <div className="cdd-col cdd-col-stage" ref={stageColRef}>
-              {/* Progreso de intentos DENTRO del marco, borde inferior (no en una
-                  fila aparte que reste alto a la foto): restantes en menta, ámbar a
-                  2, rojo pulsante en el último. Se oculta al revelar. */}
-              <ZoomStage
-                car={car}
-                zoom={zoom}
-                status={status}
-                hintIndex={hintIndex}
-                totalHints={totalHints}
-                blurred={status === "lost" && !user}
-                onRevealLoad={onRevealLoad}
-                progress={
-                  <AttemptProgress attempts={attempts} maxAttempts={maxAttempts} revealed={ended} />
-                }
-              />
-            </div>
-
-            <div className="cdd-col cdd-col-panel">
-              {/* Zona de acción ANCLADA al fondo del fold: el formulario (o el
-                  botón de resultado) cierra el viewport, así «Adivinar» queda
-                  siempre visible. El historial COMPLETO no va aquí (inflaría la
-                  columna y encogería la foto; vive bajo el fold, ver abajo) —
-                  pero SÍ va la "fila viva" del último intento: sin ella, el
-                  shimmer de pending y el flip-reveal ocurrían fuera de pantalla
-                  y el jugador pulsaba Adivinar sin ver feedback ninguno. Una
-                  fila (~46px) es el coste justo en alto de foto. Se duplica a
-                  propósito en el historial de abajo: esto es el "estado vivo",
-                  aquello el registro completo. */}
-              {dataReady && !ended && (pendingGuess || guesses.length > 0) && (
-                <div className="cdd-live-attempt" aria-live="polite">
-                  <span className="cdd-live-kicker cdd-mono">{t("cdd.lastAttempt")}</span>
-                  {pendingGuess ? (
-                    <AttemptRow
-                      g={pendingGuess}
-                      tolerance={tolerance}
-                      pending
-                    />
-                  ) : (
-                    <AttemptRow
-                      g={guesses[guesses.length - 1]}
-                      tolerance={tolerance}
-                      fresh={justRevealedIndex === guesses.length - 1}
-                    />
-                  )}
-                </div>
-              )}
-              {dataReady &&
-                (!ended ? (
-                  <GuessForm
-                    onSubmit={submitGuess}
-                    isSubmitting={isSubmitting}
-                    guesses={guesses}
-                    tolerance={tolerance}
-                  />
-                ) : (
-                  <button className="cdd-submit" onClick={() => setShowEnd(true)}>
-                    {/* Etiqueta neutra: re-abre el panel de resultado/compartir. No
-                        dice "VER REVELADO" porque el coche ya está revelado en el
-                        escenario; sirve igual para ganar, perder y respuesta bloqueada. */}
-                    <span>{t("cdd.viewResult")}</span>
-                  </button>
-                ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Historial de intentos: FUERA del fold a propósito. Así no compite por
-            el alto con la foto (que llena el viewport) y «Adivinar» cae al fondo;
-            los intentos quedan fuera de pantalla hasta hacer scroll. Más-reciente-
-            primero (lo ordena AttemptList). En desktop se realinea bajo la columna
-            del formulario vía CSS. */}
-        <AttemptList
-          guesses={guesses}
-          pendingGuess={pendingGuess}
-          justRevealedIndex={justRevealedIndex}
-          tolerance={tolerance}
+      {/* Contenedor calcado de car-guess-game.tsx (v0): columna única centrada,
+          max-w-md, gap-6, scroll natural. Fuera el "fold"/PhotoPeek/2-columnas. */}
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-4 py-4">
+        <Header
+          streak={streak}
+          rank={rank}
+          user={user}
+          repescaAlert={repescaAlert}
+          onOpenProfile={onOpenProfile}
+          onOpenLogin={onOpenLogin}
+          onOpenRanking={onOpenRanking}
+          onOpenGarage={onOpenGarage}
         />
 
-        <footer className="cdd-footer cdd-mono">
-          {/* "Cómo se juega" vive aquí en el día a día (la barra superior queda
-              limpia); en la primera visita además se muestra arriba el chip que
-              guía al novato. Botón, no <a>, porque abre el modal de reglas. */}
-          <button type="button" className="cdd-foot-link" onClick={onOpenHowTo}>
+        {/* H1 real solo para lectores de pantalla/SEO (v0 no lo pinta). */}
+        <h1 className="sr-only">
+          {t("cdd.guess")} {t("cdd.wordMarca")}, {t("cdd.wordModelo")} {conn}{" "}
+          {t("cdd.wordAnio")}
+        </h1>
+
+        <ZoomStage
+          car={car}
+          zoom={zoom}
+          status={status}
+          hintIndex={hintIndex}
+          totalHints={totalHints}
+          blurred={status === "lost" && !user}
+          onRevealLoad={onRevealLoad}
+          progress={
+            <AttemptProgress attempts={attempts} maxAttempts={maxAttempts} revealed={ended} />
+          }
+        />
+
+        {/* Último intento entre imagen y formulario (calcado del v0). */}
+        {dataReady && !ended && (pendingGuess || guesses.length > 0) && (
+          <section aria-label={t("cdd.lastAttempt")} aria-live="polite" className="flex flex-col gap-2">
+            <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+              {t("cdd.lastAttempt")}
+            </span>
+            {pendingGuess ? (
+              <AttemptRow g={pendingGuess} tolerance={tolerance} pending />
+            ) : (
+              <AttemptRow
+                g={guesses[guesses.length - 1]}
+                tolerance={tolerance}
+                fresh={justRevealedIndex === guesses.length - 1}
+              />
+            )}
+          </section>
+        )}
+
+        {dataReady &&
+          (!ended ? (
+            <GuessForm
+              onSubmit={submitGuess}
+              isSubmitting={isSubmitting}
+              guesses={guesses}
+              tolerance={tolerance}
+            />
+          ) : (
+            <button
+              className="btn btn--mint h-12 w-full rounded-xl"
+              onClick={() => setShowEnd(true)}
+            >
+              {t("cdd.viewResult")}
+            </button>
+          ))}
+
+        {/* Intentos anteriores (más reciente primero lo ordena AttemptList). */}
+        {olderGuesses.length > 0 && (
+          <AttemptList
+            guesses={olderGuesses}
+            pendingGuess={null}
+            justRevealedIndex={ended ? justRevealedIndex : -1}
+            tolerance={tolerance}
+          />
+        )}
+
+        <footer className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+          <button type="button" className="transition-colors hover:text-foreground" onClick={onOpenHowTo}>
             {t("cdd.helpAria")}
           </button>
-          <a className="cdd-foot-link" href="/privacidad">{t("app.footerPrivacy")}</a>
+          <a className="transition-colors hover:text-foreground" href="/privacidad">{t("app.footerPrivacy")}</a>
           <span>© {new Date().getFullYear()} · {t("app.title")}</span>
         </footer>
-      </div>
-
-      {/* Miniatura flotante: solo en partida (al revelar, la foto ya no es un
-          secreto que custodiar ni una referencia que necesitar). */}
-      {dataReady && !ended && stageOffscreen && (
-        <PhotoPeek src={car?.img} zoom={zoom} onClick={scrollBackToStage} />
-      )}
+      </main>
 
       {showEnd && ended && (
         <EndScreen

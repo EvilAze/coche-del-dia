@@ -206,12 +206,12 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
 
   return (
     <div
-      className={shake ? "cdd-shakewrap shake" : "cdd-shakewrap"}
+      className={shake ? "animate-shake" : ""}
       onAnimationEnd={() => setShake(false)}
     >
-      <form className="cdd-form" onSubmit={handleSubmit} autoComplete="off">
-        {/* Marca + Modelo lado a lado (rediseño v0); Año y ADIVINAR a ancho completo. */}
-        <div className="cdd-form-row2">
+      <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
+        {/* Marca + Modelo lado a lado (calcado del v0); Año y ADIVINAR a ancho completo. */}
+        <div className="grid grid-cols-2 gap-2">
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
@@ -245,11 +245,11 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             micro-feedback de "listo para disparar". */}
         <button
           type="submit"
-          className={"cdd-submit" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
+          className={"btn btn--mint h-12 w-full rounded-xl" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
           disabled={formDisabled}
           aria-busy={isSubmitting}
         >
-          <span>{isSubmitting ? t("cdd.submitting") : t("cdd.submit")}</span>
+          {isSubmitting ? t("cdd.submitting") : t("cdd.submit")}
         </button>
       </form>
     </div>

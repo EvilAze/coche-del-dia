@@ -39,22 +39,33 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
   // Solo con el campo vacío: en cuanto hay valor, los chips sobran y se van.
   const showDecades = focused && (value === "" || value == null);
 
+  // Markup calcado del v0: stepper con − a la izquierda, número centrado y + a la
+  // derecha, dentro de un campo h-11 redondeado. Lógica (clamp, décadas, foco
+  // móvil) intacta.
   return (
-    <div className="cdd-field">
-      <label className="cdd-label cdd-mono">
-        {t("cdd.labelAnio")}
-        <span className="cdd-label-hint">{t("cdd.yearTolerance", { n: tolerance })}</span>
-      </label>
-      <div className="cdd-year">
+    <div className="relative flex flex-col gap-1.5">
+      <span className="px-1 text-xs text-muted-foreground">
+        {t("cdd.labelAnio")}{" "}
+        <span className="text-muted-foreground/50">{t("cdd.yearTolerance", { n: tolerance })}</span>
+      </span>
+      <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-bg-tertiary px-2 transition-colors focus-within:border-mint focus-within:ring-2 focus-within:ring-mint/40">
+        {/* aria-label numérico explícito; el glifo visible es tipográfico. */}
+        <button
+          type="button"
+          aria-label="-1"
+          onClick={() => step(-1)}
+          className="flex size-8 items-center justify-center rounded-lg text-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+        >
+          −
+        </button>
         <input
           ref={(el) => {
             innerRef.current = el;
             if (inputRef) inputRef.current = el;
           }}
-          className="cdd-input cdd-year-input"
+          className="w-20 bg-transparent text-center font-mono text-base tabular-nums text-foreground outline-none placeholder:text-muted-foreground/50"
           inputMode="numeric"
-          // "go" y no "done": Enter aquí ENVÍA el intento (submit del form),
-          // así el pulgar nunca tiene que viajar hasta el botón.
+          // "go" y no "done": Enter aquí ENVÍA el intento (submit del form).
           enterKeyHint="go"
           autoComplete="off"
           data-1p-ignore="true"
@@ -63,11 +74,7 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
           value={value || ""}
           onFocus={() => {
             setFocused(true);
-            // Mismo patrón que Combo (su línea ~85): en pantallas táctiles,
-            // sube el campo por encima del teclado recién abierto. Este es el
-            // campo MÁS BAJO del fold — sin esto, el teclado lo tapa seguro.
-            // 280ms ≈ animación de apertura del teclado. block:"start" deja
-            // sitio debajo para el overlay de décadas.
+            // En táctil, sube el campo por encima del teclado recién abierto.
             const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
             if (coarse) {
               window.setTimeout(() => {
@@ -82,34 +89,38 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
           }}
           onWheel={(e) => e.currentTarget.blur()}
         />
-        <div className="cdd-year-steps">
-          {/* aria-label numérico explícito; el glifo visible es tipográfico.
-              Lado a lado (− +), no apilados: targets más grandes SIN engordar
-              el alto del campo — en el fold, cada px de alto sale de la foto. */}
-          <button type="button" aria-label="-1" onClick={() => step(-1)}>−</button>
-          <button type="button" aria-label="+1" onClick={() => step(1)}>+</button>
-        </div>
-        {showDecades && (
-          <div className="cdd-decades" role="group" aria-label={t("cdd.decadesAria")}>
-            {DECADES.map((d) => (
-              <button
-                key={d}
-                type="button"
-                className="cdd-decade cdd-mono"
-                // mousedown prevenido: que el chip NO robe el foco del input
-                // (el blur cerraría el panel antes de que llegue el click).
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  haptic.selection();
-                  onChange(d + 5);
-                }}
-              >
-                {String(d).slice(2)}s
-              </button>
-            ))}
-          </div>
-        )}
+        <button
+          type="button"
+          aria-label="+1"
+          onClick={() => step(1)}
+          className="flex size-8 items-center justify-center rounded-lg text-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+        >
+          +
+        </button>
       </div>
+      {showDecades && (
+        <div
+          className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 flex gap-1.5 rounded-xl border border-border bg-card p-1.5 shadow-2xl shadow-black/60"
+          role="group"
+          aria-label={t("cdd.decadesAria")}
+        >
+          {DECADES.map((d) => (
+            <button
+              key={d}
+              type="button"
+              className="flex-1 rounded-lg bg-bg-tertiary py-1.5 text-center font-mono text-xs text-foreground transition-colors hover:bg-mint hover:text-mint-foreground"
+              // mousedown prevenido: que el chip NO robe el foco del input.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                haptic.selection();
+                onChange(d + 5);
+              }}
+            >
+              {String(d).slice(2)}s
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -77,18 +77,18 @@ export default function Header({
           aria-label={statusAria}
           title={statusAria}
           onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
-          className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          className="flex size-10 items-center justify-center rounded-lg text-foreground/75 transition-colors hover:bg-white/5 hover:text-foreground"
         >
-          <Icon d={I.trophy} size={18} />
+          <Icon d={I.trophy} size={22} strokeWidth={2.1} />
         </button>
         <button
           type="button"
           aria-label={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
           title={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
           onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
-          className="relative flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          className="relative flex size-10 items-center justify-center rounded-lg text-foreground/75 transition-colors hover:bg-white/5 hover:text-foreground"
         >
-          <Icon d={I.garage} size={18} />
+          <Icon d={I.garage} size={22} strokeWidth={2.1} />
           {repescaAlert && (
             <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-mint shadow-[0_0_6px_rgba(122,240,200,0.7)]" aria-hidden="true" />
           )}
@@ -98,9 +98,9 @@ export default function Header({
           aria-label={t("cdd.profileAria")}
           title={t("cdd.profileAria")}
           onClick={() => { haptic.impactLight(); (user ? onOpenProfile : onOpenLogin)?.(); }}
-          className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          className="flex size-10 items-center justify-center rounded-lg text-foreground/75 transition-colors hover:bg-white/5 hover:text-foreground"
         >
-          <Icon d={I.user} size={18} />
+          <Icon d={I.user} size={22} strokeWidth={2.1} />
         </button>
       </nav>
     </header>

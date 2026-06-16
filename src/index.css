@@ -321,7 +321,10 @@ body,
   border: 0; border-bottom: 1px solid var(--line);
   box-shadow: none;
 }
-.cdd-wordmark { display: flex; align-items: center; min-width: 0; }
+/* Bloque de marca: título + fecha apilados, centrados verticalmente y pegados
+   a la izquierda (align-items: flex-start). justify-content: center los centra
+   en la altura completa de la barra (header en stretch). */
+.cdd-wordmark { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; min-width: 0; }
 /* Sin badge "CDD": el wordmark "Coche del Día" es ahora el protagonista de la
    barra — más grande y rotundo, con el acento reservado para fecha + H1. */
 /* Valores compactos (antes duplicados inline en Header.jsx; centralizados aquí

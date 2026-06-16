@@ -15,21 +15,28 @@ export default function AttemptProgress({ attempts = 0, maxAttempts = 5, reveale
   if (revealed || maxAttempts <= 0) return null;
 
   const remaining = Math.max(0, maxAttempts - attempts);
-  const tone = remaining <= 1 ? "danger" : remaining === 2 ? "warn" : "ok";
 
+  // Dots calcados del car-image.tsx de v0: gastado = barra ancha (foreground/70),
+  // actual = barra menta con glow, restante = punto pequeño (muted/30). Centrados.
   return (
     <div
-      className={"cdd-progress tone-" + tone}
+      className="flex items-center justify-center gap-2"
       role="img"
-      // El conteo exacto vive SOLO aquí (no hay etiqueta visible): reutilizamos el
-      // aria ya existente ("{count} de {max} intentos restantes").
       aria-label={t("app.attemptsRemainingAria", { count: remaining, max: maxAttempts })}
     >
-      <span className="cdd-progress-track" aria-hidden="true">
-        {Array.from({ length: maxAttempts }, (_, i) => (
-          <span key={i} className={"cdd-progress-seg" + (i < attempts ? " spent" : "")} />
-        ))}
-      </span>
+      {Array.from({ length: maxAttempts }, (_, i) => (
+        <span
+          key={i}
+          className={
+            "h-1.5 rounded-full transition-all duration-300 " +
+            (i < attempts
+              ? "w-6 bg-foreground/70"
+              : i === attempts
+                ? "w-6 bg-mint shadow-[0_0_8px_#7af0c8]"
+                : "w-1.5 bg-muted-foreground/30")
+          }
+        />
+      ))}
     </div>
   );
 }

@@ -86,6 +86,7 @@
   },
   "cdd": {
     "guess": "Adivina",
+    "lastAttempt": "Último intento",
     "wordMarca": "marca",
     "wordModelo": "modelo",
     "wordAnio": "año",

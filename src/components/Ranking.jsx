@@ -19,9 +19,9 @@ function HelpButton({ onClick }) {
       title={t("ranking.helpButtonAria")}
       className="
         flex h-7 w-7 shrink-0 items-center justify-center
-        rounded-full border border-white/15 bg-white/[0.04]
-        text-muted transition
-        hover:border-accent/60 hover:bg-accent/10 hover:text-accent
+        rounded-full border border-border bg-bg-tertiary
+        text-muted-foreground transition
+        hover:border-mint/60 hover:bg-mint/10 hover:text-mint
         active:scale-90
       "
     >
@@ -63,8 +63,8 @@ function StreakBadge({ streak }) {
       title={t("ranking.streakTitle", { count: streak })}
       aria-label={t("ranking.streakAria", { count: streak, bonus: display.bonus })}
     >
-      <AchievementIcon name={display.icon} size="h-4 w-4" color="text-accent" />
-      <span className="text-xs font-semibold text-accent">
+      <AchievementIcon name={display.icon} size="h-4 w-4" color="text-mint" />
+      <span className="text-xs font-semibold text-mint">
         {display.bonus}
       </span>
     </span>
@@ -135,22 +135,22 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-glass flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden p-5"
+      panelClassName="modal-panel-flat w-full max-w-md p-6"
     >
-        <div className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.28em] text-accent">
-              {t("ranking.tag")}
-            </p>
-            <div className="flex items-center gap-2.5">
-              <h2 className="font-display text-3xl tracking-widest text-white">
-                {t("ranking.title")}
-              </h2>
-              <HelpButton onClick={() => setHelpOpen(true)} />
-            </div>
-          </div>
-
+        {/* X anclada a la esquina de la tarjeta plana (el panel es relative). */}
+        <div className="absolute right-4 top-4 z-10">
           <CloseButton onClick={onClose} />
+        </div>
+        <div className="mb-5 pr-10">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-mint">
+            {t("ranking.tag")}
+          </p>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              {t("ranking.title")}
+            </h2>
+            <HelpButton onClick={() => setHelpOpen(true)} />
+          </div>
         </div>
 
         {/* Switcher de pestaÃ±as: Este mes / HistÃ³rico. El mensual va primero
@@ -158,7 +158,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
         <div
           role="tablist"
           aria-label={t("ranking.tabsAria")}
-          className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1"
+          className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-border bg-bg-tertiary p-1"
         >
           {[
             { id: "month", label: t("ranking.tabMonth") },
@@ -173,12 +173,12 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                 aria-selected={active}
                 onClick={() => setTab(tabDef.id)}
                 className={`
-                  rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em]
+                  rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide
                   transition active:scale-[0.98]
                   ${
                     active
-                      ? "bg-accent/15 text-accent shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
-                      : "text-muted hover:text-white"
+                      ? "bg-mint/15 text-mint shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                      : "text-muted-foreground hover:text-foreground"
                   }
                 `}
               >
@@ -189,19 +189,19 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
         </div>
 
         {state.loading ? (
-          <p className="text-sm text-muted">{t("ranking.loading")}</p>
+          <p className="text-sm text-muted-foreground">{t("ranking.loading")}</p>
         ) : state.error ? (
           <p className="text-sm text-red-400">{state.error}</p>
         ) : state.players.length === 0 ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             {tab === "month" ? t("ranking.emptyMonth") : t("ranking.empty")}
           </p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-white/10">
+          <div className="overflow-hidden rounded-xl border border-border">
             <div
               className={`
-                grid grid-cols-[2.5rem_minmax(0,1fr)_5rem] bg-white/[0.04]
-                px-3 py-2 text-[11px] uppercase tracking-widest text-muted
+                grid grid-cols-[2.5rem_minmax(0,1fr)_5rem] bg-bg-tertiary
+                px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground
                 ${user && state.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : ""}
               `}
             >
@@ -213,7 +213,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             <div
               className={`
                 relative
-                ${user ? "divide-y divide-white/10" : ""}
+                ${user ? "divide-y divide-border" : ""}
                 ${user && state.players.length > 5 ? "scrollbar-premium max-h-[22rem] overflow-y-auto" : ""}
                 ${!user && state.players.length > 3 ? "max-h-[17.9rem] overflow-hidden sm:max-h-[19rem]" : ""}
               `}
@@ -242,10 +242,10 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     }
                     className={`
                       grid w-full grid-cols-[2.1rem_minmax(0,1fr)_4.25rem]
-                      items-center px-3 py-2.5 bg-black/10 text-left
-                      ${!user && index < 2 ? "border-b border-white/10" : ""}
-                      ${!user && index === 3 ? "border-t border-white/20" : ""}
-                      ${RowTag === "button" ? "transition hover:bg-white/[0.06] active:scale-[0.99]" : ""}
+                      items-center px-3 py-2.5 bg-transparent text-left
+                      ${!user && index < 2 ? "border-b border-border" : ""}
+                      ${!user && index === 3 ? "border-t border-border" : ""}
+                      ${RowTag === "button" ? "transition hover:bg-white/5 active:scale-[0.99]" : ""}
                     `}
                     style={
                       !user && index > 2
@@ -257,10 +257,10 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     }
                   >
                     <div
-                      className={`font-display text-xl ${
+                      className={`font-bold text-xl ${
                         player.rank === 1
                           ? "text-gold drop-shadow-[0_0_10px_rgba(232,200,122,0.5)]"
-                          : "text-accent"
+                          : "text-mint"
                       }`}
                     >
                       {player.rank}
@@ -268,12 +268,12 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
 
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <p className="truncate font-display text-base uppercase tracking-[0.02em] text-white">
+                        <p className="truncate text-sm font-medium text-foreground">
                           {player.displayName}
                         </p>
                         <StreakBadge streak={player.currentStreak} />
                       </div>
-                      <p className="mt-0.5 text-[11px] text-muted">
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
                         {tab === "month"
                           ? t("ranking.monthWins", { value: player.totalWins })
                           : t("ranking.bestStreak", { value: player.maxStreak })}
@@ -281,10 +281,10 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     </div>
 
                     <div className="text-right">
-                      <div className="font-display text-2xl leading-none text-white">
+                      <div className="text-xl font-bold leading-none text-foreground">
                         {player.totalPoints}
                       </div>
-                      <div className="text-[10px] uppercase tracking-widest text-muted">
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
                         {t("ranking.points")}
                       </div>
                     </div>
@@ -294,15 +294,15 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
 
               {!user && state.players.length > 3 && (
                 <>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[#0d1014]/80 to-[#0d1014]" />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#0d1014]/88 to-[#0d1014] sm:hidden" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[#14181e]/80 to-[#14181e]" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#14181e]/88 to-[#14181e] sm:hidden" />
                 </>
               )}
             </div>
 
             {!user && state.players.length > 3 && (
               <div className="bg-gradient-to-b from-black/5 to-black/40 p-4">
-                <p className="text-center text-sm text-muted">
+                <p className="text-center text-sm text-muted-foreground">
                   {t("ranking.loginPrompt")}
                 </p>
                 <button
@@ -312,9 +312,9 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     onOpenLogin?.();
                   }}
                   className="
-                    mt-3 w-full rounded-lg border border-accent/60 bg-accent/10 px-4 py-2.5
-                    text-xs font-semibold uppercase tracking-[0.12em] text-accent
-                    transition hover:bg-accent/20 active:scale-[0.98]
+                    mt-3 w-full rounded-lg border border-mint/60 bg-mint/10 px-4 py-2.5
+                    text-xs font-semibold uppercase tracking-wide text-mint
+                    transition hover:bg-mint/20 active:scale-[0.98]
                   "
                 >
                   {t("ranking.loginCta")}

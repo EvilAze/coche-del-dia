@@ -34,7 +34,7 @@ export default function HowToPlayModal({ open, onClose }) {
       onClose={onClose}
       label={t("howto.title")}
       backdropClassName="modal-scrim fixed inset-0 z-[85] flex items-center justify-center px-4 py-4"
-      panelClassName="modal-panel-glass w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5"
+      panelClassName="modal-panel-flat w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>

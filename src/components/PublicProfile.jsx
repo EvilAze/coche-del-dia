@@ -148,7 +148,7 @@ export default function PublicProfile({ open, onClose, userId }) {
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-glass flex max-h-[90vh] w-full max-w-sm flex-col p-5 overflow-hidden"
+      panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col p-5 overflow-hidden"
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-display text-2xl tracking-widest text-white">

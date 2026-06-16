@@ -39,7 +39,7 @@ function ToastItem({ toast, onDismiss }) {
       role="status"
       className={`
         pointer-events-auto flex w-full max-w-sm items-center gap-3
-        rounded-xl border ${style.border} bg-bg-tertiary/95 backdrop-blur-glass
+        rounded-xl border ${style.border} bg-bg-tertiary
         px-4 py-3 text-sm text-white shadow-2xl shadow-black/60
         animate-toast-in
       `}

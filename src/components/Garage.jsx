@@ -441,7 +441,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
       {open && (
         <motion.div
           key="garage-backdrop"
-          className="scrim fixed inset-0 z-[85] flex items-stretch justify-center"
+          className="scrim-flat fixed inset-0 z-[85] flex items-stretch justify-center"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -744,7 +744,7 @@ function CountryCard({ country, onClick }) {
       }}
     >
       {completed ? (
-        <div className="absolute left-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
+        <div className="absolute left-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent">
           {t("garage.badgeComplete")}
         </div>
       ) : (
@@ -794,7 +794,6 @@ function BrandsMenu({
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 backdrop-blur-sm" />
         <div className="relative flex h-full flex-col items-center justify-center px-4 text-center">
           <p
             className="font-display text-3xl font-bold uppercase tracking-widest text-white"
@@ -923,7 +922,6 @@ function BrandShowroom({
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 backdrop-blur-sm" />
         <div className="relative flex flex-col items-center">
           {!logoFailed ? (
             <img
@@ -1016,7 +1014,7 @@ function UnlockedCard({ car, onClick }) {
         <p className="text-[10px] tabular-nums text-muted">{car.anio}</p>
       </div>
 
-      <div className="absolute right-1.5 top-1.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent backdrop-blur-sm">
+      <div className="absolute right-1.5 top-1.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent">
         ✓
       </div>
 
@@ -1028,7 +1026,7 @@ function UnlockedCard({ car, onClick }) {
           className="
             absolute left-1.5 top-1.5 rounded-full border border-amber-300/60
             bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase
-            tracking-widest text-amber-200 backdrop-blur-sm
+            tracking-widest text-amber-200
           "
           title={t("garage.veteranBadgeAria")}
           aria-label={t("garage.veteranBadgeAria")}
@@ -1110,7 +1108,7 @@ function CarDetail({ open, car, onClose }) {
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-glass relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
+      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
     >
       {displayCar && (
         <>
@@ -1177,7 +1175,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
       onClose={onCancel}
       dismissOnBackdrop={!starting}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-glass relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
+      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
     >
         <div className="px-5 py-5 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
@@ -1393,7 +1391,7 @@ function RepescaHelpModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-glass relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
+      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
     >
         <div className="absolute right-2 top-2 z-10">
           <CloseButton onClick={onClose} />

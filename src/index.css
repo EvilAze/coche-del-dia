@@ -137,15 +137,32 @@
     /* Glints de luz en las esquinas superiores (las "curvas de luz" del cristal)
        + relleno translúcido que deja refractar el fondo a través del panel. */
     background:
-      radial-gradient(150px at 0% 0%, rgba(150,255,235,.30), transparent 70%),
-      radial-gradient(150px at 100% 0%, rgba(255,236,210,.24), transparent 70%),
+      /* Glints cromáticos en las esquinas superiores (la "dispersión" del cristal). */
+      radial-gradient(140px at 0% 0%, rgba(150,255,235,.26), transparent 72%),
+      radial-gradient(140px at 100% 0%, rgba(255,236,210,.20), transparent 72%),
+      /* Sheen diagonal: una lámina de luz que cae desde arriba — lo que separa
+         "caja translúcida" de "vidrio líquido". Decae rápido para no lavar el
+         contenido. */
+      linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0) 38%),
+      /* Relleno translúcido: deja refractar el fondo a través del panel. */
       color-mix(in oklab, var(--surface) 80%, transparent);
-    border: 1px solid var(--line-strong);
-    border-radius: 18px;
-    box-shadow: var(--elev-3), var(--edge), 0 0 60px -22px color-mix(in oklab, var(--accent) 30%, transparent);
-    /* Base (todos los navegadores): cristal esmerilado. */
-    -webkit-backdrop-filter: blur(11px) saturate(165%);
-    backdrop-filter: blur(11px) saturate(165%);
+    /* Borde más definido (canto de vidrio): mezcla blanco sobre el --line-strong
+       del tema para que el marco lea nítido en ambos temas. */
+    border: 1px solid color-mix(in oklab, white 28%, var(--line-strong));
+    border-radius: 22px;
+    /* Marco consistente y "líquido": el --edge solo ilumina los cantos
+       superior/izquierdo, así que cerramos el rim en los 4 lados (hairline
+       interior completo + canto inferior tenue) para que el cristal lea como un
+       marco entero sea cual sea el alto del modal, y flotamos con halo de acento. */
+    box-shadow:
+      var(--elev-3),
+      var(--edge),
+      inset 0 0 0 1px rgba(255,255,255,.06),
+      inset 0 -1px 0 rgba(255,255,255,.06),
+      0 0 70px -24px color-mix(in oklab, var(--accent) 32%, transparent);
+    /* Frost más profundo + saturación alta = refracción de vidrio líquido. */
+    -webkit-backdrop-filter: blur(16px) saturate(185%);
+    backdrop-filter: blur(16px) saturate(185%);
   }
   /* (Sin refracción SVG: el cristal es UNIVERSAL — blur + glints cromáticos +
      canto — para verse igual en todos los dispositivos.) */
@@ -399,7 +416,11 @@ body,
 /* ── Cabecera (ceñida; compactada para hacer la foto más cuadrada) ── */
 .cdd-header {
   position: sticky; top: 0; z-index: 40;
-  display: flex; align-items: center; justify-content: space-between;
+  /* align-items: stretch → wordmark y nav ocupan TODA la altura de la barra;
+     cada uno centra su contenido vertical por su cuenta. Así el bloque
+     título+fecha queda centrado dentro del contenedor (no anclado arriba),
+     alineado con la píldora/iconos de la derecha. */
+  display: flex; align-items: stretch; justify-content: space-between;
   /* Barra de cristal STICKY: al scrollear, frosta el contenido que pasa por
      debajo (foto / historial) — sensación de capa física (estándar premium).
      Inset por el padding del shell → flota como barra. Si un ancestro con
@@ -411,7 +432,10 @@ body,
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   backdrop-filter: blur(16px) saturate(160%);
 }
-.cdd-wordmark { display: flex; align-items: center; min-width: 0; }
+/* Bloque de marca: título + fecha apilados, centrados verticalmente y pegados
+   a la izquierda (align-items: flex-start). justify-content: center los centra
+   en la altura completa de la barra (header en stretch). */
+.cdd-wordmark { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; min-width: 0; }
 /* Sin badge "CDD": el wordmark "Coche del Día" es ahora el protagonista de la
    barra — más grande y rotundo, con el acento reservado para fecha + H1. */
 /* Valores compactos (antes duplicados inline en Header.jsx; centralizados aquí

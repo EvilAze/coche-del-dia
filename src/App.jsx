@@ -336,9 +336,9 @@ export default function App() {
         open={activeModal === "login"}
         onClose={closeModal}
         backdropClassName="modal-scrim fixed inset-0 z-[100] flex items-center justify-center p-4"
-        panelClassName="modal-panel-glass relative w-full max-w-sm p-6 text-center"
+        panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
       >
-        <div className="absolute right-2 top-2">
+        <div className="absolute right-4 top-4 z-10">
           <CloseButton onClick={closeModal} />
         </div>
 
@@ -454,7 +454,7 @@ export default function App() {
         onClose={() => {}}
         dismissOnBackdrop={false}
         backdropClassName="modal-scrim fixed inset-0 z-[110] flex items-center justify-center p-4"
-        panelClassName="modal-panel-glass relative w-full max-w-sm p-6 text-center ring-1 ring-accent/40"
+        panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center ring-1 ring-accent/40"
       >
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-2xl">
           🚗

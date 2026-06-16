@@ -39,6 +39,14 @@ module.exports = {
         },
         // Gris frío neutral (antes cálido #a39d97): integra con la menta.
         muted: "#8b95a3",
+        // ── Tokens v0 (shadcn) para calcar el diseño de Vercel v0 al pie ──
+        // Permiten usar las clases EXACTAS del v0 (bg-mint, text-mint-foreground,
+        // bg-card, text-foreground, text-muted-foreground, text-destructive).
+        mint: { DEFAULT: "#7af0c8", foreground: "#05131d" },
+        card: { DEFAULT: "#14181e", foreground: "#eef2f6" },
+        foreground: "#eef2f6",
+        "muted-foreground": "#8b95a3",
+        destructive: "#e26060",
       },
       // Sombras del sistema Liquid Glass: elevación flotante + halo interior de
       // luz (inset top) que da el "canto" del cristal. Centralizadas para que

@@ -10,28 +10,28 @@ import PodiumMedals from "./PodiumMedals";
 
 // tone="gold" reserva el oro premium a las rachas (logro acumulado); el resto
 // de stats usa el acento menta. Misma jerarquia menta=accion / oro=valor.
-function StatCard({ label, value, tone = "accent" }) {
+function StatCard({ label, value, tone = "mint" }) {
   const gold = tone === "gold";
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center transition ${
-        gold ? "hover:border-gold/40" : "hover:border-accent/30"
+      className={`relative overflow-hidden rounded-xl border border-border bg-bg-tertiary p-4 text-center transition ${
+        gold ? "hover:border-gold/40" : "hover:border-mint/30"
       }`}
     >
       {/* Hairline superior: detalle premium discreto (oro o menta segun tono). */}
       <div
         className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${
-          gold ? "via-gold/50" : "via-accent/40"
+          gold ? "via-gold/50" : "via-mint/40"
         }`}
       />
       <div
-        className={`font-display text-3xl tabular-nums ${
-          gold ? "text-gold" : "text-accent"
+        className={`font-bold text-3xl tabular-nums ${
+          gold ? "text-gold" : "text-mint"
         }`}
       >
         {value}
       </div>
-      <div className="mt-1 text-[10px] uppercase tracking-widest text-muted">
+      <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
     </div>
@@ -42,8 +42,8 @@ function StatCard({ label, value, tone = "accent" }) {
 function Avatar({ initial }) {
   return (
     <div className="relative h-16 w-16 shrink-0">
-      <div className="flex h-full w-full items-center justify-center rounded-full border border-accent/25 bg-gradient-to-br from-accent/30 to-accent/[0.04]">
-        <span className="font-display text-2xl text-accent">{initial}</span>
+      <div className="flex h-full w-full items-center justify-center rounded-full border border-mint/25 bg-gradient-to-br from-mint/30 to-mint/[0.04]">
+        <span className="font-bold text-2xl text-mint">{initial}</span>
       </div>
     </div>
   );
@@ -102,16 +102,16 @@ function ShieldRow({ count }) {
   const has = freezes > 0;
 
   return (
-    <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+    <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-border bg-bg-tertiary px-4 py-3">
       <span className="flex min-w-0 items-center gap-2.5">
-        <span className={has ? "text-accent" : "text-muted"}>
+        <span className={has ? "text-mint" : "text-muted-foreground"}>
           <ShieldIcon />
         </span>
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-medium text-white">
+          <span className="truncate text-sm font-medium text-foreground">
             {t("myStats.streakFreezes")}
           </span>
-          <span className="truncate text-[11px] leading-tight text-muted">
+          <span className="truncate text-[11px] leading-tight text-muted-foreground">
             {has ? t("myStats.streakFreezesHelp") : t("myStats.streakFreezesEarn")}
           </span>
         </span>
@@ -127,7 +127,7 @@ function ShieldRow({ count }) {
           <span
             key={i}
             className={`h-2.5 w-2.5 rounded-full transition-colors ${
-              i < freezes ? "bg-accent" : "border border-border-strong bg-transparent"
+              i < freezes ? "bg-mint" : "border border-border-strong bg-transparent"
             }`}
             style={i < freezes ? { boxShadow: "0 0 6px rgba(122,240,200,0.45)" } : undefined}
           />
@@ -200,41 +200,41 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-glass flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col overflow-y-auto overscroll-contain p-5"
+      panelClassName="modal-panel-flat flex w-full max-w-sm flex-col p-5"
     >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-2xl tracking-widest text-white">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
             {t("myStats.title")}
           </h2>
           <CloseButton onClick={onClose} />
         </div>
 
         {state.loading ? (
-          <p className="text-sm text-muted">{t("common.loading")}</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : state.error && !state.user ? (
           <p className="text-sm text-red-400">{state.error}</p>
         ) : !state.user ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             {t("myStats.promoLogin")}
           </p>
         ) : (
           <>
-            <div className="mb-5 flex items-center gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.015] p-4">
+            <div className="mb-5 flex items-center gap-4 rounded-2xl border border-border bg-bg-tertiary p-4">
               <Avatar initial={initial} />
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <p className="truncate text-xl font-bold text-white">
+                  <p className="truncate text-xl font-bold text-foreground">
                     {nickname}
                   </p>
                   <span
-                    className="shrink-0 text-muted/50"
+                    className="shrink-0 text-muted-foreground/50"
                     title={t("myStats.nickPermanent")}
                     aria-label={t("myStats.nickPermanentAria")}
                   >
                     <LockIcon />
                   </span>
                 </div>
-                <p className="mt-0.5 truncate text-sm text-muted">{email}</p>
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">{email}</p>
                 {state.error && (
                   <p className="mt-2 text-sm text-red-400">{state.error}</p>
                 )}
@@ -260,20 +260,20 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
             <button
               type="button"
               onClick={() => { onClose?.(); onOpenAchievements?.(); }}
-              className="focus-ring mt-4 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-accent/40 hover:bg-accent/[0.06]"
+              className="focus-ring mt-4 flex w-full items-center justify-between rounded-xl border border-border bg-bg-tertiary px-4 py-3 transition hover:border-mint/40 hover:bg-mint/[0.06]"
             >
               <span className="flex items-center gap-2.5">
-                <span className="text-accent">
+                <span className="text-mint">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="9" r="5" />
                     <path d="M8.5 13.5 7 21l5-3 5 3-1.5-7.5" />
                   </svg>
                 </span>
-                <span className="text-sm font-medium text-white">
+                <span className="text-sm font-medium text-foreground">
                   {t("header.achievements")}
                 </span>
               </span>
-              <span className="text-muted" aria-hidden="true">
+              <span className="text-muted-foreground" aria-hidden="true">
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 6l6 6-6 6" />
                 </svg>
@@ -282,7 +282,7 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
 
             {/* Selector de idioma: reubicado aquÃ­ desde el antiguo popover
                 del header. El perfil es el hogar natural de los ajustes. */}
-            <div className="mt-5 border-t border-white/10 pt-4">
+            <div className="mt-5 border-t border-border pt-4">
               <LanguageStrip />
             </div>
 
@@ -290,7 +290,7 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="text-xs uppercase tracking-widest text-muted transition hover:text-red-500"
+                className="text-xs uppercase tracking-wide text-muted-foreground transition hover:text-red-500"
               >
                 {t("common.signOut")}
               </button>

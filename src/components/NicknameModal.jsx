@@ -49,7 +49,7 @@ export default function NicknameModal({ open, onSaved }) {
       onClose={() => {}}
       dismissOnBackdrop={false}
       backdropClassName="modal-scrim fixed inset-0 z-[120] flex items-center justify-center px-4"
-      panelClassName="modal-panel-glass w-full max-w-sm p-6 text-center"
+      panelClassName="modal-panel-flat w-full max-w-sm p-6 text-center"
     >
       <form onSubmit={handleSubmit}>
         <p className="text-[10px] uppercase tracking-[0.28em] text-accent">

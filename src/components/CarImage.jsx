@@ -372,7 +372,7 @@ export default function CarImage({
 
       {/* Etiqueta narrativa de pista con mini progress bar */}
       {showLabel && loaded && (
-        <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 rounded-full border border-border bg-black/70 px-3 py-1.5 backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 rounded-full border border-border bg-black/70 px-3 py-1.5">
           <span className="text-[10px] uppercase tracking-widest text-white">
             Pista <span className="tabular-nums">{hintIndex + 1}</span>
             <span className="text-muted"> / {totalHints}</span>
@@ -403,7 +403,7 @@ export default function CarImage({
               HUD "· INTENTO" abajo-izquierda): toda la foto es tappable y el
               encuadre de visor ya invita a tocarla. En el resto de modos sí. */}
           {!configurator && (
-            <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/70 backdrop-blur-sm transition group-hover:border-accent/60 group-hover:text-accent">
+            <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/70 transition group-hover:border-accent/60 group-hover:text-accent">
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
               </svg>
@@ -452,7 +452,7 @@ export default function CarImage({
           aunque el contenedor tenga overflow-hidden. */}
       {expanded && (
         <div
-          className="scrim fixed inset-0 z-[120] flex items-center justify-center p-4 animate-fade-in"
+          className="scrim-flat fixed inset-0 z-[120] flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setExpanded(false)}
           role="dialog"
           aria-modal="true"
@@ -496,7 +496,7 @@ export default function CarImage({
               type="button"
               onClick={() => setExpanded(false)}
               aria-label={t("common.close")}
-              className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/50 text-white/80 backdrop-blur-sm transition hover:border-accent/60 hover:text-accent active:scale-90"
+              className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/50 text-white/80 transition hover:border-accent/60 hover:text-accent active:scale-90"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6 6l12 12M18 6L6 18" />

@@ -32,8 +32,7 @@ export default function Header({
   const { t, dateLocale } = useT();
 
   const dateLabel = new Date()
-    .toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })
-    .toUpperCase();
+    .toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" });
 
   // Pop de la racha cuando SUBE (tras ganar): un latido breve que celebra el
   // incremento sin ser estridente. Solo en un incremento REAL (p.ej. 4→5): el
@@ -63,75 +62,45 @@ export default function Header({
   else statusAria = t("cdd.competeAria");
 
   return (
-    <header className="cdd-header">
-      <div className="cdd-wordmark">
-        {/* Estilos en index.css (.cdd-title/.cdd-date): wordmark protagonista +
-            fecha como dateline editorial debajo (mantiene el ritual diario sin
-            coste de alto, cabe dentro de la altura de la fila de acciones). */}
-        <div className="flex flex-col">
-          <span className="cdd-title">{t("app.title")}</span>
-          <span className="cdd-date cdd-mono">{dateLabel}</span>
-        </div>
+    <header className="flex items-center justify-between">
+      <div className="flex min-w-0 flex-col">
+        <h1 className="truncate text-lg font-semibold tracking-tight text-foreground">{t("app.title")}</h1>
+        <p className="text-xs capitalize text-muted-foreground">{dateLabel}</p>
       </div>
 
-      <nav className="cdd-nav">
-        {/* PÍLDORA DE ESTADO (héroe): funde los dos motores de retorno diario
-            —no rompas la racha (🔥) y sube en el ranking (🏆#)— en una unidad
-            glanceable y tappable que abre el ranking. Si el jugador aún no tiene
-            racha ni puesto (o es anónimo), vende lo que se pierde: "Compite →"
-            — y el modal de ranking ya trae su propio CTA de login para el
-            anónimo. Tinte de acento = es el elemento dominante de la barra. */}
+      {/* Fila de iconos calcada del v0. La píldora de racha/puesto se retiró para
+          el header limpio; el ranking sigue accesible por el trofeo. Garaje es un
+          acceso real que el mock de v0 no tiene; va en el mismo estilo de icono. */}
+      <nav className="flex items-center gap-1" aria-label={t("cdd.competeAria")}>
         <button
           type="button"
-          className={"cdd-statuspill" + (showStatus ? "" : " cta") + (pop ? " pop" : "")}
-          onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
           aria-label={statusAria}
           title={statusAria}
+          onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
+          className="flex size-10 items-center justify-center rounded-lg text-foreground/75 transition-colors hover:bg-white/5 hover:text-foreground"
         >
-          {showStatus ? (
-            <>
-              {hasStreak && (
-                // Racha = oro premium (logro acumulado, "esto es valioso"); el
-                // puesto se queda en acento (acción). Distinción solo de color.
-                <span className="seg seg-streak">
-                  <Icon d={I.flame} size={14} /> <b>{streak}</b>
-                </span>
-              )}
-              {hasStreak && hasRank && <span className="divider" aria-hidden="true" />}
-              {hasRank && (
-                <span className="seg seg-rank">
-                  <Icon d={I.trophy} size={14} /> <b className="tabular-nums">#{rank.rank}</b>
-                </span>
-              )}
-            </>
-          ) : (
-            // Anónimo: SOLO el glyph del trofeo, consistente con los demás iconos
-            // libres (sin texto "Compite →" descolgado en medio de la barra, que
-            // rompía la jerarquía marca-izquierda / acciones-derecha). El CTA
-            // explícito "Unirme a la competición" vive en el modal que abre.
-            <span className="seg"><Icon d={I.trophy} size={18} /></span>
-          )}
+          <Icon d={I.trophy} size={22} strokeWidth={2.1} />
         </button>
-
-        {/* Utilidades (gris apagado): subordinadas a la píldora por COLOR, no
-            por tamaño. Garaje lleva el punto de alerta de repesca. */}
         <button
-          className="cdd-iconbtn"
+          type="button"
           aria-label={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
           title={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
           onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
+          className="relative flex size-10 items-center justify-center rounded-lg text-foreground/75 transition-colors hover:bg-white/5 hover:text-foreground"
         >
-          <Icon d={I.garage} size={18} />
-          {repescaAlert && <span className="cdd-alert-dot" aria-hidden="true" />}
+          <Icon d={I.garage} size={22} strokeWidth={2.1} />
+          {repescaAlert && (
+            <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-mint shadow-[0_0_6px_rgba(122,240,200,0.7)]" aria-hidden="true" />
+          )}
         </button>
-
         <button
-          className="cdd-iconbtn"
+          type="button"
           aria-label={t("cdd.profileAria")}
           title={t("cdd.profileAria")}
           onClick={() => { haptic.impactLight(); (user ? onOpenProfile : onOpenLogin)?.(); }}
+          className="flex size-10 items-center justify-center rounded-lg text-foreground/75 transition-colors hover:bg-white/5 hover:text-foreground"
         >
-          <Icon d={I.user} size={18} />
+          <Icon d={I.user} size={22} strokeWidth={2.1} />
         </button>
       </nav>
     </header>

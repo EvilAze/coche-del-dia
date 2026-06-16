@@ -58,7 +58,7 @@ export default function ScoringHelpModal({ open, onClose }) {
       // de URL desplegada el modal siga cabiendo. overflow-y-auto +
       // overscroll-contain para que el scroll quede aislado al modal y no
       // se propague al body al llegar al final del contenido.
-      panelClassName="modal-panel-glass w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5"
+      panelClassName="modal-panel-flat w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5"
     >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>

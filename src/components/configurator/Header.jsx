@@ -31,8 +31,9 @@ export default function Header({
 }) {
   const { t, dateLocale } = useT();
 
-  const dateLabel = new Date()
+  const rawDate = new Date()
     .toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" });
+  const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
 
   // Pop de la racha cuando SUBE (tras ganar): un latido breve que celebra el
   // incremento sin ser estridente. Solo en un incremento REAL (p.ej. 4→5): el
@@ -64,8 +65,10 @@ export default function Header({
   return (
     <header className="flex items-center justify-between">
       <div className="flex min-w-0 flex-col">
-        <h1 className="truncate text-lg font-semibold tracking-tight text-foreground">{t("app.title")}</h1>
-        <p className="text-xs capitalize text-muted-foreground">{dateLabel}</p>
+        <h1 className="truncate text-lg font-semibold tracking-tight text-foreground transition-colors duration-300 hover:text-accent">
+          {t("app.title")}
+        </h1>
+        <p className="text-xs text-muted-foreground">{dateLabel}</p>
       </div>
 
       {/* Fila de iconos: barra unificada estilo "control center" con bordes y fondos

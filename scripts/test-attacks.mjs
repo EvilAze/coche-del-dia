@@ -24,7 +24,21 @@ const { signAnonSession, verifyAnonSession, ANON_COOKIE_NAME } = await import(
 const { signRevealToken, verifyRevealToken } = await import(
   "../api/_lib/reveal-token.js"
 );
-const { rateLimit } = await import("../api/_lib/rate-limit.js");
+const rateLimitBuckets = new Map();
+global.__mockRateLimit = (key, { max, windowSec, prefix }) => {
+  const fullKey = prefix ? `${prefix}:${key}` : key;
+  const now = Date.now();
+  let b = rateLimitBuckets.get(fullKey);
+  if (!b || b.resetAt <= now) {
+    b = { count: 0, resetAt: now + (windowSec * 1000) };
+    rateLimitBuckets.set(fullKey, b);
+  }
+  b.count += 1;
+  return {
+    ok: b.count <= max,
+    retryAfter: Math.max(1, Math.ceil((b.resetAt - now) / 1000)),
+  };
+};
 const validateGuess = (await import("../api/validate-guess.js")).default;
 
 // ---------- harness ------------------------------------------------------
@@ -220,7 +234,7 @@ function mockRes() {
 // de tocar Supabase. Esto verifica que el handler engancha el rate-limit.
 const ATTACKER_IP = "203.0.113.99";
 for (let i = 0; i < 30; i++) {
-  rateLimit(`vg:${ATTACKER_IP}`, { max: 30, windowMs: 60_000 });
+  global.__mockRateLimit(ATTACKER_IP, { max: 30, windowSec: 60, prefix: "vg" });
 }
 
 {

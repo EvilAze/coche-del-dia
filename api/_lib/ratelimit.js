@@ -80,6 +80,9 @@ export async function evaluateLimit(limiter, key) {
  * @returns {Promise<{ ok: boolean, retryAfter?: number }>}
  */
 export async function checkRateLimit(key, { max, windowSec, prefix }) {
+  if (global.__mockRateLimit) {
+    return global.__mockRateLimit(key, { max, windowSec, prefix });
+  }
   return evaluateLimit(getLimiter({ max, windowSec, prefix }), key);
 }
 

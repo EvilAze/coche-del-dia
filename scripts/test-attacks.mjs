@@ -25,7 +25,7 @@ const { signRevealToken, verifyRevealToken } = await import(
   "../api/_lib/reveal-token.js"
 );
 const rateLimitBuckets = new Map();
-global.__mockRateLimit = (key, { max, windowSec, prefix }) => {
+globalThis.__mockRateLimit = (key, { max, windowSec, prefix }) => {
   const fullKey = prefix ? `${prefix}:${key}` : key;
   const now = Date.now();
   let b = rateLimitBuckets.get(fullKey);
@@ -234,7 +234,7 @@ function mockRes() {
 // de tocar Supabase. Esto verifica que el handler engancha el rate-limit.
 const ATTACKER_IP = "203.0.113.99";
 for (let i = 0; i < 30; i++) {
-  global.__mockRateLimit(ATTACKER_IP, { max: 30, windowSec: 60, prefix: "vg" });
+  globalThis.__mockRateLimit(ATTACKER_IP, { max: 30, windowSec: 60, prefix: "vg" });
 }
 
 {

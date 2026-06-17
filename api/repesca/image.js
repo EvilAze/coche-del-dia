@@ -145,7 +145,7 @@ export default async function handler(req, res) {
           outBuffer = await sharp(originalBuffer)
             .rotate()
             .extract({ left, top, width: size, height: size })
-            .webp({ quality: 82 })
+            .webp({ quality: 88, smartSubsample: true })
             .toBuffer();
           outContentType = "image/webp";
         }
@@ -160,7 +160,7 @@ export default async function handler(req, res) {
       try {
         outBuffer = await sharp(originalBuffer)
           .rotate()
-          .webp({ quality: 82 })
+          .webp({ quality: 88, smartSubsample: true })
           .toBuffer();
         outContentType = "image/webp";
       } catch (err) {

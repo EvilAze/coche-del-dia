@@ -203,7 +203,7 @@ export default function EditCarPanel({
           if (ovr.zoom_base !== undefined) next.zoom_base = ovr.zoom_base;
           if (ovr.focus_x !== undefined) next.focus_x = ovr.focus_x;
           if (ovr.focus_y !== undefined) next.focus_y = ovr.focus_y;
-          if (ovr.img !== undefined && ovr.img !== data.img) {
+          if (ovr.img && ovr.img !== data.img) {
             next.img = ovr.img;
           }
         }
@@ -473,6 +473,9 @@ export default function EditCarPanel({
 
   // Notificar al shell (AdminTools) los cambios en tiempo real para mantener Preview sincronizado.
   useEffect(() => {
+    // Evitamos notificar durante la carga inicial del coche para evitar machacar los datos reales en el shell.
+    if (loadingCar || originalForm === initialForm) return;
+
     if (selectedCarId && typeof onFormChange === "function") {
       onFormChange(selectedCarId, {
         zoom_base: form.zoom_base,
@@ -481,7 +484,7 @@ export default function EditCarPanel({
         img: activePreview,
       });
     }
-  }, [selectedCarId, form.zoom_base, form.focus_x, form.focus_y, activePreview, onFormChange]);
+  }, [selectedCarId, loadingCar, originalForm, form.zoom_base, form.focus_x, form.focus_y, activePreview, onFormChange]);
 
   return (
     <div className="flex flex-col gap-5">

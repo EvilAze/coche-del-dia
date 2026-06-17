@@ -36,7 +36,7 @@ const PLATINO_ACCENT = "#7af0c8";
 // El intento de "revelado" es el siguiente al último jugable.
 const REVEAL_STEP = ZOOM_ATTEMPTS + 1;
 
-export default function PreviewPanel({ selectedCarId = "", onSelectCar }) {
+export default function PreviewPanel({ selectedCarId = "", onSelectCar, overrides }) {
   const { data: catalog, loading: catalogLoading } = useCatalog();
   const CARS = catalog?.cars ?? [];
 
@@ -80,6 +80,21 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar }) {
       setFocus({ x: 0.5, y: 0.5 });
       return;
     }
+
+    const hasOverrides = overrides && String(overrides.carId) === String(selectedCarId);
+    if (hasOverrides) {
+      setSelectedImg(overrides.img || "");
+      setFocus({
+        x: overrides.focus_x !== undefined ? overrides.focus_x : 0.5,
+        y: overrides.focus_y !== undefined ? overrides.focus_y : 0.5,
+      });
+      setSelectedZoomBase(
+        overrides.zoom_base !== undefined ? overrides.zoom_base : DEFAULT_ZOOM_BASE
+      );
+      setSelectedImgError("");
+      return;
+    }
+
     let cancelled = false;
     setSelectedImgError("");
     (async () => {
@@ -121,7 +136,7 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar }) {
     return () => {
       cancelled = true;
     };
-  }, [selectedCarId]);
+  }, [selectedCarId, overrides]);
 
   // La URL pegada manualmente tiene prioridad sobre el desplegable.
   const usingManualUrl = Boolean(urlInput.trim());

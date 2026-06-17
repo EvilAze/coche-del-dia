@@ -66,6 +66,7 @@ export default function AdminTools({ defaultTab }) {
   const [selectedCarId, setSelectedCarId] = useState(initial.selectedCarId);
   const [assignToDate, setAssignToDate] = useState(initial.assignToDate);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [previewOverrides, setPreviewOverrides] = useState(null);
 
   // Modal de swap (vive en el shell para poder navegar al tab Add al
   // pulsar "Crear coche nuevo").
@@ -109,6 +110,13 @@ export default function AdminTools({ defaultTab }) {
     writeUrlState({ tab, selectedCarId, assignToDate });
   }, [tab, selectedCarId, assignToDate]);
 
+  // Limpiar overrides de preview si se cambia de pestaña.
+  useEffect(() => {
+    if (tab !== "preview") {
+      setPreviewOverrides(null);
+    }
+  }, [tab]);
+
   // ---- Handlers de cross-tab navigation ----
 
   function goEditCar(carId) {
@@ -116,8 +124,9 @@ export default function AdminTools({ defaultTab }) {
     setTab("edit");
   }
 
-  function goPreviewCar(carId) {
+  function goPreviewCar(carId, overrides) {
     setSelectedCarId(carId);
+    setPreviewOverrides(overrides ? { carId, ...overrides } : null);
     setTab("preview");
   }
 
@@ -305,6 +314,7 @@ export default function AdminTools({ defaultTab }) {
             <PreviewPanel
               selectedCarId={selectedCarId}
               onSelectCar={setSelectedCarId}
+              overrides={previewOverrides}
             />
           )}
           {tab === "analytics" && <AnalyticsPanel />}

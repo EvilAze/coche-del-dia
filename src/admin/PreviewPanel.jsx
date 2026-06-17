@@ -72,7 +72,6 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
   // dificultad real). Default si es manual o el coche no trae la columna.
   const [selectedZoomBase, setSelectedZoomBase] = useState(DEFAULT_ZOOM_BASE);
   useEffect(() => {
-    console.log("[PreviewPanel] useEffect triggered with selectedCarId:", selectedCarId, "overrides:", overrides);
     if (!selectedCarId) {
       setSelectedImg("");
       setSelectedImgError("");
@@ -83,9 +82,7 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
     }
 
     const hasOverrides = overrides && String(overrides.carId) === String(selectedCarId);
-    console.log("[PreviewPanel] hasOverrides:", hasOverrides);
     if (hasOverrides) {
-      console.log("[PreviewPanel] Applying overrides:", overrides);
       setSelectedImg(overrides.img || "");
       setFocus({
         x: overrides.focus_x !== undefined ? overrides.focus_x : 0.5,
@@ -118,7 +115,6 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
       if (cancelled) return;
       if (res.ok) {
         const row = await res.json();
-        console.log("[PreviewPanel] Loaded from DB:", row);
         setSelectedImg(row?.img || "");
         // save-car GET garantiza valores numéricos (0.5 por defecto si
         // la fila no tiene focus_x/y). Defensa por si cambia el contrato.
@@ -390,17 +386,7 @@ function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) 
   const posX = Math.max(0, Math.min(100, rawPx));
   const posY = Math.max(0, Math.min(100, rawPy));
 
-  console.log("[SimulatedGameImage] Rendering with:", {
-    step,
-    zoomBase,
-    cropPct,
-    size,
-    bgW,
-    bgH,
-    posX,
-    posY,
-    containerAspect
-  });
+
 
   return (
     <div className="theme-platino" style={{ "--accent": PLATINO_ACCENT }}>

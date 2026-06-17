@@ -246,6 +246,7 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar }) {
             src={activeSrc}
             value={focus}
             onChange={setFocus}
+            zoomBase={activeZoomBase}
           />
         </section>
       )}

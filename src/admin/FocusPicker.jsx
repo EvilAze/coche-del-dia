@@ -233,7 +233,7 @@ export default function FocusPicker({
 function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   if (!src || !dims) {
     return (
-      <div className="flex aspect-square items-center justify-center rounded-md border border-border bg-bg-tertiary text-[10px] text-muted">
+      <div className="flex aspect-[4/3] items-center justify-center rounded-md border border-border bg-bg-tertiary text-[10px] text-muted">
         {label}
       </div>
     );
@@ -244,24 +244,21 @@ function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   const minDim = Math.min(W, H);
   const size = minDim * cropPct;
 
-  // Background-size en %: (W/size)*100 horizontalmente, (H/size)*100
-  // verticalmente. Si W=H y size=cropPct*W, ambos valen 1/cropPct.
+  // Adaptamos el escalado horizontal y vertical para que encaje con el aspect ratio 4:3.
+  const R = 4 / 3;
   const bgW = (W / size) * 100;
-  const bgH = (H / size) * 100;
+  const bgH = (H / size) * 100 * R;
 
-  // background-position en porcentaje:
-  // P_x = 100 * (2*focusX*W - size) / (2*(W - size))   clamped a [0, 100]
-  // El caso degenerado W == size (cropPct == 1, no usamos en este set)
-  // habría que tratarlo con divisor cero — aquí no aplica.
+  // background-position en porcentaje adaptado al aspect ratio del contenedor:
   const rawPx = (100 * (2 * focusX * W - size)) / (2 * (W - size));
-  const rawPy = (100 * (2 * focusY * H - size)) / (2 * (H - size));
+  const rawPy = (100 * (2 * focusY * H * R - size)) / (2 * (H * R - size));
   const posX = Math.max(0, Math.min(100, rawPx));
   const posY = Math.max(0, Math.min(100, rawPy));
 
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className="aspect-square w-full overflow-hidden rounded-md border border-border bg-black/40"
+        className="aspect-[4/3] w-full overflow-hidden rounded-md border border-border bg-black/40"
         style={{
           backgroundImage: `url(${src})`,
           backgroundSize: `${bgW}% ${bgH}%`,

@@ -61,6 +61,20 @@ export default function App() {
       // localStorage puede fallar (modo privado/iframe): sin pulso, sin drama.
     }
   }, []);
+
+  // Detecta si venimos de repesca con ?garage=true y abre el garaje automáticamente
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("garage") === "true") {
+        openModal("garage");
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [openModal]);
   // Badge ámbar del icono del Garaje: true cuando hay repesca disponible
   // hoy y al menos un coche "missed" (ya fue coche del día y no se ganó).
   // Lo calculamos con una llamada ligera a /api/garage tras login.

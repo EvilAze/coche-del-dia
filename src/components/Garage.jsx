@@ -606,6 +606,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             open={Boolean(detailCar)}
             car={detailCar}
             onClose={() => setDetailCar(null)}
+            onStartRepesca={handleRandomRepesca}
           />
 
           <RandomRepescaConfirm
@@ -827,22 +828,21 @@ function BrandsMenu({
 }
 
 function BrandCard({ brand, onClick }) {
-  // Vista 2 — Ghost Logo (marca de agua): el nombre en tipografía noble
-  // sigue siendo el protagonista, pero el logo de la marca aparece detrás
-  // como textura casi imperceptible. Al hover el logo crece y sube su
-  // opacidad, dando la sensación de que la card "respira".
   const tier = brandTier(brand.unlocked, brand.total);
+  const isLocked = brand.unlocked === 0;
   return (
     <button
       type="button"
       onClick={onClick}
-      className="
+      className={`
         group relative flex min-h-[120px] w-full flex-col items-center justify-center
-        overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900
-        p-6 text-center transition-colors
-        hover:border-neutral-500
+        overflow-hidden rounded-xl border p-6 text-center transition-all duration-300
         active:scale-[0.97]
-      "
+        ${isLocked
+          ? "border-neutral-900/60 bg-neutral-950/20 hover:border-neutral-700/50"
+          : "border-neutral-800 bg-neutral-900 hover:border-neutral-500"
+        }
+      `}
     >
       <TierMedal tier={tier} />
       {/* Ghost logo de fondo: posición absoluta cubriendo toda la card,
@@ -856,12 +856,15 @@ function BrandCard({ brand, onClick }) {
         aria-hidden="true"
         draggable={false}
         loading="lazy"
-        className="
+        className={`
           pointer-events-none absolute inset-0 h-full w-full
-          scale-110 object-contain p-2 opacity-10 grayscale
+          scale-110 object-contain p-2 grayscale
           transition-all duration-500
-          group-hover:scale-125 group-hover:opacity-20
-        "
+          ${isLocked
+            ? "opacity-[0.02] blur-[2px]"
+            : "opacity-10 group-hover:scale-125 group-hover:opacity-20"
+          }
+        `}
         onError={(e) => {
           e.currentTarget.style.display = "none";
         }}
@@ -871,21 +874,28 @@ function BrandCard({ brand, onClick }) {
           ghost logo. `drop-shadow-md` da algo de cuerpo al texto sin perder
           el look minimalista. */}
       <div className="relative z-10 flex flex-col items-center">
+        {isLocked && (
+          <LockIcon className="mb-1.5 h-4 w-4 text-neutral-600 transition-colors group-hover:text-amber-500/40" />
+        )}
         <p
-          className="
-            w-full break-words text-center font-bold uppercase text-neutral-200
+          className={`
+            w-full break-words text-center font-bold uppercase
             text-base sm:text-lg
             tracking-[0.1em] sm:tracking-[0.18em]
-            drop-shadow-md
-          "
+            drop-shadow-md transition-colors duration-300
+            ${isLocked
+              ? "text-neutral-500 group-hover:text-neutral-400"
+              : "text-neutral-200"
+            }
+          `}
         >
           {brand.marca}
         </p>
 
         {/* Línea separadora sutil entre el nombre y el contador */}
-        <div className="mt-3 h-px w-10 bg-neutral-700" aria-hidden="true" />
+        <div className={`mt-3 h-px w-10 transition-colors duration-300 ${isLocked ? "bg-neutral-800/80" : "bg-neutral-700"}`} aria-hidden="true" />
 
-        <p className="mt-3 text-sm font-medium tabular-nums text-neutral-500 drop-shadow-md">
+        <p className={`mt-3 text-sm font-medium tabular-nums drop-shadow-md transition-colors duration-300 ${isLocked ? "text-neutral-600" : "text-neutral-500"}`}>
           {brand.unlocked} / {brand.total}
         </p>
       </div>
@@ -967,7 +977,11 @@ function BrandShowroom({
                 onClick={() => onSelectCar(car)}
               />
             ) : (
-              <LockedCard key={car.id} car={car} />
+              <LockedCard
+                key={car.id}
+                car={car}
+                onClick={() => onSelectCar({ ...car, locked: true })}
+              />
             )
           )}
         </div>
@@ -1038,24 +1052,23 @@ function UnlockedCard({ car, onClick }) {
   );
 }
 
-function LockedCard({ car }) {
+function LockedCard({ car, onClick }) {
   const { t } = useT();
   // El blur va aplicado SERVER-SIDE en /api/car-image (mode=blurred): lo que
   // llega al navegador es un JPEG ya desenfocado y oscurecido. No usamos
   // CSS blur a propósito — sería trivial de quitar abriendo DevTools y leyendo
   // la `src` original (que en este flujo, además, nunca existe en el cliente).
   // El overlay CSS que sí ponemos es decorativo, no de seguridad.
-  //
-  // Las tarjetas bloqueadas son puramente visuales: ya NO permiten iniciar
-  // una repesca individualmente. El usuario juega coches bloqueados solo
-  // a través del botón "Repesca Aleatoria" del menú de países, que esconde
-  // toda pista sobre marca / modelo / país hasta empezar la partida.
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
       className="
-        relative aspect-[4/5] w-full overflow-hidden rounded-lg
+        group relative aspect-[4/5] w-full overflow-hidden rounded-lg
         border border-white/10 bg-[#0d0d10]
-        shadow-md shadow-black/40
+        shadow-md shadow-black/40 transition-all duration-300
+        hover:border-amber-500/30 hover:scale-[1.02]
+        active:scale-[0.98] cursor-pointer
       "
       aria-label={t("garage.ariaLockedCard")}
     >
@@ -1065,7 +1078,7 @@ function LockedCard({ car }) {
         aria-hidden="true"
         draggable={false}
         loading="lazy"
-        className="absolute inset-0 h-full w-full object-cover object-center"
+        className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
         onError={(e) => {
           e.currentTarget.style.display = "none";
         }}
@@ -1074,15 +1087,15 @@ function LockedCard({ car }) {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/40" />
 
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center">
-        <LockIcon className="h-7 w-7 text-amber-500/70" />
+        <LockIcon className="h-7 w-7 text-amber-500/70 transition-transform duration-300 group-hover:scale-110" />
         <p
-          className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/80"
+          className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/80 transition-colors duration-300 group-hover:text-amber-400"
           style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
         >
           {t("garage.lockedLabel")}
         </p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -1090,7 +1103,7 @@ function LockedCard({ car }) {
 // Detail del cromo
 // ============================================================================
 
-function CarDetail({ open, car, onClose }) {
+function CarDetail({ open, car, onClose, onStartRepesca }) {
   const { t } = useT();
   // Conservamos el último coche válido en estado local. Cuando el padre
   // hace setDetailCar(null) para cerrar el modal, `car` pasa a null y `open`
@@ -1102,6 +1115,8 @@ function CarDetail({ open, car, onClose }) {
   useEffect(() => {
     if (car) setDisplayCar(car);
   }, [car]);
+
+  const isLocked = displayCar?.locked;
 
   return (
     <ModalShell
@@ -1116,38 +1131,85 @@ function CarDetail({ open, car, onClose }) {
             <CloseButton onClick={onClose} />
           </div>
 
-          <div className="aspect-[4/3] w-full overflow-hidden bg-bg-secondary">
+          <div className="relative aspect-[4/3] w-full overflow-hidden bg-bg-secondary">
             <img
               src={displayCar.img}
-              alt={`${displayCar.marca} ${displayCar.modelo}`}
+              alt={isLocked ? t("garage.ariaLockedCard") : `${displayCar.marca} ${displayCar.modelo}`}
               className="h-full w-full object-cover"
             />
+            {isLocked && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-black/40" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center">
+                  <LockIcon className="h-9 w-9 text-amber-500/70 animate-pulse" />
+                  <p
+                    className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-500/80"
+                    style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
+                  >
+                    {t("garage.lockedLabel")}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="p-4">
             <p className="text-xs font-medium uppercase tracking-widest text-accent">
               {displayCar.marca}
             </p>
-            <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-white">
-              {displayCar.modelo}
-            </h3>
-            <p className="mt-0.5 font-display text-base tabular-nums text-muted">
-              {displayCar.anio}
-            </p>
 
-            {getCarDescription(displayCar) ? (
-              <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
-                <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
-                  {t("garage.carSpec")}
-                </p>
-                <p className="text-sm leading-relaxed text-white/90">
-                  {getCarDescription(displayCar)}
-                </p>
-              </div>
+            {isLocked ? (
+              <>
+                <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-neutral-400">
+                  ••••••••••••
+                </h3>
+                <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
+                  <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
+                    {t("garage.repescaTag")}
+                  </p>
+                  <p className="text-sm leading-relaxed text-white/90">
+                    {t("garage.lockedCardDetailBody")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onStartRepesca?.();
+                  }}
+                  className="
+                    mt-4 w-full rounded-lg bg-accent px-4 py-2.5
+                    text-xs font-semibold uppercase tracking-[0.12em] text-bg-primary
+                    transition hover:brightness-110 active:scale-[0.98]
+                  "
+                >
+                  {t("garage.lockedCardDetailCta")}
+                </button>
+              </>
             ) : (
-              <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-3 text-xs italic text-muted">
-                {t("garage.carNoDescription")}
-              </p>
+              <>
+                <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-white">
+                  {displayCar.modelo}
+                </h3>
+                <p className="mt-0.5 font-display text-base tabular-nums text-muted">
+                  {displayCar.anio}
+                </p>
+
+                {getCarDescription(displayCar) ? (
+                  <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
+                    <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
+                      {t("garage.carSpec")}
+                    </p>
+                    <p className="text-sm leading-relaxed text-white/90">
+                      {getCarDescription(displayCar)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-3 text-xs italic text-muted">
+                    {t("garage.carNoDescription")}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </>

@@ -38,6 +38,8 @@ export default function SchedulePanel({
   const [today, setToday] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [randomizing, setRandomizing] = useState(false);
+  const [localRefresh, setLocalRefresh] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +73,7 @@ export default function SchedulePanel({
     return () => {
       cancelled = true;
     };
-  }, [refreshKey]);
+  }, [refreshKey, localRefresh]);
 
   const items = useMemo(
     () =>
@@ -84,6 +86,44 @@ export default function SchedulePanel({
     [days, today]
   );
 
+  async function handleRandomize() {
+    const ok = window.confirm(
+      "¿Seguro que quieres aleatorizar los coches de los próximos 6 días? Esto reemplazará cualquier coche programado para el futuro."
+    );
+    if (!ok) return;
+
+    setRandomizing(true);
+    setError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sin sesión");
+
+      const res = await fetch("/api/admin/schedule", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ randomize: true }),
+      });
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      }
+
+      setLocalRefresh((prev) => prev + 1);
+    } catch (err) {
+      console.error("[SchedulePanel] randomize:", err);
+      setError(err?.message || "No se pudo aleatorizar el calendario.");
+    } finally {
+      setRandomizing(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <header className="border-b border-border pb-3">
@@ -95,6 +135,21 @@ export default function SchedulePanel({
           al previsualizar. Edita lo que necesites o haz swap.
         </p>
       </header>
+
+      <button
+        type="button"
+        onClick={handleRandomize}
+        disabled={loading || randomizing}
+        className="
+          w-full rounded-xl border border-accent/40 bg-accent/5 px-4 py-3
+          text-sm font-semibold uppercase tracking-[0.18em] text-accent
+          transition hover:border-accent hover:bg-accent/10
+          disabled:cursor-not-allowed disabled:opacity-40
+          flex items-center justify-center gap-2
+        "
+      >
+        {randomizing ? "🎲 Aleatorizando..." : "🎲 Aleatorizar próximos 6 días"}
+      </button>
 
       {loading && (
         <p className="animate-pulse text-xs uppercase tracking-widest text-muted">

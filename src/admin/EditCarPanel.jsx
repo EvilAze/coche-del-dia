@@ -99,6 +99,33 @@ export default function EditCarPanel({
   const [feedback, setFeedback] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [usedCarIds, setUsedCarIds] = useState(new Set());
+
+  // Carga la lista de coches ya jugados (hoy o pasado) para marcarlos en el dropdown.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const {
+          data: { session: s },
+        } = await supabase.auth.getSession();
+        if (!s) return;
+        const res = await fetch("/api/admin/schedule", {
+          headers: { Authorization: `Bearer ${s.access_token}` },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && Array.isArray(body.usedCarIds)) {
+          setUsedCarIds(new Set(body.usedCarIds));
+        }
+      } catch (err) {
+        console.warn("[EditCarPanel] no se pudo cargar usedCarIds:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Libera el object URL del preview al desmontar / cambiar archivo.
   useEffect(() => {
@@ -478,12 +505,16 @@ export default function EditCarPanel({
             className={selectClass}
           >
             <option value="">— Selecciona —</option>
-            {visibleCars.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.image_ready === false ? "📷 " : ""}
-                {c.marca} {c.modelo} ({c.anio})
-              </option>
-            ))}
+            {visibleCars.map((c) => {
+              const isUsed = usedCarIds.has(c.id);
+              return (
+                <option key={c.id} value={c.id}>
+                  {c.image_ready === false ? "📷 " : ""}
+                  {isUsed ? "📅 " : ""}
+                  {c.marca} {c.modelo} ({c.anio}){isUsed ? " (Coche del día)" : ""}
+                </option>
+              );
+            })}
           </select>
         </Field>
 
@@ -495,6 +526,11 @@ export default function EditCarPanel({
 
         {selectedCarId && !loadingCar && (
           <>
+            {usedCarIds.has(selectedCarId) && (
+              <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-300">
+                📅 Este coche ya ha sido coche del día anteriormente y no se puede repetir en el calendario.
+              </div>
+            )}
             <Field label="Marca">
               <input
                 type="text"

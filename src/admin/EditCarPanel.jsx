@@ -8,7 +8,7 @@
 //   - Exponer callbacks onSelectCar / onSaved / onOpenPreview para que
 //     el resto de tabs se enteren.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useFreshCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";

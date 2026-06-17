@@ -420,7 +420,7 @@ export default function Repesca() {
           <button
             type="button"
             onClick={() => {
-              window.location.href = "/";
+              window.location.href = "/?garage=true";
             }}
             className="
               inline-flex items-center gap-1.5 rounded-md

@@ -19,8 +19,6 @@ import { haptic } from "../../lib/haptics";
 
 const MIN_YEAR = 1886;
 const MAX_YEAR = new Date().getFullYear();
-// Décadas con presencia real en el catálogo. Fila única que cabe en móvil.
-const DECADES = [1960, 1970, 1980, 1990, 2000, 2010, 2020];
 
 // inputRef: expone el <input> para la cadena de foco del formulario (al elegir
 // modelo, el foco salta aquí y el teclado pasa a numérico solo).
@@ -36,19 +34,23 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
     const base = Number.isFinite(Number(value)) && value !== "" ? Number(value) : MAX_YEAR;
     onChange(clamp(base + delta));
   };
-  // Solo con el campo vacío: en cuanto hay valor, los chips sobran y se van.
-  const showDecades = focused && (value === "" || value == null);
+
+  const yearNum = value !== "" && value != null ? parseInt(value, 10) : NaN;
+  const isInvalid = !isNaN(yearNum) && String(value).length >= 4 && (yearNum < MIN_YEAR || yearNum > MAX_YEAR);
 
   // Markup calcado del v0: stepper con − a la izquierda, número centrado y + a la
-  // derecha, dentro de un campo h-11 redondeado. Lógica (clamp, décadas, foco
-  // móvil) intacta.
+  // derecha, dentro de un campo h-11 redondeado. Lógica (clamp, foco móvil) intacta.
   return (
     <div className="relative flex flex-col gap-1.5">
       <span className="px-1 text-xs text-muted-foreground">
         {t("cdd.labelAnio")}{" "}
         <span className="text-muted-foreground/50">{t("cdd.yearTolerance", { n: tolerance })}</span>
       </span>
-      <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-bg-tertiary px-2 transition-colors focus-within:border-mint focus-within:ring-2 focus-within:ring-mint/40">
+      <div className={`flex h-11 items-center justify-between rounded-xl border bg-bg-tertiary px-2 transition-colors ${
+        isInvalid
+          ? "border-destructive/60 focus-within:border-destructive focus-within:ring-2 focus-within:ring-destructive/40"
+          : "border-border focus-within:border-mint focus-within:ring-2 focus-within:ring-mint/40"
+      }`}>
         {/* aria-label numérico explícito; el glifo visible es tipográfico. */}
         <button
           type="button"
@@ -98,29 +100,6 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
           +
         </button>
       </div>
-      {showDecades && (
-        <div
-          className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 flex gap-1.5 rounded-xl border border-border bg-card p-1.5 shadow-2xl shadow-black/60"
-          role="group"
-          aria-label={t("cdd.decadesAria")}
-        >
-          {DECADES.map((d) => (
-            <button
-              key={d}
-              type="button"
-              className="flex-1 rounded-lg bg-bg-tertiary py-1.5 text-center font-mono text-xs text-foreground transition-colors hover:bg-mint hover:text-mint-foreground"
-              // mousedown prevenido: que el chip NO robe el foco del input.
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                haptic.selection();
-                onChange(d + 5);
-              }}
-            >
-              {String(d).slice(2)}s
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

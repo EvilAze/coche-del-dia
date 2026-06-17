@@ -739,7 +739,14 @@ export default function EditCarPanel({
             {typeof onOpenPreview === "function" && (
               <button
                 type="button"
-                onClick={() => onOpenPreview(selectedCarId)}
+                onClick={() =>
+                  onOpenPreview(selectedCarId, {
+                    zoom_base: form.zoom_base,
+                    focus_x: form.focus_x,
+                    focus_y: form.focus_y,
+                    img: activePreview,
+                  })
+                }
                 className="
                   rounded-xl border border-white/10 bg-black/40 px-4 py-3
                   text-sm font-semibold uppercase tracking-[0.18em] text-white

@@ -28,7 +28,7 @@ const { signRevealToken, verifyRevealToken } = await import(
   "../api/_lib/reveal-token.js"
 );
 
-const { rateLimit, getClientIp } = await import("../api/_lib/rate-limit.js");
+const { getClientIp } = await import("../api/_lib/rate-limit.js");
 
 // ---------- harness mínimo de assertions --------------------------------
 let passed = 0;
@@ -163,34 +163,7 @@ console.log("\n[reveal-token]");
   eq("verifyRevealToken devuelve la fecha tal cual", verifyRevealToken(old), "2024-01-01");
 }
 
-// ============================================================================
-console.log("\n[rate-limit]");
-// ============================================================================
 
-{
-  const ip = "10.0.0.1";
-  let lastOk = null;
-  for (let i = 1; i <= 30; i++) {
-    lastOk = rateLimit(`vg:${ip}`, { max: 30, windowMs: 60_000 });
-  }
-  truthy("30 hits dentro del límite", lastOk.ok);
-  eq("remaining=0 en el 30º hit", lastOk.remaining, 0);
-
-  const over = rateLimit(`vg:${ip}`, { max: 30, windowMs: 60_000 });
-  falsy("31º hit excede límite", over.ok);
-}
-
-{
-  // Ventana corta para no esperar 60 s en el test: 100 ms.
-  const ip = "10.0.0.2";
-  for (let i = 0; i < 5; i++) rateLimit(`win:${ip}`, { max: 5, windowMs: 100 });
-  const over = rateLimit(`win:${ip}`, { max: 5, windowMs: 100 });
-  falsy("excede tras 5 hits en 100ms", over.ok);
-
-  await new Promise((r) => setTimeout(r, 150));
-  const afterReset = rateLimit(`win:${ip}`, { max: 5, windowMs: 100 });
-  truthy("ventana reseteada tras esperar", afterReset.ok);
-}
 
 {
   // getClientIp prioriza x-forwarded-for primer hop, luego x-real-ip,

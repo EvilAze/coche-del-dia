@@ -284,22 +284,22 @@ export default async function handler(req, res) {
         });
       }
       if (wantedFormat === "avif") {
-        // quality 68: la imagen del coche es el centro de la web y los
-        // primeros intentos aplican un zoom grande (hasta 3.7×), donde
-        // los artefactos de compresión se hacen muy visibles. Subimos
-        // de 50 a 68 — peso +30-50% pero los detalles finos (parrilla,
-        // faros, badges) aguantan el zoom sin "look comprimido".
-        // effort 2: NO subir. Effort 4 hace el cold-start de sharp pasar
-        // de 1-2 s a 3-8 s, lo que dispara el watchdog del cliente (8 s)
-        // y cae al fallback JPEG.
-        pipeline = pipeline.avif({ quality: 68, effort: 2 });
+        // quality 74 (subido de 68) y chromaSubsampling 4:4:4: la imagen del coche es
+        // el centro de la web y los primeros intentos aplican un zoom grande (hasta 3.7x),
+        // donde los artefactos de compresión se hacen muy visibles. Desactivar el subsampling
+        // de croma (4:4:4) mantiene la nitidez absoluta en insignias y faros con muy poco peso extra.
+        // effort 2: NO subir. Effort 4 hace el cold-start de sharp pasar de 1-2 s a 3-8 s.
+        pipeline = pipeline.avif({ quality: 74, effort: 2, chromaSubsampling: "4:4:4" });
       } else if (wantedFormat === "webp") {
-        pipeline = pipeline.webp({ quality: 85 });
+        // Calidad 90 y smartSubsample: reduce artefactos en bordes contrastados sin penalizar peso
+        pipeline = pipeline.webp({ quality: 90, smartSubsample: true });
       } else if (wantedFormat === "jpeg") {
+        // Calidad 93 y chromaSubsampling 4:4:4 para máxima fidelidad de color
         pipeline = pipeline.jpeg({
-          quality: 90,
+          quality: 93,
           mozjpeg: true,
           progressive: true,
+          chromaSubsampling: "4:4:4",
         });
       }
       outBuffer = await pipeline.toBuffer();

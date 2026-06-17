@@ -163,7 +163,8 @@
     "shareError": "Couldn't share",
     "saveProgressTitle": "🔥 What a streak",
     "saveProgressBody": "Don't lose your stats. Sign up to save your wins and compete on the leaderboard.",
-    "saveProgressCta": "Save my progress"
+    "saveProgressCta": "Save my progress",
+    "backToGarage": "Back to Garage"
   },
   "score": {
     "base": "Base",
@@ -364,6 +365,8 @@
     "drawYours": "Your car",
     "drawVeteran": "Veteran Mode",
     "authTitle": "Garage locked",
-    "authBody": "Sign in to collect your wins, complete the album by country and save your progress."
+    "authBody": "Sign in to collect your wins, complete the album by country and save your progress.",
+    "lockedCardDetailBody": "This car is currently locked in your collection. To guess it and add it to your garage, you must play a Random Second Chance.",
+    "lockedCardDetailCta": "Draw and Play"
   }
 }

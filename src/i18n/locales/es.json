@@ -163,7 +163,8 @@
     "shareError": "No se pudo compartir",
     "saveProgressTitle": "🔥 Menuda racha",
     "saveProgressBody": "No pierdas tus estadísticas. Regístrate para guardar tus victorias y competir en el ranking.",
-    "saveProgressCta": "Guardar mi progreso"
+    "saveProgressCta": "Guardar mi progreso",
+    "backToGarage": "Volver al Garaje"
   },
   "score": {
     "base": "Base",
@@ -364,6 +365,8 @@
     "drawYours": "Tu coche",
     "drawVeteran": "Modo Veterano",
     "authTitle": "Garaje cerrado",
-    "authBody": "Inicia sesión para coleccionar tus aciertos, completar el álbum por países y guardar tu progreso."
+    "authBody": "Inicia sesión para coleccionar tus aciertos, completar el álbum por países y guardar tu progreso.",
+    "lockedCardDetailBody": "Este coche todavía está bloqueado en tu colección. Para adivinarlo y sumarlo a tu garaje, debes jugar una Repesca Aleatoria.",
+    "lockedCardDetailCta": "Sortear y Jugar"
   }
 }

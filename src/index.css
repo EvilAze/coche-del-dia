@@ -445,14 +445,13 @@ body,
   background: linear-gradient(to top, rgba(0,0,0,.4) 0%, transparent 24%);
 }
 
-/* Lightbox de la foto: MISMA proporción que el escenario (4:3 móvil · 16:11
-   desktop). Crítico para la COHERENCIA DE DIFICULTAD: con object-cover + la misma
-   escala, igualar la proporción garantiza el MISMO recorte — ni un píxel más de
-   coche que en el intento actual. El ancho se calcula para que el alto quepa en
-   pantalla. */
-.cdd-lightbox-frame { width: min(94vw, 80vh); aspect-ratio: 1 / 1; }
+/* Lightbox de la foto: MISMA proporción de 4:3. Crítico para la COHERENCIA DE
+   DIFICULTAD: con object-cover + la misma escala, igualar la proporción garantiza
+   el MISMO recorte — ni un píxel más de coche que en el intento actual. El ancho
+   se calcula para que el alto quepa en pantalla. */
+.cdd-lightbox-frame { width: min(94vw, calc(80vh * 4 / 3)); aspect-ratio: 4 / 3; }
 @media (min-width: 1000px) {
-  .cdd-lightbox-frame { width: min(82vw, 82vh); aspect-ratio: 1 / 1; }
+  .cdd-lightbox-frame { width: min(82vw, calc(82vh * 4 / 3)); aspect-ratio: 4 / 3; }
 }
 
 .cdd-hud { position: absolute; inset: 0; pointer-events: none; z-index: 7; }
@@ -852,7 +851,7 @@ body,
    el crop ni la dificultad (eso lo controla el juego/servidor). El escenario es
    un CUADRADO ESTRICTO (1:1) en todos los dispositivos, así object-cover muestra
    EXACTAMENTE el mismo recorte del coche tanto en un iPhone SE como en un S25
-   Ultra — misma dificultad. El lightbox (.cdd-lightbox-frame) replica ese 1:1. */
+   Ultra — misma dificultad. El lightbox (.cdd-lightbox-frame) se mantiene en 4:3. */
 @media (max-width: 999px) {
   /* El fold llena el viewport; -14px = el padding-top del shell (abajo).
      El padding inferior suma la safe-area (barra de gestos de iPhone sin

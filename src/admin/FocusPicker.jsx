@@ -148,6 +148,7 @@ export default function FocusPicker({
             alt="Punto focal"
             draggable={false}
             className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+            style={{ objectFit: "contain" }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-widest text-muted">

@@ -15,7 +15,7 @@
 //   PIXEL-FOR-PIXEL lo que verá el jugador en su intento N con el focus y el
 //   zoom_base que elijas.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ZoomStage from "../components/configurator/ZoomStage";
 import StageHud from "../components/configurator/StageHud";
 import FocusPicker from "./FocusPicker";
@@ -282,6 +282,9 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar }) {
 // `.theme-platino` con --accent fijado.
 function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) {
   const [dims, setDims] = useState(null);
+  const [containerAspect, setContainerAspect] = useState(1);
+  const containerRef = useRef(null);
+
   useEffect(() => {
     if (!src) {
       setDims(null);
@@ -301,6 +304,21 @@ function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) 
       cancelled = true;
     };
   }, [src]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const updateAspect = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setContainerAspect(rect.width / rect.height);
+      }
+    };
+    updateAspect();
+    const observer = new ResizeObserver(updateAspect);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [dims]);
 
   // Revelado. Reusamos el ZoomStage real (status="won") para que el reveal sea
   // idéntico al del juego: marco con aspecto natural + HUD "REVELADO".
@@ -339,18 +357,23 @@ function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) 
   const H = dims.h;
   const minDim = Math.min(W, H);
   const size = minDim * cropPct;
+
+  // Adaptamos el escalado horizontal y vertical para que encaje con el aspect ratio
+  // real del contenedor, evitando que la imagen se estire o deforme en pantallas 4:3 (desktop).
+  const R = containerAspect;
   const bgW = (W / size) * 100;
-  const bgH = (H / size) * 100;
-  // Misma fórmula que ZoomThumb: situamos focus en el centro del frame.
+  const bgH = (H / size) * 100 * R;
+
+  // Calculamos la posición del fondo adaptada al aspect ratio del contenedor.
   const rawPx = (100 * (2 * focus.x * W - size)) / (2 * (W - size));
-  const rawPy = (100 * (2 * focus.y * H - size)) / (2 * (H - size));
+  const rawPy = (100 * (2 * focus.y * H * R - size)) / (2 * (H * R - size));
   const posX = Math.max(0, Math.min(100, rawPx));
   const posY = Math.max(0, Math.min(100, rawPy));
 
   return (
     <div className="theme-platino" style={{ "--accent": PLATINO_ACCENT }}>
       <div className="cdd-stage">
-        <div className="cdd-stage-frame">
+        <div ref={containerRef} className="cdd-stage-frame">
           {/* Capa de imagen: recorte simulado server-side. Llena el marco
               (igual que CarImage con object-cover durante la partida). */}
           <div

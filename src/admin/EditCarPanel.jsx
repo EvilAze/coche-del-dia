@@ -51,6 +51,8 @@ export default function EditCarPanel({
   onSaved,
   onDeleted,
   onOpenPreview,
+  overrides,
+  onFormChange,
 }) {
   // useFreshCatalog (no useCatalog) para que un coche recién creado en el
   // tab Añadir aparezca aquí al instante, sin esperar al TTL del CDN.
@@ -100,6 +102,11 @@ export default function EditCarPanel({
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [usedCarIds, setUsedCarIds] = useState(new Set());
+
+  const overridesRef = useRef(overrides);
+  useEffect(() => {
+    overridesRef.current = overrides;
+  }, [overrides]);
 
   // Carga la lista de coches ya jugados (hoy o pasado) para marcarlos en el dropdown.
   useEffect(() => {
@@ -189,6 +196,18 @@ export default function EditCarPanel({
           zoom_base:
             typeof data.zoom_base === "number" ? data.zoom_base : DEFAULT_ZOOM_BASE,
         };
+
+        const ovr = overridesRef.current;
+        const hasOverrides = ovr && String(ovr.carId) === String(selectedCarId);
+        if (hasOverrides) {
+          if (ovr.zoom_base !== undefined) next.zoom_base = ovr.zoom_base;
+          if (ovr.focus_x !== undefined) next.focus_x = ovr.focus_x;
+          if (ovr.focus_y !== undefined) next.focus_y = ovr.focus_y;
+          if (ovr.img !== undefined && ovr.img !== data.img) {
+            next.img = ovr.img;
+          }
+        }
+
         setForm(next);
         setOriginalForm(next);
         setDifficulty(data.difficulty ?? null);
@@ -451,6 +470,18 @@ export default function EditCarPanel({
   }
 
   const activePreview = previewUrl || form.img || null;
+
+  // Notificar al shell (AdminTools) los cambios en tiempo real para mantener Preview sincronizado.
+  useEffect(() => {
+    if (selectedCarId && typeof onFormChange === "function") {
+      onFormChange(selectedCarId, {
+        zoom_base: form.zoom_base,
+        focus_x: form.focus_x,
+        focus_y: form.focus_y,
+        img: activePreview,
+      });
+    }
+  }, [selectedCarId, form.zoom_base, form.focus_x, form.focus_y, activePreview, onFormChange]);
 
   return (
     <div className="flex flex-col gap-5">

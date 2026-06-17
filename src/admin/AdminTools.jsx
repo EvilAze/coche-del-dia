@@ -110,12 +110,10 @@ export default function AdminTools({ defaultTab }) {
     writeUrlState({ tab, selectedCarId, assignToDate });
   }, [tab, selectedCarId, assignToDate]);
 
-  // Limpiar overrides de preview si se cambia de pestaña.
+  // Limpiar overrides si cambia el coche seleccionado.
   useEffect(() => {
-    if (tab !== "preview") {
-      setPreviewOverrides(null);
-    }
-  }, [tab]);
+    setPreviewOverrides(null);
+  }, [selectedCarId]);
 
   // ---- Handlers de cross-tab navigation ----
 
@@ -164,7 +162,12 @@ export default function AdminTools({ defaultTab }) {
   }
 
   function handleEditSaved() {
+    setPreviewOverrides(null);
     setRefreshKey((k) => k + 1);
+  }
+
+  function handleFormChange(carId, overrides) {
+    setPreviewOverrides(overrides ? { carId, ...overrides } : null);
   }
 
   function handleCarDeleted() {
@@ -301,6 +304,8 @@ export default function AdminTools({ defaultTab }) {
               onSaved={handleEditSaved}
               onDeleted={handleCarDeleted}
               onOpenPreview={goPreviewCar}
+              overrides={previewOverrides}
+              onFormChange={handleFormChange}
             />
           )}
           {tab === "add" && (

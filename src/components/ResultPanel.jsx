@@ -488,14 +488,30 @@ export default function ResultPanel({
         </div>
       )}
 
-      <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">
-        <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
-          {t("result.nextCar")}
-        </p>
-        <p className="mt-1 font-display text-2xl tabular-nums tracking-[0.18em] text-white">
-          {countdown}
-        </p>
-      </div>
+      {showDailyStats ? (
+        <div className="mb-4 rounded-lg border border-border bg-bg-secondary/60 p-3">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
+            {t("result.nextCar")}
+          </p>
+          <p className="mt-1 font-display text-2xl tabular-nums tracking-[0.18em] text-white">
+            {countdown}
+          </p>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/?garage=true";
+          }}
+          className="
+            mb-4 w-full rounded-lg bg-accent px-4 py-2.5
+            text-xs font-semibold uppercase tracking-[0.12em] text-bg-primary
+            transition hover:brightness-110 active:scale-[0.98]
+          "
+        >
+          {t("result.backToGarage")}
+        </button>
+      )}
 
       {!user && won && (
         <div className="mt-5 rounded-xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 text-left">

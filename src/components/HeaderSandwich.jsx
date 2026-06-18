@@ -168,7 +168,7 @@ export default function HeaderSandwich({
         <div className="min-w-0">
           {/* Sheen metálico contenido (champán → oro → oro oscuro). Tamaño de
               wordmark (no hero): convive con las acciones en la misma fila. */}
-          <h1 className="truncate bg-gradient-to-b from-[#fbf1d4] via-accent to-accent-dark bg-clip-text font-display text-[1.7rem] leading-none tracking-[0.08em] text-transparent drop-shadow-[0_1px_0_rgba(0,0,0,0.4)] min-[380px]:text-[2.05rem]">
+          <h1 className="truncate font-display text-[1.7rem] leading-none tracking-[0.08em] text-accent drop-shadow-[0_1px_0_rgba(0,0,0,0.4)] min-[380px]:text-[2.05rem]">
             {t("app.title")}
           </h1>
         </div>

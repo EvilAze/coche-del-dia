@@ -18,7 +18,12 @@ import CarImage from "./components/CarImage";
 import GuessLog from "./components/GuessLog";
 import ShiftLights from "./components/ShiftLights";
 import AchievementIcon from "./components/AchievementIcons";
-import GuessForm from "./components/GuessForm";
+// Formulario unificado con el del juego diario (Combo + YearField, piel v0).
+// Antes la repesca usaba el GuessForm "viejo" (Autocomplete + steppers ▲▼), que
+// divergía visualmente del juego principal. Misma lógica anti-cheat y mismo
+// contrato onSubmit({ guessCarId, anio, ... }); submitGuess de aquí solo
+// consume { guessCarId, anio }, así que el cambio es transparente.
+import GuessForm from "./components/configurator/GuessForm";
 import ResultPanel from "./components/ResultPanel";
 import { useToast } from "./components/Toast";
 import { useT } from "./i18n";
@@ -29,6 +34,11 @@ import { cssZoomLevels, ZOOM_ATTEMPTS, DEFAULT_ZOOM_BASE } from "./lib/zoom.js";
 
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
+// Margen de tolerancia del año (±2). Réplica cliente del ANIO_CORRECT_MARGIN
+// del servidor (api/repesca/validate.js y api/_lib/compare-guess.js, ambos = 2):
+// solo alimenta el texto "±2 años" del campo de año, NO la validación (esa la
+// hace el server). Igual valor que el juego diario, así la UX es coherente.
+const ANIO_CORRECT_MARGIN = 2;
 // El zoom escalonado es el MISMO sistema que el juego diario y POR COCHE: los
 // scales CSS se derivan del zoom_base del coche (cssZoomLevels, src/lib/zoom.js)
 // y se aplican sobre el crop del último intento que sirve api/repesca/image.js.
@@ -502,6 +512,7 @@ export default function Repesca() {
               onSubmit={submitGuess}
               isSubmitting={isSubmitting}
               guesses={guesses}
+              tolerance={ANIO_CORRECT_MARGIN}
             />
           ) : (
             <ResultPanel

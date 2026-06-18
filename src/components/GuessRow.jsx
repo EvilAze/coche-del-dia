@@ -151,9 +151,9 @@ function Cell({ label, value, status, pais, direction, isYear, isMarca, pending,
         // Tres puntitos pulsando: señal compacta de "esperando" alineada a
         // la derecha donde luego aparecerá el icono real (✓ / ✕).
         <span className="relative flex shrink-0 items-end gap-0.5" aria-hidden="true">
-          <span className="h-1 w-1 animate-bounce rounded-full bg-muted/70 [animation-delay:0ms]" />
-          <span className="h-1 w-1 animate-bounce rounded-full bg-muted/70 [animation-delay:150ms]" />
-          <span className="h-1 w-1 animate-bounce rounded-full bg-muted/70 [animation-delay:300ms]" />
+          <span className="h-1 w-1 animate-pulse rounded-full bg-muted/70 [animation-delay:0ms]" />
+          <span className="h-1 w-1 animate-pulse rounded-full bg-muted/70 [animation-delay:150ms]" />
+          <span className="h-1 w-1 animate-pulse rounded-full bg-muted/70 [animation-delay:300ms]" />
         </span>
       ) : isYear ? (
         showYearDirection && <YearDirection direction={direction} />

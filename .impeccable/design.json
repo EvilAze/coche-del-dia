@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-18T21:03:27Z",
+  "title": "Design System: Coche del Día",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Menta Neon", "canonical": "oklch(88% 0.18 162)", "tonalRamp": ["#051510", "#0b2b21", "#124233", "#1b5e48", "#2a8264", "#40ad88", "#7af0c8", "#b8f9e4"] },
+      "secondary": { "role": "secondary", "displayName": "Oro Bruñido", "canonical": "oklch(82% 0.13 85)", "tonalRamp": ["#141005", "#29200b", "#403112", "#5e481c", "#82662c", "#ad8c44", "#e8c87a", "#f7e7c1"] },
+      "neutral-bg": { "role": "neutral", "displayName": "Grafito Profundo", "canonical": "oklch(15% 0.01 240)", "tonalRamp": ["#040506", "#0d1014", "#161b22", "#212832", "#2e3745", "#3e4a5d", "#516077", "#687a95"] },
+      "neutral-surface": { "role": "neutral", "displayName": "Obsidiana", "canonical": "oklch(18% 0.01 240)", "tonalRamp": ["#07080a", "#14181e", "#20262f", "#2f3845", "#404c5c", "#536377", "#6a7d95", "#8397b2"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Brand wordmark and main headers." },
+      "body": { "displayName": "Body", "purpose": "Input values, option lists, and general readouts." },
+      "label": { "displayName": "Label", "purpose": "Technical metadata, stats, and column headers." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for all state transitions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action button used for submitting guesses.",
+      "html": "<button class=\"ds-btn-primary\">Adivinar</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; background-color: #7af0c8; color: #05131d; font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; border-radius: 12px; border: 0; padding: 14px 14px; cursor: pointer; width: 100%; height: 56px; transition: background-color 0.18s, transform 0.1s; } .ds-btn-primary:hover:not(:disabled) { background-color: #5bd3ab; } .ds-btn-primary:active:not(:disabled) { transform: scale(0.98); } .ds-btn-primary:disabled { background-color: #1b212a; color: #8b95a3; border: 1px solid rgba(255, 255, 255, 0.09); cursor: not-allowed; }"
+    },
+    {
+      "name": "Input Flat",
+      "kind": "input",
+      "refersTo": "input-flat",
+      "description": "Text input used for typing model guesses.",
+      "html": "<input type=\"text\" class=\"ds-input-flat\" placeholder=\"Escribe o elige...\" />",
+      "css": ".ds-input-flat { width: 100%; height: 44px; background-color: #1b212a; color: #eef2f6; border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 12px; padding: 0 12px; font-family: 'Archivo', sans-serif; font-size: 14px; font-weight: 400; outline: 0; transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s; } .ds-input-flat::placeholder { color: #8b95a3; } .ds-input-flat:focus { border-color: #7af0c8; box-shadow: 0 0 0 3px rgba(122, 240, 200, 0.22); }"
+    },
+    {
+      "name": "Card Container",
+      "kind": "card",
+      "description": "Standard container card for stats, instructions, or layout boxes.",
+      "html": "<div class=\"ds-card-container\"><div class=\"ds-card-title\">Coche del Día</div><p class=\"ds-card-body\">Adivina el coche del día en 5 intentos.</p></div>",
+      "css": ".ds-card-container { background-color: #14181e; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 8px; } .ds-card-title { color: #eef2f6; font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 18px; } .ds-card-body { color: #8b95a3; font-family: 'Archivo', sans-serif; font-size: 14px; margin: 0; }"
+    },
+    {
+      "name": "Attempt Chip",
+      "kind": "chip",
+      "description": "Display chip for past guess validation attributes (brand, model, year).",
+      "html": "<div class=\"ds-attempt-chip ds-tone-good\"><span class=\"ds-chip-text\">Porsche</span><span class=\"ds-chip-sub\">✓ CORRECTO</span></div>",
+      "css": ".ds-attempt-chip { display: flex; flex-direction: column; gap: 2px; justify-content: center; align-items: flex-start; padding: 6px 12px; border-radius: 10px; min-height: 40px; font-size: 13px; font-weight: 600; font-family: 'Archivo', sans-serif; border: 1px solid rgba(255, 255, 255, 0.09); background-color: #1b212a; color: #eef2f6; } .ds-chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; } .ds-chip-sub { font-size: 8.5px; font-weight: 400; font-family: 'Space Mono', monospace; letter-spacing: 0.04em; text-transform: uppercase; } .ds-tone-good { background-color: rgba(122, 240, 200, 0.14); border-color: rgba(122, 240, 200, 0.38); } .ds-tone-good .ds-chip-sub { color: #7af0c8; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Precision Cockpit",
+    "overview": "Structured, clean, and engineered. Coche del Día feels like premium automotive equipment rather than a casual web toy. The interface emphasizes high information density, crisp dividers, and tactile micro-interactions.",
+    "keyCharacteristics": [
+      "High Information Density: UI elements are compact, letting the central car image dominate the viewport.",
+      "Engineered Layouts: Borders are fine, spacing is precise, and inputs feel like physical cockpit buttons.",
+      "Immediate Engagement: Zero splash screens or blocking animations; instant feedback on every keypress."
+    ],
+    "rules": [
+      { "name": "The 10% Accent Rule", "body": "The primary accent (Menta Neon) is used strictly on active controls and successful feedback. It must never occupy more than 10% of any screen.", "section": "colors" },
+      { "name": "The Fallback Fail Rule", "body": "Bad states (failed guesses) must use a sober, non-fluorescent red (#e26060) to prevent the screen from looking overly chaotic or cheap.", "section": "colors" },
+      { "name": "The Technical Label Rule", "body": "Every input label and metadata field must use Space Mono in uppercase with wide tracking to reinforce the instrument panel aesthetic.", "section": "typography" },
+      { "name": "The Flat-Border Rule", "body": "Containers use a fine 1px border with a low-opacity white (rgba(255,255,255,0.06)) to define surfaces instead of drop shadows.", "section": "elevation" },
+      { "name": "The Active State Rule", "body": "Depth is created dynamically through interactive feedback: active buttons scale down (98%) and focused inputs receive a solid Menta Neon outline.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use uppercase Space Mono with at least 0.26em letter-spacing for all form labels.",
+      "Do ensure active buttons scale down to 98% on press to simulate a mechanical button.",
+      "Do keep borders at exactly 1px thickness with low opacity (rgba(255,255,255,0.06)) to define containers."
+    ],
+    "donts": [
+      "Don't use neon purple or blue gradients anywhere in the UI.",
+      "Don't use side-stripe borders (e.g., border-left-4) on cards or list items.",
+      "Don't use glassmorphism or blur filters as default background decorations.",
+      "Don't let text overflow grids; headlines must clamp correctly on mobile layouts."
+    ]
+  }
+}

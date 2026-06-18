@@ -51,7 +51,7 @@ export default function CarImage({
   const [loaded, setLoaded] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
   // Cuando el <source> AVIF/WebP falla o tarda demasiado, marcamos fallback:
-  // re-renderizamos sin los <source> y dejamos solo el <img> JPEG (más
+  // re-renderizamos sin los <source> y dejamos solo el elemento img JPEG (más
   // compatible). El navegador NO hace fallback automático entre <source>s
   // del <picture> cuando la red falla mid-stream — hay que forzarlo a mano.
   const [imgFailed, setImgFailed] = useState(false);
@@ -60,7 +60,7 @@ export default function CarImage({
   // forzamos 1:1.
   const [naturalRatio, setNaturalRatio] = useState(DEFAULT_ASPECT);
 
-  // Ref al <img> interior del <picture>. La usamos para detectar el caso de
+  // Ref al elemento img interior del <picture>. La usamos para detectar el caso de
   // "imagen ya completa en cache" — un comportamiento típico de WebKit/Blink
   // móvil al recargar la página: el navegador resuelve la imagen tan rápido
   // que React aún no ha instalado el listener onLoad, así que el evento NO
@@ -168,7 +168,7 @@ export default function CarImage({
     // Solo avisamos cuando lo que acaba de cargar es la imagen de revelado
     // (status won/lost). Durante la partida cargan imágenes recortadas por
     // intento — esas no deben disparar el scroll. El handler se recrea cada
-    // render, así que `status` aquí es el del render que montó este <img>:
+    // render, así que `status` aquí es el del render que montó este elemento img: 
     // cuando carga la foto full del revelado, status ya es won/lost.
     if (status === "won" || status === "lost") onRevealLoad?.();
   }
@@ -204,10 +204,7 @@ export default function CarImage({
               aspectRatio: isRevealed && loaded ? containerAspect : undefined,
               transition: isRevealed ? "aspect-ratio 600ms cubic-bezier(0.4, 0, 0.2, 1)" : undefined,
             }
-          : {
-              // El max-width pasa del cap (durante el juego) al 100% al revelar.
-              transition: "max-width 750ms cubic-bezier(0.4, 0, 0.2, 1)",
-            }
+          : undefined
       }
     >
       {/* ÁREA DE IMAGEN: cuadrada en juego, aspecto natural al revelar. Tiene
@@ -301,7 +298,7 @@ export default function CarImage({
           />
         )}
         <img
-          // key cambia al activar fallback para forzar remount del <img> y
+          // key cambia al activar fallback para forzar remount del elemento img y
           // que el navegador haga una request limpia (sin reaprovechar el
           // estado fallido del intento anterior).
           key={imgFailed ? "fallback" : "primary"}

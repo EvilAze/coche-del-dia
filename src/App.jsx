@@ -285,7 +285,7 @@ export default function App() {
   // coincidir EXACTAMENTE con los del <picture> de CarImage para que el
   // browser reuse el resource cuando CarImage monte (si difieren, doble
   // descarga). El AVIF es el path feliz; navegadores antiguos ignorarán
-  // el preload AVIF y caerán al <img> JPEG fallback de CarImage sin
+  // el preload AVIF y caerán al img JPEG fallback de CarImage sin
   // penalización.
   useEffect(() => {
     if (!car?.img) return;

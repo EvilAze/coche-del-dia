@@ -64,9 +64,9 @@ export default function Repesca() {
   // límite de intentos (lo enforce /api/repesca/validate).
   const [mode, setMode] = useState("normal");
   // La imagen del coche se sirve vía /api/repesca/image, que requiere
-  // Bearer token. Como los <img> nativos NO mandan headers custom, no
+  // Bearer token. Como los elementos img nativos NO mandan headers custom, no
   // podemos usar la URL del endpoint directa. Hacemos fetch en JS con
-  // Authorization, convertimos la respuesta a Blob, y le pasamos al <img>
+  // Authorization, convertimos la respuesta a Blob, y le pasamos al elemento img
   // una blob: URL local. Bonus: la URL es opaca (no filtra filename).
   const [imgBlobUrl, setImgBlobUrl] = useState(null);
   // LQIP (blur_data) que devuelve /api/repesca/start. CarImage lo pinta
@@ -180,7 +180,7 @@ export default function Repesca() {
   }, [checkingUser, user, carId]);
 
   // Carga la imagen del coche en repesca como blob: hacemos GET con
-  // Authorization (cosa que <img> no puede), convertimos a Blob, y
+  // Authorization (cosa que una etiqueta img no puede), convertimos a Blob, y
   // generamos una blob: URL local que el navegador renderiza sin
   // necesidad de headers. Cleanup revoca la URL al desmontar / cambiar.
   // Solo arrancamos cuando estamos seguros de que la repesca está

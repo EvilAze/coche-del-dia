@@ -72,7 +72,7 @@ export function Distribution({ data, attempts, won }) {
               <div className="cdd-dist-track">
                 <div
                   className={"cdd-dist-bar" + (me ? " me" : "")}
-                  style={{ width: revealed ? barPct + "%" : "0%", transitionDelay: 120 + i * 60 + "ms" }}
+                  style={{ width: barPct + "%", transform: revealed ? "scaleX(1)" : "scaleX(0)", transformOrigin: "left", transitionDelay: 120 + i * 60 + "ms" }}
                 />
               </div>
               <span className={"cdd-dist-pct" + (me ? " me" : "")}>{pct}%</span>

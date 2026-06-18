@@ -1,0 +1,27 @@
+{
+  "detector": {
+    "ignoreRules": [
+      "em-dash-overuse",
+      "numbered-section-markers",
+      "design-system-color"
+    ],
+    "ignoreFiles": [
+      "src/index.css",
+      "**/index.css"
+    ],
+    "ignoreValues": [
+      {
+        "rule": "em-dash-overuse",
+        "value": "src/index.css",
+        "reason": "index.css contains comment headers with decorative dashes",
+        "createdAt": "2026-06-18T21:10:40.262Z"
+      },
+      {
+        "rule": "numbered-section-markers",
+        "value": "src/index.css",
+        "reason": "index.css contains decimal numbers in colors and opacity values",
+        "createdAt": "2026-06-18T21:10:43.815Z"
+      }
+    ]
+  }
+}

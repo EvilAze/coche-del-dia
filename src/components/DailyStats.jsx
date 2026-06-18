@@ -109,8 +109,10 @@ export default function DailyStats({ attempts, won }) {
                     ${isPlayer ? "bg-accent/80" : "bg-white/[0.10]"}
                   `}
                   style={{
-                    width: revealed ? `${barPct}%` : "0%",
-                    transition: "width 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+                    width: `${barPct}%`,
+                    transform: revealed ? "scaleX(1)" : "scaleX(0)",
+                    transformOrigin: "left",
+                    transition: "transform 600ms cubic-bezier(0.4, 0, 0.2, 1)",
                     transitionDelay: `${BAR_BASE_DELAY_MS + i * BAR_STAGGER_MS}ms`,
                   }}
                 />

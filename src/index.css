@@ -475,7 +475,7 @@ body,
 .cdd-progress-track { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; }
 /* Dots v0: restante = punto pequeño apagado; usado = barra sólida; actual = barra
    menta. El COLOR del 'actual' lleva la urgencia (ver tonos abajo). */
-.cdd-progress-seg { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.28); transition: width .3s, background .3s; }
+.cdd-progress-seg { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.28); transition: background .3s; }
 .cdd-progress-seg.spent { width: 22px; background: rgba(255,255,255,.6); }
 .cdd-progress-seg.current { width: 22px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 /* Urgencia: a falta de 2 el 'actual' vira a ámbar; en el último intento, rojo
@@ -594,10 +594,10 @@ body,
   background-size: 200% 100%; animation: cddShimmer 1.4s linear infinite; }
 @keyframes cddShimmer { 0% { background-position: 150% 0; } 100% { background-position: -150% 0; } }
 /* Flip-reveal por celda en el intento recién validado (efecto "carta") */
-.cdd-chip.flip { animation: cddFlip .5s cubic-bezier(.34,1.4,.64,1) both; transform-origin: center; backface-visibility: hidden; }
+.cdd-chip.flip { animation: cddFlip .5s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: center; backface-visibility: hidden; }
 @keyframes cddFlip { 0% { opacity: 0; transform: rotateX(88deg); } 55% { opacity: 1; transform: rotateX(-12deg); } 100% { opacity: 1; transform: rotateX(0); } }
 /* Pop de la píldora de estado al subir la racha */
-.cdd-statuspill.pop { animation: cddStreakPop .44s cubic-bezier(.34,1.56,.64,1); }
+.cdd-statuspill.pop { animation: cddStreakPop .44s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes cddStreakPop { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
   .cdd-chip.flip, .cdd-statuspill.pop,
@@ -808,7 +808,7 @@ body,
 .cdd-dist-n { width: 12px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
 .cdd-dist-n.me { color: var(--accent); font-weight: 700; }
 .cdd-dist-track { flex: 1; height: 16px; border-radius: 5px; background: rgba(255,255,255,0.05); overflow: hidden; }
-.cdd-dist-bar { height: 100%; border-radius: 5px; background: rgba(255,255,255,0.12); transition: width .6s cubic-bezier(.16,1,.3,1); }
+.cdd-dist-bar { height: 100%; border-radius: 5px; background: rgba(255,255,255,0.12); transition: transform .6s cubic-bezier(.16,1,.3,1); }
 .cdd-dist-bar.me { background: var(--accent); box-shadow: 0 0 14px -4px var(--accent); }
 .cdd-dist-pct { width: 36px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
 .cdd-dist-pct.me { color: var(--accent); }

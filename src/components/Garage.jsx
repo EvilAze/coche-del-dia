@@ -848,7 +848,7 @@ function BrandCard({ brand, onClick }) {
       {/* Ghost logo de fondo: posición absoluta cubriendo toda la card,
           desaturado y casi transparente. Al pasar por encima crece y se
           intensifica un pelín. `pointer-events-none` para que el click
-          siga golpeando al botón, no a la <img>. Si el .png no existe el
+          siga golpeando al botón, no a la imagen. Si el .png no existe el
           onError la oculta y la card queda solo con el fondo neutro. */}
       <img
         src={brandLogoPath(brand.marca)}

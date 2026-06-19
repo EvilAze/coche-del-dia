@@ -12,8 +12,9 @@ import { flagImagePath } from "../../data/countries";
 import { Icon, I } from "./icons";
 import { useFitText } from "../../hooks/useFitText";
 
-// Stagger del flip por celda (efecto "carta volteándose").
-const FLIP_STAGGER_MS = 130;
+// Stagger del flip por celda (efecto "carta volteándose"). Espaciado para que
+// la cascada marca → modelo → año se lea con calma, sin atropellarse.
+const FLIP_STAGGER_MS = 160;
 
 function Cell({ tone, pending, value, mark, markTone, flag, sub, srStatus, flip, delay, fitKey }) {
   // Auto-ajuste del nombre a una línea (el nombre ocupa toda la fila 1, así que el

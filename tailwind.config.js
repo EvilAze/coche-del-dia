@@ -75,7 +75,7 @@ module.exports = {
         "reveal-win": "revealWin 1s cubic-bezier(0.34,1.56,0.64,1) forwards",
         "toast-in": "toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards",
         "shimmer": "shimmer 1.4s linear infinite",
-        "flip-reveal": "flipReveal 0.62s cubic-bezier(0.23,1,0.32,1) forwards",
+        "flip-reveal": "flipReveal 0.7s cubic-bezier(0.23,1,0.32,1) forwards",
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },

@@ -1,30 +1,26 @@
 // api/_lib/anon-session.js
-// Cookie HttpOnly firmada con HMAC-SHA256 que tracea el estado del jugador
-// ANÓNIMO del coche del día. Sustituye al `attemptNumber` que antes venía
-// en el body de /api/validate-guess (campo manipulable desde el cliente,
-// que permitía a un script iterar todo el catálogo con attemptNumber:1).
+// Token firmado con HMAC-SHA256 que tracea el estado del jugador ANÓNIMO del
+// coche del día. Antes era una cookie HttpOnly; ahora viaja en localStorage
+// del cliente + header `X-Anon-Session`, y el servidor lo devuelve actualizado
+// en el body de get-daily-car / validate-guess.
 //
-// Contenido firmado:
-//   { d: "YYYY-MM-DD",   // fecha de Madrid en que se emitió
-//     n: 0..5,           // intentos consumidos
-//     s: "playing"|"won"|"lost" }
+// Por qué el cambio: la app Android (Capacitor, origen https://localhost) habla
+// con la API en cochedeldia.com → una cookie sería third-party (el WebView no
+// las acepta y Chromium las retira). Un token en header no depende del origen y
+// mantiene la MISMA garantía anti-trampa: la firma es server-side, el cliente no
+// puede bajar `n` ni cambiar `s`.
 //
-// Diseño:
-//   - HMAC-SHA256 con REPESCA_TOKEN_SECRET (reutilizamos el secreto).
-//   - HttpOnly + SameSite=Lax + Secure (en prod): no accesible desde JS,
-//     no se filtra cross-site, no se manda en HTTP plano.
-//   - Path=/ para que llegue a /api/get-daily-car y /api/validate-guess.
-//   - Max-Age 24h: suficiente para una jornada; al cambiar la fecha el
-//     servidor la regenera.
+// Contenido firmado: { d: "YYYY-MM-DD", n: 0..5, s: "playing"|"won"|"lost" }
 //
-// Carpeta `_lib` (prefijo _): Vercel la excluye del routing serverless.
-// Este archivo NO cuenta para el límite de 12 functions del plan Hobby.
+// Nota de seguridad: a diferencia de la cookie HttpOnly, el token es legible por
+// JS (localStorage). Riesgo acotado: solo gobierna el conteo de intentos de un
+// día y sigue siendo infalsificable. Mismo patrón que los reveal/repesca tokens.
 
 import crypto from "crypto";
 
 const SECRET = process.env.REPESCA_TOKEN_SECRET || "";
-export const ANON_COOKIE_NAME = "cd_anon";
-const MAX_AGE_SECONDS = 60 * 60 * 24; // 24 h
+// En Node, req.headers llega siempre en minúsculas.
+export const ANON_HEADER_NAME = "x-anon-session";
 
 function b64urlEncode(buf) {
   return Buffer.from(buf).toString("base64url");
@@ -80,62 +76,13 @@ export function verifyAnonSession(token) {
 }
 
 /**
- * Parseo permisivo del header Cookie. Vercel no lo auto-parsea en runtimes
- * Node — hacemos un split casero, sin dependencias.
- */
-export function parseCookies(req) {
-  const header = req.headers?.cookie || "";
-  const out = {};
-  if (!header) return out;
-  for (const part of header.split(";")) {
-    const idx = part.indexOf("=");
-    if (idx <= 0) continue;
-    const k = part.slice(0, idx).trim();
-    if (!k) continue;
-    out[k] = part.slice(idx + 1).trim();
-  }
-  return out;
-}
-
-/**
- * Atajo: lee y verifica la cookie de sesión anónima en una sola llamada.
+ * Lee y verifica el token de sesión anónima del header X-Anon-Session.
  * Devuelve el payload `{d, n, s}` o null.
  */
-export function readAnonSession(req) {
-  const cookies = parseCookies(req);
-  return verifyAnonSession(cookies[ANON_COOKIE_NAME] || "");
-}
-
-/**
- * Construye el valor del header Set-Cookie para esta sesión. Marca Secure
- * salvo en desarrollo (donde localhost no usa HTTPS y el navegador la
- * rechazaría).
- */
-export function buildSetCookie(payload) {
-  const token = signAnonSession(payload);
-  const flags = [
-    `${ANON_COOKIE_NAME}=${token}`,
-    "HttpOnly",
-    "SameSite=Lax",
-    "Path=/",
-    `Max-Age=${MAX_AGE_SECONDS}`,
-  ];
-  if (process.env.NODE_ENV !== "development") flags.push("Secure");
-  return flags.join("; ");
-}
-
-/**
- * Helper: setea la cookie en la respuesta, preservando cualquier Set-Cookie
- * que ya estuviera (poco probable en estos endpoints, pero defensivo).
- */
-export function setAnonCookie(res, payload) {
-  const value = buildSetCookie(payload);
-  const prev = res.getHeader("Set-Cookie");
-  if (Array.isArray(prev)) {
-    res.setHeader("Set-Cookie", [...prev, value]);
-  } else if (prev) {
-    res.setHeader("Set-Cookie", [prev, value]);
-  } else {
-    res.setHeader("Set-Cookie", value);
-  }
+export function readAnonToken(req) {
+  // El cliente envía `X-Anon-Session`; Node lo normaliza a minúsculas. Si
+  // llega ausente o como array (cabecera duplicada), no es un token → null.
+  const raw = req?.headers?.[ANON_HEADER_NAME];
+  if (typeof raw !== "string") return null;
+  return verifyAnonSession(raw);
 }

@@ -19,9 +19,8 @@ process.env.NODE_ENV = "development";
 const {
   signAnonSession,
   verifyAnonSession,
-  parseCookies,
-  buildSetCookie,
-  ANON_COOKIE_NAME,
+  readAnonToken,
+  ANON_HEADER_NAME,
 } = await import("../api/_lib/anon-session.js");
 
 const { signRevealToken, verifyRevealToken } = await import(
@@ -110,26 +109,20 @@ console.log("\n[anon-session]");
 }
 
 {
-  // Cookie HttpOnly y flags correctos en buildSetCookie.
-  const sc = buildSetCookie({ d: "2026-05-20", n: 0, s: "playing" });
-  truthy("cookie incluye HttpOnly", sc.includes("HttpOnly"));
-  truthy("cookie incluye SameSite=Lax", sc.includes("SameSite=Lax"));
-  truthy("cookie incluye Path=/", sc.includes("Path=/"));
-  truthy("cookie incluye Max-Age", /Max-Age=\d+/.test(sc));
-  // En NODE_ENV=development NO esperamos Secure (test arriba lo setea).
-  falsy("cookie SIN Secure en dev", sc.includes("Secure"));
-}
-
-{
-  // parseCookies sobrevive a varios formatos.
-  const req = {
-    headers: {
-      cookie: `${ANON_COOKIE_NAME}=abc.def; otherCookie=xyz; spacey  =  yes  `,
-    },
-  };
-  const cookies = parseCookies(req);
-  eq("parseCookies extrae cd_anon", cookies[ANON_COOKIE_NAME], "abc.def");
-  eq("parseCookies extrae otra cookie", cookies.otherCookie, "xyz");
+  // El token de sesión anónima ahora viaja por header X-Anon-Session, no por
+  // cookie. readAnonToken lee y verifica ese header.
+  const token = signAnonSession({ d: "2026-05-20", n: 1, s: "playing" });
+  const req = { headers: { [ANON_HEADER_NAME]: token } };
+  eq("readAnonToken verifica el header válido", readAnonToken(req), {
+    d: "2026-05-20",
+    n: 1,
+    s: "playing",
+  });
+  falsy("readAnonToken con header ausente → null", readAnonToken({ headers: {} }));
+  falsy(
+    "readAnonToken con token forjado → null",
+    readAnonToken({ headers: { [ANON_HEADER_NAME]: "garbage.sig" } })
+  );
 }
 
 // ============================================================================

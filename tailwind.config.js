@@ -61,8 +61,13 @@ module.exports = {
         glass: "18px",
       },
       animation: {
-        "fade-in": "fadeIn 0.4s ease forwards",
-        "slide-up": "slideUp 0.35s ease forwards",
+        // Entradas (fade/slide): curva ease-out FUERTE en vez del `ease`
+        // nativo de CSS, que es demasiado flojo y no tiene "punch". Arrancar
+        // rápido y frenar al final hace que el contenido se sienta más
+        // responsivo justo en el instante en que el ojo está mirando.
+        // cubic-bezier(0.23,1,0.32,1) es el "strong ease-out" de referencia.
+        "fade-in": "fadeIn 0.4s cubic-bezier(0.23,1,0.32,1) forwards",
+        "slide-up": "slideUp 0.35s cubic-bezier(0.23,1,0.32,1) forwards",
         "zoom-out": "zoomOut 0.7s cubic-bezier(0.4,0,0.2,1) forwards",
         "shake": "shake 0.4s ease",
         "pop": "pop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",
@@ -70,7 +75,7 @@ module.exports = {
         "reveal-win": "revealWin 1s cubic-bezier(0.34,1.56,0.64,1) forwards",
         "toast-in": "toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards",
         "shimmer": "shimmer 1.4s linear infinite",
-        "flip-reveal": "flipReveal 0.55s cubic-bezier(0.34,1.4,0.64,1) forwards",
+        "flip-reveal": "flipReveal 0.7s cubic-bezier(0.23,1,0.32,1) forwards",
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -106,12 +111,16 @@ module.exports = {
           "0%":   { backgroundPosition: "-150% 0" },
           "100%": { backgroundPosition: "150% 0" },
         },
-        // Flip Y al revelar cada celda tras la respuesta del servidor. El
-        // overshoot (-15deg → 0) le da un toque táctil de "carta volteándose".
+        // Flip X al revelar cada celda tras la respuesta del servidor: la carta
+        // se voltea de canto (90deg) a plano. UN SOLO movimiento que decelera
+        // limpio — antes el keyframe sobrepasaba a -15deg Y el easing era
+        // bouncy (cubic-bezier con 1.4): dos overshoots apilados producían un
+        // wobble "torpe" y, al ir el easing tan cargado al inicio, la carta
+        // llegaba de golpe ("demasiado rápida"). Aquí el rebote desaparece; el
+        // ease-out fuerte del token hace todo el trabajo de asentar la carta.
         flipReveal: {
-          "0%":   { opacity: 0, transform: "rotateX(90deg)" },
-          "55%":  { opacity: 1, transform: "rotateX(-15deg)" },
-          "100%": { opacity: 1, transform: "rotateX(0)" },
+          from: { opacity: 0, transform: "rotateX(90deg)" },
+          to:   { opacity: 1, transform: "rotateX(0deg)" },
         },
       },
     },

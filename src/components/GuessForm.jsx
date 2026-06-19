@@ -17,12 +17,18 @@ const MIN_YEAR = 1886;
 // rellenando otros campos pero sí ser evidente al inspeccionar la zona.
 function YearStepper({ onStep, disabled }) {
   const { t } = useT();
+  // Press feedback: el stepper es un control que se toca muchas veces para
+  // afinar el año, así que tiene que "responder" al dedo. active:scale-90 da
+  // el acuse instantáneo de pulsación (Emil: los botones deben sentirse
+  // responsivos); incluimos `transform` en la transición y un origin centrado
+  // para que el chevron escale desde su centro.
   const btn = `
-    flex h-1/2 w-7 items-center justify-center
-    text-muted/70 transition-colors duration-150
+    flex h-1/2 w-7 items-center justify-center origin-center
+    text-muted/70 transition-[color,background-color,transform] duration-150
     hover:text-accent hover:bg-white/[0.04]
+    active:scale-90 active:text-accent
     disabled:cursor-not-allowed disabled:opacity-30
-    disabled:hover:text-muted/70 disabled:hover:bg-transparent
+    disabled:hover:text-muted/70 disabled:hover:bg-transparent disabled:active:scale-100
   `;
   return (
     <div
@@ -447,6 +453,11 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
                   CURRENT_YEAR,
                   Math.max(MIN_YEAR, base + delta)
                 );
+                // Tick háptico solo si el valor cambia de verdad: en el tope
+                // del rango (clamp) no debe vibrar, igual que un dial físico
+                // que ya no gira más. Coherente con el "selection" del
+                // autocompletado.
+                if (next !== base) haptic.selection();
                 setAnio(String(next));
               }}
             />

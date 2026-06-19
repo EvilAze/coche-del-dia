@@ -218,8 +218,9 @@ export default function GuessRow({ guess, index, pending = false, justRevealed =
   const { t } = useT();
 
   // Stagger entre celdas al revelar: marca primero, luego modelo, luego
-  // año. 140 ms da una cadencia legible sin alargar la espera percibida.
-  const REVEAL_STAGGER_MS = 140;
+  // año. 160 ms da una cadencia legible y pausada sin alargar en exceso la
+  // espera percibida (en sync con el FLIP_STAGGER_MS del layout configurator).
+  const REVEAL_STAGGER_MS = 160;
   const cellDelay = (i) => (justRevealed ? i * REVEAL_STAGGER_MS : undefined);
 
   // Filas previas siguen entrando con slide-up. Al revelar, no animamos

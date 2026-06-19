@@ -7,6 +7,9 @@ import { ToastProvider } from "./components/Toast";
 import { initSentry, SentryErrorBoundary } from "./lib/sentry";
 import { reportWebVitals } from "./lib/webVitals";
 import { installApiFetchShim } from "./lib/apiUrl";
+import { Capacitor } from "@capacitor/core";
+import { rearmIfEnabled } from "./lib/notifications";
+import { t } from "./i18n";
 
 // Inicializar Sentry ANTES de cualquier render. Sin DSN configurado
 // (VITE_SENTRY_DSN), es no-op total — dev local sigue funcionando con
@@ -16,6 +19,22 @@ initSentry();
 // En la app Android (Capacitor) reescribe las rutas /api relativas al dominio
 // de producción. En web es no-op.
 installApiFetchShim();
+
+// Solo nativo (Capacitor): re-armar el recordatorio si el permiso ya está
+// concedido, y enganchar el botón físico "atrás" de Android.
+if (Capacitor.isNativePlatform()) {
+  rearmIfEnabled({
+    title: t("notif.reminderTitle"),
+    body: t("notif.reminderBody"),
+  }).catch(() => {});
+
+  import("@capacitor/app").then(({ App: CapApp }) => {
+    CapApp.addListener("backButton", ({ canGoBack }) => {
+      if (canGoBack) window.history.back();
+      else CapApp.exitApp();
+    });
+  });
+}
 
 // Empezar a recolectar Core Web Vitals (LCP/CLS/INP/FCP/TTFB) y mandarlos
 // a Umami. Es seguro llamar antes de createRoot: web-vitals se suscribe

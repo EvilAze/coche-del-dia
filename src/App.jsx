@@ -14,6 +14,7 @@ import { useModalState } from "./hooks/useModalState";
 import { useEscape } from "./hooks/useEscape";
 import { useDayRollover } from "./hooks/useDayRollover";
 import { useT } from "./i18n";
+import { apiUrl } from "./lib/apiUrl";
 
 // Modales lazy: viven todos detrás de un clic, así que NO entran en el bundle
 // inicial. Se descargan la primera vez que se abren y, una vez montados, se
@@ -294,7 +295,10 @@ export default function App() {
     link.rel = "preload";
     link.as = "image";
     link.type = "image/avif";
-    link.imageSrcset = `${car.img}&f=avif&w=640 640w, ${car.img}&f=avif&w=1280 1280w, ${car.img}&f=avif&w=1920 1920w`;
+    // En nativo el preload debe apuntar al dominio de producción (igual que
+    // CarImage), o el navegador descarga una URL que no existe en localhost.
+    const preBase = apiUrl(car.img);
+    link.imageSrcset = `${preBase}&f=avif&w=640 640w, ${preBase}&f=avif&w=1280 1280w, ${preBase}&f=avif&w=1920 1920w`;
     link.imageSizes = "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px";
     link.fetchPriority = "high";
     document.head.appendChild(link);

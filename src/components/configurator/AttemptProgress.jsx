@@ -28,7 +28,12 @@ export default function AttemptProgress({ attempts = 0, maxAttempts = 5, reveale
         <span
           key={i}
           className={
-            "h-1.5 rounded-full transition-all duration-300 " +
+            // Propiedades explícitas en vez de `transition-all`: solo cambian
+            // ancho, fondo y glow al avanzar de intento. El comodín `all`
+            // engancharía cualquier propiedad futura por accidente (y dispara
+            // el motor a observar todo). Anima una vez por intento (ocasional),
+            // así que 300ms está bien.
+            "h-1.5 rounded-full transition-[width,background-color,box-shadow] duration-300 " +
             (i < attempts
               ? "w-6 bg-foreground/70"
               : i === attempts

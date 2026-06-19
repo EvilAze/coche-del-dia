@@ -6,12 +6,16 @@ import ErrorFallback from "./components/ErrorFallback";
 import { ToastProvider } from "./components/Toast";
 import { initSentry, SentryErrorBoundary } from "./lib/sentry";
 import { reportWebVitals } from "./lib/webVitals";
+import { installApiFetchShim } from "./lib/apiUrl";
 
 // Inicializar Sentry ANTES de cualquier render. Sin DSN configurado
 // (VITE_SENTRY_DSN), es no-op total — dev local sigue funcionando con
 // console.error como hoy. Con DSN, los errores no manejados llegan al
 // dashboard de Sentry.
 initSentry();
+// En la app Android (Capacitor) reescribe las rutas /api relativas al dominio
+// de producción. En web es no-op.
+installApiFetchShim();
 
 // Empezar a recolectar Core Web Vitals (LCP/CLS/INP/FCP/TTFB) y mandarlos
 // a Umami. Es seguro llamar antes de createRoot: web-vitals se suscribe

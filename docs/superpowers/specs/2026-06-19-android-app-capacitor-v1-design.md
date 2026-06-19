@@ -193,3 +193,36 @@ bloquearían.
 | Algún `/api/*` consumido como imagen se nos escapa | Auditar consumidores de `/api/*` (fetch + img) en el plan; `apiUrl()` centraliza el fix. |
 | Notificación dispara en hora local, no Madrid | Aceptable v1 (el coche ya está disponible por la mañana en cualquier huso). |
 | Mojibake en strings con tildes | Escribir UTF-8; en regex usar formas escapadas (regla 14 del proyecto). |
+
+## Addendum (hallazgos de planificación, 2026-06-19)
+
+Durante la fase de plan se descubrió que el **juego anónimo cuenta los intentos
+con una cookie HttpOnly firmada (`cd_anon`, `SameSite=Lax`)**, exigida por
+`validate-guess` (anti-trampas) y leída también por `daily-image`. En bundled la
+app (`https://localhost`) y la API (`cochedeldia.com`) son orígenes distintos →
+esa cookie sería *third-party*, que el WebView de Android no acepta por defecto y
+que Chromium está retirando. Decisión tomada con el usuario:
+
+- **Mover anon-session de cookie a token** firmado (mismo HMAC `{d,n,s}`) que
+  viaja en **localStorage + header `X-Anon-Session`** y se devuelve actualizado
+  en el **body** de `get-daily-car` y `validate-guess`. Elimina la dependencia
+  cross-site para siempre y encaja con el login nativo de v2.
+- **`daily-image` deja de leer la cookie**: el reveal del anónimo ganador ya va
+  por el **reveal token** (`&t=`), la lectura de cookie era solo defensa
+  redundante → se elimina (la `<img>` no puede mandar headers, así que no hay que
+  meter el token en query).
+- **CORS se simplifica**: sin cookies no hace falta `Allow-Credentials`; basta
+  allowlist de origen + permitir el header `X-Anon-Session`.
+- **Notificaciones sin toggle in-app en v1**: `Configurator.jsx` resultó ser el
+  shell del juego, no un panel de ajustes, y `HeaderSandwich` es una barra de
+  iconos. En vez de añadir UI de settings, el patrón es: **re-armar la
+  notificación en cada arranque si el permiso del SO ya está concedido**; el
+  opt-in suave tras la 1ª partida dispara la petición de permiso; desactivar se
+  hace desde los ajustes de notificaciones de Android. Menos superficie, mismo
+  resultado.
+- **Estructura:** el usuario eligió **un único plan/PR combinado** (Fase 1
+  refactor anon-session + Fase 2 Capacitor) en vez de dos planes secuenciales.
+- **Nota de seguridad del cambio:** el token en localStorage es legible por JS
+  (a diferencia de la cookie HttpOnly). Riesgo acotado: solo gobierna el conteo
+  de intentos anónimos de un día y sigue firmado server-side (no falsificable).
+  Mismo patrón que los reveal/repesca tokens ya existentes.

@@ -11,7 +11,7 @@
 //   - Las RPCs (record_daily_result_v2) sí pueden tirar; van en su propio
 //     try/catch para no romper el flujo principal.
 
-import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
+import { readAnonToken, signAnonSession } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
 import { getClientIp } from "./_lib/rate-limit.js";
 import { checkRateLimit } from "./_lib/ratelimit.js";
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
       }
       attemptNumber = existingGuesses.length + 1;
     } else {
-      anonSession = readAnonSession(req);
+      anonSession = readAnonToken(req);
       // Si no hay cookie válida o es de otro día, rechazamos: el cliente
       // debe pasar por /api/get-daily-car primero (que la emite). En el
       // flujo normal esto siempre ocurre — el frontend llama get-daily-car
@@ -334,11 +334,14 @@ export default async function handler(req, res) {
     //              firmáramos al anónimo perdedor, equivaldría a regalarle
     //              la foto del coche — exactamente el cheat que estamos
     //              cerrando con la asimetría de arriba.
+    // Token anónimo actualizado: lo devolvemos en el body (antes era Set-Cookie).
+    // El cliente lo persiste en localStorage y lo reenvía en el próximo intento.
+    let anonToken = null;
     if (!user && anonSession) {
       try {
-        setAnonCookie(res, { d: today, n: attemptNumber, s: newStatus });
+        anonToken = signAnonSession({ d: today, n: attemptNumber, s: newStatus });
       } catch (err) {
-        console.error("[validate-guess] setAnonCookie:", err?.message || err);
+        console.error("[validate-guess] signAnonSession:", err?.message || err);
       }
     }
 
@@ -376,6 +379,7 @@ export default async function handler(req, res) {
       attemptNumber,
       reveal,
       revealToken,
+      anonToken,
       score,
     });
   } catch (err) {

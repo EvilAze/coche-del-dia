@@ -23,7 +23,7 @@ import {
 import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
 import { requireUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
-import { methodGuard } from "./_lib/http.js";
+import { methodGuard, applyCors } from "./_lib/http.js";
 import { captureServerError } from "./_lib/sentry.js";
 
 // Helper local: arma la URL del proxy server-side de imágenes del garaje.
@@ -35,6 +35,7 @@ function carImageProxyUrl(carId, mode) {
 }
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
   if (methodGuard(req, res, "GET")) return;
 
   try {

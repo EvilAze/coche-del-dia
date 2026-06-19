@@ -19,7 +19,7 @@ import { captureServerError } from "./_lib/sentry.js";
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
-import { parseBody, methodGuard } from "./_lib/http.js";
+import { parseBody, methodGuard, applyCors } from "./_lib/http.js";
 import { logGuessAttempt } from "./_lib/audit.js";
 import { compareGuess } from "./_lib/compare-guess.js";
 
@@ -53,6 +53,7 @@ async function persistDailyResult({ accessToken, won, attemptNumber }) {
 }
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
   // -------- 0. Método -----------------------------------------------------
   if (methodGuard(req, res, "POST")) return;
 

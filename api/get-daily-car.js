@@ -36,7 +36,7 @@
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { signRevealToken } from "./_lib/edge/reveal-token.js";
-import { readAnonSession, buildSetCookie } from "./_lib/edge/anon-session.js";
+import { readAnonTokenFromRequest, signAnonSession } from "./_lib/edge/anon-session.js";
 import { sha1Hex } from "./_lib/edge/crypto.js";
 import { logSessionStart } from "./_lib/edge/audit.js";
 import { clampZoomBase } from "./_lib/zoom.js";
@@ -209,38 +209,32 @@ export default async function handler(request) {
 
   // -------- RAMA ANÓNIMA -------------------------------------------------
   if (!user) {
-    const responseHeaders = {};
+    // Token de sesión anónima firmado (HMAC). Antes era una cookie HttpOnly;
+    // ahora viaja en el body para que la app Android (origen distinto) no
+    // dependa de cookies cross-site. El cliente lo guarda en localStorage y lo
+    // reenvía en el header X-Anon-Session.
+    const incoming = await readAnonTokenFromRequest(request);
+    const valid =
+      incoming &&
+      incoming.d === today &&
+      Number.isInteger(incoming.n) &&
+      typeof incoming.s === "string";
 
-    // Cookie HttpOnly firmada con HMAC para que /api/validate-guess pueda
-    // contar intentos server-side sin confiar en `attemptNumber` del body.
-    // Si la cookie ya existe y es de hoy, la respetamos (no pisar progreso).
-    const anon = await readAnonSession(request);
-    const anonValid =
-      anon &&
-      anon.d === today &&
-      Number.isInteger(anon.n) &&
-      typeof anon.s === "string";
+    const session = valid ? incoming : { d: today, n: 0, s: "playing" };
 
-    if (!anonValid) {
-      try {
-        responseHeaders["Set-Cookie"] = await buildSetCookie({
-          d: today,
-          n: 0,
-          s: "playing",
-        });
-      } catch (err) {
-        // Si REPESCA_TOKEN_SECRET no está configurado, dejamos al usuario
-        // jugar sin cookie. validate-guess se quejará pero al menos la
-        // home no rompe.
-        console.error("[get-daily-car] buildSetCookie:", err?.message || err);
-      }
+    let anonToken = null;
+    try {
+      anonToken = await signAnonSession(session);
+    } catch (err) {
+      // Si REPESCA_TOKEN_SECRET no está configurado, el usuario juega sin
+      // token; validate-guess se quejará pero la home no rompe.
+      console.error("[get-daily-car] signAnonSession:", err?.message || err);
     }
 
-    // Asimetría intencional con el caso "lost" del anónimo: NO firmamos
-    // revealToken al perdedor para no regalarle la imagen completa al
-    // siguiente refresh. Solo al ganador anónimo.
+    // Asimetría intencional con el caso "lost": solo firmamos revealToken al
+    // anónimo que GANÓ, para no regalarle la imagen completa al perdedor.
     let revealToken = null;
-    if (anonValid && anon.s === "won") {
+    if (valid && session.s === "won") {
       try {
         revealToken = await signRevealToken(today);
       } catch (err) {
@@ -248,7 +242,7 @@ export default async function handler(request) {
       }
     }
 
-    return jsonResponse({ ...base, revealToken }, { headers: responseHeaders });
+    return jsonResponse({ ...base, anonToken, revealToken });
   }
 
   // -------- RAMA LOGUEADA ------------------------------------------------

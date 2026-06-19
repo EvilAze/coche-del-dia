@@ -1,0 +1,19 @@
+{
+  "appId": "com.cochedeldia",
+  "appName": "Coche del Día",
+  "webDir": "build",
+  "android": {
+    "backgroundColor": "#0d1014"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#0d1014",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0d1014"
+    }
+  }
+}

@@ -16,3 +16,6 @@ build/
 key-*.txt
 *.age
 AGE-SECRET-KEY*
+# Skills instaladas por `npx skills add` (tooling local, no parte de la app)
+.agents/
+skills-lock.json

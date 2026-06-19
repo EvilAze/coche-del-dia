@@ -12,8 +12,9 @@ import { flagImagePath } from "../../data/countries";
 import { Icon, I } from "./icons";
 import { useFitText } from "../../hooks/useFitText";
 
-// Stagger del flip por celda (efecto "carta volteándose").
-const FLIP_STAGGER_MS = 130;
+// Stagger del flip por celda (efecto "carta volteándose"). Espaciado para que
+// la cascada marca → modelo → año se lea con calma, sin atropellarse.
+const FLIP_STAGGER_MS = 160;
 
 function Cell({ tone, pending, value, mark, markTone, flag, sub, srStatus, flip, delay, fitKey }) {
   // Auto-ajuste del nombre a una línea (el nombre ocupa toda la fila 1, así que el
@@ -34,7 +35,9 @@ function Cell({ tone, pending, value, mark, markTone, flag, sub, srStatus, flip,
         toneClass +
         (flip ? " animate-flip-reveal" : "")
       }
-      style={flip ? { animationDelay: delay } : undefined}
+      // backfaceVisibility:hidden mantiene el giro 3D limpio (sin destellos de
+      // la cara trasera al cruzar los 90deg). animationDelay = stagger por celda.
+      style={flip ? { animationDelay: delay, backfaceVisibility: "hidden" } : undefined}
     >
       {/* Fila 1: nombre a ancho completo (una línea, lo encoge useFitText). */}
       <span ref={textRef} className="block w-full overflow-hidden whitespace-nowrap text-sm font-medium leading-tight">
@@ -103,7 +106,11 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh }) {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    // perspective en el contenedor para que el rotateX de las celdas sea un
+    // giro 3D real ("carta volteándose") y no un aplastamiento vertical
+    // ortográfico. Solo importa cuando fresh dispara el flip; en reposo no
+    // afecta. Mismo valor (600px) que el GuessRow legacy, por coherencia.
+    <div className="grid grid-cols-3 gap-2" style={fresh ? { perspective: "600px" } : undefined}>
       <Cell tone={marcaTone} value={g.marca?.val} fitKey={g.marca?.val} mark={marcaMark} markTone={marcaMarkTone} flag={marcaFlag} sub={marcaSub} srStatus={marcaSr} flip={fresh} delay={d(0)} />
       <Cell tone={modeloTone} value={g.modelo?.val} fitKey={g.modelo?.val} mark={modeloMark} markTone={modeloMarkTone} srStatus={modeloSr} flip={fresh} delay={d(1)} />
       <Cell tone={anioTone} value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} mark={anioMark} markTone={anioMarkTone} sub={anioSub} srStatus={anioSr} flip={fresh} delay={d(2)} />

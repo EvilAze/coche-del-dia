@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { haptic } from "../lib/haptics";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
+import { apiUrl } from "../lib/apiUrl";
 
 // Aspect ratio por defecto mientras la imagen aún no ha cargado.
 // Se reemplaza por el natural (img.naturalWidth/Height) al onLoad.
@@ -134,6 +135,10 @@ export default function CarImage({
   // Las URLs de proxy propio (/api/...) soportan ?f=avif&w=640 etc.
   // Las URLs externas (Supabase CDN, /coches/, …) se usan directas.
   const isApiProxy = typeof src === "string" && src.startsWith("/api/");
+  // En nativo, las URLs del proxy se absolutizan al dominio de producción
+  // (el <img> no pasa por el shim de fetch). `isApiProxy` se calcula sobre el
+  // `src` ORIGINAL relativo, así la detección no se rompe al absolutizar.
+  const proxBase = isApiProxy ? apiUrl(src) : src;
 
   const isWinReveal = status === "won";
   // Estado "revelado": el juego ha terminado, por victoria o derrota. Al revelar,
@@ -286,14 +291,14 @@ export default function CarImage({
         {isApiProxy && !imgFailed && (
           <source
             type="image/avif"
-            srcSet={`${src}&f=avif&w=640 640w, ${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
+            srcSet={`${proxBase}&f=avif&w=640 640w, ${proxBase}&f=avif&w=1280 1280w, ${proxBase}&f=avif&w=1920 1920w`}
             sizes="(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px"
           />
         )}
         {isApiProxy && !imgFailed && (
           <source
             type="image/webp"
-            srcSet={`${src}&f=webp&w=640 640w, ${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
+            srcSet={`${proxBase}&f=webp&w=640 640w, ${proxBase}&f=webp&w=1280 1280w, ${proxBase}&f=webp&w=1920 1920w`}
             sizes="(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px"
           />
         )}
@@ -303,10 +308,10 @@ export default function CarImage({
           // estado fallido del intento anterior).
           key={imgFailed ? "fallback" : "primary"}
           ref={imgRef}
-          src={isApiProxy ? `${src}&f=jpeg&w=1280` : src}
+          src={isApiProxy ? `${proxBase}&f=jpeg&w=1280` : src}
           srcSet={
             isApiProxy && !imgFailed
-              ? `${src}&f=jpeg&w=640 640w, ${src}&f=jpeg&w=1280 1280w, ${src}&f=jpeg&w=1920 1920w`
+              ? `${proxBase}&f=jpeg&w=640 640w, ${proxBase}&f=jpeg&w=1280 1280w, ${proxBase}&f=jpeg&w=1920 1920w`
               : undefined
           }
           sizes={isApiProxy && !imgFailed ? "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px" : undefined}
@@ -469,19 +474,19 @@ export default function CarImage({
               {isApiProxy && (
                 <source
                   type="image/avif"
-                  srcSet={`${src}&f=avif&w=1280 1280w, ${src}&f=avif&w=1920 1920w`}
+                  srcSet={`${proxBase}&f=avif&w=1280 1280w, ${proxBase}&f=avif&w=1920 1920w`}
                   sizes="92vw"
                 />
               )}
               {isApiProxy && (
                 <source
                   type="image/webp"
-                  srcSet={`${src}&f=webp&w=1280 1280w, ${src}&f=webp&w=1920 1920w`}
+                  srcSet={`${proxBase}&f=webp&w=1280 1280w, ${proxBase}&f=webp&w=1920 1920w`}
                   sizes="92vw"
                 />
               )}
               <img
-                src={isApiProxy ? `${src}&f=jpeg&w=1920` : src}
+                src={isApiProxy ? `${proxBase}&f=jpeg&w=1920` : src}
                 alt="Coche del día"
                 draggable={false}
                 className="absolute inset-0 h-full w-full object-cover"

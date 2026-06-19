@@ -87,7 +87,9 @@ El único cambio conceptual respecto a la web es el **origen**: en bundled pasa 
 - **`src/lib/apiUrl.js`**: `apiUrl(path)` →
   - Web: devuelve `path` sin tocar (relativo, comportamiento actual).
   - Nativo (`Capacitor.isNativePlatform()`): antepone `VITE_PROD_ORIGIN`
-    (p.ej. `https://www.cochedeldia.com`) a las rutas que empiezan por `/api`.
+    (`https://cochedeldia.com`) a las rutas que empiezan por `/api`.
+    > A verificar en el plan: que el apex `cochedeldia.com` sirva la API sin
+    > redirección a `www` (un redirect 30x complicaría el CORS desde la app).
 - **Shim de `fetch`** instalado en el arranque (`src/index.jsx`), **solo en nativo**:
   envuelve `window.fetch` y pasa cualquier URL string por `apiUrl()`. Así no hay
   que tocar los ~20 *call sites* de `fetch`. Deja intactas Supabase (URL absoluta)
@@ -180,7 +182,7 @@ bloquearían.
 - **Cuenta Google Play Developer:** 25 $, pago único.
 - **Android Studio** en Fedora (nativo, sin Mac).
 - **Keystore de firma** para el AAB de release (se documenta en el plan).
-- **`VITE_PROD_ORIGIN`** apuntando al dominio de producción real.
+- **`VITE_PROD_ORIGIN` = `https://cochedeldia.com`** (dominio de producción).
 
 ## Riesgos y mitigaciones
 

@@ -173,7 +173,12 @@
     "optInAccept": "Yes, remind me",
     "optInDecline": "Not now",
     "reminderTitle": "New car today 🚗",
-    "reminderBody": "Guess the car of the day and keep your streak."
+    "reminderBody": "Guess the car of the day and keep your streak.",
+    "streakReminderTitle": "Your streak is on the line!",
+    "streakReminderBody": {
+      "one": "Don't lose your {count}-day streak. Guess today's car.",
+      "other": "Don't lose your {count}-day streak. Guess today's car."
+    }
   },
   "score": {
     "base": "Base",

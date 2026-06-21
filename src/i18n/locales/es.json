@@ -173,7 +173,12 @@
     "optInAccept": "Sí, avísame",
     "optInDecline": "Ahora no",
     "reminderTitle": "Hoy hay coche nuevo 🚗",
-    "reminderBody": "Adivina el coche del día y mantén tu racha."
+    "reminderBody": "Adivina el coche del día y mantén tu racha.",
+    "streakReminderTitle": "¡Tu racha está en juego!",
+    "streakReminderBody": {
+      "one": "No pierdas tu racha de {count} día. Adivina el coche de hoy.",
+      "other": "No pierdas tu racha de {count} días. Adivina el coche de hoy."
+    }
   },
   "score": {
     "base": "Base",

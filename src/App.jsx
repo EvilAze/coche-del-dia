@@ -17,6 +17,8 @@ import { useEscape } from "./hooks/useEscape";
 import { useDayRollover } from "./hooks/useDayRollover";
 import { useT } from "./i18n";
 import { apiUrl } from "./lib/apiUrl";
+import { isNative, rearmIfEnabled } from "./lib/notifications";
+import { reminderCopy } from "./lib/reminderCopy";
 
 // Modales lazy: viven todos detrás de un clic, así que NO entran en el bundle
 // inicial. Se descargan la primera vez que se abren y, una vez montados, se
@@ -30,7 +32,7 @@ const NicknameModal = lazy(() => import("./components/NicknameModal"));
 const HowToPlayModal = lazy(() => import("./components/HowToPlayModal"));
 
 export default function App() {
-  const { t } = useT();
+  const { t, tn } = useT();
   const toast = useToast();
   // Sesión + perfil + racha: la lógica de auth vive en useAuthSession; aquí
   // solo consumimos el estado y los setters que necesitan otros flujos.
@@ -120,6 +122,16 @@ export default function App() {
   useEffect(() => {
     if (user && activeModal === "login") closeModal();
   }, [user, activeModal, closeModal]);
+
+  // Recordatorio "racha en peligro": cuando se conoce/actualiza la racha del
+  // logueado (al loguear o tras terminar partida), reprogramamos la notificación
+  // local diaria con copy personalizado (>=2 días → "no pierdas tu racha"; si no,
+  // genérico). Solo nativo; rearmIfEnabled no-opea sin permiso del SO. Anónimos
+  // tienen racha 0 → copy genérico.
+  useEffect(() => {
+    if (!isNative()) return;
+    rearmIfEnabled(reminderCopy(t, tn, streak)).catch(() => {});
+  }, [streak, t, tn]);
 
   // Radar de repesca: tras login, miramos si hay repesca disponible Y
   // al menos un coche "missed" en el catálogo. Una sola petición ligera;

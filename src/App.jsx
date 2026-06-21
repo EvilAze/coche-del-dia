@@ -8,6 +8,7 @@ import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
 import { getMyMonthlyRank } from "./lib/statsService";
 import { track } from "./lib/analytics";
+import { signInWithGoogle } from "./lib/auth";
 import { useGame } from "./hooks/useGame";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useModalState } from "./hooks/useModalState";
@@ -368,7 +369,7 @@ export default function App() {
         </p>
 
         <button
-          onClick={() => supabase.auth.signInWithOAuth({ provider: "google" })}
+          onClick={signInWithGoogle}
           className="flex w-full items-center justify-center gap-3 rounded-lg bg-white px-4 py-3 font-semibold text-black transition-transform hover:scale-105 active:scale-95"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">

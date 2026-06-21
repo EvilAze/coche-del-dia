@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getMyStats } from "../lib/statsService";
 import { supabase } from "../supabaseClient";
+import { signOut } from "../lib/auth";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
@@ -174,7 +175,7 @@ export default function MyStats({ open, onClose, onSignedOut, onOpenAchievements
   }, [open]);
 
   async function handleSignOut() {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await signOut();
 
     if (error) {
       setState((current) => ({

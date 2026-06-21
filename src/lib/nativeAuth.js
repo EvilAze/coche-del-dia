@@ -11,9 +11,12 @@ import { supabase } from "../supabaseClient";
 const WEB_CLIENT_ID = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID;
 let initialized = false;
 
-async function plugin() {
-  const { SocialLogin } = await import("@capgo/capacitor-social-login");
-  return SocialLogin;
+// Carga perezosa del plugin. Devolvemos la PROMESA del import (el módulo), NUNCA
+// el proxy del plugin: devolver o await-ear un proxy de Capacitor accede a su
+// `.then`, y eso lo interpreta como una llamada nativa → peta con
+// "SocialLogin.then() is not implemented on android".
+function loadSocialLogin() {
+  return import("@capgo/capacitor-social-login");
 }
 
 // Heurística de cancelación: el plugin lanza al cancelar el selector en algunas
@@ -27,7 +30,7 @@ function isUserCancel(err) {
 // nada: el login dará un error controlado y el juego sigue anónimo.
 export async function initNativeAuth() {
   if (!Capacitor.isNativePlatform() || initialized || !WEB_CLIENT_ID) return;
-  const SocialLogin = await plugin();
+  const { SocialLogin } = await loadSocialLogin();
   await SocialLogin.initialize({ google: { webClientId: WEB_CLIENT_ID } });
   initialized = true;
 }
@@ -39,7 +42,7 @@ export async function nativeGoogleSignIn() {
   }
   try {
     await initNativeAuth();
-    const SocialLogin = await plugin();
+    const { SocialLogin } = await loadSocialLogin();
     const login = await SocialLogin.login({ provider: "google" });
     const idToken = login?.result?.idToken;
     if (!idToken) {
@@ -61,7 +64,7 @@ export async function nativeGoogleSignIn() {
 export async function nativeSignOut() {
   if (!Capacitor.isNativePlatform()) return;
   try {
-    const SocialLogin = await plugin();
+    const { SocialLogin } = await loadSocialLogin();
     await SocialLogin.logout({ provider: "google" });
   } catch {
     /* best-effort: si el logout del plugin falla, no rompemos el sign-out */

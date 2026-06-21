@@ -38,7 +38,9 @@ export async function initNativeAuth() {
 // Login nativo → sesión Supabase. Devuelve { data, error } estilo supabase.
 export async function nativeGoogleSignIn() {
   if (!WEB_CLIENT_ID) {
-    return { data: null, error: new Error("Falta VITE_GOOGLE_WEB_CLIENT_ID") };
+    const error = new Error("Falta VITE_GOOGLE_WEB_CLIENT_ID");
+    console.error("[nativeAuth]", error.message);
+    return { data: null, error };
   }
   try {
     await initNativeAuth();
@@ -49,12 +51,21 @@ export async function nativeGoogleSignIn() {
       // Sin idToken: normalmente el usuario canceló el selector.
       return { data: null, error: null };
     }
-    return await supabase.auth.signInWithIdToken({
+    const res = await supabase.auth.signInWithIdToken({
       provider: "google",
       token: idToken,
     });
+    // Logueamos solo el MENSAJE (nunca el token): si Supabase rechaza el
+    // idToken (p.ej. aud no autorizado) el error queda visible para depurar.
+    if (res?.error) {
+      console.error("[nativeAuth] signInWithIdToken:", res.error.message || res.error);
+    }
+    return res;
   } catch (err) {
     if (isUserCancel(err)) return { data: null, error: null };
+    // Errores del plugin: típicamente SHA-1 no registrada en Google Cloud o
+    // falta el OAuth client Android del package com.cochedeldia.
+    console.error("[nativeAuth] login:", err?.message || err);
     return { data: null, error: err };
   }
 }

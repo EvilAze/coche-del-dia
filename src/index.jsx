@@ -9,6 +9,7 @@ import { reportWebVitals } from "./lib/webVitals";
 import { installApiFetchShim } from "./lib/apiUrl";
 import { Capacitor } from "@capacitor/core";
 import { rearmIfEnabled } from "./lib/notifications";
+import { initNativeAuth } from "./lib/nativeAuth";
 import { t } from "./i18n";
 
 // Inicializar Sentry ANTES de cualquier render. Sin DSN configurado
@@ -23,6 +24,9 @@ installApiFetchShim();
 // Solo nativo (Capacitor): re-armar el recordatorio si el permiso ya está
 // concedido, y enganchar el botón físico "atrás" de Android.
 if (Capacitor.isNativePlatform()) {
+  // Inicializa el plugin de login nativo (idempotente; no-op sin WEB_CLIENT_ID).
+  initNativeAuth().catch(() => {});
+
   rearmIfEnabled({
     title: t("notif.reminderTitle"),
     body: t("notif.reminderBody"),

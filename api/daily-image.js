@@ -305,8 +305,8 @@ export default async function handler(req, res) {
   //     ese token y es única para "reveal de hoy". Misma respuesta para
   //     todos los que lo presenten → CDN-cacheable 24 h.
   //   - Si la cache key es la URL "sin t" pero entregamos imagen completa
-  //     porque el usuario está logueado-con-win o tiene cookie won, NO
-  //     podemos cachear públicamente: la siguiente request anónima a esa
+  //     porque el usuario está logueado-con-win, NO podemos cachear
+  //     públicamente: la siguiente request anónima a esa
   //     misma URL recibiría la imagen completa del cache → fuga total.
   //     Marcamos no-store.
   //   - El resto (crop forzado a z=5) es público y determinista, sin

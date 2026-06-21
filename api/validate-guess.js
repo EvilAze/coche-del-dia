@@ -136,14 +136,14 @@ export default async function handler(req, res) {
 
     // -------- 5. attemptNumber AUTORITATIVO server-side -------------------
     //   Logueados: contador desde user_guesses (RLS protegida).
-    //   Anónimos:  contador desde cookie HttpOnly firmada con HMAC. Antes
+    //   Anónimos:  contador desde token HMAC en header X-Anon-Session. Antes
     //              confiábamos en `body.attemptNumber`, lo que permitía a
     //              un script enviar 200 requests con attemptNumber:1 e
-    //              iterar todo el catálogo leyendo `result.win`. Con la
-    //              cookie, el contador es server-controlled: tras 5
-    //              intentos esa sesión queda cerrada, y borrar cookies
-    //              fuerza a re-entrar por /api/get-daily-car (que sí emite
-    //              cookie pero también queda capada por el rate-limit).
+    //              iterar todo el catálogo leyendo `result.win`. Con el
+    //              token, el contador es server-controlled: tras 5
+    //              intentos esa sesión queda cerrada, y borrar el token
+    //              fuerza a re-entrar por /api/get-daily-car (que lo emite
+    //              de nuevo, pero también queda capado por el rate-limit).
     let attemptNumber;
     let existingGuesses = [];
     let anonSession = null;
@@ -169,8 +169,8 @@ export default async function handler(req, res) {
       attemptNumber = existingGuesses.length + 1;
     } else {
       anonSession = readAnonToken(req);
-      // Si no hay cookie válida o es de otro día, rechazamos: el cliente
-      // debe pasar por /api/get-daily-car primero (que la emite). En el
+      // Si no hay token válido o es de otro día, rechazamos: el cliente
+      // debe pasar por /api/get-daily-car primero (que lo emite). En el
       // flujo normal esto siempre ocurre — el frontend llama get-daily-car
       // al arrancar la home.
       if (
@@ -326,9 +326,10 @@ export default async function handler(req, res) {
       };
     }
 
-    // -------- 9.bis Actualizar cookie anónima + emitir revealToken --------
-    //   Cookie:    para el anónimo, persistimos el nuevo contador y status.
-    //              El próximo intento ya parte del valor server-controlled.
+    // -------- 9.bis Actualizar token anónimo + emitir revealToken ----------
+    //   Token:     para el anónimo, firmamos el nuevo contador y status
+    //              y lo devolvemos en el body (anonToken). El cliente lo
+    //              persiste en localStorage y lo reenvía en el próximo intento.
     //   revealToken: token firmado para que el cliente pida la imagen
     //              completa a /api/daily-image. Solo lo emitimos cuando
     //              corresponde revelar (misma regla que `reveal`). Si lo

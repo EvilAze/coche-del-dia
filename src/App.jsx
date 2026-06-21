@@ -113,6 +113,14 @@ export default function App() {
     if (!user) closeModal();
   }, [user, closeModal]);
 
+  // Al iniciar sesión, cerramos el modal de login y volvemos al juego. En web
+  // el redirect de signInWithOAuth lo hacía implícito (recarga de página); en
+  // la app el login NATIVO vuelve a la misma vista con la sesión ya creada,
+  // así que el modal hay que cerrarlo aquí al detectar el usuario.
+  useEffect(() => {
+    if (user && activeModal === "login") closeModal();
+  }, [user, activeModal, closeModal]);
+
   // Radar de repesca: tras login, miramos si hay repesca disponible Y
   // al menos un coche "missed" en el catálogo. Una sola petición ligera;
   // se refresca cuando cambia el `user.id` (login/logout) y cuando se

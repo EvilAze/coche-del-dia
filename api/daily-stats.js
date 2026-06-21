@@ -5,9 +5,10 @@
 
 import { getSupabaseAdmin } from "./_lib/supabase.js";
 import { todayInMadrid } from "./_lib/date.js";
-import { methodGuard } from "./_lib/http.js";
+import { methodGuard, applyCors } from "./_lib/http.js";
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
   if (methodGuard(req, res, "GET")) return;
 
   try {

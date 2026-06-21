@@ -26,7 +26,6 @@
 //   luego durante 24 h se sirve desde el CDN sin tocar la función.
 
 import sharp from "sharp";
-import { readAnonSession } from "./_lib/anon-session.js";
 import { verifyRevealToken } from "./_lib/reveal-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { todayInMadrid } from "./_lib/date.js";
@@ -160,11 +159,11 @@ export default async function handler(req, res) {
   // Antes, "sin z" significaba "imagen completa" — un cheater abría
   // DevTools, copiaba la URL, quitaba `&z=5` y veía el coche entero. Ahora
   // exigimos prueba server-verificable de que el visitante ha terminado
-  // la partida. Tres vías equivalentes:
-  //   (a) ?t=<revealToken> firmado por hoy (lo emite get-daily-car y
-  //       validate-guess cuando aplican).
+  // la partida. Dos vías equivalentes:
+  //   (a) ?t=<revealToken> firmado por hoy (lo emiten get-daily-car y
+  //       validate-guess cuando aplican — también al anónimo que GANÓ, así
+  //       que el incógnito ganador revela por aquí, no por su sesión).
   //   (b) Bearer del usuario y user_guesses.status ∈ {won, lost}.
-  //   (c) Cookie anónima firmada con s ∈ {won, lost}.
   // Si NINGUNA aplica, forzamos el crop más amplio que un jugador
   // legítimo podría ver durante la partida (z=5 = 55,6% central).
   let canReveal = false;
@@ -194,19 +193,6 @@ export default async function handler(req, res) {
   if (!canReveal) {
     const userStatus = await tryReadUserStatus(req, carId, today);
     if (userStatus === "won" || userStatus === "lost") canReveal = true;
-  }
-
-  if (!canReveal) {
-    const anon = readAnonSession(req);
-    // Asimetría intencional: solo el anónimo que GANÓ desbloquea por cookie.
-    // Si perdió (s === "lost"), mantenemos el crop de seguridad: revelarle
-    // la imagen completa equivaldría a regalarle el coche, justo el cheat
-    // que cerramos en validate-guess (no firmar revealToken al anon-lost).
-    // Aquí completamos la defensa: cualquier otra vía a /api/daily-image
-    // que dependiera de la cookie también queda bloqueada.
-    if (anon && anon.d === today && anon.s === "won") {
-      canReveal = true;
-    }
   }
 
   // Decisión final del crop:
@@ -319,8 +305,8 @@ export default async function handler(req, res) {
   //     ese token y es única para "reveal de hoy". Misma respuesta para
   //     todos los que lo presenten → CDN-cacheable 24 h.
   //   - Si la cache key es la URL "sin t" pero entregamos imagen completa
-  //     porque el usuario está logueado-con-win o tiene cookie won, NO
-  //     podemos cachear públicamente: la siguiente request anónima a esa
+  //     porque el usuario está logueado-con-win, NO podemos cachear
+  //     públicamente: la siguiente request anónima a esa
   //     misma URL recibiría la imagen completa del cache → fuga total.
   //     Marcamos no-store.
   //   - El resto (crop forzado a z=5) es público y determinista, sin

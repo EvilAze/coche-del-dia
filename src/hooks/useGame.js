@@ -17,6 +17,7 @@ import { useT } from "../i18n";
 // cssZoomLevels da [2.176, 1.621, 1.348, 1.152, 1.0]. El intento 5 sigue en 1.0
 // (extremo intacto), solo se redistribuyen los intermedios para revelar antes.
 import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
+import { anonHeaders, setAnonToken } from "../lib/anonSession";
 
 // Fallback de intentos máximos mientras /api/get-daily-car no ha respondido
 // (o si una respuesta antigua no trae el campo). La fuente de verdad es el
@@ -272,18 +273,15 @@ export function useGame() {
         const { data: { session } } = await supabase.auth.getSession();
         const accessToken = session?.access_token;
 
-        const headers = {};
+        // Token anónimo (si lo hay) en el header X-Anon-Session. Sustituye a la
+        // cookie cross-site: la app Android habla con la API en otro origen.
+        const headers = { ...anonHeaders() };
         if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-        const res = await fetch("/api/get-daily-car", {
-          headers,
-          // credentials same-origin: la cookie firmada `cd_anon` que emite
-          // el endpoint para anónimos viaja en este round-trip y todas las
-          // peticiones posteriores. Sin esto, los anónimos no podrían
-          // jugar (validate-guess exige cookie de sesión).
-          credentials: "same-origin",
-        });
+        const res = await fetch("/api/get-daily-car", { headers });
         const daily = await res.json();
+        // El servidor devuelve el token (nuevo o renovado): lo persistimos.
+        if (daily?.anonToken) setAnonToken(daily.anonToken);
         // daily = { date, img, maxAttempts, guesses, status, reveal, revealToken }
         setRevealToken(daily.revealToken || null);
         if (Number.isInteger(daily.maxAttempts) && daily.maxAttempts > 0) {
@@ -396,17 +394,12 @@ export function useGame() {
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 
-      const headers = { "Content-Type": "application/json" };
+      const headers = { "Content-Type": "application/json", ...anonHeaders() };
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
       response = await fetch("/api/validate-guess", {
         method: "POST",
         headers,
-        // credentials same-origin: imprescindible para anónimos — la
-        // cookie HttpOnly `cd_anon` es la fuente de verdad del contador
-        // de intentos server-side. Sin esto el endpoint rechazaría con
-        // "Anon session missing".
-        credentials: "same-origin",
         body: JSON.stringify(payload),
       });
     } catch (networkErr) {
@@ -447,6 +440,8 @@ export function useGame() {
       setIsSubmitting(false);
       return;
     }
+    // Token anónimo renovado tras el intento: lo persistimos para el siguiente.
+    if (data?.anonToken) setAnonToken(data.anonToken);
 
     if (!response.ok) {
       console.error("[submitGuess] el servidor devolvió un error", {

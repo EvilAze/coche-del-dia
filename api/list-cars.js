@@ -5,9 +5,10 @@
 // Se cachea en el CDN de Vercel 5 min para no martillear la BD.
 
 import { getSupabasePublic, getMissingPublicEnvs } from "./_lib/supabase.js";
-import { methodGuard } from "./_lib/http.js";
+import { methodGuard, applyCors } from "./_lib/http.js";
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
   if (methodGuard(req, res, "GET")) return;
 
   const supabasePublic = getSupabasePublic();

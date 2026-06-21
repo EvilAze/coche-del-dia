@@ -36,11 +36,12 @@
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { signRevealToken } from "./_lib/edge/reveal-token.js";
-import { readAnonSession, buildSetCookie } from "./_lib/edge/anon-session.js";
+import { readAnonTokenFromRequest, signAnonSession } from "./_lib/edge/anon-session.js";
 import { sha1Hex } from "./_lib/edge/crypto.js";
 import { logSessionStart } from "./_lib/edge/audit.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
+import { isAllowedOrigin, CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS } from "./_lib/cors.js";
 
 // Intentos máximos de la partida diaria. Este valor viaja al cliente en la
 // respuesta para que la UI no tenga que hardcodearlo — pero es SOLO
@@ -74,6 +75,19 @@ function jsonResponse(body, { status = 200, headers = {} } = {}) {
   return new Response(JSON.stringify(body), { status, headers: h });
 }
 
+// CORS para la app Android (origen https://localhost). En web (same-origin)
+// devuelve {} → no añade headers.
+function corsHeadersFor(request) {
+  const origin = request.headers.get("origin");
+  if (!isAllowedOrigin(origin)) return {};
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Vary": "Origin",
+    "Access-Control-Allow-Methods": CORS_ALLOW_METHODS,
+    "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS,
+  };
+}
+
 // Cliente Supabase con el JWT del usuario, llamada local porque el helper
 // existente vive en auth.js que usa req.headers estilo Vercel. Aquí lo
 // inline para que la cadena de imports sea estrictamente Edge-safe.
@@ -91,11 +105,20 @@ async function authClientAndUser(accessToken) {
 }
 
 export default async function handler(request) {
+  // Preflight CORS de la app Android.
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeadersFor(request) });
+  }
+  const cors = corsHeadersFor(request);
+  // respond(): como jsonResponse pero mezclando los headers CORS.
+  const respond = (body, init = {}) =>
+    jsonResponse(body, { ...init, headers: { ...cors, ...(init.headers || {}) } });
+
   const supabaseAdmin = getSupabaseAdmin();
   if (!supabaseAdmin) {
     const missing = getMissingAdminEnvs();
     console.error(`[get-daily-car] missing env vars: ${missing.join(", ")}`);
-    return jsonResponse({ message: "Server misconfigured" }, { status: 500 });
+    return respond({ message: "Server misconfigured" }, { status: 500 });
   }
 
   // Rate limit ANTES de tocar Supabase: get-daily-car hace un RPC por visita
@@ -105,7 +128,7 @@ export default async function handler(request) {
   const ip = getClientIpEdge(request);
   const limit = await checkRateLimit(ip, { max: 60, windowSec: 60, prefix: "gdc" });
   if (!limit.ok) {
-    return jsonResponse(
+    return respond(
       { message: "Too many requests" },
       { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
     );
@@ -133,7 +156,7 @@ export default async function handler(request) {
   const { data: todayCarId, error: rpcErr } = rpcResult;
   if (rpcErr || !todayCarId) {
     console.error("[get-daily-car] pick_daily_car:", rpcErr);
-    return jsonResponse({ message: "Failed to pick daily car" }, { status: 500 });
+    return respond({ message: "Failed to pick daily car" }, { status: 500 });
   }
   const { client: authClient, user } = authResult;
 
@@ -209,38 +232,32 @@ export default async function handler(request) {
 
   // -------- RAMA ANÓNIMA -------------------------------------------------
   if (!user) {
-    const responseHeaders = {};
+    // Token de sesión anónima firmado (HMAC). Antes era una cookie HttpOnly;
+    // ahora viaja en el body para que la app Android (origen distinto) no
+    // dependa de cookies cross-site. El cliente lo guarda en localStorage y lo
+    // reenvía en el header X-Anon-Session.
+    const incoming = await readAnonTokenFromRequest(request);
+    const valid =
+      incoming &&
+      incoming.d === today &&
+      Number.isInteger(incoming.n) &&
+      typeof incoming.s === "string";
 
-    // Cookie HttpOnly firmada con HMAC para que /api/validate-guess pueda
-    // contar intentos server-side sin confiar en `attemptNumber` del body.
-    // Si la cookie ya existe y es de hoy, la respetamos (no pisar progreso).
-    const anon = await readAnonSession(request);
-    const anonValid =
-      anon &&
-      anon.d === today &&
-      Number.isInteger(anon.n) &&
-      typeof anon.s === "string";
+    const session = valid ? incoming : { d: today, n: 0, s: "playing" };
 
-    if (!anonValid) {
-      try {
-        responseHeaders["Set-Cookie"] = await buildSetCookie({
-          d: today,
-          n: 0,
-          s: "playing",
-        });
-      } catch (err) {
-        // Si REPESCA_TOKEN_SECRET no está configurado, dejamos al usuario
-        // jugar sin cookie. validate-guess se quejará pero al menos la
-        // home no rompe.
-        console.error("[get-daily-car] buildSetCookie:", err?.message || err);
-      }
+    let anonToken = null;
+    try {
+      anonToken = await signAnonSession(session);
+    } catch (err) {
+      // Si REPESCA_TOKEN_SECRET no está configurado, el usuario juega sin
+      // token; validate-guess se quejará pero la home no rompe.
+      console.error("[get-daily-car] signAnonSession:", err?.message || err);
     }
 
-    // Asimetría intencional con el caso "lost" del anónimo: NO firmamos
-    // revealToken al perdedor para no regalarle la imagen completa al
-    // siguiente refresh. Solo al ganador anónimo.
+    // Asimetría intencional con el caso "lost": solo firmamos revealToken al
+    // anónimo que GANÓ, para no regalarle la imagen completa al perdedor.
     let revealToken = null;
-    if (anonValid && anon.s === "won") {
+    if (valid && session.s === "won") {
       try {
         revealToken = await signRevealToken(today);
       } catch (err) {
@@ -248,14 +265,14 @@ export default async function handler(request) {
       }
     }
 
-    return jsonResponse({ ...base, revealToken }, { headers: responseHeaders });
+    return respond({ ...base, anonToken, revealToken });
   }
 
   // -------- RAMA LOGUEADA ------------------------------------------------
   const { data: gameRow, error: gameErr } = gameResult;
   if (gameErr) {
     console.error("[get-daily-car] read user_guesses:", gameErr);
-    return jsonResponse(base);
+    return respond(base);
   }
 
   const status = gameRow?.status || "playing";
@@ -302,7 +319,7 @@ export default async function handler(request) {
     revealToken = signedToken;
   }
 
-  return jsonResponse({
+  return respond({
     date: today,
     img: dailyImgUrl,
     blurData,

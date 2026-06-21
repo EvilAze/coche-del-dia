@@ -1,15 +1,8 @@
 // api/_lib/edge/anon-session.js
-// Versión Edge-runtime del helper de cookie HttpOnly firmada para el
-// anónimo (api/_lib/anon-session.js). Mismo formato de wire que la
-// versión Node, así que cookies emitidas por una las verifica la otra.
-//
-// Diferencias respecto a la versión Node:
-//   - Firma/verificación con Web Crypto (asíncrono).
-//   - `readAnonSession` toma `Request` (Fetch API) en vez de `req`
-//     estilo Vercel/Express.
-//   - En vez de mutar `res`, exponemos `buildSetCookie(payload)` que
-//     devuelve el string del header — el handler Edge lo añade a la
-//     `Response` con `headers.append("Set-Cookie", value)`.
+// Versión Edge-runtime del token de sesión anónima (api/_lib/anon-session.js).
+// Mismo formato de wire que la versión Node, así que tokens firmados por una
+// los verifica la otra. Diferencias: firma/verificación con Web Crypto
+// (asíncrono) y lectura desde `Request` (Fetch API).
 
 import {
   b64urlEncodeString,
@@ -20,8 +13,8 @@ import {
 } from "./crypto.js";
 
 const SECRET = () => process.env.REPESCA_TOKEN_SECRET || "";
-export const ANON_COOKIE_NAME = "cd_anon";
-const MAX_AGE_SECONDS = 60 * 60 * 24; // 24 h
+// Mismo nombre lógico que en Node; Request.headers.get() es case-insensitive.
+export const ANON_HEADER_NAME = "x-anon-session";
 
 /**
  * Firma `{d, n, s}` y devuelve `<body>.<sig>` (URL-safe).
@@ -36,8 +29,8 @@ export async function signAnonSession(payload) {
 }
 
 /**
- * Verifica y parsea el token. Devuelve null si el secreto no está
- * configurado, si el formato es inválido, o si la firma no coincide.
+ * Verifica y parsea el token. Devuelve null si el secreto no está configurado,
+ * si el formato es inválido, o si la firma no coincide.
  */
 export async function verifyAnonSession(token) {
   const secret = SECRET();
@@ -63,46 +56,10 @@ export async function verifyAnonSession(token) {
 }
 
 /**
- * Parseo permisivo del header Cookie de un Request (Fetch API).
- * Devuelve un mapa name → value.
+ * Lee y verifica el token de sesión anónima del header X-Anon-Session de un
+ * Request (Fetch API). Devuelve el payload `{d, n, s}` o null.
  */
-export function parseCookiesFromHeader(cookieHeader) {
-  const out = {};
-  if (!cookieHeader) return out;
-  for (const part of cookieHeader.split(";")) {
-    const idx = part.indexOf("=");
-    if (idx <= 0) continue;
-    const k = part.slice(0, idx).trim();
-    if (!k) continue;
-    out[k] = part.slice(idx + 1).trim();
-  }
-  return out;
-}
-
-/**
- * Atajo: lee y verifica la cookie de sesión anónima de un Request.
- * Devuelve el payload `{d, n, s}` o null.
- */
-export async function readAnonSession(request) {
-  const cookies = parseCookiesFromHeader(request.headers.get("cookie"));
-  return await verifyAnonSession(cookies[ANON_COOKIE_NAME] || "");
-}
-
-/**
- * Construye el valor del header Set-Cookie para esta sesión. Marca
- * Secure salvo en desarrollo (donde localhost no usa HTTPS y el
- * navegador la rechazaría). Devuelve el string — el handler Edge lo
- * añade a la Response con `headers.append("Set-Cookie", value)`.
- */
-export async function buildSetCookie(payload) {
-  const token = await signAnonSession(payload);
-  const flags = [
-    `${ANON_COOKIE_NAME}=${token}`,
-    "HttpOnly",
-    "SameSite=Lax",
-    "Path=/",
-    `Max-Age=${MAX_AGE_SECONDS}`,
-  ];
-  if (process.env.NODE_ENV !== "development") flags.push("Secure");
-  return flags.join("; ");
+export async function readAnonTokenFromRequest(request) {
+  const raw = request.headers.get(ANON_HEADER_NAME) || "";
+  return await verifyAnonSession(raw);
 }

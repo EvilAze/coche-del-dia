@@ -7,12 +7,23 @@ login Google) con **recordatorio diario local**. `appId`: `com.cochedeldia`.
 > está **gitignorado** por Capacitor — NO viaja en el repo. Hay que ejecutar
 > `npm run cap:sync` ANTES de compilar para (re)generarlo desde el último build.
 
+> IMPORTANTE (variables de entorno): `vite build` necesita un **`.env`** con
+> `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en el directorio desde el que
+> compilas. `.env` está **gitignorado** y **NO se hereda en los git worktrees**
+> (`.claude/worktrees/…`). Si falta, la app arranca en **pantalla negra** y la
+> consola (`chrome://inspect`) muestra `Uncaught Error: Faltan las variables de
+> entorno de Supabase` (lo lanza `src/supabaseClient.js`). Desde el repo
+> principal ya está; desde un worktree, copia el `.env` antes de `cap:sync`.
+
 ## Requisitos (una vez)
 - Android Studio (Linux/Fedora nativo; no hace falta Mac).
 - JDK 17 (lo trae Android Studio) y Android SDK + plataforma reciente.
 - Cuenta **Google Play Developer** (25 $, pago único).
-- Variable de build `VITE_PROD_ORIGIN=https://cochedeldia.com` (por defecto ya
-  apunta ahí en `src/lib/apiUrl.js`; solo cámbiala si el dominio cambia).
+- `.env` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en el dir de build
+  (ver el aviso de arriba; sin ellas la app sale en negro).
+- Variable de build `VITE_PROD_ORIGIN=https://cochedeldia.com` (opcional; por
+  defecto ya apunta ahí en `src/lib/apiUrl.js`; solo cámbiala si el dominio
+  cambia). `VITE_SENTRY_DSN` es opcional.
 
 ## Comprobación previa importante
 El apex `cochedeldia.com` debe servir la API **sin redirigir a www** (un 30x

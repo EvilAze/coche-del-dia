@@ -11,7 +11,7 @@
 //   - Las RPCs (record_daily_result_v2) sí pueden tirar; van en su propio
 //     try/catch para no romper el flujo principal.
 
-import { readAnonSession, setAnonCookie } from "./_lib/anon-session.js";
+import { readAnonToken, signAnonSession } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
 import { getClientIp } from "./_lib/rate-limit.js";
 import { checkRateLimit } from "./_lib/ratelimit.js";
@@ -19,7 +19,7 @@ import { captureServerError } from "./_lib/sentry.js";
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { extractAccessToken, authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
-import { parseBody, methodGuard } from "./_lib/http.js";
+import { parseBody, methodGuard, applyCors } from "./_lib/http.js";
 import { logGuessAttempt } from "./_lib/audit.js";
 import { compareGuess } from "./_lib/compare-guess.js";
 
@@ -53,6 +53,7 @@ async function persistDailyResult({ accessToken, won, attemptNumber }) {
 }
 
 export default async function handler(req, res) {
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
   // -------- 0. Método -----------------------------------------------------
   if (methodGuard(req, res, "POST")) return;
 
@@ -135,14 +136,14 @@ export default async function handler(req, res) {
 
     // -------- 5. attemptNumber AUTORITATIVO server-side -------------------
     //   Logueados: contador desde user_guesses (RLS protegida).
-    //   Anónimos:  contador desde cookie HttpOnly firmada con HMAC. Antes
+    //   Anónimos:  contador desde token HMAC en header X-Anon-Session. Antes
     //              confiábamos en `body.attemptNumber`, lo que permitía a
     //              un script enviar 200 requests con attemptNumber:1 e
-    //              iterar todo el catálogo leyendo `result.win`. Con la
-    //              cookie, el contador es server-controlled: tras 5
-    //              intentos esa sesión queda cerrada, y borrar cookies
-    //              fuerza a re-entrar por /api/get-daily-car (que sí emite
-    //              cookie pero también queda capada por el rate-limit).
+    //              iterar todo el catálogo leyendo `result.win`. Con el
+    //              token, el contador es server-controlled: tras 5
+    //              intentos esa sesión queda cerrada, y borrar el token
+    //              fuerza a re-entrar por /api/get-daily-car (que lo emite
+    //              de nuevo, pero también queda capado por el rate-limit).
     let attemptNumber;
     let existingGuesses = [];
     let anonSession = null;
@@ -167,9 +168,9 @@ export default async function handler(req, res) {
       }
       attemptNumber = existingGuesses.length + 1;
     } else {
-      anonSession = readAnonSession(req);
-      // Si no hay cookie válida o es de otro día, rechazamos: el cliente
-      // debe pasar por /api/get-daily-car primero (que la emite). En el
+      anonSession = readAnonToken(req);
+      // Si no hay token válido o es de otro día, rechazamos: el cliente
+      // debe pasar por /api/get-daily-car primero (que lo emite). En el
       // flujo normal esto siempre ocurre — el frontend llama get-daily-car
       // al arrancar la home.
       if (
@@ -325,20 +326,24 @@ export default async function handler(req, res) {
       };
     }
 
-    // -------- 9.bis Actualizar cookie anónima + emitir revealToken --------
-    //   Cookie:    para el anónimo, persistimos el nuevo contador y status.
-    //              El próximo intento ya parte del valor server-controlled.
+    // -------- 9.bis Actualizar token anónimo + emitir revealToken ----------
+    //   Token:     para el anónimo, firmamos el nuevo contador y status
+    //              y lo devolvemos en el body (anonToken). El cliente lo
+    //              persiste en localStorage y lo reenvía en el próximo intento.
     //   revealToken: token firmado para que el cliente pida la imagen
     //              completa a /api/daily-image. Solo lo emitimos cuando
     //              corresponde revelar (misma regla que `reveal`). Si lo
     //              firmáramos al anónimo perdedor, equivaldría a regalarle
     //              la foto del coche — exactamente el cheat que estamos
     //              cerrando con la asimetría de arriba.
+    // Token anónimo actualizado: lo devolvemos en el body (antes era Set-Cookie).
+    // El cliente lo persiste en localStorage y lo reenvía en el próximo intento.
+    let anonToken = null;
     if (!user && anonSession) {
       try {
-        setAnonCookie(res, { d: today, n: attemptNumber, s: newStatus });
+        anonToken = signAnonSession({ d: today, n: attemptNumber, s: newStatus });
       } catch (err) {
-        console.error("[validate-guess] setAnonCookie:", err?.message || err);
+        console.error("[validate-guess] signAnonSession:", err?.message || err);
       }
     }
 
@@ -376,6 +381,7 @@ export default async function handler(req, res) {
       attemptNumber,
       reveal,
       revealToken,
+      anonToken,
       score,
     });
   } catch (err) {

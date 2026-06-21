@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Confetti from "./Confetti";
 import ScoreBreakdown from "./ScoreBreakdown";
 import DailyStats from "./DailyStats";
+import NotificationOptIn from "./NotificationOptIn";
 import { useToast } from "./Toast";
 import { useCountdown } from "../hooks/useCountdown";
 import { useT, getCarDescription } from "../i18n";
@@ -470,6 +471,7 @@ export default function ResultPanel({
         </div>
       )}
 
+      <NotificationOptIn />
       {showDailyStats && <DailyStats attempts={attempts} won={won} />}
 
       {/* Ficha del coche (lore): movida aquí abajo, tras el share y las

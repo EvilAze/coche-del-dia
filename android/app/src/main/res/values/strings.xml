@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Coche del Día</string>
+    <string name="title_activity_main">Coche del Día</string>
+    <string name="package_name">com.cochedeldia</string>
+    <string name="custom_url_scheme">com.cochedeldia</string>
+</resources>

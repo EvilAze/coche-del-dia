@@ -19,3 +19,8 @@ AGE-SECRET-KEY*
 # Skills instaladas por `npx skills add` (tooling local, no parte de la app)
 .agents/
 skills-lock.json
+
+# Android signing keystore (NUNCA commitear)
+*.keystore
+*.jks
+android/keystore.properties

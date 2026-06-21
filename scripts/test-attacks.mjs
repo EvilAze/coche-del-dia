@@ -18,7 +18,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = "fake-service-role";
 process.env.SUPABASE_ANON_KEY = "fake-anon";
 process.env.NODE_ENV = "development";
 
-const { signAnonSession, verifyAnonSession, ANON_COOKIE_NAME } = await import(
+const { signAnonSession, verifyAnonSession } = await import(
   "../api/_lib/anon-session.js"
 );
 const { signRevealToken, verifyRevealToken } = await import(
@@ -69,24 +69,15 @@ function todayInMadrid() {
 // Helper: reproduce la decisión canReveal de daily-image.js, branch por
 // branch. Si esto coincide con el código del handler (api/daily-image.js
 // líneas con "canReveal"), tenemos cobertura simbólica.
-function computeCanReveal({ tParam = null, cookieValue = null, today }) {
-  // Branch 1: ?t=<reveal token>
+function computeCanReveal({ tParam = null, today }) {
+  // Branch 1: ?t=<reveal token> firmado por nosotros para HOY.
   if (tParam) {
     const tokenDate = verifyRevealToken(tParam);
     if (tokenDate === today) return true;
   }
-  // Branch 2: Bearer con user_guesses.status — no testable sin Supabase,
-  // omitido aquí. El handler real lo cubre.
-  // Branch 3: cookie anon firmada SOLO con s === "won". Anon-lost NO
-  // desbloquea (anti-cheat del modo incógnito: si revelásemos la imagen
-  // al anon perdedor, podría fallar adrede en incógnito → ver el coche
-  // → volver con su cuenta real ya sabiendo la respuesta).
-  if (cookieValue) {
-    const anon = verifyAnonSession(cookieValue);
-    if (anon && anon.d === today && anon.s === "won") {
-      return true;
-    }
-  }
+  // Branch 2: Bearer con user_guesses.status — no testable sin Supabase.
+  // (La rama de sesión anónima por cookie se eliminó: el anónimo ganador
+  //  revela vía reveal token, igual que el logueado.)
   return false;
 }
 
@@ -96,63 +87,12 @@ const TODAY = todayInMadrid();
 console.log("\n[ATAQUE 1] Quitar &z=5 a /api/daily-image");
 // ============================================================================
 
-// Escenario A: cheater anónimo sin haber jugado, quita &z=5.
-// (Pre-condición: NO tiene cookie con s=won/lost, NO tiene token).
+// La sesión anónima ya NO desbloquea la imagen por sí sola (se migró de cookie
+// a token y daily-image dejó de leerla). El único desbloqueo es el reveal token.
 check(
-  "anon sin cookie + sin token → canReveal=false (crop forzado)",
+  "sesión anónima sola → canReveal=false (sin reveal token)",
   computeCanReveal({ today: TODAY }) === false
 );
-
-// Escenario B: cheater anónimo CON cookie pero jugando (s=playing).
-{
-  const playingCookie = signAnonSession({ d: TODAY, n: 2, s: "playing" });
-  check(
-    "anon con cookie s=playing → canReveal=false",
-    computeCanReveal({ cookieValue: playingCookie, today: TODAY }) === false
-  );
-}
-
-// Escenario C: cheater fabrica una cookie con s=won (sin saber el secreto).
-{
-  const fakePayload = Buffer.from(
-    JSON.stringify({ d: TODAY, n: 5, s: "won" })
-  ).toString("base64url");
-  const fakeCookie = fakePayload + ".AAAAAAAAAAAAAAAAAAAA";
-  check(
-    "cookie forjada con s=won (firma falsa) → canReveal=false",
-    computeCanReveal({ cookieValue: fakeCookie, today: TODAY }) === false
-  );
-}
-
-// Escenario D: jugador legítimo que ganó, refresca la pestaña.
-{
-  const wonCookie = signAnonSession({ d: TODAY, n: 3, s: "won" });
-  check(
-    "cookie real con s=won → canReveal=true (full image OK)",
-    computeCanReveal({ cookieValue: wonCookie, today: TODAY }) === true
-  );
-}
-
-// Escenario D.bis: anti-cheat del modo incógnito. El anon que ha PERDIDO
-// hoy NO debe poder pedir la imagen completa, aunque su cookie esté
-// firmada por nosotros y sea de hoy. Si esto da true es exactamente el
-// vector "fallo adrede en incógnito para ver y volver con cuenta real".
-{
-  const lostCookie = signAnonSession({ d: TODAY, n: 5, s: "lost" });
-  check(
-    "cookie real con s=lost → canReveal=false (anti-incógnito)",
-    computeCanReveal({ cookieValue: lostCookie, today: TODAY }) === false
-  );
-}
-
-// Escenario E: cheater reutiliza una cookie ANTIGUA (won de ayer).
-{
-  const oldWon = signAnonSession({ d: "2024-01-01", n: 3, s: "won" });
-  check(
-    "cookie won de día antiguo → canReveal=false",
-    computeCanReveal({ cookieValue: oldWon, today: TODAY }) === false
-  );
-}
 
 // Escenario F: ?t= con token de hoy correctamente firmado.
 {
@@ -294,20 +234,20 @@ for (let i = 0; i < 30; i++) {
 }
 
 // ============================================================================
-console.log("\n[ATAQUE 3] Cookie anon spoof en validate-guess");
+console.log("\n[ATAQUE 3] Token anon spoof en validate-guess");
 // ============================================================================
 
 // Aunque no podamos probar el camino completo sin Supabase, podemos
-// verificar el contrato: una cookie con n=5 (intentos agotados) debe ser
-// rechazada por el handler en algún punto. La detección concreta vive
+// verificar el contrato: un token con n=5 (intentos agotados) debe ser
+// rechazado por el handler en algún punto. La detección concreta vive
 // dentro del try/catch tras pick_daily_car, así que aquí solo validamos
 // el primitivo: verifyAnonSession({n:5}) NO deja pasar a n+1=6.
 
 {
-  const exhaustedCookie = signAnonSession({ d: TODAY, n: 5, s: "playing" });
-  const parsed = verifyAnonSession(exhaustedCookie);
+  const exhaustedToken = signAnonSession({ d: TODAY, n: 5, s: "playing" });
+  const parsed = verifyAnonSession(exhaustedToken);
   check(
-    "cookie con n=5 mantiene n=5 al verificar",
+    "token con n=5 mantiene n=5 al verificar",
     parsed?.n === 5
   );
   // El handler hace: if (anonSession.n >= MAX_ATTEMPTS) return 403.
@@ -318,12 +258,12 @@ console.log("\n[ATAQUE 3] Cookie anon spoof en validate-guess");
   );
 }
 
-// Cookie con s=won: el handler la rechaza con 403 'Game already finished'.
+// Token con s=won: el handler lo rechaza con 403 'Game already finished'.
 {
-  const wonCookie = signAnonSession({ d: TODAY, n: 3, s: "won" });
-  const parsed = verifyAnonSession(wonCookie);
+  const wonToken = signAnonSession({ d: TODAY, n: 3, s: "won" });
+  const parsed = verifyAnonSession(wonToken);
   check(
-    "cookie s=won es detectable como partida cerrada",
+    "token s=won es detectable como partida cerrada",
     parsed?.s === "won"
   );
 }

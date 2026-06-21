@@ -7,6 +7,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Safe-area de la app nativa (Android edge-to-edge / notch iOS): el contenido
+   se dibuja BAJO las barras del sistema, así que el header quedaba tapado e
+   intocable. Damos al contenedor del juego un padding vertical = 1rem base +
+   el inset del sistema. Usamos la variable que inyecta Capacitor
+   (--safe-area-inset-*) con fallback a env() (que funciona en WebViews
+   modernos). En web/desktop ambos son 0 → padding = 1rem, idéntico a antes. */
+.safe-area-pad {
+  padding-top: calc(1rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
+  padding-bottom: calc(1rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;

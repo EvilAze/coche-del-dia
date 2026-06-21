@@ -33,22 +33,24 @@ export function markAskedOptIn() {
   }
 }
 
-// Import perezoso del plugin (solo se ejecuta en nativo).
-async function plugin() {
-  const { LocalNotifications } = await import("@capacitor/local-notifications");
-  return LocalNotifications;
+// Carga perezosa del plugin. Devolvemos la PROMESA del import (el módulo), NUNCA
+// el proxy del plugin: devolver o await-ear un proxy de Capacitor accede a su
+// `.then`, y eso lo interpreta como una llamada nativa → peta con
+// "LocalNotifications.then() is not implemented on android".
+function loadLN() {
+  return import("@capacitor/local-notifications");
 }
 
 export async function isPermissionGranted() {
   if (!isNative()) return false;
-  const LN = await plugin();
+  const { LocalNotifications: LN } = await loadLN();
   const res = await LN.checkPermissions();
   return res.display === "granted";
 }
 
 export async function ensurePermission() {
   if (!isNative()) return false;
-  const LN = await plugin();
+  const { LocalNotifications: LN } = await loadLN();
   const check = await LN.checkPermissions();
   if (check.display === "granted") return true;
   const req = await LN.requestPermissions();
@@ -57,7 +59,7 @@ export async function ensurePermission() {
 
 export async function scheduleDailyReminder({ title, body }) {
   if (!isNative()) return;
-  const LN = await plugin();
+  const { LocalNotifications: LN } = await loadLN();
   // Cancelar el anterior (mismo id) antes de reprogramar evita acumulación.
   await LN.cancel({ notifications: [{ id: REMINDER_ID }] });
   await LN.schedule({
@@ -78,7 +80,7 @@ export async function scheduleDailyReminder({ title, body }) {
 
 export async function cancelDailyReminder() {
   if (!isNative()) return;
-  const LN = await plugin();
+  const { LocalNotifications: LN } = await loadLN();
   await LN.cancel({ notifications: [{ id: REMINDER_ID }] });
 }
 

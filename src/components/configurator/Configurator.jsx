@@ -91,7 +91,7 @@ export default function Configurator({
     <div className={"cdd-app theme-" + theme} style={{ "--accent": accent }}>
       {/* Contenedor calcado de car-guess-game.tsx (v0): columna única centrada,
           max-w-md, gap-6, scroll natural. Fuera el "fold"/PhotoPeek/2-columnas. */}
-      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-4 py-4">
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-4 safe-area-pad">
         <Header
           streak={streak}
           rank={rank}

@@ -37,6 +37,7 @@
     "lockedCarDescription": "Sign in to reveal which car it was, save your stats and join the ranking.",
     "loginModalTitle": "SIGN IN",
     "loginModalDescription": "Save your stats in the cloud, compete on the global ranking and play from any device.",
+    "loginError": "Couldn't sign in. Please try again.",
     "footerPrivacy": "Privacy Policy",
     "dayRolloverTitle": "New car of the day!",
     "dayRolloverBody": "Today's challenge is ready. Reload the page to play it.",

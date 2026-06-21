@@ -6,6 +6,7 @@ import Configurator from "./components/configurator/Configurator";
 import CloseButton from "./components/CloseButton";
 import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
+import { useToast } from "./components/Toast";
 import { getMyMonthlyRank } from "./lib/statsService";
 import { track } from "./lib/analytics";
 import { signInWithGoogle } from "./lib/auth";
@@ -30,6 +31,7 @@ const HowToPlayModal = lazy(() => import("./components/HowToPlayModal"));
 
 export default function App() {
   const { t } = useT();
+  const toast = useToast();
   // Sesión + perfil + racha: la lógica de auth vive en useAuthSession; aquí
   // solo consumimos el estado y los setters que necesitan otros flujos.
   const {
@@ -369,7 +371,14 @@ export default function App() {
         </p>
 
         <button
-          onClick={signInWithGoogle}
+          onClick={async () => {
+            // En nativo (app) el login va por plugin; si falla (p.ej. falta
+            // VITE_GOOGLE_WEB_CLIENT_ID o el usuario cancela con error), damos
+            // feedback visible en vez de "no pasa nada". En web, signInWithOAuth
+            // redirige y el error path no se alcanza normalmente.
+            const { error } = (await signInWithGoogle()) || {};
+            if (error) toast.push(t("app.loginError"), { type: "error" });
+          }}
           className="flex w-full items-center justify-center gap-3 rounded-lg bg-white px-4 py-3 font-semibold text-black transition-transform hover:scale-105 active:scale-95"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">

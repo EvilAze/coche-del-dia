@@ -72,3 +72,33 @@ Para cambios de UI hay que **resubir** (es bundled): `npm run cap:sync`, sube
 `versionCode`/`versionName` en `android/app/build.gradle`, `./gradlew
 bundleRelease`, nueva release en Play. (La API/contenido del coche del día sí se
 actualiza solo, viene de Vercel.)
+
+## Login Google nativo (v2) — setup de OAuth
+
+La app usa `@capgo/capacitor-social-login` (selector de cuenta nativo) →
+`supabase.auth.signInWithIdToken`. Requiere configurar OAuth (una vez):
+
+1. **Google Cloud Console** (mismo proyecto que el OAuth web de Supabase):
+   - APIs y servicios → Credenciales → Crear ID de cliente de OAuth → **Android**.
+     - Nombre del paquete: `com.cochedeldia`.
+     - **SHA-1** de la clave que firma el APK que pruebas:
+       - Debug (emulador/dispositivo): `./gradlew signingReport` (dentro de `android/`) o
+         `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`.
+       - Release: añade también la SHA-1 del *upload key* y la de **Play App
+         Signing** (Play Console → Configuración → Integridad de la app). Sin la
+         SHA-1 correcta el login falla solo en release ("va en debug, rompe en Play").
+   - Anota el **Web client ID** existente (tipo "Aplicación web", el que usa Supabase).
+
+2. **Supabase** → Authentication → Providers → **Google**:
+   - Asegúrate de que el **Web client ID** está como Client ID y añádelo a
+     **"Authorized Client IDs"** (lista separada por comas) para que acepte el
+     `idToken` nativo (cuyo `aud` = Web client ID).
+
+3. **`.env`** (en el dir de build): `VITE_GOOGLE_WEB_CLIENT_ID=<web client id>` y
+   recompila con `npm run cap:sync`.
+
+> Sin `VITE_GOOGLE_WEB_CLIENT_ID` la app arranca igual pero el botón de login da
+> un error controlado y el juego sigue anónimo (no rompe).
+
+**Prueba:** en el dispositivo, pulsa "Iniciar sesión" → elige cuenta → vuelves
+logueado (ves tu racha/ranking). Sign-out desde "Mis estadísticas".

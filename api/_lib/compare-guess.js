@@ -31,6 +31,16 @@ export function compareGuess({ realCar, guessRow, guessAnio }) {
     Number.isFinite(anioNum) &&
     Math.abs(anioNum - realCar.anio) <= ANIO_CORRECT_MARGIN;
 
+  // Dirección de la pista SOLO si hay un año numérico que comparar. Sin esto,
+  // un año basura (NaN) caía a "down" porque `NaN < real` es false, pintando
+  // una flecha "has pasado de año" sin que el usuario hubiera dado ninguno.
+  const anioDirection =
+    anioCorrect || !Number.isFinite(anioNum)
+      ? null
+      : anioNum < realCar.anio
+      ? "up"
+      : "down";
+
   const marcaOk = normalize(guessRow.make) === normalize(realCar.marca);
   const modeloOk = normalize(guessRow.model) === normalize(realCar.modelo);
   // "partial" de marca = país de origen compartido. Solo tiene sentido si la
@@ -54,7 +64,7 @@ export function compareGuess({ realCar, guessRow, guessAnio }) {
     anio: {
       val: String(guessAnio),
       status: anioCorrect ? "correct" : "wrong",
-      direction: anioCorrect ? null : anioNum < realCar.anio ? "up" : "down",
+      direction: anioDirection,
     },
     win: marcaOk && modeloOk && anioCorrect,
   };

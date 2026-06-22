@@ -18,6 +18,12 @@ import { useT } from "../i18n";
 // (extremo intacto), solo se redistribuyen los intermedios para revelar antes.
 import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 import { anonHeaders, setAnonToken } from "../lib/anonSession";
+// "Hoy" en zona Madrid: helper único compartido con dates.js / useDayRollover
+// (antes había una copia local idéntica de este formateador en cada sitio).
+import { getMadridDateStr } from "../lib/dates";
+// Generación del texto compartido: módulo puro y testeado, fuente única de la
+// rejilla ✅/❌ que también consume EndScreen.jsx.
+import { buildShareText } from "../lib/shareText";
 
 // Fallback de intentos máximos mientras /api/get-daily-car no ha respondido
 // (o si una respuesta antigua no trae el campo). La fuente de verdad es el
@@ -26,17 +32,6 @@ import { anonHeaders, setAnonToken } from "../lib/anonSession";
 // "partida terminada" la hace api/validate-guess.js con SU constante,
 // porque un valor que pasa por el navegador es manipulable con DevTools.
 const DEFAULT_MAX_ATTEMPTS = 5;
-
-function getTodayKey() {
-  const options = {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  };
-  const formatter = new Intl.DateTimeFormat("en-CA", options);
-  return formatter.format(new Date());
-}
 
 // Lectura SÍNCRONA del estado local del reto diario, solo para anónimos.
 // Sirve para pintar el resultado (ResultPanel + lista de guesses) en el
@@ -72,7 +67,7 @@ function readInitialAnonState() {
     const raw = localStorage.getItem("cocheDia_state");
     if (!raw) return null;
     const saved = JSON.parse(raw);
-    if (!saved || saved.date !== getTodayKey()) return null;
+    if (!saved || saved.date !== getMadridDateStr()) return null;
     if (!Array.isArray(saved.guesses)) return null;
     return {
       guesses: saved.guesses,
@@ -82,78 +77,6 @@ function readInitialAnonState() {
   } catch {
     return null;
   }
-}
-
-function getShareDate() {
-  // Formato corto DD/MM sin año — los resultados solo tienen sentido
-  // contextual el mismo día (es un puzzle diario), así que el año es
-  // ruido. Ahorra 3 caracteres en cada mensaje compartido.
-  const [, month, day] = getTodayKey().split("-");
-  return `${day}/${month}`;
-}
-
-// maxAttempts llega como parámetro: el valor real vive en el estado del hook
-// (lo manda el servidor en get-daily-car) y esta función es pura de módulo.
-function buildShareText(guesses, streak = 0, maxAttempts = DEFAULT_MAX_ATTEMPTS) {
-  // Formato "Wordle canon" (iteración tras ver el mensaje en chats reales):
-  //
-  //   1. CABECERA  → identificador + fecha + SCORE [+ racha]
-  //        "Coche del Día · 24/05 · 2/5 · 🔥7"
-  //      • Nombre sin artículo: más compacto sin perder identidad.
-  //      • Fecha sin año: nadie comparte resultados de meses atrás.
-  //      • Score "N/5" ("X/5" en derrota), como Wordle: el receptor NO
-  //        debería tener que contar filas y deducir — es lo primero que
-  //        el mensaje tiene que comunicar. (Revierte la decisión inicial
-  //        de omitirlo: en el chat real se echaba de menos.)
-  //      • Racha (solo si > 0): peso emocional → "no quiero romperla" =
-  //        share-bait. El 🔥 es universal para streak.
-  //
-  //   2. CUADRÍCULA → compacta, una línea por intento, sin líneas en blanco
-  //        ✅❌✅ / ✅✅✅
-  //      Glifos ✅/❌ y no cuadrados de color (iteración con contexto real:
-  //      la mayoría de shares van a un grupo de Telegram concurrido):
-  //        · forma + color, no solo color → legible en scroll rápido y
-  //          para daltónicos (los cuadrados solo se distinguían por color);
-  //        · semántica universal, sin leyenda que deducir;
-  //        · sin líneas en blanco: en un grupo, el alto del mensaje es
-  //          espacio robado a la conversación.
-  //      BINARIO a propósito: el "mismo país" (marca partial) cae a ❌ —
-  //      la marca ES incorrecta; el matiz con bandera vive en el juego,
-  //      donde aporta. Espejo EXACTO de shareGrid en EndScreen.jsx (el
-  //      preview del panel) — si cambias un mapeo, cambia el otro.
-  //
-  //   3. DOMINIO   → SIEMPRE la última línea, sin texto alrededor
-  //        "cochedeldia.com"
-  //      Esto SÍ activa el OG card preview en WhatsApp/Telegram —
-  //      decisión deliberada: cada share genera un preview con el
-  //      wordmark dorado + GT-R en el chat del receptor. Marketing
-  //      gratis vs ahorrar 50 px de altura en el mensaje.
-  //      EndScreen inserta el percentil ("Mejor que el N%…") JUSTO ANTES
-  //      de esta línea — cuenta con que el dominio cierra el mensaje.
-  const lines = guesses.map((g) => {
-    const m = g.marca.status === "correct" ? "✅" : "❌";
-    const mo = g.modelo.status === "correct" ? "✅" : "❌";
-    const a = g.anio.status === "correct" ? "✅" : "❌";
-
-    return m + mo + a;
-  });
-
-  // Victoria = última fila con las tres celdas correctas (no hay otra forma
-  // de ganar y la partida se cierra ahí). Derrota → "X/5" estilo Wordle.
-  const last = guesses[guesses.length - 1];
-  const won =
-    last &&
-    last.marca.status === "correct" &&
-    last.modelo.status === "correct" &&
-    last.anio.status === "correct";
-  const score = `${won ? guesses.length : "X"}/${maxAttempts}`;
-
-  // Racha: solo se incluye si hay racha real (>0). Los anónimos pasan
-  // streak=0 por defecto y se omite limpiamente. Un "🔥0" sería
-  // contraproducente.
-  const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
-
-  return `Coche del Día · ${getShareDate()} · ${score}${streakChunk}\n${lines.join("\n")}\ncochedeldia.com`;
 }
 
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la
@@ -263,7 +186,7 @@ export function useGame() {
       } else {
         setIsLoading(true);
       }
-      const today = getTodayKey();
+      const today = getMadridDateStr();
 
       try {
         // Para anónimos, hacemos la primera lectura desde localStorage para
@@ -529,7 +452,7 @@ export function useGame() {
       // ya escribió en user_guesses con valores server-validated.
       if (!user) {
         const stateToSave = {
-          date: getTodayKey(),
+          date: getMadridDateStr(),
           guesses: newGuesses,
           status: newStatus,
           reveal: reveal || null,

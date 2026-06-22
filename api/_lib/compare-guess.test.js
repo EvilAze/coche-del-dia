@@ -53,6 +53,14 @@ describe("compareGuess", () => {
     expect(r.win).toBe(false);
   });
 
+  it("año no numérico → direction null (no pinta flecha engañosa)", () => {
+    // NaN < real es false → antes caía a "down" ("has pasado de año") aunque
+    // no hubiera año que comparar. Sin año válido no hay dirección que dar.
+    expect(compareGuess(guess({ anio: "no-es-un-año" })).anio.direction).toBeNull();
+    expect(compareGuess(guess({ anio: "" })).anio.direction).toBeNull();
+    expect(compareGuess(guess({ anio: null })).anio.direction).toBeNull();
+  });
+
   it("marca incorrecta con mismo país → partial", () => {
     const r = compareGuess(guess({ make: "Toyota", model: "Supra", pais: "JP" }));
     expect(r.marca.status).toBe("partial");

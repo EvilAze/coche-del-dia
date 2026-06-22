@@ -25,18 +25,9 @@
 // recargar la página (que remontará el hook con el día nuevo).
 
 import { useEffect, useRef, useState } from "react";
-
-function getMadridDateKey() {
-  // YYYY-MM-DD en zona Europe/Madrid. Mismo formato que el server
-  // (api/_lib/date.js todayInMadrid) y que getTodayKey() en useGame.
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  return fmt.format(new Date());
-}
+// "Hoy" en zona Madrid: helper único compartido (antes había aquí una copia
+// local idéntica de este formateador, también en dates.js y useGame).
+import { getMadridDateStr } from "../lib/dates";
 
 function msUntilNextMadridMidnight() {
   // Igual que useCountdown pero en ms y con tope mínimo de 1s para no
@@ -57,7 +48,7 @@ function msUntilNextMadridMidnight() {
 export function useDayRollover() {
   // Capturamos el día al montar el hook. Snapshot estable durante toda la
   // vida del componente raíz — solo cambia al recargar la página.
-  const initialDayRef = useRef(getMadridDateKey());
+  const initialDayRef = useRef(getMadridDateStr());
   const [staleDay, setStaleDay] = useState(false);
 
   useEffect(() => {
@@ -68,7 +59,7 @@ export function useDayRollover() {
 
     function check() {
       if (!mounted || staleDay) return;
-      if (getMadridDateKey() !== initialDayRef.current) {
+      if (getMadridDateStr() !== initialDayRef.current) {
         setStaleDay(true);
       }
     }

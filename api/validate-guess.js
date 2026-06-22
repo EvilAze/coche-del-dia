@@ -22,14 +22,9 @@ import { todayInMadrid } from "./_lib/date.js";
 import { parseBody, methodGuard, applyCors } from "./_lib/http.js";
 import { logGuessAttempt } from "./_lib/audit.js";
 import { compareGuess } from "./_lib/compare-guess.js";
+import { basePointsFor } from "./_lib/score.js";
 
 const MAX_ATTEMPTS = 5;
-const BASE_POINTS_BY_ATTEMPT = { 1: 10, 2: 6, 3: 4, 4: 3, 5: 2, 6: 1 };
-
-function basePointsFor(attemptNumber, won) {
-  if (!won) return 0;
-  return BASE_POINTS_BY_ATTEMPT[attemptNumber] ?? 0;
-}
 
 async function fetchCarById(id) {
   const { data, error } = await getSupabaseAdmin()

@@ -17,6 +17,11 @@ import { useToast } from "../Toast";
 import Confetti from "../Confetti";
 import { Icon, I } from "./icons";
 import { useDailyStats, Distribution, Percentile } from "./dailyStats";
+// Rejilla ✅/❌ del share: fuente única en lib/shareText (la misma que usa
+// buildShareText). El preview del panel y el texto que se copia ya NO pueden
+// divergir — antes era un espejo manual con la advertencia "si cambias uno,
+// cambia el otro".
+import { shareGrid } from "../../lib/shareText";
 
 function legacyCopy(text) {
   try {
@@ -33,25 +38,6 @@ function legacyCopy(text) {
   } catch {
     return false;
   }
-}
-
-// Lenguaje visual de la cuadrícula (espejo de buildShareText en useGame.js —
-// el preview DEBE coincidir 1:1 con lo que se copia; si cambias uno, cambia el
-// otro):
-//   ✅ acierto · ❌ fallo. BINARIO: el "mismo país" (marca partial) es ❌
-//   porque la marca ES incorrecta — el matiz con bandera vive en el juego.
-// ✅/❌ y no cuadrados de color: forma + color (legible en scroll rápido y
-// para daltónicos) y semántica universal sin leyenda. Sin flechas de año:
-// para el receptor no significan nada sin contexto y rompían la rejilla.
-function shareGrid(guesses) {
-  return guesses
-    .map((g) => {
-      const m = g.marca?.status === "correct" ? "✅" : "❌";
-      const mo = g.modelo?.status === "correct" ? "✅" : "❌";
-      const an = g.anio?.status === "correct" ? "✅" : "❌";
-      return m + mo + an;
-    })
-    .join("\n");
 }
 
 function Stat({ k, v, accent }) {

@@ -225,12 +225,12 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
           <div className="overflow-hidden rounded-xl border border-border">
             <div
               className={`
-                grid grid-cols-[2.5rem_minmax(0,1fr)_5rem] bg-bg-tertiary
+                grid grid-cols-[1.75rem_minmax(0,1fr)_5rem] bg-bg-tertiary
                 px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground
                 ${user && state.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : ""}
               `}
             >
-              <span className="text-center">{t("ranking.colRank")}</span>
+              <span>{t("ranking.colRank")}</span>
               <span>{t("ranking.colPlayer")}</span>
               <span className="text-right">{t("ranking.colPoints")}</span>
             </div>
@@ -266,7 +266,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         : undefined
                     }
                     className={`
-                      grid w-full grid-cols-[2.5rem_minmax(0,1fr)_4.25rem]
+                      grid w-full grid-cols-[1.75rem_minmax(0,1fr)_4.25rem]
                       items-center px-3 py-2.5 text-left
                       ${isSelf ? "bg-mint/[0.07]" : "bg-transparent"}
                       ${!user && index < 2 ? "border-b border-border" : ""}
@@ -282,7 +282,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         : undefined
                     }
                   >
-                    <div className="flex justify-center">
+                    <div className="flex items-center">
                       <RankMarker rank={player.rank} />
                     </div>
 
@@ -330,8 +330,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                 <p className="px-3 pb-1 pt-2 text-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
                   {t("ranking.yourPosition")}
                 </p>
-                <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_4.25rem] items-center bg-mint/[0.07] px-3 py-2.5 text-left">
-                  <div className="flex justify-center">
+                <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_4.25rem] items-center bg-mint/[0.07] px-3 py-2.5 text-left">
+                  <div className="flex items-center">
                     <RankMarker rank={selfRow.rank} />
                   </div>
                   <div className="min-w-0">

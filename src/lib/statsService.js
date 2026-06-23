@@ -1,5 +1,7 @@
 import { supabase } from "../supabaseClient";
 import { isStreakAlive } from "../lib/dates";
+import { collectorTier } from "./collectionTier";
+import { countDisplayedAchievements } from "./achievements";
 
 const EMPTY_STATS = {
   current_streak: 0,
@@ -215,6 +217,61 @@ export async function getMyStats() {
 // Devuelve los car_ids únicos que el usuario actual ha ganado. Usa la
 // sesión del propio cliente (RLS auth.uid()=user_id en user_guesses).
 // Si no hay sesión, devuelve [].
+// Total de coches del catálogo (para el "/403" de la puerta del Garaje en el
+// Perfil). count exact + head:true → no trae filas, solo el número. Cae a null
+// si falla: la UI muestra entonces el nº de coches ganados sin denominador, sin
+// romper el modal (mismo criterio defensivo que el resto de lecturas ligeras).
+export async function getCatalogCount() {
+  const { count, error } = await supabase
+    .from("cars")
+    .select("id", { count: "exact", head: true });
+
+  if (error) {
+    console.error("[getCatalogCount]", error);
+    return null;
+  }
+
+  return count ?? null;
+}
+
+// Resumen consolidado para el modal Mi Perfil (carnet + puertas). Parte de
+// getMyStats (identidad + racha + escudos) y le añade EN PARALELO los datos
+// que las "puertas" necesitan, cada uno barato y derivado de fuentes que ya
+// existían — sin traer el Garaje entero ni el leaderboard completo:
+//   - rank:       getMyMonthlyRank (RPC que solo devuelve mi fila).
+//   - collection: nº de coches ganados (únicos) / total del catálogo.
+//   - achievements: conteo ligero de hitos+rachas (sin catálogo).
+//   - tier:       rango global de coleccionista derivado del nº ganado.
+// El conteo de logros y el tier salen del MISMO wonCount, así que no duplican
+// trabajo. Si el usuario no está logueado, devuelve la forma "vacía" de
+// getMyStats con los extras a null (la UI muestra el promo de login).
+export async function getProfileSummary() {
+  const base = await getMyStats();
+
+  if (!base.user) {
+    return { ...base, points: 0, rank: null, collection: null, achievements: null, tier: null };
+  }
+
+  const maxStreak = base.stats?.max_streak ?? 0;
+
+  const [rank, wonIds, catalogTotal] = await Promise.all([
+    getMyMonthlyRank(base.user.id),
+    getMyWonCarIds(),
+    getCatalogCount(),
+  ]);
+
+  const wonCount = wonIds.length;
+
+  return {
+    ...base,
+    points: base.stats?.total_points ?? 0,
+    rank, // { rank, total } | null
+    collection: { unlocked: wonCount, total: catalogTotal },
+    achievements: countDisplayedAchievements({ wonCount, maxStreak }),
+    tier: collectorTier(wonCount),
+  };
+}
+
 export async function getMyWonCarIds() {
   const user = await getCurrentUser();
   if (!user) return [];

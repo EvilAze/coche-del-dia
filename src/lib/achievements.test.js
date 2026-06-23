@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { computeAchievements, buildPersistDiff } from "./achievements";
+import {
+  computeAchievements,
+  buildPersistDiff,
+  countDisplayedAchievements,
+} from "./achievements";
 
 // Catálogo mínimo: Audi(2), BMW(1), Seat(1) · Alemania(3), España(1).
 const cars = [
@@ -92,5 +96,32 @@ describe("buildPersistDiff", () => {
     const items = computeAchievements({ cars, wonCarIds: [], stats: {} });
     const diff = buildPersistDiff(items, {});
     expect(Object.keys(diff)).toHaveLength(0);
+  });
+});
+
+describe("countDisplayedAchievements (hitos + rachas, total 8)", () => {
+  it("siempre reporta 8 como total (5 hitos + 3 rachas)", () => {
+    expect(countDisplayedAchievements({ wonCount: 0, maxStreak: 0 }).total).toBe(8);
+  });
+
+  it("jugador típico (14 coches, racha máx 3): 2 de 8", () => {
+    // Hitos: 1 (Primer coche) y 10 (Garaje). Rachas: ninguna (< 7).
+    expect(countDisplayedAchievements({ wonCount: 14, maxStreak: 3 })).toEqual({
+      unlocked: 2,
+      total: 8,
+    });
+  });
+
+  it("cuenta hitos y rachas por separado", () => {
+    // 25 coches → hitos 1,10,25 (3). Racha 7 → 1. Total 4.
+    expect(countDisplayedAchievements({ wonCount: 25, maxStreak: 7 }).unlocked).toBe(4);
+  });
+
+  it("todo desbloqueado: 8 de 8", () => {
+    expect(countDisplayedAchievements({ wonCount: 100, maxStreak: 100 }).unlocked).toBe(8);
+  });
+
+  it("defensivo: sin argumentos no rompe", () => {
+    expect(countDisplayedAchievements()).toEqual({ unlocked: 0, total: 8 });
   });
 });

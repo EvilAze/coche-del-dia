@@ -203,7 +203,12 @@
     "streakFreezes": "Streak shield",
     "streakFreezesHelp": "Protects your streak if you miss a day",
     "streakFreezesEarn": "Earn 1 every 10-day streak",
-    "streakFreezesCount": "{count} of {max} shields"
+    "streakFreezesCount": "{count} of {max} shields",
+    "streakCurrent": "On a streak",
+    "streakBest": "Best streak",
+    "destinations": "Your destinations",
+    "rankNone": "Unranked",
+    "ptsShort": "pts"
   },
   "achievements": {
     "sectionTitle": "Achievements",

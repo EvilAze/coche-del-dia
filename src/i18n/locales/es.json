@@ -203,7 +203,12 @@
     "streakFreezes": "Escudo de racha",
     "streakFreezesHelp": "Protege tu racha si faltas un día",
     "streakFreezesEarn": "Ganas 1 cada 10 días de racha",
-    "streakFreezesCount": "{count} de {max} escudos"
+    "streakFreezesCount": "{count} de {max} escudos",
+    "streakCurrent": "En racha",
+    "streakBest": "Mejor racha",
+    "destinations": "Tus destinos",
+    "rankNone": "Sin clasificar",
+    "ptsShort": "pts"
   },
   "achievements": {
     "sectionTitle": "Logros",

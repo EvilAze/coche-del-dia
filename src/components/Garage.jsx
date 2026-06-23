@@ -22,7 +22,7 @@ import AchievementIcon from "./AchievementIcons";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
 import { track } from "../lib/analytics";
 import { flagImagePath } from "../data/countries";
-import { countryTier, brandTier, TIER_HEX } from "../lib/collectionTier";
+import { countryTier, brandTier, collectorTier, TIER_HEX } from "../lib/collectionTier";
 
 // Mapa de profundidad de cada vista del Garaje. Sirve para decidir la
 // dirección del slide al cambiar de vista: bajar de nivel (countries →
@@ -652,19 +652,53 @@ function CountriesMenu({
   onRandomRepesca,
   onOpenHelp,
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const countries = data.countries || [];
+
+  // Tier global de coleccionista + progreso, para el panel de estado. Mismo
+  // cálculo que el carnet del Perfil (collectorTier): un único hilo de nivel.
+  const tier = collectorTier(data.totalUnlocked);
+  const tierLabel = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
+  const nextLabel = tier.next ? tier.next.label?.[locale] || tier.next.label?.es : null;
+  const pct = data.totalCatalog
+    ? Math.min(100, Math.round((data.totalUnlocked / data.totalCatalog) * 100))
+    : 0;
 
   return (
     <>
-      <div className="border-b border-white/10 bg-white/[0.02] px-4 py-2.5 text-center">
-        <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
-          {t("garage.progressTotal")}
-        </p>
-        <p className="mt-0.5 font-display text-lg text-white">
-          <span className="text-accent">{data.totalUnlocked}</span>
-          <span className="text-muted"> / {data.totalCatalog}</span>
-        </p>
+      <div className="border-b border-white/10 bg-white/[0.02] px-4 py-3">
+        {/* Panel de estado de colección: barra + tier global + siguiente nivel.
+            Entrar al Garaje pasa a sentirse como abrir una vitrina, no como
+            leer una cifra suelta. */}
+        <div className="relative overflow-hidden rounded-xl border border-gold/20 bg-white/[0.03] px-3.5 py-3 text-left">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-sm text-white/85">
+              <CollectionIcon className="h-4 w-4 text-gold" />
+              {t("garage.collector")}
+            </span>
+            {tierLabel && (
+              <span className="rounded-full border border-gold/35 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-gold">
+                {tierLabel}
+              </span>
+            )}
+          </div>
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full border border-white/5 bg-black/40">
+            <div
+              className="h-full rounded-full bg-accent transition-[width] duration-700"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs">
+            <span className="tabular-nums">
+              <span className="font-semibold text-accent">{data.totalUnlocked}</span>
+              <span className="text-muted"> / {data.totalCatalog} {t("garage.cars")}</span>
+            </span>
+            {nextLabel && (
+              <span className="text-muted">{t("garage.nextTier")} · {nextLabel}</span>
+            )}
+          </div>
+        </div>
 
         <div className="mt-3">
           <RandomRepescaButton
@@ -707,10 +741,10 @@ function CountriesMenu({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-2">
+        <div className="flex flex-col">
           {countries.map((c) => (
-            <CountryCard
+            <CountryRow
               key={c.pais}
               country={c}
               onClick={() => onSelectCountry(c.pais)}
@@ -722,47 +756,51 @@ function CountriesMenu({
   );
 }
 
-function CountryCard({ country, onClick }) {
-  const { t } = useT();
-  const completed = country.unlocked === country.total && country.total > 0;
+// Fila de país (índice de álbum): la bandera se ve ENTERA en un chip, el
+// progreso es una barra por país, y caben el doble en pantalla. La épica del
+// banderón a pantalla completa se traslada a la cabecera del país al entrar.
+function CountryRow({ country, onClick }) {
   const tier = countryTier(country.unlocked, country.total);
+  const started = country.unlocked > 0;
+  const pct = country.total
+    ? Math.min(100, Math.round((country.unlocked / country.total) * 100))
+    : 0;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="
-        group relative aspect-square w-full overflow-hidden rounded-xl
-        border border-gray-800 bg-[#1a1a20] shadow-md shadow-black/40
-        transition-transform duration-200
-        hover:scale-105 hover:border-accent/60
-        active:scale-[0.97]
-      "
-      style={{
-        backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 55%, transparent 100%), url('${flagImagePath(country.pais)}')`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+      className={`group flex items-center gap-3 border-b border-white/[0.06] px-1 py-2.5 text-left transition-colors hover:bg-white/[0.03] active:scale-[0.99] ${
+        started ? "" : "opacity-60"
+      }`}
     >
-      {completed ? (
-        <div className="absolute left-2 top-2 rounded-full bg-accent/25 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent">
-          {t("garage.badgeComplete")}
-        </div>
-      ) : (
-        <TierMedal tier={tier} />
-      )}
-
-      <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pt-6 text-center">
-        <p
-          className="font-display text-lg font-bold uppercase tracking-wider text-white sm:text-xl"
-          style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
-        >
-          {getLocalizedCountry(country.pais)}
-        </p>
-        <p className="mt-1 text-xs font-medium tabular-nums text-muted">
-          {country.unlocked} / {country.total}
-        </p>
+      <div className="h-[26px] w-9 shrink-0 overflow-hidden rounded-[5px] border border-white/15">
+        <img
+          src={flagImagePath(country.pais)}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+          loading="lazy"
+          className="h-full w-full object-cover"
+        />
       </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={`truncate text-[15px] font-semibold ${started ? "text-white" : "text-white/70"}`}>
+            {getLocalizedCountry(country.pais)}
+          </span>
+          <span className="shrink-0 text-xs tabular-nums text-muted">
+            {country.unlocked} / {country.total}
+          </span>
+        </div>
+        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-white/[0.07]">
+          <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
+      <TierMedalInline tier={tier} />
+      <ChevronIcon className="h-4 w-4 shrink-0 text-white/30" />
     </button>
   );
 }
@@ -808,14 +846,13 @@ function BrandsMenu({
         </div>
       </div>
 
-      {/* Grid de marcas. Forzado a 2 columnas siempre: el modal queda
-          a max-w-md (448px) y 3 columnas dejan cada card ~130px, que
-          no da para acomodar nombres largos (VOLKSWAGEN, MERCEDES-BENZ)
-          con tipografía premium y tracking ancho. */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-        <div className="grid grid-cols-2 gap-3">
+      {/* Índice de marcas: mismo idioma que la lista de países (emblema en
+          chip + barra + progreso). El emblema real de /brands/*.png se ve
+          nítido; si falta, cae a la inicial vía onError. */}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-2">
+        <div className="flex flex-col">
           {visibleBrands.map((brand) => (
-            <BrandCard
+            <BrandRow
               key={brand.marca}
               brand={brand}
               onClick={() => onSelectBrand(brand.marca)}
@@ -827,78 +864,60 @@ function BrandsMenu({
   );
 }
 
-function BrandCard({ brand, onClick }) {
+// Fila de marca (índice): emblema real de la marca en un chip + barra +
+// progreso. Si el .png falta o falla, cae a la inicial. Las marcas sin empezar
+// (0/X) van atenuadas y en gris, para que el índice diga "empezada vs pendiente"
+// de un vistazo.
+function BrandRow({ brand, onClick }) {
+  const [logoFailed, setLogoFailed] = useState(false);
   const tier = brandTier(brand.unlocked, brand.total);
-  const isLocked = brand.unlocked === 0;
+  const started = brand.unlocked > 0;
+  const pct = brand.total
+    ? Math.min(100, Math.round((brand.unlocked / brand.total) * 100))
+    : 0;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`
-        group relative flex min-h-[120px] w-full flex-col items-center justify-center
-        overflow-hidden rounded-xl border p-6 text-center transition-all duration-300
-        active:scale-[0.97]
-        ${isLocked
-          ? "border-neutral-900/60 bg-neutral-950/20 hover:border-neutral-700/50"
-          : "border-neutral-800 bg-neutral-900 hover:border-neutral-500"
-        }
-      `}
+      className={`group flex items-center gap-3 border-b border-white/[0.06] px-1 py-2.5 text-left transition-colors hover:bg-white/[0.03] active:scale-[0.99] ${
+        started ? "" : "opacity-60"
+      }`}
     >
-      <TierMedal tier={tier} />
-      {/* Ghost logo de fondo: posición absoluta cubriendo toda la card,
-          desaturado y casi transparente. Al pasar por encima crece y se
-          intensifica un pelín. `pointer-events-none` para que el click
-          siga golpeando al botón, no a la imagen. Si el .png no existe el
-          onError la oculta y la card queda solo con el fondo neutro. */}
-      <img
-        src={brandLogoPath(brand.marca)}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        loading="lazy"
-        className={`
-          pointer-events-none absolute inset-0 h-full w-full
-          scale-110 object-contain p-2 grayscale
-          transition-all duration-500
-          ${isLocked
-            ? "opacity-[0.02] blur-[2px]"
-            : "opacity-10 group-hover:scale-125 group-hover:opacity-20"
-          }
-        `}
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-      />
-
-      {/* Contenido de primer plano: relative + z-10 para apilarse sobre el
-          ghost logo. `drop-shadow-md` da algo de cuerpo al texto sin perder
-          el look minimalista. */}
-      <div className="relative z-10 flex flex-col items-center">
-        {isLocked && (
-          <LockIcon className="mb-1.5 h-4 w-4 text-neutral-600 transition-colors group-hover:text-amber-500/40" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
+        {logoFailed ? (
+          <span className="text-sm font-bold text-white/70">
+            {(brand.marca?.[0] || "?").toUpperCase()}
+          </span>
+        ) : (
+          <img
+            src={brandLogoPath(brand.marca)}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            loading="lazy"
+            onError={() => setLogoFailed(true)}
+            className={`h-full w-full object-contain p-1 ${started ? "" : "opacity-40 grayscale"}`}
+          />
         )}
-        <p
-          className={`
-            w-full break-words text-center font-bold uppercase
-            text-base sm:text-lg
-            tracking-[0.1em] sm:tracking-[0.18em]
-            drop-shadow-md transition-colors duration-300
-            ${isLocked
-              ? "text-neutral-500 group-hover:text-neutral-400"
-              : "text-neutral-200"
-            }
-          `}
-        >
-          {brand.marca}
-        </p>
-
-        {/* Línea separadora sutil entre el nombre y el contador */}
-        <div className={`mt-3 h-px w-10 transition-colors duration-300 ${isLocked ? "bg-neutral-800/80" : "bg-neutral-700"}`} aria-hidden="true" />
-
-        <p className={`mt-3 text-sm font-medium tabular-nums drop-shadow-md transition-colors duration-300 ${isLocked ? "text-neutral-600" : "text-neutral-500"}`}>
-          {brand.unlocked} / {brand.total}
-        </p>
       </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={`truncate text-[15px] font-semibold ${started ? "text-white" : "text-white/70"}`}>
+            {brand.marca}
+          </span>
+          <span className="shrink-0 text-xs tabular-nums text-muted">
+            {brand.unlocked} / {brand.total}
+          </span>
+        </div>
+        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-white/[0.07]">
+          <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
+      <TierMedalInline tier={tier} />
+      <ChevronIcon className="h-4 w-4 shrink-0 text-white/30" />
     </button>
   );
 }
@@ -1160,9 +1179,12 @@ function CarDetail({ open, car, onClose, onStartRepesca }) {
 
             {isLocked ? (
               <>
-                <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-neutral-400">
-                  ••••••••••••
-                </h3>
+                <div className="mt-1.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-gold/30 bg-gold/[0.06] px-2.5 py-1 text-xs font-medium text-gold/90">
+                    <LockIcon className="h-3.5 w-3.5" />
+                    {t("garage.modelHidden")}
+                  </span>
+                </div>
                 <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
                   <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
                     {t("garage.repescaTag")}
@@ -1240,8 +1262,8 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
       panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
     >
         <div className="px-5 py-5 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
-            <span className="text-2xl" aria-hidden="true">🎲</span>
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-accent">
+            <DiceIcon className="h-7 w-7" />
           </div>
           <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-accent">
             {t("garage.repescaTag")}
@@ -1254,11 +1276,11 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
             {t("garage.repescaConfirmBody", { poolSize })}
           </p>
 
-          <ul className="mt-4 space-y-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-xs text-muted">
-            <li>· {t("garage.repescaRuleOnePerDay")}</li>
-            <li>· {t("garage.repescaRuleHalfPoints")}</li>
-            <li>· {t("garage.repescaRuleNoStreak")}</li>
-          </ul>
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1 text-left">
+            <RuleRow icon={<CalendarIcon />}>{t("garage.repescaRuleOnePerDay")}</RuleRow>
+            <RuleRow icon={<HalfIcon />}>{t("garage.repescaRuleHalfPoints")}</RuleRow>
+            <RuleRow icon={<StreakSafeIcon />} last>{t("garage.repescaRuleNoStreak")}</RuleRow>
+          </div>
 
           <div className="mt-5 flex gap-2">
             <button
@@ -1310,7 +1332,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
 //                   desactivado.
 //   - poolSize=0 → "Álbum completo"   : no quedan coches pendientes.
 //                   Botón desactivado.
-//   - default    → "🎲 Jugar Repesca Aleatoria".
+//   - default    → icono de dado + "Jugar Repesca Aleatoria".
 function RandomRepescaButton({
   poolSize,
   available,
@@ -1320,24 +1342,24 @@ function RandomRepescaButton({
 }) {
   const { t } = useT();
   let label;
-  let icon = "🎲";
+  let Icon = DiceIcon;
   let disabled = false;
   let tone = "accent";
 
   if (starting) {
     label = t("garage.repescaStarting");
-    icon = "🎲";
+    Icon = DiceIcon;
   } else if (hasActive) {
     label = t("garage.repescaContinue");
-    icon = "⟳";
+    Icon = RefreshIcon;
   } else if (poolSize === 0) {
     label = t("garage.repescaComplete");
-    icon = "★";
+    Icon = StarIcon;
     disabled = true;
     tone = "muted";
   } else if (!available) {
     label = t("garage.repescaNoneToday");
-    icon = "⏳";
+    Icon = HourglassIcon;
     disabled = true;
     tone = "muted";
   } else {
@@ -1361,7 +1383,7 @@ function RandomRepescaButton({
       aria-busy={starting}
       className={`${base} ${toneCls}`}
     >
-      <span aria-hidden="true">{icon}</span>
+      <Icon className="h-[18px] w-[18px]" />
       <span>{label}</span>
       {!disabled && !starting && poolSize > 0 && !hasActive && (
         <span className="ml-1 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] tabular-nums tracking-wider text-accent">
@@ -1376,25 +1398,136 @@ function RandomRepescaButton({
 // Subcomponentes auxiliares
 // ============================================================================
 
-// Medalla de tier (bronce/plata/oro) en la esquina de una tarjeta de
-// colección. No se pinta cuando tier es null (nada conseguido) ni cuando
-// la colección está completa (la card muestra el badge "Completo" en su
-// lugar). Es un disco con cinta, monocromo según el color del tier.
-function TierMedal({ tier }) {
-  if (!tier) return null;
-  const hex = TIER_HEX[tier];
+// ── Iconos line-art del Garaje (stroke currentColor, NO emoji — coherencia
+// con el sistema de iconos de la app y cross-platform) ───────────────────
+const GICO = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.6,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+};
+
+function ChevronIcon({ className = "h-4 w-4" }) {
   return (
-    <span
-      className="absolute right-2 top-2 z-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-      style={{ color: hex }}
-      aria-hidden="true"
-    >
-      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="14" r="6" fill={hex} fillOpacity="0.18" />
-        <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
-        <circle cx="12" cy="14" r="6" />
-      </svg>
+    <svg viewBox="0 0 24 24" className={className} {...GICO} strokeWidth="2" aria-hidden="true">
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function CollectionIcon({ className = "h-4 w-4" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
+      <rect x="3" y="6" width="12" height="14" rx="2" />
+      <path d="M8 6V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-1" />
+    </svg>
+  );
+}
+
+function DiceIcon({ className = "h-[18px] w-[18px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="3.5" />
+      <circle cx="8.5" cy="8.5" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="8.5" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="8.5" cy="15.5" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="15.5" r="1.15" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function RefreshIcon({ className = "h-[18px] w-[18px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
+      <path d="M20 11a8 8 0 1 0-1.6 5.2" />
+      <path d="M20 5v6h-6" />
+    </svg>
+  );
+}
+
+function StarIcon({ className = "h-[18px] w-[18px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
+      <path d="M12 3.5l2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.65l5.9-.85z" />
+    </svg>
+  );
+}
+
+function HourglassIcon({ className = "h-[18px] w-[18px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
+      <path d="M6 3h12M6 21h12" />
+      <path d="M7 3v3.2c0 1.8 5 3 5 5.8s-5 4-5 5.8V21" />
+      <path d="M17 3v3.2c0 1.8-5 3-5 5.8" />
+    </svg>
+  );
+}
+
+function CalendarIcon({ className = "h-[15px] w-[15px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
+      <rect x="4" y="5" width="16" height="16" rx="2" />
+      <path d="M4 9h16M8 3v4M16 3v4" />
+    </svg>
+  );
+}
+
+function HalfIcon({ className = "h-[15px] w-[15px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function StreakSafeIcon({ className = "h-[15px] w-[15px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
+      <path d="M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z" />
+      <path d="M9 12l2 2 4-4.2" />
+    </svg>
+  );
+}
+
+// Medalla de tier inline (filas del índice). Slot de ancho fijo para que el
+// chevron quede alineado, haya medalla o no.
+function TierMedalInline({ tier }) {
+  return (
+    <span className="flex w-4 shrink-0 justify-center" aria-hidden="true">
+      {tier ? (
+        <svg
+          viewBox="0 0 24 24"
+          className="h-4 w-4"
+          style={{ color: TIER_HEX[tier] }}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="14" r="6" fill={TIER_HEX[tier]} fillOpacity="0.18" />
+          <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
+          <circle cx="12" cy="14" r="6" />
+        </svg>
+      ) : null}
     </span>
+  );
+}
+
+// Regla de la repesca como fila con icono (en vez de viñeta "·").
+function RuleRow({ icon, children, last = false }) {
+  return (
+    <div
+      className={`flex items-center gap-2.5 py-2 text-xs text-muted ${
+        last ? "" : "border-b border-white/[0.06]"
+      }`}
+    >
+      <span className="shrink-0 text-accent">{icon}</span>
+      <span>{children}</span>
+    </div>
   );
 }
 
@@ -1461,8 +1594,8 @@ function RepescaHelpModal({ open, onClose }) {
 
         <div className="px-5 pb-5 pt-6 text-left">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
-              <span className="text-xl" aria-hidden="true">🎲</span>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-accent">
+              <DiceIcon className="h-6 w-6" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
@@ -1479,13 +1612,13 @@ function RepescaHelpModal({ open, onClose }) {
           </p>
 
           <div className="mt-4 space-y-3">
-            <HelpRow icon="🎲" title={t("garage.repescaHelpSurprise")}>
+            <HelpRow icon={<DiceIcon className="h-4 w-4" />} title={t("garage.repescaHelpSurprise")}>
               {t("garage.repescaHelpSurpriseDesc")}
             </HelpRow>
-            <HelpRow icon="⏱️" title={t("garage.repescaHelpOnce")}>
+            <HelpRow icon={<CalendarIcon className="h-4 w-4" />} title={t("garage.repescaHelpOnce")}>
               {t("garage.repescaHelpOnceDesc")}
             </HelpRow>
-            <HelpRow icon="½" title={t("garage.repescaHelpHalf")}>
+            <HelpRow icon={<HalfIcon className="h-4 w-4" />} title={t("garage.repescaHelpHalf")}>
               {t("garage.repescaHelpHalfDesc")}
             </HelpRow>
             <HelpRow
@@ -1494,7 +1627,7 @@ function RepescaHelpModal({ open, onClose }) {
             >
               {t("garage.repescaHelpNoStreakDesc")}
             </HelpRow>
-            <HelpRow icon="🏅" title={t("garage.repescaHelpVeteran")}>
+            <HelpRow icon={<AchievementIcon name="trophy" size="h-4 w-4" />} title={t("garage.repescaHelpVeteran")}>
               {t("garage.repescaHelpVeteranDesc")}
             </HelpRow>
           </div>

@@ -1,29 +1,27 @@
 // src/components/Achievements.jsx
-// Grid de logros PERSONALES (Colección + Rachas). Vive dentro del modal
-// de Logros (AchievementsModal).
+// RUTA de progresión de logros PERSONALES (Colección + Rachas). Vive dentro
+// del modal de Logros (AchievementsModal).
 //
-// ARQUITECTURA (v5): las colecciones por marca/país ya NO se muestran
-// aquí — esa "colección" es exactamente lo que enseña el Garaje (países →
-// marcas → coches, con medalla de tier en cada tarjeta). Tenerlas también
-// como badges era duplicar el mismo dato. Aquí quedan solo los logros que
-// NO viven en ningún otro sitio:
-//   · Colección (hitos de coches totales): Primer coche → Salón de la fama
-//   · Rachas (días seguidos): Chispa → Pleno motor
+// ARQUITECTURA (v6, rediseño 2026-06): de cuadrícula de badges a DOS rutas
+// (Colección, Racha). Cada categoría es una escalera con su línea-camino: el
+// nodo es la CIFRA-objetivo (1·10·25·50·100 / 7·30·100), no un icono pictórico
+// (esos desentonaban con lo premium/limpio). El estado se lee de un vistazo:
+//   · conseguido → moneda de oro maciza
+//   · próximo    → diana de oro, con barra y "te faltan X"
+//   · bloqueado  → contorno apagado
+// El alma "automotive" vive en los NOMBRES (Concesionario, Salón de la fama,
+// Piloto de Leyenda), igual que el reparto número-limpio + voz-del-juego del
+// Perfil. Las colecciones marca/país NO están aquí: son el Garaje.
 //
-// Con 8 piezas caben sin scroll y con tarjetas grandes — el objetivo es
-// que se sientan premium, no apretadas.
-//
-// El fetch sigue computando TODOS los logros (incluidas marcas/países) vía
-// el notifier compartido, porque ese cálculo alimenta la persistencia y
-// los toasts post-victoria. Aquí solo filtramos QUÉ se muestra.
+// El fetch sigue computando TODOS los logros vía el notifier compartido (ese
+// cálculo alimenta persistencia y toasts post-victoria); aquí solo filtramos
+// y reordenamos QUÉ se muestra.
 
 import { useEffect, useMemo, useState } from "react";
 import { useT } from "../i18n";
 import { detectAndPersistNewAchievements } from "../lib/achievementsNotifier";
-import AchievementIcon from "./AchievementIcons";
 
-// Categorías que se MUESTRAN en este panel (las colecciones marca/país
-// se han movido al Garaje). Orden de aparición.
+// Categorías que se MUESTRAN en este panel (marca/país viven en el Garaje).
 const DISPLAY_CATEGORIES = ["milestone", "streak"];
 
 export default function Achievements({ stats, onProgress }) {
@@ -53,7 +51,7 @@ export default function Achievements({ stats, onProgress }) {
     };
   }, [stats, t]);
 
-  // Solo hitos + rachas, en orden ascendente de dificultad.
+  // Solo hitos + rachas, en orden ascendente de dificultad (la escalera).
   const groups = useMemo(() => {
     const map = new Map();
     for (const a of items) {
@@ -106,22 +104,31 @@ export default function Achievements({ stats, onProgress }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       {groups.map(({ category, items: groupItems }) => {
         const done = groupItems.filter((a) => a.unlocked).length;
+        // El "próximo" es el primer no desbloqueado de la escalera.
+        const nextIdx = groupItems.findIndex((a) => !a.unlocked);
         return (
           <section key={category}>
-            <div className="mb-2.5 flex items-baseline justify-between">
-              <h4 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+            <div className="mb-3 flex items-baseline justify-between">
+              <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
                 {t(`achievements.category.${category}`)}
               </h4>
               <span className="text-[11px] tabular-nums text-white/30">
                 {done} / {groupItems.length}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {groupItems.map((a) => (
-                <Badge key={a.id} achievement={a} locale={locale} />
+            <div>
+              {groupItems.map((a, i) => (
+                <RouteNode
+                  key={a.id}
+                  achievement={a}
+                  locale={locale}
+                  isNext={i === nextIdx}
+                  first={i === 0}
+                  last={i === groupItems.length - 1}
+                />
               ))}
             </div>
           </section>
@@ -131,12 +138,35 @@ export default function Achievements({ stats, onProgress }) {
   );
 }
 
-function Badge({ achievement, locale }) {
-  const { unlocked, progress } = achievement;
-  const pct = Math.min(
-    100,
-    Math.round((progress.current / progress.total) * 100)
+function CheckIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12l5 5L20 7" />
+    </svg>
   );
+}
+
+// Un peldaño de la ruta: raíl con nodo numérico + contenido según estado.
+// El conector se dibuja en DOS segmentos (arriba/abajo del nodo) para no
+// cruzar por detrás del nodo — así su fondo puede ser transparente.
+function RouteNode({ achievement, locale, isNext, first, last }) {
+  const { t } = useT();
+  const { unlocked, progress } = achievement;
+  const goal = progress.total; // la cifra-objetivo (umbral del hito/racha)
+  const remaining = Math.max(0, progress.total - progress.current);
+  const pct = progress.total
+    ? Math.min(100, Math.round((progress.current / progress.total) * 100))
+    : 0;
+
   const title =
     achievement.title?.[locale] ||
     achievement.title?.es ||
@@ -148,70 +178,85 @@ function Badge({ achievement, locale }) {
     achievement.description?.en ||
     "";
 
-  return (
-    <div
-      className={`
-        group relative flex flex-col items-center gap-1.5 overflow-hidden
-        rounded-xl border p-2.5 pb-2 text-center transition-all duration-300
-        ${unlocked
-          ? "border-accent/30 bg-accent/[0.06] shadow-[0_0_20px_-6px_rgba(122,240,200,0.5)]"
-          : "border-white/[0.06] bg-white/[0.02]"}
-      `}
-      title={`${title} — ${description}`}
-    >
-      {unlocked && (
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] to-transparent" />
-      )}
+  // Texto "te faltan X" con unidad y plural correctos según categoría.
+  const isStreak = achievement.category === "streak";
+  const remainingKey = isStreak
+    ? remaining === 1
+      ? "achievements.remainingDay"
+      : "achievements.remainingDays"
+    : remaining === 1
+      ? "achievements.remainingCar"
+      : "achievements.remainingCars";
 
-      <div
-        className={`relative flex w-[65%] aspect-square shrink-0 items-center justify-center ${
-          unlocked ? "drop-shadow-[0_0_8px_rgba(122,240,200,0.3)]" : ""
-        }`}
-      >
-        <AchievementIcon
-          name={achievement.icon?.name}
-          size="w-full h-full"
-          color={unlocked ? "text-accent" : "text-white/[0.08]"}
-        />
-        {!unlocked && (
-          <span className="absolute inset-0 flex items-center justify-center text-accent/40" aria-hidden="true">
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="5" y="11" width="14" height="9" rx="2" />
-              <path d="M8 11V8a4 4 0 018 0v3" />
-              <circle cx="12" cy="15.5" r="1" fill="currentColor" stroke="none" />
-            </svg>
-          </span>
+  const nodeCls = unlocked
+    ? "border border-transparent bg-gold text-gold-ink" // moneda de oro maciza
+    : isNext
+      ? "border-2 border-gold bg-transparent text-gold" // diana
+      : "border border-border bg-white/[0.02] text-white/30"; // apagado
+
+  return (
+    <div className="flex items-stretch gap-3.5">
+      {/* Raíl + nodo */}
+      <div className="relative flex w-9 shrink-0 items-center justify-center">
+        {!first && (
+          <div
+            className="absolute left-1/2 top-0 w-0.5 -translate-x-1/2 bg-border"
+            style={{ height: "calc(50% - 18px)" }}
+          />
         )}
+        {!last && (
+          <div
+            className="absolute bottom-0 left-1/2 w-0.5 -translate-x-1/2 bg-border"
+            style={{ height: "calc(50% - 18px)" }}
+          />
+        )}
+        <span
+          className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full font-bold tabular-nums ${
+            String(goal).length >= 3 ? "text-[11px]" : "text-sm"
+          } ${nodeCls}`}
+        >
+          {goal}
+        </span>
       </div>
 
-      <span
-        className={`relative line-clamp-2 min-h-[1.9em] text-[10.5px] font-medium leading-tight ${
-          unlocked ? "text-white" : "text-muted"
-        }`}
-      >
-        {title}
-      </span>
-
-      {unlocked ? (
-        <span className="relative inline-flex items-center gap-1 text-[9px] font-semibold tracking-wider text-accent">
-          <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12l5 5L20 7" />
-          </svg>
-          {progress.total}
-        </span>
-      ) : (
-        <div className="relative w-full px-1">
-          <div className="h-[2px] overflow-hidden rounded-full bg-white/[0.08]">
-            <div
-              className="h-full rounded-full bg-accent/60 transition-[width] duration-500"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span className="mt-0.5 block text-[9px] tabular-nums text-muted">
-            {progress.current}/{progress.total}
-          </span>
-        </div>
-      )}
+      {/* Contenido */}
+      <div className="min-w-0 flex-1 pb-5 pt-1.5">
+        {unlocked ? (
+          <>
+            <p className="text-[15px] font-semibold text-white">{title}</p>
+            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-gold">
+              <CheckIcon className="h-3 w-3" />
+              {t("achievements.unlocked")}
+            </p>
+          </>
+        ) : isNext ? (
+          <>
+            <div className="flex items-center gap-2">
+              <p className="text-[15px] font-bold text-white">{title}</p>
+              <span className="rounded-full border border-gold/40 px-2 py-px font-mono text-[8.5px] uppercase tracking-wider text-gold">
+                {t("achievements.next")}
+              </span>
+            </div>
+            <div className="mt-1.5 h-[5px] max-w-[170px] overflow-hidden rounded-full bg-white/[0.08]">
+              <div
+                className="h-full rounded-full bg-gold"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-[11.5px] text-white/75">
+              {t(remainingKey, { count: remaining })} ·{" "}
+              <span className="tabular-nums">
+                {progress.current}/{progress.total}
+              </span>
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-[15px] font-medium text-white/55">{title}</p>
+            <p className="mt-0.5 text-[11px] text-white/35">{description}</p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -216,6 +216,12 @@
     "loading": "Cargando logros…",
     "errorLoad": "No se pudieron cargar tus logros.",
     "empty": "Todavía no hay logros disponibles.",
+    "next": "Próximo",
+    "unlocked": "Conseguido",
+    "remainingCar": "Te falta {count} coche",
+    "remainingCars": "Te faltan {count} coches",
+    "remainingDay": "Te falta {count} día",
+    "remainingDays": "Te faltan {count} días",
     "toastUnlocked": "Has desbloqueado:",
     "toastMore": "Y {count} logro(s) más desbloqueado(s).",
     "category": {

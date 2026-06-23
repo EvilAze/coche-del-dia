@@ -8,6 +8,7 @@ import AchievementIcon from "./AchievementIcons";
 import ScoringHelpModal from "./ScoringHelpModal";
 import PublicProfile from "./PublicProfile";
 import { track } from "../lib/analytics";
+import { TIER_HEX } from "../lib/collectionTier";
 
 function HelpButton({ onClick }) {
   const { t } = useT();
@@ -71,6 +72,31 @@ function StreakBadge({ streak }) {
   );
 }
 
+// Medalla de puesto: top-3 con relleno oro/plata/bronce (mismos tonos que los
+// tiers del Garaje/Logros — un único idioma de medallas en toda la web). Del
+// #4 en adelante, número limpio en gris.
+const RANK_TIER = { 1: "gold", 2: "silver", 3: "bronze" };
+const RANK_INK = { gold: "#1a1306", silver: "#22272e", bronze: "#241405" };
+
+function RankMarker({ rank }) {
+  const tier = RANK_TIER[rank];
+  if (tier) {
+    return (
+      <span
+        className="flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold tabular-nums"
+        style={{ background: TIER_HEX[tier], color: RANK_INK[tier] }}
+      >
+        {rank}
+      </span>
+    );
+  }
+  return (
+    <span className="text-[15px] font-bold tabular-nums text-muted-foreground">
+      {rank}
+    </span>
+  );
+}
+
 export default function Ranking({ open, onClose, user, onOpenLogin }) {
   const { t } = useT();
   const [state, setState] = useState({
@@ -88,6 +114,12 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
   // userId del usuario actual (logueado), si lo hay. Lo usamos para
   // NO hacer clicable su propia fila â€” ya tiene su MyStats privado.
   const currentUserId = user?.id || null;
+  // Mi fila dentro del leaderboard cargado (mismo scope que la pestaña activa,
+  // así rank+puntos son coherentes). Si estoy fuera del top visible, la fijamos
+  // abajo para que siempre vea dónde estoy.
+  const selfRow = currentUserId
+    ? state.players.find((p) => p.userId === currentUserId) || null
+    : null;
 
   // Al cerrar el modal, volvemos a la pestaÃ±a mensual para la prÃ³xima apertura.
   useEffect(() => {
@@ -242,7 +274,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     }
                     className={`
                       grid w-full grid-cols-[2.1rem_minmax(0,1fr)_4.25rem]
-                      items-center px-3 py-2.5 bg-transparent text-left
+                      items-center px-3 py-2.5 text-left
+                      ${isSelf ? "bg-mint/[0.07]" : "bg-transparent"}
                       ${!user && index < 2 ? "border-b border-border" : ""}
                       ${!user && index === 3 ? "border-t border-border" : ""}
                       ${RowTag === "button" ? "transition hover:bg-white/5 active:scale-[0.99]" : ""}
@@ -256,14 +289,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         : undefined
                     }
                   >
-                    <div
-                      className={`font-bold text-xl ${
-                        player.rank === 1
-                          ? "text-gold drop-shadow-[0_0_10px_rgba(232,200,122,0.5)]"
-                          : "text-mint"
-                      }`}
-                    >
-                      {player.rank}
+                    <div className="flex justify-center">
+                      <RankMarker rank={player.rank} />
                     </div>
 
                     <div className="min-w-0">
@@ -271,6 +298,11 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         <p className="truncate text-sm font-medium text-foreground">
                           {player.displayName}
                         </p>
+                        {isSelf && (
+                          <span className="shrink-0 rounded-full bg-mint px-1.5 py-px font-mono text-[8.5px] font-bold uppercase tracking-wider text-mint-foreground">
+                            {t("ranking.you")}
+                          </span>
+                        )}
                         <StreakBadge streak={player.currentStreak} />
                       </div>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -281,7 +313,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                     </div>
 
                     <div className="text-right">
-                      <div className="text-xl font-bold leading-none text-foreground">
+                      <div className={`text-xl font-bold leading-none tabular-nums ${player.rank === 1 ? "text-gold" : "text-foreground"}`}>
                         {player.totalPoints}
                       </div>
                       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -299,6 +331,43 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                 </>
               )}
             </div>
+
+            {selfRow && selfRow.rank > 5 && (
+              <div className="border-t border-border-strong">
+                <p className="px-3 pb-1 pt-2 text-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+                  {t("ranking.yourPosition")}
+                </p>
+                <div className="grid grid-cols-[2.1rem_minmax(0,1fr)_4.25rem] items-center bg-mint/[0.07] px-3 py-2.5 text-left">
+                  <div className="flex justify-center">
+                    <RankMarker rank={selfRow.rank} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {selfRow.displayName}
+                      </p>
+                      <span className="shrink-0 rounded-full bg-mint px-1.5 py-px font-mono text-[8.5px] font-bold uppercase tracking-wider text-mint-foreground">
+                        {t("ranking.you")}
+                      </span>
+                      <StreakBadge streak={selfRow.currentStreak} />
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {tab === "month"
+                        ? t("ranking.monthWins", { value: selfRow.totalWins })
+                        : t("ranking.bestStreak", { value: selfRow.maxStreak })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-bold leading-none tabular-nums text-foreground">
+                      {selfRow.totalPoints}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {t("ranking.points")}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {!user && state.players.length > 3 && (
               <div className="bg-gradient-to-b from-black/5 to-black/40 p-4">

@@ -254,9 +254,12 @@ export async function getProfileSummary() {
 
   const maxStreak = base.stats?.max_streak ?? 0;
 
+  // Cada extra cae con elegancia: un fallo en uno NO debe tumbar el carnet
+  // (identidad + racha ya vienen de getMyStats). getMyMonthlyRank/getCatalogCount
+  // ya son defensivos; a getMyWonCarIds (que sí lanza) le ponemos red aquí.
   const [rank, wonIds, catalogTotal] = await Promise.all([
     getMyMonthlyRank(base.user.id),
-    getMyWonCarIds(),
+    getMyWonCarIds().catch(() => []),
     getCatalogCount(),
   ]);
 

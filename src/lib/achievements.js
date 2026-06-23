@@ -59,6 +59,24 @@ const STREAK_THRESHOLDS = [
   { id: 100, svg: "piston",       title: { es: "Piloto de Leyenda", en: "Legendary Driver" }, desc: { es: "Racha de 100 días. Imparable.", en: "100-day streak. Unstoppable." } },
 ];
 
+// Conteo LIGERO de los logros que SE MUESTRAN en el modal de Logros (hitos +
+// rachas; las colecciones marca/país viven en el Garaje, no aquí). Pensado
+// para el contador de la puerta "Logros" del Perfil: se deriva de wonCount +
+// maxStreak sin necesitar el catálogo completo (que computeAchievements sí
+// exige). Usa las MISMAS arrays de umbral que el cómputo oficial → una sola
+// fuente de verdad, sin riesgo de desincronía. Hitos y rachas son monótonos
+// (no bajan), así que no hace falta consultar el snapshot persistido.
+export function countDisplayedAchievements({ wonCount = 0, maxStreak = 0 } = {}) {
+  const w = Math.max(0, Number(wonCount) || 0);
+  const s = Math.max(0, Number(maxStreak) || 0);
+  const milestones = MILESTONE_THRESHOLDS.filter((m) => w >= m.count).length;
+  const streaks = STREAK_THRESHOLDS.filter((t) => s >= t.id).length;
+  return {
+    unlocked: milestones + streaks,
+    total: MILESTONE_THRESHOLDS.length + STREAK_THRESHOLDS.length,
+  };
+}
+
 // ---------- Helpers ------------------------------------------------------
 
 /**

@@ -462,6 +462,8 @@ export default function App() {
             onClose={closeModal}
             onSignedOut={handleSignedOut}
             onOpenAchievements={openAchievements}
+            onOpenGarage={openGarage}
+            onOpenRanking={openRanking}
           />
         </Suspense>
       )}

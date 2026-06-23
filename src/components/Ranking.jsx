@@ -72,26 +72,19 @@ function StreakBadge({ streak }) {
   );
 }
 
-// Medalla de puesto: top-3 con relleno oro/plata/bronce (mismos tonos que los
-// tiers del Garaje/Logros — un único idioma de medallas en toda la web). Del
-// #4 en adelante, número limpio en gris.
-const RANK_TIER = { 1: "gold", 2: "silver", 3: "bronze" };
-const RANK_INK = { gold: "#1a1306", silver: "#22272e", bronze: "#241405" };
+// Puesto: el top-3 colorea el NÚMERO en oro/plata/bronce (mismos tonos que los
+// tiers del Garaje/Logros — un único idioma en toda la web), SIN redondel: el
+// disco relleno pesaba demasiado para lo limpia que es la fila. Del #4 en
+// adelante, número en gris.
+const RANK_COLOR = { 1: TIER_HEX.gold, 2: TIER_HEX.silver, 3: TIER_HEX.bronze };
 
 function RankMarker({ rank }) {
-  const tier = RANK_TIER[rank];
-  if (tier) {
-    return (
-      <span
-        className="flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold tabular-nums"
-        style={{ background: TIER_HEX[tier], color: RANK_INK[tier] }}
-      >
-        {rank}
-      </span>
-    );
-  }
+  const color = RANK_COLOR[rank];
   return (
-    <span className="text-[15px] font-bold tabular-nums text-muted-foreground">
+    <span
+      className={`text-[15px] font-bold tabular-nums ${color ? "" : "text-muted-foreground"}`}
+      style={color ? { color } : undefined}
+    >
       {rank}
     </span>
   );

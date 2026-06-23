@@ -275,6 +275,8 @@
     "bestStreak": "Best streak: {value}",
     "monthWins": "{value} wins this month",
     "points": "points",
+    "you": "You",
+    "yourPosition": "Your position",
     "loginPrompt": "Sign in to see the full table and your current position.",
     "loginCta": "Join the competition",
     "streakAria": "Streak of {count} days, bonus {bonus}",

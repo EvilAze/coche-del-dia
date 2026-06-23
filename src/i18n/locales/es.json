@@ -275,6 +275,8 @@
     "bestStreak": "Mejor racha: {value}",
     "monthWins": "{value} aciertos este mes",
     "points": "puntos",
+    "you": "Tú",
+    "yourPosition": "Tu posición",
     "loginPrompt": "Inicia sesión para ver la tabla completa y tu posición actual.",
     "loginCta": "Unirme a la competición",
     "streakAria": "Racha de {count} días, bonus {bonus}",

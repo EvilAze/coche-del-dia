@@ -24,3 +24,9 @@ skills-lock.json
 *.keystore
 *.jks
 android/keystore.properties
+
+# Imágenes-fuente legacy de los coches. Vivían en public/ y Vite las
+# empaquetaba en el build/APK (366 MB de peso muerto), pero la app las sirve
+# desde el CDN/Supabase vía /api/daily-image y /api/car-image — nunca desde
+# /coches/. Se borraron del repo; este ignore evita re-añadirlas por error.
+public/coches/

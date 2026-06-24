@@ -4,6 +4,15 @@
   "devCommand": "vite --port $PORT",
   "outputDirectory": "build",
 
+  "regions": ["fra1"],
+
+  "functions": {
+    "api/daily-image.js": {
+      "memory": 1769,
+      "maxDuration": 15
+    }
+  },
+
   "headers": [
     {
       "source": "/(.*)",

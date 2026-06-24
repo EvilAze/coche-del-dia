@@ -1,6 +1,8 @@
 /**
  * Genera los assets fuente para @capacitor/assets (Easy Mode).
- * Entrada: public/web-app-manifest-512x512.png (512×512, RGBA)
+ * Entrada: assets/brand-logo-source.png (2048×2048, RGBA) — el máster de marca.
+ *   Antes leía el 512 y lo escalaba a 1024 (upscale borroso); partir del
+ *   máster a 2048 y bajar a 1024 da un icono nítido.
  * Salida:
  *   assets/logo.png       — 1024×1024, icono sobre fondo transparente
  *   assets/logo-dark.png  — mismo (válido para modo oscuro)
@@ -14,7 +16,7 @@
 const sharp = require('sharp');
 const path = require('path');
 
-const SRC = path.resolve(__dirname, '../public/web-app-manifest-512x512.png');
+const SRC = path.resolve(__dirname, '../assets/brand-logo-source.png');
 const OUT_DIR = path.resolve(__dirname, '../assets');
 
 async function main() {

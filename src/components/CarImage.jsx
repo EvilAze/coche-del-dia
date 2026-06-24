@@ -84,13 +84,20 @@ export default function CarImage({
     setImgFailed(false);
   }, [src]);
 
-  // Watchdog: si en 8 s la imagen no ha cargado, asumimos que el AVIF/WebP
+  // Watchdog: si en 12 s la imagen no ha cargado, asumimos que el AVIF/WebP
   // se ha encallado (cold start de sharp, red lenta, etc.) y disparamos el
   // fallback a JPEG directo. Sin esto, algunos usuarios se quedan con el
   // skeleton borroso eterno y tienen que refrescar la página manualmente.
+  //
+  // 12 s (antes 8 s): en conexiones lentas un AVIF perfectamente válido aún
+  // se está descargando a los 8 s; abandonarlo y saltar a un JPEG (más
+  // pesado) era contraproducente — sobre la misma red lenta tardaba MÁS.
+  // Los fallos reales (decode error, red caída) los captura onError al
+  // instante, así que el watchdog solo cubre el "encallado sin error": ahí
+  // damos más margen antes de cambiar de formato.
   useEffect(() => {
     if (loaded || imgFailed || !src) return;
-    const t = setTimeout(() => setImgFailed(true), 8000);
+    const t = setTimeout(() => setImgFailed(true), 12000);
     return () => clearTimeout(t);
   }, [src, loaded, imgFailed]);
 

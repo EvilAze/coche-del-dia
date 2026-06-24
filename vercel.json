@@ -4,6 +4,17 @@
   "devCommand": "vite --port $PORT",
   "outputDirectory": "build",
 
+  "// regions": "Las Serverless Functions corren en fra1 (Frankfurt), no en el iad1 (US) por defecto. Crítico para daily-image: en un cache miss hacía cold start de sharp en EE.UU., consultaba Supabase EU (ida/vuelta atlántica) y mandaba los bytes a España. En fra1 está al lado de Supabase y de la audiencia (es). get-daily-car ya estaba en fra1 vía su propio config edge; esto alinea el resto.",
+  "regions": ["fra1"],
+
+  "// functions": "daily-image recodifica con sharp (CPU-bound). Más memoria = más CPU = encode más rápido en el path de miss. maxDuration holgada para que un cold start + encode no se corte (el cliente tiene watchdog a 12s).",
+  "functions": {
+    "api/daily-image.js": {
+      "memory": 1769,
+      "maxDuration": 15
+    }
+  },
+
   "headers": [
     {
       "source": "/(.*)",

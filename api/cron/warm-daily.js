@@ -157,35 +157,42 @@ export default async function handler(req, res) {
       return res.status(500).json({ ...result, error: "get-daily-car failed" });
     }
 
-    // ---- PASO 2: daily-image AVIF × 3 anchos en paralelo ----------------
-    // Solo AVIF: es el formato que sirve a >90% de visitantes modernos
-    // (Chrome, Edge, Firefox 93+, Safari 16+). WebP y JPEG fallback se
-    // generarán bajo demanda cuando llegue su primer visitante (raro);
-    // calentarlos también triplicaría las requests de este cron sin ganancia
-    // material.
+    // ---- PASO 2: daily-image AVIF + JPEG × 3 anchos en paralelo ----------
+    // AVIF es el formato que sirve a >90% de visitantes modernos (Chrome,
+    // Edge, Firefox 93+, Safari 16+), así que es prioritario calentarlo.
+    //
+    // JPEG SÍ se calienta ahora (antes se dejaba bajo demanda): es el
+    // fallback universal al que CarImage salta cuando el AVIF falla o el
+    // watchdog se dispara en conexiones lentas. Si ese JPEG estaba frío, el
+    // peor caso (conexión lenta) encadenaba DOS cold starts de sharp —
+    // justo el escenario que queremos arreglar. Calentarlo lo deja como
+    // cache hit. WebP sigue bajo demanda: AVIF+JPEG ya cubren ~todo el
+    // parque de navegadores, así que calentarlo no aportaría material.
     //
     // Consumimos arrayBuffer() para que el upstream complete la respuesta
     // y el CDN la guarde. Si solo leyésemos los headers, Vercel podría
     // cancelar el stream antes de cachear.
     const widths = [640, 1280, 1920];
+    const formats = ["avif", "jpeg"];
+    const variants = formats.flatMap((f) => widths.map((w) => ({ f, w })));
     const imageUrlBase = `${baseUrl}${body1.img}`;
     const step2Start = Date.now();
     const settled = await Promise.allSettled(
-      widths.map(async (w) => {
-        const r = await fetch(`${imageUrlBase}&z=5&f=avif&w=${w}`, {
+      variants.map(async ({ f, w }) => {
+        const r = await fetch(`${imageUrlBase}&z=5&f=${f}&w=${w}`, {
           headers: { "User-Agent": "VercelCron/warm-daily" },
         });
         await r.arrayBuffer();
-        return { width: w, status: r.status, bytes: r.headers.get("content-length") || null };
+        return { format: f, width: w, status: r.status, bytes: r.headers.get("content-length") || null };
       })
     );
     result.steps.push({
-      step: "daily-image-avif",
+      step: "daily-image-warm",
       ms: Date.now() - step2Start,
       results: settled.map((s, i) =>
         s.status === "fulfilled"
           ? s.value
-          : { width: widths[i], error: s.reason?.message || "unknown" }
+          : { format: variants[i].f, width: variants[i].w, error: s.reason?.message || "unknown" }
       ),
     });
 

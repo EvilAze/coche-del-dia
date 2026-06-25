@@ -1,13 +1,16 @@
 // src/components/PublicProfile.jsx
 // Modal read-only con el perfil de OTRO usuario (no el actual).
-// Reutiliza la misma estÃ©tica de MyStats pero:
+// Es el GEMELO de MyStats: comparte el mismo carnet premium (avatar + nick +
+// tier + hairline de oro + ficha de specs), pero adaptado a "ver a otro":
 //   - Sin email (privado, no se expone).
-//   - Sin botÃ³n Sign out (no eres tÃº).
-//   - Logros: SOLO los conseguidos. No mostramos progreso pendiente
-//     (eso es info personal). Si no tiene ninguno, mensaje amable.
+//   - Sin botón Sign out, sin idioma, sin "puertas" a Garaje/Ranking/Logros
+//     (esas navegan a TUS secciones; en un perfil ajeno no aplican).
+//   - Las medallas se muestran INLINE (no hay adónde navegar): SOLO las
+//     conseguidas, sin progreso pendiente (eso es info personal). Si no
+//     tiene ninguna, mensaje amable.
 //
 // Datos vienen de la RPC `get_public_profile` (ver scripts/supabase-
-// public-profile-rpc.sql). Solo expone campos que ya son pÃºblicos en
+// public-profile-rpc.sql). Solo expone campos que ya son públicos en
 // el leaderboard + lista de coches ganados.
 
 import { useEffect, useMemo, useState } from "react";
@@ -15,24 +18,94 @@ import { useT, getLocalizedCountry } from "../i18n";
 import { getPublicProfile } from "../lib/statsService";
 import { loadCatalog } from "../data/catalog";
 import { computeAchievements } from "../lib/achievements";
+import { collectorTier } from "../lib/collectionTier";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import AchievementIcon from "./AchievementIcons";
 import PodiumMedals from "./PodiumMedals";
 
-function StatCard({ label, value }) {
+// ── Iconos line-art (stroke currentColor) ────────────────────────────────
+// Réplica del set de MyStats: el carnet público habla el mismo idioma de
+// iconos que el Perfil propio (NO emoji, cross-platform). Heredan el color
+// del padre vía currentColor; el tamaño vía className.
+const ICO = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.6,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+};
+
+function FlameIcon({ className = "h-[18px] w-[18px]" }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-center">
-      <div className="font-display text-2xl text-accent">{value ?? 0}</div>
-      <div className="mt-1 text-[9px] uppercase tracking-widest text-muted">
-        {label}
-      </div>
+    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
+      <path d="M12 3c-1 4.5-6 7-6 12a6 6 0 0 0 12 0c0-5-5-7.5-6-12z" />
+      <path d="M12 10.5c-.5 2.5-3 4-3 7a3 3 0 0 0 6 0c0-3-2.5-4.5-3-7z" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function CrownIcon({ className = "h-[18px] w-[18px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
+      <path d="M4 8l4 3.5 4-6.5 4 6.5 4-3.5v9.5H4z" />
+      <path d="M4 17.5h16" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function CarIcon({ className = "h-[18px] w-[18px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
+      <path d="M5 11l1.6-4A2 2 0 0 1 8.5 5.7h7a2 2 0 0 1 1.9 1.3L19 11" />
+      <path d="M4 11h16v5H4z" />
+      <circle cx="7.5" cy="16.5" r="1.6" />
+      <circle cx="16.5" cy="16.5" r="1.6" />
+    </svg>
+  );
+}
+
+function MedalIcon({ className = "h-[18px] w-[18px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
+      <circle cx="12" cy="14" r="6" />
+      <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
+    </svg>
+  );
+}
+
+// Avatar circular con inicial sobre disco menta (idéntico a MyStats: hilo
+// visual entre el Perfil propio y el público).
+function Avatar({ initial }) {
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-mint/25 bg-gradient-to-br from-mint/30 to-mint/[0.04]">
+      <span className="text-xl font-bold text-mint">{initial}</span>
     </div>
   );
 }
 
-// Slugs idÃ©nticos a Garage.jsx y Achievements.jsx â€” claves para que los
+// Fila de la ficha de specs: icono + etiqueta a la izquierda, valor a la
+// derecha. Mismo patrón que MyStats — lee como hoja de specs del carnet, no
+// como KPI suelto. El color del valor codifica semántica de marca: oro para
+// lo premium (racha/máxima/puntos), menta para el "acierto" (victorias).
+function FichaRow({ icon, label, value, valueClass = "text-foreground", last = false }) {
+  return (
+    <div
+      className={`flex items-center justify-between py-2.5 ${
+        last ? "" : "border-b border-border/60"
+      }`}
+    >
+      <span className="flex items-center gap-2.5 text-sm text-foreground/85">
+        {icon}
+        {label}
+      </span>
+      <span className={`text-base font-bold tabular-nums ${valueClass}`}>{value}</span>
+    </div>
+  );
+}
+
+// Slugs idénticos a Garage.jsx y Achievements.jsx — claves para que los
 // logos de marca y banderas resuelvan correctamente.
 function brandSlug(marca) {
   return String(marca || "").toLowerCase().replace(/\s+/g, "-");
@@ -65,8 +138,8 @@ export default function PublicProfile({ open, onClose, userId }) {
           cars: catalog?.cars || [],
           wonCarIds: profile?.wonCarIds || [],
           stats: profile?.stats || {},
-          // Si el otro usuario tenÃ­a oro en una marca antes de que
-          // ampliÃ¡ramos el catÃ¡logo, terceros lo siguen viendo en oro.
+          // Si el otro usuario tenía oro en una marca antes de que
+          // ampliáramos el catálogo, terceros lo siguen viendo en oro.
           persistedUnlocks: profile?.achievementsUnlocked || {},
         });
         setState({
@@ -78,8 +151,8 @@ export default function PublicProfile({ open, onClose, userId }) {
       .catch((err) => {
         console.error("[PublicProfile]", err);
         if (cancelled) return;
-        // Detectamos el caso especÃ­fico de "RPC no existe" para dar un
-        // mensaje Ãºtil en dev: la causa mÃ¡s comÃºn es haber olvidado
+        // Detectamos el caso específico de "RPC no existe" para dar un
+        // mensaje útil en dev: la causa más común es haber olvidado
         // ejecutar scripts/supabase-public-profile-rpc.sql en Supabase.
         const msg = String(err?.message || "").toLowerCase();
         const rpcMissing =
@@ -100,8 +173,8 @@ export default function PublicProfile({ open, onClose, userId }) {
   }, [open, userId, t]);
 
   // Filtramos los logros que vamos a mostrar:
-  //   - Colecciones (marca/paÃ­s): solo si tienen currentTier (al menos
-  //     un tier conseguido). Ocultamos las que aÃºn no han iniciado.
+  //   - Colecciones (marca/país): solo si tienen currentTier (al menos
+  //     un tier conseguido). Ocultamos las que aún no han iniciado.
   //   - Hitos / rachas: solo los unlocked.
   const visibleAchievements = useMemo(() => {
     const items = state.data?.achievements || [];
@@ -113,7 +186,7 @@ export default function PublicProfile({ open, onClose, userId }) {
     });
   }, [state.data]);
 
-  // Agrupar visualmente por categorÃ­a, mismo orden que Achievements.jsx.
+  // Agrupar visualmente por categoría, mismo orden que Achievements.jsx.
   const groups = useMemo(() => {
     const map = new Map();
     for (const a of visibleAchievements) {
@@ -140,79 +213,131 @@ export default function PublicProfile({ open, onClose, userId }) {
       .map((c) => ({ category: c, items: map.get(c) }));
   }, [visibleAchievements]);
 
+  const stats = state.data?.stats;
   const nickname =
     state.data?.profile?.display_name || t("publicProfile.noNickname");
+  const initial = (nickname.trim()[0] || "?").toUpperCase();
+  const onStreak = (stats?.current_streak ?? 0) > 0;
+
+  // Tier global de coleccionista derivado del nº de coches ganados (mismo
+  // hilo de nivel que el Garaje y el Perfil propio). No viene de la RPC: lo
+  // calculamos de wonCarIds, que sí es público, con el helper compartido.
+  const tier = collectorTier(state.data?.wonCarIds?.length || 0);
+  const tierLabel = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
 
   return (
     <ModalShell
       open={open}
       onClose={onClose}
+      label={t("publicProfile.title")}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
       panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col p-5 overflow-hidden"
     >
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-display text-2xl tracking-widest text-white">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
           {t("publicProfile.title")}
         </h2>
         <CloseButton onClick={onClose} />
       </div>
 
       {state.loading ? (
-        <p className="text-sm text-muted">{t("common.loading")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : state.error ? (
         <p className="text-sm text-red-400">{state.error}</p>
       ) : (
         <>
-          <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="truncate text-2xl font-bold text-white">{nickname}</p>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-muted">
-              {t("publicProfile.publicLabel")}
-            </p>
+          {/* Carnet: identidad + ficha de specs en un solo objeto premium,
+              gemelo del carnet del Perfil propio. */}
+          <div className="relative overflow-hidden rounded-2xl border border-gold/20 bg-bg-tertiary p-4">
+            {/* Hairline de oro: detalle premium discreto. */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+
+            <div className="flex items-center gap-3">
+              <Avatar initial={initial} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-lg font-bold text-foreground">{nickname}</p>
+                <p className="mt-0.5 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  {t("publicProfile.publicLabel")}
+                </p>
+              </div>
+              {tierLabel && (
+                <span className="shrink-0 rounded-full border border-gold/35 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-gold">
+                  {tierLabel}
+                </span>
+              )}
+            </div>
+
+            {/* Ficha de specs: racha · máxima · aciertos · puntos. */}
+            <div className="mt-3 border-t border-border pt-1">
+              <FichaRow
+                icon={
+                  <span className={onStreak ? "text-gold" : "text-muted-foreground"}>
+                    <FlameIcon />
+                  </span>
+                }
+                label={t("myStats.statStreak")}
+                value={stats?.current_streak ?? 0}
+                valueClass={onStreak ? "text-gold" : "text-muted-foreground"}
+              />
+              <FichaRow
+                icon={
+                  <span className="text-gold">
+                    <CrownIcon />
+                  </span>
+                }
+                label={t("myStats.statMaxStreak")}
+                value={stats?.max_streak ?? 0}
+                valueClass="text-gold"
+              />
+              <FichaRow
+                icon={
+                  <span className="text-mint">
+                    <CarIcon />
+                  </span>
+                }
+                label={t("myStats.statWins")}
+                value={stats?.total_wins ?? 0}
+                valueClass="text-mint"
+              />
+              <FichaRow
+                last
+                icon={
+                  <span className="text-gold">
+                    <MedalIcon />
+                  </span>
+                }
+                label={t("publicProfile.statPoints")}
+                value={stats?.total_points ?? 0}
+                valueClass="text-gold"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-1.5">
-            <StatCard
-              label={t("myStats.statStreak")}
-              value={state.data?.stats?.current_streak}
-            />
-            <StatCard
-              label={t("myStats.statMaxStreak")}
-              value={state.data?.stats?.max_streak}
-            />
-            <StatCard
-              label={t("myStats.statWins")}
-              value={state.data?.stats?.total_wins}
-            />
-            <StatCard
-              label={t("publicProfile.statPoints")}
-              value={state.data?.stats?.total_points}
-            />
-          </div>
-
-          <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-white/10 px-5 pt-4">
-            {/* Podios mensuales (ðŸ¥‡ðŸ¥ˆðŸ¥‰). Solo se renderiza si tiene alguno. */}
+          <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-border px-5 pt-4">
+            {/* Podios mensuales (oro/plata/bronce). Solo se renderiza si tiene
+                alguno; el wrapper se colapsa con empty:hidden. */}
             <div className="mb-4 empty:hidden">
               <PodiumMedals userId={userId} />
             </div>
 
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-display text-base tracking-widest text-white">
+              <h3 className="text-base font-semibold text-foreground">
                 {t("publicProfile.medalsTitle")}
               </h3>
-              <span className="text-xs tabular-nums text-muted">
+              <span className="text-xs tabular-nums text-muted-foreground">
                 {visibleAchievements.length}
               </span>
             </div>
 
             {visibleAchievements.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted">
+              <p className="py-6 text-center text-sm text-muted-foreground">
                 {t("publicProfile.noMedalsYet")}
               </p>
             ) : (
               <div className="space-y-4">
                 {groups.map(({ category, items }) => (
                   <section key={category}>
-                    <h4 className="mb-2 text-[10px] uppercase tracking-[0.22em] text-accent">
+                    <h4 className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
                       {t(`achievements.category.${category}`)}
                     </h4>
                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
@@ -231,8 +356,8 @@ export default function PublicProfile({ open, onClose, userId }) {
   );
 }
 
-// VersiÃ³n simplificada del Badge: solo estado conseguido, sin barra de
-// progreso (lo no conseguido no se muestra aquÃ­), sin etiqueta "X/Y".
+// Versión simplificada del Badge: solo estado conseguido, sin barra de
+// progreso (lo no conseguido no se muestra aquí), sin etiqueta "X/Y".
 function PublicBadge({ achievement, locale }) {
   const { icon, currentTier, tiers, group } = achievement;
   const isCollection = Array.isArray(tiers) && tiers.length > 0;
@@ -240,20 +365,20 @@ function PublicBadge({ achievement, locale }) {
 
   const borderClass =
     tierForBorder === "gold"
-      ? "border-yellow-300/70"
+      ? "border-gold/60"
       : tierForBorder === "silver"
-      ? "border-zinc-300/60"
+      ? "border-zinc-300/50"
       : tierForBorder === "bronze"
       ? "border-amber-700/60"
-      : "border-accent/60";
+      : "border-mint/50";
   const labelClass =
     tierForBorder === "gold"
-      ? "text-yellow-300"
+      ? "text-gold"
       : tierForBorder === "silver"
       ? "text-zinc-300"
       : tierForBorder === "bronze"
       ? "text-amber-600"
-      : "text-accent";
+      : "text-mint";
 
   const title =
     achievement.title?.[locale] ||
@@ -309,8 +434,8 @@ function PublicBadge({ achievement, locale }) {
 
   return (
     <div
-      className={`group relative aspect-square overflow-hidden rounded-lg border ${borderClass} bg-white/[0.04] p-2`}
-      title={`${title} â€” ${description}`}
+      className={`group relative aspect-square overflow-hidden rounded-lg border ${borderClass} bg-bg-tertiary p-2`}
+      title={`${title} — ${description}`}
     >
       <div className="flex h-full w-full flex-col items-center justify-center gap-1">
         {iconNode}

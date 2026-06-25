@@ -23,6 +23,13 @@ import { useDailyStats, Distribution, Percentile } from "./dailyStats";
 // cambia el otro".
 import { shareGrid } from "../../lib/shareText";
 
+// Umbral para colar el percentil en el TEXTO que se comparte. Solo se incluye
+// cuando es un flex de verdad (top 30%). Por debajo, "Mejor que el 40%…" es un
+// anti-flex —anuncia que lo hiciste peor que la mayoría— y encima roba una línea
+// en un canal concurrido. La UI (componente Percentile) lo sigue mostrando
+// siempre; este recorte es solo para el chat.
+const SHARE_PERCENTILE_MIN = 70;
+
 function legacyCopy(text) {
   try {
     const ta = document.createElement("textarea");
@@ -88,7 +95,7 @@ export default function EndScreen({
       // Versión corta del copy (betterThanShare): en el chat cada carácter
       // cuenta; la UI conserva la frase completa (betterThan).
       let finalShareText = shareText;
-      if (won && daily.betterThanPct > 0) {
+      if (won && daily.betterThanPct >= SHARE_PERCENTILE_MIN) {
         const lines = shareText.split("\n");
         const domain = lines.pop();
         finalShareText = [

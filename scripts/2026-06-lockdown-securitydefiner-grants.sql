@@ -33,8 +33,13 @@ ALTER FUNCTION public.increment_daily_stats(date, boolean, integer)
 -- 2) Funciones SECURITY DEFINER solo-servidor: revocar EXECUTE a clientes
 -- ============================================================================
 -- Stats agregadas: las escribe api/validate-guess.js con service_role.
+-- OJO: su SQL original (supabase-daily-stats.sql) nunca revocó de PUBLIC, y
+-- Postgres concede EXECUTE TO PUBLIC por defecto al crear una función. Por eso
+-- revocar solo de anon/authenticated NO basta: seguirían teniendo acceso vía
+-- PUBLIC. Hay que revocar también de PUBLIC (a diferencia de las funciones de
+-- más abajo, cuyos scripts originales ya hacían el REVOKE ... FROM PUBLIC).
 REVOKE EXECUTE ON FUNCTION public.increment_daily_stats(date, boolean, integer)
-  FROM anon, authenticated;
+  FROM PUBLIC, anon, authenticated;
 
 -- DDA / dificultad: las disparan el cron warm-daily y los handlers admin con
 -- service_role. Nunca desde el cliente.

@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import ModalShell from "../components/ModalShell";
 import CloseButton from "../components/CloseButton";
 import { supabase } from "../supabaseClient";
-import { useCatalog } from "../data/catalog";
+import { useFreshCatalog } from "../data/catalog";
 
 export default function SwapCarModal({
   open,
@@ -22,7 +22,11 @@ export default function SwapCarModal({
   onCreateNew,
   onSwapped,
 }) {
-  const { data: catalog } = useCatalog();
+  // useFreshCatalog (no useCatalog) para que un coche recién creado en el
+  // panel Añadir aparezca aquí de inmediato. useCatalog sirve una versión
+  // cacheada (memoria de sesión + CDN s-maxage=300) que se quedaría sin el
+  // coche nuevo hasta expirar — justo el bug de "no aparece en la lista".
+  const { data: catalog, reload: reloadCatalog } = useFreshCatalog();
   const CARS = catalog?.cars ?? [];
 
   const [query, setQuery] = useState("");
@@ -51,6 +55,10 @@ export default function SwapCarModal({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    // Refresca el catálogo al abrir: el modal está siempre montado (controlado
+    // por `open`), así que el fetch inicial de useFreshCatalog ocurre una sola
+    // vez. Sin este reload, un coche añadido tras montar AdminTools no saldría.
+    reloadCatalog().catch(() => {});
     (async () => {
       try {
         const {

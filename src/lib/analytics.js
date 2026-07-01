@@ -19,6 +19,10 @@
 //   - repesca_win           { mode, attempts }        — ganarla
 //   - daily_win             { attempts }              — ganar partida diaria
 //   - daily_lose            {}                        — perder partida diaria
+//   - share                 { method, where, result } — compartir COMPLETADO
+//        method: native|clipboard|legacy · where: result_panel|end_screen
+//        result: win|lose. Solo cuenta comparticiones reales (cancelar el
+//        share nativo NO dispara evento): es la métrica del bucle viral.
 
 /**
  * Dispara un evento custom en Umami. Falla en silencio si el script

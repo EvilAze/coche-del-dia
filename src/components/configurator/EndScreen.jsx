@@ -105,11 +105,19 @@ export default function EndScreen({
         ].join("\n");
       }
 
-      if (navigator.share) { await navigator.share({ text: finalShareText }); return; }
+      if (navigator.share) {
+        await navigator.share({ text: finalShareText });
+        // Solo resuelve si se completó (cancelar → AbortError al catch): el
+        // evento cuenta comparticiones REALES, la métrica de viralidad.
+        track("share", { method: "native", where: "end_screen", result: won ? "win" : "lose" });
+        return;
+      }
       let ok = false;
+      let method = "legacy";
       if (navigator.clipboard && window.isSecureContext !== false) {
         await navigator.clipboard.writeText(finalShareText);
         ok = true;
+        method = "clipboard";
       } else {
         ok = legacyCopy(finalShareText);
       }
@@ -119,6 +127,7 @@ export default function EndScreen({
         clearTimeout(copyTimer.current);
         copyTimer.current = setTimeout(() => setCopied(false), 1800);
         toast.push(t("result.shareCopied"), { type: "success" });
+        track("share", { method, where: "end_screen", result: won ? "win" : "lose" });
       } else {
         toast.push(t("result.shareUnsupported"), { type: "error" });
       }

@@ -8,6 +8,7 @@ import { useToast } from "./Toast";
 import { useCountdown } from "../hooks/useCountdown";
 import { useT, getCarDescription } from "../i18n";
 import { haptic } from "../lib/haptics";
+import { track } from "../lib/analytics";
 
 // Fallback de copia para contextos sin navigator.clipboard:
 //   - Safari iOS < 13.4
@@ -263,6 +264,10 @@ export default function ResultPanel({
         // necesitamos feedback porque el usuario ya recibe confirmación
         // visual del sistema. No flasheamos el botón aquí.
         await navigator.share({ text: shareText });
+        // El await solo resuelve si el share se completó; si el usuario
+        // cancela, lanza AbortError y salta al catch (no cuenta). Así el
+        // evento mide comparticiones REALES, la métrica de viralidad.
+        track("share", { method: "native", where: "result_panel", result: won ? "win" : "lose" });
         return;
       }
       if (navigator.clipboard && window.isSecureContext !== false) {
@@ -270,6 +275,7 @@ export default function ResultPanel({
         haptic.success();
         flashCopied();
         toast.push(t("result.shareCopied"), { type: "success" });
+        track("share", { method: "clipboard", where: "result_panel", result: won ? "win" : "lose" });
         return;
       }
       // Fallback legacy execCommand — cubre Safari iOS viejo, HTTP, WebViews.
@@ -277,6 +283,7 @@ export default function ResultPanel({
         haptic.success();
         flashCopied();
         toast.push(t("result.shareCopied"), { type: "success" });
+        track("share", { method: "legacy", where: "result_panel", result: won ? "win" : "lose" });
         return;
       }
       toast.push(t("result.shareUnsupported"), { type: "error" });

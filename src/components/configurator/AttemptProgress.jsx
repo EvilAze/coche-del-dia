@@ -16,11 +16,20 @@ export default function AttemptProgress({ attempts = 0, maxAttempts = 5, reveale
 
   const remaining = Math.max(0, maxAttempts - attempts);
 
-  // Dots calcados del car-image.tsx de v0: gastado = barra ancha (foreground/70),
-  // actual = barra menta con glow, restante = punto pequeño (muted/30). Centrados.
+  // Gastado = barra sólida (foreground/70), actual = barra menta con glow,
+  // restante = barra tenue (muted/25). TODOS los tramos con el MISMO ancho.
+  //
+  // Antes el restante era un PUNTO pequeño (w-1.5): en el primer intento la
+  // fila quedaba `▬ • • • •` — la pastilla-activa-+-puntos es EXACTAMENTE el
+  // lenguaje visual de un PAGINADOR de carrusel. Un usuario en Reddit
+  // (feedback 2026-07) lo leyó así: "¿puedo deslizar entre más fotos? solo
+  // hay 1". Igualando el ancho, la fila se lee como una BARRA DE PROGRESO
+  // segmentada (5 tramos), no como fotos deslizables. El color sigue siendo
+  // el único canal de estado; el gap-1.5 (más ceñido) refuerza "una barra
+  // partida en tramos" frente a "puntos sueltos".
   return (
     <div
-      className="flex items-center justify-center gap-2"
+      className="flex items-center justify-center gap-1.5"
       role="img"
       aria-label={t("app.attemptsRemainingAria", { count: remaining, max: maxAttempts })}
     >
@@ -29,16 +38,16 @@ export default function AttemptProgress({ attempts = 0, maxAttempts = 5, reveale
           key={i}
           className={
             // Propiedades explícitas en vez de `transition-all`: solo cambian
-            // ancho, fondo y glow al avanzar de intento. El comodín `all`
-            // engancharía cualquier propiedad futura por accidente (y dispara
-            // el motor a observar todo). Anima una vez por intento (ocasional),
-            // así que 300ms está bien.
-            "h-1.5 rounded-full transition-[width,background-color,box-shadow] duration-300 " +
+            // fondo y glow al avanzar de intento (el ancho ya no varía). El
+            // comodín `all` engancharía cualquier propiedad futura por
+            // accidente (y dispara el motor a observar todo). Anima una vez
+            // por intento (ocasional), así que 300ms está bien.
+            "h-1.5 w-6 rounded-full transition-[background-color,box-shadow] duration-300 " +
             (i < attempts
-              ? "w-6 bg-foreground/70"
+              ? "bg-foreground/70"
               : i === attempts
-                ? "w-6 bg-mint shadow-[0_0_8px_#7af0c8]"
-                : "w-1.5 bg-muted-foreground/30")
+                ? "bg-mint shadow-[0_0_8px_#7af0c8]"
+                : "bg-muted-foreground/25")
           }
         />
       ))}

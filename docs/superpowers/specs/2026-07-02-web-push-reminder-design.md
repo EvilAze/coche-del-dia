@@ -90,8 +90,10 @@ NAVEGADOR (solo web, NO app nativa)                  SERVIDOR / INFRA
 
 - **Anónimos incluidos** (son el tráfico de Reddit): sub asociada al `anon_id` de `anon-session`;
   si además está logueado, también al `user_id`. Un mismo navegador = una fila (upsert por
-  `endpoint`). El endpoint de alta lee el identificador anónimo de la **cookie de sesión** que
-  ya emite `anon-session` (no hace falta que el cliente lo mande).
+  `endpoint`). El endpoint de alta lee el identificador anónimo del **header `x-anon-session`**
+  que el cliente ya adjunta (helper `anonHeaders()` en `src/lib/anonSession.js`), verificándolo
+  con `readAnonToken(req)` de la versión Node de anon-session. El `anon_id` es metadato
+  best-effort; la **clave real de identidad es `endpoint`**.
 
 **Runtime:** `api/push/subscribe.js`, `api/push/unsubscribe.js` y `api/cron/send-push.js` son
 funciones **Node** (no Edge): `web-push` necesita el `crypto` de Node, y el envío usa

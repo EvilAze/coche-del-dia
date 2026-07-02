@@ -8,17 +8,17 @@
 // 410) y cuenta fallos (borra tras 3). Sentry captura errores SIN PII.
 
 import webpush from "web-push";
-import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
 import {
   getPushCopy,
   buildPushPayload,
   classifySendError,
   madridDateStr,
-} from "../_lib/push.js";
+} from "../push.js";
 
 const BATCH = 100; // enviar en lotes para no saturar
 
-export default async function handler(req, res) {
+export async function sendPush(req, res) {
   // --- AUTH: mismo esquema que los crons existentes ---
   const expected = process.env.CRON_SECRET;
   if (!expected) {

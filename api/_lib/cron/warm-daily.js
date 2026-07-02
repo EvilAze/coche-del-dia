@@ -47,7 +47,7 @@
 // propio endpoint) también para no gastar uno de los 12 slots de función
 // serverless de Hobby. Ver scripts/2026-06-difficulty-observatory.sql.
 
-import { getSupabaseAdmin } from "../_lib/supabase.js";
+import { getSupabaseAdmin } from "../supabase.js";
 
 /**
  * Escribe (upsert) un item en Vercel Edge Config vía REST API. La SDK
@@ -82,7 +82,7 @@ async function writeEdgeConfig(key, value) {
   return { ok: true, status: r.status };
 }
 
-export default async function handler(req, res) {
+export async function warmDaily(req, res) {
   // ---- AUTH --------------------------------------------------------------
   const expectedSecret = process.env.CRON_SECRET;
   if (!expectedSecret) {

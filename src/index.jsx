@@ -119,3 +119,14 @@ root.render(
     </SentryErrorBoundary>
   </React.StrictMode>
 );
+
+// Registro del service worker para Web Push. Diferido a 'load' para no competir
+// con el primer render. Falla en silencio: si el navegador no lo soporta o
+// estamos en la app nativa (que usa notif locales), simplemente no pasa nada.
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* SW no disponible: el juego funciona igual, solo sin push web */
+    });
+  });
+}

@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../i18n";
 import { haptic } from "../lib/haptics";
+import PushToggle from "./PushToggle";
 
 // --- Icons ---
 // Conjunto rediseñado para máxima coherencia visual.
@@ -230,6 +231,7 @@ export default function HeaderSandwich({
           >
             <PodiumIcon />
           </button>
+          <PushToggle />
         </div>
       </div>
 

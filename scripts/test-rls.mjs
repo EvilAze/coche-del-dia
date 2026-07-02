@@ -348,6 +348,37 @@ console.log("\n[RPC] funciones expuestas — solo las que QUEREMOS callables");
 }
 
 // ============================================================================
+console.log("\n[push_subscriptions] — admin-only: el cliente NO debe leer ni escribir");
+// ============================================================================
+
+// La tabla es deny-all (RLS ON sin policies + REVOKE ALL). Un anon no debe
+// poder leer endpoints/claves de otros ni darse de alta saltándose el endpoint
+// /api/push/subscribe. Si SELECT filtra, se exponen las URLs de push (semi-
+// secretas) de todos los usuarios; si INSERT pasa, cualquiera escribe la tabla.
+expectSelectBlocked(
+  "SELECT * FROM push_subscriptions",
+  await anon.from("push_subscriptions").select("*").limit(5)
+);
+expectSelectBlocked(
+  "SELECT endpoint FROM push_subscriptions (subset)",
+  await anon.from("push_subscriptions").select("endpoint").limit(5)
+);
+// INSERT con .select(): si tuviera éxito devolvería la fila (LEAK detectable);
+// endpoint ficticio único para no colisionar con datos reales.
+expectMutationBlocked(
+  "INSERT INTO push_subscriptions (anon no puede darse de alta directo)",
+  await anon
+    .from("push_subscriptions")
+    .insert({ endpoint: "https://example.com/rls-leak-test", p256dh: "x", auth: "y" })
+    .select()
+);
+// DELETE con filtro imposible (NULL_UUID) → seguro; debe fallar por REVOKE.
+expectMutationBlocked(
+  "DELETE FROM push_subscriptions WHERE id = NULL_UUID",
+  await anon.from("push_subscriptions").delete().eq("id", NULL_UUID).select()
+);
+
+// ============================================================================
 console.log("\n──────────────────────────────────────────");
 console.log(`Resultado: ${passed} OK, ${failed} FAIL`);
 if (failed > 0) {

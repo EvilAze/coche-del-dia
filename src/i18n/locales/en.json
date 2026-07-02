@@ -178,7 +178,14 @@
     "streakReminderBody": {
       "one": "Don't lose your {count}-day streak. Guess today's car.",
       "other": "Don't lose your {count}-day streak. Guess today's car."
-    }
+    },
+    "webOptInBody": "I'll remind you at 4pm when it's time to play. One reminder a day, no spam.",
+    "webOptInAccept": "Yes, remind me",
+    "webOptInDecline": "Not now",
+    "iosHintTitle": "Want the daily reminder?",
+    "iosHintBody": "On iPhone, add the site to your home screen (Share → Add to Home Screen) to enable the reminder.",
+    "menuPushOn": "Daily reminders: on",
+    "menuPushOff": "Turn on daily reminders"
   },
   "score": {
     "base": "Base",

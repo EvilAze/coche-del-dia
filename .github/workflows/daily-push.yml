@@ -1,0 +1,23 @@
+# .github/workflows/daily-push.yml
+# Dispara el recordatorio Web Push diario. Cron a las 15:00 UTC (~16:00 invierno
+# / 17:00 verano en Madrid; ambas caen en sobremesa). Hace POST al endpoint
+# protegido con el secreto compartido. Gratis y desacoplado del límite de crons
+# del plan Hobby de Vercel. Se puede lanzar a mano (workflow_dispatch) para probar.
+name: daily-push
+
+on:
+  schedule:
+    - cron: "0 15 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/send-push
+        run: |
+          code=$(curl -s -o /tmp/out.txt -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://cochedeldia.com/api/cron/send-push)
+          echo "HTTP $code"; cat /tmp/out.txt
+          test "$code" = "200"

@@ -178,7 +178,14 @@
     "streakReminderBody": {
       "one": "No pierdas tu racha de {count} día. Adivina el coche de hoy.",
       "other": "No pierdas tu racha de {count} días. Adivina el coche de hoy."
-    }
+    },
+    "webOptInBody": "Te aviso a las 16:00 cuando toque jugar. Sin spam, un aviso al día.",
+    "webOptInAccept": "Sí, avísame",
+    "webOptInDecline": "Ahora no",
+    "iosHintTitle": "¿Quieres el aviso diario?",
+    "iosHintBody": "En iPhone, añade la web a tu pantalla de inicio (Compartir → Añadir a inicio) y podrás activar el recordatorio.",
+    "menuPushOn": "Avisos diarios: activados",
+    "menuPushOff": "Activar avisos diarios"
   },
   "score": {
     "base": "Base",

@@ -25,10 +25,20 @@ const JOBS = {
 };
 
 export default async function handler(req, res) {
-  // El segmento capturado por [...job] llega como array (["warm-daily"]); lo
-  // unimos por si algún día hay sub-rutas. Ruta desconocida → 404.
+  // Vercel puede pasar req.query.job como array (["warm-daily"]), string suelta,
+  // o NO poblarlo (verificado en prod: llegaba null). Igual que el catch-all de
+  // admin (api/admin/[...slug].js), normalizamos y, si viene vacío, parseamos el
+  // segmento a mano desde req.url — robusto a cómo Vercel resuelva el catch-all.
   const raw = req.query.job;
-  const name = Array.isArray(raw) ? raw.join("/") : raw;
+  let name;
+  if (Array.isArray(raw)) name = raw.join("/");
+  else if (typeof raw === "string" && raw.length > 0) name = raw;
+  else if (req.url) {
+    const path = req.url.split("?")[0];
+    const m = path.match(/^\/api\/cron\/(.+?)\/?$/);
+    if (m) name = m[1];
+  }
+
   const job = JOBS[name];
   if (!job) {
     return res.status(404).json({ error: "unknown_job", job: name ?? null });

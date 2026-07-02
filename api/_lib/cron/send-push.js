@@ -64,7 +64,13 @@ export async function sendPush(req, res) {
     await Promise.allSettled(
       slice.map(async (s) => {
         const copy = getPushCopy(s.locale);
-        const payload = buildPushPayload({ title: copy.title, body: copy.body, url: "/" });
+        // URL con UTM: al abrir la notificación, Umami atribuye el retorno a
+        // "push" (mide si el aviso realmente trae gente de vuelta).
+        const payload = buildPushPayload({
+          title: copy.title,
+          body: copy.body,
+          url: "/?utm_source=push&utm_medium=web_push",
+        });
         try {
           await webpush.sendNotification(
             { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },

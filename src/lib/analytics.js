@@ -23,6 +23,13 @@
 //        method: native|clipboard|legacy · where: result_panel|end_screen
 //        result: win|lose. Solo cuenta comparticiones reales (cancelar el
 //        share nativo NO dispara evento): es la métrica del bucle viral.
+//   - push_prompt_shown      { surface }                — se muestra el opt-in web
+//   - push_optin             { result, surface }        — accept|decline|dismiss
+//   - push_subscribed        { locale }                 — suscriptor REAL captado
+//   - push_unsubscribed      {}                         — se da de baja
+//        Embudo de retención Web Push: shown → optin(accept) → subscribed. El
+//        RETORNO desde una notificación se mide por UTM (?utm_source=push), que
+//        Umami atribuye solo (no hace falta evento).
 
 /**
  * Dispara un evento custom en Umami. Falla en silencio si el script

@@ -9,6 +9,7 @@
 
 import { Capacitor } from "@capacitor/core";
 import { anonHeaders } from "./anonSession";
+import { track } from "./analytics";
 
 const ASKED_KEY = "cd_webpush_asked";       // ¿ya ofrecimos el opt-in?
 const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
@@ -101,6 +102,9 @@ export async function subscribe(locale = "es") {
       headers: { "Content-Type": "application/json", ...anonHeaders() },
       body: JSON.stringify({ action: "subscribe", subscription: sub.toJSON(), locale }),
     });
+    // Suscriptor REAL captado (permiso concedido + guardado en servidor): el
+    // numerador del embudo de retención push.
+    if (res.ok) track("push_subscribed", { locale });
     return res.ok;
   } catch {
     // Permiso denegado, SW no soportado, red caída… nunca rompemos la UX.
@@ -122,6 +126,7 @@ export async function unsubscribe() {
       headers: { "Content-Type": "application/json", ...anonHeaders() },
       body: JSON.stringify({ action: "unsubscribe", endpoint }),
     });
+    track("push_unsubscribed", {});
     return true;
   } catch {
     return false;

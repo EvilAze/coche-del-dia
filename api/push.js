@@ -13,6 +13,7 @@
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { readAnonTokenFromRequest } from "./_lib/edge/anon-session.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
+import { madridDateStr } from "./_lib/push.js";
 
 export const config = { runtime: "edge" };
 
@@ -59,6 +60,27 @@ export default async function handler(request) {
     return json({ ok: true });
   }
 
+  // ---- "YA JUGUÉ HOY" ----------------------------------------------------
+  // El cliente lo llama cuando el jugador ya terminó la partida diaria: marca
+  // last_notified_at = hoy en SU suscripción para que el envío de las 16:00 la
+  // salte (ese query excluye last_notified_at = hoy). Cubre anónimos (que no
+  // se registran en servidor) porque la marca la pone el propio navegador.
+  if (body?.action === "seen_today") {
+    const endpoint = body.endpoint;
+    if (!endpoint || typeof endpoint !== "string") {
+      return json({ error: "invalid_endpoint" }, 400);
+    }
+    const { error } = await admin
+      .from("push_subscriptions")
+      .update({ last_notified_at: madridDateStr() })
+      .eq("endpoint", endpoint);
+    if (error) {
+      console.error("[push] seen_today falló:", error.message);
+      return json({ error: "db_error" }, 500);
+    }
+    return json({ ok: true });
+  }
+
   // ---- ALTA --------------------------------------------------------------
   if (body?.action === "subscribe") {
     const sub = body.subscription;
@@ -95,8 +117,11 @@ export default async function handler(request) {
         user_id: userId,
         anon_id: anonId,
         locale,
-        failure_count: 0,       // reset: re-suscribirse limpia fallos previos
-        last_notified_at: null, // que reciba el próximo envío
+        failure_count: 0, // reset: re-suscribirse limpia fallos previos
+        // "cubierto hoy": quien se suscribe hoy ya está enganchado hoy (el
+        // opt-in sale tras ganar; el toggle, estando en la web). No le
+        // molestamos con el aviso de las 16:00 de HOY; el primero será mañana.
+        last_notified_at: madridDateStr(),
       },
       { onConflict: "endpoint" }
     );

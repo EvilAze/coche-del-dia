@@ -3,6 +3,7 @@ import { supabase } from "../supabaseClient";
 import { useToast } from "../components/Toast";
 import { notifyAchievementsAfterWin } from "../lib/achievementsNotifier";
 import { track } from "../lib/analytics";
+import { markSeenToday } from "../lib/webpush";
 import { haptic } from "../lib/haptics";
 import { useT } from "../i18n";
 // Niveles de zoom CSS aplicados sobre la imagen `?z=5` que sirve el servidor
@@ -172,6 +173,17 @@ export function useGame() {
 
     return () => authListener.subscription.unsubscribe();
   }, []);
+
+  // Anti-molestia del push: cuando la partida diaria queda terminada (ahora o
+  // ya al cargar), avisamos al servidor de que este navegador "ya jugó hoy",
+  // para que el recordatorio de las 16:00 no llegue redundante. markSeenToday
+  // es no-op si no hay suscripción, y cubre anónimos (la marca la pone el
+  // propio navegador, no depende de registro server-side de la partida).
+  useEffect(() => {
+    if (status === "won" || status === "lost") {
+      markSeenToday();
+    }
+  }, [status]);
 
   // Flag: si la primera ejecución de initGame tiene snapshot optimista,
   // NO flipeamos isLoading→true (eso causaría exactamente el flicker que

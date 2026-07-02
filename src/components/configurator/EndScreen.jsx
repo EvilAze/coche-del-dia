@@ -17,6 +17,11 @@ import { useToast } from "../Toast";
 import Confetti from "../Confetti";
 import { Icon, I } from "./icons";
 import { useDailyStats, Distribution, Percentile } from "./dailyStats";
+// Opt-in de recordatorio (web push / notif nativa). Antes vivía solo en
+// ResultPanel (legacy, hoy solo Repesca), así que NUNCA salía tras la partida
+// diaria —cuya pantalla viva es ESTA—. Lo montamos aquí, en la pestaña
+// COMPARTIR (la de por defecto al ganar), que es el pico de engagement.
+import NotificationOptIn from "../NotificationOptIn";
 // Rejilla ✅/❌ del share: fuente única en lib/shareText (la misma que usa
 // buildShareText). El preview del panel y el texto que se copia ya NO pueden
 // divergir — antes era un espejo manual con la advertencia "si cambias uno,
@@ -242,6 +247,12 @@ export default function EndScreen({
                 <span>{t("result.saveProgressCta")}</span>
               </button>
             )}
+
+            {/* Recordatorio diario: se ofrece UNA vez (persiste la decisión).
+                En web pide Web Push; en nativo, notif local; en iOS-no-instalado,
+                el hint de "añadir a inicio". Devuelve null si ya se preguntó o no
+                hay soporte, así que no molesta en cada apertura del EndScreen. */}
+            <NotificationOptIn />
           </div>
         )}
 

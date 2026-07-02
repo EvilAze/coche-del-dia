@@ -5,7 +5,13 @@
 // Al recibir un push, mostramos la notificación. El payload lo manda el server
 // como JSON {title, body, url}. Fallback defensivo si llega vacío/no-JSON.
 self.addEventListener("push", (event) => {
-  let data = { title: "El Coche del Día", body: "Ya puedes jugar al coche de hoy 🚗", url: "/" };
+  // El fallback de url lleva UTM igual que el payload del servidor: si por lo
+  // que sea llega un push sin datos, el retorno se sigue atribuyendo a "push".
+  let data = {
+    title: "El Coche del Día",
+    body: "Ya puedes jugar al coche de hoy 🚗",
+    url: "/?utm_source=push&utm_medium=web_push",
+  };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch {

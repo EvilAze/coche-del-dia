@@ -24,6 +24,7 @@ import {
   subscribe as webSubscribe,
 } from "../lib/webpush";
 import { getLocale } from "../i18n";
+import { track } from "../lib/analytics";
 
 // Decide qué variante mostrar en el primer render (síncrono, sin parpadeo):
 //   "native" | "web" | "ios-hint" | null
@@ -41,6 +42,15 @@ export default function NotificationOptIn() {
   useEffect(() => {
     // Coherencia ante carreras de StrictMode.
     if (isNative() && hasAskedNative()) setMode(null);
+  }, []);
+
+  // Impresión del prompt (denominador del embudo de opt-in). Solo web/iOS: el
+  // funnel que medimos es el de Web Push, no el nativo. Una vez por montaje.
+  useEffect(() => {
+    if (mode === "web" || mode === "ios-hint") {
+      track("push_prompt_shown", { surface: mode === "ios-hint" ? "ios_hint" : "web" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!mode) return null;
@@ -62,13 +72,18 @@ export default function NotificationOptIn() {
   // --- WEB ---
   async function acceptWeb() {
     haptic.impactLight();
+    track("push_optin", { result: "accept", surface: "web" });
     markAskedWeb();
     setMode(null);
+    // webSubscribe dispara push_subscribed si el permiso se concede: el hueco
+    // entre "accept" y "subscribed" = permisos denegados por el navegador.
     await webSubscribe(getLocale());
   }
 
   function decline() {
     haptic.impactLight();
+    // Solo el rechazo WEB entra en el embudo de push (el nativo es otra cosa).
+    if (mode === "web") track("push_optin", { result: "decline", surface: "web" });
     if (isNative()) markAskedNative();
     else markAskedWeb();
     setMode(null);
@@ -76,6 +91,7 @@ export default function NotificationOptIn() {
 
   function dismissHint() {
     haptic.impactLight();
+    track("push_optin", { result: "dismiss", surface: "ios_hint" });
     markAskedWeb();
     setMode(null);
   }

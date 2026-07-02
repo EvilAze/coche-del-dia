@@ -127,3 +127,23 @@ export async function unsubscribe() {
     return false;
   }
 }
+
+// "Ya jugué hoy": si este navegador está suscrito, avisa al servidor para que
+// marque su suscripción como cubierta hoy y el envío de las 16:00 la salte. Lo
+// llama el juego diario al terminar (useGame). No-op si no hay suscripción, y
+// falla en silencio: es una optimización anti-molestia, nunca crítica.
+export async function markSeenToday() {
+  if (!isPushSupported()) return;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg && (await reg.pushManager.getSubscription());
+    if (!sub) return;
+    await fetch("/api/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...anonHeaders() },
+      body: JSON.stringify({ action: "seen_today", endpoint: sub.endpoint }),
+    });
+  } catch {
+    /* sin suscripción o red caída: la marca es best-effort */
+  }
+}

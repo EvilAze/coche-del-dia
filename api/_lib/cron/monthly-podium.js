@@ -17,9 +17,9 @@
 // REQUISITO: ejecutar antes scripts/supabase-monthly-ranking.sql en Supabase
 // (crea la RPC y la tabla).
 
-import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
 
-export default async function handler(req, res) {
+export async function monthlyPodium(req, res) {
   // ---- AUTH --------------------------------------------------------------
   const expectedSecret = process.env.CRON_SECRET;
   if (!expectedSecret) {

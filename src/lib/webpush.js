@@ -95,10 +95,11 @@ export async function subscribe(locale = "es") {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
     });
 
-    const res = await fetch("/api/push/subscribe", {
+    // Endpoint único /api/push (Edge) con routing por `action`.
+    const res = await fetch("/api/push", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...anonHeaders() },
-      body: JSON.stringify({ subscription: sub.toJSON(), locale }),
+      body: JSON.stringify({ action: "subscribe", subscription: sub.toJSON(), locale }),
     });
     return res.ok;
   } catch {
@@ -116,10 +117,10 @@ export async function unsubscribe() {
     if (!sub) return true;
     const endpoint = sub.endpoint;
     await sub.unsubscribe();
-    await fetch("/api/push/unsubscribe", {
+    await fetch("/api/push", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...anonHeaders() },
-      body: JSON.stringify({ endpoint }),
+      body: JSON.stringify({ action: "unsubscribe", endpoint }),
     });
     return true;
   } catch {

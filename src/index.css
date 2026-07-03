@@ -847,6 +847,11 @@ body,
   background: transparent; border: 1px solid var(--line); border-radius: 11px; color: var(--cdd-text);
   font-size: 11px; cursor: pointer; }
 .cdd-end-close:hover { border-color: var(--accent); color: var(--accent); }
+/* CTA del Túnel bajo la cuenta atrás: vive FUERA de .cdd-end-body (que es quien
+   da el padding lateral a los .cdd-submit), así que sin esto quedaba de borde a
+   borde de la tarjeta. Replica la geometría de sus vecinos .cdd-next /
+   .cdd-end-close (18px de margen lateral). */
+.cdd-tunel-cta { width: calc(100% - 36px); margin: 10px 18px 0; }
 
 /* ── Móvil: foto a tamaño máximo con «Adivinar» siempre visible ──
    Port del prototipo refinado (Claude Design). El "fold" —cabecera + intro +

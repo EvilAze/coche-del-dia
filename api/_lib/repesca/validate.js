@@ -10,14 +10,14 @@
 //     max_streak ni last_played_date. Solo se suman points y total_wins
 //     directamente sobre `stats`.
 
-import { resolveRealCarId } from "../_lib/repesca-token.js";
-import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
-import { requireUser } from "../_lib/auth.js";
-import { todayInMadrid } from "../_lib/date.js";
-import { parseBody, methodGuard } from "../_lib/http.js";
-import { captureServerError } from "../_lib/sentry.js";
-import { getClientIp } from "../_lib/rate-limit.js";
-import { logGuessAttempt } from "../_lib/audit.js";
+import { resolveRealCarId } from "../repesca-token.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
+import { requireUser } from "../auth.js";
+import { todayInMadrid } from "../date.js";
+import { parseBody, methodGuard } from "../http.js";
+import { captureServerError } from "../sentry.js";
+import { getClientIp } from "../rate-limit.js";
+import { logGuessAttempt } from "../audit.js";
 
 const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;

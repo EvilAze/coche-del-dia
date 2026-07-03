@@ -24,13 +24,13 @@
 //   (crypto.randomInt) cierra ese vector.
 
 import { randomInt } from "node:crypto";
-import { pseudoIdFor } from "../_lib/repesca-token.js";
-import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
-import { requireUser } from "../_lib/auth.js";
-import { todayInMadrid } from "../_lib/date.js";
-import { parseBody, methodGuard } from "../_lib/http.js";
-import { captureServerError } from "../_lib/sentry.js";
-import { clampZoomBase } from "../_lib/zoom.js";
+import { pseudoIdFor } from "../repesca-token.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
+import { requireUser } from "../auth.js";
+import { todayInMadrid } from "../date.js";
+import { parseBody, methodGuard } from "../http.js";
+import { captureServerError } from "../sentry.js";
+import { clampZoomBase } from "../zoom.js";
 
 // Modo Veterano: si el usuario tiene alguna fila lost previa para este
 // coche, significa que ya lo vio revelado al fallar (sea en daily o en

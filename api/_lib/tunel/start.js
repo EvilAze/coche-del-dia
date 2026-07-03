@@ -29,15 +29,15 @@
 //     (tunel_wins → /api/garage) y los contadores tunel_played/tunel_won.
 
 import { randomInt } from "node:crypto";
-import { pseudoIdFor } from "../_lib/repesca-token.js";
-import { signImageToken, IMAGE_MODE_GAME_BLUR } from "../_lib/image-token.js";
-import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
-import { requireUser } from "../_lib/auth.js";
-import { todayInMadrid } from "../_lib/date.js";
-import { methodGuard, applyCors } from "../_lib/http.js";
-import { checkRateLimit } from "../_lib/ratelimit.js";
-import { captureServerError } from "../_lib/sentry.js";
-import { BLUR_ATTEMPTS } from "../_lib/blur.js";
+import { pseudoIdFor } from "../repesca-token.js";
+import { signImageToken, IMAGE_MODE_GAME_BLUR } from "../image-token.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
+import { requireUser } from "../auth.js";
+import { todayInMadrid } from "../date.js";
+import { methodGuard, applyCors } from "../http.js";
+import { checkRateLimit } from "../ratelimit.js";
+import { captureServerError } from "../sentry.js";
+import { BLUR_ATTEMPTS } from "../blur.js";
 
 // Días que un cromo recién ganado queda fuera de la pool. Contra el "lo gané
 // ayer, reconozco la foto por el encuadre": el reciclaje funciona con memoria

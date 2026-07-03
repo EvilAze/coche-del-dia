@@ -8,13 +8,13 @@
 // carId=<X> y obtener la imagen de un coche al que aún no juega.
 
 import sharp from "sharp";
-import { resolveRealCarId } from "../_lib/repesca-token.js";
-import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
-import { requireUser } from "../_lib/auth.js";
-import { todayInMadrid } from "../_lib/date.js";
-import { methodGuard } from "../_lib/http.js";
-import { captureServerError } from "../_lib/sentry.js";
-import { clampZoomBase, cropPctForAttempt, ZOOM_ATTEMPTS } from "../_lib/zoom.js";
+import { resolveRealCarId } from "../repesca-token.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
+import { requireUser } from "../auth.js";
+import { todayInMadrid } from "../date.js";
+import { methodGuard } from "../http.js";
+import { captureServerError } from "../sentry.js";
+import { clampZoomBase, cropPctForAttempt, ZOOM_ATTEMPTS } from "../zoom.js";
 
 // Crop durante la partida = el del ÚLTIMO intento (el más amplio que ve un
 // jugador legítimo), igual que /api/daily-image. Ahora es POR COCHE: depende

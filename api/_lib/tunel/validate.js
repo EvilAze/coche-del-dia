@@ -12,17 +12,17 @@
 //   - Persistencia en tunel_games (una fila por usuario, se sobreescribe):
 //     las derrotas nunca acumulan filas.
 
-import { getSupabaseAdmin, getMissingAdminEnvs } from "../_lib/supabase.js";
-import { signImageToken, IMAGE_MODE_CLEAR } from "../_lib/image-token.js";
-import { requireUser } from "../_lib/auth.js";
-import { todayInMadrid } from "../_lib/date.js";
-import { parseBody, methodGuard, applyCors } from "../_lib/http.js";
-import { checkRateLimit } from "../_lib/ratelimit.js";
-import { getClientIp } from "../_lib/rate-limit.js";
-import { captureServerError } from "../_lib/sentry.js";
-import { logGuessAttempt } from "../_lib/audit.js";
-import { compareGuess } from "../_lib/compare-guess.js";
-import { BLUR_ATTEMPTS } from "../_lib/blur.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
+import { signImageToken, IMAGE_MODE_CLEAR } from "../image-token.js";
+import { requireUser } from "../auth.js";
+import { todayInMadrid } from "../date.js";
+import { parseBody, methodGuard, applyCors } from "../http.js";
+import { checkRateLimit } from "../ratelimit.js";
+import { getClientIp } from "../rate-limit.js";
+import { captureServerError } from "../sentry.js";
+import { logGuessAttempt } from "../audit.js";
+import { compareGuess } from "../compare-guess.js";
+import { BLUR_ATTEMPTS } from "../blur.js";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

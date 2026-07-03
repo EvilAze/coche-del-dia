@@ -15,6 +15,9 @@ export default function ZoomStage({
   hintIndex,
   totalHints,
   blurred = false,
+  // Desenfoque de juego del Túnel de viento (px CSS): CarImage lo compone
+  // sobre la imagen ya horneada por el servidor. 0 en el juego diario.
+  blurPx = 0,
   overlay = null,
   progress = null,
   onRevealLoad,
@@ -29,6 +32,7 @@ export default function ZoomStage({
           src={car?.img ?? null}
           blurData={car?.blurData ?? null}
           zoom={zoom}
+          blurPx={blurPx}
           hintIndex={hintIndex}
           totalHints={totalHints}
           status={status}

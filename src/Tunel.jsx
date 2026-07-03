@@ -10,19 +10,27 @@
 // alejar el zoom. Sin límite de partidas, sin puntos y sin racha: la
 // recompensa es el distintivo AERO por cromo y los contadores.
 //
+// UI: MISMO lenguaje que el juego diario (stack "configurador Platino"):
+// ZoomStage (marco con HUD de cámara), AttemptProgress, AttemptRow/AttemptList
+// y un revelado final tipo EndScreen (reutiliza las clases cdd-end existentes,
+// sin el equipaje daily: countdown, share, racha). Antes usaba los componentes
+// legacy (CarImage suelto + ShiftLights + GuessLog + ResultPanel) y el modo se
+// sentía de otra app — feedback del propio autor tras el merge de #78.
+//
 // A diferencia de Repesca, la imagen NO necesita fetch con Bearer → blob: el
 // token AES de la URL ya autoriza y es igual para todos los que jueguen ese
 // coche, así que el <img> tira directo y el CDN cachea una vez por coche.
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
-import CarImage from "./components/CarImage";
-import GuessLog from "./components/GuessLog";
-import ShiftLights from "./components/ShiftLights";
+import ZoomStage from "./components/configurator/ZoomStage";
+import AttemptProgress from "./components/configurator/AttemptProgress";
+import AttemptList, { AttemptRow } from "./components/configurator/AttemptList";
 import GuessForm from "./components/configurator/GuessForm";
-import ResultPanel from "./components/ResultPanel";
 import { useToast } from "./components/Toast";
-import { useT } from "./i18n";
+import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
+import { flagImagePath } from "./data/countries";
+import { shareGrid } from "./lib/shareText";
 import { track } from "./lib/analytics";
 import { haptic } from "./lib/haptics";
 import { BLUR_ATTEMPTS, cssBlurPxForAttempt } from "./lib/blur.js";
@@ -31,17 +39,20 @@ import { BLUR_ATTEMPTS, cssBlurPxForAttempt } from "./lib/blur.js";
 // solo alimenta el texto "±2 años" del campo de año, la validación es server.
 const ANIO_CORRECT_MARGIN = 2;
 
-// Ancho máximo real de la imagen durante la partida: CarImage (modo no
-// configurador) capa su contenedor a max-w-[22rem] = 352px mientras se juega.
-// El blur CSS se calcula sobre el ancho RENDERIZADO, así que clampamos la
-// medida del wrapper a este tope. Si cambias ese max-w en CarImage, cámbialo
-// aquí (desviaciones pequeñas solo alteran ±10% el desenfoque percibido).
-const IMG_MAX_W = 352;
+// Ancho por defecto del escenario para el cálculo del blur CSS antes de poder
+// medir: columna max-w-md (448px) menos el padding lateral (16px × 2). El
+// valor real lo fija la medición del wrapper (el sigma es % del ancho
+// RENDERIZADO); desviaciones pequeñas solo alteran ±10% el blur percibido.
+const STAGE_DEFAULT_W = 416;
 
 // Zoom fijo durante la partida: NO es pista (no cambia entre intentos), solo
 // tapa el halo semitransparente que el filter:blur deja en los bordes de la
-// imagen (el overflow-hidden del contenedor recorta el 6% extra).
+// imagen (el overflow-hidden del escenario recorta el 6% extra).
 const HALO_MASK_SCALE = 1.06;
+
+// Dirección visual: misma que Configurator.jsx (Platino Eléctrico, menta).
+const THEME = "platino";
+const ACCENT = "#7af0c8";
 
 export default function Tunel() {
   const { t } = useT();
@@ -63,15 +74,30 @@ export default function Tunel() {
   const [blurData, setBlurData] = useState(null); // LQIP
   const [counters, setCounters] = useState({ played: 0, won: 0 });
 
-  // Ancho renderizado de la imagen para el cálculo del blur CSS (ver
-  // src/lib/blur.js — el sigma es % del ancho). Medimos el wrapper y
-  // clampamos al tope de CarImage; re-medimos en resize (rotación móvil).
+  // Revelado final como overlay (mismo patrón que Configurator): se auto-abre
+  // SOLO en la transición playing → ended de esta sesión, con el mismo delay
+  // para que el focus-pull final de la foto respire antes del modal.
+  const [showEnd, setShowEnd] = useState(false);
+  const prevPhaseRef = useRef(phase);
+  useEffect(() => {
+    const ended = phase === "won" || phase === "lost";
+    if (prevPhaseRef.current === "playing" && ended) {
+      const id = setTimeout(() => setShowEnd(true), 900);
+      prevPhaseRef.current = phase;
+      return () => clearTimeout(id);
+    }
+    prevPhaseRef.current = phase;
+  }, [phase]);
+
+  // Ancho renderizado del escenario para el cálculo del blur CSS (ver
+  // src/lib/blur.js — el sigma es % del ancho). Re-medimos en resize
+  // (rotación móvil).
   const wrapRef = useRef(null);
-  const [imgWidth, setImgWidth] = useState(IMG_MAX_W);
+  const [imgWidth, setImgWidth] = useState(STAGE_DEFAULT_W);
   useEffect(() => {
     function measure() {
       const w = wrapRef.current?.offsetWidth;
-      if (w > 0) setImgWidth(Math.min(w, IMG_MAX_W));
+      if (w > 0) setImgWidth(w);
     }
     measure();
     window.addEventListener("resize", measure);
@@ -173,8 +199,11 @@ export default function Tunel() {
   const blurPx =
     phase === "playing" ? cssBlurPxForAttempt(attemptIndex + 1, imgWidth) : 0;
 
+  const ended = phase === "won" || phase === "lost";
+  const won = phase === "won";
+
   const car = {
-    img: phase === "won" || phase === "lost" ? revealImg || img : img,
+    img: ended ? revealImg || img : img,
     blurData,
     marca: reveal?.marca ?? null,
     modelo: reveal?.modelo ?? null,
@@ -183,6 +212,8 @@ export default function Tunel() {
     description: reveal?.description ?? null,
     description_en: reveal?.description_en ?? null,
   };
+  const hasReveal = Boolean(car.marca && car.modelo && car.anio);
+  const description = getCarDescription(car)?.trim();
 
   async function submitGuess({ guessCarId, anio }) {
     if (phase !== "playing" || isSubmitting) return;
@@ -274,6 +305,7 @@ export default function Tunel() {
     if (isRestarting) return;
     haptic.impactLight();
     setIsRestarting(true);
+    setShowEnd(false);
     setPhase("loading");
     setImg(null);
     setBlurData(null);
@@ -357,10 +389,10 @@ export default function Tunel() {
     );
   }
 
-  const ended = phase === "won" || phase === "lost";
-
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
+    // Mismo shell visual que el juego diario (Configurator): tema Platino con
+    // el acento menta inyectado en --accent — de él beben las clases cdd-*.
+    <div className={"cdd-app theme-" + THEME} style={{ "--accent": ACCENT }}>
       {/* Header simple, mismo patrón que Repesca; a la derecha, el marcador
           de victorias del túnel en lugar del spacer. */}
       <header className="border-b border-border bg-bg-primary">
@@ -409,74 +441,144 @@ export default function Tunel() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-4 sm:px-4">
-        <main className="w-full min-w-0">
+      {/* Columna única centrada, calcada del Configurator (max-w-md, gap). */}
+      <main className="mx-auto flex w-full max-w-md min-w-0 flex-col gap-5 px-4 pb-10 pt-4 safe-area-pad">
+        <div>
           <p className="text-center text-[10px] uppercase tracking-[0.28em] text-accent">
             {t("tunel.modeSubheader")}
           </p>
-          <p className="mb-3 mt-1 text-center text-xs text-muted/80">
+          <p className="mt-1 text-center text-xs text-muted/80">
             {t("tunel.gameRulesNote")}
           </p>
+        </div>
 
-          <div ref={wrapRef}>
-            <CarImage
-              src={car.img}
-              blurData={car.blurData}
-              zoom={phase === "playing" ? HALO_MASK_SCALE : 1.0}
-              blurPx={blurPx}
-              hintIndex={phase === "playing" ? attemptIndex : null}
-              totalHints={BLUR_ATTEMPTS}
-              status={ended ? phase : phase === "playing" ? "playing" : "loading"}
-              bottomCenter={
-                phase === "playing" ? (
-                  <ShiftLights attempts={attempts} maxAttempts={BLUR_ATTEMPTS} />
-                ) : null
-              }
-            />
-          </div>
-
-          {phase === "loading" ? null : phase === "playing" ? (
-            <GuessForm
-              onSubmit={submitGuess}
-              isSubmitting={isSubmitting}
-              guesses={guesses}
-              tolerance={ANIO_CORRECT_MARGIN}
-            />
-          ) : (
-            <>
-              <ResultPanel
-                status={phase}
-                car={car}
+        {/* Escenario con HUD de cámara, como el daily. El progreso de intentos
+            es la MISMA barra segmentada (AttemptProgress) — antes ShiftLights,
+            un lenguaje visual de otra época del proyecto. Durante "loading"
+            (Otro coche) mantenemos status playing con src null: CarImage pinta
+            su placeholder y el marco no salta al estado revelado. */}
+        <div ref={wrapRef}>
+          <ZoomStage
+            car={car}
+            zoom={phase === "playing" ? HALO_MASK_SCALE : 1.0}
+            blurPx={blurPx}
+            status={ended ? phase : "playing"}
+            hintIndex={phase === "playing" ? attemptIndex : null}
+            totalHints={BLUR_ATTEMPTS}
+            progress={
+              <AttemptProgress
                 attempts={attempts}
                 maxAttempts={BLUR_ATTEMPTS}
-                shareText=""
-                score={null}
-                user={user}
-                showDailyStats={false}
+                revealed={ended}
               />
-              {/* CTA del bucle: otra partida sin fricción. Es EL botón del
-                  modo — primario menta, por encima del historial. */}
-              <button
-                type="button"
-                onClick={playAgain}
-                disabled={isRestarting}
-                className="
-                  mt-1 h-12 w-full rounded-xl bg-accent
-                  font-display tracking-widest text-bg-primary
-                  transition hover:brightness-110 active:scale-[0.98]
-                  disabled:cursor-not-allowed disabled:opacity-60
-                "
-              >
+            }
+          />
+        </div>
+
+        {/* Último intento entre imagen y formulario (calcado del daily). */}
+        {phase === "playing" && guesses.length > 0 && (
+          <section aria-label={t("cdd.lastAttempt")} aria-live="polite" className="flex flex-col gap-2">
+            <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+              {t("cdd.lastAttempt")}
+            </span>
+            <AttemptRow g={guesses[guesses.length - 1]} tolerance={ANIO_CORRECT_MARGIN} fresh />
+          </section>
+        )}
+
+        {phase === "loading" ? null : phase === "playing" ? (
+          <GuessForm
+            onSubmit={submitGuess}
+            isSubmitting={isSubmitting}
+            guesses={guesses}
+            tolerance={ANIO_CORRECT_MARGIN}
+          />
+        ) : (
+          <>
+            {/* Partida cerrada: el bucle manda. "Otro coche" primario menta;
+                reabrir el revelado queda como ghost (mismo par que el daily
+                pero con la jerarquía invertida — aquí el modo ES rejugar). */}
+            <button
+              className="btn btn--mint h-12 w-full rounded-xl"
+              onClick={playAgain}
+              disabled={isRestarting}
+            >
+              {isRestarting ? t("tunel.againLoading") : t("tunel.again")}
+            </button>
+            <button
+              className="btn btn--ghost -mt-2 flex h-12 w-full items-center justify-center rounded-xl"
+              onClick={() => setShowEnd(true)}
+            >
+              {t("cdd.viewResult")}
+            </button>
+          </>
+        )}
+
+        {/* Intentos anteriores (el último ya vive en la fila de arriba durante
+            la partida; al terminar se muestran todos, como en el daily). */}
+        {(ended ? guesses : guesses.slice(0, -1)).length > 0 && (
+          <AttemptList
+            guesses={ended ? guesses : guesses.slice(0, -1)}
+            pendingGuess={null}
+            justRevealedIndex={-1}
+            tolerance={ANIO_CORRECT_MARGIN}
+          />
+        )}
+      </main>
+
+      {/* Revelado final: mismas clases cdd-end del EndScreen del daily, sin su
+          equipaje (countdown/share/racha/opt-in). La banda muestra la foto ya
+          nítida + veredicto + identidad; el cuerpo, la rejilla de la partida y
+          el CTA del bucle. */}
+      {showEnd && ended && (
+        <div className="cdd-end" role="dialog" aria-modal="true">
+          <div className="cdd-end-scrim" onClick={() => setShowEnd(false)} />
+          <div className="cdd-end-card">
+            <div className="cdd-reveal">
+              {car.img && (
+                <img
+                  src={car.img}
+                  alt=""
+                  draggable={false}
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              )}
+              <div className="cdd-reveal-grad" />
+              <div className="cdd-reveal-head">
+                <div className={"cdd-verdict cdd-mono " + (won ? "win" : "lose")}>
+                  {won
+                    ? t("cdd.endWin", { n: attempts, max: BLUR_ATTEMPTS })
+                    : t("cdd.endLose", { max: BLUR_ATTEMPTS })}
+                </div>
+                {hasReveal && (
+                  <>
+                    <div className="cdd-reveal-name">
+                      <span className="cdd-reveal-brand">{car.marca}</span>
+                      <span className="cdd-reveal-model">{car.modelo}</span>
+                    </div>
+                    <div className="cdd-reveal-meta cdd-mono">
+                      {car.pais && <img className="cdd-flag" src={flagImagePath(car.pais)} alt="" />}
+                      {car.pais ? getLocalizedCountry(car.pais) : ""} · {car.anio}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="cdd-end-body">
+              <div className="cdd-mono cdd-grid-k">{t("cdd.yourGame")}</div>
+              <pre className="cdd-grid">{shareGrid(guesses)}</pre>
+              {description && <p className="cdd-note">{description}</p>}
+              <button className="cdd-submit" onClick={playAgain} disabled={isRestarting}>
                 {isRestarting ? t("tunel.againLoading") : t("tunel.again")}
               </button>
-            </>
-          )}
+            </div>
 
-          {guesses.length > 0 && <div className="my-4 h-px bg-border" />}
-
-          <GuessLog guesses={guesses} />
-        </main>
-      </div>
+            <button className="cdd-end-close cdd-mono" onClick={() => setShowEnd(false)}>
+              {t("cdd.seeGame")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

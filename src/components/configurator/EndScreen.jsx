@@ -261,6 +261,25 @@ export default function EndScreen({
           <div className="cdd-mono cdd-next-k">{t("cdd.nextCar")}</div>
           <div className="cdd-next-clock cdd-mono">{countdown.formatted}</div>
         </div>
+
+        {/* Túnel de viento: el CTA vive JUSTO bajo la cuenta atrás a propósito
+            — "falta mucho para el próximo" es el momento exacto en que ofrecer
+            seguir jugando. Ghost para no competir con COMPARTIR (el CTA
+            primario y palanca viral). Solo logueados: el modo requiere sesión
+            y el anónimo ya tiene aquí su propio CTA de registro. */}
+        {user && (
+          <button
+            className="cdd-submit cdd-submit--ghost"
+            onClick={() => {
+              haptic.impactLight();
+              track("tunel_cta", { from: "end_screen" });
+              window.location.href = "/tunel";
+            }}
+          >
+            <span>{t("cdd.tunelCta")}</span>
+          </button>
+        )}
+
         <button className="cdd-end-close cdd-mono" onClick={onClose}>{t("cdd.seeGame")}</button>
       </div>
     </div>

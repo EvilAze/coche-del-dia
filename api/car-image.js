@@ -1,9 +1,14 @@
 // api/car-image.js
-// Proxy de imagen para el Garaje. Recibe un token opaco firmado/cifrado
-// con AES-GCM (ver api/_lib/image-token.js) y devuelve:
+// Proxy de imagen para el Garaje y el Túnel de viento. Recibe un token opaco
+// firmado/cifrado con AES-GCM (ver api/_lib/image-token.js) y devuelve:
 //   - mode "c" (clear)  → 302 a la URL real de Supabase (coche desbloqueado).
 //   - mode "b" (blurred) → JPEG procesado server-side con desenfoque fuerte
 //     y oscurecido (coche bloqueado).
+//   - mode "g" (game-blur) → imagen de juego del Túnel: recorte cuadrado en
+//     el punto focal + desenfoque del ÚLTIMO intento horneado (api/_lib/
+//     blur.js). El cliente añade blur CSS encima para los intentos previos;
+//     como el gaussiano compone, quitar el CSS solo muestra el nivel final —
+//     mismo principio que el crop ?z=5 del juego diario.
 //
 // Por qué server-side blur en lugar de CSS:
 //   Con CSS blur el cliente recibe la imagen original; basta abrir DevTools
@@ -20,9 +25,21 @@ import {
   verifyImageToken,
   IMAGE_MODE_CLEAR,
   IMAGE_MODE_BLURRED,
+  IMAGE_MODE_GAME_BLUR,
 } from "./_lib/image-token.js";
+import { serverSigmaPx } from "./_lib/blur.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
 import { methodGuard } from "./_lib/http.js";
+
+// Allowlists del modo game-blur. El srcset de CarImage pide 640/1280/1920 y
+// avif/webp/jpeg; 1920 se clampa a 1280 — desenfocada, la diferencia es
+// invisible y ahorra una cache key gorda de sharp por coche.
+const GAME_WIDTHS = new Set([640, 1280]);
+const GAME_FORMAT_MIME = {
+  avif: "image/avif",
+  webp: "image/webp",
+  jpeg: "image/jpeg",
+};
 
 export default async function handler(req, res) {
   if (methodGuard(req, res, ["GET", "HEAD"])) return;
@@ -40,10 +57,12 @@ export default async function handler(req, res) {
     const claims = verifyImageToken(token);
     if (!claims) return res.status(403).json({ error: "Invalid token" });
 
-    // image_url es columna privilegiada → service_role.
+    // image_url es columna privilegiada → service_role. focus_x/focus_y solo
+    // los consume el modo game-blur (centro del recorte cuadrado); pedirlos
+    // siempre evita una segunda query y no filtran nada (no salen de aquí).
     const { data: row, error } = await supabaseAdmin
       .from("cars")
-      .select("image_url")
+      .select("image_url, focus_x, focus_y")
       .eq("id", claims.carId)
       .maybeSingle();
     if (error) {
@@ -64,6 +83,92 @@ export default async function handler(req, res) {
       res.setHeader("Cache-Control", "private, max-age=3600");
       res.setHeader("Location", row.image_url);
       return res.status(302).end();
+    }
+
+    // ---- Modo GAME-BLUR: imagen de juego del Túnel de viento.
+    // A diferencia del thumb "b" (160×200, oscurecido, decorativo), aquí la
+    // imagen ES el juego: tamaño real, recorte cuadrado centrado en el punto
+    // focal del coche (el contenedor del juego es 1:1) y el sigma del último
+    // intento horneado. Honramos ?w y ?f para que el srcset AVIF/WebP de
+    // CarImage funcione de verdad (una imagen borrosa en AVIF pesa KBs).
+    if (claims.mode === IMAGE_MODE_GAME_BLUR) {
+      const wRaw = Number(req.query?.w);
+      // 1920 (u otro valor fuera de allowlist) clampa a 640; el srcset legítimo
+      // solo pide tamaños del set, así que esto solo toca clientes obsoletos.
+      const width = GAME_WIDTHS.has(wRaw) ? wRaw : 640;
+      const fRaw = String(req.query?.f || "").toLowerCase();
+      const format = fRaw in GAME_FORMAT_MIME ? fRaw : "jpeg";
+
+      let upstream;
+      try {
+        upstream = await fetch(row.image_url);
+      } catch (err) {
+        console.error("[car-image] upstream fetch (game):", err);
+        return res.status(502).json({ error: "Upstream unavailable" });
+      }
+      if (!upstream.ok) {
+        console.error("[car-image] upstream status (game):", upstream.status);
+        return res.status(502).json({ error: "Upstream error" });
+      }
+      const inputBuf = Buffer.from(await upstream.arrayBuffer());
+
+      // Recorte cuadrado del lado menor centrado en (focus_x, focus_y), mismo
+      // clamp de bordes que daily-image.js. Cuadrado porque el contenedor del
+      // juego es 1:1: el resultado entra exacto sin recorte extra del cliente.
+      // Ojo EXIF: metadata() da dimensiones FÍSICAS pre-rotación; si
+      // orientation ≥ 5 el alto/ancho efectivos están intercambiados.
+      let pipeline = sharp(inputBuf).rotate();
+      try {
+        const meta = await sharp(inputBuf).metadata();
+        if (meta?.width && meta?.height) {
+          const rotated90 = meta.orientation && meta.orientation >= 5;
+          const W = rotated90 ? meta.height : meta.width;
+          const H = rotated90 ? meta.width : meta.height;
+          const fx =
+            Number.isFinite(row.focus_x) && row.focus_x >= 0 && row.focus_x <= 1
+              ? row.focus_x
+              : 0.5;
+          const fy =
+            Number.isFinite(row.focus_y) && row.focus_y >= 0 && row.focus_y <= 1
+              ? row.focus_y
+              : 0.5;
+          const size = Math.min(W, H);
+          const left = Math.max(0, Math.min(W - size, Math.round(W * fx - size / 2)));
+          const top = Math.max(0, Math.min(H - size, Math.round(H * fy - size / 2)));
+          pipeline = pipeline.extract({ left, top, width: size, height: size });
+        }
+      } catch (err) {
+        // Sin metadata seguimos sin recorte: mejor una imagen no cuadrada
+        // (object-cover del cliente la encaja) que ninguna imagen.
+        console.error("[car-image] game metadata:", err?.message || err);
+      }
+
+      // Blur DESPUÉS del resize: sobre menos píxeles es mucho más barato y el
+      // sigma está definido en % del ancho FINAL (ver api/_lib/blur.js).
+      pipeline = pipeline.resize(width, width, { fit: "cover" }).blur(serverSigmaPx(width));
+
+      if (format === "avif") {
+        // effort 2, igual que daily-image: subirlo dispara el cold start.
+        pipeline = pipeline.avif({ quality: 60, effort: 2 });
+      } else if (format === "webp") {
+        pipeline = pipeline.webp({ quality: 75 });
+      } else {
+        pipeline = pipeline.jpeg({ quality: 78, mozjpeg: true, progressive: true });
+      }
+
+      const out = await pipeline.toBuffer();
+      res.setHeader("Content-Type", GAME_FORMAT_MIME[format]);
+      res.setHeader("Content-Length", String(out.length));
+      res.setHeader("Content-Disposition", "inline");
+      // Cache pública fuerte: el output es determinista por (carId, w, f) y el
+      // token es igual para todos los usuarios → sharp corre UNA vez por coche
+      // y combinación, no una por jugador. Es la clave de coste del Túnel.
+      res.setHeader(
+        "Cache-Control",
+        "public, max-age=86400, s-maxage=86400, immutable"
+      );
+      if (req.method === "HEAD") return res.status(200).end();
+      return res.status(200).send(out);
     }
 
     // ---- Modo BLURRED: bloqueado. Procesamos en memoria con sharp.

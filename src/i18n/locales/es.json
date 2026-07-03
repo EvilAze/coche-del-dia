@@ -137,7 +137,8 @@
     "garageRepescaAria": "Mi garaje · repesca disponible",
     "helpAria": "Cómo se juega",
     "peekAria": "Volver a la foto",
-    "unlockKicker": "Nuevo cromo"
+    "unlockKicker": "Nuevo cromo",
+    "tunelCta": "SIGUE JUGANDO · TÚNEL DE VIENTO"
   },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",
@@ -320,6 +321,33 @@
   "toast": {
     "closeAria": "Cerrar notificación"
   },
+  "tunel": {
+    "errorNeedLogin": "Necesitas iniciar sesión para entrar al túnel de viento.",
+    "errorStartFailed": "No se pudo arrancar el túnel.",
+    "errorSelectCar": "Selecciona un coche del listado.",
+    "errorNetworkConnection": "Error de conexión. Comprueba tu red.",
+    "errorInvalidResponse": "Respuesta inválida del servidor.",
+    "errorValidationFailed": "No se pudo validar el intento.",
+    "errorUnexpectedResponse": "Respuesta inesperada del servidor.",
+    "errorProcessingResponse": "Error procesando la respuesta.",
+    "errorUnavailable": "Túnel no disponible",
+    "errorTitle": "Algo no encaja",
+    "buttonBackToGame": "Volver al juego",
+    "buttonExit": "Salir",
+    "headerTitle": "TÚNEL",
+    "modeSubheader": "Túnel de viento · modo libre",
+    "gameRulesNote": "Rejuega tus cromos desenfocados · sin puntos ni racha",
+    "gateTitle": "Primero el de hoy",
+    "gateBody": "El túnel se abre cuando termines la partida del coche del día. Juégala y vuelve a por más.",
+    "gateCta": "Jugar el coche del día",
+    "emptyTitle": "Túnel despejado",
+    "emptyNoCars": "Aún no tienes cromos que rejugar. Gana coches en el juego diario y la repesca para llenar el túnel.",
+    "emptyAllDone": "Has pasado por el túnel todos tus cromos: distintivo AERO al completo. Gana más coches para seguir.",
+    "emptyCooldown": "Tus cromos más recientes aún están demasiado frescos en la memoria. Vuelve en unos días.",
+    "again": "Otro coche",
+    "againLoading": "Sorteando...",
+    "counterAria": "Victorias del túnel / partidas jugadas"
+  },
   "repesca": {
     "errorNeedLogin": "Necesitas iniciar sesión para jugar la repesca.",
     "errorMissingCarId": "Falta el identificador del coche.",
@@ -396,6 +424,8 @@
     "repescaHelpOk": "Entendido",
     "veteranBadgeShort": "VET",
     "veteranBadgeAria": "Ganado en Modo Veterano",
+    "tunelBadgeShort": "AERO",
+    "tunelBadgeAria": "Adivinado desenfocado en el Túnel de viento",
     "drawAria": "Sorteando coche de repesca",
     "drawShuffling": "Barajando cromos…",
     "drawPicking": "Eligiendo…",

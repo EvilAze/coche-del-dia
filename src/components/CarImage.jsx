@@ -17,6 +17,12 @@ export default function CarImage({
   totalHints,
   status,
   blurred = false,
+  // Desenfoque progresivo del Túnel de viento (px CSS). Se COMPONE sobre la
+  // imagen ya horneada por el servidor con el sigma del último intento (ver
+  // src/lib/blur.js): cada intento fallido baja blurPx y la foto "enfoca".
+  // A diferencia de `blurred` (candado fijo de anónimo-perdedor), esto es
+  // mecánica de juego: anima con transition y dispara el hint-flash.
+  blurPx = 0,
   overlay = null,
   showHintLabel = true,
   // Nodo opcional anidado en el borde inferior-centro de la imagen (lo usan
@@ -126,18 +132,23 @@ export default function CarImage({
   }, [src, loaded, status, onRevealLoad]);
 
   // Flash dorado de "pista desbloqueada" sólo durante la partida. Se
-  // dispara al cambiar el `zoom` CSS (cada intento baja el scale).
+  // dispara al cambiar el `zoom` CSS (cada intento baja el scale) o el
+  // `blurPx` (en el Túnel cada intento enfoca en lugar de alejar).
   // El háptico (tap ligerísimo) acompaña al flash para reforzar la sensación
   // de "algo se ha revelado" — coherente con el shake del intento erróneo
   // que YA disparó haptic.warning() en GuessForm; aquí es el contrapunto
   // positivo del mismo gesto.
+  const prevBlurRef = useRef(blurPx);
   useEffect(() => {
-    if (loaded && prevZoomRef.current !== zoom && status === "playing") {
+    const changed =
+      prevZoomRef.current !== zoom || prevBlurRef.current !== blurPx;
+    if (loaded && changed && status === "playing") {
       setFlashKey((k) => k + 1);
       haptic.impactLight();
     }
     prevZoomRef.current = zoom;
-  }, [zoom, status, loaded]);
+    prevBlurRef.current = blurPx;
+  }, [zoom, blurPx, status, loaded]);
 
   // Las URLs de proxy propio (/api/...) soportan ?f=avif&w=640 etc.
   // Las URLs externas (Supabase CDN, /coches/, …) se usan directas.
@@ -168,7 +179,12 @@ export default function CarImage({
   // tappable). El HUD va con pointer-events:none, así que el toque pasa al botón
   // de zoom de abajo; solo ocultamos el icono de esquina en modo configurador
   // para que no choque visualmente con el HUD (ver más abajo).
-  const canExpand = loaded && !blurred && Boolean(src) && status === "playing";
+  // Con blur de juego activo (blurPx > 0) el lightbox queda deshabilitado: su
+  // img interna no replica el filter CSS, así que ampliarla mostraría el
+  // nivel de enfoque del último intento — un salto de pistas gratis. En el
+  // último intento (blurPx = 0) vuelve a estar disponible sin riesgo.
+  const canExpand =
+    loaded && !blurred && !(blurPx > 0) && Boolean(src) && status === "playing";
   useEscape(expanded, () => setExpanded(false));
 
   function handleImageLoad(e) {
@@ -339,10 +355,17 @@ export default function CarImage({
             opacity: loaded ? 1 : 0,
             transformOrigin: "center center",
             transform: isWinReveal ? undefined : `scale(${zoom})`,
+            // La transición de filter da el efecto "focus pull" del Túnel al
+            // bajar blurPx tras cada intento; inocua en el resto de modos
+            // (filter estático).
             transition: isWinReveal
               ? "opacity 0.25s ease-out"
-              : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out",
-            filter: blurred ? "blur(18px) saturate(0.85)" : undefined,
+              : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out, filter 0.75s cubic-bezier(0.4,0,0.2,1)",
+            filter: blurred
+              ? "blur(18px) saturate(0.85)"
+              : blurPx > 0
+              ? `blur(${blurPx}px)`
+              : undefined,
             "--zoom-from": zoomFrom,
           }}
         />

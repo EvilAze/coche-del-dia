@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
+import { track } from "../../lib/analytics";
 import Header from "./Header";
 import ZoomStage from "./ZoomStage";
 import AttemptProgress from "./AttemptProgress";
@@ -149,12 +150,27 @@ export default function Configurator({
               tolerance={tolerance}
             />
           ) : (
-            <button
-              className="btn btn--mint h-12 w-full rounded-xl"
-              onClick={() => setShowEnd(true)}
-            >
-              {t("cdd.viewResult")}
-            </button>
+            <>
+              <button
+                className="btn btn--mint h-12 w-full rounded-xl"
+                onClick={() => setShowEnd(true)}
+              >
+                {t("cdd.viewResult")}
+              </button>
+              {/* Túnel de viento: segundo punto de entrada al modo libre para
+                  quien vuelve con la partida ya cerrada y no reabre el
+                  EndScreen. Ghost: subordinado a "VER MI PARTIDA". Solo
+                  logueados (el modo requiere sesión). */}
+              {user && (
+                <a
+                  className="btn btn--ghost mt-2 flex h-12 w-full items-center justify-center rounded-xl"
+                  href="/tunel"
+                  onClick={() => track("tunel_cta", { from: "home_ended" })}
+                >
+                  {t("cdd.tunelCta")}
+                </a>
+              )}
+            </>
           ))}
 
         {/* Intentos anteriores (más reciente primero lo ordena AttemptList). */}

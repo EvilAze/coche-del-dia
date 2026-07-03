@@ -49,6 +49,7 @@ reportWebVitals();
 // (admin-tools, repesca, privacidad) se piden bajo demanda para no engordar
 // el bundle inicial.
 const Repesca = lazy(() => import("./Repesca"));
+const Tunel = lazy(() => import("./Tunel"));
 const Privacidad = lazy(() => import("./Privacidad"));
 const AdminTools = lazy(() => import("./admin/AdminTools"));
 
@@ -82,6 +83,11 @@ function legacyTab() {
 const isRepesca =
   pathname.startsWith("/repesca") || /(\?|&)repesca(=|&|$)/.test(search);
 
+// Túnel de viento (modo libre): el usuario llega desde el CTA post-partida
+// del juego diario. Sin params — el servidor resuelve qué coche toca.
+const isTunel =
+  pathname.startsWith("/tunel") || /(\?|&)tunel(=|&|$)/.test(search);
+
 // Página pública de Política de Privacidad. Requerida para la pantalla
 // de consentimiento de Google OAuth y para conformidad básica.
 // Aceptamos también /privacy y /politica-de-privacidad como aliases por
@@ -99,6 +105,7 @@ const isAnyAdminTools =
 function pickRoute() {
   if (isAnyAdminTools) return <AdminTools defaultTab={legacyTab()} />;
   if (isRepesca) return <Repesca />;
+  if (isTunel) return <Tunel />;
   if (isPrivacy) return <Privacidad />;
   return <App />;
 }
@@ -106,6 +113,7 @@ function pickRoute() {
 const isMainApp = !(
   isAnyAdminTools ||
   isRepesca ||
+  isTunel ||
   isPrivacy
 );
 

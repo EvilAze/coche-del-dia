@@ -269,7 +269,7 @@ export default function EndScreen({
             y el anónimo ya tiene aquí su propio CTA de registro. */}
         {user && (
           <button
-            className="cdd-submit cdd-submit--ghost"
+            className="cdd-submit cdd-submit--ghost cdd-tunel-cta"
             onClick={() => {
               haptic.impactLight();
               track("tunel_cta", { from: "end_screen" });

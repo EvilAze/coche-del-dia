@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Prototipo de dirección visual "Prensa del motor" — NO es el juego real.
+     Vive en public/ para que el Preview de Vercel lo sirva como estático
+     (el rewrite SPA excluye rutas con punto). noindex: si algún día se
+     mergea por accidente, que al menos no lo indexe nadie. -->
+<meta name="robots" content="noindex, nofollow">
+<title>Coche del Día — Prototipo «Prensa del motor»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Libre+Franklin:wght@400;600;800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ═══ Sistema "Prensa del motor" ══════════════════════════════════════════
+   Disciplina de imprenta a dos tintas: PAPEL + TINTA + ROJO. Nada más.
+   Sin sombras, sin glows, sin tarjetas: la jerarquía la hacen los filetes
+   (hairlines), el blanco y la tipografía. Esquinas vivas en todo. */
+:root {
+  --papel:  #f3eee1;   /* marfil cálido, papel prensa bueno */
+  --papel2: #e9e2cf;   /* papel sombreado (fondos de apoyo) */
+  --mat:    #fbf7ec;   /* paspartú de la foto */
+  --tinta:  #1b1712;   /* negro de tinta, nunca #000 puro */
+  --tinta2: #6e6553;   /* tinta al 50%: pies de foto, notas */
+  --rojo:   #b3271b;   /* rojo de rotativa: veredictos y acción */
+  --serif: 'Fraunces', Georgia, serif;
+  --sans:  'Libre Franklin', Arial, sans-serif;
+  --tw:    'Courier Prime', monospace; /* la "máquina de escribir" del cupón */
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-optical-sizing: auto; }
+body {
+  background: var(--papel); color: var(--tinta);
+  font-family: var(--serif); font-size: 16px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Barra de PROTOTIPO: no forma parte del diseño, solo para saltar de estado */
+.dev {
+  background: var(--tinta); color: var(--papel2);
+  font: 600 11px/1 var(--sans); letter-spacing: .08em;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 14px;
+}
+.dev button {
+  font: 600 11px/1 var(--sans); letter-spacing: .05em; cursor: pointer;
+  background: transparent; color: var(--papel2);
+  border: 1px solid rgba(243,238,225,.4); padding: 5px 10px;
+}
+.dev button:hover { background: rgba(243,238,225,.15); }
+
+.hoja { max-width: 1060px; margin: 0 auto; padding: 0 20px 48px; }
+
+/* ── Cabecera de periódico ── */
+.topbar {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10px 2px; border-bottom: 1px solid var(--tinta);
+  font: 600 10px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase;
+}
+.topbar a { color: var(--tinta); text-decoration: none; }
+.topbar a:hover { color: var(--rojo); }
+.topbar .racha { color: var(--rojo); }
+.masthead { text-align: center; padding: 26px 0 18px; }
+.masthead h1 {
+  font-family: var(--serif); font-weight: 900; letter-spacing: -.015em;
+  font-size: clamp(40px, 7.5vw, 64px); line-height: .95;
+}
+.masthead .lema {
+  font-style: italic; font-weight: 400; color: var(--tinta2);
+  font-size: 15px; margin-top: 10px;
+}
+.folio {
+  display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+  border-top: 3px double var(--tinta); border-bottom: 3px double var(--tinta);
+  padding: 8px 0; margin-bottom: 30px;
+  font: 600 10.5px/1.5 var(--sans); letter-spacing: .16em; text-transform: uppercase;
+}
+.folio .rojo { color: var(--rojo); }
+
+/* ── Pliego: en escritorio, foto a la izquierda y juego a la derecha,
+      separados por un filete vertical, como columnas de periódico ── */
+.pliego { display: grid; grid-template-columns: 1fr; gap: 34px; }
+@media (min-width: 940px) {
+  .pliego { grid-template-columns: 7fr 5fr; gap: 0; }
+  .col-der { border-left: 1px solid var(--tinta); padding-left: 34px; margin-left: 34px; }
+}
+
+/* Ladillos de sección: versalitas + filete que llena el resto de la línea */
+.ladillo {
+  display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px;
+  font: 800 11px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase;
+}
+.ladillo::after { content: ""; flex: 1; border-top: 1px solid var(--tinta); transform: translateY(-3px); }
+.ladillo .aparte { font-weight: 600; color: var(--tinta2); letter-spacing: .14em; }
+
+/* ── La fotografía ── */
+.foto-marco {
+  border: 1px solid var(--tinta); background: var(--mat); padding: 8px;
+}
+.foto-ventana { overflow: hidden; aspect-ratio: 4 / 3; position: relative; }
+.foto-ventana img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transform: scale(var(--zoom, 3.2));
+  transition: transform .9s cubic-bezier(.22,1,.3,1);
+}
+.pie {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  margin-top: 9px; color: var(--tinta2);
+  font-style: italic; font-size: 13.5px;
+}
+/* Fotogramas de intento: 5 cuadritos como una tira de negativos */
+.pips { display: flex; gap: 5px; flex: none; }
+.pip { width: 9px; height: 9px; border: 1px solid var(--tinta); }
+.pip.gastado { background: var(--tinta); }
+.pip.actual { border-color: var(--rojo); background: var(--rojo); }
+
+/* ── Clasificación (intentos) ── */
+.intentos { margin-top: 30px; }
+.fila {
+  display: grid; grid-template-columns: 30px 1.05fr 1.3fr .8fr; gap: 10px;
+  padding: 11px 2px; border-bottom: 1px solid rgba(27,23,18,.25);
+  align-items: baseline;
+  animation: estampar .28s cubic-bezier(.2,1,.3,1) both;
+}
+@keyframes estampar { from { opacity: 0; transform: scale(1.02); } }
+.fila .num { font: 700 12px/1 var(--tw); color: var(--tinta2); }
+.dato { min-width: 0; font-size: 17px; line-height: 1.25; }
+.dato .palabra { display: inline; }
+/* Veredictos = marcas de corrector de pruebas:
+   acierto → subrayado rojo firme; cerca → subrayado rojo discontinuo con
+   apostilla en cursiva; fallo → tachado en tinta, como errata. */
+.dato.bien .palabra { border-bottom: 2px solid var(--rojo); font-weight: 600; }
+.dato.bien::after { content: " ✓"; color: var(--rojo); font-weight: 700; }
+.dato.cerca .palabra { border-bottom: 2px dashed var(--rojo); }
+.dato.mal .palabra { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--tinta2); }
+.apostilla {
+  display: block; font-style: italic; font-size: 12px; color: var(--rojo);
+  margin-top: 2px;
+}
+.sin-intentos { font-style: italic; color: var(--tinta2); font-size: 14.5px; padding: 6px 2px 14px; }
+
+/* ── El cupón (formulario) ── */
+.cupon-caja {
+  border: 1px solid var(--tinta); outline: 1px solid var(--tinta); outline-offset: 3px;
+  padding: 20px 18px 18px; margin: 6px 4px 4px;
+}
+.cupon-cab {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+  font: 800 11px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.cupon-cab::before, .cupon-cab::after { content: ""; flex: 1; border-top: 1px solid var(--tinta); }
+.campos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+.campo { display: flex; flex-direction: column; gap: 4px; }
+.campo label { font: 600 10px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--tinta2); }
+.campo input {
+  font: 400 16px/1.3 var(--tw); color: var(--tinta);
+  background: transparent; border: 0; border-bottom: 1px solid var(--tinta);
+  border-radius: 0; padding: 6px 1px; outline: none; width: 100%;
+}
+.campo input:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 5px; }
+.campo input::placeholder { color: rgba(110,101,83,.55); font-style: italic; font-family: var(--serif); }
+.campo.ancho { grid-column: 1 / -1; }
+.cupon-pie { display: grid; grid-template-columns: 1fr 2fr; gap: 18px; align-items: end; margin-top: 18px; }
+.enviar {
+  font: 800 13px/1 var(--sans); letter-spacing: .26em; text-transform: uppercase;
+  background: var(--tinta); color: var(--papel); border: 0; border-radius: 0;
+  padding: 15px 10px; cursor: pointer; width: 100%;
+  transition: background .15s;
+}
+.enviar:hover { background: var(--rojo); }
+.enviar:active { transform: translateY(1px); }
+.nota-cupon { margin-top: 12px; font-style: italic; font-size: 13px; color: var(--tinta2); text-align: center; }
+.cupon-caja.temblor { animation: errata .4s; }
+@keyframes errata { 20%,60% { transform: translateX(-4px); } 40%,80% { transform: translateX(4px); } }
+
+/* ── Resultado (victoria / derrota) ── */
+.resultado { position: relative; margin: 10px 4px 4px; border-top: 3px double var(--tinta); padding-top: 18px; }
+.sello {
+  position: absolute; top: 26px; right: 0; z-index: 2;
+  font: 800 17px/1 var(--sans); letter-spacing: .3em; text-transform: uppercase;
+  color: var(--rojo); border: 3px solid var(--rojo); padding: 8px 14px 8px 18px;
+  transform: rotate(-7deg);
+  animation: sellar .45s cubic-bezier(.2,1.4,.4,1) both;
+}
+.sello.tinta { color: var(--tinta2); border-color: var(--tinta2); }
+@keyframes sellar { from { opacity: 0; transform: rotate(-7deg) scale(1.7); } }
+.res-antetitulo { font: 800 11px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase; color: var(--rojo); margin-bottom: 8px; }
+.res-titular { font-weight: 900; font-size: clamp(28px, 4.5vw, 38px); line-height: 1.02; letter-spacing: -.01em; }
+.res-subtitulo { font-style: italic; font-size: 16px; color: var(--tinta2); margin-top: 6px; }
+.res-lede { margin-top: 14px; font-size: 15px; max-width: 52ch; }
+.ficha { margin-top: 16px; font: 400 13px/2 var(--tw); }
+.ficha .linea { display: flex; align-items: baseline; gap: 8px; }
+.ficha .linea::before { content: ""; order: 2; flex: 1; border-bottom: 1px dotted var(--tinta2); }
+.ficha b { order: 3; font-weight: 700; }
+.res-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+.btn-ghost {
+  font: 800 12px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase;
+  background: transparent; color: var(--tinta); border: 1px solid var(--tinta); border-radius: 0;
+  padding: 14px 10px; cursor: pointer;
+}
+.btn-ghost:hover { color: var(--rojo); border-color: var(--rojo); }
+
+/* ── Pie de página ── */
+.cierre {
+  margin-top: 44px; border-top: 1px solid var(--tinta); padding-top: 12px;
+  display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  font: 600 10px/1.8 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--tinta2);
+}
+.cierre a { color: var(--tinta2); text-decoration: none; }
+.cierre a:hover { color: var(--rojo); }
+.cierre .reloj { color: var(--tinta); font-family: var(--tw); font-weight: 700; letter-spacing: .1em; }
+
+.oculto { display: none !important; }
+@media (max-width: 560px) {
+  .campos { grid-template-columns: 1fr; }
+  .cupon-pie { grid-template-columns: 1fr; }
+  .fila { grid-template-columns: 24px 1fr 1.2fr .7fr; }
+  .dato { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fila, .sello, .foto-ventana img { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="dev">
+  PROTOTIPO «PRENSA DEL MOTOR» — estados:
+  <button onclick="Proto.reset()">En blanco</button>
+  <button onclick="Proto.demoMitad()">A mitad</button>
+  <button onclick="Proto.demoVictoria()">Victoria</button>
+  <button onclick="Proto.demoDerrota()">Derrota</button>
+</div>
+
+<div class="hoja">
+
+  <header>
+    <nav class="topbar">
+      <span><a href="#">Garaje</a> &nbsp;·&nbsp; <a href="#">Ranking</a></span>
+      <span><span class="racha">Racha 12 ✦</span> &nbsp;·&nbsp; <a href="#">Ayuda</a></span>
+    </nav>
+    <div class="masthead">
+      <h1>Coche del Día</h1>
+      <p class="lema">El diario de los que reconocen un coche por el faro.</p>
+    </div>
+    <div class="folio">
+      <span>Nº 412</span><span>·</span>
+      <span>Sábado, 5 de julio de 2026</span><span>·</span>
+      <span class="rojo">Edición gratuita</span>
+    </div>
+  </header>
+
+  <main class="pliego">
+
+    <section class="col-izq">
+      <div class="ladillo">La fotografía del día <span class="aparte" id="pista-num">Pista 1 de 5</span></div>
+      <figure class="foto-marco">
+        <div class="foto-ventana"><img id="foto" src="/coches/0.jpg" alt="Fotografía parcial del coche del día" style="--zoom:3.2"></div>
+      </figure>
+      <figcaption class="pie">
+        <span id="pie-texto">El ejemplar de hoy, visto de demasiado cerca. Cada fallo abre el plano.</span>
+        <span class="pips" id="pips" aria-label="Intentos usados"></span>
+      </figcaption>
+    </section>
+
+    <section class="col-der">
+      <div class="intentos" style="margin-top:0">
+        <div class="ladillo">Sus intentos</div>
+        <div id="lista-intentos"></div>
+        <p class="sin-intentos" id="sin-intentos">Aún no hay intentos. La primera impresión es la que cuenta.</p>
+      </div>
+
+      <form class="cupon-caja" id="cupon" onsubmit="return Proto.enviar(event)" autocomplete="off">
+        <div class="cupon-cab">Cupón de respuesta</div>
+        <div class="campos">
+          <div class="campo">
+            <label for="f-marca">Marca</label>
+            <input id="f-marca" list="marcas" placeholder="Escriba aquí…">
+            <datalist id="marcas"></datalist>
+          </div>
+          <div class="campo">
+            <label for="f-modelo">Modelo</label>
+            <input id="f-modelo" list="modelos" placeholder="…y aquí">
+            <datalist id="modelos"></datalist>
+          </div>
+        </div>
+        <div class="cupon-pie">
+          <div class="campo">
+            <label for="f-anio">Año</label>
+            <input id="f-anio" type="number" min="1900" max="2026" placeholder="19__">
+          </div>
+          <button class="enviar" type="submit">Adivinar</button>
+        </div>
+        <p class="nota-cupon" id="nota-cupon">Tiene cinco intentos. Rellene con letra clara.</p>
+      </form>
+
+      <div class="resultado oculto" id="resultado">
+        <div class="sello" id="sello">Resuelto</div>
+        <div class="res-antetitulo" id="res-ante">Edición resuelta al 3.er intento</div>
+        <h2 class="res-titular">Lancia 037 Stradale</h2>
+        <p class="res-subtitulo">1982 · Turín, Italia — Grupo B con matrícula</p>
+        <p class="res-lede">Doscientas unidades de calle para homologar un delirio: chasis central del
+        Beta Montecarlo, doble subchasis tubular y compresor volumétrico. El último campeón del
+        mundo de rallies con dos ruedas motrices.</p>
+        <div class="ficha">
+          <div class="linea">Motor <b>2.0 sobrealimentado</b></div>
+          <div class="linea">Potencia <b>205 CV</b></div>
+          <div class="linea">Peso <b>1.170 kg</b></div>
+        </div>
+        <div class="res-acciones">
+          <button class="enviar" type="button">Compartir</button>
+          <button class="btn-ghost" type="button">Ver ficha en el garaje</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="cierre">
+    <span><a href="#">Cómo se juega</a> · <a href="#">Privacidad</a> · <a href="#">Contacto</a></span>
+    <span>Cierre de edición en <span class="reloj" id="reloj">—:—:—</span></span>
+  </footer>
+
+</div>
+
+<script>
+/* Lógica MÍNIMA de demostración: suficiente para jugar una ronda y ver todos
+   los estados visuales. Nada de esto es código de producción. */
+const CATALOGO = {
+  "Lancia":  { pais: "Italia",  modelos: ["037", "Delta", "Stratos", "Fulvia"] },
+  "Ferrari": { pais: "Italia",  modelos: ["308", "Testarossa", "F40"] },
+  "Fiat":    { pais: "Italia",  modelos: ["131", "Panda", "500"] },
+  "Seat":    { pais: "España",  modelos: ["Ibiza", "600", "Panda", "León"] },
+  "Renault": { pais: "Francia", modelos: ["5", "4", "Clio", "Alpine A110"] },
+  "Citroën": { pais: "Francia", modelos: ["2CV", "DS", "BX"] },
+  "Porsche": { pais: "Alemania", modelos: ["911", "924", "944"] },
+  "BMW":     { pais: "Alemania", modelos: ["M3", "2002", "635 CSI"] },
+  "Ford":    { pais: "EE. UU.", modelos: ["Escort", "Sierra", "GT40"] },
+};
+const RESPUESTA = { marca: "Lancia", modelo: "037", anio: 1982 };
+const ZOOMS = [3.2, 2.6, 2.1, 1.65, 1.3];
+const ORDINAL = ["1.er", "2.º", "3.er", "4.º", "5.º"];
+
+const $ = (id) => document.getElementById(id);
+let intentos = [];
+let terminado = false;
+
+/* Poblar datalists (el de modelos, con todos: en el prototipo no filtramos) */
+$("marcas").innerHTML = Object.keys(CATALOGO).map(m => `<option value="${m}">`).join("");
+$("modelos").innerHTML = Object.values(CATALOGO).flatMap(c => c.modelos).map(m => `<option value="${m}">`).join("");
+
+function evaluar(g) {
+  const norm = (s) => String(s).trim().toLowerCase();
+  const marcaBien = norm(g.marca) === norm(RESPUESTA.marca);
+  const paisGuess = CATALOGO[Object.keys(CATALOGO).find(k => norm(k) === norm(g.marca))]?.pais;
+  const paisReal = CATALOGO[RESPUESTA.marca].pais;
+  const d = g.anio - RESPUESTA.anio;
+  return {
+    marca: marcaBien ? { v: "bien" } : (paisGuess === paisReal ? { v: "cerca", nota: "mismo país" } : { v: "mal" }),
+    modelo: norm(g.modelo) === norm(RESPUESTA.modelo) ? { v: "bien" } : { v: "mal" },
+    anio: d === 0 ? { v: "bien" } : (Math.abs(d) <= 2
+      ? { v: "cerca", nota: d > 0 ? "casi: es algo anterior" : "casi: es algo posterior" }
+      : { v: "cerca", nota: d > 0 ? "es anterior ↑" : "es posterior ↓", soloNota: true }),
+  };
+}
+
+function celda(valor, res) {
+  const clase = res.soloNota ? "mal" : res.v; /* año lejano: tachado + apostilla de dirección */
+  const nota = res.nota ? `<span class="apostilla">${res.nota}</span>` : "";
+  return `<div class="dato ${clase}"><span class="palabra">${valor}</span>${nota}</div>`;
+}
+
+function pintar() {
+  const n = intentos.length;
+  $("lista-intentos").innerHTML = intentos.map((it, i) => `
+    <div class="fila">
+      <span class="num">0${i + 1}</span>
+      ${celda(it.g.marca, it.r.marca)}${celda(it.g.modelo, it.r.modelo)}${celda(it.g.anio, it.r.anio)}
+    </div>`).join("");
+  $("sin-intentos").classList.toggle("oculto", n > 0);
+  $("pips").innerHTML = Array.from({ length: 5 }, (_, i) => {
+    const cls = i < n ? "gastado" : (i === n && !terminado ? "actual" : "");
+    return `<span class="pip ${cls}"></span>`;
+  }).join("");
+  const idx = Math.min(n, 4);
+  $("pista-num").textContent = terminado ? "Edición cerrada" : `Pista ${n + 1} de 5`;
+  $("foto").style.setProperty("--zoom", terminado ? 1 : ZOOMS[idx]);
+  const quedan = 5 - n;
+  $("nota-cupon").textContent = quedan === 5 ? "Tiene cinco intentos. Rellene con letra clara."
+    : quedan > 1 ? `Le quedan ${quedan} intentos.` : "Último intento. Piénselo dos veces.";
+}
+
+function terminar(victoria) {
+  terminado = true;
+  $("cupon").classList.add("oculto");
+  $("resultado").classList.remove("oculto");
+  const sello = $("sello");
+  sello.textContent = victoria ? "Resuelto" : "Sin resolver";
+  sello.classList.toggle("tinta", !victoria);
+  $("res-ante").textContent = victoria
+    ? `Edición resuelta al ${ORDINAL[intentos.length - 1]} intento`
+    : "La solución, a continuación";
+  $("pie-texto").textContent = victoria
+    ? "El ejemplar de hoy, por fin a plena página."
+    : "El ejemplar de hoy, revelado al cierre.";
+  pintar();
+}
+
+const Proto = {
+  enviar(ev) {
+    ev.preventDefault();
+    if (terminado) return false;
+    const g = { marca: $("f-marca").value.trim(), modelo: $("f-modelo").value.trim(), anio: parseInt($("f-anio").value, 10) };
+    if (!g.marca || !g.modelo || !g.anio) {
+      const caja = $("cupon");
+      caja.classList.remove("temblor"); void caja.offsetWidth; caja.classList.add("temblor");
+      $("nota-cupon").textContent = "Faltan datos en el cupón. Rellene las tres casillas.";
+      return false;
+    }
+    const r = evaluar(g);
+    intentos.push({ g, r });
+    ["f-marca", "f-modelo", "f-anio"].forEach(id => $(id).value = "");
+    const acierto = r.marca.v === "bien" && r.modelo.v === "bien" && r.anio.v === "bien";
+    if (acierto) terminar(true);
+    else if (intentos.length >= 5) terminar(false);
+    else pintar();
+    return false;
+  },
+  reset() {
+    intentos = []; terminado = false;
+    $("cupon").classList.remove("oculto");
+    $("resultado").classList.add("oculto");
+    $("pie-texto").textContent = "El ejemplar de hoy, visto de demasiado cerca. Cada fallo abre el plano.";
+    pintar();
+  },
+  demoMitad() {
+    this.reset();
+    [{ marca: "Seat", modelo: "Ibiza", anio: 1993 }, { marca: "Ferrari", modelo: "308", anio: 1984 }]
+      .forEach(g => intentos.push({ g, r: evaluar(g) }));
+    pintar();
+  },
+  demoVictoria() {
+    this.demoMitad();
+    intentos.push({ g: RESPUESTA, r: evaluar(RESPUESTA) });
+    terminar(true);
+  },
+  demoDerrota() {
+    this.reset();
+    [
+      { marca: "Porsche", modelo: "924", anio: 1978 }, { marca: "Renault", modelo: "5", anio: 1984 },
+      { marca: "Fiat", modelo: "131", anio: 1981 }, { marca: "Lancia", modelo: "Stratos", anio: 1974 },
+      { marca: "Lancia", modelo: "Delta", anio: 1987 },
+    ].forEach(g => intentos.push({ g, r: evaluar(g) }));
+    terminar(false);
+  },
+};
+
+/* Cuenta atrás al cierre de edición (medianoche local) */
+setInterval(() => {
+  const ahora = new Date();
+  const cierre = new Date(ahora); cierre.setHours(24, 0, 0, 0);
+  const s = Math.max(0, Math.floor((cierre - ahora) / 1000));
+  const pad = (x) => String(x).padStart(2, "0");
+  $("reloj").textContent = `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s % 3600 / 60))}:${pad(s % 60)}`;
+}, 1000);
+
+pintar();
+</script>
+</body>
+</html>

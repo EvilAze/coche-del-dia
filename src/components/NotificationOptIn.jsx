@@ -123,26 +123,18 @@ export default function NotificationOptIn() {
   const accept = isWeb ? acceptWeb : acceptNative;
 
   return (
-    <div className="mb-4 rounded-xl border border-accent/30 bg-accent/[0.07] p-4 text-left">
-      <p className="font-display text-sm uppercase tracking-[0.14em] text-accent">
-        {t("notif.optInTitle")}
-      </p>
-      <p className="mt-2 text-sm leading-relaxed text-white/90">
+    // Recuadro de "suscripción al boletín": filete de tinta, sin tinte de
+    // color. Los textos varían según el canal (web push vs. nativo).
+    <div className="mb-4 border border-tinta p-4 text-left">
+      <p className="pm-kicker">{t("notif.optInTitle")}</p>
+      <p className="pm-body mt-2 text-sm">
         {isWeb ? t("notif.webOptInBody") : t("notif.optInBody")}
       </p>
       <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={accept}
-          className="flex-1 rounded-lg bg-accent px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-bg-primary transition hover:brightness-110 active:scale-[0.98]"
-        >
+        <button type="button" onClick={accept} className="pm-btn flex-1 !py-2.5 !text-xs">
           {isWeb ? t("notif.webOptInAccept") : t("notif.optInAccept")}
         </button>
-        <button
-          type="button"
-          onClick={decline}
-          className="rounded-lg border border-border px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-white active:scale-[0.98]"
-        >
+        <button type="button" onClick={decline} className="pm-btn pm-btn--ghost !w-auto !py-2.5 !text-xs">
           {isWeb ? t("notif.webOptInDecline") : t("notif.optInDecline")}
         </button>
       </div>

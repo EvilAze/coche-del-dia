@@ -52,19 +52,14 @@ export default function NicknameModal({ open, onSaved }) {
       panelClassName="modal-panel-flat w-full max-w-sm p-6 text-center"
     >
       <form onSubmit={handleSubmit}>
-        <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
-          {t("nickname.tag")}
-        </p>
+        <p className="pm-kicker">{t("nickname.tag")}</p>
 
-        <h2 className="mt-2 font-display text-3xl tracking-widest text-white">
-          {t("nickname.title")}
-        </h2>
+        <h2 className="pm-title mt-2">{t("nickname.title")}</h2>
 
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          {t("nickname.description")}
-        </p>
+        <p className="pm-body mt-3">{t("nickname.description")}</p>
 
-        <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2 text-xs leading-relaxed text-amber-200/90">
+        {/* Aviso "permanente": filete de tinta discontinuo, no tinte ámbar */}
+        <p className="pm-body mt-3 border border-dashed border-tinta px-3 py-2 text-xs">
           {t("nickname.permanentWarning")}
         </p>
 
@@ -78,30 +73,21 @@ export default function NicknameModal({ open, onSaved }) {
           }}
           placeholder={t("nickname.placeholder")}
           className="
-            mt-5 h-12 w-full rounded-xl border border-white/10
-            bg-black/40 px-4 text-center font-display text-2xl
-            uppercase tracking-widest text-white outline-none
-            placeholder:text-white/20 focus:border-accent
+            mt-5 h-12 w-full rounded-none border-b border-tinta
+            bg-transparent px-2 text-center font-courier text-2xl
+            uppercase tracking-widest text-tinta outline-none
+            placeholder:text-tinta-2/50 focus:border-rojo
           "
         />
 
-        <div className="mt-2 text-[10px] uppercase tracking-widest text-muted">
-          {t("nickname.rules")}
-        </div>
+        <div className="pm-label mt-2 !text-[10px]">{t("nickname.rules")}</div>
 
-        {error && (
-          <p className="mt-3 text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="pm-body mt-3 text-sm text-rojo">{error}</p>}
 
         <button
           type="submit"
           disabled={saving || !displayName.trim()}
-          className="
-            mt-5 h-12 w-full rounded-xl bg-accent font-display
-            text-lg tracking-widest text-bg-primary transition
-            hover:bg-accent-dark active:scale-[0.98]
-            disabled:cursor-not-allowed disabled:opacity-50
-          "
+          className="pm-btn mt-5"
         >
           {saving ? t("nickname.saving") : t("nickname.submit")}
         </button>

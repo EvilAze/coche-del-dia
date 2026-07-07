@@ -22,13 +22,13 @@ function ProgressRing({ unlocked, total }) {
   return (
     <div className="relative h-16 w-16 shrink-0">
       <svg viewBox="0 0 64 64" className="absolute inset-0 -rotate-90">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3.5" />
+        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(27,23,18,0.15)" strokeWidth="3.5" />
         <circle
           cx="32"
           cy="32"
           r={r}
           fill="none"
-          className="text-accent"
+          className="text-rojo"
           stroke="currentColor"
           strokeWidth="3.5"
           strokeLinecap="round"
@@ -38,8 +38,8 @@ function ProgressRing({ unlocked, total }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display text-lg leading-none text-accent">{unlocked}</span>
-        <span className="text-[9px] leading-none text-muted">/ {total}</span>
+        <span className="font-courier text-lg font-bold leading-none text-tinta">{unlocked}</span>
+        <span className="pm-label !text-[9px] leading-none">/ {total}</span>
       </div>
     </div>
   );
@@ -73,15 +73,11 @@ export default function AchievementsModal({ open, onClose }) {
       panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden"
     >
       {/* Cabecera con anillo de progreso. */}
-      <div className="flex items-center gap-4 border-b border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-5">
+      <div className="flex items-center gap-4 border-b border-tinta p-5">
         <ProgressRing unlocked={progress.unlocked} total={progress.total} />
         <div className="min-w-0 flex-1">
-          <h2 className="font-display text-2xl tracking-widest text-white">
-            {t("achievements.sectionTitle")}
-          </h2>
-          <p className="mt-0.5 text-xs text-muted">
-            {t("achievements.modalSubtitle")}
-          </p>
+          <h2 className="pm-title !text-2xl">{t("achievements.sectionTitle")}</h2>
+          <p className="pm-body mt-0.5 text-xs">{t("achievements.modalSubtitle")}</p>
         </div>
         <CloseButton onClick={onClose} />
       </div>
@@ -89,7 +85,7 @@ export default function AchievementsModal({ open, onClose }) {
       {/* Cuerpo. */}
       <div className="scrollbar-premium flex-1 overflow-y-auto p-5">
         {loading ? (
-          <p className="py-8 text-center text-sm text-muted">{t("common.loading")}</p>
+          <p className="pm-body py-8 text-center text-sm">{t("common.loading")}</p>
         ) : (
           <Achievements stats={stats} onProgress={setProgress} />
         )}

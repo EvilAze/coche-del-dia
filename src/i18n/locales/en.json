@@ -142,6 +142,11 @@
   "prensa": {
     "lema": "The daily for those who know a car by its headlight.",
     "folioEdicion": "Free edition",
+    "ladilloFoto": "Today's photograph",
+    "pista": "Clue {n} of {max}",
+    "edicionCerrada": "Edition closed",
+    "pieFoto": "Today's specimen, seen far too close. Every miss pulls the camera back.",
+    "pieFotoFin": "Today's specimen, at full page at last.",
     "garaje": "Garage",
     "ranking": "Standings",
     "perfil": "Profile",

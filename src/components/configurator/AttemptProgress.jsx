@@ -1,26 +1,23 @@
 // src/components/configurator/AttemptProgress.jsx
-// Barra de progreso de intentos, BAJO la imagen. Antes eran pips SOBRE la foto que
-// pintaban en ROJO los gastados ("sello de fracaso" sobre la protagonista). Aquí
-// encendemos los RESTANTES y dejamos que el COLOR sea el único canal: menta =
-// disponible, ámbar a 2, rojo pulsante en el último (urgencia real, no castigo
-// retroactivo). SIN texto ni etiqueta visible: la barra debe ser discreta y no
-// robarle protagonismo a la foto; el conteo exacto va solo al aria-label (lectores
-// de pantalla). Al revelar el coche no se pinta: ya no hay intentos que contar.
+// Pips de intentos «Prensa del motor»: cuadraditos de negativo fotográfico en
+// el pie de foto (los monta ZoomStage junto al pie en cursiva). Gastado =
+// tinta sólida; actual = rojo; restante = marco vacío. La urgencia del ÚLTIMO
+// intento parpadea en rojo — único momento en que el pie reclama atención
+// (reduced-motion lo anula en CSS). El conteo exacto va solo al aria-label.
+// Al revelar el coche no se pinta: ya no hay intentos que contar.
 
 import { useT } from "../../i18n";
 
 export default function AttemptProgress({ attempts = 0, maxAttempts = 5, revealed = false }) {
   const { t } = useT();
-  // Sin partida activa no hay barra: al revelar el coche el dato sobra.
   if (revealed || maxAttempts <= 0) return null;
 
   const remaining = Math.max(0, maxAttempts - attempts);
+  const lastTry = remaining === 1;
 
-  // Dots calcados del car-image.tsx de v0: gastado = barra ancha (foreground/70),
-  // actual = barra menta con glow, restante = punto pequeño (muted/30). Centrados.
   return (
-    <div
-      className="flex items-center justify-center gap-2"
+    <span
+      className="prensa-pips"
       role="img"
       aria-label={t("app.attemptsRemainingAria", { count: remaining, max: maxAttempts })}
     >
@@ -28,20 +25,15 @@ export default function AttemptProgress({ attempts = 0, maxAttempts = 5, reveale
         <span
           key={i}
           className={
-            // Propiedades explícitas en vez de `transition-all`: solo cambian
-            // ancho, fondo y glow al avanzar de intento. El comodín `all`
-            // engancharía cualquier propiedad futura por accidente (y dispara
-            // el motor a observar todo). Anima una vez por intento (ocasional),
-            // así que 300ms está bien.
-            "h-1.5 rounded-full transition-[width,background-color,box-shadow] duration-300 " +
+            "pip " +
             (i < attempts
-              ? "w-6 bg-foreground/70"
+              ? "gastado"
               : i === attempts
-                ? "w-6 bg-mint shadow-[0_0_8px_#7af0c8]"
-                : "w-1.5 bg-muted-foreground/30")
+                ? "actual" + (lastTry ? " peligro" : "")
+                : "")
           }
         />
       ))}
-    </div>
+    </span>
   );
 }

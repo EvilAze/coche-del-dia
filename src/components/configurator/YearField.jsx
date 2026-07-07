@@ -38,25 +38,21 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
   const yearNum = value !== "" && value != null ? parseInt(value, 10) : NaN;
   const isInvalid = !isNaN(yearNum) && String(value).length >= 4 && (yearNum < MIN_YEAR || yearNum > MAX_YEAR);
 
-  // Markup calcado del v0: stepper con − a la izquierda, número centrado y + a la
-  // derecha, dentro de un campo h-11 redondeado. Lógica (clamp, foco móvil) intacta.
+  // Piel «Prensa del motor»: renglón de línea base con steppers −/+ como
+  // botones de filete a los lados. Lógica (clamp, foco móvil) intacta.
   return (
     <div className="relative flex flex-col gap-1.5">
-      <span className="px-1 text-xs text-muted-foreground">
-        {t("cdd.labelAnio")}{" "}
-        <span className="text-muted-foreground/50">{t("cdd.yearTolerance", { n: tolerance })}</span>
+      <span className="prensa-label">
+        {t("cdd.labelAnio")}
+        <span className="pista-label">{t("cdd.yearTolerance", { n: tolerance })}</span>
       </span>
-      <div className={`flex h-11 items-center justify-between rounded-xl border bg-bg-tertiary px-2 transition-colors ${
-        isInvalid
-          ? "border-destructive/60 focus-within:border-destructive focus-within:ring-2 focus-within:ring-destructive/40"
-          : "border-border focus-within:border-mint focus-within:ring-2 focus-within:ring-mint/40"
-      }`}>
+      <div className={"prensa-year" + (isInvalid ? " invalida" : "")}>
         {/* aria-label numérico explícito; el glifo visible es tipográfico. */}
         <button
           type="button"
           aria-label="-1"
           onClick={() => step(-1)}
-          className="flex size-8 items-center justify-center rounded-lg text-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          className="prensa-step"
         >
           −
         </button>
@@ -65,7 +61,6 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
             innerRef.current = el;
             if (inputRef) inputRef.current = el;
           }}
-          className="w-20 bg-transparent text-center font-mono text-base tabular-nums text-foreground outline-none placeholder:text-muted-foreground/50"
           inputMode="numeric"
           // "go" y no "done": Enter aquí ENVÍA el intento (submit del form).
           enterKeyHint="go"
@@ -95,7 +90,7 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
           type="button"
           aria-label="+1"
           onClick={() => step(1)}
-          className="flex size-8 items-center justify-center rounded-lg text-lg text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          className="prensa-step"
         >
           +
         </button>

@@ -1172,15 +1172,31 @@ body,
    historial | foto | cupón con filetes verticales. La ventana de la foto es
    4:3 SIEMPRE (regla 6: mismo recorte = misma dificultad). */
 .prensa-hoja { width: 100%; max-width: 560px; margin: 0 auto; padding: 0 18px 44px; }
+/* Orden de la columna única (móvil): cabecera → foto → fila viva → cupón →
+   historial → estadística → pie. El wrapper "clas" se disuelve
+   (display:contents) para que sus bloques puedan intercalarse con el cupón. */
+.prensa-area-clas { display: contents; }
+.prensa-area-cab { order: 1; }
+.prensa-area-foto { order: 2; }
+.prensa-fila-viva { order: 3; }
+.prensa-area-jugar { order: 4; }
+.prensa-historial { order: 5; }
+.prensa-estadistica { order: 6; }
+.prensa-area-pie { order: 7; }
 @media (min-width: 1100px) {
   .prensa-hoja { max-width: 1260px; }
   .prensa-pliego {
-    display: grid; grid-template-columns: 27fr 46fr 27fr; column-gap: 0;
+    display: grid; grid-template-columns: 27fr 46fr 27fr; column-gap: 0; row-gap: 26px;
     align-content: start;
     grid-template-areas: "cab cab cab" "clas foto jugar" "pie pie pie";
   }
   .prensa-area-cab { grid-area: cab; }
-  .prensa-area-clas { grid-area: clas; border-right: 1px solid var(--line-strong); padding-right: 30px; margin-right: 30px; min-width: 0; }
+  /* En el pliego, la columna vuelve a ser un bloque real y apila sus piezas. */
+  .prensa-area-clas {
+    display: flex; flex-direction: column; gap: 24px;
+    grid-area: clas; border-right: 1px solid var(--line-strong);
+    padding-right: 30px; margin-right: 30px; min-width: 0;
+  }
   .prensa-area-foto { grid-area: foto; min-width: 0; }
   .prensa-area-jugar { grid-area: jugar; border-left: 1px solid var(--line-strong); padding-left: 30px; margin-left: 30px; min-width: 0; }
   .prensa-area-pie { grid-area: pie; }
@@ -1190,3 +1206,76 @@ body,
   .prensa-pips .pip.actual.peligro, .prensa-fila-pendiente,
   .prensa-estampada { animation: none !important; }
 }
+
+/* ── Cupón: inputs de línea base, listbox de papel y submit de tinta (F1-T8).
+      Los componentes (Combo/YearField/GuessForm) usan estas clases prensa-*
+      directamente; las primitivas v0 (input-flat, btn--mint) quedan para las
+      pantallas sin portar hasta F5. ── */
+.prensa-label {
+  font-family: var(--font-body); font-weight: 600; font-size: 10px;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.prensa-label .pista-label { letter-spacing: .06em; color: var(--faint); text-transform: none; }
+.prensa-input {
+  width: 100%; background: transparent; border: 0; outline: 0;
+  border-bottom: 1px solid var(--line-strong); border-radius: 0;
+  font-family: var(--font-mono); font-size: 16px; color: var(--cdd-text);
+  padding: 11px 2px; transition: border-color .15s;
+}
+.prensa-input:focus { border-bottom: 2px solid #b3271b; padding-bottom: 10px; }
+.prensa-input.invalida { border-bottom: 2px solid #b3271b; }
+.prensa-input:disabled { opacity: .45; }
+.prensa-input::placeholder { color: var(--faint); font-style: italic; font-family: var(--font-display); font-size: 14px; }
+.prensa-listbox {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40;
+  max-height: min(260px, 42dvh); overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 0;
+  /* Única sombra funcional del sistema: sin ella el desplegable no se
+     despega del papel (documentada en el spec §4). */
+  box-shadow: 0 12px 24px rgba(27, 23, 18, .15);
+}
+.prensa-opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px; cursor: pointer; border-radius: 0;
+  font-family: var(--font-body); font-size: 14px; color: var(--cdd-text);
+}
+.prensa-opt.hi { background: rgba(179, 39, 27, .08); box-shadow: inset 2px 0 0 0 #b3271b; }
+.prensa-opt.vacia { cursor: default; color: var(--faint); font-style: italic; }
+.prensa-opt .bandera { width: 18px; height: 12px; object-fit: cover; flex: none; }
+.prensa-year {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  border-bottom: 1px solid var(--line-strong); transition: border-color .15s;
+}
+.prensa-year:focus-within { border-bottom: 2px solid #b3271b; }
+.prensa-year.invalida { border-bottom: 2px solid #b3271b; }
+.prensa-year input {
+  background: transparent; border: 0; outline: 0; text-align: center; width: 5.5rem;
+  font-family: var(--font-mono); font-size: 16px; font-variant-numeric: tabular-nums;
+  color: var(--cdd-text); padding: 11px 0;
+}
+.prensa-year input::placeholder { color: var(--faint); }
+.prensa-step {
+  width: 36px; height: 32px; display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--line); border-radius: 0;
+  color: var(--cdd-muted); font-size: 16px; font-weight: 700; line-height: 1; cursor: pointer;
+}
+.prensa-step:hover { color: #b3271b; border-color: #b3271b; }
+.prensa-submit {
+  width: 100%; height: 54px; border: 0; border-radius: 0; cursor: pointer;
+  background: var(--line-strong); color: var(--bg);
+  font-family: var(--font-body); font-weight: 800; font-size: 13px;
+  letter-spacing: .26em; text-transform: uppercase;
+  transition: background .18s, color .18s;
+}
+.prensa-submit:hover:not(:disabled):not(.is-incomplete) { background: #b3271b; }
+.prensa-submit:active:not(:disabled) { transform: translateY(1px); }
+.prensa-submit:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
+/* Incompleto pero TOCABLE (el tap explica qué falta con temblor + toast). */
+.prensa-submit.is-incomplete { background: transparent; color: var(--cdd-muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
+/* Variante GHOST del botón (acción secundaria, p.ej. CTA del Túnel bajo "VER
+   MI PARTIDA"): filete de tinta sobre papel → rojo al pasar. No compite con
+   el bloque de tinta macizo del primario. */
+.prensa-submit--ghost { background: transparent; color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--line-strong); text-decoration: none; }
+.prensa-submit--ghost:hover { background: transparent; color: #b3271b; box-shadow: inset 0 0 0 1px #b3271b; }

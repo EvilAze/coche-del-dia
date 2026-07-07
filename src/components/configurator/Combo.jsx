@@ -61,6 +61,11 @@ export default function Combo({
 
   useEffect(() => { setHi(0); }, [q, value, open]);
 
+  // Si el padre confirma un valor (selección o canonización del resolver en
+  // el submit), el borrador tecleado deja de tener sentido: limpiarlo evita
+  // que reaparezca al borrar el valor después.
+  useEffect(() => { if (value) setQ(""); }, [value]);
+
   useEffect(() => {
     if (!open) return;
     const el = listRef.current?.children[hi];
@@ -105,19 +110,16 @@ export default function Combo({
     else if (e.key === "Escape") setOpen(false);
   }
 
-  // Markup calcado del v0: label `text-xs text-muted-foreground` + input plano
-  // (.input-flat = primitiva v0) + dropdown flotante. La lógica (autocomplete,
-  // anti-cheat, banderas, teclado) es la misma; solo cambia la piel.
+  // Piel «Prensa del motor»: label en versalitas + input de LÍNEA BASE (el
+  // renglón de un formulario impreso; lo escrito sale "a máquina" en Courier)
+  // + listbox de papel con filete. La lógica (autocomplete, anti-cheat,
+  // banderas, teclado) es la misma; solo cambia la piel.
   return (
     <div className="relative flex flex-col gap-1.5" ref={ref}>
-      <label className="px-1 text-xs text-muted-foreground">{label}</label>
+      <label className="prensa-label">{label}</label>
       <input
         ref={setInputRef}
-        className={
-          "input-flat" +
-          (disabled ? " opacity-50" : "") +
-          (invalid && !open ? " !border-destructive/60" : "")
-        }
+        className={"prensa-input" + (invalid && !open ? " invalida" : "")}
         type="search"
         enterKeyHint={enterKeyHint}
         autoComplete="off"
@@ -134,13 +136,9 @@ export default function Combo({
         onKeyDown={onKey}
       />
       {open && !disabled && (
-        <ul
-          className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 max-h-[260px] overflow-y-auto overscroll-contain rounded-xl border border-border bg-card p-1.5 shadow-2xl shadow-black/60"
-          role="listbox"
-          ref={listRef}
-        >
+        <ul className="prensa-listbox" role="listbox" ref={listRef}>
           {filtered.length === 0 && (
-            <li className="px-3 py-2 text-sm text-muted-foreground">{t("cdd.noMatches")}</li>
+            <li className="prensa-opt vacia">{t("cdd.noMatches")}</li>
           )}
           {filtered.map((o, i) => {
             const flag = optionFlag ? optionFlag(o) : null;
@@ -149,15 +147,12 @@ export default function Combo({
                 key={o}
                 role="option"
                 aria-selected={o === value}
-                className={
-                  "flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-colors " +
-                  (i === hi ? "bg-mint/15 text-foreground" : "text-foreground/90")
-                }
+                className={"prensa-opt" + (i === hi ? " hi" : "")}
                 onMouseEnter={() => setHi(i)}
                 onClick={() => choose(o)}
               >
                 <span>{o}</span>
-                {flag && <img className="h-3 w-[18px] rounded-[2px] object-cover" src={flag} alt="" draggable={false} loading="lazy" />}
+                {flag && <img className="bandera" src={flag} alt="" draggable={false} loading="lazy" />}
               </li>
             );
           })}

@@ -244,6 +244,35 @@ body {
    desentonaba. tabular-nums para que el ancho no baile cada segundo. */
 .cierre .reloj { color: var(--tinta); font-weight: 800; font-variant-numeric: tabular-nums; }
 
+/* ── Fe de erratas (la repesca, rediseñada): el periódico reconoce sus
+      ediciones sin resolver y el LECTOR ELIGE cuál corregir — 1 al día,
+      medio valor; "veterano" (1 intento) si ya vio la solución al fallar. ── */
+.volver { display: inline-block; background: none; border: 0; cursor: pointer; padding: 0; margin-bottom: 18px;
+  font: 600 10px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--tinta2); }
+.volver:hover { color: var(--rojo); }
+.errata-intro { font-style: italic; color: var(--tinta2); font-size: 14.5px; max-width: 62ch; margin-bottom: 18px; }
+.errata-row { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 16px; align-items: center;
+  padding: 13px 2px; border-bottom: 1px solid rgba(27,23,18,.25); }
+.errata-num { font: 700 12px/1.6 var(--tw); color: var(--tinta2); white-space: nowrap; }
+.errata-tit { font-size: 16.5px; line-height: 1.35; }
+.errata-meta { font-style: italic; font-size: 12.5px; color: var(--tinta2); }
+.errata-meta .vet { font: 700 9px/1 var(--sans); font-style: normal; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--rojo); border: 1px solid var(--rojo); padding: 2px 6px; margin-left: 6px; white-space: nowrap; }
+.btn-corregir { font: 800 10px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; cursor: pointer;
+  background: transparent; color: var(--tinta); border: 1px solid var(--tinta); border-radius: 0; padding: 11px 14px; }
+.btn-corregir:hover { color: var(--papel); background: var(--rojo); border-color: var(--rojo); }
+.errata-row.agotada { opacity: .4; }
+.errata-row.agotada .btn-corregir { pointer-events: none; }
+.erratas-nota { margin-top: 14px; font-style: italic; font-size: 13px; color: var(--tinta2); }
+/* Banda roja sobre la foto mientras se juega una corrección */
+.banda-errata { display: flex; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap;
+  border: 2px solid var(--rojo); color: var(--rojo); padding: 8px 12px; margin-bottom: 12px;
+  font: 800 10.5px/1.5 var(--sans); letter-spacing: .16em; text-transform: uppercase; }
+@media (max-width: 600px) {
+  .errata-row { grid-template-columns: 1fr auto; }
+  .errata-num { grid-column: 1 / -1; }
+}
+
 .oculto { display: none !important; }
 
 /* ── Móvil: donde se juega de verdad un daily. Cada regla de aquí abajo es
@@ -283,13 +312,15 @@ body {
   <button onclick="Proto.demoVictoria()">Victoria</button>
   <button onclick="Proto.demoDerrota()">Derrota (cuenta)</button>
   <button onclick="Proto.demoDerrotaAnon()">Derrota (anónimo)</button>
+  <button onclick="Proto.verErratas()">Fe de erratas</button>
 </div>
 
 <div class="hoja">
 
   <header>
     <nav class="topbar">
-      <span><a href="#">Garaje</a> &nbsp;·&nbsp; <a href="#">Ranking</a></span>
+      <span><a href="#">Garaje</a> &nbsp;·&nbsp; <a href="#">Ranking</a> &nbsp;·&nbsp;
+        <a href="#" style="color:var(--rojo)" onclick="Proto.verErratas(event)">Fe de erratas (5)</a></span>
       <span><span class="racha">Racha 12 ✦</span> &nbsp;·&nbsp; <a href="#">Ayuda</a></span>
     </nav>
     <div class="masthead">
@@ -303,10 +334,49 @@ body {
     </div>
   </header>
 
-  <main class="pliego">
+  <!-- FE DE ERRATAS: lista de ediciones pendientes. El lector elige cuál
+       corregir; la partida se juega en la vista principal con banda roja. -->
+  <section class="oculto" id="vista-erratas">
+    <button class="volver" onclick="Proto.verDiario()">← Volver a la edición de hoy</button>
+    <div class="ladillo">Fe de erratas <span class="aparte">Una corrección al día</span></div>
+    <p class="errata-intro">Este periódico reconoce sus ediciones sin resolver. Elija una y
+    corríjala: los puntos valen la mitad y el cromo entra en su garaje. Si un día vio la
+    solución al fallar, la corrección es de veterano: un solo intento y sin nuevas pistas.</p>
+    <div id="lista-erratas">
+      <div class="errata-row">
+        <span class="errata-num">Nº 401</span>
+        <span class="errata-tit">Edición del 25 de mayo<br><span class="errata-meta">No jugada · 5 intentos</span></span>
+        <button class="btn-corregir" onclick="Proto.iniciarErrata(401, false)">Corregir</button>
+      </div>
+      <div class="errata-row">
+        <span class="errata-num">Nº 388</span>
+        <span class="errata-tit">Edición del 12 de mayo<br><span class="errata-meta">Fallada — usted vio la solución<span class="vet">Veterano · 1 intento</span></span></span>
+        <button class="btn-corregir" onclick="Proto.iniciarErrata(388, true)">Corregir</button>
+      </div>
+      <div class="errata-row">
+        <span class="errata-num">Nº 356</span>
+        <span class="errata-tit">Edición del 10 de abril<br><span class="errata-meta">No jugada · 5 intentos</span></span>
+        <button class="btn-corregir" onclick="Proto.iniciarErrata(356, false)">Corregir</button>
+      </div>
+      <div class="errata-row">
+        <span class="errata-num">Nº 340</span>
+        <span class="errata-tit">Edición del 25 de marzo<br><span class="errata-meta">Fallada — usted vio la solución<span class="vet">Veterano · 1 intento</span></span></span>
+        <button class="btn-corregir" onclick="Proto.iniciarErrata(340, true)">Corregir</button>
+      </div>
+      <div class="errata-row">
+        <span class="errata-num">Nº 122</span>
+        <span class="errata-tit">Edición del 15 de septiembre de 2025<br><span class="errata-meta">No jugada · 5 intentos</span></span>
+        <button class="btn-corregir" onclick="Proto.iniciarErrata(122, false)">Corregir</button>
+      </div>
+    </div>
+    <p class="erratas-nota" id="erratas-nota">Quedan 5 erratas pendientes. La corrección de hoy no se ha usado.</p>
+  </section>
+
+  <main class="pliego" id="vista-diario">
 
     <section class="a-foto">
-      <div class="ladillo">La fotografía del día <span class="aparte" id="pista-num">Pista 1 de 5</span></div>
+      <div class="ladillo"><span id="ladillo-foto">La fotografía del día</span> <span class="aparte" id="pista-num">Pista 1 de 5</span></div>
+      <div class="banda-errata oculto" id="banda-errata"><span id="banda-txt">Fe de erratas</span><span>Medio valor</span></div>
       <figure class="foto-marco">
         <div class="foto-ventana"><img id="foto" src="/coches/0.jpg" alt="Fotografía parcial del coche del día" style="--zoom:3.2"></div>
       </figure>
@@ -323,7 +393,7 @@ body {
         <p class="sin-intentos" id="sin-intentos">Aún no hay intentos. La primera impresión es la que cuenta.</p>
       </div>
 
-      <aside class="estadistica">
+      <aside class="estadistica" id="estadistica">
         <div class="ladillo">La estadística del día</div>
         <div class="est-fila"><span class="est-num">1</span><span class="est-barra"><i style="--w:13%"></i></span><span class="est-pct">4 %</span></div>
         <div class="est-fila"><span class="est-num">2</span><span class="est-barra"><i style="--w:58%"></i></span><span class="est-pct">18 %</span></div>
@@ -362,14 +432,14 @@ body {
       <div class="resultado oculto" id="resultado">
         <div class="sello" id="sello">Resuelto</div>
         <div class="res-antetitulo" id="res-ante">Edición resuelta al 3.er intento</div>
-        <h2 class="res-titular">Lancia 037 Stradale</h2>
-        <p class="res-subtitulo">1982 · Turín, Italia — Grupo B con matrícula</p>
+        <h2 class="res-titular" id="res-tit">Lancia 037 Stradale</h2>
+        <p class="res-subtitulo" id="res-sub">1982 · Turín, Italia — Grupo B con matrícula</p>
         <p class="res-lede" id="res-lede">Doscientas unidades de calle para homologar un delirio: chasis central del
         Beta Montecarlo, doble subchasis tubular y compresor volumétrico. El último campeón del
         mundo de rallies con dos ruedas motrices.</p>
-        <p class="res-teaser oculto" id="res-teaser">Doscientas unidades de calle para homologar un
-        delirio: chasis central del Beta Montecarlo, doble subchasis tubular y…
-        <span class="corte">La crónica completa queda reservada para quien resuelve la edición. Mañana, nueva oportunidad.</span></p>
+        <p class="res-teaser oculto" id="res-teaser"><span id="teaser-txt">Doscientas unidades de calle
+        para homologar un delirio: chasis central del Beta Montecarlo…</span>
+        <span class="corte" id="teaser-corte">La crónica completa queda reservada para quien resuelve la edición. Mañana, nueva oportunidad.</span></p>
         <div class="ficha" id="res-ficha">
           <div class="linea">Motor <b>2.0 sobrealimentado</b></div>
           <div class="linea">Potencia <b>205 CV</b></div>
@@ -418,12 +488,31 @@ const CATALOGO = {
   "Renault": { pais: "Francia", modelos: ["5", "4", "Clio", "Alpine A110"] },
   "Citroën": { pais: "Francia", modelos: ["2CV", "DS", "BX"] },
   "Porsche": { pais: "Alemania", modelos: ["911", "924", "944"] },
+  "Jaguar":  { pais: "Reino Unido", modelos: ["XJ220", "E-Type", "MkII"] },
   "BMW":     { pais: "Alemania", modelos: ["M3", "2002", "635 CSI"] },
   "Ford":    { pais: "EE. UU.", modelos: ["Escort", "Sierra", "GT40"] },
 };
-const RESPUESTA = { marca: "Lancia", modelo: "037", anio: 1982 };
+/* Dos "coches" para la demo: el daily (Lancia 037) y el de la fe de erratas
+   (Jaguar XJ220). Cada uno con su crónica y su ficha, para que el revelado
+   sea coherente con lo que se juega. */
+const COCHES = {
+  daily: {
+    marca: "Lancia", modelo: "037", anio: 1982, img: "/coches/0.jpg",
+    titular: "Lancia 037 Stradale", sub: "1982 · Turín, Italia — Grupo B con matrícula",
+    lede: "Doscientas unidades de calle para homologar un delirio: chasis central del Beta Montecarlo, doble subchasis tubular y compresor volumétrico. El último campeón del mundo de rallies con dos ruedas motrices.",
+    ficha: [["Motor", "2.0 sobrealimentado"], ["Potencia", "205 CV"], ["Peso", "1.170 kg"]],
+  },
+  errata: {
+    marca: "Jaguar", modelo: "XJ220", anio: 1992, img: "/coches/1.jpg",
+    titular: "Jaguar XJ220", sub: "1992 · Coventry, Inglaterra — el malentendido más veloz de su década",
+    lede: "Prometía V12 y tracción total; entregó un V6 biturbo y propulsión trasera. Los puristas protestaron justo hasta que marcó 349 km/h en Nardò: ningún coche de calle iba más deprisa en 1992.",
+    ficha: [["Motor", "V6 3.5 biturbo"], ["Potencia", "542 CV"], ["Punta", "349 km/h"]],
+  },
+};
 const ZOOMS = [3.2, 2.6, 2.1, 1.65, 1.3];
 const ORDINAL = ["1.er", "2.º", "3.er", "4.º", "5.º"];
+/* Medio valor de la repesca real: mitad de los puntos daily, redondeo arriba */
+const MEDIO = { 1: 5, 2: 3, 3: 2, 4: 2, 5: 1 };
 
 const $ = (id) => document.getElementById(id);
 let intentos = [];
@@ -432,20 +521,26 @@ let terminado = false;
    política asimétrica de validate-guess.js: identidad solo con cuenta,
    ficha/crónica solo en victoria, nada para el anónimo perdedor. */
 let finalMode = null;
+/* Partida activa: el daily o una corrección de la fe de erratas. En veterano
+   (ya vio la solución al fallar) la corrección es a UN intento, como en la
+   repesca real. */
+let partida = { modo: "daily", coche: COCHES.daily, max: 5, num: null, veterano: false };
+let errataUsadaHoy = false;
 
 /* Poblar datalists (el de modelos, con todos: en el prototipo no filtramos) */
 $("marcas").innerHTML = Object.keys(CATALOGO).map(m => `<option value="${m}">`).join("");
 $("modelos").innerHTML = Object.values(CATALOGO).flatMap(c => c.modelos).map(m => `<option value="${m}">`).join("");
 
 function evaluar(g) {
+  const R = partida.coche;
   const norm = (s) => String(s).trim().toLowerCase();
-  const marcaBien = norm(g.marca) === norm(RESPUESTA.marca);
+  const marcaBien = norm(g.marca) === norm(R.marca);
   const paisGuess = CATALOGO[Object.keys(CATALOGO).find(k => norm(k) === norm(g.marca))]?.pais;
-  const paisReal = CATALOGO[RESPUESTA.marca].pais;
-  const d = g.anio - RESPUESTA.anio;
+  const paisReal = CATALOGO[R.marca].pais;
+  const d = g.anio - R.anio;
   return {
     marca: marcaBien ? { v: "bien" } : (paisGuess === paisReal ? { v: "cerca", nota: "mismo país" } : { v: "mal" }),
-    modelo: norm(g.modelo) === norm(RESPUESTA.modelo) ? { v: "bien" } : { v: "mal" },
+    modelo: norm(g.modelo) === norm(R.modelo) ? { v: "bien" } : { v: "mal" },
     anio: d === 0 ? { v: "bien" } : (Math.abs(d) <= 2
       ? { v: "cerca", nota: d > 0 ? "casi: es algo anterior" : "casi: es algo posterior" }
       : { v: "cerca", nota: d > 0 ? "es anterior ↑" : "es posterior ↓", soloNota: true }),
@@ -466,17 +561,21 @@ function pintar() {
       ${celda(it.g.marca, it.r.marca)}${celda(it.g.modelo, it.r.modelo)}${celda(it.g.anio, it.r.anio)}
     </div>`).join("");
   $("sin-intentos").classList.toggle("oculto", n > 0);
-  $("pips").innerHTML = Array.from({ length: 5 }, (_, i) => {
+  $("pips").innerHTML = Array.from({ length: partida.max }, (_, i) => {
     const cls = i < n ? "gastado" : (i === n && !terminado ? "actual" : "");
     return `<span class="pip ${cls}"></span>`;
   }).join("");
   const idx = Math.min(n, 4);
-  $("pista-num").textContent = terminado ? "Edición cerrada" : `Pista ${n + 1} de 5`;
+  $("pista-num").textContent = terminado ? "Edición cerrada" : `Pista ${n + 1} de ${partida.max}`;
   /* El anónimo perdedor NO recibe la foto completa (misma regla que el
      revealToken del juego real): se queda en el último nivel de zoom. */
   $("foto").style.setProperty("--zoom", terminado ? (finalMode === "anon" ? ZOOMS[4] : 1) : ZOOMS[idx]);
-  const quedan = 5 - n;
-  $("nota-cupon").textContent = quedan === 5 ? "Tiene cinco intentos. Rellene con letra clara."
+  const quedan = partida.max - n;
+  $("nota-cupon").textContent =
+    partida.max === 1 ? "Corrección de veterano: un solo intento y sin nuevas pistas."
+    : quedan === partida.max ? (partida.modo === "errata"
+        ? "Corrección a medio valor. Tiene cinco intentos."
+        : "Tiene cinco intentos. Rellene con letra clara.")
     : quedan > 1 ? `Le quedan ${quedan} intentos.` : "Último intento. Piénselo dos veces.";
 }
 
@@ -491,23 +590,82 @@ function terminar(modo) {
     return;
   }
   const win = modo === "win";
+  const c = partida.coche;
+  const esErrata = partida.modo === "errata";
+  /* Revelado dinámico: la crónica del coche que se ha jugado (daily o errata) */
+  $("res-tit").textContent = c.titular;
+  $("res-sub").textContent = c.sub;
+  $("res-lede").textContent = c.lede;
+  $("res-ficha").innerHTML = c.ficha.map(([k, v]) => `<div class="linea">${k} <b>${v}</b></div>`).join("");
+  $("teaser-txt").textContent = c.lede.slice(0, 96).trimEnd() + "…";
+
   $("resultado").classList.remove("oculto");
   const sello = $("sello");
-  sello.textContent = win ? "Resuelto" : "Sin resolver";
+  sello.textContent = esErrata ? (win ? "Corregida" : "Sigue sin resolver") : (win ? "Resuelto" : "Sin resolver");
   sello.classList.toggle("tinta", !win);
-  $("res-ante").textContent = win
-    ? `Edición resuelta al ${ORDINAL[intentos.length - 1]} intento`
-    : "El ejemplar era…";
+  if (esErrata) {
+    errataUsadaHoy = true;
+    refrescarErratas();
+    $("res-ante").textContent = win
+      ? `Errata del Nº ${partida.num}, corregida al ${ORDINAL[intentos.length - 1]} intento · +${MEDIO[intentos.length]} pts (medio valor)`
+      : `La errata del Nº ${partida.num} queda pendiente`;
+    $("teaser-corte").textContent = "La crónica sigue reservada: la errata podrá corregirse otro día.";
+    $("res-btn2").textContent = "Volver a la fe de erratas";
+    $("res-btn2").onclick = () => Proto.verErratas();
+    $("pie-texto").textContent = win
+      ? "La errata, por fin en plena página."
+      : "La errata resiste. Otro día será.";
+  } else {
+    $("res-ante").textContent = win
+      ? `Edición resuelta al ${ORDINAL[intentos.length - 1]} intento`
+      : "El ejemplar era…";
+    $("teaser-corte").textContent = "La crónica completa queda reservada para quien resuelve la edición. Mañana, nueva oportunidad.";
+    $("res-btn2").textContent = win ? "Ver ficha en el garaje" : "Ir a la fe de erratas";
+    $("res-btn2").onclick = win ? null : () => Proto.verErratas();
+    $("pie-texto").textContent = win
+      ? "El ejemplar de hoy, por fin a plena página."
+      : "El ejemplar de hoy, revelado al cierre.";
+  }
   /* Derrota con cuenta: identidad sí (titular/subtítulo quedan a la vista),
      crónica y ficha no — se muestra el teaser cortado. */
   $("res-lede").classList.toggle("oculto", !win);
   $("res-ficha").classList.toggle("oculto", !win);
   $("res-teaser").classList.toggle("oculto", win);
-  $("res-btn2").textContent = win ? "Ver ficha en el garaje" : "Ir a la repesca";
-  $("pie-texto").textContent = win
-    ? "El ejemplar de hoy, por fin a plena página."
-    : "El ejemplar de hoy, revelado al cierre.";
   pintar();
+}
+
+/* Carga una partida (daily o errata) y ajusta todo el atrezzo de la vista */
+function cargarPartida(modo, num, veterano) {
+  partida = {
+    modo,
+    coche: modo === "errata" ? COCHES.errata : COCHES.daily,
+    max: veterano ? 1 : 5,
+    num: num ?? null,
+    veterano: !!veterano,
+  };
+  intentos = []; terminado = false; finalMode = null;
+  $("foto").src = partida.coche.img;
+  $("cupon").classList.remove("oculto");
+  $("resultado").classList.add("oculto");
+  $("muro").classList.add("oculto");
+  /* La estadística es DEL DÍA: en una corrección de archivo no aplica */
+  $("estadistica").classList.toggle("oculto", modo === "errata");
+  $("banda-errata").classList.toggle("oculto", modo !== "errata");
+  $("ladillo-foto").textContent = modo === "errata" ? "La fotografía de la errata" : "La fotografía del día";
+  if (modo === "errata") {
+    $("banda-txt").textContent = `Fe de erratas — Nº ${num}` + (veterano ? " · veterano" : "");
+  }
+  $("pie-texto").textContent = modo === "errata"
+    ? "Un ejemplar del archivo, aún sin resolver."
+    : "El ejemplar de hoy, visto de demasiado cerca. Cada fallo abre el plano.";
+  pintar();
+}
+
+function refrescarErratas() {
+  document.querySelectorAll("#lista-erratas .errata-row").forEach((r) => r.classList.toggle("agotada", errataUsadaHoy));
+  $("erratas-nota").textContent = errataUsadaHoy
+    ? "La corrección de hoy ya está impresa. Vuelva mañana — las erratas no se van a ninguna parte."
+    : "Quedan 5 erratas pendientes. La corrección de hoy no se ha usado.";
 }
 
 const Proto = {
@@ -526,17 +684,38 @@ const Proto = {
     ["f-marca", "f-modelo", "f-anio"].forEach(id => $(id).value = "");
     const acierto = r.marca.v === "bien" && r.modelo.v === "bien" && r.anio.v === "bien";
     if (acierto) terminar("win");
-    else if (intentos.length >= 5) terminar("lose");
+    else if (intentos.length >= partida.max) terminar("lose");
     else pintar();
     return false;
   },
   reset() {
-    intentos = []; terminado = false; finalMode = null;
-    $("cupon").classList.remove("oculto");
-    $("resultado").classList.add("oculto");
-    $("muro").classList.add("oculto");
-    $("pie-texto").textContent = "El ejemplar de hoy, visto de demasiado cerca. Cada fallo abre el plano.";
-    pintar();
+    errataUsadaHoy = false;
+    refrescarErratas();
+    $("vista-erratas").classList.add("oculto");
+    $("vista-diario").classList.remove("oculto");
+    cargarPartida("daily");
+  },
+  verErratas(ev) {
+    if (ev) ev.preventDefault();
+    $("vista-diario").classList.add("oculto");
+    $("vista-erratas").classList.remove("oculto");
+    refrescarErratas();
+    window.scrollTo(0, 0);
+  },
+  verDiario() {
+    /* "Volver": si se estaba jugando una corrección, restaura la edición de
+       hoy (el prototipo no conserva una daily a medias — sin importancia). */
+    $("vista-erratas").classList.add("oculto");
+    $("vista-diario").classList.remove("oculto");
+    if (partida.modo === "errata") cargarPartida("daily");
+    window.scrollTo(0, 0);
+  },
+  iniciarErrata(num, veterano) {
+    if (errataUsadaHoy) return;
+    cargarPartida("errata", num, veterano);
+    $("vista-erratas").classList.add("oculto");
+    $("vista-diario").classList.remove("oculto");
+    window.scrollTo(0, 0);
   },
   demoMitad() {
     this.reset();
@@ -546,7 +725,9 @@ const Proto = {
   },
   demoVictoria() {
     this.demoMitad();
-    intentos.push({ g: RESPUESTA, r: evaluar(RESPUESTA) });
+    const c = COCHES.daily;
+    const g = { marca: c.marca, modelo: c.modelo, anio: c.anio };
+    intentos.push({ g, r: evaluar(g) });
     terminar("win");
   },
   cincoFallos() {

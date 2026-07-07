@@ -12,13 +12,10 @@ import ModalShell from "./ModalShell";
 function Rule({ title, children }) {
   return (
     <li className="flex gap-3">
-      <span
-        aria-hidden="true"
-        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent shadow-[0_0_6px_rgba(122,240,200,0.5)]"
-      />
+      <span aria-hidden="true" className="pm-dot" />
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-white">{title}</p>
-        <p className="mt-0.5 text-sm leading-relaxed text-muted">{children}</p>
+        <p className="pm-body pm-strong">{title}</p>
+        <p className="pm-body mt-0.5">{children}</p>
       </div>
     </li>
   );
@@ -38,19 +35,13 @@ export default function HowToPlayModal({ open, onClose }) {
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.28em] text-accent">
-            {t("howto.tag")}
-          </p>
-          <h2 className="font-display text-3xl tracking-widest text-white">
-            {t("howto.title")}
-          </h2>
+          <p className="pm-kicker">{t("howto.tag")}</p>
+          <h2 className="pm-title mt-1">{t("howto.title")}</h2>
         </div>
         <CloseButton onClick={onClose} />
       </div>
 
-      <p className="mb-5 text-sm leading-relaxed text-white/80">
-        {t("howto.intro")}
-      </p>
+      <p className="pm-body mb-5">{t("howto.intro")}</p>
 
       <ul className="space-y-3.5">
         <Rule title={t("howto.rule1Title")}>{t("howto.rule1")}</Rule>
@@ -60,15 +51,7 @@ export default function HowToPlayModal({ open, onClose }) {
         <Rule title={t("howto.rule5Title")}>{t("howto.rule5")}</Rule>
       </ul>
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="
-          mt-6 w-full rounded-lg bg-accent px-4 py-3
-          font-display text-base tracking-widest text-bg-primary
-          transition-transform hover:scale-[1.02] active:scale-[0.98]
-        "
-      >
+      <button type="button" onClick={onClose} className="pm-btn mt-6">
         {t("howto.cta")}
       </button>
     </ModalShell>

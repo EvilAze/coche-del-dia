@@ -7,16 +7,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { track } from "../../lib/analytics";
+import { useCountdown } from "../../hooks/useCountdown";
 import Header from "./Header";
 import ZoomStage from "./ZoomStage";
 import AttemptProgress from "./AttemptProgress";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
+import NotaRedaccion from "./NotaRedaccion";
+import { useDailyStats, Distribution } from "./dailyStats";
 
-// Dirección visual por defecto: Platino Eléctrico con acento menta (#7af0c8).
-const DEFAULT_THEME = "platino";
-const DEFAULT_ACCENT = "#7af0c8";
+// Dirección visual «Prensa del motor»: papel + tinta + rojo de rotativa. El
+// tema/acento dejan de ser configurables (el periódico tiene UNA identidad);
+// las props theme/accent se ignoran y se retiran del todo en F5.
+const DEFAULT_THEME = "prensa";
+const DEFAULT_ACCENT = "#b3271b";
 
 export default function Configurator({
   dataReady = true,
@@ -88,11 +93,26 @@ export default function Configurator({
   const olderGuesses =
     ended || pendingGuess ? guesses : guesses.slice(0, -1);
 
+  // La estadística del día como bloque de página (columna izquierda del
+  // broadsheet / final en móvil). GATEADA a partida cerrada: el hook ni
+  // siquiera pide los datos mientras se juega (no chivar la dificultad).
+  const daily = useDailyStats(attempts, won, ended);
+
+  // Reloj del pie: "CIERRE DE EDICIÓN EN hh:mm:ss" (medianoche Madrid). El
+  // mismo hook que usa el EndScreen — dos consumidores, un solo intervalo por
+  // montaje, coste despreciable.
+  const countdown = useCountdown();
+
   return (
-    <div className={"cdd-app theme-" + theme} style={{ "--accent": accent }}>
-      {/* Contenedor calcado de car-guess-game.tsx (v0): columna única centrada,
-          max-w-md, gap-6, scroll natural. Fuera el "fold"/PhotoPeek/2-columnas. */}
-      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-4 safe-area-pad">
+    // .prensa fija todas las variables del sistema; --accent se sigue
+    // inyectando porque focus-ring y piezas .cdd-* lo consumen (rojo).
+    <div className="cdd-app prensa" style={{ "--accent": DEFAULT_ACCENT }}>
+      {/* El pliego: columna única en móvil (orden del DOM) y broadsheet de 3
+          columnas ≥1100px vía grid-template-areas (.prensa-pliego). La columna
+          "clas" agrupa fila viva + historial + estadística con display:contents
+          en móvil (sus hijos fluyen sueltos con su propio `order`) y como
+          bloque real en el pliego ancho. */}
+      <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-5 safe-area-pad">
         <Header
           streak={streak}
           rank={rank}
@@ -123,87 +143,101 @@ export default function Configurator({
           }
         />
 
-        {/* Último intento entre imagen y formulario (calcado del v0). */}
-        {dataReady && !ended && (pendingGuess || guesses.length > 0) && (
-          <section aria-label={t("cdd.lastAttempt")} aria-live="polite" className="flex flex-col gap-2">
-            <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-              {t("cdd.lastAttempt")}
-            </span>
-            {pendingGuess ? (
-              <AttemptRow g={pendingGuess} tolerance={tolerance} pending />
-            ) : (
-              <AttemptRow
-                g={guesses[guesses.length - 1]}
-                tolerance={tolerance}
-                fresh={justRevealedIndex === guesses.length - 1}
-              />
-            )}
-          </section>
-        )}
-
-        {dataReady &&
-          (!ended ? (
-            <GuessForm
-              onSubmit={submitGuess}
-              isSubmitting={isSubmitting}
-              guesses={guesses}
-              tolerance={tolerance}
-            />
-          ) : (
-            <>
-              <button
-                className="btn btn--mint h-12 w-full rounded-xl"
-                onClick={() => setShowEnd(true)}
-              >
-                {t("cdd.viewResult")}
-              </button>
-              {/* Túnel de viento: segundo punto de entrada al modo libre para
-                  quien vuelve con la partida ya cerrada y no reabre el
-                  EndScreen. Ghost: subordinado a "VER MI PARTIDA". Solo
-                  logueados (el modo requiere sesión). */}
-              {user && (
-                <a
-                  className="btn btn--ghost mt-2 flex h-12 w-full items-center justify-center rounded-xl"
-                  href="/tunel"
-                  onClick={() => track("tunel_cta", { from: "home_ended" })}
-                >
-                  {t("cdd.tunelCta")}
-                </a>
+        {/* Columna "clas" del pliego: fila viva + historial + estadística.
+            En móvil el wrapper es display:contents y cada bloque fluye con su
+            `order` (la fila viva sobre el cupón; historial y estadística
+            debajo); en el broadsheet es la columna izquierda real. */}
+        <div className="prensa-area-clas">
+          {/* Último intento entre imagen y formulario. id=fila-viva: ancla del
+              scroll post-envío del cupón (GuessForm). */}
+          {dataReady && !ended && (pendingGuess || guesses.length > 0) && (
+            <section
+              id="fila-viva"
+              aria-label={t("cdd.lastAttempt")}
+              aria-live="polite"
+              className="prensa-fila-viva flex flex-col gap-1"
+            >
+              <div className="prensa-ladillo">{t("cdd.lastAttempt")}</div>
+              {pendingGuess ? (
+                <AttemptRow g={pendingGuess} tolerance={tolerance} pending num={guesses.length + 1} />
+              ) : (
+                <AttemptRow
+                  g={guesses[guesses.length - 1]}
+                  tolerance={tolerance}
+                  fresh={justRevealedIndex === guesses.length - 1}
+                  num={guesses.length}
+                />
               )}
-            </>
-          ))}
+            </section>
+          )}
 
-        {/* Intentos anteriores (más reciente primero lo ordena AttemptList). */}
-        {olderGuesses.length > 0 && (
-          <AttemptList
-            guesses={olderGuesses}
-            pendingGuess={null}
-            justRevealedIndex={ended ? justRevealedIndex : -1}
-            tolerance={tolerance}
-          />
-        )}
+          {/* Intentos anteriores (más reciente primero lo ordena AttemptList). */}
+          {olderGuesses.length > 0 && (
+            <div className="prensa-historial">
+              <AttemptList
+                guesses={olderGuesses}
+                pendingGuess={null}
+                justRevealedIndex={ended ? justRevealedIndex : -1}
+                tolerance={tolerance}
+              />
+            </div>
+          )}
 
-        {/* Footer en 3 columnas iguales: el © queda perfectamente centrado en el
-            medio (no depende del ancho de los enlaces laterales). */}
-        <footer className="mt-2 grid grid-cols-3 items-center gap-2 text-[11px] text-muted-foreground">
-          <button
-            type="button"
-            className="justify-self-start text-left transition-colors hover:text-foreground"
-            onClick={onOpenHowTo}
-          >
-            {t("cdd.helpAria")}
-          </button>
-          <span className="justify-self-center whitespace-nowrap text-center">
-            © {new Date().getFullYear()} · {t("app.title")}
+          {/* La estadística del día: SOLO con la edición cerrada (spec §3). */}
+          {ended && daily.ready && (
+            <aside className="prensa-estadistica flex flex-col gap-2">
+              <div className="prensa-ladillo">{t("prensa.estadistica")}</div>
+              <Distribution data={daily} attempts={attempts} won={won} />
+            </aside>
+          )}
+        </div>
+
+        <div className="prensa-area-jugar">
+          {dataReady &&
+            (!ended ? (
+              <GuessForm
+                onSubmit={submitGuess}
+                isSubmitting={isSubmitting}
+                guesses={guesses}
+                tolerance={tolerance}
+              />
+            ) : (
+              <>
+                <button className="prensa-submit" onClick={() => setShowEnd(true)}>
+                  {t("cdd.viewResult")}
+                </button>
+                {/* Túnel de viento: segundo punto de entrada al modo libre para
+                    quien vuelve con la partida ya cerrada y no reabre el
+                    EndScreen. Ghost prensa: subordinado a "VER MI PARTIDA".
+                    Solo logueados (el modo requiere sesión). */}
+                {user && (
+                  <a
+                    className="prensa-submit prensa-submit--ghost mt-2 flex items-center justify-center"
+                    href="/tunel"
+                    onClick={() => track("tunel_cta", { from: "home_ended" })}
+                  >
+                    {t("cdd.tunelCta")}
+                  </a>
+                )}
+              </>
+            ))}
+        </div>
+
+        {/* Pie de página: enlaces en versalitas + reloj de cierre de edición. */}
+        <footer className="prensa-area-pie prensa-cierre">
+          <span>
+            <button type="button" onClick={onOpenHowTo}>{t("cdd.helpAria")}</button>
+            {" · "}
+            <a href="/privacidad">{t("app.footerPrivacy")}</a>
           </span>
-          <a
-            className="justify-self-end text-right transition-colors hover:text-foreground"
-            href="/privacidad"
-          >
-            {t("app.footerPrivacy")}
-          </a>
+          <span>
+            {t("prensa.cierre")} <span className="reloj">{countdown.formatted}</span>
+          </span>
         </footer>
       </main>
+
+      {/* Aviso one-time del rediseño (se auto-gatea por localStorage). */}
+      <NotaRedaccion />
 
       {showEnd && ended && (
         <EndScreen

@@ -10,8 +10,8 @@ export default function CloseButton({ onClick, label = "Cerrar", className = "" 
       className={`
         focus-ring
         flex h-11 w-11 shrink-0 items-center justify-center
-        rounded-full text-muted transition-colors
-        hover:bg-white/5 hover:text-white
+        rounded-none text-tinta-2 transition-colors
+        hover:text-rojo
         active:scale-90
         ${className}
       `}

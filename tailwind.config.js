@@ -7,46 +7,61 @@ module.exports = {
         // Sistema único "menta": Archivo manda en display y cuerpo (antes
         // Bebas Neue / DM Sans), Space Mono para etiquetas técnicas. Coincide
         // con la pantalla de juego para que toda la web sea coherente.
-        display: ["'Archivo'", "sans-serif"],
-        body: ["'Archivo'", "sans-serif"],
-        mono: ["'Space Mono'", "monospace"],
+        // Sistema «Prensa del motor» (reasignados en F5): display = Fraunces,
+        // body = Libre Franklin, mono = Courier Prime. Archivo/Space Mono
+        // retirados del bundle de fuentes (index.html).
+        display: ["'Fraunces'", "Georgia", "serif"],
+        body: ["'Libre Franklin'", "Arial", "sans-serif"],
+        mono: ["'Courier Prime'", "monospace"],
+        // Alias explícitos (usados por .prensa-*/.pm-* y disponibles como
+        // utilidades font-serif/font-franklin/font-courier).
+        serif: ["'Fraunces'", "Georgia", "serif"],
+        franklin: ["'Libre Franklin'", "Arial", "sans-serif"],
+        courier: ["'Courier Prime'", "monospace"],
       },
       colors: {
-        // Paleta fría "Platino menta": fondos grafito, acento menta #7af0c8.
+        // ── Sistema «Prensa del motor» — paleta base (F1+) ──
+        papel: { DEFAULT: "#f3eee1", 2: "#e9e2cf", mat: "#fbf7ec" },
+        tinta: { DEFAULT: "#1b1712", 2: "#6e6553" },
+        rojo: "#b3271b",
+        // Oro premium re-pigmentado para papel: SOLO texto/filetes, nunca
+        // relleno (el #e8c87a original era ilegible sobre claro).
+        "oro-viejo": "#7a5c10",
+
+        // ── Tokens semánticos REMAPEADOS a la paleta prensa (F4) ──
+        // En F4 las pantallas internas (Garaje/Ranking/Perfil/Logros/Repesca)
+        // se re-visten sin reescribir cada className: los tokens que usaban del
+        // sistema "Platino menta" (accent/mint/gold/foreground/muted/card/
+        // border/bg-*) apuntan ahora a papel+tinta+rojo. El juego y los modales
+        // ya NO usan estos tokens (usan .prensa y pm-*), así que no regresan.
+        // En F5 desaparecen del todo y su markup pasa a tokens prensa nativos.
         bg: {
-          primary: "#0d1014",
-          secondary: "#14181e",
-          tertiary: "#1b212a",
+          primary: "#f3eee1",   // papel
+          secondary: "#e9e2cf", // papel-2
+          tertiary: "#e9e2cf",
         },
         border: {
-          DEFAULT: "#252b34",
-          strong: "#333b46",
+          DEFAULT: "rgba(27,23,18,0.22)", // filete de tinta tenue
+          strong: "#1b1712",
         },
         accent: {
-          DEFAULT: "#7af0c8",
-          dark: "#5bd3ab",
-          glow: "rgba(122,240,200,0.15)",
+          DEFAULT: "#b3271b",   // rojo de rotativa (era menta: "acción/acierto")
+          dark: "#8f1f16",
+          glow: "transparent",  // sin glows en prensa
         },
-        // Oro premium: acento metálico RESERVADO a momentos de alta gama
-        // (rachas, victoria, podio, logros). No compite con la menta (acción):
-        // la menta es "haz clic / acertaste", el oro es "esto es valioso".
-        // Reconcilia la marca cobre/oro histórica como capa de lujo, no como base.
+        // Oro premium → oro viejo de tinta (racha, podio, logros).
         gold: {
-          DEFAULT: "#e8c87a",
-          dark: "#caa856",
-          ink: "#1a1306", // tinta oscura para texto sobre relleno oro (contraste AA)
-          glow: "rgba(232,200,122,0.15)",
+          DEFAULT: "#7a5c10",
+          dark: "#5f470c",
+          ink: "#f3eee1",       // texto sobre relleno oro
+          glow: "transparent",
         },
-        // Gris frío neutral (antes cálido #a39d97): integra con la menta.
-        muted: "#8b95a3",
-        // ── Tokens v0 (shadcn) para calcar el diseño de Vercel v0 al pie ──
-        // Permiten usar las clases EXACTAS del v0 (bg-mint, text-mint-foreground,
-        // bg-card, text-foreground, text-muted-foreground, text-destructive).
-        mint: { DEFAULT: "#7af0c8", foreground: "#05131d" },
-        card: { DEFAULT: "#14181e", foreground: "#eef2f6" },
-        foreground: "#eef2f6",
-        "muted-foreground": "#8b95a3",
-        destructive: "#e26060",
+        muted: "#6e6553",       // tinta-2
+        mint: { DEFAULT: "#b3271b", foreground: "#f3eee1" },
+        card: { DEFAULT: "#fbf7ec", foreground: "#1b1712" },
+        foreground: "#1b1712",  // tinta
+        "muted-foreground": "#6e6553",
+        destructive: "#b3271b",
       },
       // Sombras del sistema Liquid Glass: elevación flotante + halo interior de
       // luz (inset top) que da el "canto" del cristal. Centralizadas para que
@@ -76,6 +91,12 @@ module.exports = {
         "toast-in": "toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards",
         "shimmer": "shimmer 1.4s linear infinite",
         "flip-reveal": "flipReveal 0.7s cubic-bezier(0.23,1,0.32,1) forwards",
+        // ── Prensa del motor: el movimiento es "de imprenta" — estampar
+        //    (aparece asentándose), sellar (el sello cae con overshoot) y
+        //    temblor (errata en el cupón). Sin glows ni rebotes largos.
+        "estampar": "estampar 0.28s cubic-bezier(0.2,1,0.3,1) both",
+        "sellar": "sellar 0.45s cubic-bezier(0.2,1.4,0.4,1) both",
+        "temblor": "temblor 0.4s ease",
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -121,6 +142,12 @@ module.exports = {
         flipReveal: {
           from: { opacity: 0, transform: "rotateX(90deg)" },
           to:   { opacity: 1, transform: "rotateX(0deg)" },
+        },
+        estampar: { from: { opacity: 0, transform: "scale(1.02)" } },
+        sellar: { from: { opacity: 0, transform: "rotate(-7deg) scale(1.7)" } },
+        temblor: {
+          "20%,60%": { transform: "translateX(-4px)" },
+          "40%,80%": { transform: "translateX(4px)" },
         },
       },
     },

@@ -250,7 +250,7 @@ export default function PublicProfile({ open, onClose, userId }) {
               gemelo del carnet del Perfil propio. */}
           <div className="relative overflow-hidden rounded-2xl border border-gold/20 bg-bg-tertiary p-4">
             {/* Hairline de oro: detalle premium discreto. */}
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-oro-viejo/60 to-transparent" />
 
             <div className="flex items-center gap-3">
               <Avatar initial={initial} />

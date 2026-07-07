@@ -271,7 +271,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                       ${isSelf ? "bg-mint/[0.07]" : "bg-transparent"}
                       ${!user && index < 2 ? "border-b border-border" : ""}
                       ${!user && index === 3 ? "border-t border-border" : ""}
-                      ${RowTag === "button" ? "transition hover:bg-white/5 active:scale-[0.99]" : ""}
+                      ${RowTag === "button" ? "transition hover:bg-papel-2/60 active:scale-[0.99]" : ""}
                     `}
                     style={
                       !user && index > 2
@@ -319,8 +319,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
 
               {!user && state.players.length > 3 && (
                 <>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-[#14181e]/80 to-[#14181e]" />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-[#14181e]/88 to-[#14181e] sm:hidden" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-papel/80 to-papel" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-papel/88 to-papel sm:hidden" />
                 </>
               )}
             </div>

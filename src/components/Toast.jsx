@@ -13,22 +13,14 @@ function genId() {
   return `t-${Date.now()}-${nextId}`;
 }
 
+// Sistema prensa: el toast es un TELEGRAMA — tira de papel con filete de
+// tinta y glifo tipográfico; el tipo lo marca el color del glifo (acierto en
+// tinta, error en rojo), sin barras de color ni sombras de neón. Colores
+// concretos: los toasts se portalan a document.body, fuera de .prensa.
 const TYPE_STYLES = {
-  info: {
-    border: "border-white/15",
-    bar: "bg-white/40",
-    icon: "ℹ",
-  },
-  success: {
-    border: "border-green-400/40",
-    bar: "bg-green-400",
-    icon: "✓",
-  },
-  error: {
-    border: "border-red-400/40",
-    bar: "bg-red-400",
-    icon: "!",
-  },
+  info: { glifo: "text-tinta-2", icon: "ℹ" },
+  success: { glifo: "text-tinta", icon: "✓" },
+  error: { glifo: "text-rojo", icon: "✕" },
 };
 
 function ToastItem({ toast, onDismiss }) {
@@ -39,16 +31,14 @@ function ToastItem({ toast, onDismiss }) {
       role="status"
       className={`
         pointer-events-auto flex w-full max-w-sm items-center gap-3
-        rounded-xl border ${style.border} bg-bg-tertiary
-        px-4 py-3 text-sm text-white shadow-2xl shadow-black/60
+        rounded-none border border-tinta bg-papel
+        px-4 py-3 font-serif text-sm text-tinta
+        shadow-[0_10px_22px_rgba(27,23,18,0.18)]
         animate-toast-in
       `}
     >
       <span
-        className={`
-          flex h-6 w-6 shrink-0 items-center justify-center
-          rounded-full ${style.bar} text-[12px] font-bold text-black
-        `}
+        className={`shrink-0 text-[15px] font-bold ${style.glifo}`}
         aria-hidden="true"
       >
         {style.icon}
@@ -62,8 +52,8 @@ function ToastItem({ toast, onDismiss }) {
             onDismiss(toast.id);
           }}
           className="
-            shrink-0 rounded-md px-2 py-1 text-xs font-semibold
-            uppercase tracking-widest text-accent hover:bg-accent/10
+            shrink-0 rounded-none px-2 py-1 text-xs font-semibold
+            uppercase tracking-widest text-rojo hover:underline
           "
         >
           {toast.action.label}
@@ -74,8 +64,8 @@ function ToastItem({ toast, onDismiss }) {
         onClick={() => onDismiss(toast.id)}
         aria-label={t("toast.closeAria")}
         className="
-          shrink-0 rounded-md p-1 text-muted transition
-          hover:bg-white/10 hover:text-white
+          shrink-0 rounded-none p-1 text-tinta-2 transition
+          hover:text-rojo
         "
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">

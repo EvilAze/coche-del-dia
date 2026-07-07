@@ -50,9 +50,9 @@ const STAGE_DEFAULT_W = 416;
 // imagen (el overflow-hidden del escenario recorta el 6% extra).
 const HALO_MASK_SCALE = 1.06;
 
-// Dirección visual: misma que Configurator.jsx (Platino Eléctrico, menta).
-const THEME = "platino";
-const ACCENT = "#7af0c8";
+// Dirección visual: misma que Configurator.jsx («Prensa del motor», rojo de
+// rotativa). El Túnel hereda las variables de .prensa vía los .cdd-* que usa.
+const ACCENT = "#b3271b";
 
 export default function Tunel() {
   const { t } = useT();
@@ -317,12 +317,12 @@ export default function Tunel() {
 
   function InfoCard({ kicker, title, body, ctaLabel, ctaHref, tone = "accent" }) {
     const toneText = tone === "red" ? "text-red-400" : "text-accent";
-    const toneBorder = tone === "red" ? "border-red-400/40" : "border-accent/30";
+    const toneBorder = tone === "red" ? "border-rojo/40" : "border-accent/30";
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-white">
-        <div className={`w-full max-w-sm rounded-2xl border ${toneBorder} bg-bg-secondary/60 p-6 text-center shadow-2xl`}>
+      <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-tinta">
+        <div className={`w-full max-w-sm rounded-2xl border ${toneBorder} bg-papel-2 p-6 text-center shadow-2xl`}>
           <p className={`text-[10px] uppercase tracking-[0.28em] ${toneText}`}>{kicker}</p>
-          <h1 className="mt-2 font-display text-2xl tracking-widest text-white">{title}</h1>
+          <h1 className="mt-2 font-display text-2xl tracking-widest text-tinta">{title}</h1>
           <p className="mt-3 text-sm text-muted">{body}</p>
           <button
             type="button"
@@ -390,9 +390,9 @@ export default function Tunel() {
   }
 
   return (
-    // Mismo shell visual que el juego diario (Configurator): tema Platino con
-    // el acento menta inyectado en --accent — de él beben las clases cdd-*.
-    <div className={"cdd-app theme-" + THEME} style={{ "--accent": ACCENT }}>
+    // Mismo shell visual que el juego diario (Configurator): tema .prensa,
+    // con el acento rojo inyectado en --accent — de él beben las clases cdd-*.
+    <div className="cdd-app prensa" style={{ "--accent": ACCENT }}>
       {/* Header simple, mismo patrón que Repesca; a la derecha, el marcador
           de victorias del túnel en lugar del spacer. */}
       <header className="border-b border-border bg-bg-primary">
@@ -404,8 +404,8 @@ export default function Tunel() {
             }}
             className="
               inline-flex items-center gap-1.5 rounded-md
-              border border-white/10 bg-white/[0.04]
-              px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-white/80
+              border border-tinta/15 bg-papel-2/60
+              px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta-2
               transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent
               active:scale-95
             "
@@ -425,7 +425,7 @@ export default function Tunel() {
             <span>{t("tunel.buttonExit")}</span>
           </button>
 
-          <p className="font-display text-xl tracking-widest text-white">
+          <p className="font-display text-xl tracking-widest text-tinta">
             {t("tunel.headerTitle")}
           </p>
 

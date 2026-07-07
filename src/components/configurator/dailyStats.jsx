@@ -11,11 +11,15 @@ import { useT } from "../../i18n";
 // Mínimo de partidas para que el dato sea significativo (igual que producción).
 const MIN_GAMES = 5;
 
-export function useDailyStats(attempts, won) {
+// `enabled` (default true, retrocompatible con EndScreen): el Configurator lo
+// gatea a "partida cerrada" — pedir la distribución ANTES de terminar filtraría
+// la dificultad del día a quien aún juega (spec §3 del rediseño prensa).
+export function useDailyStats(attempts, won, enabled = true) {
   const [stats, setStats] = useState(null);
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     (async () => {
       try {
@@ -33,7 +37,9 @@ export function useDailyStats(attempts, won) {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+    // `enabled` en deps: si la partida termina en sesión (false→true), el
+    // fetch debe dispararse entonces — con [] se quedaría apagado para siempre.
+  }, [enabled]);
 
   if (!stats || stats.totalGames < MIN_GAMES) return { ready: false };
 

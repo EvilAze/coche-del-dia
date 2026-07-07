@@ -5,7 +5,7 @@
     <!-- viewport-fit=cover: sin él, env(safe-area-inset-*) devuelve 0 en iOS y
          el CTA del fold rozaría la barra de gestos (ver .cdd-fold en index.css). -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="theme-color" content="#f3eee1" />
 
     <!--
       Fuentes cargadas aquí con preconnect + <link> en lugar de @import en el
@@ -17,13 +17,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!--
-      Sistema único "menta": Archivo (display + cuerpo) + Space Mono (etiquetas
-      técnicas). Sustituye a Bebas Neue + DM Sans en toda la web — la pantalla de
-      juego y los apartados comparten ahora la misma identidad tipográfica.
+      Sistema «Prensa del motor»: Fraunces (display editorial, con itálica),
+      Libre Franklin (UI/labels) y Courier Prime (cupón/datos). Mismo patrón
+      preconnect + display=swap (anti-FOIT); pesos acotados a los que usa el
+      sistema para no engordar el LCP. (F5: retiradas Archivo + Space Mono, ya
+      sin uso tras portar todas las pantallas.)
     -->
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Libre+Franklin:wght@400;600;800&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap"
     />
 
     <!--
@@ -149,8 +151,8 @@
          igual. Ver index.css. -->
 
     <noscript>
-      <div style="padding:2rem;text-align:center;color:#f0f0f4;background:#0a0a0b;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
-        <h1 style="font-size:1.5rem;color:#e8c87a">El Coche del Día</h1>
+      <div style="padding:2rem;text-align:center;color:#1b1712;background:#f3eee1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <h1 style="font-size:1.5rem;color:#b3271b">El Coche del Día</h1>
         <p style="margin-top:1rem;max-width:400px">Adivina la marca, modelo y año del coche del día en 5 intentos. Un nuevo reto automovilístico cada 24 horas. Activa JavaScript para jugar.</p>
       </div>
     </noscript>

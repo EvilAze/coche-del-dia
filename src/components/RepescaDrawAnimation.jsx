@@ -168,8 +168,8 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                     overflow-hidden
                     ${
                       veteran
-                        ? "border-amber-400/70 bg-gradient-to-br from-amber-950/80 to-[#1a0f00] shadow-[0_0_28px_rgba(251,191,36,0.35)]"
-                        : "border-accent/70 bg-gradient-to-br from-[#1f1f24] to-[#0d1014] shadow-[0_0_28px_rgba(255,191,0,0.25)]"
+                        ? "border-oro-viejo bg-papel-2"
+                        : "border-tinta bg-papel-2"
                     }
                   `}
                   style={{
@@ -224,7 +224,7 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                   <p
                     className={`
                       relative text-center font-display text-sm uppercase tracking-[0.22em]
-                      ${veteran ? "text-amber-100" : "text-white"}
+                      ${veteran ? "text-amber-100" : "text-tinta"}
                     `}
                   >
                     {veteran ? t("garage.drawVeteran") : t("garage.drawYours")}
@@ -240,7 +240,7 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
           <AnimatePresence mode="wait">
             <motion.p
               key={phase}
-              className="text-[11px] uppercase tracking-[0.28em] text-white/80"
+              className="text-[11px] uppercase tracking-[0.28em] text-tinta"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}

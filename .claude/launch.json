@@ -4,7 +4,7 @@
     {
       "name": "dev",
       "runtimeExecutable": "vercel",
-      "runtimeArgs": ["dev", "--listen", "3000"],
+      "runtimeArgs": ["dev", "--listen", "3000", "--yes"],
       "port": 3000
     },
     {

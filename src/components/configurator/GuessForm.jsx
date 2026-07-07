@@ -11,6 +11,7 @@ import { useT } from "../../i18n";
 import { useToast } from "../Toast";
 import { haptic } from "../../lib/haptics";
 import { flagImagePath } from "../../data/countries";
+import { resolver } from "../../lib/resolver";
 import Combo from "./Combo";
 import YearField from "./YearField";
 
@@ -33,6 +34,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   // intento: elegir marca → enfoca modelo; elegir modelo → enfoca año. El foco
   // se mueve SOLO en selecciones reales del usuario (onCommit del Combo),
   // nunca en resets programáticos post-submit.
+  const marcaRef = useRef(null);
   const modeloRef = useRef(null);
   const anioRef = useRef(null);
 
@@ -162,26 +164,49 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     e.preventDefault();
     if (formDisabled) return;
 
-    if (!marcaValida || !modeloValido || !anioValido) {
+    // Prefijo inequívoco → canónico ("jag" → Jaguar) ANTES de validar: en
+    // móvil teclear el nombre completo es la mayor fricción del cupón. Solo
+    // autocompleta con UNA coincidencia; con ambigüedad, la validación de
+    // siempre pide elegir. Se refleja en el estado para que el jugador VEA
+    // qué se ha enviado.
+    // OJO: el borrador tecleado vive en el `q` INTERNO del Combo (el estado
+    // marca/modelo solo se llena al confirmar una opción), así que el texto
+    // real hay que leerlo del input vía ref cuando el estado está vacío.
+    const marcaTexto = marca || marcaRef.current?.value || "";
+    const modeloTexto = modelo || modeloRef.current?.value || "";
+    const marcaFinal = resolver(marcaTexto, MARCAS);
+    const marcaFinalValida = MARCAS.includes(marcaFinal);
+    const modeloFinal = marcaFinalValida
+      ? resolver(
+          modeloTexto,
+          CARS.filter((c) => c.marca === marcaFinal).map((c) => c.modelo)
+        )
+      : modeloTexto;
+    const modeloFinalValido =
+      marcaFinalValida && CARS.some((c) => c.marca === marcaFinal && c.modelo === modeloFinal);
+    if (marcaFinal !== marca) setMarca(marcaFinal);
+    if (modeloFinal !== modelo) setModelo(modeloFinal);
+
+    if (!marcaFinalValida || !modeloFinalValido || !anioValido) {
       // El botón ya NO se deshabilita por campos incompletos (solo cambia de
       // aspecto): un botón muerto no explica nada. Tocarlo con el intento a
       // medias hace shake + nombra el PRIMER campo que falta — frustración
       // convertida en guía (auditoría UX #5).
       haptic.warning(); triggerShake();
-      const missing = !marcaValida
+      const missing = !marcaFinalValida
         ? t("guess.missingMarca")
-        : !modeloValido
+        : !modeloFinalValido
         ? t("guess.missingModelo")
         : t("guess.missingAnio");
       toast.push(missing, { type: "error" });
       return;
     }
-    if (triedWrongMarcas.has(marca.toLowerCase())) {
+    if (triedWrongMarcas.has(marcaFinal.toLowerCase())) {
       haptic.warning(); triggerShake();
       toast.push(t("guess.marcaAlreadyTried"), { type: "error" });
       return;
     }
-    if (triedWrongModelKeys.has(`${marca.toLowerCase()}|${modelo.toLowerCase()}`)) {
+    if (triedWrongModelKeys.has(`${marcaFinal.toLowerCase()}|${modeloFinal.toLowerCase()}`)) {
       haptic.warning(); triggerShake();
       toast.push(t("guess.modelAlreadyTried"), { type: "error" });
       return;
@@ -192,24 +217,37 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
       return;
     }
 
-    const guessCar = CARS.find((c) => c.marca === marca && c.modelo === modelo);
+    const guessCar = CARS.find((c) => c.marca === marcaFinal && c.modelo === modeloFinal);
     if (!guessCar) return;
 
     haptic.impactMedium();
-    const result = await onSubmit({ guessCarId: guessCar.id, anio: String(anioNum), marca, modelo });
+    const result = await onSubmit({ guessCarId: guessCar.id, anio: String(anioNum), marca: marcaFinal, modelo: modeloFinal });
     if (!result) return;
 
-    setMarca(result.marca.status === "correct" ? marca : "");
-    setModelo(result.modelo.status === "correct" ? modelo : "");
+    setMarca(result.marca.status === "correct" ? marcaFinal : "");
+    setModelo(result.modelo.status === "correct" ? modeloFinal : "");
     setAnio(result.anio.status === "correct" ? anioNum : "");
+
+    // QoL móvil (columna única): cerrar el teclado y centrar el veredicto
+    // recién estampado (la foto asoma por arriba; el cupón queda a un gesto).
+    if (window.matchMedia("(max-width: 1099px)").matches) {
+      document.activeElement?.blur?.();
+      requestAnimationFrame(() => {
+        document.getElementById("fila-viva")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
   }
 
   return (
+    // El cupón de respuesta: caja de DOBLE filete (border + outline con
+    // offset, convención de recortable) con cabecera entre filetes. El
+    // temblor de errata sacude la caja entera al validar en falso.
     <div
-      className={shake ? "animate-shake" : ""}
+      className={"prensa-cupon" + (shake ? " animate-temblor" : "")}
       onAnimationEnd={() => setShake(false)}
     >
-      <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
+      <div className="prensa-cupon-cab">{t("prensa.cupon")}</div>
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit} autoComplete="off">
         {/* Marca + Modelo lado a lado (calcado del v0); Año y ADIVINAR a ancho completo. */}
         <div className="grid grid-cols-2 gap-2">
         <Combo
@@ -217,6 +255,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           value={marca}
           onChange={(v) => { setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
           onCommit={() => focusSoon(modeloRef)}
+          inputRef={marcaRef}
           options={availableMarcas}
           placeholder={t("cdd.comboPlaceholder")}
           disabled={formDisabled}
@@ -245,7 +284,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             micro-feedback de "listo para disparar". */}
         <button
           type="submit"
-          className={"btn btn--mint h-12 w-full rounded-xl" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
+          className={"prensa-submit" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
           disabled={formDisabled}
           aria-busy={isSubmitting}
         >

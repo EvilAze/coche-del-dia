@@ -115,7 +115,7 @@ export default function Achievements({ stats, onProgress }) {
               <h4 className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
                 {t(`achievements.category.${category}`)}
               </h4>
-              <span className="text-[11px] tabular-nums text-white/30">
+              <span className="text-[11px] tabular-nums text-tinta-2/70">
                 {done} / {groupItems.length}
               </span>
             </div>
@@ -192,7 +192,7 @@ function RouteNode({ achievement, locale, isNext, first, last }) {
     ? "border border-transparent bg-gold text-gold-ink" // moneda de oro maciza
     : isNext
       ? "border-2 border-gold bg-transparent text-gold" // diana
-      : "border border-border bg-white/[0.02] text-white/30"; // apagado
+      : "border border-border bg-papel/[0.02] text-tinta-2/70"; // apagado
 
   return (
     <div className="flex items-stretch gap-3.5">
@@ -223,7 +223,7 @@ function RouteNode({ achievement, locale, isNext, first, last }) {
       <div className="min-w-0 flex-1 pb-5 pt-1.5">
         {unlocked ? (
           <>
-            <p className="text-[15px] font-semibold text-white">{title}</p>
+            <p className="text-[15px] font-semibold text-tinta">{title}</p>
             <p className="mt-0.5 flex items-center gap-1 text-[11px] text-gold">
               <CheckIcon className="h-3 w-3" />
               {t("achievements.unlocked")}
@@ -232,18 +232,18 @@ function RouteNode({ achievement, locale, isNext, first, last }) {
         ) : isNext ? (
           <>
             <div className="flex items-center gap-2">
-              <p className="text-[15px] font-bold text-white">{title}</p>
+              <p className="text-[15px] font-bold text-tinta">{title}</p>
               <span className="rounded-full border border-gold/40 px-2 py-px font-mono text-[8.5px] uppercase tracking-wider text-gold">
                 {t("achievements.next")}
               </span>
             </div>
-            <div className="mt-1.5 h-[5px] max-w-[170px] overflow-hidden rounded-full bg-white/[0.08]">
+            <div className="mt-1.5 h-[5px] max-w-[170px] overflow-hidden rounded-full bg-papel/[0.08]">
               <div
                 className="h-full rounded-full bg-gold"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <p className="mt-1.5 text-[11.5px] text-white/75">
+            <p className="mt-1.5 text-[11.5px] text-tinta">
               {t(remainingKey, { count: remaining })} ·{" "}
               <span className="tabular-nums">
                 {progress.current}/{progress.total}
@@ -252,8 +252,8 @@ function RouteNode({ achievement, locale, isNext, first, last }) {
           </>
         ) : (
           <>
-            <p className="text-[15px] font-medium text-white/55">{title}</p>
-            <p className="mt-0.5 text-[11px] text-white/35">{description}</p>
+            <p className="text-[15px] font-medium text-tinta-2">{title}</p>
+            <p className="mt-0.5 text-[11px] text-tinta-2/70">{description}</p>
           </>
         )}
       </div>

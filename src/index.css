@@ -1165,6 +1165,9 @@ body,
   text-transform: inherit; text-decoration: none;
 }
 .prensa-cierre button:hover, .prensa-cierre a:hover { color: #b3271b; }
+/* Reloj de cierre: MISMA familia que el pie (lección del prototipo — la
+   Courier aquí desentonaba) + tabular-nums para que no baile cada segundo. */
+.prensa-cierre .reloj { color: var(--cdd-text); font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* ── Pliego responsivo ──
    Móvil: columna única (orden foto → última jugada → cupón → historial, el
@@ -1200,6 +1203,13 @@ body,
   .prensa-area-foto { grid-area: foto; min-width: 0; }
   .prensa-area-jugar { grid-area: jugar; border-left: 1px solid var(--line-strong); padding-left: 30px; margin-left: 30px; min-width: 0; }
   .prensa-area-pie { grid-area: pie; }
+}
+
+/* Foco de teclado del sistema prensa: anillo rojo uniforme (sustituye al
+   .focus-ring menta en la pantalla de juego). focus-visible: solo teclado. */
+.prensa button:focus-visible, .prensa a:focus-visible,
+.prensa input:focus-visible, .prensa [role="option"]:focus-visible {
+  outline: 2px solid #b3271b; outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

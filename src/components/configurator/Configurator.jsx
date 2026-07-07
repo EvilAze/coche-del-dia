@@ -128,17 +128,16 @@ export default function Configurator({
 
         {/* Último intento entre imagen y formulario (calcado del v0). */}
         {dataReady && !ended && (pendingGuess || guesses.length > 0) && (
-          <section aria-label={t("cdd.lastAttempt")} aria-live="polite" className="flex flex-col gap-2">
-            <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-              {t("cdd.lastAttempt")}
-            </span>
+          <section aria-label={t("cdd.lastAttempt")} aria-live="polite" className="flex flex-col gap-1">
+            <div className="prensa-ladillo">{t("cdd.lastAttempt")}</div>
             {pendingGuess ? (
-              <AttemptRow g={pendingGuess} tolerance={tolerance} pending />
+              <AttemptRow g={pendingGuess} tolerance={tolerance} pending num={guesses.length + 1} />
             ) : (
               <AttemptRow
                 g={guesses[guesses.length - 1]}
                 tolerance={tolerance}
                 fresh={justRevealedIndex === guesses.length - 1}
+                num={guesses.length}
               />
             )}
           </section>

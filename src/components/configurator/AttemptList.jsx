@@ -1,119 +1,112 @@
 // src/components/configurator/AttemptList.jsx
-// Filas de intento: rejilla de 3 celdas (marca / modelo / año). Combina el COLOR
-// plano del v0 (menta / ámbar / rojo) con la ANATOMÍA del diseño anterior — celda
-// en 2 zonas APILADAS: fila 1 = NOMBRE (useFitText lo encoge a una línea), fila 2 =
-// META de estado DEBAJO (bandera + "mismo país" en marca, ✓/✕, flecha ↑/↓ del año).
-// Feedback REAL del servidor (correct / partial / wrong + dirección). Doble
-// codificación color+icono (accesible). Fila pendiente = pulse; recién validada =
-// flip-reveal por celda.
+// Clasificación «Prensa del motor»: cada intento es una FILA numerada (01…)
+// con tres datos en Fraunces y veredictos como MARCAS DE CORRECTOR:
+//   acierto → subrayado rojo firme + ✓ · cerca → subrayado rojo discontinuo
+//   con apostilla en cursiva (bandera + "mismo país", "más nuevo ↑") ·
+//   fallo → tachado en tinta.
+// Fondos transparentes: la fila es tipografía + filete, no un chip. Feedback
+// REAL del servidor (correct/partial/wrong + dirección), doble codificación
+// marca+texto (accesible; el estado exacto va también en sr-only). Pendiente =
+// "entintado" (pulso de opacidad); recién validada = estampado.
 
 import { useT } from "../../i18n";
 import { flagImagePath } from "../../data/countries";
 import { Icon, I } from "./icons";
 import { useFitText } from "../../hooks/useFitText";
 
-// Stagger del flip por celda (efecto "carta volteándose"). Espaciado para que
-// la cascada marca → modelo → año se lea con calma, sin atropellarse.
-const FLIP_STAGGER_MS = 160;
+// Stagger del estampado por celda: la cascada marca → modelo → año se lee
+// con calma, como tres golpes de tampón.
+const STAGGER_MS = 120;
 
-function Cell({ tone, pending, value, mark, markTone, flag, sub, srStatus, flip, delay, fitKey }) {
-  // Auto-ajuste del nombre a una línea (el nombre ocupa toda la fila 1, así que el
-  // hook dispone del ancho completo de la celda).
+function Dato({ estado, pending, value, apostilla, srStatus, fresh, delay, fitKey }) {
+  // Auto-ajuste del nombre a una línea: el wrapper bloque da el ancho de la
+  // celda al hook; la .palabra inline mantiene el subrayado/tachado AL ANCHO
+  // DE LA PALABRA (es una marca de corrector, no un borde de caja).
   const textRef = useFitText(fitKey);
-  const toneClass = pending
-    ? "bg-bg-tertiary text-muted-foreground animate-pulse"
-    : tone === "good"
-      ? "bg-mint/15 text-foreground"
-      : tone === "near"
-        ? "bg-amber-400/10 text-foreground"
-        : "bg-destructive/10 text-foreground";
-  const hasMeta = flag || mark || sub;
   return (
     <div
       className={
-        "flex min-h-[54px] flex-col justify-center gap-1 rounded-lg px-3 py-2 " +
-        toneClass +
-        (flip ? " animate-flip-reveal" : "")
+        "prensa-dato " +
+        (pending ? "" : estado) +
+        (fresh ? " prensa-estampada" : "")
       }
-      // backfaceVisibility:hidden mantiene el giro 3D limpio (sin destellos de
-      // la cara trasera al cruzar los 90deg). animationDelay = stagger por celda.
-      style={flip ? { animationDelay: delay, backfaceVisibility: "hidden" } : undefined}
+      style={fresh ? { animationDelay: delay } : undefined}
     >
-      {/* Fila 1: nombre a ancho completo (una línea, lo encoge useFitText). */}
-      <span ref={textRef} className="block w-full overflow-hidden whitespace-nowrap text-sm font-medium leading-tight">
-        {value || "—"}
+      <span ref={textRef} className="linea-nombre">
+        <span className="palabra">{value || "—"}</span>
+        {!pending && estado === "bien" && <span className="marca-v" aria-hidden="true"> ✓</span>}
       </span>
-      {/* Estado para lectores de pantalla (los ✓/✕/flechas son SVG decorativos). */}
       {srStatus && <span className="sr-only">{srStatus}</span>}
-      {/* Fila 2: meta de estado DEBAJO del nombre. */}
-      {hasMeta && (
-        <span className={"flex min-h-[14px] items-center gap-1.5 " + (markTone || "text-muted-foreground")}>
-          {flag && <img className="h-3 w-[18px] shrink-0 rounded-[2px] object-cover" src={flag} alt="" draggable={false} />}
-          {mark}
-          {sub && <span className="truncate font-mono text-[9px] uppercase tracking-wide opacity-90">{sub}</span>}
-        </span>
-      )}
+      {!pending && apostilla}
     </div>
   );
 }
 
 // Exportada: el Configurator la reusa para la "fila viva" del último intento.
-export function AttemptRow({ g, tolerance = 2, pending, fresh }) {
+// `num` es el ordinal 1-based del intento (para el 01… de la izquierda).
+export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
   const { t } = useT();
-  const d = (i) => (fresh ? i * FLIP_STAGGER_MS + "ms" : undefined);
+  const d = (i) => (fresh ? i * STAGGER_MS + "ms" : undefined);
+  const numLabel = num ? String(num).padStart(2, "0") : "";
 
   if (pending) {
     return (
-      <div className="grid grid-cols-3 gap-2">
-        <Cell pending value={g.marca?.val} fitKey={g.marca?.val} />
-        <Cell pending value={g.modelo?.val} fitKey={g.modelo?.val} />
-        <Cell pending value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} />
+      <div className="prensa-fila prensa-fila-pendiente">
+        <span className="num">{numLabel}</span>
+        <Dato pending value={g.marca?.val} fitKey={g.marca?.val} />
+        <Dato pending value={g.modelo?.val} fitKey={g.modelo?.val} />
+        <Dato pending value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} />
       </div>
     );
   }
 
-  // marca: correct → ✓ menta · partial (mismo país) → bandera + "mismo país" ámbar · wrong → ✕ rojo
+  // marca: correct → bien · partial (mismo país) → cerca + bandera · wrong → mal
   const mSt = g.marca?.status;
-  const marcaTone = mSt === "correct" ? "good" : mSt === "partial" ? "near" : "off";
-  const marcaFlag = mSt === "partial" && g.marca?.pais ? flagImagePath(g.marca.pais) : null;
-  const marcaSub = mSt === "partial" ? t("cdd.sameCountry") : null;
-  const marcaMark = mSt === "correct" ? <Icon d={I.check} size={13} /> : mSt === "wrong" ? <Icon d={I.x} size={12} /> : null;
-  const marcaMarkTone = mSt === "correct" ? "text-mint" : mSt === "partial" ? "text-amber-300" : "text-destructive/80";
-  const marcaSr = mSt === "correct" ? t("cdd.srCorrect") : mSt === "partial" ? t("cdd.sameCountry") : t("cdd.srWrong");
+  const marcaEstado = mSt === "correct" ? "bien" : mSt === "partial" ? "cerca" : "mal";
+  const marcaApostilla =
+    mSt === "partial" ? (
+      <span className="prensa-apostilla">
+        {g.marca?.pais && <img className="bandera" src={flagImagePath(g.marca.pais)} alt="" draggable={false} />}
+        {t("cdd.sameCountry")}
+      </span>
+    ) : null;
+  // Sin sr-only cuando la apostilla ya es texto visible (el lector la lee).
+  const marcaSr = mSt === "correct" ? t("cdd.srCorrect") : mSt === "partial" ? null : t("cdd.srWrong");
 
   // modelo — binario.
   const moSt = g.modelo?.status;
-  const modeloTone = moSt === "correct" ? "good" : "off";
-  const modeloMark = moSt === "correct" ? <Icon d={I.check} size={13} /> : <Icon d={I.x} size={12} />;
-  const modeloMarkTone = moSt === "correct" ? "text-mint" : "text-destructive/80";
+  const modeloEstado = moSt === "correct" ? "bien" : "mal";
   const modeloSr = moSt === "correct" ? t("cdd.srCorrect") : t("cdd.srWrong");
 
-  // año — correct → ✓ + "±tol"; wrong → flecha ↑/↓ (↑ = el real es más nuevo).
+  // año — correct → bien + "±tol"; wrong → apostilla con dirección (la flecha
+  // dice hacia dónde está el año real: ↑ más nuevo, ↓ más antiguo).
   const aSt = g.anio?.status;
-  let anioTone, anioMark, anioMarkTone, anioSub = null, anioSr;
+  let anioEstado, anioApostilla = null, anioSr;
   if (aSt === "correct") {
-    anioTone = "good";
-    anioMark = <Icon d={I.check} size={13} />;
-    anioMarkTone = "text-mint";
-    anioSub = "±" + tolerance;
+    anioEstado = "bien";
+    anioApostilla = <span className="prensa-apostilla neutra">±{tolerance}</span>;
     anioSr = t("cdd.srCorrect");
   } else {
-    anioTone = "off";
+    anioEstado = "mal";
     const dir = g.anio?.direction;
-    anioMark = dir ? <Icon d={dir === "up" ? I.arrowU : I.arrowD} size={14} /> : <Icon d={I.x} size={12} />;
-    anioMarkTone = "text-destructive/80";
-    anioSr = dir === "up" ? t("cdd.yearNewer") : dir === "down" ? t("cdd.yearOlder") : t("cdd.srWrong");
+    if (dir) {
+      anioApostilla = (
+        <span className="prensa-apostilla">
+          {t(dir === "up" ? "cdd.yearNewer" : "cdd.yearOlder")}
+          <Icon d={dir === "up" ? I.arrowU : I.arrowD} size={11} />
+        </span>
+      );
+    }
+    // La apostilla direccional es texto visible: sr-only solo si no la hay.
+    anioSr = dir ? null : t("cdd.srWrong");
   }
 
   return (
-    // perspective en el contenedor para que el rotateX de las celdas sea un
-    // giro 3D real ("carta volteándose") y no un aplastamiento vertical
-    // ortográfico. Solo importa cuando fresh dispara el flip; en reposo no
-    // afecta. Mismo valor (600px) que el GuessRow legacy, por coherencia.
-    <div className="grid grid-cols-3 gap-2" style={fresh ? { perspective: "600px" } : undefined}>
-      <Cell tone={marcaTone} value={g.marca?.val} fitKey={g.marca?.val} mark={marcaMark} markTone={marcaMarkTone} flag={marcaFlag} sub={marcaSub} srStatus={marcaSr} flip={fresh} delay={d(0)} />
-      <Cell tone={modeloTone} value={g.modelo?.val} fitKey={g.modelo?.val} mark={modeloMark} markTone={modeloMarkTone} srStatus={modeloSr} flip={fresh} delay={d(1)} />
-      <Cell tone={anioTone} value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} mark={anioMark} markTone={anioMarkTone} sub={anioSub} srStatus={anioSr} flip={fresh} delay={d(2)} />
+    <div className="prensa-fila">
+      <span className="num">{numLabel}</span>
+      <Dato estado={marcaEstado} value={g.marca?.val} fitKey={g.marca?.val} apostilla={marcaApostilla} srStatus={marcaSr} fresh={fresh} delay={d(0)} />
+      <Dato estado={modeloEstado} value={g.modelo?.val} fitKey={g.modelo?.val} srStatus={modeloSr} fresh={fresh} delay={d(1)} />
+      <Dato estado={anioEstado} value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} apostilla={anioApostilla} srStatus={anioSr} fresh={fresh} delay={d(2)} />
     </div>
   );
 }
@@ -121,24 +114,25 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh }) {
 export default function AttemptList({ guesses = [], pendingGuess = null, justRevealedIndex = -1, tolerance = 2 }) {
   const { t } = useT();
   if (!guesses.length && !pendingGuess) return null;
-  // Cabecera de columnas + filas (más reciente primero). El flip-reveal lo dispara
-  // el intento recién validado (justRevealedIndex).
+  // Cabecera de columnas alineada con la MISMA rejilla de las filas + filas
+  // (más reciente primero). El estampado lo dispara justRevealedIndex.
   return (
-    <section aria-label={t("cdd.lastAttempt")} className="flex flex-col gap-3">
-      <div className="grid grid-cols-3 gap-2 px-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+    <section aria-label={t("cdd.lastAttempt")} className="flex flex-col">
+      <div className="prensa-fila cabecera" aria-hidden="true">
+        <span className="num"></span>
         <span>{t("cdd.labelMarca")}</span>
         <span>{t("cdd.labelModelo")}</span>
         <span>{t("cdd.labelAnio")}</span>
       </div>
-      <div className="flex flex-col gap-2">
-        {pendingGuess && <AttemptRow key="pending" g={pendingGuess} tolerance={tolerance} pending />}
-        {guesses
-          .map((g, i) => ({ g, i }))
-          .reverse()
-          .map(({ g, i }) => (
-            <AttemptRow key={i} g={g} tolerance={tolerance} fresh={i === justRevealedIndex} />
-          ))}
-      </div>
+      {pendingGuess && (
+        <AttemptRow key="pending" g={pendingGuess} tolerance={tolerance} pending num={guesses.length + 1} />
+      )}
+      {guesses
+        .map((g, i) => ({ g, i }))
+        .reverse()
+        .map(({ g, i }) => (
+          <AttemptRow key={i} g={g} tolerance={tolerance} fresh={i === justRevealedIndex} num={i + 1} />
+        ))}
     </section>
   );
 }

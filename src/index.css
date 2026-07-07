@@ -51,20 +51,20 @@
 }
 
 @layer utilities {
-  /* Archivo NO es de un solo peso como Bebas Neue: sin un peso explícito, los
-     títulos `font-display` quedarían finos. Fijamos 700 por defecto para
-     replicar la presencia de Bebas en TODA la web (modales incluidos) sin tener
-     que tocar cada título a mano. La pantalla de juego no usa esta utilidad
-     (tiene sus propios pesos en `.cdd-*`), así que no se ve afectada. */
+  /* Prensa del motor (F5): las utilidades tipográficas que consumen las
+     pantallas internas pasan a la familia editorial. `font-display` = Fraunces
+     (titulares), `font-body` = Libre Franklin (UI), `font-mono` = Courier Prime
+     (datos/cifras). La pantalla de juego y los modales usan sus propias
+     familias en `.cdd-*`/`.prensa-*`/`.pm-*`, así que no dependen de esto. */
   .font-display {
-    font-family: 'Archivo', sans-serif;
+    font-family: 'Fraunces', Georgia, serif;
     font-weight: 700;
   }
   .font-body {
-    font-family: 'Archivo', sans-serif;
+    font-family: 'Libre Franklin', Arial, sans-serif;
   }
   .font-mono {
-    font-family: 'Space Mono', monospace;
+    font-family: 'Courier Prime', monospace;
   }
 
   /*
@@ -109,9 +109,11 @@
   /* Superficie plana "global" (p.ej. ResultPanel de repesca, fuera del tema):
      colores concretos por la misma razón que .modal-panel-flat. */
   .surface-flat {
-    background: #14181e;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 16px;
+    /* Prensa (F5): superficie de papel con filete de tinta y esquinas vivas
+       (era grafito #14181e). La usa el ResultPanel de la repesca. */
+    background: #fbf7ec;
+    border: 1px solid #1b1712;
+    border-radius: 0;
   }
   /* Botón v0: plano, font-semibold SIN tracking/display, mint sólido; disabled e
      "incompleto" en gris neutro (como el ADIVINAR gris del mockup de v0). */
@@ -148,19 +150,11 @@
   }
   .input-flat::placeholder { color: color-mix(in oklab, var(--cdd-muted) 65%, transparent); }
   .input-flat:focus { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 40%, transparent); }
-  /* Chrome de modal PLANO (drop-in para .modal-panel-glass en fases 2-4). NO se
-     aplica a ningún modal en la Fase 1; se define aquí para herencia. */
-  /* Chasis plano de modal. Colores CONCRETOS (no var(--surface)): los modales
-     se renderizan FUERA de .theme-platino (overlay a nivel de documento), donde
-     las variables del tema no existen — con var() el panel salía transparente. */
-  .modal-panel-flat {
-    position: relative;
-    background: #14181e;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.85);
-  }
-  .scrim-flat { background: rgba(4, 6, 9, 0.72); }
+  /* Chasis plano de modal. Colores CONCRETOS (no var()): los modales se
+     renderizan FUERA del root del juego (overlay a nivel de documento). El
+     bloque de PAPEL definitivo (F3) vive más abajo y sobreescribe estas
+     posiciones; aquí solo queda position:relative como base compartida. */
+  .modal-panel-flat { position: relative; }
 
   /* Lift: micro-interacción de elevación al pasar el ratón / pulsar. Solo en
      dispositivos con hover real (en táctil no hay hover y basta el :active);

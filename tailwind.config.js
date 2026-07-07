@@ -7,12 +7,14 @@ module.exports = {
         // Sistema único "menta": Archivo manda en display y cuerpo (antes
         // Bebas Neue / DM Sans), Space Mono para etiquetas técnicas. Coincide
         // con la pantalla de juego para que toda la web sea coherente.
-        display: ["'Archivo'", "sans-serif"],
-        body: ["'Archivo'", "sans-serif"],
-        mono: ["'Space Mono'", "monospace"],
-        // ── Sistema «Prensa del motor» (F1+): familias nuevas en convivencia.
-        //    display/body/mono se reasignan en F5, cuando ya no quede ninguna
-        //    pantalla en el sistema antiguo.
+        // Sistema «Prensa del motor» (reasignados en F5): display = Fraunces,
+        // body = Libre Franklin, mono = Courier Prime. Archivo/Space Mono
+        // retirados del bundle de fuentes (index.html).
+        display: ["'Fraunces'", "Georgia", "serif"],
+        body: ["'Libre Franklin'", "Arial", "sans-serif"],
+        mono: ["'Courier Prime'", "monospace"],
+        // Alias explícitos (usados por .prensa-*/.pm-* y disponibles como
+        // utilidades font-serif/font-franklin/font-courier).
         serif: ["'Fraunces'", "Georgia", "serif"],
         franklin: ["'Libre Franklin'", "Arial", "sans-serif"],
         courier: ["'Courier Prime'", "monospace"],

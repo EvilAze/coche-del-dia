@@ -10,6 +10,12 @@ module.exports = {
         display: ["'Archivo'", "sans-serif"],
         body: ["'Archivo'", "sans-serif"],
         mono: ["'Space Mono'", "monospace"],
+        // ── Sistema «Prensa del motor» (F1+): familias nuevas en convivencia.
+        //    display/body/mono se reasignan en F5, cuando ya no quede ninguna
+        //    pantalla en el sistema antiguo.
+        serif: ["'Fraunces'", "Georgia", "serif"],
+        franklin: ["'Libre Franklin'", "Arial", "sans-serif"],
+        courier: ["'Courier Prime'", "monospace"],
       },
       colors: {
         // Paleta fría "Platino menta": fondos grafito, acento menta #7af0c8.
@@ -39,6 +45,15 @@ module.exports = {
         },
         // Gris frío neutral (antes cálido #a39d97): integra con la menta.
         muted: "#8b95a3",
+        // ── Sistema «Prensa del motor» (F1+). Los tokens antiguos conviven
+        //    hasta F5: retirarlos ahora dejaría sin estilo las pantallas aún
+        //    no portadas. El grep de limpieza es criterio de cierre de F5. ──
+        papel: { DEFAULT: "#f3eee1", 2: "#e9e2cf", mat: "#fbf7ec" },
+        tinta: { DEFAULT: "#1b1712", 2: "#6e6553" },
+        rojo: "#b3271b",
+        // Oro premium re-pigmentado para papel: SOLO texto/filetes, nunca
+        // relleno (el #e8c87a actual es ilegible sobre claro).
+        "oro-viejo": "#7a5c10",
         // ── Tokens v0 (shadcn) para calcar el diseño de Vercel v0 al pie ──
         // Permiten usar las clases EXACTAS del v0 (bg-mint, text-mint-foreground,
         // bg-card, text-foreground, text-muted-foreground, text-destructive).
@@ -76,6 +91,12 @@ module.exports = {
         "toast-in": "toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards",
         "shimmer": "shimmer 1.4s linear infinite",
         "flip-reveal": "flipReveal 0.7s cubic-bezier(0.23,1,0.32,1) forwards",
+        // ── Prensa del motor: el movimiento es "de imprenta" — estampar
+        //    (aparece asentándose), sellar (el sello cae con overshoot) y
+        //    temblor (errata en el cupón). Sin glows ni rebotes largos.
+        "estampar": "estampar 0.28s cubic-bezier(0.2,1,0.3,1) both",
+        "sellar": "sellar 0.45s cubic-bezier(0.2,1.4,0.4,1) both",
+        "temblor": "temblor 0.4s ease",
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -121,6 +142,12 @@ module.exports = {
         flipReveal: {
           from: { opacity: 0, transform: "rotateX(90deg)" },
           to:   { opacity: 1, transform: "rotateX(0deg)" },
+        },
+        estampar: { from: { opacity: 0, transform: "scale(1.02)" } },
+        sellar: { from: { opacity: 0, transform: "rotate(-7deg) scale(1.7)" } },
+        temblor: {
+          "20%,60%": { transform: "translateX(-4px)" },
+          "40%,80%": { transform: "translateX(4px)" },
         },
       },
     },

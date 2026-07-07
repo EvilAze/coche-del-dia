@@ -140,6 +140,14 @@
     "unlockKicker": "Nuevo cromo",
     "tunelCta": "SIGUE JUGANDO · TÚNEL DE VIENTO"
   },
+  "prensa": {
+    "lema": "El diario de los que reconocen un coche por el faro.",
+    "folioEdicion": "Edición gratuita",
+    "garaje": "Garaje",
+    "ranking": "Ranking",
+    "perfil": "Perfil",
+    "entrar": "Entrar"
+  },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",
     "yearLowerTitle": "El año correcto es menor",

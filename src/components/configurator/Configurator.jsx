@@ -14,9 +14,11 @@ import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
 
-// Dirección visual por defecto: Platino Eléctrico con acento menta (#7af0c8).
-const DEFAULT_THEME = "platino";
-const DEFAULT_ACCENT = "#7af0c8";
+// Dirección visual «Prensa del motor»: papel + tinta + rojo de rotativa. El
+// tema/acento dejan de ser configurables (el periódico tiene UNA identidad);
+// las props theme/accent se ignoran y se retiran del todo en F5.
+const DEFAULT_THEME = "prensa";
+const DEFAULT_ACCENT = "#b3271b";
 
 export default function Configurator({
   dataReady = true,
@@ -89,7 +91,9 @@ export default function Configurator({
     ended || pendingGuess ? guesses : guesses.slice(0, -1);
 
   return (
-    <div className={"cdd-app theme-" + theme} style={{ "--accent": accent }}>
+    // .prensa fija todas las variables del sistema; --accent se sigue
+    // inyectando porque focus-ring y piezas .cdd-* lo consumen (rojo).
+    <div className="cdd-app prensa" style={{ "--accent": DEFAULT_ACCENT }}>
       {/* Contenedor calcado de car-guess-game.tsx (v0): columna única centrada,
           max-w-md, gap-6, scroll natural. Fuera el "fold"/PhotoPeek/2-columnas. */}
       <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 px-4 safe-area-pad">

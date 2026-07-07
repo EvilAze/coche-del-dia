@@ -1,23 +1,14 @@
 // src/components/configurator/Header.jsx
-// Cabecera del configurador: wordmark CDD + fecha (izq.) y, a la derecha, la
-// PÍLDORA DE ESTADO (racha + puesto en el ranking) como elemento héroe, seguida
-// de las utilidades en gris (garaje, perfil). Tres elementos a la derecha y
-// nada más: la barra debe caber holgada en móvil (≤360px) sin desbordar.
-//
-// Jerarquía visual (auditoría UX, dir. Platino): el ranking deja de ser un
-// icono mudo entre tres iguales y asciende a ESTADO VIVO — la píldora muestra el
-// puesto del jugador (🏆#42). El número es el gancho de retención del juego
-// diario ("voy 42º"), no una pantalla que abrir; por eso vive en la barra.
-//
-// El "?" de ayuda y el subtítulo del juego NO viven aquí: ocupaban demasiado y
-// desbordaban la fila. El subtítulo sobrevive sr-only (Configurator) y el "?"
-// vuelve solo en la primera visita, dentro de la intro de onboarding que pinta
-// Configurator — la barra del día a día queda limpia.
+// Cabecera de periódico (rediseño «Prensa del motor»): topbar de enlaces en
+// versalitas (GARAJE/RANKING a la izquierda; racha o CTA de competir + perfil
+// a la derecha), masthead con el nombre del diario y su lema, y folio con la
+// fecha completa entre filetes dobles. Sustituye a la barra de iconos del
+// sistema Platino: en un periódico las secciones se NOMBRAN, no se iconizan —
+// y de paso el texto es más descubrible que un glifo (auditoría UX previa).
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
-import { Icon, I } from "./icons";
 
 export default function Header({
   streak = 0,
@@ -31,13 +22,15 @@ export default function Header({
 }) {
   const { t, dateLocale } = useT();
 
-  const rawDate = new Date()
-    .toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" });
+  // Fecha COMPLETA con año: es la línea de folio de un periódico, no un pie
+  // de barra — "Sábado, 5 de julio de 2026".
+  const rawDate = new Date().toLocaleDateString(dateLocale, {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
   const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
 
-  // Pop de la racha cuando SUBE (tras ganar): un latido breve que celebra el
-  // incremento sin ser estridente. Solo en un incremento REAL (p.ej. 4→5): el
-  // 0→N de la carga inicial / login no debe latir (parecería un glitch).
+  // Estampado breve cuando la racha SUBE (tras ganar). Solo en un incremento
+  // real (4→5): el 0→N de la carga inicial no debe animar (parecería glitch).
   const prevStreak = useRef(streak);
   const [pop, setPop] = useState(false);
   useEffect(() => {
@@ -50,12 +43,10 @@ export default function Header({
     prevStreak.current = streak;
   }, [streak]);
 
-  // Qué puede mostrar la píldora. rank = { rank, total } | null.
   const hasStreak = streak > 0;
   const hasRank = Boolean(rank && rank.rank > 0);
   const showStatus = hasStreak || hasRank;
 
-  // aria-label según el contenido real (los iconos no llevan texto visible).
   let statusAria;
   if (hasStreak && hasRank) statusAria = t("cdd.rankStreakAria", { streak, rank: rank.rank });
   else if (hasRank) statusAria = t("cdd.rankAria", { rank: rank.rank });
@@ -63,49 +54,74 @@ export default function Header({
   else statusAria = t("cdd.competeAria");
 
   return (
-    <header className="flex items-center justify-between">
-      <div className="flex min-w-0 flex-col">
-        <h1 className="truncate text-lg font-semibold tracking-tight text-foreground transition-colors duration-300 hover:text-accent">
-          {t("app.title")}
-        </h1>
-        <p className="text-xs text-muted-foreground">{dateLabel}</p>
+    <header className="prensa-area-cab">
+      <nav className="prensa-topbar" aria-label={t("cdd.competeAria")}>
+        <span>
+          <button
+            type="button"
+            aria-label={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
+            onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
+          >
+            {t("prensa.garaje")}
+            {/* Repesca pendiente: "(1)" rojo, como correcciones por publicar */}
+            {repescaAlert && <span className="aviso" aria-hidden="true">(1)</span>}
+          </button>
+          <span className="sep" aria-hidden="true">·</span>
+          <button
+            type="button"
+            aria-label={t("cdd.statsAria")}
+            onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
+          >
+            {t("prensa.ranking")}
+          </button>
+        </span>
+        <span>
+          {showStatus ? (
+            // Racha en oro viejo (lo acumulado); el puesto, si existe, al lado.
+            // Abre el ranking, igual que la píldora de estado anterior.
+            <button
+              type="button"
+              className={"racha" + (pop ? " animate-estampar" : "")}
+              aria-label={statusAria}
+              onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
+            >
+              {hasStreak && <>✦ {streak}</>}
+              {hasStreak && hasRank && " · "}
+              {hasRank && <>{rank.rank}º</>}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="cta"
+              aria-label={t("cdd.competeAria")}
+              onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
+            >
+              {t("cdd.competeLabel")} →
+            </button>
+          )}
+          <span className="sep" aria-hidden="true">·</span>
+          <button
+            type="button"
+            aria-label={t("cdd.profileAria")}
+            onClick={() => { haptic.impactLight(); (user ? onOpenProfile : onOpenLogin)?.(); }}
+          >
+            {user ? t("prensa.perfil") : t("prensa.entrar")}
+          </button>
+        </span>
+      </nav>
+
+      <div className="prensa-masthead">
+        {/* El h1 real (SEO/lectores) vive sr-only en Configurator; este es el
+            wordmark visual del masthead. */}
+        <p className="titulo">{t("app.title")}</p>
+        <p className="lema">{t("prensa.lema")}</p>
       </div>
 
-      {/* Fila de iconos: barra unificada estilo "control center" con bordes y fondos
-          sutiles. Cada utilidad se ilumina con su color temático en hover (ranking -> oro,
-          garaje -> menta, perfil -> blanco) con un halo de luz y escala táctil. */}
-      <nav className="flex items-center gap-1 rounded-xl border border-border/30 bg-bg-secondary/40 p-0.5 backdrop-blur-sm" aria-label={t("cdd.competeAria")}>
-        <button
-          type="button"
-          aria-label={statusAria}
-          title={statusAria}
-          onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
-          className="flex size-9 items-center justify-center rounded-lg border border-transparent text-foreground/70 transition-all duration-300 hover:scale-105 hover:bg-gold/10 hover:text-gold hover:border-gold/25 hover:shadow-[0_0_10px_rgba(232,200,122,0.15)] active:scale-95"
-        >
-          <Icon d={I.trophy} size={20} strokeWidth={1.8} />
-        </button>
-        <button
-          type="button"
-          aria-label={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
-          title={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
-          onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
-          className="relative flex size-9 items-center justify-center rounded-lg border border-transparent text-foreground/70 transition-all duration-300 hover:scale-105 hover:bg-accent/10 hover:text-accent hover:border-accent/25 hover:shadow-[0_0_10px_rgba(122,240,200,0.15)] active:scale-95"
-        >
-          <Icon d={I.garage} size={20} strokeWidth={1.8} />
-          {repescaAlert && (
-            <span className="absolute right-1 top-1 size-1.5 rounded-full bg-mint shadow-[0_0_6px_rgba(122,240,200,0.7)]" aria-hidden="true" />
-          )}
-        </button>
-        <button
-          type="button"
-          aria-label={t("cdd.profileAria")}
-          title={t("cdd.profileAria")}
-          onClick={() => { haptic.impactLight(); (user ? onOpenProfile : onOpenLogin)?.(); }}
-          className="flex size-9 items-center justify-center rounded-lg border border-transparent text-foreground/70 transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:text-white hover:border-white/25 hover:shadow-[0_0_10px_rgba(255,255,255,0.1)] active:scale-95"
-        >
-          <Icon d={I.user} size={20} strokeWidth={1.8} />
-        </button>
-      </nav>
+      <div className="prensa-folio">
+        <span>{dateLabel}</span>
+        <span aria-hidden="true">·</span>
+        <span className="rojo">{t("prensa.folioEdicion")}</span>
+      </div>
     </header>
   );
 }

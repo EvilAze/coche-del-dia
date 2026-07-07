@@ -58,7 +58,8 @@ body {
   padding: 10px 2px; border-bottom: 1px solid var(--tinta);
   font: 600 10px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase;
 }
-.topbar a { color: var(--tinta); text-decoration: none; }
+/* Área táctil digna sin alterar la métrica visual (padding compensado) */
+.topbar a { color: var(--tinta); text-decoration: none; display: inline-block; padding: 8px 2px; margin: -8px -2px; }
 .topbar a:hover { color: var(--rojo); }
 .topbar .racha { color: var(--rojo); }
 .masthead { text-align: center; padding: 26px 0 18px; }
@@ -86,14 +87,28 @@ body {
    OJO: la ventana de la foto es 4:3 SIEMPRE. En el juego real el recorte debe
    ser idéntico en todos los dispositivos (mismo recorte = misma dificultad);
    el ancho extra del escritorio lo absorben las columnas, no la foto. */
-.pliego { display: grid; grid-template-columns: 1fr; gap: 30px; grid-template-areas: "foto" "clas" "jugar"; }
-.a-foto { grid-area: foto; } .a-clas { grid-area: clas; } .a-jugar { grid-area: jugar; }
+/* Columna única (móvil): FLEX con order y la clasificación "disuelta"
+   (display:contents) para poder reordenar sus dos bloques por separado:
+   foto → intentos → CUPÓN → estadística. Antes la estadística se
+   interponía entre la foto y el formulario — fricción pura en móvil. */
+.pliego { display: flex; flex-direction: column; gap: 28px; }
+.a-clas { display: contents; }
+.a-foto { order: 1; }
+.a-clas .intentos { order: 2; }
+.a-jugar { order: 3; }
+.a-clas .estadistica { order: 4; margin-top: 0; }
 @media (min-width: 940px) and (max-width: 1099px) {
-  .pliego { grid-template-columns: 7fr 5fr; column-gap: 0; row-gap: 26px; align-content: start; grid-template-areas: "foto clas" "foto jugar"; }
+  .pliego { display: grid; grid-template-columns: 7fr 5fr; column-gap: 0; row-gap: 26px; align-content: start; grid-template-areas: "foto clas" "foto jugar"; }
+  .a-foto { grid-area: foto; } .a-clas { grid-area: clas; } .a-jugar { grid-area: jugar; }
+  .a-clas { display: block; }
+  .a-clas .estadistica { margin-top: 30px; }
   .a-clas, .a-jugar { border-left: 1px solid var(--tinta); padding-left: 34px; margin-left: 34px; }
 }
 @media (min-width: 1100px) {
-  .pliego { grid-template-columns: 27fr 46fr 27fr; column-gap: 0; align-content: start; grid-template-areas: "clas foto jugar"; }
+  .pliego { display: grid; grid-template-columns: 27fr 46fr 27fr; column-gap: 0; align-content: start; grid-template-areas: "clas foto jugar"; }
+  .a-foto { grid-area: foto; } .a-clas { grid-area: clas; } .a-jugar { grid-area: jugar; }
+  .a-clas { display: block; }
+  .a-clas .estadistica { margin-top: 30px; }
   .a-clas { border-right: 1px solid var(--tinta); padding-right: 30px; margin-right: 30px; }
   .a-jugar { border-left: 1px solid var(--tinta); padding-left: 30px; margin-left: 30px; }
 }
@@ -297,6 +312,7 @@ body {
   .dato { font-size: 15px; }
   .res-acciones { grid-template-columns: 1fr; }
   .sello { position: static; display: inline-block; margin-bottom: 12px; }
+  .btn-corregir { padding: 14px 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fila, .sello, .foto-ventana img { animation: none !important; transition: none !important; }
@@ -410,19 +426,22 @@ body {
         <div class="campos">
           <div class="campo">
             <label for="f-marca">Marca</label>
-            <input id="f-marca" list="marcas" placeholder="Escriba aquí…">
+            <input id="f-marca" list="marcas" placeholder="Escriba aquí…"
+              autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next">
             <datalist id="marcas"></datalist>
           </div>
           <div class="campo">
             <label for="f-modelo">Modelo</label>
-            <input id="f-modelo" list="modelos" placeholder="…y aquí">
+            <input id="f-modelo" list="modelos" placeholder="…y aquí"
+              autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next">
             <datalist id="modelos"></datalist>
           </div>
         </div>
         <div class="cupon-pie">
           <div class="campo">
             <label for="f-anio">Año</label>
-            <input id="f-anio" type="number" min="1900" max="2026" placeholder="19__">
+            <input id="f-anio" type="number" min="1900" max="2026" placeholder="19__"
+              inputmode="numeric" pattern="[0-9]*" enterkeyhint="go">
           </div>
           <button class="enviar" type="submit">Adivinar</button>
         </div>
@@ -668,15 +687,33 @@ function refrescarErratas() {
     : "Quedan 5 erratas pendientes. La corrección de hoy no se ha usado.";
 }
 
+/* Prefijo inequívoco → valor canónico ("jag" → "Jaguar"). En móvil escribir
+   el nombre completo es la mayor fricción del cupón; esto la recorta sin
+   cambiar la UI. Solo autocompleta si el prefijo casa con UNA sola opción. */
+function resolver(valor, lista) {
+  const norm = (s) => String(s).trim().toLowerCase();
+  const v = norm(valor);
+  if (!v) return valor.trim();
+  const exacto = lista.find((x) => norm(x) === v);
+  if (exacto) return exacto;
+  const prefijo = lista.filter((x) => norm(x).startsWith(v));
+  return prefijo.length === 1 ? prefijo[0] : valor.trim();
+}
+
 const Proto = {
   enviar(ev) {
     ev.preventDefault();
     if (terminado) return false;
-    const g = { marca: $("f-marca").value.trim(), modelo: $("f-modelo").value.trim(), anio: parseInt($("f-anio").value, 10) };
+    const marca = resolver($("f-marca").value, Object.keys(CATALOGO));
+    const marcaKey = Object.keys(CATALOGO).find((k) => k.toLowerCase() === marca.toLowerCase());
+    const modelos = marcaKey ? CATALOGO[marcaKey].modelos : Object.values(CATALOGO).flatMap((c) => c.modelos);
+    const g = { marca, modelo: resolver($("f-modelo").value, modelos), anio: parseInt($("f-anio").value, 10) };
     if (!g.marca || !g.modelo || !g.anio) {
       const caja = $("cupon");
       caja.classList.remove("temblor"); void caja.offsetWidth; caja.classList.add("temblor");
       $("nota-cupon").textContent = "Faltan datos en el cupón. Rellene las tres casillas.";
+      /* Llevar el foco al hueco: el teclado se abre donde hace falta */
+      $(!g.marca ? "f-marca" : !g.modelo ? "f-modelo" : "f-anio").focus();
       return false;
     }
     const r = evaluar(g);
@@ -686,6 +723,18 @@ const Proto = {
     if (acierto) terminar("win");
     else if (intentos.length >= partida.max) terminar("lose");
     else pintar();
+    /* Cerrar el teclado y, en columna única, llevar la vista al feedback:
+       al veredicto recién estampado en mitad de partida (la foto asoma por
+       arriba), o al resultado si la partida acaba de cerrarse. */
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    if (window.matchMedia("(max-width: 939px)").matches) {
+      requestAnimationFrame(() => {
+        const destino = terminado
+          ? document.querySelector("#resultado:not(.oculto), #muro:not(.oculto)")
+          : [...document.querySelectorAll("#lista-intentos .fila")].pop();
+        if (destino) destino.scrollIntoView({ behavior: "smooth", block: terminado ? "start" : "center" });
+      });
+    }
     return false;
   },
   reset() {
@@ -747,6 +796,14 @@ const Proto = {
     terminar("anon");
   },
 };
+
+/* Enter avanza de casilla (marca → modelo → año); en año, envía el form.
+   Sin esto, Enter en mitad del cupón dispararía un envío incompleto. */
+[["f-marca", "f-modelo"], ["f-modelo", "f-anio"]].forEach(([de, a]) => {
+  $(de).addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); $(a).focus(); }
+  });
+});
 
 /* Cuenta atrás al cierre de edición (medianoche local) */
 setInterval(() => {

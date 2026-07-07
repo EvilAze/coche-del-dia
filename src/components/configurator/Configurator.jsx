@@ -13,6 +13,7 @@ import AttemptProgress from "./AttemptProgress";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
+import NotaRedaccion from "./NotaRedaccion";
 import { useDailyStats, Distribution } from "./dailyStats";
 
 // Dirección visual «Prensa del motor»: papel + tinta + rojo de rotativa. El
@@ -218,6 +219,9 @@ export default function Configurator({
           </span>
         </footer>
       </main>
+
+      {/* Aviso one-time del rediseño (se auto-gatea por localStorage). */}
+      <NotaRedaccion />
 
       {showEnd && ended && (
         <EndScreen

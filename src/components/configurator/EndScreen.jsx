@@ -14,7 +14,6 @@ import { haptic } from "../../lib/haptics";
 import { track } from "../../lib/analytics";
 import { flagImagePath } from "../../data/countries";
 import { useToast } from "../Toast";
-import Confetti from "../Confetti";
 import { Icon, I } from "./icons";
 import { useDailyStats, Distribution, Percentile } from "./dailyStats";
 // Rejilla ✅/❌ del share: fuente única en lib/shareText (la misma que usa
@@ -126,10 +125,14 @@ export default function EndScreen({
     <div className="cdd-end" role="dialog" aria-modal="true">
       <div className="cdd-end-scrim" onClick={onClose} />
       <div className="cdd-end-card">
-        {won && <Confetti active />}
+        {/* (Confetti retirado: en el lenguaje prensa la celebración es el
+            SELLO estampándose — spec §2 del rediseño.) */}
 
-        {/* Banda de revelado */}
+        {/* Banda de revelado con el sello del veredicto */}
         <div className="cdd-reveal">
+          <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true">
+            {won ? t("prensa.selloWin") : t("prensa.selloLose")}
+          </div>
           {car?.img && (
             <img
               src={car.img}

@@ -950,3 +950,224 @@ body,
 @media (prefers-reduced-motion: reduce) {
   .cdd-end-scrim, .cdd-end-card, .cdd-shakewrap.shake, .cdd-chip.is-pending::after { animation: none !important; }
 }
+/* ═══════════════════════════════════════════════════════════════════════
+   SISTEMA «PRENSA DEL MOTOR» — F1 (pantalla de juego)
+   -----------------------------------------------------------------------
+   Imprenta a dos tintas sobre papel: TINTA + ROJO (+ oro-viejo solo texto
+   premium). Sin sombras/glow/blur; jerarquía por filetes; esquinas vivas.
+   Se aplica bajo `.prensa` (lo pone Configurator en la raíz del juego) y
+   sobreescribe por CASCADA los selectores .cdd-* que el juego aún consume;
+   el bloque antiguo (.theme-platino y compañía) se borra físicamente en F5.
+   Fuente de verdad visual: public/prensa-del-motor.html.
+   ═══════════════════════════════════════════════════════════════════════ */
+.prensa {
+  /* Variables mapeadas sobre los nombres que ya consume la capa .cdd-*:
+     así el CSS existente "se vuelve de papel" sin reescribir cada selector.
+     Las que el lenguaje prensa elimina (glow/ámbar) apuntan a tinta/rojo. */
+  --bg: #f3eee1; --bg2: #e9e2cf; --surface: #fbf7ec; --surface2: #e9e2cf;
+  --line: rgba(27, 23, 18, .25); --line-2: rgba(27, 23, 18, .15);
+  --line-strong: #1b1712;
+  --cdd-text: #1b1712; --cdd-muted: #6e6553; --faint: rgba(110, 101, 83, .62);
+  --accent-ink: #f3eee1; --good-ink: #f3eee1;
+  --bad: #6e6553; --bad-ink: #6e6553; --bad-sub: #6e6553;
+  --warn: #b3271b; /* la urgencia en prensa es ROJA: el ámbar no existe */
+  --gold: #7a5c10; --gold-ink: #f3eee1; --gold-glow: transparent;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Libre Franklin', Arial, sans-serif;
+  --font-mono: 'Courier Prime', monospace;
+  --ambient: none;
+  background: var(--bg); color: var(--cdd-text);
+  font-family: var(--font-body);
+}
+
+/* ── Cabecera de periódico (Header.jsx la monta; ver Task 5) ── */
+.prensa-topbar {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  padding: 10px 2px; border-bottom: 1px solid var(--line-strong);
+  font-family: var(--font-body); font-weight: 600; font-size: 10px;
+  letter-spacing: .18em; text-transform: uppercase;
+}
+/* Área táctil digna sin alterar la métrica visual (padding compensado). */
+.prensa-topbar button, .prensa-topbar a {
+  background: none; border: 0; cursor: pointer; color: var(--cdd-text);
+  font: inherit; letter-spacing: inherit; text-transform: inherit;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 2px; margin: -8px -2px; text-decoration: none;
+}
+.prensa-topbar button:hover, .prensa-topbar a:hover { color: #b3271b; }
+.prensa-topbar .sep { color: var(--cdd-muted); }
+/* Racha: oro viejo de tinta — "lo acumulado", nunca relleno (spec §2). */
+.prensa-topbar .racha { color: var(--gold); }
+/* Aviso de repesca junto a GARAJE: paréntesis rojo, como tirada pendiente. */
+.prensa-topbar .aviso { color: #b3271b; font-weight: 800; }
+
+.prensa-masthead { text-align: center; padding: 22px 0 14px; }
+.prensa-masthead h2 {
+  font-family: var(--font-display); font-weight: 900; letter-spacing: -.015em;
+  font-size: clamp(34px, 7vw, 52px); line-height: .95; color: var(--cdd-text);
+}
+.prensa-masthead .lema {
+  font-family: var(--font-display); font-style: italic; font-weight: 400;
+  color: var(--cdd-muted); font-size: 14px; margin-top: 9px;
+}
+.prensa-folio {
+  display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;
+  border-top: 3px double var(--line-strong); border-bottom: 3px double var(--line-strong);
+  padding: 8px 0; font-family: var(--font-body); font-weight: 600;
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+}
+.prensa-folio .rojo { color: #b3271b; }
+
+/* ── Ladillos de sección: versalitas + filete que llena la línea ── */
+.prensa-ladillo {
+  display: flex; align-items: baseline; gap: 12px;
+  font-family: var(--font-body); font-weight: 800; font-size: 11px;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--cdd-text);
+}
+.prensa-ladillo::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-3px); }
+.prensa-ladillo .aparte { font-weight: 600; color: var(--cdd-muted); letter-spacing: .14em; }
+
+/* ── Escenario: paspartú + filete (fuera HUD/grain/viñeta del sistema previo) ── */
+.prensa .cdd-stage-frame {
+  border-radius: 0; border: 1px solid var(--line-strong);
+  background: var(--surface); padding: 8px;
+}
+.prensa .cdd-stage-frame::after { display: none; } /* viñeta: innecesaria sobre papel */
+.prensa .cdd-hud, .prensa .cdd-grain { display: none; } /* atrezzo cámara: fuera */
+.prensa-pie {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  color: var(--cdd-muted); font-family: var(--font-display);
+  font-style: italic; font-size: 13px;
+}
+/* Pips "fotogramas": cuadraditos de negativo. Urgencia = SOLO rojo. */
+.prensa-pips { display: flex; gap: 5px; flex: none; }
+.prensa-pips .pip { width: 9px; height: 9px; border: 1px solid var(--line-strong); border-radius: 0; }
+.prensa-pips .pip.gastado { background: var(--line-strong); }
+.prensa-pips .pip.actual { border-color: #b3271b; background: #b3271b; }
+.prensa-pips .pip.actual.peligro { animation: prensaParpadeo 1.1s ease-in-out infinite; }
+@keyframes prensaParpadeo { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+/* ── Clasificación: marcas de corrector de pruebas ──
+   Acierto → subrayado rojo firme; cerca → subrayado rojo discontinuo con
+   apostilla; fallo → tachado en tinta. Fondos transparentes: la fila es
+   tipografía + filete, no un chip. */
+.prensa-fila {
+  display: grid; grid-template-columns: 26px 1.05fr 1.3fr .8fr; gap: 10px;
+  padding: 11px 2px; border-bottom: 1px solid var(--line);
+  align-items: baseline;
+}
+.prensa-fila .num { font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--cdd-muted); }
+.prensa-dato { min-width: 0; font-family: var(--font-display); font-size: 16px; line-height: 1.25; }
+.prensa-dato .palabra { display: inline; }
+.prensa-dato.bien .palabra { border-bottom: 2px solid #b3271b; font-weight: 600; }
+.prensa-dato.bien .marca-v { color: #b3271b; font-weight: 700; }
+.prensa-dato.cerca .palabra { border-bottom: 2px dashed #b3271b; }
+.prensa-dato.mal .palabra { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--cdd-muted); }
+.prensa-apostilla {
+  display: flex; align-items: center; gap: 5px; margin-top: 2px;
+  font-family: var(--font-display); font-style: italic; font-size: 11.5px; color: #b3271b;
+}
+.prensa-apostilla .bandera { width: 18px; height: 12px; object-fit: cover; flex: none; }
+.prensa-fila-pendiente { animation: prensaEntintado 1.2s ease-in-out infinite; }
+@keyframes prensaEntintado { 0%, 100% { opacity: .45; } 50% { opacity: .8; } }
+.prensa-estampada { animation: estamparFila .28s cubic-bezier(.2, 1, .3, 1) both; }
+@keyframes estamparFila { from { opacity: 0; transform: scale(1.02); } }
+
+/* ── El cupón de respuesta ── */
+.prensa-cupon {
+  border: 1px solid var(--line-strong); outline: 1px solid var(--line-strong);
+  outline-offset: 3px; padding: 18px 16px 16px; margin: 4px; background: transparent;
+}
+.prensa-cupon-cab {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  font-family: var(--font-body); font-weight: 800; font-size: 11px;
+  letter-spacing: .24em; text-transform: uppercase; white-space: nowrap; color: var(--cdd-text);
+}
+.prensa-cupon-cab::before, .prensa-cupon-cab::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); }
+/* Campos de línea base: la caja desaparece, queda el renglón. Lo escrito sale
+   "a máquina" (Courier), como un formulario rellenado de verdad. */
+.prensa .cdd-label {
+  font-family: var(--font-body); font-weight: 600; font-size: 10px;
+  letter-spacing: .2em; color: var(--cdd-muted);
+}
+.prensa .cdd-combo, .prensa .cdd-year {
+  background: transparent; border: 0; border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+}
+.prensa .cdd-combo.is-open, .prensa .cdd-combo:focus-within, .prensa .cdd-year:focus-within {
+  border-color: #b3271b; box-shadow: 0 1px 0 0 #b3271b;
+}
+.prensa .cdd-combo.is-invalid { border-bottom-color: #b3271b; }
+.prensa .cdd-input {
+  font-family: var(--font-mono); font-size: 16px; font-weight: 400;
+  padding: 11px 2px; color: var(--cdd-text);
+}
+.prensa .cdd-input::placeholder { color: var(--faint); font-style: italic; font-family: var(--font-display); }
+/* Overlay flotante (listbox/décadas): papel con filete. ÚNICA sombra funcional
+   permitida del sistema — sin ella el desplegable no se despega del papel. */
+.prensa .cdd-listbox, .prensa .cdd-decades {
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 0;
+  box-shadow: 0 12px 24px rgba(27, 23, 18, .15);
+}
+.prensa .cdd-opt { border-radius: 0; font-family: var(--font-body); }
+.prensa .cdd-opt:hover, .prensa .cdd-opt.hi {
+  background: rgba(179, 39, 27, .08); box-shadow: inset 2px 0 0 0 #b3271b;
+}
+.prensa .cdd-opt.sel { color: #b3271b; background: transparent; }
+.prensa .cdd-decade { border-radius: 0; background: transparent; border: 1px solid var(--line); color: var(--cdd-text); }
+.prensa .cdd-decade:hover, .prensa .cdd-decade:active { background: var(--line-strong); border-color: var(--line-strong); color: var(--bg); }
+.prensa .cdd-year-steps button { border-radius: 0; background: transparent; border: 1px solid var(--line); color: var(--cdd-muted); }
+.prensa .cdd-year-steps button:hover { color: #b3271b; border-color: #b3271b; }
+/* ADIVINAR: bloque de tinta → rojo al pasar. Sin estados "neón". */
+.prensa .cdd-submit {
+  border-radius: 0; background: var(--line-strong); color: var(--bg);
+  font-family: var(--font-body); font-weight: 800; font-size: 13px; letter-spacing: .26em;
+}
+.prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: #b3271b; }
+.prensa .cdd-submit:disabled {
+  background: transparent; color: var(--faint);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.prensa .cdd-submit.is-incomplete {
+  background: transparent; color: var(--cdd-muted);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+/* ── Pie de página del juego ── */
+.prensa-cierre {
+  border-top: 1px solid var(--line-strong); padding-top: 12px; margin-top: 8px;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px 14px; flex-wrap: wrap;
+  font-family: var(--font-body); font-weight: 600; font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.prensa-cierre button, .prensa-cierre a {
+  background: none; border: 0; cursor: pointer; padding: 6px 0; margin: -6px 0;
+  color: var(--cdd-muted); font: inherit; letter-spacing: inherit;
+  text-transform: inherit; text-decoration: none;
+}
+.prensa-cierre button:hover, .prensa-cierre a:hover { color: #b3271b; }
+
+/* ── Pliego responsivo ──
+   Móvil: columna única (orden foto → última jugada → cupón → historial, el
+   que ya monta Configurator). Escritorio ≥1100px: broadsheet 3 columnas
+   historial | foto | cupón con filetes verticales. La ventana de la foto es
+   4:3 SIEMPRE (regla 6: mismo recorte = misma dificultad). */
+.prensa-hoja { width: 100%; max-width: 560px; margin: 0 auto; padding: 0 18px 44px; }
+@media (min-width: 1100px) {
+  .prensa-hoja { max-width: 1260px; }
+  .prensa-pliego {
+    display: grid; grid-template-columns: 27fr 46fr 27fr; column-gap: 0;
+    align-content: start;
+    grid-template-areas: "cab cab cab" "clas foto jugar" "pie pie pie";
+  }
+  .prensa-area-cab { grid-area: cab; }
+  .prensa-area-clas { grid-area: clas; border-right: 1px solid var(--line-strong); padding-right: 30px; margin-right: 30px; min-width: 0; }
+  .prensa-area-foto { grid-area: foto; min-width: 0; }
+  .prensa-area-jugar { grid-area: jugar; border-left: 1px solid var(--line-strong); padding-left: 30px; margin-left: 30px; min-width: 0; }
+  .prensa-area-pie { grid-area: pie; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prensa-pips .pip.actual.peligro, .prensa-fila-pendiente,
+  .prensa-estampada { animation: none !important; }
+}

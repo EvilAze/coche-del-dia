@@ -1,6 +1,5 @@
 // src/components/ResultPanel.jsx
 import { useEffect, useRef, useState } from "react";
-import Confetti from "./Confetti";
 import ScoreBreakdown from "./ScoreBreakdown";
 import DailyStats from "./DailyStats";
 import NotificationOptIn from "./NotificationOptIn";
@@ -290,8 +289,8 @@ export default function ResultPanel({
 
   return (
     <div className="rounded-xl surface-flat p-6 text-center animate-fade-in">
-      <Confetti active={won} />
-
+      {/* (Confetti retirado en el rediseño «Prensa del motor»: la celebración
+          es tipográfica, sin partículas — coherente con el EndScreen.) */}
       {won ? (
         // En victoria el Confetti animado (línea 242) ya carga la
         // celebración — añadir un 🎉 estático debajo del título era doble

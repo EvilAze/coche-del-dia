@@ -452,7 +452,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             key="garage-panel"
             className="
               relative flex w-full max-w-md flex-col overflow-hidden
-              border-x border-white/10 bg-[#0d1014] shadow-2xl
+              border-x border-tinta bg-papel shadow-2xl
             "
             onClick={(e) => e.stopPropagation()}
             initial={{ y: 24, opacity: 0, scale: 0.98 }}
@@ -493,7 +493,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             />
 
         {/* Header */}
-        <div className="border-b border-white/10 px-4 py-3">
+        <div className="border-b border-tinta/15 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               {backLabel && (
@@ -502,7 +502,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
               <p className={`text-[10px] uppercase tracking-[0.28em] text-accent ${backLabel ? "mt-2" : ""}`}>
                 {headerLabel}
               </p>
-              <h2 className="truncate font-display text-2xl tracking-widest text-white">
+              <h2 className="truncate font-display text-2xl tracking-widest text-tinta">
                 {headerTitle}
               </h2>
             </div>
@@ -666,14 +666,14 @@ function CountriesMenu({
 
   return (
     <>
-      <div className="border-b border-white/10 bg-white/[0.02] px-4 py-3">
+      <div className="border-b border-tinta/15 bg-papel/[0.02] px-4 py-3">
         {/* Panel de estado de colección: barra + tier global + siguiente nivel.
             Entrar al Garaje pasa a sentirse como abrir una vitrina, no como
             leer una cifra suelta. */}
-        <div className="relative overflow-hidden rounded-xl border border-gold/20 bg-white/[0.03] px-3.5 py-3 text-left">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+        <div className="relative overflow-hidden rounded-xl border border-gold/20 bg-papel/[0.03] px-3.5 py-3 text-left">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-oro-viejo/60 to-transparent" />
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-sm text-white/85">
+            <span className="flex items-center gap-2 text-sm text-tinta">
               <CollectionIcon className="h-4 w-4 text-gold" />
               {t("garage.collector")}
             </span>
@@ -683,7 +683,7 @@ function CountriesMenu({
               </span>
             )}
           </div>
-          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full border border-white/5 bg-black/40">
+          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full border border-tinta/15 bg-tinta/40">
             <div
               className="h-full rounded-full bg-accent transition-[width] duration-700"
               style={{ width: `${pct}%` }}
@@ -770,11 +770,11 @@ function CountryRow({ country, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`group flex items-center gap-3 border-b border-white/[0.06] px-1 py-2.5 text-left transition-colors hover:bg-white/[0.03] active:scale-[0.99] ${
+      className={`group flex items-center gap-3 border-b border-tinta/[0.06] px-1 py-2.5 text-left transition-colors hover:bg-papel/[0.03] active:scale-[0.99] ${
         started ? "" : "opacity-60"
       }`}
     >
-      <div className="h-[26px] w-9 shrink-0 overflow-hidden rounded-[5px] border border-white/15">
+      <div className="h-[26px] w-9 shrink-0 overflow-hidden rounded-[5px] border border-tinta/25">
         <img
           src={flagImagePath(country.pais)}
           alt=""
@@ -787,20 +787,20 @@ function CountryRow({ country, onClick }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className={`truncate text-[15px] font-semibold ${started ? "text-white" : "text-white/70"}`}>
+          <span className={`truncate text-[15px] font-semibold ${started ? "text-tinta" : "text-tinta-2"}`}>
             {getLocalizedCountry(country.pais)}
           </span>
           <span className="shrink-0 text-xs tabular-nums text-muted">
             {country.unlocked} / {country.total}
           </span>
         </div>
-        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-white/[0.07]">
+        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-papel/[0.07]">
           <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
       <TierMedalInline tier={tier} />
-      <ChevronIcon className="h-4 w-4 shrink-0 text-white/30" />
+      <ChevronIcon className="h-4 w-4 shrink-0 text-tinta-2/70" />
     </button>
   );
 }
@@ -835,7 +835,7 @@ function BrandsMenu({
       >
         <div className="relative flex h-full flex-col items-center justify-center px-4 text-center">
           <p
-            className="font-display text-3xl font-bold uppercase tracking-widest text-white"
+            className="font-display text-3xl font-bold uppercase tracking-widest text-tinta"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
           >
             {getLocalizedCountry(country.pais)}
@@ -880,13 +880,13 @@ function BrandRow({ brand, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`group flex items-center gap-3 border-b border-white/[0.06] px-1 py-2.5 text-left transition-colors hover:bg-white/[0.03] active:scale-[0.99] ${
+      className={`group flex items-center gap-3 border-b border-tinta/[0.06] px-1 py-2.5 text-left transition-colors hover:bg-papel/[0.03] active:scale-[0.99] ${
         started ? "" : "opacity-60"
       }`}
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-tinta/15 bg-papel/[0.04]">
         {logoFailed ? (
-          <span className="text-sm font-bold text-white/70">
+          <span className="text-sm font-bold text-tinta-2">
             {(brand.marca?.[0] || "?").toUpperCase()}
           </span>
         ) : (
@@ -904,20 +904,20 @@ function BrandRow({ brand, onClick }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className={`truncate text-[15px] font-semibold ${started ? "text-white" : "text-white/70"}`}>
+          <span className={`truncate text-[15px] font-semibold ${started ? "text-tinta" : "text-tinta-2"}`}>
             {brand.marca}
           </span>
           <span className="shrink-0 text-xs tabular-nums text-muted">
             {brand.unlocked} / {brand.total}
           </span>
         </div>
-        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-white/[0.07]">
+        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-papel/[0.07]">
           <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
       <TierMedalInline tier={tier} />
-      <ChevronIcon className="h-4 w-4 shrink-0 text-white/30" />
+      <ChevronIcon className="h-4 w-4 shrink-0 text-tinta-2/70" />
     </button>
   );
 }
@@ -962,7 +962,7 @@ function BrandShowroom({
             />
           ) : (
             <p
-              className="font-display text-2xl font-bold uppercase tracking-widest text-white"
+              className="font-display text-2xl font-bold uppercase tracking-widest text-tinta"
               style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
             >
               {brand.marca}
@@ -971,7 +971,7 @@ function BrandShowroom({
           <p className="mt-1 text-xs font-medium tabular-nums text-muted">
             {t("garage.brandCount", { unlocked: brand.unlocked, total: brand.total })}
           </p>
-          <div className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-white/10">
+          <div className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-papel-2">
             <div
               className="h-full rounded-full bg-accent transition-[width] duration-700"
               style={{ width: `${progressPct}%` }}
@@ -1036,18 +1036,20 @@ function UnlockedCard({ car, onClick }) {
       {/* Gradient elegante de abajo hacia arriba */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
-      {/* Etiqueta con jerarquía: marca pequeña amarilla, modelo blanco bold */}
+      {/* Etiqueta sobre el scrim de la foto: texto CLARO (papel) — sobre la
+          fotografía manda el negativo, no la tinta. Jerarquía: marca pequeña,
+          modelo bold, año tenue. */}
       <div className="absolute inset-x-0 bottom-0 p-2.5 text-left">
-        <p className="truncate text-xs font-medium uppercase tracking-widest text-accent">
+        <p className="truncate text-xs font-medium uppercase tracking-widest text-papel/75">
           {car.marca}
         </p>
-        <p className="truncate text-sm font-bold text-white">
+        <p className="truncate text-sm font-bold text-papel">
           {car.modelo}
         </p>
-        <p className="text-[10px] tabular-nums text-muted">{car.anio}</p>
+        <p className="text-[10px] tabular-nums text-papel/60">{car.anio}</p>
       </div>
 
-      <div className="absolute right-1.5 top-1.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-accent">
+      <div className="absolute right-1.5 top-1.5 border border-papel/50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-papel">
         ✓
       </div>
 
@@ -1057,9 +1059,9 @@ function UnlockedCard({ car, onClick }) {
       {car.wonAsVeteran && (
         <div
           className="
-            absolute left-1.5 top-1.5 rounded-full border border-amber-300/60
-            bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase
-            tracking-widest text-amber-200
+            absolute left-1.5 top-1.5 rounded-full border border-papel/50
+            bg-tinta/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase
+            tracking-widest text-papel
           "
           title={t("garage.veteranBadgeAria")}
           aria-label={t("garage.veteranBadgeAria")}
@@ -1084,9 +1086,9 @@ function LockedCard({ car, onClick }) {
       onClick={onClick}
       className="
         group relative aspect-[4/5] w-full overflow-hidden rounded-lg
-        border border-white/10 bg-[#0d0d10]
+        border border-tinta/15 bg-[#0d0d10]
         shadow-md shadow-black/40 transition-all duration-300
-        hover:border-amber-500/30 hover:scale-[1.02]
+        hover:border-papel/40 hover:scale-[1.02]
         active:scale-[0.98] cursor-pointer
       "
       aria-label={t("garage.ariaLockedCard")}
@@ -1106,9 +1108,9 @@ function LockedCard({ car, onClick }) {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/40" />
 
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center">
-        <LockIcon className="h-7 w-7 text-amber-500/70 transition-transform duration-300 group-hover:scale-110" />
+        <LockIcon className="h-7 w-7 text-papel/80 transition-transform duration-300 group-hover:scale-110" />
         <p
-          className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-500/80 transition-colors duration-300 group-hover:text-amber-400"
+          className="text-[10px] font-semibold uppercase tracking-[0.22em] text-papel/85 transition-colors duration-300 group-hover:text-papel"
           style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
         >
           {t("garage.lockedLabel")}
@@ -1160,9 +1162,9 @@ function CarDetail({ open, car, onClose, onStartRepesca }) {
               <>
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-black/40" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center">
-                  <LockIcon className="h-9 w-9 text-amber-500/70 animate-pulse" />
+                  <LockIcon className="h-9 w-9 text-papel/80 animate-pulse" />
                   <p
-                    className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-500/80"
+                    className="text-xs font-semibold uppercase tracking-[0.22em] text-papel/85"
                     style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
                   >
                     {t("garage.lockedLabel")}
@@ -1185,11 +1187,11 @@ function CarDetail({ open, car, onClose, onStartRepesca }) {
                     {t("garage.modelHidden")}
                   </span>
                 </div>
-                <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
+                <div className="mt-4 rounded-lg border border-tinta/15 bg-papel/[0.03] px-3 py-3 text-left">
                   <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
                     {t("garage.repescaTag")}
                   </p>
-                  <p className="text-sm leading-relaxed text-white/90">
+                  <p className="text-sm leading-relaxed text-tinta">
                     {t("garage.lockedCardDetailBody")}
                   </p>
                 </div>
@@ -1210,7 +1212,7 @@ function CarDetail({ open, car, onClose, onStartRepesca }) {
               </>
             ) : (
               <>
-                <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-white">
+                <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-tinta">
                   {displayCar.modelo}
                 </h3>
                 <p className="mt-0.5 font-display text-base tabular-nums text-muted">
@@ -1218,16 +1220,16 @@ function CarDetail({ open, car, onClose, onStartRepesca }) {
                 </p>
 
                 {getCarDescription(displayCar) ? (
-                  <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left">
+                  <div className="mt-4 rounded-lg border border-tinta/15 bg-papel/[0.03] px-3 py-3 text-left">
                     <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
                       {t("garage.carSpec")}
                     </p>
-                    <p className="text-sm leading-relaxed text-white/90">
+                    <p className="text-sm leading-relaxed text-tinta">
                       {getCarDescription(displayCar)}
                     </p>
                   </div>
                 ) : (
-                  <p className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-3 text-xs italic text-muted">
+                  <p className="mt-4 rounded-lg border border-tinta/15 bg-papel/[0.02] px-3 py-3 text-xs italic text-muted">
                     {t("garage.carNoDescription")}
                   </p>
                 )}
@@ -1268,7 +1270,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
           <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-accent">
             {t("garage.repescaTag")}
           </p>
-          <h3 className="mt-1 font-display text-xl tracking-wider text-white">
+          <h3 className="mt-1 font-display text-xl tracking-wider text-tinta">
             {t("garage.repescaConfirmTitle")}
           </h3>
 
@@ -1276,7 +1278,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
             {t("garage.repescaConfirmBody", { poolSize })}
           </p>
 
-          <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1 text-left">
+          <div className="mt-4 rounded-lg border border-tinta/15 bg-papel/[0.03] px-3 py-1 text-left">
             <RuleRow icon={<CalendarIcon />}>{t("garage.repescaRuleOnePerDay")}</RuleRow>
             <RuleRow icon={<HalfIcon />}>{t("garage.repescaRuleHalfPoints")}</RuleRow>
             <RuleRow icon={<StreakSafeIcon />} last>{t("garage.repescaRuleNoStreak")}</RuleRow>
@@ -1288,9 +1290,9 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
               onClick={onCancel}
               disabled={starting}
               className="
-                flex-1 rounded-lg border border-white/10 bg-white/[0.04]
-                px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/80
-                transition hover:border-white/30 hover:text-white
+                flex-1 rounded-lg border border-tinta/15 bg-papel/[0.04]
+                px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta
+                transition hover:border-tinta/25 hover:text-tinta
                 disabled:cursor-not-allowed disabled:opacity-50
               "
             >
@@ -1373,7 +1375,7 @@ function RandomRepescaButton({
   const toneCls =
     tone === "accent"
       ? "border border-accent/50 bg-accent/15 text-accent hover:border-accent hover:bg-accent/25"
-      : "border border-white/10 bg-white/[0.04] text-white/60";
+      : "border border-tinta/15 bg-papel/[0.04] text-tinta-2";
 
   return (
     <button
@@ -1522,7 +1524,7 @@ function RuleRow({ icon, children, last = false }) {
   return (
     <div
       className={`flex items-center gap-2.5 py-2 text-xs text-muted ${
-        last ? "" : "border-b border-white/[0.06]"
+        last ? "" : "border-b border-tinta/[0.06]"
       }`}
     >
       <span className="shrink-0 text-accent">{icon}</span>
@@ -1540,8 +1542,8 @@ function BackButton({ onClick, label }) {
       aria-label={t("garage.backTo", { label })}
       className="
         inline-flex max-w-full items-center gap-1.5
-        rounded-md border border-white/10 bg-white/[0.04]
-        px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-white/80
+        rounded-md border border-tinta/15 bg-papel/[0.04]
+        px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta
         transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent
         active:scale-95
       "
@@ -1601,13 +1603,13 @@ function RepescaHelpModal({ open, onClose }) {
               <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
                 {t("garage.repescaHelpTag")}
               </p>
-              <h3 className="font-display text-xl tracking-wider text-white">
+              <h3 className="font-display text-xl tracking-wider text-tinta">
                 {t("garage.repescaHelpTitle")}
               </h3>
             </div>
           </div>
 
-          <p className="mt-4 text-sm leading-relaxed text-white/90">
+          <p className="mt-4 text-sm leading-relaxed text-tinta">
             {t("garage.repescaHelpBody")}
           </p>
 
@@ -1650,12 +1652,12 @@ function RepescaHelpModal({ open, onClose }) {
 
 function HelpRow({ icon, title, children }) {
   return (
-    <div className="flex gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
+    <div className="flex gap-3 rounded-lg border border-tinta/15 bg-papel/[0.03] px-3 py-2.5">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 font-display text-sm text-accent">
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta">
           {title}
         </p>
         <p className="mt-0.5 text-xs leading-relaxed text-muted">{children}</p>
@@ -1668,12 +1670,12 @@ function AuthWall({ onLogin }) {
   const { t } = useT();
   return (
     <div className="flex flex-1 items-center justify-center p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-white/10 bg-bg-secondary/60 p-6 text-center">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-tinta/15 bg-bg-secondary/60 p-6 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
           <LockIcon className="h-9 w-9 text-accent" />
         </div>
         <div>
-          <p className="font-display text-xl tracking-widest text-white">
+          <p className="font-display text-xl tracking-widest text-tinta">
             {t("garage.authTitle")}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
@@ -1685,7 +1687,7 @@ function AuthWall({ onLogin }) {
           onClick={onLogin}
           className="
             flex w-full items-center justify-center gap-3
-            rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black
+            rounded-lg bg-papel px-4 py-3 text-sm font-semibold text-papel
             transition-transform hover:scale-[1.02] active:scale-[0.98]
           "
         >

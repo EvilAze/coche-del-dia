@@ -23,7 +23,7 @@ import PodiumMedals from "./PodiumMedals";
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-center">
+    <div className="rounded-xl border border-tinta/15 bg-papel/[0.04] p-3 text-center">
       <div className="font-display text-2xl text-accent">{value ?? 0}</div>
       <div className="mt-1 text-[9px] uppercase tracking-widest text-muted">
         {label}
@@ -151,7 +151,7 @@ export default function PublicProfile({ open, onClose, userId }) {
       panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col p-5 overflow-hidden"
     >
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-display text-2xl tracking-widest text-white">
+        <h2 className="font-display text-2xl tracking-widest text-tinta">
           {t("publicProfile.title")}
         </h2>
         <CloseButton onClick={onClose} />
@@ -163,8 +163,8 @@ export default function PublicProfile({ open, onClose, userId }) {
         <p className="text-sm text-red-400">{state.error}</p>
       ) : (
         <>
-          <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="truncate text-2xl font-bold text-white">{nickname}</p>
+          <div className="mb-4 rounded-xl border border-tinta/15 bg-papel/[0.04] p-4">
+            <p className="truncate text-2xl font-bold text-tinta">{nickname}</p>
             <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-muted">
               {t("publicProfile.publicLabel")}
             </p>
@@ -189,14 +189,14 @@ export default function PublicProfile({ open, onClose, userId }) {
             />
           </div>
 
-          <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-white/10 px-5 pt-4">
+          <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-tinta/15 px-5 pt-4">
             {/* Podios mensuales (ðŸ¥‡ðŸ¥ˆðŸ¥‰). Solo se renderiza si tiene alguno. */}
             <div className="mb-4 empty:hidden">
               <PodiumMedals userId={userId} />
             </div>
 
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-display text-base tracking-widest text-white">
+              <h3 className="font-display text-base tracking-widest text-tinta">
                 {t("publicProfile.medalsTitle")}
               </h3>
               <span className="text-xs tabular-nums text-muted">
@@ -309,7 +309,7 @@ function PublicBadge({ achievement, locale }) {
 
   return (
     <div
-      className={`group relative aspect-square overflow-hidden rounded-lg border ${borderClass} bg-white/[0.04] p-2`}
+      className={`group relative aspect-square overflow-hidden rounded-lg border ${borderClass} bg-papel/[0.04] p-2`}
       title={`${title} â€” ${description}`}
     >
       <div className="flex h-full w-full flex-col items-center justify-center gap-1">

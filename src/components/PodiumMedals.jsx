@@ -73,7 +73,7 @@ export default function PodiumMedals({ userId }) {
           return (
             <div
               key={`${m.month}-${m.rank}`}
-              className={`flex items-center gap-1.5 rounded-lg border ${style.border} bg-white/[0.04] px-2.5 py-1.5`}
+              className={`flex items-center gap-1.5 rounded-lg border ${style.border} bg-papel/[0.04] px-2.5 py-1.5`}
               title={t("podium.medalAria", { place, month: monthLabel })}
             >
               <span className="text-base leading-none" aria-hidden="true">

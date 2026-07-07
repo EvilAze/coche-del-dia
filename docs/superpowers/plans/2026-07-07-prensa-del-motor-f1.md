@@ -40,10 +40,11 @@ Reemplazar el bloque de fuentes (líneas 19–27) por:
     />
 ```
 
-- [ ] **Step 2: theme-color y noscript a papel**
-
-`index.html:8`: `<meta name="theme-color" content="#0a0a0b" />` → `content="#f3eee1"`.
-En el `<noscript>` (151–156): fondo `#0a0a0b`→`#f3eee1`, texto `#f0f0f4`→`#1b1712`, h1 `#e8c87a`→`#b3271b`.
+- [x] **Step 2: theme-color y noscript a papel → DIFERIDO A F5** (decisión en ejecución:
+son globales y la app sigue oscura hasta F5; cambiarlos ahora dejaría la barra del
+navegador en papel sobre pantallas grafito en los Previews intermedios. Misma lógica
+de convivencia que los tokens. F5 los cambia junto con la retirada de Archivo/Space
+Mono del link de fuentes, que también se conservan hasta entonces.)
 
 - [ ] **Step 3: Verificar en preview**
 

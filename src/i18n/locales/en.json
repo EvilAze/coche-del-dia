@@ -139,6 +139,14 @@
     "peekAria": "Back to the photo",
     "unlockKicker": "New sticker"
   },
+  "prensa": {
+    "lema": "The daily for those who know a car by its headlight.",
+    "folioEdicion": "Free edition",
+    "garaje": "Garage",
+    "ranking": "Standings",
+    "perfil": "Profile",
+    "entrar": "Sign in"
+  },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",
     "yearLowerTitle": "The correct year is lower",

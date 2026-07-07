@@ -999,10 +999,12 @@ body,
 /* Racha: oro viejo de tinta — "lo acumulado", nunca relleno (spec §2). */
 .prensa-topbar .racha { color: var(--gold); }
 /* Aviso de repesca junto a GARAJE: paréntesis rojo, como tirada pendiente. */
-.prensa-topbar .aviso { color: #b3271b; font-weight: 800; }
+.prensa-topbar .aviso { color: #b3271b; font-weight: 800; margin-left: 3px; }
+/* CTA de competir (anónimo sin racha): la única llamada roja de la barra. */
+.prensa-topbar .cta { color: #b3271b; }
 
 .prensa-masthead { text-align: center; padding: 22px 0 14px; }
-.prensa-masthead h2 {
+.prensa-masthead .titulo {
   font-family: var(--font-display); font-weight: 900; letter-spacing: -.015em;
   font-size: clamp(34px, 7vw, 52px); line-height: .95; color: var(--cdd-text);
 }

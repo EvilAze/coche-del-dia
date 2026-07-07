@@ -325,7 +325,7 @@ export default function ResultPanel({
               revelado sin perder la jerarquía: el año mantiene su peso
               dorado display, el nombre su peso medio en blanco. */}
           <div className="mb-2 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5">
-            <span className="text-white font-medium text-base">
+            <span className="text-tinta font-medium text-base">
               {car.marca} {car.modelo}
             </span>
             <span className="text-accent font-display text-xl tracking-wider">
@@ -415,7 +415,7 @@ export default function ResultPanel({
             aria-hidden="true"
             className="
               mt-1 mb-3 block h-px w-full
-              bg-gradient-to-r from-transparent via-accent/40 to-transparent
+              bg-rojo/40
             "
           />
 
@@ -491,7 +491,7 @@ export default function ResultPanel({
           <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
             {t("result.spec")}
           </p>
-          <p className="text-sm leading-relaxed text-white/90">
+          <p className="text-sm leading-relaxed text-tinta">
             {carDescription}
           </p>
         </div>
@@ -502,7 +502,7 @@ export default function ResultPanel({
           <p className="text-[10px] uppercase tracking-[0.22em] text-muted">
             {t("result.nextCar")}
           </p>
-          <p className="mt-1 font-display text-2xl tabular-nums tracking-[0.18em] text-white">
+          <p className="mt-1 font-display text-2xl tabular-nums tracking-[0.18em] text-tinta">
             {countdown}
           </p>
         </div>
@@ -523,11 +523,11 @@ export default function ResultPanel({
       )}
 
       {!user && won && (
-        <div className="mt-5 rounded-xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 text-left">
+        <div className="mt-5 rounded-none border border-tinta bg-transparent p-4 text-left">
           <p className="font-display text-sm uppercase tracking-[0.14em] text-accent">
             {t("result.saveProgressTitle")}
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-white/90">
+          <p className="mt-2 text-sm leading-relaxed text-tinta">
             {t("result.saveProgressBody")}
           </p>
           <button
@@ -535,7 +535,7 @@ export default function ResultPanel({
             onClick={onOpenLogin}
             className="
               mt-4 w-full rounded-lg bg-accent px-4 py-2.5
-              text-xs font-semibold uppercase tracking-[0.12em] text-black
+              text-xs font-semibold uppercase tracking-[0.12em] text-papel
               transition hover:brightness-110 active:scale-[0.98]
             "
           >

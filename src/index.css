@@ -23,15 +23,18 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    background-color: #0d1014;
-    color: #f0f0f4;
-    font-family: 'Archivo', sans-serif;
+    /* Rediseño «Prensa del motor» (F4): la base de la página es papel. El
+       juego y las pantallas internas fijan su propio fondo igualmente; esto
+       cubre gaps/overscroll para que no asome grafito. */
+    background-color: #f3eee1;
+    color: #1b1712;
+    font-family: 'Libre Franklin', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   select option {
-    background-color: #111113;
-    color: #f0f0f4;
+    background-color: #f3eee1;
+    color: #1b1712;
   }
   input[list]::-webkit-calendar-picker-indicator {
     display: none;
@@ -174,12 +177,13 @@
   }
 
 
-  /* Acento ORO premium (texto). Para etiquetas/valores de momentos de alta
-     gama (racha, victoria, podio). El halo es opcional vía .text-gold-glow. */
-  .text-gold { color: #e8c87a; }
-  .text-gold-glow { color: #e8c87a; text-shadow: 0 0 18px rgba(232, 200, 122, 0.45); }
-  /* Relleno oro con tinta oscura legible (chips/badges premium). */
-  .fill-gold { background-color: #e8c87a; color: #1a1306; }
+  /* Acento ORO premium (texto). Prensa (F4): oro viejo de tinta #7a5c10 —
+     legible sobre papel (el #e8c87a era para grafito). Sin halo (fuera glows);
+     .text-gold-glow queda como alias plano. Racha, victoria, podio, logros. */
+  .text-gold { color: #7a5c10; }
+  .text-gold-glow { color: #7a5c10; }
+  /* Relleno oro viejo con texto papel legible (chips/badges premium). */
+  .fill-gold { background-color: #7a5c10; color: #f3eee1; }
 
   .scrollbar-premium {
     scrollbar-width: thin;

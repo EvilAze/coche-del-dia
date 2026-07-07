@@ -393,12 +393,12 @@ export default function Repesca() {
 
   if (phase === "error") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-white">
+      <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-tinta">
         <div className="w-full max-w-sm rounded-2xl border border-red-400/40 bg-bg-secondary/60 p-6 text-center shadow-2xl">
           <p className="text-[10px] uppercase tracking-[0.28em] text-red-400">
             {t("repesca.errorUnavailable")}
           </p>
-          <h1 className="mt-2 font-display text-2xl tracking-widest text-white">
+          <h1 className="mt-2 font-display text-2xl tracking-widest text-tinta">
             {t("repesca.errorMismatchTitle")}
           </h1>
           <p className="mt-3 text-sm text-muted">{error}</p>
@@ -423,7 +423,7 @@ export default function Repesca() {
   const shareText = ""; // No compartimos resultados de repesca (es individual).
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-white">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-tinta">
       {/* Header simple, sin sticky para no robar espacio vertical */}
       <header className="border-b border-border bg-bg-primary">
         <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
@@ -434,8 +434,8 @@ export default function Repesca() {
             }}
             className="
               inline-flex items-center gap-1.5 rounded-md
-              border border-white/10 bg-white/[0.04]
-              px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-white/80
+              border border-tinta/15 bg-papel/[0.04]
+              px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta
               transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent
               active:scale-95
             "
@@ -455,7 +455,7 @@ export default function Repesca() {
             <span>{t("repesca.buttonExit")}</span>
           </button>
 
-          <p className="font-display text-xl tracking-widest text-white">
+          <p className="font-display text-xl tracking-widest text-tinta">
             {t("repesca.headerTitle")}
           </p>
 

@@ -26,11 +26,15 @@ export function brandTier(unlocked, total) {
   return null;
 }
 
-// Color de cada tier. El oro usa el accent de marca (#e8c87a).
+// Color de cada tier. Rediseño «Prensa del motor» (F4): metálicos
+// OSCURECIDOS para que lean sobre papel marfil (los originales
+// —gold #e8c87a, silver #cfd2d6— eran para fondo grafito y desaparecían
+// sobre claro). Siguen evocando oro/plata/bronce, con la profundidad que
+// el papel exige (contraste AA).
 export const TIER_HEX = {
-  bronze: "#c0834a",
-  silver: "#cfd2d6",
-  gold: "#e8c87a",
+  bronze: "#8a5a2b",
+  silver: "#6f767f",
+  gold: "#8a6a12",
 };
 
 export const TIER_LABEL = {

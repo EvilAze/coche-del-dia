@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
+import { useCountdown } from "../../hooks/useCountdown";
 import Header from "./Header";
 import ZoomStage from "./ZoomStage";
 import AttemptProgress from "./AttemptProgress";
@@ -94,6 +95,11 @@ export default function Configurator({
   // broadsheet / final en móvil). GATEADA a partida cerrada: el hook ni
   // siquiera pide los datos mientras se juega (no chivar la dificultad).
   const daily = useDailyStats(attempts, won, ended);
+
+  // Reloj del pie: "CIERRE DE EDICIÓN EN hh:mm:ss" (medianoche Madrid). El
+  // mismo hook que usa el EndScreen — dos consumidores, un solo intervalo por
+  // montaje, coste despreciable.
+  const countdown = useCountdown();
 
   return (
     // .prensa fija todas las variables del sistema; --accent se sigue
@@ -200,14 +206,16 @@ export default function Configurator({
             ))}
         </div>
 
-        {/* Pie de página: enlaces en versalitas con filete superior. */}
+        {/* Pie de página: enlaces en versalitas + reloj de cierre de edición. */}
         <footer className="prensa-area-pie prensa-cierre">
           <span>
             <button type="button" onClick={onOpenHowTo}>{t("cdd.helpAria")}</button>
             {" · "}
             <a href="/privacidad">{t("app.footerPrivacy")}</a>
           </span>
-          <span>© {new Date().getFullYear()} · {t("app.title")}</span>
+          <span>
+            {t("prensa.cierre")} <span className="reloj">{countdown.formatted}</span>
+          </span>
         </footer>
       </main>
 

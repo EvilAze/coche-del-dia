@@ -143,6 +143,11 @@
   "prensa": {
     "lema": "El diario de los que reconocen un coche por el faro.",
     "folioEdicion": "Edición gratuita",
+    "ladilloFoto": "La fotografía del día",
+    "pista": "Pista {n} de {max}",
+    "edicionCerrada": "Edición cerrada",
+    "pieFoto": "El ejemplar de hoy, visto de demasiado cerca. Cada fallo abre el plano.",
+    "pieFotoFin": "El ejemplar de hoy, por fin a plena página.",
     "garaje": "Garaje",
     "ranking": "Ranking",
     "perfil": "Perfil",

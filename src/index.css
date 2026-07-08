@@ -986,27 +986,38 @@ body,
 /* ── Cabecera de periódico (Header.jsx la monta; ver Task 5) ── */
 .prensa-topbar {
   display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  padding: 10px 2px; border-bottom: 1px solid var(--line-strong);
+  padding: 10px 0; border-bottom: 1px solid var(--line-strong);
   font-family: var(--font-body); font-weight: 600; font-size: 10px;
   letter-spacing: .18em; text-transform: uppercase;
 }
-/* Área táctil digna sin alterar la métrica visual (padding compensado). */
+/* Cada grupo (izq/der) alinea sus enlaces por la línea base. El aire alrededor
+   del "·" lo da el padding horizontal de los propios enlaces, no un gap del
+   separador: así el "·" respira por igual a ambos lados (antes, con margen
+   negativo horizontal, se pegaba a las secciones). */
+.prensa-topbar > span { display: inline-flex; align-items: baseline; }
+/* Área táctil vertical sin sumar altura (margen negativo SOLO en vertical);
+   el padding horizontal es el que separa cada enlace de su "·" vecino. */
 .prensa-topbar button, .prensa-topbar a {
   background: none; border: 0; cursor: pointer; color: var(--cdd-text);
   font: inherit; letter-spacing: inherit; text-transform: inherit;
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 8px 2px; margin: -8px -2px; text-decoration: none;
+  display: inline-flex; align-items: baseline; gap: 0;
+  padding: 8px 7px; margin: -8px 0; text-decoration: none;
 }
+/* Los enlaces de los extremos van a ras del pliego (alineados con folio y
+   ladillos); el aire interno queda solo alrededor del separador. */
+.prensa-topbar > span:first-child > :first-child { padding-left: 0; }
+.prensa-topbar > span:last-child > :last-child { padding-right: 0; }
 .prensa-topbar button:hover, .prensa-topbar a:hover { color: #b3271b; }
 .prensa-topbar .sep { color: var(--cdd-muted); }
 /* Racha: oro viejo de tinta — "lo acumulado", nunca relleno (spec §2). */
 .prensa-topbar .racha { color: var(--gold); }
-/* Aviso de repesca junto a GARAJE: paréntesis rojo, como tirada pendiente. */
-.prensa-topbar .aviso { color: #b3271b; font-weight: 800; margin-left: 3px; }
+/* Aviso de repesca pegado a GARAJE (corrección al margen, no a media palabra):
+   sin letter-spacing heredado y con un aire fino, no los ~9px de antes. */
+.prensa-topbar .aviso { color: #b3271b; font-weight: 800; margin-left: 2px; letter-spacing: 0; }
 /* CTA de competir (anónimo sin racha): la única llamada roja de la barra. */
 .prensa-topbar .cta { color: #b3271b; }
 
-.prensa-masthead { text-align: center; padding: 22px 0 14px; }
+.prensa-masthead { text-align: center; padding: 14px 0 12px; }
 .prensa-masthead .titulo {
   font-family: var(--font-display); font-weight: 900; letter-spacing: -.015em;
   font-size: clamp(34px, 7vw, 52px); line-height: .95; color: var(--cdd-text);
@@ -1016,10 +1027,14 @@ body,
   color: var(--cdd-muted); font-size: 14px; margin-top: 9px;
 }
 .prensa-folio {
-  display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;
+  display: flex; justify-content: center; align-items: baseline; gap: 8px;
+  flex-wrap: nowrap; white-space: nowrap;
   border-top: 3px double var(--line-strong); border-bottom: 3px double var(--line-strong);
   padding: 8px 0; font-family: var(--font-body); font-weight: 600;
-  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  /* La línea de folio (fecha COMPLETA + edición) debe caber en UN renglón,
+     también en móviles estrechos: escala fluida y letter-spacing contenido
+     evitan el salto de línea que partía "· EDICIÓN GRATUITA" abajo. */
+  font-size: clamp(8px, 2.4vw, 10px); letter-spacing: .1em; text-transform: uppercase;
 }
 .prensa-folio .rojo { color: #b3271b; }
 
@@ -1204,9 +1219,13 @@ body,
 }
 
 /* Foco de teclado del sistema prensa: anillo rojo uniforme (sustituye al
-   .focus-ring menta en la pantalla de juego). focus-visible: solo teclado. */
+   .focus-ring menta en la pantalla de juego). focus-visible: solo teclado.
+   Los <input> quedan FUERA a propósito: ya llevan su propio indicador de foco
+   editorial (subrayado rojo de 2px vía .prensa-input:focus y
+   .prensa-year:focus-within), así que el anillo dibujaba un recuadro redundante
+   alrededor de la cifra al enfocar el año. Un solo indicador, más limpio. */
 .prensa button:focus-visible, .prensa a:focus-visible,
-.prensa input:focus-visible, .prensa [role="option"]:focus-visible {
+.prensa [role="option"]:focus-visible {
   outline: 2px solid #b3271b; outline-offset: 2px;
 }
 

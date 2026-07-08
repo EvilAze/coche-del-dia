@@ -90,15 +90,18 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
     anioEstado = "mal";
     const dir = g.anio?.direction;
     if (dir) {
+      // Solo la flecha (↑ más nuevo · ↓ más antiguo): quitamos el texto para
+      // ganar altura en la lista de intentos (la apostilla larga se partía en
+      // dos líneas). El sentido no se pierde: la flecha es aria-hidden y la
+      // dirección viaja al lector de pantalla como texto vía anioSr.
       anioApostilla = (
         <span className="prensa-apostilla">
-          {t(dir === "up" ? "cdd.yearNewer" : "cdd.yearOlder")}
           <Icon d={dir === "up" ? I.arrowU : I.arrowD} size={11} />
         </span>
       );
     }
-    // La apostilla direccional es texto visible: sr-only solo si no la hay.
-    anioSr = dir ? null : t("cdd.srWrong");
+    // Sin texto visible: el estado direccional se anuncia por sr-only.
+    anioSr = dir ? t(dir === "up" ? "cdd.yearNewer" : "cdd.yearOlder") : t("cdd.srWrong");
   }
 
   return (

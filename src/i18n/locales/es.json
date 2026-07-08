@@ -127,6 +127,8 @@
     "statResult": "Resultado",
     "lockedAnswer": "Inicia sesión para descubrir qué coche era.",
     "profileAria": "Perfil",
+    "themeToNight": "Cambiar a edición de noche",
+    "themeToDay": "Volver a edición de día",
     "statsAria": "Ranking",
     "rankAria": "Ranking · vas {rank}º",
     "rankStreakAria": "Racha {streak} · ranking, vas {rank}º",

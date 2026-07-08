@@ -106,7 +106,7 @@ export default function Configurator({
   return (
     // .prensa fija todas las variables del sistema; --accent se sigue
     // inyectando porque focus-ring y piezas .cdd-* lo consumen (rojo).
-    <div className="cdd-app prensa" style={{ "--accent": DEFAULT_ACCENT }}>
+    <div className="cdd-app prensa" style={{ "--accent": "var(--rojo)" }}>
       {/* El pliego: columna única en móvil (orden del DOM) y broadsheet de 3
           columnas ≥1100px vía grid-template-areas (.prensa-pliego). La columna
           "clas" agrupa fila viva + historial + estadística con display:contents

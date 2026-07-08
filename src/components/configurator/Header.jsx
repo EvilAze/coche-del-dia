@@ -9,6 +9,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
+import { useTheme } from "../../lib/theme";
+
+// Glifos del toggle de tema (mismo trazo 1.6 y caja 24 que los iconos del
+// juego). Luna en día (invita a la noche); sol en noche (vuelve al día).
+function MoonGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+    </svg>
+  );
+}
+function SunGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.2" />
+      <path d="M12 2v2.4M12 19.6V22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2 12h2.4M19.6 12H22M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7" />
+    </svg>
+  );
+}
 
 export default function Header({
   streak = 0,
@@ -21,6 +42,7 @@ export default function Header({
   onOpenGarage,
 }) {
   const { t, dateLocale } = useT();
+  const { tema, toggle } = useTheme();
 
   // Fecha COMPLETA con año: es la línea de folio de un periódico, no un pie
   // de barra — "Sábado, 5 de julio de 2026".
@@ -106,6 +128,16 @@ export default function Header({
             onClick={() => { haptic.impactLight(); (user ? onOpenProfile : onOpenLogin)?.(); }}
           >
             {user ? t("prensa.perfil") : t("prensa.entrar")}
+          </button>
+          <span className="sep" aria-hidden="true">·</span>
+          <button
+            type="button"
+            className="prensa-tema"
+            aria-pressed={tema === "noche"}
+            aria-label={tema === "noche" ? t("cdd.themeToDay") : t("cdd.themeToNight")}
+            onClick={() => { haptic.impactLight(); toggle(); }}
+          >
+            {tema === "noche" ? <SunGlyph /> : <MoonGlyph />}
           </button>
         </span>
       </nav>

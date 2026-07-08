@@ -54,37 +54,48 @@
    PALETA EDITORIAL — fuente de verdad única del color.
    Día en :root; noche en :root[data-tema="noche"] (lo fija el inline de
    index.html + src/lib/theme.js). La consume TODO: el CSS del juego
-   (.cdd-*/.prensa-*/.pm-* vía var(--...)) y Tailwind (tailwind.config.js
+   (.cdd-, .prensa- y .pm- vía var(--...)) y Tailwind (tailwind.config.js
    apunta sus colores a estas mismas variables). Los temas de admin
    (.theme-platino/.theme-cobre) siguen fijando sus tokens localmente y NO
    se tematizan.
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
   color-scheme: light;
-  --bg: #f3eee1; --bg2: #e9e2cf; --surface: #fbf7ec; --surface2: #e9e2cf;
-  --line: rgba(27, 23, 18, .25); --line-2: rgba(27, 23, 18, .15);
-  --line-strong: #1b1712;
-  --cdd-text: #1b1712; --cdd-muted: #6e6553; --faint: rgba(110, 101, 83, .62);
-  --rojo: #b3271b; --rojo-dark: #8f1f16;
-  --gold: #7a5c10; --gold-dark: #5f470c; --gold-ink: #f3eee1; --gold-glow: transparent;
-  --accent-ink: #f3eee1; --good-ink: #f3eee1;
-  --bad: #6e6553; --bad-ink: #6e6553; --bad-sub: #6e6553;
-  --warn: #b3271b;
+  /* Canales RGB (terna "R G B") = la fuente real del tema. Tailwind los consume
+     como rgb(var(--x) / <alpha-value>) para que funcionen las opacidades
+     (bg-accent/15, border-accent/40…). El modo noche SOLO cambia estas ternas;
+     los colores completos de abajo (que usa el CSS .cdd-, .prensa- y .pm-) se
+     derivan de ellas y siguen al tema solos. */
+  --bg-rgb: 243 238 225; --bg2-rgb: 233 226 207; --surface-rgb: 251 247 236;
+  --tinta-rgb: 27 23 18; --tinta2-rgb: 110 101 83;
+  --line-strong-rgb: 27 23 18;
+  --rojo-rgb: 179 39 27; --rojo-dark-rgb: 143 31 22;
+  --gold-rgb: 122 92 16; --gold-dark-rgb: 95 71 12;
+
+  /* Colores completos derivados (día y noche comparten estas fórmulas). */
+  --bg: rgb(var(--bg-rgb)); --bg2: rgb(var(--bg2-rgb));
+  --surface: rgb(var(--surface-rgb)); --surface2: rgb(var(--bg2-rgb));
+  --cdd-text: rgb(var(--tinta-rgb)); --cdd-muted: rgb(var(--tinta2-rgb));
+  --faint: rgb(var(--tinta2-rgb) / .62);
+  --line: rgb(var(--tinta-rgb) / .25); --line-2: rgb(var(--tinta-rgb) / .15);
+  --line-strong: rgb(var(--line-strong-rgb));
+  --rojo: rgb(var(--rojo-rgb)); --rojo-dark: rgb(var(--rojo-dark-rgb));
+  --gold: rgb(var(--gold-rgb)); --gold-dark: rgb(var(--gold-dark-rgb));
+  --gold-ink: rgb(var(--bg-rgb)); --gold-glow: transparent;
+  --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
+  --warn: rgb(var(--rojo-rgb));
+  --bad: rgb(var(--tinta2-rgb)); --bad-ink: rgb(var(--tinta2-rgb)); --bad-sub: rgb(var(--tinta2-rgb));
 }
 /* «Edición de noche» — grafito cálido. Rojo y oro subidos para leer sobre
    fondo oscuro (contraste AA); filete fuerte en un beige apagado, no blanco
-   puro, para que las dobles rayas del folio no deslumbren. */
+   puro, para que las dobles rayas del folio no deslumbren. Solo ternas RGB. */
 :root[data-tema="noche"] {
   color-scheme: dark;
-  --bg: #17130d; --bg2: #211b12; --surface: #1e1a13; --surface2: #211b12;
-  --line: rgba(236, 225, 207, .14); --line-2: rgba(236, 225, 207, .07);
-  --line-strong: #b9ad97;
-  --cdd-text: #ece1cf; --cdd-muted: #9a8d76; --faint: rgba(154, 141, 118, .55);
-  --rojo: #e0574a; --rojo-dark: #c24437;
-  --gold: #d9b877; --gold-dark: #b9975a; --gold-ink: #17130d; --gold-glow: transparent;
-  --accent-ink: #17130d; --good-ink: #17130d;
-  --bad: #9a8d76; --bad-ink: #9a8d76; --bad-sub: #9a8d76;
-  --warn: #e0574a;
+  --bg-rgb: 23 19 13; --bg2-rgb: 33 27 18; --surface-rgb: 30 26 19;
+  --tinta-rgb: 236 225 207; --tinta2-rgb: 154 141 118;
+  --line-strong-rgb: 185 173 151;
+  --rojo-rgb: 224 87 74; --rojo-dark-rgb: 194 68 55;
+  --gold-rgb: 217 184 119; --gold-dark-rgb: 185 151 90;
 }
 
 @layer utilities {

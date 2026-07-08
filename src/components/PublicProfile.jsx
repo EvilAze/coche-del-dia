@@ -93,7 +93,7 @@ function FichaRow({ icon, label, value, valueClass = "text-foreground", last = f
   return (
     <div
       className={`flex items-center justify-between py-2.5 ${
-        last ? "" : "border-b border-border/60"
+        last ? "" : "border-b border-border-strong/60"
       }`}
     >
       <span className="flex items-center gap-2.5 text-sm text-foreground/85">

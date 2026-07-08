@@ -20,44 +20,59 @@ module.exports = {
         courier: ["'Courier Prime'", "monospace"],
       },
       colors: {
-        // ── Sistema «Prensa del motor» — apuntan a las CSS vars de tema
-        //    (index.css :root / :root[data-tema="noche"]). El fallback hex es
-        //    el valor de DÍA: si la variable no estuviera, el día no cambia. ──
+        // ── Sistema «Prensa del motor» — canales RGB temáticos ──
+        //    Cada color es rgb(var(--x-rgb) / <alpha-value>): las ternas viven
+        //    en index.css (:root día / :root[data-tema="noche"] noche), y el
+        //    <alpha-value> deja que funcionen los modificadores de opacidad
+        //    (bg-accent/15, border-accent/40, text-muted/70…). El día queda
+        //    idéntico: las ternas de día son los mismos colores de antes.
         papel: {
-          DEFAULT: "var(--bg, #f3eee1)",
-          2: "var(--bg2, #e9e2cf)",
-          mat: "var(--surface, #fbf7ec)",
+          DEFAULT: "rgb(var(--bg-rgb) / <alpha-value>)",
+          2: "rgb(var(--bg2-rgb) / <alpha-value>)",
+          mat: "rgb(var(--surface-rgb) / <alpha-value>)",
         },
-        tinta: { DEFAULT: "var(--cdd-text, #1b1712)", 2: "var(--cdd-muted, #6e6553)" },
-        rojo: "var(--rojo, #b3271b)",
-        "oro-viejo": "var(--gold, #7a5c10)",
+        tinta: {
+          DEFAULT: "rgb(var(--tinta-rgb) / <alpha-value>)",
+          2: "rgb(var(--tinta2-rgb) / <alpha-value>)",
+        },
+        rojo: "rgb(var(--rojo-rgb) / <alpha-value>)",
+        "oro-viejo": "rgb(var(--gold-rgb) / <alpha-value>)",
 
         bg: {
-          primary: "var(--bg, #f3eee1)",
-          secondary: "var(--bg2, #e9e2cf)",
-          tertiary: "var(--bg2, #e9e2cf)",
+          primary: "rgb(var(--bg-rgb) / <alpha-value>)",
+          secondary: "rgb(var(--bg2-rgb) / <alpha-value>)",
+          tertiary: "rgb(var(--bg2-rgb) / <alpha-value>)",
         },
         border: {
-          DEFAULT: "var(--line, rgba(27,23,18,0.25))",
-          strong: "var(--line-strong, #1b1712)",
+          // border-border es un filete TENUE por defecto (alpha 0.22 fija, como
+          // antes), por eso NO lleva <alpha-value>. Para tinta a otra opacidad
+          // usa border-border-strong/NN (misma tinta base).
+          DEFAULT: "rgb(var(--tinta-rgb) / 0.22)",
+          strong: "rgb(var(--line-strong-rgb) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "var(--rojo, #b3271b)",
-          dark: "var(--rojo-dark, #8f1f16)",
+          DEFAULT: "rgb(var(--rojo-rgb) / <alpha-value>)",
+          dark: "rgb(var(--rojo-dark-rgb) / <alpha-value>)",
           glow: "transparent",
         },
         gold: {
-          DEFAULT: "var(--gold, #7a5c10)",
-          dark: "var(--gold-dark, #5f470c)",
-          ink: "var(--gold-ink, #f3eee1)",
+          DEFAULT: "rgb(var(--gold-rgb) / <alpha-value>)",
+          dark: "rgb(var(--gold-dark-rgb) / <alpha-value>)",
+          ink: "rgb(var(--bg-rgb) / <alpha-value>)",
           glow: "transparent",
         },
-        muted: "var(--cdd-muted, #6e6553)",
-        mint: { DEFAULT: "var(--rojo, #b3271b)", foreground: "var(--bg, #f3eee1)" },
-        card: { DEFAULT: "var(--surface, #fbf7ec)", foreground: "var(--cdd-text, #1b1712)" },
-        foreground: "var(--cdd-text, #1b1712)",
-        "muted-foreground": "var(--cdd-muted, #6e6553)",
-        destructive: "var(--rojo, #b3271b)",
+        muted: "rgb(var(--tinta2-rgb) / <alpha-value>)",
+        mint: {
+          DEFAULT: "rgb(var(--rojo-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--bg-rgb) / <alpha-value>)",
+        },
+        card: {
+          DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--tinta-rgb) / <alpha-value>)",
+        },
+        foreground: "rgb(var(--tinta-rgb) / <alpha-value>)",
+        "muted-foreground": "rgb(var(--tinta2-rgb) / <alpha-value>)",
+        destructive: "rgb(var(--rojo-rgb) / <alpha-value>)",
       },
       // Sombras del sistema Liquid Glass: elevación flotante + halo interior de
       // luz (inset top) que da el "canto" del cristal. Centralizadas para que

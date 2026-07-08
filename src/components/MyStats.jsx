@@ -133,7 +133,7 @@ function FichaRow({ icon, label, children, last = false }) {
   return (
     <div
       className={`flex items-center justify-between py-2.5 ${
-        last ? "" : "border-b border-border/60"
+        last ? "" : "border-b border-border-strong/60"
       }`}
     >
       <span className="flex items-center gap-2.5 text-sm text-foreground/85">
@@ -154,7 +154,7 @@ function DoorRow({ icon, label, value, onClick, last = false }) {
       type="button"
       onClick={onClick}
       className={`focus-ring flex w-full items-center justify-between px-3.5 py-3 text-left transition hover:bg-mint/[0.06] ${
-        last ? "" : "border-b border-border/60"
+        last ? "" : "border-b border-border-strong/60"
       }`}
     >
       <span className="flex items-center gap-2.5">

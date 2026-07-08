@@ -1015,7 +1015,7 @@ body,
 
 /* ── Cabecera de periódico (Header.jsx la monta; ver Task 5) ── */
 .prensa-topbar {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
   padding: 10px 0; border-bottom: 1px solid var(--line-strong);
   font-family: var(--font-body); font-weight: 600; font-size: 10px;
   letter-spacing: .18em; text-transform: uppercase;
@@ -1024,13 +1024,13 @@ body,
    del "·" lo da el padding horizontal de los propios enlaces, no un gap del
    separador: así el "·" respira por igual a ambos lados (antes, con margen
    negativo horizontal, se pegaba a las secciones). */
-.prensa-topbar > span { display: inline-flex; align-items: baseline; }
+.prensa-topbar > span { display: inline-flex; align-items: center; }
 /* Área táctil vertical sin sumar altura (margen negativo SOLO en vertical);
    el padding horizontal es el que separa cada enlace de su "·" vecino. */
 .prensa-topbar button, .prensa-topbar a {
   background: none; border: 0; cursor: pointer; color: var(--cdd-text);
   font: inherit; letter-spacing: inherit; text-transform: inherit;
-  display: inline-flex; align-items: baseline; gap: 0;
+  display: inline-flex; align-items: center; gap: 0;
   padding: 8px 7px; margin: -8px 0; text-decoration: none;
 }
 /* Los enlaces de los extremos van a ras del pliego (alineados con folio y
@@ -1046,6 +1046,11 @@ body,
 .prensa-topbar .aviso { color: var(--rojo); font-weight: 800; margin-left: 2px; letter-spacing: 0; }
 /* CTA de competir (anónimo sin racha): la única llamada roja de la barra. */
 .prensa-topbar .cta { color: var(--rojo); }
+/* Toggle de tema: glifo de línea (mismo peso que los iconos del juego),
+   tinta apagada → rojo al pulsar, como el resto de enlaces de la barra. */
+.prensa-topbar .prensa-tema { color: var(--cdd-muted); }
+.prensa-topbar .prensa-tema:hover { color: var(--rojo); }
+.prensa-topbar .prensa-tema svg { display: block; width: 15px; height: 15px; }
 
 .prensa-masthead { text-align: center; padding: 14px 0 12px; }
 .prensa-masthead .titulo {

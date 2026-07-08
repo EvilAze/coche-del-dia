@@ -30,3 +30,6 @@ android/keystore.properties
 # desde el CDN/Supabase vía /api/daily-image y /api/car-image — nunca desde
 # /coches/. Se borraron del repo; este ignore evita re-añadirlas por error.
 public/coches/
+
+# Mockups de brainstorming (visual companion) — estado local, no del proyecto
+.superpowers/

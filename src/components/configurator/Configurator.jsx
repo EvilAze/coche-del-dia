@@ -104,8 +104,10 @@ export default function Configurator({
   const countdown = useCountdown();
 
   return (
-    // .prensa fija todas las variables del sistema; --accent se sigue
-    // inyectando porque focus-ring y piezas .cdd-* lo consumen (rojo).
+    // Los tokens del sistema viven en :root (día) y :root[data-tema="noche"]
+    // (index.css); .prensa solo aporta tipografía y lienzo. --accent se sigue
+    // inyectando porque focus-ring y piezas .cdd-* lo consumen, y apunta a
+    // var(--rojo) para que también siga el tema (día/noche).
     <div className="cdd-app prensa" style={{ "--accent": "var(--rojo)" }}>
       {/* El pliego: columna única en móvil (orden del DOM) y broadsheet de 3
           columnas ≥1100px vía grid-template-areas (.prensa-pliego). La columna

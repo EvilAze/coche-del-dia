@@ -20,48 +20,44 @@ module.exports = {
         courier: ["'Courier Prime'", "monospace"],
       },
       colors: {
-        // ── Sistema «Prensa del motor» — paleta base (F1+) ──
-        papel: { DEFAULT: "#f3eee1", 2: "#e9e2cf", mat: "#fbf7ec" },
-        tinta: { DEFAULT: "#1b1712", 2: "#6e6553" },
-        rojo: "#b3271b",
-        // Oro premium re-pigmentado para papel: SOLO texto/filetes, nunca
-        // relleno (el #e8c87a original era ilegible sobre claro).
-        "oro-viejo": "#7a5c10",
+        // ── Sistema «Prensa del motor» — apuntan a las CSS vars de tema
+        //    (index.css :root / :root[data-tema="noche"]). El fallback hex es
+        //    el valor de DÍA: si la variable no estuviera, el día no cambia. ──
+        papel: {
+          DEFAULT: "var(--bg, #f3eee1)",
+          2: "var(--bg2, #e9e2cf)",
+          mat: "var(--surface, #fbf7ec)",
+        },
+        tinta: { DEFAULT: "var(--cdd-text, #1b1712)", 2: "var(--cdd-muted, #6e6553)" },
+        rojo: "var(--rojo, #b3271b)",
+        "oro-viejo": "var(--gold, #7a5c10)",
 
-        // ── Tokens semánticos REMAPEADOS a la paleta prensa (F4) ──
-        // En F4 las pantallas internas (Garaje/Ranking/Perfil/Logros/Repesca)
-        // se re-visten sin reescribir cada className: los tokens que usaban del
-        // sistema "Platino menta" (accent/mint/gold/foreground/muted/card/
-        // border/bg-*) apuntan ahora a papel+tinta+rojo. El juego y los modales
-        // ya NO usan estos tokens (usan .prensa y pm-*), así que no regresan.
-        // En F5 desaparecen del todo y su markup pasa a tokens prensa nativos.
         bg: {
-          primary: "#f3eee1",   // papel
-          secondary: "#e9e2cf", // papel-2
-          tertiary: "#e9e2cf",
+          primary: "var(--bg, #f3eee1)",
+          secondary: "var(--bg2, #e9e2cf)",
+          tertiary: "var(--bg2, #e9e2cf)",
         },
         border: {
-          DEFAULT: "rgba(27,23,18,0.22)", // filete de tinta tenue
-          strong: "#1b1712",
+          DEFAULT: "var(--line, rgba(27,23,18,0.25))",
+          strong: "var(--line-strong, #1b1712)",
         },
         accent: {
-          DEFAULT: "#b3271b",   // rojo de rotativa (era menta: "acción/acierto")
-          dark: "#8f1f16",
-          glow: "transparent",  // sin glows en prensa
-        },
-        // Oro premium → oro viejo de tinta (racha, podio, logros).
-        gold: {
-          DEFAULT: "#7a5c10",
-          dark: "#5f470c",
-          ink: "#f3eee1",       // texto sobre relleno oro
+          DEFAULT: "var(--rojo, #b3271b)",
+          dark: "var(--rojo-dark, #8f1f16)",
           glow: "transparent",
         },
-        muted: "#6e6553",       // tinta-2
-        mint: { DEFAULT: "#b3271b", foreground: "#f3eee1" },
-        card: { DEFAULT: "#fbf7ec", foreground: "#1b1712" },
-        foreground: "#1b1712",  // tinta
-        "muted-foreground": "#6e6553",
-        destructive: "#b3271b",
+        gold: {
+          DEFAULT: "var(--gold, #7a5c10)",
+          dark: "var(--gold-dark, #5f470c)",
+          ink: "var(--gold-ink, #f3eee1)",
+          glow: "transparent",
+        },
+        muted: "var(--cdd-muted, #6e6553)",
+        mint: { DEFAULT: "var(--rojo, #b3271b)", foreground: "var(--bg, #f3eee1)" },
+        card: { DEFAULT: "var(--surface, #fbf7ec)", foreground: "var(--cdd-text, #1b1712)" },
+        foreground: "var(--cdd-text, #1b1712)",
+        "muted-foreground": "var(--cdd-muted, #6e6553)",
+        destructive: "var(--rojo, #b3271b)",
       },
       // Sombras del sistema Liquid Glass: elevación flotante + halo interior de
       // luz (inset top) que da el "canto" del cristal. Centralizadas para que

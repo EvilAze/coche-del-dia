@@ -127,6 +127,8 @@
     "statResult": "Result",
     "lockedAnswer": "Sign in to reveal which car it was.",
     "profileAria": "Profile",
+    "themeToNight": "Switch to night edition",
+    "themeToDay": "Back to day edition",
     "statsAria": "Ranking",
     "rankAria": "Ranking · you're #{rank}",
     "rankStreakAria": "{streak} streak · ranking, you're #{rank}",

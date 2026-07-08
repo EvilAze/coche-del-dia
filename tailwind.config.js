@@ -20,48 +20,59 @@ module.exports = {
         courier: ["'Courier Prime'", "monospace"],
       },
       colors: {
-        // ── Sistema «Prensa del motor» — paleta base (F1+) ──
-        papel: { DEFAULT: "#f3eee1", 2: "#e9e2cf", mat: "#fbf7ec" },
-        tinta: { DEFAULT: "#1b1712", 2: "#6e6553" },
-        rojo: "#b3271b",
-        // Oro premium re-pigmentado para papel: SOLO texto/filetes, nunca
-        // relleno (el #e8c87a original era ilegible sobre claro).
-        "oro-viejo": "#7a5c10",
+        // ── Sistema «Prensa del motor» — canales RGB temáticos ──
+        //    Cada color es rgb(var(--x-rgb) / <alpha-value>): las ternas viven
+        //    en index.css (:root día / :root[data-tema="noche"] noche), y el
+        //    <alpha-value> deja que funcionen los modificadores de opacidad
+        //    (bg-accent/15, border-accent/40, text-muted/70…). El día queda
+        //    idéntico: las ternas de día son los mismos colores de antes.
+        papel: {
+          DEFAULT: "rgb(var(--bg-rgb) / <alpha-value>)",
+          2: "rgb(var(--bg2-rgb) / <alpha-value>)",
+          mat: "rgb(var(--surface-rgb) / <alpha-value>)",
+        },
+        tinta: {
+          DEFAULT: "rgb(var(--tinta-rgb) / <alpha-value>)",
+          2: "rgb(var(--tinta2-rgb) / <alpha-value>)",
+        },
+        rojo: "rgb(var(--rojo-rgb) / <alpha-value>)",
+        "oro-viejo": "rgb(var(--gold-rgb) / <alpha-value>)",
 
-        // ── Tokens semánticos REMAPEADOS a la paleta prensa (F4) ──
-        // En F4 las pantallas internas (Garaje/Ranking/Perfil/Logros/Repesca)
-        // se re-visten sin reescribir cada className: los tokens que usaban del
-        // sistema "Platino menta" (accent/mint/gold/foreground/muted/card/
-        // border/bg-*) apuntan ahora a papel+tinta+rojo. El juego y los modales
-        // ya NO usan estos tokens (usan .prensa y pm-*), así que no regresan.
-        // En F5 desaparecen del todo y su markup pasa a tokens prensa nativos.
         bg: {
-          primary: "#f3eee1",   // papel
-          secondary: "#e9e2cf", // papel-2
-          tertiary: "#e9e2cf",
+          primary: "rgb(var(--bg-rgb) / <alpha-value>)",
+          secondary: "rgb(var(--bg2-rgb) / <alpha-value>)",
+          tertiary: "rgb(var(--bg2-rgb) / <alpha-value>)",
         },
         border: {
-          DEFAULT: "rgba(27,23,18,0.22)", // filete de tinta tenue
-          strong: "#1b1712",
+          // border-border es un filete TENUE por defecto (alpha 0.22 fija, como
+          // antes), por eso NO lleva <alpha-value>. Para tinta a otra opacidad
+          // usa border-border-strong/NN (misma tinta base).
+          DEFAULT: "rgb(var(--tinta-rgb) / 0.22)",
+          strong: "rgb(var(--line-strong-rgb) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "#b3271b",   // rojo de rotativa (era menta: "acción/acierto")
-          dark: "#8f1f16",
-          glow: "transparent",  // sin glows en prensa
-        },
-        // Oro premium → oro viejo de tinta (racha, podio, logros).
-        gold: {
-          DEFAULT: "#7a5c10",
-          dark: "#5f470c",
-          ink: "#f3eee1",       // texto sobre relleno oro
+          DEFAULT: "rgb(var(--rojo-rgb) / <alpha-value>)",
+          dark: "rgb(var(--rojo-dark-rgb) / <alpha-value>)",
           glow: "transparent",
         },
-        muted: "#6e6553",       // tinta-2
-        mint: { DEFAULT: "#b3271b", foreground: "#f3eee1" },
-        card: { DEFAULT: "#fbf7ec", foreground: "#1b1712" },
-        foreground: "#1b1712",  // tinta
-        "muted-foreground": "#6e6553",
-        destructive: "#b3271b",
+        gold: {
+          DEFAULT: "rgb(var(--gold-rgb) / <alpha-value>)",
+          dark: "rgb(var(--gold-dark-rgb) / <alpha-value>)",
+          ink: "rgb(var(--bg-rgb) / <alpha-value>)",
+          glow: "transparent",
+        },
+        muted: "rgb(var(--tinta2-rgb) / <alpha-value>)",
+        mint: {
+          DEFAULT: "rgb(var(--rojo-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--bg-rgb) / <alpha-value>)",
+        },
+        card: {
+          DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
+          foreground: "rgb(var(--tinta-rgb) / <alpha-value>)",
+        },
+        foreground: "rgb(var(--tinta-rgb) / <alpha-value>)",
+        "muted-foreground": "rgb(var(--tinta2-rgb) / <alpha-value>)",
+        destructive: "rgb(var(--rojo-rgb) / <alpha-value>)",
       },
       // Sombras del sistema Liquid Glass: elevación flotante + halo interior de
       // luz (inset top) que da el "canto" del cristal. Centralizadas para que

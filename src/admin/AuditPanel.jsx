@@ -166,7 +166,7 @@ export default function AuditPanel() {
                   </thead>
                   <tbody>
                     {data.suspects.map((s) => (
-                      <tr key={s.userId} className="border-t border-border/60">
+                      <tr key={s.userId} className="border-t border-border-strong/60">
                         <td className="px-2 py-1.5 text-white">{s.email}</td>
                         <td className="px-2 py-1.5 text-right text-muted">{s.games}</td>
                         <td className="px-2 py-1.5 text-right text-muted">{pct(s.winRate)}</td>

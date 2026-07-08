@@ -8,6 +8,29 @@
     <meta name="theme-color" content="#f3eee1" />
 
     <!--
+      Anti-FOUC del tema: fija data-tema en <html> ANTES del primer paint, para
+      que la página no cargue en papel y salte a grafito (o viceversa). Misma
+      lógica que src/lib/theme.js (override en localStorage → si no, el sistema).
+      Silencioso: cualquier fallo deja el día por defecto.
+    -->
+    <script>
+      (function () {
+        try {
+          var k = localStorage.getItem("cdd-tema");
+          var noche =
+            k === "noche" ||
+            (k == null &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var el = document.documentElement;
+          el.dataset.tema = noche ? "noche" : "dia";
+          el.style.colorScheme = noche ? "dark" : "light";
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute("content", noche ? "#17130d" : "#f3eee1");
+        } catch (e) {}
+      })();
+    </script>
+
+    <!--
       Fuentes cargadas aquí con preconnect + <link> en lugar de @import en el
       CSS: el @import encadena descargas en serie y retrasa el render del título
       (el elemento más visible de la página). El preconnect abre la conexión a

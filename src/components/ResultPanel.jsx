@@ -396,7 +396,7 @@ export default function ResultPanel({
         // y el botón de compartir bajaba el momentum del share.
         <div
           className="
-            mb-4 rounded-xl border border-border/60 bg-bg-secondary/40
+            mb-4 rounded-xl border border-border-strong/60 bg-bg-secondary/40
             px-4 pt-4 pb-4
           "
         >
@@ -486,7 +486,7 @@ export default function ResultPanel({
           la primera pantalla. El jugador que quiere el dato lo encuentra;
           el que solo quiere compartir y salir, no lo tiene en medio. */}
       {carDescription && (
-        <div className="mb-4 rounded-lg border border-border/60 bg-bg-secondary/50 px-4 py-3 text-left">
+        <div className="mb-4 rounded-lg border border-border-strong/60 bg-bg-secondary/50 px-4 py-3 text-left">
           <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
             {t("result.spec")}
           </p>

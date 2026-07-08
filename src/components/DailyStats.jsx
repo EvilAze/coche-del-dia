@@ -70,7 +70,7 @@ export default function DailyStats({ attempts, won }) {
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-border/60 bg-bg-secondary/40 p-4 animate-fade-in">
+    <div className="mb-4 rounded-xl border border-border-strong/60 bg-bg-secondary/40 p-4 animate-fade-in">
       <p className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-muted">
         {t("dailyStats.title")}
       </p>

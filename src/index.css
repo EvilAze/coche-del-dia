@@ -26,15 +26,15 @@
     /* Rediseño «Prensa del motor» (F4): la base de la página es papel. El
        juego y las pantallas internas fijan su propio fondo igualmente; esto
        cubre gaps/overscroll para que no asome grafito. */
-    background-color: #f3eee1;
-    color: #1b1712;
+    background-color: var(--bg);
+    color: var(--cdd-text);
     font-family: 'Libre Franklin', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   select option {
-    background-color: #f3eee1;
-    color: #1b1712;
+    background-color: var(--bg);
+    color: var(--cdd-text);
   }
   input[list]::-webkit-calendar-picker-indicator {
     display: none;
@@ -48,6 +48,43 @@
   input[type="number"] {
     -moz-appearance: textfield;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PALETA EDITORIAL — fuente de verdad única del color.
+   Día en :root; noche en :root[data-tema="noche"] (lo fija el inline de
+   index.html + src/lib/theme.js). La consume TODO: el CSS del juego
+   (.cdd-*/.prensa-*/.pm-* vía var(--...)) y Tailwind (tailwind.config.js
+   apunta sus colores a estas mismas variables). Los temas de admin
+   (.theme-platino/.theme-cobre) siguen fijando sus tokens localmente y NO
+   se tematizan.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light;
+  --bg: #f3eee1; --bg2: #e9e2cf; --surface: #fbf7ec; --surface2: #e9e2cf;
+  --line: rgba(27, 23, 18, .25); --line-2: rgba(27, 23, 18, .15);
+  --line-strong: #1b1712;
+  --cdd-text: #1b1712; --cdd-muted: #6e6553; --faint: rgba(110, 101, 83, .62);
+  --rojo: #b3271b; --rojo-dark: #8f1f16;
+  --gold: #7a5c10; --gold-dark: #5f470c; --gold-ink: #f3eee1; --gold-glow: transparent;
+  --accent-ink: #f3eee1; --good-ink: #f3eee1;
+  --bad: #6e6553; --bad-ink: #6e6553; --bad-sub: #6e6553;
+  --warn: #b3271b;
+}
+/* «Edición de noche» — grafito cálido. Rojo y oro subidos para leer sobre
+   fondo oscuro (contraste AA); filete fuerte en un beige apagado, no blanco
+   puro, para que las dobles rayas del folio no deslumbren. */
+:root[data-tema="noche"] {
+  color-scheme: dark;
+  --bg: #17130d; --bg2: #211b12; --surface: #1e1a13; --surface2: #211b12;
+  --line: rgba(236, 225, 207, .14); --line-2: rgba(236, 225, 207, .07);
+  --line-strong: #b9ad97;
+  --cdd-text: #ece1cf; --cdd-muted: #9a8d76; --faint: rgba(154, 141, 118, .55);
+  --rojo: #e0574a; --rojo-dark: #c24437;
+  --gold: #d9b877; --gold-dark: #b9975a; --gold-ink: #17130d; --gold-glow: transparent;
+  --accent-ink: #17130d; --good-ink: #17130d;
+  --bad: #9a8d76; --bad-ink: #9a8d76; --bad-sub: #9a8d76;
+  --warn: #e0574a;
 }
 
 @layer utilities {
@@ -111,8 +148,8 @@
   .surface-flat {
     /* Prensa (F5): superficie de papel con filete de tinta y esquinas vivas
        (era grafito #14181e). La usa el ResultPanel de la repesca. */
-    background: #fbf7ec;
-    border: 1px solid #1b1712;
+    background: var(--surface);
+    border: 1px solid var(--cdd-text);
     border-radius: 0;
   }
   /* Botón v0: plano, font-semibold SIN tracking/display, mint sólido; disabled e
@@ -171,13 +208,13 @@
   }
 
 
-  /* Acento ORO premium (texto). Prensa (F4): oro viejo de tinta #7a5c10 —
+  /* Acento ORO premium (texto). Prensa (F4): oro viejo de tinta var(--gold) —
      legible sobre papel (el #e8c87a era para grafito). Sin halo (fuera glows);
      .text-gold-glow queda como alias plano. Racha, victoria, podio, logros. */
-  .text-gold { color: #7a5c10; }
-  .text-gold-glow { color: #7a5c10; }
+  .text-gold { color: var(--gold); }
+  .text-gold-glow { color: var(--gold); }
   /* Relleno oro viejo con texto papel legible (chips/badges premium). */
-  .fill-gold { background-color: #7a5c10; color: #f3eee1; }
+  .fill-gold { background-color: var(--gold); color: var(--bg); }
 
   .scrollbar-premium {
     scrollbar-width: thin;
@@ -964,17 +1001,10 @@ body,
    Fuente de verdad visual: public/prensa-del-motor.html.
    ═══════════════════════════════════════════════════════════════════════ */
 .prensa {
-  /* Variables mapeadas sobre los nombres que ya consume la capa .cdd-*:
-     así el CSS existente "se vuelve de papel" sin reescribir cada selector.
-     Las que el lenguaje prensa elimina (glow/ámbar) apuntan a tinta/rojo. */
-  --bg: #f3eee1; --bg2: #e9e2cf; --surface: #fbf7ec; --surface2: #e9e2cf;
-  --line: rgba(27, 23, 18, .25); --line-2: rgba(27, 23, 18, .15);
-  --line-strong: #1b1712;
-  --cdd-text: #1b1712; --cdd-muted: #6e6553; --faint: rgba(110, 101, 83, .62);
-  --accent-ink: #f3eee1; --good-ink: #f3eee1;
-  --bad: #6e6553; --bad-ink: #6e6553; --bad-sub: #6e6553;
-  --warn: #b3271b; /* la urgencia en prensa es ROJA: el ámbar no existe */
-  --gold: #7a5c10; --gold-ink: #f3eee1; --gold-glow: transparent;
+  /* Los tokens de COLOR viven ahora en :root (día) y :root[data-tema="noche"]
+     (noche) — más abajo en este archivo. .prensa ya NO los fija localmente,
+     para que el modo oscuro pueda sobreescribirlos por herencia. Aquí solo
+     quedan la tipografía editorial y el lienzo (que consumen los tokens). */
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Libre Franklin', Arial, sans-serif;
   --font-mono: 'Courier Prime', monospace;
@@ -1007,15 +1037,15 @@ body,
    ladillos); el aire interno queda solo alrededor del separador. */
 .prensa-topbar > span:first-child > :first-child { padding-left: 0; }
 .prensa-topbar > span:last-child > :last-child { padding-right: 0; }
-.prensa-topbar button:hover, .prensa-topbar a:hover { color: #b3271b; }
+.prensa-topbar button:hover, .prensa-topbar a:hover { color: var(--rojo); }
 .prensa-topbar .sep { color: var(--cdd-muted); }
 /* Racha: oro viejo de tinta — "lo acumulado", nunca relleno (spec §2). */
 .prensa-topbar .racha { color: var(--gold); }
 /* Aviso de repesca pegado a GARAJE (corrección al margen, no a media palabra):
    sin letter-spacing heredado y con un aire fino, no los ~9px de antes. */
-.prensa-topbar .aviso { color: #b3271b; font-weight: 800; margin-left: 2px; letter-spacing: 0; }
+.prensa-topbar .aviso { color: var(--rojo); font-weight: 800; margin-left: 2px; letter-spacing: 0; }
 /* CTA de competir (anónimo sin racha): la única llamada roja de la barra. */
-.prensa-topbar .cta { color: #b3271b; }
+.prensa-topbar .cta { color: var(--rojo); }
 
 .prensa-masthead { text-align: center; padding: 14px 0 12px; }
 .prensa-masthead .titulo {
@@ -1036,7 +1066,7 @@ body,
      evitan el salto de línea que partía "· EDICIÓN GRATUITA" abajo. */
   font-size: clamp(8px, 2.4vw, 10px); letter-spacing: .1em; text-transform: uppercase;
 }
-.prensa-folio .rojo { color: #b3271b; }
+.prensa-folio .rojo { color: var(--rojo); }
 
 /* ── Ladillos de sección: versalitas + filete que llena la línea ── */
 .prensa-ladillo {
@@ -1063,7 +1093,7 @@ body,
 .prensa-pips { display: flex; gap: 5px; flex: none; }
 .prensa-pips .pip { width: 9px; height: 9px; border: 1px solid var(--line-strong); border-radius: 0; }
 .prensa-pips .pip.gastado { background: var(--line-strong); }
-.prensa-pips .pip.actual { border-color: #b3271b; background: #b3271b; }
+.prensa-pips .pip.actual { border-color: var(--rojo); background: var(--rojo); }
 .prensa-pips .pip.actual.peligro { animation: prensaParpadeo 1.1s ease-in-out infinite; }
 @keyframes prensaParpadeo { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
@@ -1088,13 +1118,13 @@ body,
 .prensa-dato .linea-nombre { display: block; width: 100%; white-space: nowrap; overflow: hidden; }
 .prensa-dato { min-width: 0; font-family: var(--font-display); font-size: 16px; line-height: 1.25; }
 .prensa-dato .palabra { display: inline; }
-.prensa-dato.bien .palabra { border-bottom: 2px solid #b3271b; font-weight: 600; }
-.prensa-dato.bien .marca-v { color: #b3271b; font-weight: 700; }
-.prensa-dato.cerca .palabra { border-bottom: 2px dashed #b3271b; }
+.prensa-dato.bien .palabra { border-bottom: 2px solid var(--rojo); font-weight: 600; }
+.prensa-dato.bien .marca-v { color: var(--rojo); font-weight: 700; }
+.prensa-dato.cerca .palabra { border-bottom: 2px dashed var(--rojo); }
 .prensa-dato.mal .palabra { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--cdd-muted); }
 .prensa-apostilla {
   display: flex; align-items: center; gap: 5px; margin-top: 2px;
-  font-family: var(--font-display); font-style: italic; font-size: 11.5px; color: #b3271b;
+  font-family: var(--font-display); font-style: italic; font-size: 11.5px; color: var(--rojo);
   text-transform: lowercase; /* "MÁS NUEVO" (i18n) se lee "más nuevo" en cursiva */
 }
 /* Apostilla neutra (p.ej. el "±2" del año acertado): informa, no corrige. */
@@ -1127,9 +1157,9 @@ body,
   border-radius: 0;
 }
 .prensa .cdd-combo.is-open, .prensa .cdd-combo:focus-within, .prensa .cdd-year:focus-within {
-  border-color: #b3271b; box-shadow: 0 1px 0 0 #b3271b;
+  border-color: var(--rojo); box-shadow: 0 1px 0 0 var(--rojo);
 }
-.prensa .cdd-combo.is-invalid { border-bottom-color: #b3271b; }
+.prensa .cdd-combo.is-invalid { border-bottom-color: var(--rojo); }
 .prensa .cdd-input {
   font-family: var(--font-mono); font-size: 16px; font-weight: 400;
   padding: 11px 2px; color: var(--cdd-text);
@@ -1139,23 +1169,23 @@ body,
    permitida del sistema — sin ella el desplegable no se despega del papel. */
 .prensa .cdd-listbox, .prensa .cdd-decades {
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 0;
-  box-shadow: 0 12px 24px rgba(27, 23, 18, .15);
+  box-shadow: 0 12px 24px var(--line-2);
 }
 .prensa .cdd-opt { border-radius: 0; font-family: var(--font-body); }
 .prensa .cdd-opt:hover, .prensa .cdd-opt.hi {
-  background: rgba(179, 39, 27, .08); box-shadow: inset 2px 0 0 0 #b3271b;
+  background: rgba(179, 39, 27, .08); box-shadow: inset 2px 0 0 0 var(--rojo);
 }
-.prensa .cdd-opt.sel { color: #b3271b; background: transparent; }
+.prensa .cdd-opt.sel { color: var(--rojo); background: transparent; }
 .prensa .cdd-decade { border-radius: 0; background: transparent; border: 1px solid var(--line); color: var(--cdd-text); }
 .prensa .cdd-decade:hover, .prensa .cdd-decade:active { background: var(--line-strong); border-color: var(--line-strong); color: var(--bg); }
 .prensa .cdd-year-steps button { border-radius: 0; background: transparent; border: 1px solid var(--line); color: var(--cdd-muted); }
-.prensa .cdd-year-steps button:hover { color: #b3271b; border-color: #b3271b; }
+.prensa .cdd-year-steps button:hover { color: var(--rojo); border-color: var(--rojo); }
 /* ADIVINAR: bloque de tinta → rojo al pasar. Sin estados "neón". */
 .prensa .cdd-submit {
   border-radius: 0; background: var(--line-strong); color: var(--bg);
   font-family: var(--font-body); font-weight: 800; font-size: 13px; letter-spacing: .26em;
 }
-.prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: #b3271b; }
+.prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: var(--rojo); }
 .prensa .cdd-submit:disabled {
   background: transparent; color: var(--faint);
   box-shadow: inset 0 0 0 1px var(--line);
@@ -1177,7 +1207,7 @@ body,
   color: var(--cdd-muted); font: inherit; letter-spacing: inherit;
   text-transform: inherit; text-decoration: none;
 }
-.prensa-cierre button:hover, .prensa-cierre a:hover { color: #b3271b; }
+.prensa-cierre button:hover, .prensa-cierre a:hover { color: var(--rojo); }
 /* Reloj de cierre: MISMA familia que el pie (lección del prototipo — la
    Courier aquí desentonaba) + tabular-nums para que no baile cada segundo. */
 .prensa-cierre .reloj { color: var(--cdd-text); font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -1226,7 +1256,7 @@ body,
    alrededor de la cifra al enfocar el año. Un solo indicador, más limpio. */
 .prensa button:focus-visible, .prensa a:focus-visible,
 .prensa [role="option"]:focus-visible {
-  outline: 2px solid #b3271b; outline-offset: 2px;
+  outline: 2px solid var(--rojo); outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1250,8 +1280,8 @@ body,
   font-family: var(--font-mono); font-size: 16px; color: var(--cdd-text);
   padding: 11px 2px; transition: border-color .15s;
 }
-.prensa-input:focus { border-bottom: 2px solid #b3271b; padding-bottom: 10px; }
-.prensa-input.invalida { border-bottom: 2px solid #b3271b; }
+.prensa-input:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 10px; }
+.prensa-input.invalida { border-bottom: 2px solid var(--rojo); }
 .prensa-input:disabled { opacity: .45; }
 .prensa-input::placeholder { color: var(--faint); font-style: italic; font-family: var(--font-display); font-size: 14px; }
 .prensa-listbox {
@@ -1261,22 +1291,22 @@ body,
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 0;
   /* Única sombra funcional del sistema: sin ella el desplegable no se
      despega del papel (documentada en el spec §4). */
-  box-shadow: 0 12px 24px rgba(27, 23, 18, .15);
+  box-shadow: 0 12px 24px var(--line-2);
 }
 .prensa-opt {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 10px 12px; cursor: pointer; border-radius: 0;
   font-family: var(--font-body); font-size: 14px; color: var(--cdd-text);
 }
-.prensa-opt.hi { background: rgba(179, 39, 27, .08); box-shadow: inset 2px 0 0 0 #b3271b; }
+.prensa-opt.hi { background: rgba(179, 39, 27, .08); box-shadow: inset 2px 0 0 0 var(--rojo); }
 .prensa-opt.vacia { cursor: default; color: var(--faint); font-style: italic; }
 .prensa-opt .bandera { width: 18px; height: 12px; object-fit: cover; flex: none; }
 .prensa-year {
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   border-bottom: 1px solid var(--line-strong); transition: border-color .15s;
 }
-.prensa-year:focus-within { border-bottom: 2px solid #b3271b; }
-.prensa-year.invalida { border-bottom: 2px solid #b3271b; }
+.prensa-year:focus-within { border-bottom: 2px solid var(--rojo); }
+.prensa-year.invalida { border-bottom: 2px solid var(--rojo); }
 .prensa-year input {
   background: transparent; border: 0; outline: 0; text-align: center; width: 5.5rem;
   font-family: var(--font-mono); font-size: 16px; font-variant-numeric: tabular-nums;
@@ -1288,7 +1318,7 @@ body,
   background: transparent; border: 1px solid var(--line); border-radius: 0;
   color: var(--cdd-muted); font-size: 16px; font-weight: 700; line-height: 1; cursor: pointer;
 }
-.prensa-step:hover { color: #b3271b; border-color: #b3271b; }
+.prensa-step:hover { color: var(--rojo); border-color: var(--rojo); }
 .prensa-submit {
   width: 100%; height: 54px; border: 0; border-radius: 0; cursor: pointer;
   background: var(--line-strong); color: var(--bg);
@@ -1296,7 +1326,7 @@ body,
   letter-spacing: .26em; text-transform: uppercase;
   transition: background .18s, color .18s;
 }
-.prensa-submit:hover:not(:disabled):not(.is-incomplete) { background: #b3271b; }
+.prensa-submit:hover:not(:disabled):not(.is-incomplete) { background: var(--rojo); }
 .prensa-submit:active:not(:disabled) { transform: translateY(1px); }
 .prensa-submit:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
 /* Incompleto pero TOCABLE (el tap explica qué falta con temblor + toast). */
@@ -1305,7 +1335,7 @@ body,
    MI PARTIDA"): filete de tinta sobre papel → rojo al pasar. No compite con
    el bloque de tinta macizo del primario. */
 .prensa-submit--ghost { background: transparent; color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--line-strong); text-decoration: none; }
-.prensa-submit--ghost:hover { background: transparent; color: #b3271b; box-shadow: inset 0 0 0 1px #b3271b; }
+.prensa-submit--ghost:hover { background: transparent; color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }
 
 /* ── F2: Fin de partida — la crónica con sello ──
    El EndScreen hereda las variables de .prensa (vive dentro del root del
@@ -1324,8 +1354,8 @@ body,
 .prensa .cdd-verdict { border-radius: 0; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none;
   font-family: var(--font-body); font-weight: 800; letter-spacing: .22em; }
 .prensa .cdd-verdict.win { color: var(--gold); }
-.prensa .cdd-verdict.lose { color: #b3271b; }
-.prensa .cdd-reveal-brand { font-family: var(--font-body); font-weight: 600; letter-spacing: .2em; color: #b3271b; }
+.prensa .cdd-verdict.lose { color: var(--rojo); }
+.prensa .cdd-reveal-brand { font-family: var(--font-body); font-weight: 600; letter-spacing: .2em; color: var(--rojo); }
 .prensa .cdd-reveal-model { font-family: var(--font-display); font-weight: 900; letter-spacing: -.01em; font-size: 30px; }
 .prensa .cdd-reveal-meta { font-family: var(--font-body); letter-spacing: .12em; }
 .prensa .cdd-flag { border-radius: 0; }
@@ -1335,32 +1365,32 @@ body,
   position: absolute; top: 12px; right: 12px; z-index: 4;
   font-family: var(--font-body); font-weight: 800; font-size: 15px;
   letter-spacing: .28em; text-transform: uppercase;
-  color: #b3271b; border: 3px solid #b3271b; padding: 7px 10px 7px 14px;
+  color: var(--rojo); border: 3px solid var(--rojo); padding: 7px 10px 7px 14px;
   transform: rotate(-7deg);
-  background: color-mix(in srgb, #f3eee1 82%, transparent);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
   animation: prensaSellar .45s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: .25s;
 }
-.prensa-sello.tinta { color: #1b1712; border-color: #1b1712; }
+.prensa-sello.tinta { color: var(--cdd-text); border-color: var(--cdd-text); }
 @keyframes prensaSellar { from { opacity: 0; transform: rotate(-7deg) scale(1.7); } }
 .prensa .cdd-unlock { border-radius: 0; background: transparent; border: 1px solid var(--gold); color: var(--gold); }
 .prensa .cdd-unlock:hover { background: rgba(122, 92, 16, .08); border-color: var(--gold); }
 .prensa .cdd-end-tabs { gap: 18px; border-bottom: 1px solid var(--line-strong); }
 .prensa .cdd-tab { flex: none; background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
   padding: 8px 2px; font-family: var(--font-body); font-weight: 800; letter-spacing: .2em; color: var(--cdd-muted); }
-.prensa .cdd-tab.on { color: var(--cdd-text); border-bottom-color: #b3271b; }
+.prensa .cdd-tab.on { color: var(--cdd-text); border-bottom-color: var(--rojo); }
 .prensa .cdd-stat { border-radius: 0; background: transparent; border: 0; border-bottom: 1px dotted var(--cdd-muted); padding: 8px 2px; }
 .prensa .cdd-stat-k { font-family: var(--font-body); letter-spacing: .18em; }
 .prensa .cdd-stat-v { font-family: var(--font-mono); }
-.prensa .cdd-stat-v.accent { color: #b3271b; }
+.prensa .cdd-stat-v.accent { color: var(--rojo); }
 /* La crónica se lee como artículo: serif, cuerpo de texto, tinta plena. */
 .prensa .cdd-note { font-family: var(--font-display); font-size: 14px; line-height: 1.55; color: var(--cdd-text); }
 .prensa .cdd-dist-card { border-radius: 0; background: transparent; border: 1px solid var(--line); }
 .prensa .cdd-dist-title, .prensa .cdd-grid-k { font-family: var(--font-body); letter-spacing: .2em; }
 .prensa .cdd-dist-track { border-radius: 0; background: var(--surface2); }
 .prensa .cdd-dist-bar { border-radius: 0; background: var(--line-strong); box-shadow: none !important; }
-.prensa .cdd-dist-bar.me { background: #b3271b; }
-.prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: #b3271b; }
-.prensa .cdd-percentile { border-radius: 0; background: transparent; border: 1px dashed #b3271b; color: #b3271b;
+.prensa .cdd-dist-bar.me { background: var(--rojo); }
+.prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--rojo); }
+.prensa .cdd-percentile { border-radius: 0; background: transparent; border: 1px dashed var(--rojo); color: var(--rojo);
   font-family: var(--font-body); letter-spacing: .14em; }
 .prensa .cdd-grid { border-radius: 0; background: var(--surface); border: 1px solid var(--line); }
 .prensa .cdd-next { border-radius: 0; background: transparent; border: 1px solid var(--line); }
@@ -1368,19 +1398,19 @@ body,
 .prensa .cdd-next-clock { color: var(--cdd-text); font-family: var(--font-body); font-weight: 800; font-variant-numeric: tabular-nums; }
 .prensa .cdd-end-close { border-radius: 0; border-color: var(--line-strong);
   font-family: var(--font-body); font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
-.prensa .cdd-end-close:hover { border-color: #b3271b; color: #b3271b; }
+.prensa .cdd-end-close:hover { border-color: var(--rojo); color: var(--rojo); }
 
 /* ── Nota de la redacción: aviso one-time del rediseño ── */
 .prensa-nota { position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center;
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
            max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
 .prensa-nota-scrim { position: absolute; inset: 0; background: rgba(27, 23, 18, .45); }
-.prensa-nota-panel { position: relative; width: 100%; max-width: 430px; background: #f3eee1; color: #1b1712;
-  border: 1px solid #1b1712; outline: 1px solid #1b1712; outline-offset: 4px;
+.prensa-nota-panel { position: relative; width: 100%; max-width: 430px; background: var(--bg); color: var(--cdd-text);
+  border: 1px solid var(--cdd-text); outline: 1px solid var(--cdd-text); outline-offset: 4px;
   padding: 22px 20px 18px; display: flex; flex-direction: column; gap: 12px;
   animation: prensaNotaEntra .4s cubic-bezier(.16, 1, .3, 1) both; }
 .prensa-nota-panel .titular { font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-size: 24px; line-height: 1.05; }
-.prensa-nota-panel .cuerpo { font-family: 'Fraunces', Georgia, serif; font-size: 14.5px; line-height: 1.55; color: #6e6553; }
+.prensa-nota-panel .cuerpo { font-family: 'Fraunces', Georgia, serif; font-size: 14.5px; line-height: 1.55; color: var(--cdd-muted); }
 @keyframes prensaNotaEntra { from { opacity: 0; transform: translateY(14px); } }
 @media (prefers-reduced-motion: reduce) { .prensa-sello, .prensa-nota-panel { animation: none !important; } }
 
@@ -1389,30 +1419,30 @@ body,
    así que el chasis y las utilidades de contenido (pm-*) usan colores
    CONCRETOS — misma razón histórica por la que .modal-panel-flat los usaba. */
 .modal-panel-flat {
-  background: #f3eee1; color: #1b1712;
-  border: 1px solid #1b1712; border-radius: 0;
-  outline: 1px solid #1b1712; outline-offset: 4px;
+  background: var(--bg); color: var(--cdd-text);
+  border: 1px solid var(--cdd-text); border-radius: 0;
+  outline: 1px solid var(--cdd-text); outline-offset: 4px;
   box-shadow: none;
 }
 .modal-scrim, .scrim-flat { background: rgba(27, 23, 18, .45); }
 
 /* Utilidades de contenido de modal (concretas, reutilizables en F3-F4) */
 .pm-kicker { font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 800; font-size: 10px;
-  letter-spacing: .24em; text-transform: uppercase; color: #b3271b; }
+  letter-spacing: .24em; text-transform: uppercase; color: var(--rojo); }
 .pm-title { font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-size: 26px;
-  letter-spacing: -.01em; line-height: 1.05; color: #1b1712; }
-.pm-body { font-family: 'Fraunces', Georgia, serif; font-size: 14px; line-height: 1.55; color: #6e6553; }
-.pm-strong { color: #1b1712; font-weight: 600; }
+  letter-spacing: -.01em; line-height: 1.05; color: var(--cdd-text); }
+.pm-body { font-family: 'Fraunces', Georgia, serif; font-size: 14px; line-height: 1.55; color: var(--cdd-muted); }
+.pm-strong { color: var(--cdd-text); font-weight: 600; }
 .pm-label { font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 600; font-size: 10px;
-  letter-spacing: .2em; text-transform: uppercase; color: #6e6553; }
+  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted); }
 /* Marcador de lista: cuadradito de tinta (fuera el punto menta con glow) */
-.pm-dot { width: 6px; height: 6px; flex: none; background: #1b1712; border-radius: 0; margin-top: 7px; }
+.pm-dot { width: 6px; height: 6px; flex: none; background: var(--cdd-text); border-radius: 0; margin-top: 7px; }
 .pm-btn { width: 100%; border: 0; border-radius: 0; cursor: pointer; padding: 14px 12px;
-  background: #1b1712; color: #f3eee1;
+  background: var(--cdd-text); color: var(--bg);
   font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 800; font-size: 13px;
   letter-spacing: .24em; text-transform: uppercase; transition: background .18s; }
-.pm-btn:hover:not(:disabled) { background: #b3271b; }
+.pm-btn:hover:not(:disabled) { background: var(--rojo); }
 .pm-btn:active:not(:disabled) { transform: translateY(1px); }
-.pm-btn:disabled { background: transparent; color: rgba(110, 101, 83, .62); box-shadow: inset 0 0 0 1px rgba(27, 23, 18, .25); cursor: not-allowed; }
-.pm-btn--ghost { background: transparent; color: #1b1712; box-shadow: inset 0 0 0 1px #1b1712; }
-.pm-btn--ghost:hover:not(:disabled) { background: transparent; color: #b3271b; box-shadow: inset 0 0 0 1px #b3271b; }
+.pm-btn:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
+.pm-btn--ghost { background: transparent; color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--cdd-text); }
+.pm-btn--ghost:hover:not(:disabled) { background: transparent; color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }

@@ -922,15 +922,13 @@ body,
   padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
 .cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
-.cdd-end-close { display: block; width: calc(100% - 36px); margin: 12px 18px 18px; padding: 13px;
-  background: transparent; border: 1px solid var(--line); border-radius: 11px; color: var(--cdd-text);
-  font-size: 11px; cursor: pointer; }
-.cdd-end-close:hover { border-color: var(--accent); color: var(--accent); }
-/* CTA del Túnel bajo la cuenta atrás: vive FUERA de .cdd-end-body (que es quien
-   da el padding lateral a los .cdd-submit), así que sin esto quedaba de borde a
-   borde de la tarjeta. Replica la geometría de sus vecinos .cdd-next /
-   .cdd-end-close (18px de margen lateral). */
-.cdd-tunel-cta { width: calc(100% - 36px); margin: 10px 18px 0; }
+/* Secundarios del final de partida (Túnel, "ver mi partida") como ENLACES en
+   una fila, no botones: descargan la zona bajo Compartir (el único primario). */
+.cdd-end-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; margin: 14px 18px 16px; }
+.cdd-end-link { background: none; border: 0; cursor: pointer; padding: 4px 0;
+  font-family: var(--font-body); font-weight: 600; font-size: 10px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--cdd-muted); border-bottom: 1px solid var(--line); }
+.cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
 
 /* ── Móvil: foto a tamaño máximo con «Adivinar» siempre visible ──
    Port del prototipo refinado (Claude Design). El "fold" —cabecera + intro +
@@ -1015,7 +1013,6 @@ body,
   .cdd-end-tabs { padding-top: 12px; }
   .cdd-end-body { padding-top: 10px; gap: 10px; }
   .cdd-next { margin-top: 6px; }
-  .cdd-end-close { margin-top: 8px; margin-bottom: 12px; }
 }
 
 /* ── Desktop ── */
@@ -1439,15 +1436,16 @@ body,
 .prensa .cdd-dist-bar { border-radius: 0; background: var(--line-strong); box-shadow: none !important; }
 .prensa .cdd-dist-bar.me { background: var(--rojo); }
 .prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--rojo); }
-.prensa .cdd-percentile { border-radius: 0; background: transparent; border: 1px dashed var(--rojo); color: var(--rojo);
-  font-family: var(--font-body); letter-spacing: .14em; }
+/* Percentil: una LÍNEA sobria en cursiva, no una caja roja (era el marco más
+   ruidoso para la info menos importante). */
+.prensa .cdd-percentile { border: 0; background: transparent; padding: 2px 14px 0;
+  color: var(--cdd-muted); font-family: var(--font-display); font-style: italic;
+  font-size: 13px; letter-spacing: 0; text-transform: none; }
 .prensa .cdd-grid { border-radius: 0; background: var(--surface); border: 1px solid var(--line); }
-.prensa .cdd-next { border-radius: 0; background: transparent; border: 1px solid var(--line); }
+/* Cuenta atrás: una LÍNEA centrada (etiqueta + reloj), no una caja. */
+.prensa .cdd-next { border: 0; background: transparent; justify-content: center; gap: 10px; padding: 4px 0; }
 .prensa .cdd-next-k { font-family: var(--font-body); letter-spacing: .18em; }
 .prensa .cdd-next-clock { color: var(--cdd-text); font-family: var(--font-body); font-weight: 800; font-variant-numeric: tabular-nums; }
-.prensa .cdd-end-close { border-radius: 0; border-color: var(--line-strong);
-  font-family: var(--font-body); font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
-.prensa .cdd-end-close:hover { border-color: var(--rojo); color: var(--rojo); }
 
 /* ── Nota de la redacción: aviso one-time del rediseño ── */
 .prensa-nota { position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center;

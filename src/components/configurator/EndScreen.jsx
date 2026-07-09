@@ -241,15 +241,15 @@ export default function EndScreen({
             <pre className="cdd-grid">{grid}</pre>
             <Percentile data={daily} won={won} />
 
-            {/* El parte de la clasificación: puesto mensual + movimiento vs
-                ayer (palanca de retorno). Encima de Compartir pero secundario
-                en peso — Compartir sigue siendo el CTA de tinta principal. */}
-            <RankParte rank={rank} user={user} onOpenRanking={onOpenRanking} />
-
             {/* CTA primario de esta pantalla: compartir (momento viral). */}
             <button className="cdd-submit cdd-share-btn" onClick={copyShare}>
               <Icon d={I.share} size={17} /> <span>{copied ? t("cdd.copied") : t("cdd.copyResult")}</span>
             </button>
+
+            {/* El parte de la clasificación: puesto + movimiento vs ayer
+                (palanca de retorno). DEBAJO de Compartir, que sigue siendo el
+                único CTA de tinta; el parte es la única "caja" de la pantalla. */}
+            <RankParte rank={rank} user={user} onOpenRanking={onOpenRanking} />
 
             {/* CTA de registro para anónimos que ganan (conserva la pieza de
                 producción: no perder racha/estadísticas). Estilo SECUNDARIO
@@ -279,20 +279,27 @@ export default function EndScreen({
             seguir jugando. Ghost para no competir con COMPARTIR (el CTA
             primario y palanca viral). Solo logueados: el modo requiere sesión
             y el anónimo ya tiene aquí su propio CTA de registro. */}
-        {user && (
-          <button
-            className="cdd-submit cdd-submit--ghost cdd-tunel-cta"
-            onClick={() => {
-              haptic.impactLight();
-              track("tunel_cta", { from: "end_screen" });
-              window.location.href = "/tunel";
-            }}
-          >
-            <span>{t("cdd.tunelCta")}</span>
+        {/* Secundarios como ENLACES discretos (no botones): Compartir es el
+            único primario. El Túnel de viento va deliberadamente sin
+            protagonismo por ahora (pendiente de revisar su papel). */}
+        <div className="cdd-end-links">
+          {user && (
+            <button
+              type="button"
+              className="cdd-end-link"
+              onClick={() => {
+                haptic.impactLight();
+                track("tunel_cta", { from: "end_screen" });
+                window.location.href = "/tunel";
+              }}
+            >
+              {t("cdd.tunelCta")}
+            </button>
+          )}
+          <button type="button" className="cdd-end-link cdd-mono" onClick={onClose}>
+            {t("cdd.seeGame")}
           </button>
-        )}
-
-        <button className="cdd-end-close cdd-mono" onClick={onClose}>{t("cdd.seeGame")}</button>
+        </div>
       </div>
     </div>
   );

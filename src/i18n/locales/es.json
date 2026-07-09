@@ -290,6 +290,22 @@
     "errorLocked": "Tu nick ya está fijado y no se puede cambiar.",
     "errorAuth": "Necesitas iniciar sesión."
   },
+  "parte": {
+    "kicker": "El parte de la clasificación",
+    "of": "de {total} lectores",
+    "up": {
+      "one": "Hoy has subido {count} puesto",
+      "other": "Hoy has subido {count} puestos"
+    },
+    "down": {
+      "one": "Hoy bajas {count} puesto · defiende el tuyo",
+      "other": "Hoy bajas {count} puestos · defiende el tuyo"
+    },
+    "hold": "Mantienes tu puesto",
+    "new": "Estrenas puesto este mes",
+    "unranked": "Aún sin puesto en {month} · gana para entrar",
+    "cta": "Ver la clasificación"
+  },
   "ranking": {
     "tag": "Arcade Board",
     "title": "Ranking",

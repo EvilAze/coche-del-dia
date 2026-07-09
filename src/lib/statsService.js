@@ -118,7 +118,16 @@ export async function getMyMonthlyRank(userId) {
   // Sin puesto propio no pintamos puesto (total puede venir aunque rank sea
   // null porque haya otros jugadores, pero a la píldora solo le importa el mío).
   if (!rank || rank < 1) return null;
-  return { rank, total: row?.total ?? null };
+  // `delta`/`prev_rank` alimentan el «parte de la clasificación» del final de
+  // partida (movimiento vs ayer). Sin snapshot de hoy la RPC devuelve prev_rank
+  // null → isNew=true → copy neutro. La píldora del header ignora estos campos.
+  const prevRank = row?.prev_rank ?? null;
+  return {
+    rank,
+    total: row?.total ?? null,
+    delta: row?.delta ?? null,
+    isNew: prevRank == null,
+  };
 }
 
 export async function saveDisplayName(displayName) {

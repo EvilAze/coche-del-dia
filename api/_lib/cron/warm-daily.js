@@ -242,6 +242,37 @@ export async function warmDaily(req, res) {
       });
     }
 
+    // ---- PASO 5: sellar la clasificación del día (parte de la clasif.) ---
+    // Piggyback best-effort, igual que el PASO 4 y por el mismo motivo (límite
+    // de 2 cron jobs en Hobby): a esta hora (≈00:10 Madrid) el leaderboard
+    // mensual es el cierre de ayer; lo sellamos con la fecha de hoy como
+    // baseline del "movimiento vs ayer" del final de partida. Idempotente
+    // (snapshot_daily_ranks borra y reinserta el día). Ver
+    // scripts/supabase-rank-movement.sql. Un fallo aquí no afecta al warming.
+    const step5Start = Date.now();
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      if (!supabaseAdmin) {
+        result.steps.push({ step: "rank-snapshot", skipped: true, reason: "admin envs ausentes" });
+      } else {
+        const { data, error } = await supabaseAdmin.rpc("snapshot_daily_ranks");
+        result.steps.push({
+          step: "rank-snapshot",
+          ms: Date.now() - step5Start,
+          ...(error
+            ? { ok: false, error: error.message || "RPC failed" }
+            : { ok: true, rowsSnapshotted: typeof data === "number" ? data : data ?? null }),
+        });
+      }
+    } catch (err) {
+      result.steps.push({
+        step: "rank-snapshot",
+        ms: Date.now() - step5Start,
+        ok: false,
+        error: err?.message || "uncaught",
+      });
+    }
+
     result.ok = true;
     result.totalMs = Date.now() - t0;
     return res.status(200).json(result);

@@ -250,8 +250,10 @@ export default function Configurator({
           streak={streak}
           shareText={shareText}
           user={user}
+          rank={rank}
           onOpenLogin={onOpenLogin}
           onOpenGarage={onOpenGarage}
+          onOpenRanking={onOpenRanking}
           onClose={() => setShowEnd(false)}
         />
       )}

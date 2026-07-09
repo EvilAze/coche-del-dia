@@ -21,6 +21,7 @@ import { useDailyStats, Distribution, Percentile } from "./dailyStats";
 // diaria —cuya pantalla viva es ESTA—. Lo montamos aquí, en la pestaña
 // COMPARTIR (la de por defecto al ganar), que es el pico de engagement.
 import NotificationOptIn from "../NotificationOptIn";
+import RankParte from "./RankParte";
 // Rejilla ✅/❌ del share: fuente única en lib/shareText (la misma que usa
 // buildShareText). El preview del panel y el texto que se copia ya NO pueden
 // divergir — antes era un espejo manual con la advertencia "si cambias uno,
@@ -68,9 +69,11 @@ export default function EndScreen({
   streak,
   shareText,
   user,
+  rank,
   onClose,
   onOpenLogin,
   onOpenGarage,
+  onOpenRanking,
 }) {
   const { t, tn } = useT();
   const toast = useToast();
@@ -237,6 +240,12 @@ export default function EndScreen({
             <div className="cdd-mono cdd-grid-k">{t("cdd.yourGame")}</div>
             <pre className="cdd-grid">{grid}</pre>
             <Percentile data={daily} won={won} />
+
+            {/* El parte de la clasificación: puesto mensual + movimiento vs
+                ayer (palanca de retorno). Encima de Compartir pero secundario
+                en peso — Compartir sigue siendo el CTA de tinta principal. */}
+            <RankParte rank={rank} user={user} onOpenRanking={onOpenRanking} />
+
             {/* CTA primario de esta pantalla: compartir (momento viral). */}
             <button className="cdd-submit cdd-share-btn" onClick={copyShare}>
               <Icon d={I.share} size={17} /> <span>{copied ? t("cdd.copied") : t("cdd.copyResult")}</span>

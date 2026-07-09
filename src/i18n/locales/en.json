@@ -290,6 +290,22 @@
     "errorLocked": "Your nick is already set and can't be changed.",
     "errorAuth": "You need to sign in."
   },
+  "parte": {
+    "kicker": "The standings report",
+    "of": "of {total} readers",
+    "up": {
+      "one": "You climbed {count} spot today",
+      "other": "You climbed {count} spots today"
+    },
+    "down": {
+      "one": "You dropped {count} spot today · defend it",
+      "other": "You dropped {count} spots today · defend it"
+    },
+    "hold": "You held your spot",
+    "new": "You're on the board this month",
+    "unranked": "No spot in {month} yet · win to join",
+    "cta": "See the standings"
+  },
   "ranking": {
     "tag": "Arcade Board",
     "title": "Ranking",

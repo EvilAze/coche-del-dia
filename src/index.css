@@ -885,6 +885,39 @@ body,
   background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; }
 .cdd-share-btn { height: 50px; }
 
+/* ── «El parte de la clasificación» (RankParte, final de partida) ──
+   Bloque editorial de doble filete: puesto en oro viejo (momento «valioso»),
+   movimiento vs ayer y acceso al ranking. Secundario a Compartir. Tokenizado,
+   así que sigue el tema día/noche como el resto del sistema prensa. */
+.cdd-parte {
+  border: 1px solid var(--line-strong); outline: 1px solid var(--line-strong);
+  outline-offset: 3px; border-radius: 0; padding: 13px 14px 12px; margin: 2px 4px;
+  background: transparent;
+}
+.cdd-parte-lad {
+  display: flex; align-items: baseline; gap: 10px;
+  font-family: var(--font-body); font-weight: 800; font-size: 9px;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-text);
+}
+.cdd-parte-lad::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-2px); }
+.cdd-parte-row { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; }
+.cdd-parte-pos { font-family: var(--font-display); font-weight: 900; font-size: 38px; line-height: .9; color: var(--gold); }
+.cdd-parte-of { font-family: var(--font-display); font-style: italic; font-size: 13px; color: var(--cdd-muted); }
+.cdd-parte-mov { font-family: var(--font-display); font-size: 14px; margin-top: 6px; }
+.cdd-parte-mov--up   { color: var(--gold); font-weight: 600; }   /* subir = premium */
+.cdd-parte-mov--down { color: var(--rojo); font-weight: 600; }   /* bajar = urgencia */
+.cdd-parte-mov--hold,
+.cdd-parte-mov--new  { color: var(--cdd-muted); font-style: italic; }
+.cdd-parte-nudge { font-family: var(--font-display); font-style: italic; font-size: 14px; color: var(--cdd-muted); margin-top: 8px; }
+.cdd-parte-cta {
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 10px;
+  background: none; border: 0; cursor: pointer; padding: 0;
+  font-family: var(--font-body); font-weight: 700; font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-text);
+  border-bottom: 2px solid var(--rojo);
+}
+.cdd-parte-cta:hover { color: var(--rojo); }
+
 .cdd-next { display: flex; align-items: center; justify-content: space-between; margin: 8px 18px 0;
   padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }

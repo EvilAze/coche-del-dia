@@ -7,7 +7,7 @@ import CloseButton from "./components/CloseButton";
 import LanguageStrip from "./components/LanguageStrip";
 import ModalShell from "./components/ModalShell";
 import { useToast } from "./components/Toast";
-import { getMyMonthlyRank } from "./lib/statsService";
+import { getMySeasonRank } from "./lib/statsService";
 import { track } from "./lib/analytics";
 import { signInWithGoogle } from "./lib/auth";
 import { useGame } from "./hooks/useGame";
@@ -281,11 +281,11 @@ export default function App() {
     if (!user) return;
     if (score?.persisted && typeof score.currentStreak === "number") {
       setStreak(score.currentStreak);
-      // El resultado persistido también cambia mis puntos del mes → mi puesto
-      // puede haber subido. Refrescamos la píldora de estado. Solo aplicamos si
-      // llega un puesto real: así un fallo transitorio (null) NO borra el valor
+      // El resultado persistido también cambia mis puntos de la temporada → mi
+      // puesto puede haber subido. Refrescamos la píldora de estado. Solo aplicamos
+      // si llega un puesto real: así un fallo transitorio (null) NO borra el valor
       // bueno que ya tenía la píldora (evita el parpadeo "tengo puesto → nada").
-      getMyMonthlyRank(user.id).then((next) => {
+      getMySeasonRank(user.id).then((next) => {
         if (next) setRank(next);
       });
     }

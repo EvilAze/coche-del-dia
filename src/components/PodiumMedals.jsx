@@ -1,30 +1,29 @@
 // src/components/PodiumMedals.jsx
-// Medallas de PODIO mensual de un usuario: oro / plata / bronce, p.ej.
-// "Primero en mayo de 2026". Autónomo: recibe un userId y se encarga de pedir
-// sus medallas a getMonthlyMedals (lee la tabla pública monthly_podium).
-// Mientras carga o si no hay ninguna, no renderiza nada — el padre no necesita
-// gestionar estado.
+// Vitrina de medallas de PODIO de un usuario: oro / plata / bronce. Dos grupos:
+//   · Temporada (nuevo): "Campeón · Grupo B" — el tema es lo coleccionable.
+//   · Mes (legado): "Primero en mayo de 2026" — se preservan las medallas
+//     mensuales ya ganadas aunque el ranking mensual se retirara (Decisión C).
+// Autónomo: recibe un userId y pide sus medallas. Mientras carga o si no tiene
+// ninguna, no renderiza nada — el padre no necesita gestionar estado.
 //
-// Las medallas las materializa el cron mensual (api/cron/monthly-podium.js)
-// sobre meses CERRADOS; ver scripts/supabase-monthly-ranking.sql.
+// Las de temporada las materializa el cierre de temporada (close_finished_seasons,
+// piggyback en warm-daily); las de mes las materializó el cron mensual retirado.
 
 import { useEffect, useState } from "react";
 import { useT } from "../i18n";
-import { getMonthlyMedals } from "../lib/statsService";
+import { getSeasonMedals, getMonthlyMedals } from "../lib/statsService";
 
-// Estilo del borde + texto según el puesto, en sintonía con los tiers de
-// logros (oro/plata/bronce) que ya usan el Garaje y el Perfil. El icono
-// hereda este color vía currentColor (se envuelve en un <span> con `text`).
+// Estilo del borde + texto según el puesto, en sintonía con los tiers de logros
+// (oro/plata/bronce). El icono hereda este color vía currentColor.
 const RANK_STYLE = {
   1: { border: "border-gold/60", text: "text-gold" },
   2: { border: "border-zinc-300/50", text: "text-zinc-300" },
   3: { border: "border-amber-700/60", text: "text-amber-600" },
 };
 
-// Medalla line-art (mismo trazo que el set de iconos del Perfil). NO usamos
-// emoji a propósito: los emoji de medalla renderizan distinto en cada
-// plataforma y, mal codificados en el fuente, se rompían en mojibake. Este
-// SVG hereda color (currentColor) y tamaño (className), y es cross-platform.
+// Medalla line-art (mismo trazo que el set de iconos del Perfil). NO usamos emoji
+// a propósito: renderizan distinto por plataforma y, mal codificados, se rompían
+// en mojibake. Este SVG hereda color (currentColor) y tamaño (className).
 function MedalIcon({ className = "h-[18px] w-[18px]" }) {
   return (
     <svg
@@ -58,61 +57,107 @@ function formatMonth(monthStr, dateLocale) {
   }
 }
 
+// Chip de medalla compartido por ambos grupos: icono + puesto + subtítulo
+// (tema de temporada o mes).
+function MedalChip({ rank, place, subtitle, title }) {
+  const style = RANK_STYLE[rank] || RANK_STYLE[3];
+  return (
+    <div
+      className={`flex items-center gap-1.5 rounded-lg border ${style.border} bg-bg-tertiary px-2.5 py-1.5`}
+      title={title}
+    >
+      <span className={style.text}>
+        <MedalIcon className="h-[18px] w-[18px]" />
+      </span>
+      <span className="flex flex-col leading-tight">
+        <span className={`text-[10px] font-semibold uppercase tracking-wider ${style.text}`}>
+          {place}
+        </span>
+        <span className="text-[10px] capitalize text-muted-foreground">{subtitle}</span>
+      </span>
+    </div>
+  );
+}
+
 export default function PodiumMedals({ userId }) {
-  const { t, dateLocale } = useT();
-  const [medals, setMedals] = useState([]);
+  const { t, locale, dateLocale } = useT();
+  const [season, setSeason] = useState([]);
+  const [monthly, setMonthly] = useState([]);
 
   useEffect(() => {
     if (!userId) {
-      setMedals([]);
+      setSeason([]);
+      setMonthly([]);
       return;
     }
     let cancelled = false;
-    getMonthlyMedals(userId)
-      .then((rows) => {
-        if (!cancelled) setMedals(rows);
+    Promise.all([getSeasonMedals(userId), getMonthlyMedals(userId)])
+      .then(([s, m]) => {
+        if (!cancelled) {
+          setSeason(s);
+          setMonthly(m);
+        }
       })
       .catch(() => {
-        if (!cancelled) setMedals([]);
+        if (!cancelled) {
+          setSeason([]);
+          setMonthly([]);
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [userId]);
 
-  if (medals.length === 0) return null;
+  if (season.length === 0 && monthly.length === 0) return null;
 
   return (
-    <section>
-      <h4 className="mb-2 text-[10px] uppercase tracking-[0.22em] text-accent">
-        {t("podium.title")}
-      </h4>
-      <div className="flex flex-wrap gap-2">
-        {medals.map((m) => {
-          const style = RANK_STYLE[m.rank] || RANK_STYLE[3];
-          const place = t(`podium.rank${m.rank}`);
-          const monthLabel = formatMonth(m.month, dateLocale);
-          return (
-            <div
-              key={`${m.month}-${m.rank}`}
-              className={`flex items-center gap-1.5 rounded-lg border ${style.border} bg-bg-tertiary px-2.5 py-1.5`}
-              title={t("podium.medalAria", { place, month: monthLabel })}
-            >
-              <span className={style.text}>
-                <MedalIcon className="h-[18px] w-[18px]" />
-              </span>
-              <span className="flex flex-col leading-tight">
-                <span className={`text-[10px] font-semibold uppercase tracking-wider ${style.text}`}>
-                  {place}
-                </span>
-                <span className="text-[10px] capitalize text-muted-foreground">
-                  {monthLabel}
-                </span>
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    <div className="space-y-4">
+      {season.length > 0 && (
+        <section>
+          <h4 className="mb-2 text-[10px] uppercase tracking-[0.22em] text-accent">
+            {t("podium.titleSeason")}
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {season.map((m) => {
+              const place = t(`podium.rank${m.rank}`);
+              const label = (locale === "en" ? m.labelEn : m.labelEs) || "";
+              return (
+                <MedalChip
+                  key={`s-${m.number}-${m.rank}`}
+                  rank={m.rank}
+                  place={place}
+                  subtitle={label}
+                  title={t("podium.medalAriaSeason", { place, season: label })}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {monthly.length > 0 && (
+        <section>
+          <h4 className="mb-2 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            {t("podium.titleLegacy")}
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {monthly.map((m) => {
+              const place = t(`podium.rank${m.rank}`);
+              const monthLabel = formatMonth(m.month, dateLocale);
+              return (
+                <MedalChip
+                  key={`m-${m.month}-${m.rank}`}
+                  rank={m.rank}
+                  place={place}
+                  subtitle={monthLabel}
+                  title={t("podium.medalAria", { place, month: monthLabel })}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }

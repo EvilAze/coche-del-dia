@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getLeaderboard, getMonthlyLeaderboard } from "../lib/statsService";
+import { getSeasonLeaderboard, getCurrentSeason } from "../lib/statsService";
+import { daysUntilClose } from "../lib/season";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
@@ -91,33 +92,27 @@ function RankMarker({ rank }) {
 }
 
 export default function Ranking({ open, onClose, user, onOpenLogin }) {
-  const { t } = useT();
+  const { t, tn, locale } = useT();
   const [state, setState] = useState({
     loading: true,
     players: [],
     error: "",
   });
-  // PestaÃ±a activa: "month" (ranking del mes en curso, por defecto para que
-  // los reciÃ©n llegados vean un marcador alcanzable) o "all" (histÃ³rico).
-  const [tab, setTab] = useState("month");
+  // Temporada activa, para el banner (número + tema) y el countdown de cierre.
+  // null = sin temporada activa (hueco o aún no configurada) → no se pinta banner.
+  const [season, setSeason] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  // Modal de perfil pÃºblico al clicar una fila del ranking. Guardamos
-  // el userId del jugador objetivo; null = cerrado.
+  // Modal de perfil público al clicar una fila del ranking. Guardamos el userId
+  // del jugador objetivo; null = cerrado.
   const [openProfileId, setOpenProfileId] = useState(null);
-  // userId del usuario actual (logueado), si lo hay. Lo usamos para
-  // NO hacer clicable su propia fila â€” ya tiene su MyStats privado.
+  // userId del usuario actual (logueado), si lo hay. Lo usamos para NO hacer
+  // clicable su propia fila — ya tiene su MyStats privado.
   const currentUserId = user?.id || null;
-  // Mi fila dentro del leaderboard cargado (mismo scope que la pestaña activa,
-  // así rank+puntos son coherentes). Si estoy fuera del top visible, la fijamos
-  // abajo para que siempre vea dónde estoy.
+  // Mi fila dentro del leaderboard cargado. Si estoy fuera del top visible, la
+  // fijamos abajo para que siempre vea dónde estoy.
   const selfRow = currentUserId
     ? state.players.find((p) => p.userId === currentUserId) || null
     : null;
-
-  // Al cerrar el modal, volvemos a la pestaÃ±a mensual para la prÃ³xima apertura.
-  useEffect(() => {
-    if (!open) setTab("month");
-  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -125,32 +120,28 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
     let cancelled = false;
     setState({ loading: true, players: [], error: "" });
 
-    const fetcher = tab === "month" ? getMonthlyLeaderboard : getLeaderboard;
-    fetcher()
-      .then((players) => {
-        if (!cancelled) setState({ loading: false, players, error: "" });
+    // El leaderboard de la temporada y la temporada activa (para el banner) son
+    // independientes: los pedimos en paralelo.
+    Promise.all([getSeasonLeaderboard(), getCurrentSeason()])
+      .then(([players, s]) => {
+        if (cancelled) return;
+        setSeason(s);
+        setState({ loading: false, players, error: "" });
       })
       .catch((err) => {
-        // No nos tragamos el error: lo logueamos con la pestaña activa para
-        // poder diagnosticar por qué falla el ranking (típicamente un error
-        // de PostgREST/Supabase: RPC ausente, relación no encontrada, GRANT
-        // revocado…). Antes este catch descartaba `err` y la única señal era
-        // el mensaje genérico de la UI, imposible de depurar en producción.
-        // Un error de leaderboard no contiene PII ni pistas del coche, así
-        // que es seguro consolearlo (CLAUDE.md #8).
-        console.error(`[Ranking] fallo cargando "${tab}"`, err);
+        // No nos tragamos el error: lo logueamos para poder diagnosticar por qué
+        // falla el ranking (típicamente un error de PostgREST/Supabase: RPC
+        // ausente, relación no encontrada, GRANT revocado…). Un error de
+        // leaderboard no contiene PII ni pistas del coche (CLAUDE.md #8).
+        console.error("[Ranking] fallo cargando la temporada", err);
         if (!cancelled)
-          setState({
-            loading: false,
-            players: [],
-            error: t("ranking.errorLoad"),
-          });
+          setState({ loading: false, players: [], error: t("ranking.errorLoad") });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [open, tab]);
+  }, [open]);
 
   useEscape(open && !helpOpen, onClose);
 
@@ -178,40 +169,33 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
           </div>
         </div>
 
-        {/* Switcher de pestaÃ±as: Este mes / HistÃ³rico. El mensual va primero
-            y es el default â€” un reciÃ©n llegado ve un marcador alcanzable. */}
-        <div
-          role="tablist"
-          aria-label={t("ranking.tabsAria")}
-          className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-border bg-bg-tertiary p-1"
-        >
-          {[
-            { id: "month", label: t("ranking.tabMonth") },
-            { id: "all", label: t("ranking.tabAll") },
-          ].map((tabDef) => {
-            const active = tab === tabDef.id;
+        {/* Banner de la temporada en curso: número + tema + countdown de cierre.
+            El oro marca el momento premium (el campeonato es "valioso"). Sin
+            temporada activa no se pinta. */}
+        {season &&
+          (() => {
+            const d = daysUntilClose(season.ends_at);
+            const label = locale === "en" ? season.label_en : season.label_es;
             return (
-              <button
-                key={tabDef.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setTab(tabDef.id)}
-                className={`
-                  rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide
-                  transition active:scale-[0.98]
-                  ${
-                    active
-                      ? "bg-mint/15 text-mint shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
-                      : "text-muted-foreground hover:text-foreground"
-                  }
-                `}
-              >
-                {tabDef.label}
-              </button>
+              <div className="mb-4 rounded-xl border border-gold/40 bg-gold/[0.06] px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold/80">
+                      {t("ranking.seasonKicker", { n: season.number })}
+                    </p>
+                    <p className="truncate text-lg font-semibold text-foreground">
+                      {label}
+                    </p>
+                  </div>
+                  {d != null && (
+                    <span className="shrink-0 rounded-full border border-gold/40 px-2.5 py-1 text-[11px] font-semibold text-gold">
+                      {d <= 0 ? t("ranking.closesToday") : tn("ranking.closesIn", d)}
+                    </span>
+                  )}
+                </div>
+              </div>
             );
-          })}
-        </div>
+          })()}
 
         {state.loading ? (
           <p className="text-sm text-muted-foreground">{t("ranking.loading")}</p>
@@ -219,7 +203,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
           <p className="text-sm text-red-400">{state.error}</p>
         ) : state.players.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {tab === "month" ? t("ranking.emptyMonth") : t("ranking.empty")}
+            {t("ranking.emptySeason")}
           </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-border">
@@ -244,11 +228,9 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
               `}
             >
               {state.players.map((player, index) => {
-                // Solo usuarios LOGUEADOS pueden abrir perfiles ajenos.
-                // Para visitantes anÃ³nimos el ranking es informativo
-                // pero no interactivo â€” abrir perfiles requiere estar
-                // dentro del juego.
-                // AdemÃ¡s: tu propia fila nunca es clicable (tienes
+                // Solo usuarios LOGUEADOS pueden abrir perfiles ajenos. Para
+                // visitantes anónimos el ranking es informativo pero no
+                // interactivo. Además: tu propia fila nunca es clicable (tienes
                 // MyStats para verte a ti).
                 const isSelf = currentUserId && currentUserId === player.userId;
                 const isClickable = !!user && !isSelf;
@@ -299,9 +281,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                         <StreakBadge streak={player.currentStreak} />
                       </div>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {tab === "month"
-                          ? t("ranking.monthWins", { value: player.totalWins })
-                          : t("ranking.bestStreak", { value: player.maxStreak })}
+                        {t("ranking.seasonWins", { value: player.totalWins })}
                       </p>
                     </div>
 
@@ -345,9 +325,7 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
                       <StreakBadge streak={selfRow.currentStreak} />
                     </div>
                     <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {tab === "month"
-                        ? t("ranking.monthWins", { value: selfRow.totalWins })
-                        : t("ranking.bestStreak", { value: selfRow.maxStreak })}
+                      {t("ranking.seasonWins", { value: selfRow.totalWins })}
                     </p>
                   </div>
                   <div className="text-right">
@@ -387,8 +365,8 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
         )}
     </ModalShell>
 
-    {/* Sub-modal hermano (no anidado): ahora cada uno gestiona su propio
-        backdrop y su propia animaciÃ³n de entrada/salida. */}
+    {/* Sub-modal hermano (no anidado): cada uno gestiona su propio backdrop y su
+        animación de entrada/salida. */}
     <ScoringHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
     <PublicProfile
       open={!!openProfileId}

@@ -7,6 +7,7 @@ import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import LanguageStrip from "./LanguageStrip";
 import PodiumMedals from "./PodiumMedals";
+import Legends from "./Legends";
 
 // Tope de congelados — sincronizado con v_freeze_cap en
 // scripts/supabase-streak-freeze.sql. Si cambias uno, cambia el otro.
@@ -194,6 +195,9 @@ export default function MyStats({
     tier: null,
     error: "",
   });
+  // Modal «Leyendas» (histórico all-time), gestionado localmente: se abre ENCIMA
+  // del perfil (no lo cierra), como vista secundaria.
+  const [legendsOpen, setLegendsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -259,6 +263,7 @@ export default function MyStats({
     : null;
 
   return (
+    <>
     <ModalShell
       open={open}
       onClose={onClose}
@@ -354,7 +359,7 @@ export default function MyStats({
             </div>
           </div>
 
-          {/* Podios mensuales (solo si tiene alguno). */}
+          {/* Podios: temporada + mes de legado (solo si tiene alguno). */}
           <div className="mt-4 empty:hidden">
             <PodiumMedals userId={state.user?.id} />
           </div>
@@ -377,11 +382,16 @@ export default function MyStats({
               onClick={() => go(onOpenRanking)}
             />
             <DoorRow
-              last
               icon={<TrophyIcon />}
               label={t("header.achievements")}
               value={logrosValue}
               onClick={() => go(onOpenAchievements)}
+            />
+            <DoorRow
+              last
+              icon={<CrownIcon />}
+              label={t("ranking.legends")}
+              onClick={() => setLegendsOpen(true)}
             />
           </div>
 
@@ -406,5 +416,7 @@ export default function MyStats({
         </>
       )}
     </ModalShell>
+    <Legends open={legendsOpen} onClose={() => setLegendsOpen(false)} />
+    </>
   );
 }

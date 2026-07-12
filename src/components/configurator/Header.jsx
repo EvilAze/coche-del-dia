@@ -171,7 +171,6 @@ export default function Header({
         {season && (
           <p className="temporada">
             {t("prensa.temporada", {
-              n: season.number,
               tema: locale === "en" ? season.label_en : season.label_es,
             })}
           </p>

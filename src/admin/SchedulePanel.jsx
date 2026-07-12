@@ -1,5 +1,5 @@
 // src/admin/SchedulePanel.jsx
-// Panel del calendario admin: 7 días empezando por hoy, mostrando qué
+// Panel del calendario admin: 14 días empezando por hoy, mostrando qué
 // coche está programado cada día y permitiendo editar o hacer swap.
 //
 // Pide /api/admin/schedule (GET) en cada montaje y cuando refreshKey
@@ -128,7 +128,7 @@ export default function SchedulePanel({
     <div className="flex flex-col gap-4">
       <header className="border-b border-border pb-3">
         <h2 className="font-display text-2xl tracking-widest text-white">
-          Calendario (7 días)
+          Calendario (14 días)
         </h2>
         <p className="mt-1 text-xs text-muted">
           Los coches futuros ya están fijados — el orden aleatorio no cambia

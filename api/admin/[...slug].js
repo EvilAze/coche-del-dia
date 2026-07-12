@@ -30,6 +30,7 @@ import analytics from "../../lib/admin-handlers/analytics.js";
 import audit from "../../lib/admin-handlers/audit.js";
 import saveCar from "../../lib/admin-handlers/save-car.js";
 import schedule from "../../lib/admin-handlers/schedule.js";
+import seasons from "../../lib/admin-handlers/seasons.js";
 import translate from "../../lib/admin-handlers/translate.js";
 import analyzeImage from "../../lib/admin-handlers/analyze-image.js";
 
@@ -38,6 +39,7 @@ const ROUTES = {
   "audit":         audit,
   "save-car":      saveCar,
   "schedule":      schedule,
+  "seasons":       seasons,
   "translate":     translate,
   "analyze-image": analyzeImage,
 };

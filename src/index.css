@@ -1102,6 +1102,13 @@ body,
   font-family: var(--font-display); font-style: italic; font-weight: 400;
   color: var(--cdd-muted); font-size: 14px; margin-top: 9px;
 }
+/* Temporada temática en curso: sello dorado bajo el lema. El oro es el token de
+   "esto es valioso" (racha/victoria/podio); aquí marca el campeonato activo. */
+.prensa-masthead .temporada {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--gold); margin-top: 8px;
+}
 .prensa-folio {
   display: flex; justify-content: center; align-items: baseline; gap: 8px;
   flex-wrap: nowrap; white-space: nowrap;

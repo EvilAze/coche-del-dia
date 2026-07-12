@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { useTheme } from "../../lib/theme";
+import { getCurrentSeason } from "../../lib/statsService";
 
 // Glifos del toggle de tema (mismo trazo 1.6 y caja 24 que los iconos del
 // juego). Luna en día (invita a la noche); sol en noche (vuelve al día).
@@ -41,8 +42,26 @@ export default function Header({
   onOpenRanking,
   onOpenGarage,
 }) {
-  const { t, dateLocale } = useT();
+  const { t, dateLocale, locale } = useT();
   const { tema, toggle } = useTheme();
+
+  // Temporada activa para el subtítulo del masthead ("Temporada N · Tema"). Lectura
+  // pública barata; NO bloquea el primer paint — el masthead aparece y la línea se
+  // añade al resolver. null = sin temporada activa → no se pinta (sin salto brusco).
+  const [season, setSeason] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentSeason()
+      .then((s) => {
+        if (!cancelled) setSeason(s);
+      })
+      .catch(() => {
+        if (!cancelled) setSeason(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Fecha COMPLETA con año: es la línea de folio de un periódico, no un pie
   // de barra — "Sábado, 5 de julio de 2026".
@@ -147,6 +166,16 @@ export default function Header({
             wordmark visual del masthead. */}
         <p className="titulo">{t("app.title")}</p>
         <p className="lema">{t("prensa.lema")}</p>
+        {/* Temporada temática en curso: sello dorado que señala de un vistazo que
+            el juego va por temporadas y en cuál estamos. Solo si hay una activa. */}
+        {season && (
+          <p className="temporada">
+            {t("prensa.temporada", {
+              n: season.number,
+              tema: locale === "en" ? season.label_en : season.label_es,
+            })}
+          </p>
+        )}
       </div>
 
       <div className="prensa-folio">

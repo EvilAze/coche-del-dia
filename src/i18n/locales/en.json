@@ -145,6 +145,7 @@
   "prensa": {
     "lema": "The daily for those who know a car by its headlight.",
     "folioEdicion": "Free edition",
+    "temporada": "Season {n} · {tema}",
     "ladilloFoto": "Today's photograph",
     "pista": "Clue {n} of {max}",
     "edicionCerrada": "Edition closed",

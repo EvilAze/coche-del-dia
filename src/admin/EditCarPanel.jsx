@@ -141,6 +141,14 @@ export default function EditCarPanel({
     };
   }, [previewUrl]);
 
+  // Ref al <input type="file"> para limpiarlo al cambiar de coche / tras guardar
+  // SIN remontar el input. El `key={form.file ? …}` anterior lo remontaba a mitad
+  // de la interacción con el diálogo del sistema → bug de "clicar dos veces".
+  const fileInputRef = useRef(null);
+  useEffect(() => {
+    if (!form.file && fileInputRef.current) fileInputRef.current.value = "";
+  }, [form.file]);
+
   // Carga los datos del coche cuando cambia el id externo. El callback
   // onSelectCar mantiene a AdminTools sincronizado si el usuario cambia
   // de coche dentro del dropdown.
@@ -565,6 +573,9 @@ export default function EditCarPanel({
                 📅 Este coche ya ha sido coche del día anteriormente y no se puede repetir en el calendario.
               </div>
             )}
+            {/* Escritorio: identidad a la izquierda, imagen + zoom a la derecha. */}
+            <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
+            <div className="flex flex-col gap-5">
             <Field label="Marca">
               <input
                 type="text"
@@ -668,7 +679,9 @@ export default function EditCarPanel({
                 inputClass={inputClass}
               />
             </Field>
+            </div>
 
+            <div className="mt-5 flex flex-col gap-5 lg:mt-0">
             <Field
               label={
                 <>
@@ -680,7 +693,7 @@ export default function EditCarPanel({
               }
             >
               <input
-                key={form.file ? "has-file" : "empty"}
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
@@ -790,6 +803,8 @@ export default function EditCarPanel({
                 Probar en preview →
               </button>
             )}
+            </div>
+            </div>
           </>
         )}
 

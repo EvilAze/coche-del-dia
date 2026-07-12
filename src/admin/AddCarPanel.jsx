@@ -6,7 +6,7 @@
 //     ("crear coche nuevo para el día X"), tras guardar lo asigna a esa
 //     fecha vía /api/admin/schedule POST y notifica al padre con la fecha.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useFreshCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
@@ -77,6 +77,14 @@ export default function AddCarPanel({
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
+
+  // Ref al <input type="file"> para limpiarlo al resetear el form SIN remontar el
+  // input. El `key={form.file ? …}` anterior remontaba el input a mitad de la
+  // interacción con el diálogo del sistema → bug de "hay que clicar dos veces".
+  const fileInputRef = useRef(null);
+  useEffect(() => {
+    if (!form.file && fileInputRef.current) fileInputRef.current.value = "";
+  }, [form.file]);
 
   function updateField(field, value) {
     setForm((prev) => {
@@ -298,6 +306,10 @@ export default function AddCarPanel({
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        {/* Escritorio: dos columnas — identidad a la izquierda, imagen y zoom a
+            la derecha. En móvil se apilan. */}
+        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
+        <div className="flex flex-col gap-5">
         <Field label="Marca">
           <input
             type="text"
@@ -419,10 +431,12 @@ export default function AddCarPanel({
             inputClass={inputClass}
           />
         </Field>
+        </div>
 
+        <div className="mt-5 flex flex-col gap-5 lg:mt-0">
         <Field label="Foto del coche">
           <input
-            key={form.file ? "has-file" : "empty"}
+            ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleFileChange}
@@ -480,6 +494,8 @@ export default function AddCarPanel({
             />
           </Field>
         )}
+        </div>
+        </div>
 
         {feedback && (
           <div

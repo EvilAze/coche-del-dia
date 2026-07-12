@@ -49,10 +49,6 @@
     {
       "path": "/api/cron/warm-daily",
       "schedule": "5 23 * * *"
-    },
-    {
-      "path": "/api/cron/monthly-podium",
-      "schedule": "0 2 1 * *"
     }
   ]
 }

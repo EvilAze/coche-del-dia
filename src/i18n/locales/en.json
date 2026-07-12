@@ -302,40 +302,48 @@
       "other": "You dropped {count} spots today · defend it"
     },
     "hold": "You held your spot",
-    "new": "You're on the board this month",
-    "unranked": "No spot in {month} yet · win to join",
+    "new": "You're on the board this season",
+    "unranked": "No spot this season yet · win to join",
     "cta": "See the standings"
   },
   "ranking": {
     "tag": "Arcade Board",
     "title": "Ranking",
     "helpButtonAria": "How scoring works",
-    "tabMonth": "This month",
-    "tabAll": "All-time",
-    "tabsAria": "Switch between monthly and all-time ranking",
+    "seasonKicker": "Season {n}",
+    "closesToday": "Closes today",
+    "closesIn": {
+      "one": "Closes in {count} day",
+      "other": "Closes in {count} days"
+    },
     "loading": "Loading ranking...",
     "errorLoad": "Couldn't load the ranking.",
     "empty": "No drivers with a nickname yet.",
-    "emptyMonth": "No scores yet this month. Be the first!",
+    "emptySeason": "No scores yet this season. Be the first!",
     "colRank": "#",
     "colPlayer": "Driver",
     "colPoints": "Pts",
     "bestStreak": "Best streak: {value}",
-    "monthWins": "{value} wins this month",
+    "seasonWins": "{value} wins this season",
     "points": "points",
     "you": "You",
     "yourPosition": "Your position",
     "loginPrompt": "Sign in to see the full table and your current position.",
     "loginCta": "Join the competition",
     "streakAria": "Streak of {count} days, bonus {bonus}",
-    "streakTitle": "Streak of {count} days"
+    "streakTitle": "Streak of {count} days",
+    "legends": "Legends",
+    "legendsSubtitle": "All-time ranking"
   },
   "podium": {
     "title": "Monthly podiums",
+    "titleSeason": "Season podiums",
+    "titleLegacy": "Monthly podiums",
     "rank1": "First",
     "rank2": "Second",
     "rank3": "Third",
-    "medalAria": "{place} in {month}"
+    "medalAria": "{place} in {month}",
+    "medalAriaSeason": "{place} · {season}"
   },
   "scoring": {
     "tag": "How scoring works",

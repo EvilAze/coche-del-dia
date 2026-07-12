@@ -71,6 +71,12 @@
   --line-strong-rgb: 27 23 18;
   --rojo-rgb: 179 39 27; --rojo-dark-rgb: 143 31 22;
   --gold-rgb: 122 92 16; --gold-dark-rgb: 95 71 12;
+  /* Veredicto de la clasificación: VERDE = acierto, ÁMBAR = "casi" (mismo país).
+     El rojo queda para el FALLO — verde=correcto/rojo=incorrecto es la convención
+     universal, la que promete el modal «Cómo se juega» y la que ya usa la rejilla
+     del share (✅/❌). Verde: tinta de "visto bueno" (AA 5.4:1 sobre el crema).
+     Ámbar: ocre de "parcial", ni acierto ni fallo (AA 4.9:1). */
+  --verde-rgb: 20 110 51; --ambar-rgb: 154 85 16;
 
   /* Colores completos derivados (día y noche comparten estas fórmulas). */
   --bg: rgb(var(--bg-rgb)); --bg2: rgb(var(--bg2-rgb));
@@ -81,6 +87,7 @@
   --line-strong: rgb(var(--line-strong-rgb));
   --rojo: rgb(var(--rojo-rgb)); --rojo-dark: rgb(var(--rojo-dark-rgb));
   --gold: rgb(var(--gold-rgb)); --gold-dark: rgb(var(--gold-dark-rgb));
+  --verde: rgb(var(--verde-rgb)); --ambar: rgb(var(--ambar-rgb));
   --gold-ink: rgb(var(--bg-rgb)); --gold-glow: transparent;
   --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
   --warn: rgb(var(--rojo-rgb));
@@ -96,6 +103,8 @@
   --line-strong-rgb: 185 173 151;
   --rojo-rgb: 224 87 74; --rojo-dark-rgb: 194 68 55;
   --gold-rgb: 217 184 119; --gold-dark-rgb: 185 151 90;
+  /* Verde y ámbar del veredicto, subidos para contraste AA sobre el grafito. */
+  --verde-rgb: 107 191 136; --ambar-rgb: 224 160 74;
 }
 
 @layer utilities {
@@ -1151,9 +1160,13 @@ body,
 @keyframes prensaParpadeo { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
 /* ── Clasificación: marcas de corrector de pruebas ──
-   Acierto → subrayado rojo firme; cerca → subrayado rojo discontinuo con
-   apostilla; fallo → tachado en tinta. Fondos transparentes: la fila es
-   tipografía + filete, no un chip. */
+   Verde = correcto, rojo = incorrecto: la convención universal, la que promete
+   el modal «Cómo se juega» y la que usa la rejilla del share (✅/❌). Acierto →
+   subrayado VERDE firme + ✓; cerca (mismo país) → subrayado ÁMBAR discontinuo +
+   bandera; fallo → tachado a pluma ROJA. (Antes el acierto iba en rojo, la marca
+   del corrector; pero un ✓ rojo se lee como error de un vistazo — el feedback del
+   usuario que motivó este cambio.) Fondos transparentes: la fila es tipografía +
+   filete, no un chip. */
 .prensa-fila {
   display: grid; grid-template-columns: 26px 1.05fr 1.3fr .8fr; gap: 10px;
   padding: 11px 2px; border-bottom: 1px solid var(--line);
@@ -1171,13 +1184,19 @@ body,
 .prensa-dato .linea-nombre { display: block; width: 100%; white-space: nowrap; overflow: hidden; }
 .prensa-dato { min-width: 0; font-family: var(--font-display); font-size: 16px; line-height: 1.25; }
 .prensa-dato .palabra { display: inline; }
-.prensa-dato.bien .palabra { border-bottom: 2px solid var(--rojo); font-weight: 600; }
-.prensa-dato.bien .marca-v { color: var(--rojo); font-weight: 700; }
-.prensa-dato.cerca .palabra { border-bottom: 2px dashed var(--rojo); }
-.prensa-dato.mal .palabra { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--cdd-muted); }
+.prensa-dato.bien .palabra { border-bottom: 2px solid var(--verde); font-weight: 600; }
+.prensa-dato.bien .marca-v { color: var(--verde); font-weight: 700; }
+.prensa-dato.cerca .palabra { border-bottom: 2px dashed var(--ambar); }
+/* Fallo = tachado a pluma ROJA sobre palabra apagada: el rojo dice "no", pero el
+   término recede (tinta muted) para no llenar la rejilla de alarma — quien lidera
+   la jerarquía visual es el verde de los aciertos (como en Wordle, el "ausente"
+   es el estado más callado). */
+.prensa-dato.mal .palabra { text-decoration: line-through; text-decoration-color: var(--rojo); text-decoration-thickness: 2px; color: var(--cdd-muted); }
 .prensa-apostilla {
   display: flex; align-items: center; gap: 5px; margin-top: 2px;
-  font-family: var(--font-display); font-style: italic; font-size: 11.5px; color: var(--rojo);
+  /* Ámbar de PISTA (no de fallo): la bandera "mismo país" y la flecha de año son
+     ayudas, no errores; por eso comparten el ámbar del estado "casi" y no el rojo. */
+  font-family: var(--font-display); font-style: italic; font-size: 11.5px; color: var(--ambar);
   text-transform: lowercase; /* "MÁS NUEVO" (i18n) se lee "más nuevo" en cursiva */
 }
 /* Apostilla neutra (p.ej. el "±2" del año acertado): informa, no corrige. */

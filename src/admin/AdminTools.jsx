@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import SchedulePanel from "./SchedulePanel";
+import SeasonsPanel from "./SeasonsPanel";
 import EditCarPanel from "./EditCarPanel";
 import AddCarPanel from "./AddCarPanel";
 import PreviewPanel from "./PreviewPanel";
@@ -27,6 +28,7 @@ const ADMIN_EMAILS = ["ievilaze@gmail.com"];
 
 const TABS = [
   { id: "schedule", label: "Calendario" },
+  { id: "seasons", label: "Temporadas" },
   { id: "edit", label: "Editar" },
   { id: "add", label: "Añadir" },
   { id: "preview", label: "Preview" },
@@ -297,6 +299,7 @@ export default function AdminTools({ defaultTab }) {
               onSwapCar={openSwap}
             />
           )}
+          {tab === "seasons" && <SeasonsPanel />}
           {tab === "edit" && (
             <EditCarPanel
               selectedCarId={selectedCarId}

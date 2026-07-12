@@ -167,6 +167,20 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
         </p>
       </header>
 
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8">
+        {/* Preview: primero en móvil, columna derecha (pegada) en escritorio. */}
+        <div className="lg:order-2 lg:sticky lg:top-6">
+          {activeSrc ? (
+            <SimulatedGameImage src={activeSrc} step={step} focus={focus} zoomBase={activeZoomBase} />
+          ) : (
+            <div className="flex aspect-square w-full items-center justify-center rounded-2xl border border-dashed border-border bg-bg-tertiary text-sm text-muted">
+              Pega una URL o elige un coche
+            </div>
+          )}
+        </div>
+
+        {/* Controles */}
+        <div className="flex flex-col gap-4 lg:order-1">
       <section className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted">
           URL manual
@@ -204,14 +218,6 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
           )}
         </label>
       </section>
-
-      {activeSrc ? (
-        <SimulatedGameImage src={activeSrc} step={step} focus={focus} zoomBase={activeZoomBase} />
-      ) : (
-        <div className="flex aspect-square w-full items-center justify-center rounded-2xl border border-dashed border-border bg-bg-tertiary text-sm text-muted">
-          Pega una URL o elige un coche
-        </div>
-      )}
 
       <section className="flex flex-col gap-2 rounded-xl border border-border bg-bg-secondary/40 p-3">
         <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted">
@@ -280,6 +286,8 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
           </div>
         </section>
       )}
+        </div>
+      </div>
     </div>
   );
 }

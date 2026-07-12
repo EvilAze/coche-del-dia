@@ -233,7 +233,7 @@ export default function FocusPicker({
 function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   if (!src || !dims) {
     return (
-      <div className="flex aspect-square items-center justify-center rounded-md border border-border bg-bg-tertiary text-[10px] text-muted">
+      <div className="flex aspect-[4/3] items-center justify-center rounded-md border border-border bg-bg-tertiary text-[10px] text-muted">
         {label}
       </div>
     );
@@ -244,9 +244,10 @@ function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   const minDim = Math.min(W, H);
   const size = minDim * cropPct;
 
-  // El juego muestra un recorte CUADRADO (marco 1:1 de .cdd-stage-frame), así que
-  // las miniaturas también son 1:1: el admin ve exactamente lo que ve el jugador.
-  const R = 1;
+  // Las miniaturas replican el marco del juego EN ESCRITORIO: 4:3 (.cdd-stage-frame).
+  // (En móvil el marco es 1:1 vía 100cqmin, pero el admin cura en escritorio, donde
+  // es 4:3 — igual que la "Sala de pruebas", que mide el marco real del juego.)
+  const R = 4 / 3;
   const bgW = (W / size) * 100;
   const bgH = (H / size) * 100 * R;
 
@@ -259,7 +260,7 @@ function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className="aspect-square w-full overflow-hidden rounded-md border border-border bg-black/40"
+        className="aspect-[4/3] w-full overflow-hidden rounded-md border border-border bg-black/40"
         style={{
           backgroundImage: `url(${src})`,
           backgroundSize: `${bgW}% ${bgH}%`,

@@ -207,7 +207,15 @@ export default function AdminTools({ defaultTab }) {
             Inicia sesión con la cuenta de administrador.
           </p>
           <button
-            onClick={() => supabase.auth.signInWithOAuth({ provider: "google" })}
+            onClick={() =>
+              supabase.auth.signInWithOAuth({
+                provider: "google",
+                // Volver a /admin-tools tras el OAuth (con su ?tab=… si lo había),
+                // no a la raíz. Requiere que esta URL esté en los "Redirect URLs"
+                // de Supabase (típicamente ya cubierta por el wildcard del dominio).
+                options: { redirectTo: window.location.href },
+              })
+            }
             className="mt-5 h-12 w-full rounded-xl bg-accent font-display text-lg tracking-widest text-bg-primary transition hover:bg-accent-dark active:scale-[0.98]"
           >
             Continuar con Google
@@ -251,7 +259,7 @@ export default function AdminTools({ defaultTab }) {
 
   return (
     <div className="min-h-screen bg-bg-primary font-body text-white">
-      <div className="mx-auto w-full max-w-md px-4 pt-6">
+      <div className="mx-auto w-full max-w-md lg:max-w-4xl px-4 pt-6">
         <header className="border-b border-border pb-4">
           <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
             Admin
@@ -265,7 +273,7 @@ export default function AdminTools({ defaultTab }) {
         <nav
           role="tablist"
           aria-label="Herramientas de administración"
-          className="mt-4 grid grid-cols-3 gap-1 rounded-xl border border-border bg-bg-secondary/40 p-1"
+          className="mt-4 grid grid-cols-3 lg:grid-cols-7 gap-1 rounded-xl border border-border bg-bg-secondary/40 p-1"
         >
           {TABS.map((t) => {
             const active = tab === t.id;

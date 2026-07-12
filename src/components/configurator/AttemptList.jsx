@@ -1,9 +1,12 @@
 // src/components/configurator/AttemptList.jsx
 // Clasificación «Prensa del motor»: cada intento es una FILA numerada (01…)
-// con tres datos en Fraunces y veredictos como MARCAS DE CORRECTOR:
-//   acierto → subrayado rojo firme + ✓ · cerca → subrayado rojo discontinuo
+// con tres datos en Fraunces y veredictos como MARCAS DE CORRECTOR.
+// Verde = correcto, rojo = incorrecto (la convención universal y lo que promete
+// el modal «Cómo se juega»):
+//   acierto → subrayado VERDE firme + ✓ · cerca → subrayado ÁMBAR discontinuo
 //   con apostilla en cursiva (bandera + "mismo país", "más nuevo ↑") ·
-//   fallo → tachado en tinta.
+//   fallo → tachado a pluma ROJA.
+// (El color vive en index.css: .prensa-dato.bien/.cerca/.mal.)
 // Fondos transparentes: la fila es tipografía + filete, no un chip. Feedback
 // REAL del servidor (correct/partial/wrong + dirección), doble codificación
 // marca+texto (accesible; el estado exacto va también en sr-only). Pendiente =

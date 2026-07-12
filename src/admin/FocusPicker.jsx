@@ -233,7 +233,7 @@ export default function FocusPicker({
 function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   if (!src || !dims) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-md border border-border bg-bg-tertiary text-[10px] text-muted">
+      <div className="flex aspect-square items-center justify-center rounded-md border border-border bg-bg-tertiary text-[10px] text-muted">
         {label}
       </div>
     );
@@ -244,8 +244,9 @@ function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   const minDim = Math.min(W, H);
   const size = minDim * cropPct;
 
-  // Adaptamos el escalado horizontal y vertical para que encaje con el aspect ratio 4:3.
-  const R = 4 / 3;
+  // El juego muestra un recorte CUADRADO (marco 1:1 de .cdd-stage-frame), así que
+  // las miniaturas también son 1:1: el admin ve exactamente lo que ve el jugador.
+  const R = 1;
   const bgW = (W / size) * 100;
   const bgH = (H / size) * 100 * R;
 
@@ -258,7 +259,7 @@ function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className="aspect-[4/3] w-full overflow-hidden rounded-md border border-border bg-black/40"
+        className="aspect-square w-full overflow-hidden rounded-md border border-border bg-black/40"
         style={{
           backgroundImage: `url(${src})`,
           backgroundSize: `${bgW}% ${bgH}%`,

@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { getMyProfile, getMyStreak, getMyMonthlyRank } from "../lib/statsService";
+import { getMyProfile, getMyStreak, getMySeasonRank } from "../lib/statsService";
 
 export function useAuthSession() {
   const [user, setUser] = useState(null);
@@ -22,11 +22,11 @@ export function useAuthSession() {
   // partida acaba, el score que devuelve useGame ya incluye el nuevo
   // currentStreak — el caller lo aplica vía setStreak sin refetch.
   const [streak, setStreak] = useState(0);
-  // Puesto en el ranking MENSUAL del usuario logueado, para la píldora de
-  // estado del header. null = anónimo o aún sin puesto este mes (sin puntos /
-  // sin nick) → la píldora cae a solo-racha. Shape: { rank, total } | null.
+  // Puesto en el ranking de la TEMPORADA del usuario logueado, para la píldora
+  // de estado del header. null = anónimo o aún sin puesto esta temporada (sin
+  // puntos / sin nick) → la píldora cae a solo-racha. Shape: { rank, total } | null.
   // Se sincroniza en login junto a profile+streak, y App lo refresca tras un
-  // resultado persistido (ganar sube puntos del mes → puede cambiar el puesto).
+  // resultado persistido (ganar sube puntos de la temporada → puede cambiar el puesto).
   const [rank, setRank] = useState(null);
 
   // Gate de re-sincronización: onAuthStateChange dispara TOKEN_REFRESHED
@@ -60,12 +60,12 @@ export function useAuthSession() {
       try {
         // Paralelizamos: profile, streak y rank son lecturas independientes.
         // Promise.all → cualquiera puede fallar sin afectar a las otras porque
-        // getMyStreak y getMyMonthlyRank ya devuelven su valor neutro (0 / null)
+        // getMyStreak y getMySeasonRank ya devuelven su valor neutro (0 / null)
         // en error; solo getMyProfile tira → lo cazamos en el catch general.
         const [nextProfile, nextStreak, nextRank] = await Promise.all([
           getMyProfile(nextUser.id),
           getMyStreak(nextUser.id),
-          getMyMonthlyRank(nextUser.id),
+          getMySeasonRank(nextUser.id),
         ]);
         setProfile(nextProfile);
         setStreak(nextStreak);

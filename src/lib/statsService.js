@@ -92,23 +92,24 @@ export async function getMyStreak(userId) {
     : 0;
 }
 
-// Mi puesto en el ranking MENSUAL (el que el modal abre por defecto), para la
-// píldora de estado del header. Una sola RPC barata: el servidor calcula el
-// leaderboard completo pero solo devuelve mi fila (rank + total), así que NO
-// arrastramos las 1000 filas del leaderboard al cliente solo para situar al
-// jugador. Devuelve null si no estoy rankeado (sin puntos del mes o sin nick)
-// → la píldora cae a solo-racha. Nunca lanza: el header no debe romperse por
-// esto (mismo criterio defensivo que getMyStreak).
-export async function getMyMonthlyRank(userId) {
+// Mi puesto en la TEMPORADA en curso, para la píldora de estado del header y el
+// «parte» del final de partida. Una sola RPC barata: el servidor calcula el
+// leaderboard completo pero solo devuelve mi fila (rank + total + movimiento vs
+// ayer), así que NO arrastramos las 1000 filas al cliente solo para situar al
+// jugador. Devuelve null si no estoy rankeado (sin puntos de la temporada o sin
+// nick) → la píldora cae a solo-racha. Nunca lanza: el header no debe romperse
+// por esto (mismo criterio defensivo que getMyStreak). p_season_id NULL → la
+// temporada actual.
+export async function getMySeasonRank(userId) {
   if (!userId) return null;
 
-  const { data, error } = await supabase.rpc("get_my_monthly_rank", {
+  const { data, error } = await supabase.rpc("get_my_season_rank", {
     p_user_id: userId,
-    p_month: null,
+    p_season_id: null,
   });
 
   if (error) {
-    console.error("[getMyMonthlyRank]", error);
+    console.error("[getMySeasonRank]", error);
     return null;
   }
 
@@ -247,7 +248,7 @@ export async function getCatalogCount() {
 // getMyStats (identidad + racha + escudos) y le añade EN PARALELO los datos
 // que las "puertas" necesitan, cada uno barato y derivado de fuentes que ya
 // existían — sin traer el Garaje entero ni el leaderboard completo:
-//   - rank:       getMyMonthlyRank (RPC que solo devuelve mi fila).
+//   - rank:       getMySeasonRank (RPC que solo devuelve mi fila).
 //   - collection: nº de coches ganados (únicos) / total del catálogo.
 //   - achievements: conteo ligero de hitos+rachas (sin catálogo).
 //   - tier:       rango global de coleccionista derivado del nº ganado.
@@ -264,10 +265,10 @@ export async function getProfileSummary() {
   const maxStreak = base.stats?.max_streak ?? 0;
 
   // Cada extra cae con elegancia: un fallo en uno NO debe tumbar el carnet
-  // (identidad + racha ya vienen de getMyStats). getMyMonthlyRank/getCatalogCount
+  // (identidad + racha ya vienen de getMyStats). getMySeasonRank/getCatalogCount
   // ya son defensivos; a getMyWonCarIds (que sí lanza) le ponemos red aquí.
   const [rank, wonIds, catalogTotal] = await Promise.all([
-    getMyMonthlyRank(base.user.id),
+    getMySeasonRank(base.user.id),
     getMyWonCarIds().catch(() => []),
     getCatalogCount(),
   ]);
@@ -364,7 +365,7 @@ export async function getLeaderboard() {
 
   // Guard de null: PostgREST puede devolver `data: null` (sin error) en
   // ciertos escenarios; sin esto, `.filter` revienta con TypeError. Mismo
-  // criterio defensivo que getMonthlyLeaderboard, que ya hacía `(data || [])`.
+  // criterio defensivo que getSeasonLeaderboard, que ya hacía `(data || [])`.
   return (data || [])
     .filter((row) => row.profile?.display_name)
     .map((row, index) => ({
@@ -383,16 +384,41 @@ export async function getLeaderboard() {
     }));
 }
 
-// Ranking MENSUAL del mes en curso. A diferencia de getLeaderboard (que lee
-// el acumulado de stats), esto deriva los puntos base ganados este mes desde
-// user_guesses vía la RPC get_monthly_leaderboard (ver
-// scripts/supabase-monthly-ranking.sql). Devuelve el mismo shape que
-// getLeaderboard para que Ranking.jsx reutilice el render de filas.
-//
-// p_month = NULL → la RPC usa el mes actual en zona Madrid.
-export async function getMonthlyLeaderboard() {
-  const { data, error } = await supabase.rpc("get_monthly_leaderboard", {
-    p_month: null,
+// Fecha 'YYYY-MM-DD' en Madrid (misma que usa el ranking para el corte de día).
+function todayMadridStr() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+// Temporada activa (o null si hay hueco entre temporadas). Lectura pública
+// directa de `seasons`. La consumen el banner del modal de ranking y el «parte»
+// (label + countdown). Nunca lanza: la UI cae con elegancia sin temporada.
+export async function getCurrentSeason() {
+  const today = todayMadridStr();
+  const { data, error } = await supabase
+    .from("seasons")
+    .select("id, number, label_es, label_en, starts_at, ends_at")
+    .lte("starts_at", today)
+    .gte("ends_at", today)
+    .maybeSingle();
+  if (error) {
+    console.error("[getCurrentSeason]", error);
+    return null;
+  }
+  return data;
+}
+
+// Ranking de la TEMPORADA en curso. Deriva los puntos base ganados en el rango
+// de la temporada desde user_guesses vía la RPC get_season_leaderboard (ver
+// scripts/2026-07-temporadas.sql). Mismo shape que getLeaderboard para que
+// Ranking.jsx reutilice el render de filas. p_season_id NULL → temporada actual.
+export async function getSeasonLeaderboard() {
+  const { data, error } = await supabase.rpc("get_season_leaderboard", {
+    p_season_id: null,
     p_limit: 1000,
   });
 
@@ -410,6 +436,32 @@ export async function getMonthlyLeaderboard() {
     totalWins: row.total_wins || 0,
     totalPoints: row.total_points || 0,
   }));
+}
+
+// Medallas de TEMPORADA (top 1/2/3 de temporadas cerradas) + su tema, para la
+// vitrina del perfil. Lee season_podium (público) join seasons por el label.
+// Orden por número de temporada desc (más reciente primero) en cliente: ordenar
+// por columna embebida en PostgREST es frágil, y son pocas filas.
+export async function getSeasonMedals(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("season_podium")
+    .select("rank, points, seasons(number, label_es, label_en, ends_at)")
+    .eq("user_id", userId);
+  if (error) {
+    console.error("[getSeasonMedals]", error);
+    return [];
+  }
+  return (data || [])
+    .map((row) => ({
+      rank: row.rank,
+      points: row.points,
+      number: row.seasons?.number ?? null,
+      labelEs: row.seasons?.label_es ?? null,
+      labelEn: row.seasons?.label_en ?? null,
+      endsAt: row.seasons?.ends_at ?? null,
+    }))
+    .sort((a, b) => (b.number ?? 0) - (a.number ?? 0));
 }
 
 // Medallas de podio de un usuario (top 1/2/3 de meses cerrados). Lee la tabla

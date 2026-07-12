@@ -8,7 +8,7 @@ product
 Car enthusiasts and casual gamers looking for a quick daily puzzle. They typically play on a mobile or desktop browser during a short break, requiring a frictionless, fast, and responsive experience.
 
 ## Product Purpose
-"Coche del Día" is a daily car-guessing game where the user has 5 attempts to identify a daily car. The car image starts highly zoomed-in and gradually zooms out with each incorrect guess. The goal is to provide an engaging, daily habitual game that retains users through streaks, achievements, rankings, and a personal garage.
+"Coche del Día" is a daily car-guessing game where the user has 5 attempts to identify a daily car. The car image starts highly zoomed-in and gradually zooms out with each incorrect guess. The goal is to provide an engaging, daily habitual game that retains users through streaks, achievements, themed seasonal rankings (a fresh 1–2 week competition with a new car theme each time), an all-time "Legends" board, and a personal garage.
 
 ## Brand Personality
 Premium, exciting, precise. It should feel like a high-end automotive configurator, offering tactile, refined interactions that evoke precision and quality.

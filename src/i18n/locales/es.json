@@ -302,40 +302,48 @@
       "other": "Hoy bajas {count} puestos · defiende el tuyo"
     },
     "hold": "Mantienes tu puesto",
-    "new": "Estrenas puesto este mes",
-    "unranked": "Aún sin puesto en {month} · gana para entrar",
+    "new": "Estrenas puesto esta temporada",
+    "unranked": "Aún sin puesto esta temporada · gana para entrar",
     "cta": "Ver la clasificación"
   },
   "ranking": {
     "tag": "Arcade Board",
     "title": "Ranking",
     "helpButtonAria": "Cómo se puntúa",
-    "tabMonth": "Este mes",
-    "tabAll": "Histórico",
-    "tabsAria": "Cambiar entre ranking mensual e histórico",
+    "seasonKicker": "Temporada {n}",
+    "closesToday": "Cierra hoy",
+    "closesIn": {
+      "one": "Cierra en {count} día",
+      "other": "Cierra en {count} días"
+    },
     "loading": "Cargando ranking...",
     "errorLoad": "No se pudo cargar el ranking.",
     "empty": "Todavía no hay pilotos con nickname.",
-    "emptyMonth": "Este mes aún no hay puntuaciones. ¡Sé el primero!",
+    "emptySeason": "Esta temporada aún no hay puntuaciones. ¡Sé el primero!",
     "colRank": "#",
     "colPlayer": "Piloto",
     "colPoints": "Pts",
     "bestStreak": "Mejor racha: {value}",
-    "monthWins": "{value} aciertos este mes",
+    "seasonWins": "{value} aciertos esta temporada",
     "points": "puntos",
     "you": "Tú",
     "yourPosition": "Tu posición",
     "loginPrompt": "Inicia sesión para ver la tabla completa y tu posición actual.",
     "loginCta": "Unirme a la competición",
     "streakAria": "Racha de {count} días, bonus {bonus}",
-    "streakTitle": "Racha de {count} días"
+    "streakTitle": "Racha de {count} días",
+    "legends": "Leyendas",
+    "legendsSubtitle": "Clasificación histórica"
   },
   "podium": {
     "title": "Podios del mes",
+    "titleSeason": "Podios de temporada",
+    "titleLegacy": "Podios de mes",
     "rank1": "Primero",
     "rank2": "Segundo",
     "rank3": "Tercero",
-    "medalAria": "{place} en {month}"
+    "medalAria": "{place} en {month}",
+    "medalAriaSeason": "{place} · {season}"
   },
   "scoring": {
     "tag": "Cómo se puntúa",

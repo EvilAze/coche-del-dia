@@ -273,6 +273,36 @@ export async function warmDaily(req, res) {
       });
     }
 
+    // ---- PASO 6: cerrar temporadas terminadas (Salón de la Fama) ---------
+    // Piggyback best-effort, mismo motivo que PASO 4/5 (límite de 2 crons en
+    // Hobby): un chequeo diario "¿cerró ayer alguna temporada?" congela su
+    // podio en season_podium. Idempotente (close_finished_seasons salta las ya
+    // selladas vía closed_at). Un fallo aquí no afecta al warming. Ver
+    // scripts/2026-07-temporadas.sql.
+    const step6Start = Date.now();
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      if (!supabaseAdmin) {
+        result.steps.push({ step: "close-seasons", skipped: true, reason: "admin envs ausentes" });
+      } else {
+        const { data, error } = await supabaseAdmin.rpc("close_finished_seasons");
+        result.steps.push({
+          step: "close-seasons",
+          ms: Date.now() - step6Start,
+          ...(error
+            ? { ok: false, error: error.message || "RPC failed" }
+            : { ok: true, seasonsClosed: typeof data === "number" ? data : data ?? null }),
+        });
+      }
+    } catch (err) {
+      result.steps.push({
+        step: "close-seasons",
+        ms: Date.now() - step6Start,
+        ok: false,
+        error: err?.message || "uncaught",
+      });
+    }
+
     result.ok = true;
     result.totalMs = Date.now() - t0;
     return res.status(200).json(result);

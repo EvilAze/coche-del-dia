@@ -3,9 +3,9 @@
 // con tres datos en Fraunces y veredictos como MARCAS DE CORRECTOR.
 // Verde = correcto, rojo = incorrecto (la convención universal y lo que promete
 // el modal «Cómo se juega»):
-//   acierto → subrayado VERDE firme + ✓ · cerca → subrayado ÁMBAR discontinuo
-//   con apostilla en cursiva (bandera + "mismo país", "más nuevo ↑") ·
-//   fallo → tachado a pluma ROJA.
+//   acierto → subrayado VERDE firme + ✓ · cerca → subrayado ÁMBAR discontinuo +
+//   apostilla "mismo país" (bandera) · fallo → tachado a pluma ROJA. La flecha
+//   ↑/↓ del año (más nuevo/antiguo) va EN LÍNEA con la cifra, no en apostilla.
 // (El color vive en index.css: .prensa-dato.bien/.cerca/.mal.)
 // Fondos transparentes: la fila es tipografía + filete, no un chip. Feedback
 // REAL del servidor (correct/partial/wrong + dirección), doble codificación
@@ -21,7 +21,7 @@ import { useFitText } from "../../hooks/useFitText";
 // con calma, como tres golpes de tampón.
 const STAGGER_MS = 120;
 
-function Dato({ estado, pending, value, apostilla, srStatus, fresh, delay, fitKey }) {
+function Dato({ estado, pending, value, apostilla, hint, srStatus, fresh, delay, fitKey }) {
   // Auto-ajuste del nombre a una línea: el wrapper bloque da el ancho de la
   // celda al hook; la .palabra inline mantiene el subrayado/tachado AL ANCHO
   // DE LA PALABRA (es una marca de corrector, no un borde de caja).
@@ -38,6 +38,9 @@ function Dato({ estado, pending, value, apostilla, srStatus, fresh, delay, fitKe
       <span ref={textRef} className="linea-nombre">
         <span className="palabra">{value || "—"}</span>
         {!pending && estado === "bien" && <span className="marca-v" aria-hidden="true"> ✓</span>}
+        {/* Pista EN LÍNEA (la flecha ↑/↓ del año): vive dentro del span medido por
+            useFitText, así que encoge con la cifra y no gasta un renglón extra. */}
+        {!pending && hint}
       </span>
       {srStatus && <span className="sr-only">{srStatus}</span>}
       {!pending && apostilla}
@@ -81,10 +84,10 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
   const modeloEstado = moSt === "correct" ? "bien" : "mal";
   const modeloSr = moSt === "correct" ? t("cdd.srCorrect") : t("cdd.srWrong");
 
-  // año — correct → bien + "±tol"; wrong → apostilla con dirección (la flecha
-  // dice hacia dónde está el año real: ↑ más nuevo, ↓ más antiguo).
+  // año — correct → bien + "±tol" (apostilla neutra debajo); wrong → flecha EN
+  // LÍNEA con la cifra (↑ más nuevo, ↓ más antiguo: hacia dónde está el real).
   const aSt = g.anio?.status;
-  let anioEstado, anioApostilla = null, anioSr;
+  let anioEstado, anioApostilla = null, anioHint = null, anioSr;
   if (aSt === "correct") {
     anioEstado = "bien";
     anioApostilla = <span className="prensa-apostilla neutra">±{tolerance}</span>;
@@ -93,17 +96,15 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
     anioEstado = "mal";
     const dir = g.anio?.direction;
     if (dir) {
-      // Solo la flecha (↑ más nuevo · ↓ más antiguo): quitamos el texto para
-      // ganar altura en la lista de intentos (la apostilla larga se partía en
-      // dos líneas). El sentido no se pierde: la flecha es aria-hidden y la
-      // dirección viaja al lector de pantalla como texto vía anioSr.
-      anioApostilla = (
-        <span className="prensa-apostilla">
+      // Flecha EN LÍNEA con la cifra (antes iba de apostilla debajo y gastaba un
+      // renglón por fila). Sin texto: el sentido viaja al lector de pantalla vía
+      // anioSr y la flecha es aria-hidden.
+      anioHint = (
+        <span className="prensa-dir" aria-hidden="true">
           <Icon d={dir === "up" ? I.arrowU : I.arrowD} size={11} />
         </span>
       );
     }
-    // Sin texto visible: el estado direccional se anuncia por sr-only.
     anioSr = dir ? t(dir === "up" ? "cdd.yearNewer" : "cdd.yearOlder") : t("cdd.srWrong");
   }
 
@@ -112,7 +113,7 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
       <span className="num">{numLabel}</span>
       <Dato estado={marcaEstado} value={g.marca?.val} fitKey={g.marca?.val} apostilla={marcaApostilla} srStatus={marcaSr} fresh={fresh} delay={d(0)} />
       <Dato estado={modeloEstado} value={g.modelo?.val} fitKey={g.modelo?.val} srStatus={modeloSr} fresh={fresh} delay={d(1)} />
-      <Dato estado={anioEstado} value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} apostilla={anioApostilla} srStatus={anioSr} fresh={fresh} delay={d(2)} />
+      <Dato estado={anioEstado} value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} apostilla={anioApostilla} hint={anioHint} srStatus={anioSr} fresh={fresh} delay={d(2)} />
     </div>
   );
 }

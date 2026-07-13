@@ -26,6 +26,14 @@ function clamp01(n) {
   return n;
 }
 
+// Proporción del marco del juego (.cdd-stage-frame en index.css). El servidor
+// recorta un CUADRADO (min(W,H)×cropPct), pero el marco es 4:3: con object-cover
+// el jugador ve una FRANJA 4:3 de ese cuadrado (se pierde arriba/abajo). Las
+// miniaturas de zoom deben usar esta MISMA proporción o enseñarían más coche del
+// que ve el jugador. Debe cuadrar con el aspect-ratio de .cdd-stage-frame y con
+// PreviewPanel.SimulatedGameImage (que mide el aspecto real del contenedor).
+const STAGE_FRAME_ASPECT = 4 / 3;
+
 export default function FocusPicker({
   src,
   value = { x: 0.5, y: 0.5 },
@@ -233,7 +241,7 @@ export default function FocusPicker({
 function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   if (!src || !dims) {
     return (
-      <div className="flex aspect-square items-center justify-center rounded-md border border-border bg-bg-tertiary text-[10px] text-muted">
+      <div className="flex aspect-[4/3] items-center justify-center rounded-md border border-border bg-bg-tertiary text-[10px] text-muted">
         {label}
       </div>
     );
@@ -244,9 +252,10 @@ function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   const minDim = Math.min(W, H);
   const size = minDim * cropPct;
 
-  // El juego muestra un recorte CUADRADO (marco 1:1 de .cdd-stage-frame), así que
-  // las miniaturas también son 1:1: el admin ve exactamente lo que ve el jugador.
-  const R = 1;
+  // El marco del juego es 4:3 (no 1:1): con object-cover el jugador ve una franja
+  // 4:3 del cuadrado que sirve el servidor. Replicamos ese aspecto para que la
+  // miniatura enseñe EXACTAMENTE lo que ve el jugador, no el cuadrado entero.
+  const R = STAGE_FRAME_ASPECT;
   const bgW = (W / size) * 100;
   const bgH = (H / size) * 100 * R;
 
@@ -259,7 +268,7 @@ function ZoomThumb({ label, cropPct, src, dims, focusX, focusY }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className="aspect-square w-full overflow-hidden rounded-md border border-border bg-black/40"
+        className="aspect-[4/3] w-full overflow-hidden rounded-md border border-border bg-black/40"
         style={{
           backgroundImage: `url(${src})`,
           backgroundSize: `${bgW}% ${bgH}%`,

@@ -173,7 +173,7 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
           {activeSrc ? (
             <SimulatedGameImage src={activeSrc} step={step} focus={focus} zoomBase={activeZoomBase} />
           ) : (
-            <div className="flex aspect-square w-full items-center justify-center rounded-2xl border border-dashed border-border bg-bg-tertiary text-sm text-muted">
+            <div className="flex aspect-[4/3] w-full items-center justify-center rounded-2xl border border-dashed border-border bg-bg-tertiary text-sm text-muted">
               Pega una URL o elige un coche
             </div>
           )}
@@ -294,9 +294,11 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
 
 // Replica EXACTAMENTE lo que ve el jugador con el rediseño "configurador":
 //
-//   - Steps 1-5: marco cuadrado (.cdd-stage-frame, 1:1) con el HUD real
-//     (StageHud: crosshair + grano). El recorte se
-//     simula server-side con background-position (misma matemática que
+//   - Steps 1-5: marco 4:3 (.cdd-stage-frame) con el HUD real (StageHud:
+//     crosshair + grano). El servidor recorta un CUADRADO, pero el marco es 4:3
+//     y con object-cover el jugador ve una franja 4:3 de ese cuadrado; por eso
+//     medimos el aspecto real del contenedor (R = containerAspect). El recorte
+//     se simula server-side con background-position (misma matemática que
 //     FocusPicker.ZoomThumb), porque aquí trabajamos con la imagen completa
 //     y no con el crop ya servido por /api/daily-image.
 //   - Step 6: revelado. Reusamos el ZoomStage real → mismo chrome, mismo HUD

@@ -56,7 +56,7 @@ export default function ScoreBreakdown({ score, won }) {
             {lines.map((line, i) => (
               <div
                 key={line.label}
-                className="flex items-center justify-between text-white/85 animate-slide-up"
+                className="flex items-center justify-between text-tinta/85 animate-slide-up"
                 style={{
                   animationDelay: `${i * 140}ms`,
                   animationFillMode: "both",
@@ -91,14 +91,14 @@ export default function ScoreBreakdown({ score, won }) {
         <div className="mt-3 flex justify-between gap-2 text-[11px] uppercase tracking-widest text-muted">
           <span>
             {t("score.streakLabel")}{" "}
-            <span className="text-white tabular-nums">
+            <span className="text-tinta tabular-nums">
               {score.currentStreak}
             </span>
           </span>
           {typeof score.totalScore === "number" && (
             <span>
               {t("score.totalLabel")}{" "}
-              <span className="text-white tabular-nums">{score.totalScore}</span>
+              <span className="text-tinta tabular-nums">{score.totalScore}</span>
             </span>
           )}
         </div>

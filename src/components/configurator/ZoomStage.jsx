@@ -33,7 +33,12 @@ export default function ZoomStage({
         <span className="aparte">
           {revealed
             ? t("prensa.edicionCerrada")
-            : t("prensa.pista", { n: Math.min(hintIndex + 1, totalHints), max: totalHints })}
+            : // hintIndex null = modo sin pistas progresivas (Repesca veterano):
+              // no pintamos contador de pista para no contradecir "sin pistas".
+              // El daily/Túnel siempre pasan un índice numérico durante el juego.
+              hintIndex != null
+              ? t("prensa.pista", { n: Math.min(hintIndex + 1, totalHints), max: totalHints })
+              : null}
         </span>
       </div>
 

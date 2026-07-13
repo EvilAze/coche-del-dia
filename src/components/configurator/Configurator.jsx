@@ -9,7 +9,6 @@ import { useT } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
 import Header from "./Header";
 import ZoomStage from "./ZoomStage";
-import AttemptProgress from "./AttemptProgress";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
@@ -139,9 +138,6 @@ export default function Configurator({
           totalHints={totalHints}
           blurred={status === "lost" && !user}
           onRevealLoad={onRevealLoad}
-          progress={
-            <AttemptProgress attempts={attempts} maxAttempts={maxAttempts} revealed={ended} />
-          }
         />
 
         {/* Columna "clas" del pliego: fila viva + historial + estadística.

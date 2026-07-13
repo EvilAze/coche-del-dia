@@ -1125,14 +1125,16 @@ body,
   font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--gold); margin-top: 8px;
 }
-/* Masthead compacto (visitante recurrente): sin lema, menos aire vertical y un
-   título algo menor, para que la foto y el cupón suban sobre la línea de flotación
-   en móvil — el jugador diario no debería hacer scroll para poder ENVIAR su
-   respuesta (ese era el peaje de la portada completa, repetido cada día). La
-   portada íntegra (lema incluido) se reserva a la PRIMERA visita: Header.jsx la
-   gatea por localStorage con fail-open a la versión completa (regla 9: no degradar
-   la home; si localStorage falla, se ve la portada bonita, nunca algo roto). */
-.prensa-masthead--compacto { padding: 2px 0 6px; }
+/* Masthead compacto (visitante recurrente): sin lema y un título algo menor, para
+   que la foto y el cupón suban sobre la línea de flotación en móvil — el jugador
+   diario no debería hacer scroll para poder ENVIAR su respuesta (ese era el peaje
+   de la portada completa, repetido cada día). El ahorro sale de RETIRAR el lema, NO
+   de pegar el título al filete de la barra: conservamos el respiro superior de la
+   portada (14px, el mismo que la versión completa) para que el wordmark no roce la
+   línea de encima; solo apretamos el aire INFERIOR. La portada íntegra (lema
+   incluido) se reserva a la PRIMERA visita: Header.jsx la gatea por localStorage
+   con fail-open a la versión completa (regla 9: no degradar la home). */
+.prensa-masthead--compacto { padding: 14px 0 8px; }
 .prensa-masthead--compacto .titulo { font-size: clamp(26px, 6vw, 46px); }
 .prensa-masthead--compacto .temporada { margin-top: 6px; }
 .prensa-folio {

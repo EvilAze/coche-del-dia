@@ -1053,41 +1053,21 @@ function UnlockedCard({ car, onClick }) {
         ✓
       </div>
 
-      {/* Insignias de mérito, apiladas en la esquina superior-izquierda para
-          que VET y AERO convivan sin pisarse:
-            - VET (ámbar): cromo ganado tras haberlo fallado antes (1 intento
-              sin pistas). Premia el completismo "duro".
-            - AERO (cian): cromo re-adivinado desenfocado en el Túnel de
-              viento. Es la "segunda vuelta" del álbum — el bucle de
-              rejugabilidad del modo libre. */}
-      {(car.wonAsVeteran || car.tunelWon) && (
-        <div className="absolute left-1.5 top-1.5 flex flex-col items-start gap-1">
-          {car.wonAsVeteran && (
-            <div
-              className="
-                rounded-full border border-papel/50
-                bg-tinta/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase
-                tracking-widest text-papel
-              "
-              title={t("garage.veteranBadgeAria")}
-              aria-label={t("garage.veteranBadgeAria")}
-            >
-              {t("garage.veteranBadgeShort")}
-            </div>
-          )}
-          {car.tunelWon && (
-            <div
-              className="
-                rounded-full border border-sky-300/60
-                bg-sky-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase
-                tracking-widest text-sky-200
-              "
-              title={t("garage.tunelBadgeAria")}
-              aria-label={t("garage.tunelBadgeAria")}
-            >
-              {t("garage.tunelBadgeShort")}
-            </div>
-          )}
+      {/* Insignia de mérito VET (ámbar), esquina superior-izquierda: cromo
+          ganado tras haberlo fallado antes (repesca veterano: 1 intento sin
+          pistas). Premia el completismo "duro" — recordar marca+modelo+año
+          exactos a la primera. */}
+      {car.wonAsVeteran && (
+        <div
+          className="
+            absolute left-1.5 top-1.5 rounded-full border border-papel/50
+            bg-tinta/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase
+            tracking-widest text-papel
+          "
+          title={t("garage.veteranBadgeAria")}
+          aria-label={t("garage.veteranBadgeAria")}
+        >
+          {t("garage.veteranBadgeShort")}
         </div>
       )}
     </button>

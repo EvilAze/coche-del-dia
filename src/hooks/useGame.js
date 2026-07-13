@@ -35,7 +35,7 @@ import { buildShareText } from "../lib/shareText";
 const DEFAULT_MAX_ATTEMPTS = 5;
 
 // Lectura SÍNCRONA del estado local del reto diario, solo para anónimos.
-// Sirve para pintar el resultado (ResultPanel + lista de guesses) en el
+// Sirve para pintar el resultado (revelado + lista de guesses) en el
 // primer render, sin esperar a que /api/get-daily-car resuelva. Antes,
 // el usuario que volvía durante el día veía un fondo negro hasta que
 // llegaba la respuesta del servidor (~150-400 ms en revisitas con caché
@@ -134,8 +134,9 @@ export function useGame() {
   // llega la respuesta (o error). Sin esto, el usuario solo veía un spinner
   // en el botón sin pista de qué estaba pasando.
   const [pendingGuess, setPendingGuess] = useState(null);
-  // Índice de la última guess "recién revelada". Sirve para que App marque la
-  // GuessRow correspondiente con justRevealed → reveal secuencial por celda.
+  // Índice de la última guess "recién revelada". Sirve para que el configurador
+  // marque la fila de intento correspondiente (AttemptRow) con justRevealed →
+  // reveal secuencial por celda.
   // Se resetea a -1 al inicializar y cuando entra una nueva pending.
   const [justRevealedIndex, setJustRevealedIndex] = useState(-1);
   const [status, setStatus] = useState(initialAnon?.status ?? "playing");

@@ -29,23 +29,15 @@ const ALGO = "aes-256-gcm";
 
 export const IMAGE_MODE_CLEAR = "c";
 export const IMAGE_MODE_BLURRED = "b";
-// Modo "g" (game-blur): imagen a tamaño de juego con el desenfoque del último
-// intento del Túnel de viento horneado (ver api/_lib/blur.js). Lo emite
-// /api/tunel/start para el coche objetivo; como el token no lleva userId, la
-// URL es idéntica para todos los que jueguen ese coche → el CDN la cachea una
-// vez por coche (misma economía que el ?z=5 público del juego diario).
-export const IMAGE_MODE_GAME_BLUR = "g";
 
 const VALID_MODES = new Set([
   IMAGE_MODE_CLEAR,
   IMAGE_MODE_BLURRED,
-  IMAGE_MODE_GAME_BLUR,
 ]);
 
 /**
  * Cifra (carId, mode) en un token URL-safe.
- * mode: "c" (clear → redirect a Supabase), "b" (blurred → JPEG procesado)
- * o "g" (game-blur → imagen de juego del Túnel).
+ * mode: "c" (clear → redirect a Supabase) o "b" (blurred → JPEG procesado).
  *
  * Lanza si REPESCA_TOKEN_SECRET no está configurado: preferimos fallar
  * ruidosamente a servir tokens con clave vacía.

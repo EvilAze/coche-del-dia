@@ -16,9 +16,6 @@ export default function ZoomStage({
   hintIndex,
   totalHints,
   blurred = false,
-  // Desenfoque de juego del Túnel de viento (px CSS): CarImage lo compone
-  // sobre la imagen ya horneada por el servidor. 0 en el juego diario.
-  blurPx = 0,
   overlay = null,
   progress = null,
   onRevealLoad,
@@ -35,7 +32,7 @@ export default function ZoomStage({
             ? t("prensa.edicionCerrada")
             : // hintIndex null = modo sin pistas progresivas (Repesca veterano):
               // no pintamos contador de pista para no contradecir "sin pistas".
-              // El daily/Túnel siempre pasan un índice numérico durante el juego.
+              // El daily y la repesca normal siempre pasan un índice numérico.
               hintIndex != null
               ? t("prensa.pista", { n: Math.min(hintIndex + 1, totalHints), max: totalHints })
               : null}
@@ -48,7 +45,6 @@ export default function ZoomStage({
           src={car?.img ?? null}
           blurData={car?.blurData ?? null}
           zoom={zoom}
-          blurPx={blurPx}
           hintIndex={hintIndex}
           totalHints={totalHints}
           status={status}

@@ -97,19 +97,6 @@ export default async function handler(req, res) {
     }
     const lostIds = new Set((losses || []).map((l) => l.car_id));
 
-    // 2c) Victorias del Túnel de viento (modo libre): marcan el distintivo
-    //     AERO sobre cromos ya desbloqueados. tunel_wins es deny-all para el
-    //     cliente → lectura con service_role. Best-effort: sin esta lectura
-    //     el garaje sigue siendo válido, solo sin distintivos.
-    const { data: tunelWins, error: tunelErr } = await supabaseAdmin
-      .from("tunel_wins")
-      .select("car_id")
-      .eq("user_id", user.id);
-    if (tunelErr) {
-      console.error("[garage] read tunel_wins:", tunelErr);
-    }
-    const tunelWonIds = new Set((tunelWins || []).map((w) => w.car_id));
-
     // 3) Coches que YA han sido coche del día (fecha < hoy). Solo estos son
     //    repescables. Usamos service_role: pick_daily_car y daily_cars están
     //    revocados para anon/authenticated por hardening previo.
@@ -193,10 +180,6 @@ export default async function handler(req, res) {
               // primera, porque tuvo que recordar marca+modelo+año
               // exactos en un único intento).
               wonAsVeteran: wasLost,
-              // tunelWon: también lo adivinó desenfocado en el Túnel de
-              // viento (distintivo AERO). Segunda vuelta del cromo: el
-              // álbum tiene ahora dos niveles de completismo.
-              tunelWon: tunelWonIds.has(c.id),
             }
           : {
               // Cromo bloqueado: id OPACO (pseudo HMAC por usuario). Si

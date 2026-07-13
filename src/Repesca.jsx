@@ -12,22 +12,21 @@
 //   3. Renderiza la MISMA UX que el juego diario, hablando con
 //      /api/repesca/validate.
 //
-// Identidad visual: lenguaje «Prensa del motor» (mismo que Configurator.jsx y
-// Tunel.jsx). Antes esta página montaba el stack legacy (CarImage suelto +
-// ShiftLights + GuessLog + ResultPanel) y se sentía "de otra app" respecto al
-// juego principal — la misma divergencia que arregló el Túnel tras el merge de
-// #78. Ahora comparte el shell .cdd-app.prensa y las piezas editoriales:
-// ZoomStage (foto con ladillo/pie), AttemptProgress (pips de negativo),
-// AttemptRow/AttemptList (clasificación de corrector) y un revelado cinemato-
-// gráfico tipo EndScreen (clases cdd-end), con el desglose de puntos propio de
-// la repesca en el cuerpo. El formulario (GuessForm del configurator) ya estaba
-// unificado; el resto se alinea aquí.
+// Identidad visual: lenguaje «Prensa del motor», el mismo que el juego diario
+// (Configurator.jsx). Antes esta página montaba el stack legacy (CarImage
+// suelto + ShiftLights + GuessLog + ResultPanel) y se sentía "de otra app"
+// respecto al juego principal. Ahora comparte el shell .cdd-app.prensa y las
+// piezas editoriales: ZoomStage (foto con ladillo/pie), AttemptProgress (pips
+// de negativo), AttemptRow/AttemptList (clasificación de corrector) y un
+// revelado cinematográfico tipo EndScreen (clases cdd-end), con el desglose de
+// puntos propio de la repesca en el cuerpo. El formulario (GuessForm del
+// configurator) ya estaba unificado; el resto se alinea aquí.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 // Piezas del lenguaje «Prensa del motor», compartidas con el juego diario
-// (Configurator) y el Túnel. La foto la sigue pintando CarImage en modo
-// `configurator` DENTRO de ZoomStage (pipeline/seguridad de imagen intactos).
+// (Configurator). La foto la sigue pintando CarImage en modo `configurator`
+// DENTRO de ZoomStage (pipeline/seguridad de imagen intactos).
 import ZoomStage from "./components/configurator/ZoomStage";
 import AttemptProgress from "./components/configurator/AttemptProgress";
 import AttemptList, { AttemptRow } from "./components/configurator/AttemptList";
@@ -56,8 +55,8 @@ const MAX_ATTEMPTS_VETERAN = 1;
 // solo alimenta el texto "±2 años" del campo de año, NO la validación (esa la
 // hace el server). Igual valor que el juego diario, así la UX es coherente.
 const ANIO_CORRECT_MARGIN = 2;
-// Dirección visual: misma que Configurator.jsx y Tunel.jsx («Prensa del motor»,
-// rojo de rotativa). La repesca hereda las variables de .prensa vía las clases
+// Dirección visual: misma que el juego diario (Configurator.jsx, «Prensa del
+// motor», rojo de rotativa). La repesca hereda las variables de .prensa vía las clases
 // .cdd-*/.prensa-* que usa; --accent apunta al rojo (focus-ring y piezas cdd).
 const ACCENT = "#b3271b";
 // El zoom escalonado es el MISMO sistema que el juego diario y POR COCHE: los
@@ -108,7 +107,7 @@ export default function Repesca() {
   // scales CSS por intento, igual que en el juego diario. Default 3.7.
   const [zoomBase, setZoomBase] = useState(DEFAULT_ZOOM_BASE);
 
-  // Revelado final como overlay (mismo patrón que Configurator/Tunel): se
+  // Revelado final como overlay (mismo patrón que el Configurator): se
   // auto-abre SOLO en la transición playing → ended de ESTA sesión, con el
   // mismo delay para que el revelado de la foto respire antes del modal. Si el
   // usuario recarga con la partida ya cerrada, NO se auto-abre: mostramos el
@@ -436,10 +435,9 @@ export default function Repesca() {
   }
 
   if (phase === "error") {
-    // Tarjeta de error centrada, misma piel que la InfoCard del Túnel (tono
-    // rojo): papel + filete rojo + CTA de tinta. Fuera del shell .prensa —
-    // igual que el Túnel — porque no usa piezas .cdd-*/.prensa-*; las fuentes
-    // (Fraunces/Franklin) ya son globales.
+    // Tarjeta de error centrada (tono rojo): papel + filete rojo + CTA de
+    // tinta. Fuera del shell .prensa porque no usa piezas .cdd-*/.prensa-*;
+    // las fuentes (Fraunces/Franklin) ya son globales.
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-tinta">
         <div className="w-full max-w-sm rounded-2xl border border-rojo/40 bg-papel-2 p-6 text-center shadow-2xl">
@@ -469,10 +467,10 @@ export default function Repesca() {
   }
 
   return (
-    // Mismo shell visual que el juego diario (Configurator) y el Túnel: tema
+    // Mismo shell visual que el juego diario (Configurator): tema
     // .prensa con el acento rojo inyectado en --accent — de él beben las cdd-*.
     <div className="cdd-app prensa" style={{ "--accent": ACCENT }}>
-      {/* Header simple, mismo patrón que el Túnel: salir (a la izquierda) +
+      {/* Header simple: salir (a la izquierda) +
           título centrado. A la derecha, spacer para mantener REPESCA centrado
           (la repesca no lleva marcador). */}
       <header className="border-b border-border bg-bg-primary">
@@ -514,9 +512,9 @@ export default function Repesca() {
         </div>
       </header>
 
-      {/* Columna única centrada, calcada del Configurator/Túnel (max-w-md, gap). */}
+      {/* Columna única centrada, calcada del Configurator (max-w-md, gap). */}
       <main className="mx-auto flex w-full max-w-md min-w-0 flex-col gap-5 px-4 pb-10 pt-4 safe-area-pad">
-        {/* Contexto del modo (kicker centrado), mismo patrón que el Túnel. */}
+        {/* Contexto del modo: kicker centrado sobre la imagen. */}
         <div>
           <p className="text-center text-[10px] uppercase tracking-[0.28em] text-accent">
             {isVeteran ? t("repesca.veteranBadge") : t("repesca.modeSubheader")}
@@ -542,10 +540,10 @@ export default function Repesca() {
           </div>
         )}
 
-        {/* Escenario con ladillo/pie editorial, como el daily/Túnel. Envuelto en
-            un div para neutralizar el order:2 de .prensa-area-foto en esta
-            columna flex (mismo truco que el Túnel: el order solo aplica entre
-            hermanos flex, y aquí el <section> es hijo único del div). */}
+        {/* Escenario con ladillo/pie editorial, como el daily. Envuelto en un
+            div para neutralizar el order:2 de .prensa-area-foto en esta columna
+            flex (el order solo aplica entre hermanos flex, y aquí el <section>
+            es hijo único del div). */}
         <div>
           <ZoomStage
             car={car}
@@ -603,7 +601,7 @@ export default function Repesca() {
         )}
       </main>
 
-      {/* Revelado final: mismas clases cdd-end del daily/Túnel (banda con foto +
+      {/* Revelado final: mismas clases cdd-end del daily (banda con foto +
           veredicto + identidad), con el desglose de puntos de la repesca y el
           CTA de vuelta al garaje en el cuerpo. */}
       {showEnd && ended && (

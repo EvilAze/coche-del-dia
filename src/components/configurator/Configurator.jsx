@@ -6,7 +6,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
-import { track } from "../../lib/analytics";
 import { useCountdown } from "../../hooks/useCountdown";
 import Header from "./Header";
 import ZoomStage from "./ZoomStage";
@@ -204,24 +203,9 @@ export default function Configurator({
                 tolerance={tolerance}
               />
             ) : (
-              <>
-                <button className="prensa-submit" onClick={() => setShowEnd(true)}>
-                  {t("cdd.viewResult")}
-                </button>
-                {/* Túnel de viento: segundo punto de entrada al modo libre para
-                    quien vuelve con la partida ya cerrada y no reabre el
-                    EndScreen. Ghost prensa: subordinado a "VER MI PARTIDA".
-                    Solo logueados (el modo requiere sesión). */}
-                {user && (
-                  <a
-                    className="prensa-submit prensa-submit--ghost mt-2 flex items-center justify-center"
-                    href="/tunel"
-                    onClick={() => track("tunel_cta", { from: "home_ended" })}
-                  >
-                    {t("cdd.tunelCta")}
-                  </a>
-                )}
-              </>
+              <button className="prensa-submit" onClick={() => setShowEnd(true)}>
+                {t("cdd.viewResult")}
+              </button>
             ))}
         </div>
 

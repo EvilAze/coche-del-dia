@@ -16,10 +16,9 @@ import { flagImagePath } from "../../data/countries";
 import { useToast } from "../Toast";
 import { Icon, I } from "./icons";
 import { useDailyStats, Distribution, Percentile } from "./dailyStats";
-// Opt-in de recordatorio (web push / notif nativa). Antes vivía solo en
-// ResultPanel (legacy, hoy solo Repesca), así que NUNCA salía tras la partida
-// diaria —cuya pantalla viva es ESTA—. Lo montamos aquí, en la pestaña
-// COMPARTIR (la de por defecto al ganar), que es el pico de engagement.
+// Opt-in de recordatorio (web push / notif nativa). Vive aquí, en la pestaña
+// COMPARTIR (la de por defecto al ganar), que es el pico de engagement tras la
+// partida diaria — su pantalla viva es ESTA.
 import NotificationOptIn from "../NotificationOptIn";
 import RankParte from "./RankParte";
 // Rejilla ✅/❌ del share: fuente única en lib/shareText (la misma que usa
@@ -274,28 +273,9 @@ export default function EndScreen({
           <div className="cdd-next-clock cdd-mono">{countdown.formatted}</div>
         </div>
 
-        {/* Túnel de viento: el CTA vive JUSTO bajo la cuenta atrás a propósito
-            — "falta mucho para el próximo" es el momento exacto en que ofrecer
-            seguir jugando. Ghost para no competir con COMPARTIR (el CTA
-            primario y palanca viral). Solo logueados: el modo requiere sesión
-            y el anónimo ya tiene aquí su propio CTA de registro. */}
-        {/* Secundarios como ENLACES discretos (no botones): Compartir es el
-            único primario. El Túnel de viento va deliberadamente sin
-            protagonismo por ahora (pendiente de revisar su papel). */}
+        {/* Cerrar el revelado y volver a la partida: enlace discreto (Compartir
+            sigue siendo el único CTA primario de la pantalla). */}
         <div className="cdd-end-links">
-          {user && (
-            <button
-              type="button"
-              className="cdd-end-link"
-              onClick={() => {
-                haptic.impactLight();
-                track("tunel_cta", { from: "end_screen" });
-                window.location.href = "/tunel";
-              }}
-            >
-              {t("cdd.tunelCta")}
-            </button>
-          )}
           <button type="button" className="cdd-end-link cdd-mono" onClick={onClose}>
             {t("cdd.seeGame")}
           </button>

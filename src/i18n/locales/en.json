@@ -139,8 +139,7 @@
     "garageRepescaAria": "My garage · rescue available",
     "helpAria": "How to play",
     "peekAria": "Back to the photo",
-    "unlockKicker": "New sticker",
-    "tunelCta": "KEEP PLAYING · WIND TUNNEL"
+    "unlockKicker": "New sticker"
   },
   "prensa": {
     "lema": "The daily for those who know a car by its headlight.",
@@ -370,33 +369,6 @@
   "toast": {
     "closeAria": "Close notification"
   },
-  "tunel": {
-    "errorNeedLogin": "You need to sign in to enter the wind tunnel.",
-    "errorStartFailed": "Could not start the tunnel.",
-    "errorSelectCar": "Pick a car from the list.",
-    "errorNetworkConnection": "Connection error. Check your network.",
-    "errorInvalidResponse": "Invalid server response.",
-    "errorValidationFailed": "Could not validate the guess.",
-    "errorUnexpectedResponse": "Unexpected server response.",
-    "errorProcessingResponse": "Error processing the response.",
-    "errorUnavailable": "Tunnel unavailable",
-    "errorTitle": "Something's off",
-    "buttonBackToGame": "Back to the game",
-    "buttonExit": "Exit",
-    "headerTitle": "TUNNEL",
-    "modeSubheader": "Wind tunnel · free mode",
-    "gameRulesNote": "Replay your stickers, blurred · no points, no streak",
-    "gateTitle": "Today's car first",
-    "gateBody": "The tunnel opens once you finish today's car of the day. Play it and come back for more.",
-    "gateCta": "Play the car of the day",
-    "emptyTitle": "Tunnel clear",
-    "emptyNoCars": "You have no stickers to replay yet. Win cars in the daily game and the rescue to fill the tunnel.",
-    "emptyAllDone": "You've run every sticker through the tunnel: full AERO badge set. Win more cars to keep going.",
-    "emptyCooldown": "Your latest stickers are still too fresh in your memory. Come back in a few days.",
-    "again": "Another car",
-    "againLoading": "Drawing...",
-    "counterAria": "Tunnel wins / games played"
-  },
   "repesca": {
     "errorNeedLogin": "You need to sign in to play the rescue.",
     "errorMissingCarId": "Missing car identifier.",
@@ -473,8 +445,6 @@
     "repescaHelpOk": "Got it",
     "veteranBadgeShort": "VET",
     "veteranBadgeAria": "Won in Veteran Mode",
-    "tunelBadgeShort": "AERO",
-    "tunelBadgeAria": "Guessed blurred in the Wind Tunnel",
     "drawAria": "Drawing rescue car",
     "drawShuffling": "Shuffling cards…",
     "drawPicking": "Picking…",

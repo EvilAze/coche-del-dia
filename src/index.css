@@ -938,8 +938,8 @@ body,
   padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
 .cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
-/* Secundarios del final de partida (Túnel, "ver mi partida") como ENLACES en
-   una fila, no botones: descargan la zona bajo Compartir (el único primario). */
+/* Secundarios del final de partida ("ver mi partida") como ENLACES en una
+   fila, no botones: descargan la zona bajo Compartir (el único primario). */
 .cdd-end-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; margin: 14px 18px 16px; }
 .cdd-end-link { background: none; border: 0; cursor: pointer; padding: 4px 0;
   font-family: var(--font-body); font-weight: 600; font-size: 10px; letter-spacing: .14em;
@@ -1427,11 +1427,6 @@ body,
 .prensa-submit:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
 /* Incompleto pero TOCABLE (el tap explica qué falta con temblor + toast). */
 .prensa-submit.is-incomplete { background: transparent; color: var(--cdd-muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
-/* Variante GHOST del botón (acción secundaria, p.ej. CTA del Túnel bajo "VER
-   MI PARTIDA"): filete de tinta sobre papel → rojo al pasar. No compite con
-   el bloque de tinta macizo del primario. */
-.prensa-submit--ghost { background: transparent; color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--line-strong); text-decoration: none; }
-.prensa-submit--ghost:hover { background: transparent; color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }
 
 /* ── F2: Fin de partida — la crónica con sello ──
    El EndScreen hereda las variables de .prensa (vive dentro del root del

@@ -144,7 +144,7 @@
   "prensa": {
     "lema": "El diario de los que reconocen un coche por el faro.",
     "folioEdicion": "Edición gratuita",
-    "temporada": "Edición {tema}",
+    "temporada": "Temporada {tema}",
     "ladilloFoto": "La fotografía del día",
     "pista": "Pista {n} de {max}",
     "edicionCerrada": "Edición cerrada",

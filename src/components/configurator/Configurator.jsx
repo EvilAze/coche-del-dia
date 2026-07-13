@@ -9,7 +9,6 @@ import { useT } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
 import Header from "./Header";
 import ZoomStage from "./ZoomStage";
-import AttemptProgress from "./AttemptProgress";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
@@ -113,7 +112,7 @@ export default function Configurator({
           "clas" agrupa fila viva + historial + estadística con display:contents
           en móvil (sus hijos fluyen sueltos con su propio `order`) y como
           bloque real en el pliego ancho. */}
-      <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-5 safe-area-pad">
+      <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3 safe-area-pad">
         <Header
           streak={streak}
           rank={rank}
@@ -139,9 +138,6 @@ export default function Configurator({
           totalHints={totalHints}
           blurred={status === "lost" && !user}
           onRevealLoad={onRevealLoad}
-          progress={
-            <AttemptProgress attempts={attempts} maxAttempts={maxAttempts} revealed={ended} />
-          }
         />
 
         {/* Columna "clas" del pliego: fila viva + historial + estadística.
@@ -201,6 +197,8 @@ export default function Configurator({
                 isSubmitting={isSubmitting}
                 guesses={guesses}
                 tolerance={tolerance}
+                attempts={attempts}
+                maxAttempts={maxAttempts}
               />
             ) : (
               <button className="prensa-submit" onClick={() => setShowEnd(true)}>

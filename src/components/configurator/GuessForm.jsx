@@ -18,7 +18,7 @@ import YearField from "./YearField";
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
 
-export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2 }) {
+export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5 }) {
   const { t } = useT();
   const toast = useToast();
   const { data: catalog } = useCatalog();
@@ -156,6 +156,14 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   }
 
   const formDisabled = isSubmitting || !catalog;
+  // Nº de intento en curso para el renglón de "serie" del cupón (folio de
+  // concurso). Preferimos `attempts` (verdad del servidor); si no llega, caemos
+  // a la longitud del historial. Nunca pasa del máximo (el intento 5 es el
+  // último; al fallarlo la partida cierra y este formulario ya no se pinta).
+  const intentoActual = Math.min(
+    (typeof attempts === "number" ? attempts : guesses.length) + 1,
+    maxAttempts
+  );
   const anioNum = parseInt(anio, 10);
   const anioValido = !isNaN(anioNum) && anioNum >= MIN_YEAR && anioNum <= CURRENT_YEAR;
   const canSubmit = marcaValida && modeloValido && anioValido && !formDisabled;
@@ -239,14 +247,23 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   }
 
   return (
-    // El cupón de respuesta: caja de DOBLE filete (border + outline con
-    // offset, convención de recortable) con cabecera entre filetes. El
-    // temblor de errata sacude la caja entera al validar en falso.
+    // El cupón de respuesta como CUPÓN RECORTABLE: papel propio + filete de
+    // corte discontinuo por fuera ("recorte y envíe") y cabecera de una línea
+    // (título + folio de intento sobre doble filete). Compacto a propósito: la
+    // foto y el cupón deben caber sin scroll. El temblor de errata sacude la
+    // caja entera al validar en falso.
     <div
       className={"prensa-cupon" + (shake ? " animate-temblor" : "")}
       onAnimationEnd={() => setShake(false)}
     >
-      <div className="prensa-cupon-cab">{t("prensa.cupon")}</div>
+      {/* Cabecera en un renglón: título + folio de intento, subrayados por el
+          doble filete de portada. Compacta a propósito (foto + cupón sin scroll). */}
+      <header className="prensa-cupon-cabecera">
+        <span className="prensa-cupon-titulo">{t("prensa.cupon")}</span>
+        <span className="prensa-cupon-intento">
+          {t("prensa.cuponIntento", { n: intentoActual, max: maxAttempts })}
+        </span>
+      </header>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} autoComplete="off">
         {/* Marca + Modelo lado a lado (calcado del v0); Año y ADIVINAR a ancho completo. */}
         <div className="grid grid-cols-2 gap-2">

@@ -113,7 +113,7 @@ export default function Configurator({
           "clas" agrupa fila viva + historial + estadística con display:contents
           en móvil (sus hijos fluyen sueltos con su propio `order`) y como
           bloque real en el pliego ancho. */}
-      <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-5 safe-area-pad">
+      <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3 safe-area-pad">
         <Header
           streak={streak}
           rank={rank}
@@ -201,6 +201,8 @@ export default function Configurator({
                 isSubmitting={isSubmitting}
                 guesses={guesses}
                 tolerance={tolerance}
+                attempts={attempts}
+                maxAttempts={maxAttempts}
               />
             ) : (
               <button className="prensa-submit" onClick={() => setShowEnd(true)}>

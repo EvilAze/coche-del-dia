@@ -151,6 +151,7 @@
     "pieFoto": "Today's specimen, seen far too close. Every miss pulls the camera back.",
     "pieFotoFin": "Today's specimen, at full page at last.",
     "cupon": "Answer coupon",
+    "cuponIntento": "Attempt {n} of {max}",
     "estadistica": "Today's numbers",
     "cierre": "Final edition in",
     "selloWin": "Solved",

@@ -151,6 +151,7 @@
     "pieFoto": "El ejemplar de hoy, visto de demasiado cerca. Cada fallo abre el plano.",
     "pieFotoFin": "El ejemplar de hoy, por fin a plena página.",
     "cupon": "Cupón de respuesta",
+    "cuponIntento": "Intento {n} de {max}",
     "estadistica": "La estadística del día",
     "cierre": "Cierre de edición en",
     "selloWin": "Resuelto",

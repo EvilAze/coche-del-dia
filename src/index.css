@@ -1073,7 +1073,7 @@ body,
 /* ── Cabecera de periódico (Header.jsx la monta; ver Task 5) ── */
 .prensa-topbar {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 1px solid var(--line-strong);
+  padding: 7px 0; border-bottom: 1px solid var(--line-strong);
   font-family: var(--font-body); font-weight: 600; font-size: 10px;
   letter-spacing: .18em; text-transform: uppercase;
 }
@@ -1141,7 +1141,7 @@ body,
   display: flex; justify-content: center; align-items: baseline; gap: 8px;
   flex-wrap: nowrap; white-space: nowrap;
   border-top: 3px double var(--line-strong); border-bottom: 3px double var(--line-strong);
-  padding: 8px 0; font-family: var(--font-body); font-weight: 600;
+  padding: 5px 0; font-family: var(--font-body); font-weight: 600;
   /* La línea de folio (fecha COMPLETA + edición) debe caber en UN renglón,
      también en móviles estrechos: escala fluida y letter-spacing contenido
      evitan el salto de línea que partía "· EDICIÓN GRATUITA" abajo. */
@@ -1165,6 +1165,18 @@ body,
 }
 .prensa .cdd-stage-frame::after { display: none; } /* viñeta: innecesaria sobre papel */
 .prensa .cdd-hud, .prensa .cdd-grain { display: none; } /* atrezzo cámara: fuera */
+/* Móvil: la foto se topa en alto para que el cupón suba sobre el fold (foto +
+   cupón de un vistazo, sin scroll). MISMO recorte 4:3 —Regla 6, misma
+   dificultad—: solo se reduce el ANCHO y se centra, nunca se recorta. Tope
+   sobre .cdd-stage (el hijo directo de la columna flex): width:100% + max-width
+   + align-self:center lo dejan a 300px centrado sin que el stretch por defecto
+   lo estire. En el broadsheet ≥1100 la foto manda en su columna y no se topa.
+   El 300px es un dial: bajarlo aprieta más el fold a costa de una foto menor.
+   Solo en móviles (≤480px): en tablet en columna única sobra alto y un tope de
+   300 dejaría la foto perdida entre márgenes. */
+@media (max-width: 480px) {
+  .prensa .cdd-stage { width: 100%; max-width: 300px; align-self: center; }
+}
 .prensa-pie {
   display: flex; justify-content: space-between; align-items: center; gap: 14px;
   color: var(--cdd-muted); font-family: var(--font-display);
@@ -1231,17 +1243,64 @@ body,
 .prensa-estampada { animation: estamparFila .28s cubic-bezier(.2, 1, .3, 1) both; }
 @keyframes estamparFila { from { opacity: 0; transform: scale(1.02); } }
 
-/* ── El cupón de respuesta ── */
+/* ── El cupón de respuesta ──
+   El corazón del juego, tratado como un CUPÓN RECORTABLE de concurso (la
+   quiniela del periódico): papel propio (surface, un tono sobre el pliego),
+   filete sólido y una LÍNEA DE CORTE discontinua por fuera — el "recorte y
+   envíe" de toda la vida. Sin tijera-emoji: la línea de puntos ya lo dice y un
+   glifo a color rompería la tinta. El margen holgado deja respirar al filete
+   de corte sin que roce la columna vecina. */
 .prensa-cupon {
-  border: 1px solid var(--line-strong); outline: 1px solid var(--line-strong);
-  outline-offset: 3px; padding: 18px 16px 16px; margin: 4px; background: transparent;
+  position: relative; background: var(--surface);
+  border: 1.5px solid var(--line-strong);
+  outline: 1.5px dashed var(--line-strong); outline-offset: 5px;
+  padding: 15px 16px 14px; margin: 7px;
 }
+/* Cabecera genérica "título entre filetes": la conserva la Nota de la Redacción
+   (NotaRedaccion.jsx). El cupón usa su propia cabecera enriquecida de abajo. */
 .prensa-cupon-cab {
   display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
   font-family: var(--font-body); font-weight: 800; font-size: 11px;
   letter-spacing: .24em; text-transform: uppercase; white-space: nowrap; color: var(--cdd-text);
 }
 .prensa-cupon-cab::before, .prensa-cupon-cab::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); }
+
+/* ── Cabecera del cupón en UN renglón (economía vertical) ──
+   La portada y la foto deben caber con el cupón sin scroll en móvil, así que la
+   cabecera colapsa a una sola línea: título en versalitas a la izquierda +
+   FOLIO DE INTENTO en Courier a la derecha, y el DOBLE FILETE de la fecha de
+   portada (3px double) como subrayado del renglón. Cita la portada (versalitas
+   + doble filete) sin gastar tres líneas. El lema y el folio de control del
+   primer boceto se retiraron: bonitos, pero peajes verticales que este juego
+   —foto + cupón de un vistazo— no se puede permitir. */
+.prensa-cupon-cabecera {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding-bottom: 9px; margin-bottom: 13px;
+  border-bottom: 3px double var(--line-strong);
+}
+/* Título en versalitas Franklin (par de los ladillos de sección), NO serif: el
+   único gran serif de la página es el wordmark de portada; un segundo lo
+   diluiría (spec §2). El carácter de "cupón" lo dan el folio y el corte. */
+.prensa-cupon-titulo {
+  font-family: var(--font-body); font-weight: 800; font-size: 11.5px;
+  letter-spacing: .16em; text-transform: uppercase; line-height: 1; color: var(--cdd-text);
+}
+/* Folio de intento ("Intento 3 de 5") como número de cupón de concurso:
+   recuerda cuántas balas quedan justo donde se dispara. Courier, tinta apagada;
+   nunca rojo (el rojo es acción/fallo). */
+.prensa-cupon-intento {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--cdd-muted); white-space: nowrap;
+}
+/* Numeración de campos 1·2·3 (Courier, tinta apagada): refuerza la cadena de
+   foco marca→modelo→año y el aire de "formulario a rellenar". En tinta y NO en
+   rojo — el rojo queda para acción (foco/enviar) y fallo. */
+.prensa-cupon form { counter-reset: campo; }
+.prensa-cupon .prensa-label-txt::before {
+  counter-increment: campo; content: counter(campo) "\2009";
+  font-family: var(--font-mono); font-weight: 700; color: var(--cdd-muted);
+  margin-right: 6px; letter-spacing: 0;
+}
 /* Campos de línea base: la caja desaparece, queda el renglón. Lo escrito sale
    "a máquina" (Courier), como un formulario rellenado de verdad. */
 .prensa .cdd-label {
@@ -1418,11 +1477,19 @@ body,
 .prensa-submit {
   width: 100%; height: 54px; border: 0; border-radius: 0; cursor: pointer;
   background: var(--line-strong); color: var(--bg);
+  /* Filete interior fino (margen de papel + tinta) → aspecto de SELLO
+     franqueado: la barra de "ADIVINAR" es el gesto de estampar el cupón, en la
+     misma familia visual que el sello de fin de partida (.prensa-sello). El
+     margen usa surface para fundirse con el papel del cupón. */
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--line-strong);
   font-family: var(--font-body); font-weight: 800; font-size: 13px;
-  letter-spacing: .26em; text-transform: uppercase;
-  transition: background .18s, color .18s;
+  letter-spacing: .3em; text-transform: uppercase;
+  transition: background .18s, color .18s, box-shadow .18s;
 }
-.prensa-submit:hover:not(:disabled):not(.is-incomplete) { background: var(--rojo); }
+.prensa-submit:hover:not(:disabled):not(.is-incomplete) {
+  background: var(--rojo);
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--rojo);
+}
 .prensa-submit:active:not(:disabled) { transform: translateY(1px); }
 .prensa-submit:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
 /* Incompleto pero TOCABLE (el tap explica qué falta con temblor + toast). */

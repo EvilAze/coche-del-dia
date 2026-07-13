@@ -43,7 +43,7 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
   return (
     <div className="relative flex flex-col gap-1.5">
       <span className="prensa-label">
-        {t("cdd.labelAnio")}
+        <span className="prensa-label-txt">{t("cdd.labelAnio")}</span>
         <span className="pista-label">{t("cdd.yearTolerance", { n: tolerance })}</span>
       </span>
       <div className={"prensa-year" + (isInvalid ? " invalida" : "")}>

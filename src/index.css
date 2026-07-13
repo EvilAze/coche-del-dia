@@ -83,6 +83,13 @@
   --surface: rgb(var(--surface-rgb)); --surface2: rgb(var(--bg2-rgb));
   --cdd-text: rgb(var(--tinta-rgb)); --cdd-muted: rgb(var(--tinta2-rgb));
   --faint: rgb(var(--tinta2-rgb) / .62);
+  /* Placeholder del cupón: --faint (.62 de alfa) daba ≈2.9:1 en noche y ≈2.4:1 en
+     día sobre el papel — por debajo del AA 4.5:1 que promete el propio PRODUCT.md,
+     y justo en el texto que MÁS importa (el cupón vacío es el primer CTA que ve un
+     jugador nuevo). Lo subimos a la tinta muted (4.97:1 día / 5.68:1 noche): sigue
+     siendo "pista" en cursiva, pero ya legible. Un solo token y ambos temas lo
+     heredan (muted se deriva de --tinta2-rgb, que el modo noche reescribe). */
+  --placeholder: var(--cdd-muted);
   --line: rgb(var(--tinta-rgb) / .25); --line-2: rgb(var(--tinta-rgb) / .15);
   --line-strong: rgb(var(--line-strong-rgb));
   --rojo: rgb(var(--rojo-rgb)); --rojo-dark: rgb(var(--rojo-dark-rgb));
@@ -1118,6 +1125,16 @@ body,
   font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--gold); margin-top: 8px;
 }
+/* Masthead compacto (visitante recurrente): sin lema, menos aire vertical y un
+   título algo menor, para que la foto y el cupón suban sobre la línea de flotación
+   en móvil — el jugador diario no debería hacer scroll para poder ENVIAR su
+   respuesta (ese era el peaje de la portada completa, repetido cada día). La
+   portada íntegra (lema incluido) se reserva a la PRIMERA visita: Header.jsx la
+   gatea por localStorage con fail-open a la versión completa (regla 9: no degradar
+   la home; si localStorage falla, se ve la portada bonita, nunca algo roto). */
+.prensa-masthead--compacto { padding: 2px 0 6px; }
+.prensa-masthead--compacto .titulo { font-size: clamp(26px, 6vw, 46px); }
+.prensa-masthead--compacto .temporada { margin-top: 6px; }
 .prensa-folio {
   display: flex; justify-content: center; align-items: baseline; gap: 8px;
   flex-wrap: nowrap; white-space: nowrap;
@@ -1241,7 +1258,7 @@ body,
   font-family: var(--font-mono); font-size: 16px; font-weight: 400;
   padding: 11px 2px; color: var(--cdd-text);
 }
-.prensa .cdd-input::placeholder { color: var(--faint); font-style: italic; font-family: var(--font-display); }
+.prensa .cdd-input::placeholder { color: var(--placeholder); font-style: italic; font-family: var(--font-display); }
 /* Overlay flotante (listbox/décadas): papel con filete. ÚNICA sombra funcional
    permitida del sistema — sin ella el desplegable no se despega del papel. */
 .prensa .cdd-listbox, .prensa .cdd-decades {
@@ -1360,7 +1377,7 @@ body,
 .prensa-input:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 10px; }
 .prensa-input.invalida { border-bottom: 2px solid var(--rojo); }
 .prensa-input:disabled { opacity: .45; }
-.prensa-input::placeholder { color: var(--faint); font-style: italic; font-family: var(--font-display); font-size: 14px; }
+.prensa-input::placeholder { color: var(--placeholder); font-style: italic; font-family: var(--font-display); font-size: 14px; }
 .prensa-listbox {
   position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40;
   max-height: min(260px, 42dvh); overflow-y: auto; overscroll-behavior: contain;
@@ -1389,7 +1406,7 @@ body,
   font-family: var(--font-mono); font-size: 16px; font-variant-numeric: tabular-nums;
   color: var(--cdd-text); padding: 11px 0;
 }
-.prensa-year input::placeholder { color: var(--faint); }
+.prensa-year input::placeholder { color: var(--placeholder); }
 .prensa-step {
   width: 36px; height: 32px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: 1px solid var(--line); border-radius: 0;

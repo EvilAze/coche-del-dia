@@ -63,6 +63,29 @@ export default function Header({
     };
   }, []);
 
+  // Portada completa (con lema) SOLO en la primera visita: el jugador RECURRENTE
+  // ve un masthead compacto para que la foto y el cupón entren en pantalla sin
+  // hacer scroll (la portada íntegra era un peaje vertical repetido cada día).
+  // Lectura SÍNCRONA de localStorage en el initializer para decidir bien en el
+  // primer paint —si esperásemos a un useEffect, el lema aparecería/desaparecería
+  // de golpe (CLS)—. Fail-open a la portada completa si localStorage no está
+  // (modo privado / webview efímero): regla 9, la home nunca se degrada a roto.
+  const [portadaCompleta] = useState(() => {
+    try {
+      return !localStorage.getItem("ccd_masthead_seen");
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("ccd_masthead_seen", "1");
+    } catch {
+      // localStorage puede fallar (modo privado/iframe): sin marca, sin drama —
+      // el visitante seguirá viendo la portada completa, que es el fallback bueno.
+    }
+  }, []);
+
   // Fecha COMPLETA con año: es la línea de folio de un periódico, no un pie
   // de barra — "Sábado, 5 de julio de 2026".
   const rawDate = new Date().toLocaleDateString(dateLocale, {
@@ -161,11 +184,14 @@ export default function Header({
         </span>
       </nav>
 
-      <div className="prensa-masthead">
+      <div className={"prensa-masthead" + (portadaCompleta ? "" : " prensa-masthead--compacto")}>
         {/* El h1 real (SEO/lectores) vive sr-only en Configurator; este es el
             wordmark visual del masthead. */}
         <p className="titulo">{t("app.title")}</p>
-        <p className="lema">{t("prensa.lema")}</p>
+        {/* El lema es voz de marca de "portada": se pinta en la primera visita y
+            se retira para el recurrente (gana altura sobre el fold). El título y
+            el folio (identidad + fecha) se quedan siempre. */}
+        {portadaCompleta && <p className="lema">{t("prensa.lema")}</p>}
         {/* Temporada temática en curso: sello dorado que señala de un vistazo que
             el juego va por temporadas y en cuál estamos. Solo si hay una activa. */}
         {season && (

@@ -8,25 +8,42 @@
 //   1. Vuelve a llamar a /api/repesca/start (idempotente si el coche
 //      es el mismo de la repesca activa) — sirve también si el usuario
 //      pega la URL directamente.
-//   2. Lee user_guesses para resumir la partida si ya había intentos.
-//   3. Renderiza la misma UX que el juego diario (CarImage + GuessForm
-//      + GuessRow + ResultPanel) pero hablando con /api/repesca/validate.
+//   2. Lee el estado de la partida del propio start (intentos, status, reveal).
+//   3. Renderiza la MISMA UX que el juego diario, hablando con
+//      /api/repesca/validate.
+//
+// Identidad visual: lenguaje «Prensa del motor» (mismo que Configurator.jsx y
+// Tunel.jsx). Antes esta página montaba el stack legacy (CarImage suelto +
+// ShiftLights + GuessLog + ResultPanel) y se sentía "de otra app" respecto al
+// juego principal — la misma divergencia que arregló el Túnel tras el merge de
+// #78. Ahora comparte el shell .cdd-app.prensa y las piezas editoriales:
+// ZoomStage (foto con ladillo/pie), AttemptProgress (pips de negativo),
+// AttemptRow/AttemptList (clasificación de corrector) y un revelado cinemato-
+// gráfico tipo EndScreen (clases cdd-end), con el desglose de puntos propio de
+// la repesca en el cuerpo. El formulario (GuessForm del configurator) ya estaba
+// unificado; el resto se alinea aquí.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
-import CarImage from "./components/CarImage";
-import GuessLog from "./components/GuessLog";
-import ShiftLights from "./components/ShiftLights";
-import AchievementIcon from "./components/AchievementIcons";
+// Piezas del lenguaje «Prensa del motor», compartidas con el juego diario
+// (Configurator) y el Túnel. La foto la sigue pintando CarImage en modo
+// `configurator` DENTRO de ZoomStage (pipeline/seguridad de imagen intactos).
+import ZoomStage from "./components/configurator/ZoomStage";
+import AttemptProgress from "./components/configurator/AttemptProgress";
+import AttemptList, { AttemptRow } from "./components/configurator/AttemptList";
 // Formulario unificado con el del juego diario (Combo + YearField, piel v0).
-// Antes la repesca usaba el GuessForm "viejo" (Autocomplete + steppers ▲▼), que
-// divergía visualmente del juego principal. Misma lógica anti-cheat y mismo
-// contrato onSubmit({ guessCarId, anio, ... }); submitGuess de aquí solo
-// consume { guessCarId, anio }, así que el cambio es transparente.
+// Misma lógica anti-cheat y mismo contrato onSubmit({ guessCarId, anio, ... });
+// submitGuess de aquí solo consume { guessCarId, anio }.
 import GuessForm from "./components/configurator/GuessForm";
-import ResultPanel from "./components/ResultPanel";
+// Desglose de puntos: pieza PROPIA de la repesca (el daily no lo muestra; su
+// EndScreen habla de racha/percentil). En la repesca los puntos van a la mitad
+// y no afectan a la racha, así que este bloque es la recompensa visible.
+import ScoreBreakdown from "./components/ScoreBreakdown";
+import AchievementIcon from "./components/AchievementIcons";
 import { useToast } from "./components/Toast";
-import { useT } from "./i18n";
+import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
+import { flagImagePath } from "./data/countries";
+import { shareGrid } from "./lib/shareText";
 import { notifyAchievementsAfterWin } from "./lib/achievementsNotifier";
 import { track } from "./lib/analytics";
 import { haptic } from "./lib/haptics";
@@ -39,6 +56,10 @@ const MAX_ATTEMPTS_VETERAN = 1;
 // solo alimenta el texto "±2 años" del campo de año, NO la validación (esa la
 // hace el server). Igual valor que el juego diario, así la UX es coherente.
 const ANIO_CORRECT_MARGIN = 2;
+// Dirección visual: misma que Configurator.jsx y Tunel.jsx («Prensa del motor»,
+// rojo de rotativa). La repesca hereda las variables de .prensa vía las clases
+// .cdd-*/.prensa-* que usa; --accent apunta al rojo (focus-ring y piezas cdd).
+const ACCENT = "#b3271b";
 // El zoom escalonado es el MISMO sistema que el juego diario y POR COCHE: los
 // scales CSS se derivan del zoom_base del coche (cssZoomLevels, src/lib/zoom.js)
 // y se aplican sobre el crop del último intento que sirve api/repesca/image.js.
@@ -86,6 +107,23 @@ export default function Repesca() {
   // Zoom inicial del coche (lo da /api/repesca/start). De él se derivan los
   // scales CSS por intento, igual que en el juego diario. Default 3.7.
   const [zoomBase, setZoomBase] = useState(DEFAULT_ZOOM_BASE);
+
+  // Revelado final como overlay (mismo patrón que Configurator/Tunel): se
+  // auto-abre SOLO en la transición playing → ended de ESTA sesión, con el
+  // mismo delay para que el revelado de la foto respire antes del modal. Si el
+  // usuario recarga con la partida ya cerrada, NO se auto-abre: mostramos el
+  // botón "VER RESULTADO" (como el daily), no saltamos el overlay de golpe.
+  const [showEnd, setShowEnd] = useState(false);
+  const prevPhaseRef = useRef(phase);
+  useEffect(() => {
+    const isEnded = phase === "won" || phase === "lost";
+    if (prevPhaseRef.current === "playing" && isEnded) {
+      const id = setTimeout(() => setShowEnd(true), 900);
+      prevPhaseRef.current = phase;
+      return () => clearTimeout(id);
+    }
+    prevPhaseRef.current = phase;
+  }, [phase]);
 
   // noindex + título de pestaña.
   useEffect(() => {
@@ -248,6 +286,8 @@ export default function Repesca() {
   const isVeteran = mode === "veteran";
   const effectiveMaxAttempts = isVeteran ? MAX_ATTEMPTS_VETERAN : MAX_ATTEMPTS;
   const attempts = guesses.length;
+  const ended = phase === "won" || phase === "lost";
+  const won = phase === "won";
   const zoomIndex = Math.min(attempts, ZOOM_ATTEMPTS - 1);
   // Scales CSS por intento derivados del zoom_base del coche (mismo sistema que
   // el juego diario). El último vale 1.0 (ya se ve todo el crop servido).
@@ -260,14 +300,14 @@ export default function Repesca() {
         ? zoomLevels[zoomLevels.length - 1]
         : zoomLevels[zoomIndex]
       : 1.0;
-  // En Veterano no hay pistas progresivas: pasamos hintIndex null para que
-  // CarImage no muestre el indicador interno de pista.
+  // En Veterano no hay pistas progresivas: hintIndex null → ZoomStage no pinta
+  // el contador "PISTA n de m" (coherente con el badge "1 intento, sin pistas").
   const hintIndex = phase === "playing" && !isVeteran ? zoomIndex : null;
   const totalHints = ZOOM_ATTEMPTS;
 
-  // Estado tipo `car` que espera CarImage / ResultPanel. `img` arranca
-  // como null y se rellena cuando la blob: URL está lista — CarImage ya
-  // muestra su skeleton mientras tanto.
+  // Estado tipo `car` que espera ZoomStage/CarImage. `img` arranca como null y
+  // se rellena cuando la blob: URL está lista — CarImage ya muestra su skeleton
+  // mientras tanto.
   const car = useMemo(
     () => ({
       img: imgBlobUrl,
@@ -281,6 +321,10 @@ export default function Repesca() {
     }),
     [imgBlobUrl, blurData, reveal]
   );
+  // Solo hay identidad que mostrar si el server la reveló (victoria; o derrota
+  // de usuario logueado). Si no, el revelado enseña solo el veredicto.
+  const hasReveal = Boolean(car.marca && car.modelo && car.anio);
+  const description = getCarDescription(car)?.trim();
 
   async function submitGuess({ guessCarId, anio }) {
     if (phase !== "playing" || isSubmitting) return;
@@ -392,9 +436,13 @@ export default function Repesca() {
   }
 
   if (phase === "error") {
+    // Tarjeta de error centrada, misma piel que la InfoCard del Túnel (tono
+    // rojo): papel + filete rojo + CTA de tinta. Fuera del shell .prensa —
+    // igual que el Túnel — porque no usa piezas .cdd-*/.prensa-*; las fuentes
+    // (Fraunces/Franklin) ya son globales.
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-tinta">
-        <div className="w-full max-w-sm rounded-2xl border border-red-400/40 bg-bg-secondary/60 p-6 text-center shadow-2xl">
+        <div className="w-full max-w-sm rounded-2xl border border-rojo/40 bg-papel-2 p-6 text-center shadow-2xl">
           <p className="text-[10px] uppercase tracking-[0.28em] text-red-400">
             {t("repesca.errorUnavailable")}
           </p>
@@ -420,11 +468,13 @@ export default function Repesca() {
     );
   }
 
-  const shareText = ""; // No compartimos resultados de repesca (es individual).
-
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-primary font-body text-tinta">
-      {/* Header simple, sin sticky para no robar espacio vertical */}
+    // Mismo shell visual que el juego diario (Configurator) y el Túnel: tema
+    // .prensa con el acento rojo inyectado en --accent — de él beben las cdd-*.
+    <div className="cdd-app prensa" style={{ "--accent": ACCENT }}>
+      {/* Header simple, mismo patrón que el Túnel: salir (a la izquierda) +
+          título centrado. A la derecha, spacer para mantener REPESCA centrado
+          (la repesca no lleva marcador). */}
       <header className="border-b border-border bg-bg-primary">
         <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
           <button
@@ -434,8 +484,8 @@ export default function Repesca() {
             }}
             className="
               inline-flex items-center gap-1.5 rounded-md
-              border border-tinta/15 bg-papel/[0.04]
-              px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta
+              border border-tinta/15 bg-papel-2/60
+              px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta-2
               transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent
               active:scale-95
             "
@@ -464,74 +514,172 @@ export default function Repesca() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-md min-w-0 flex-col px-3 pb-10 pt-4 sm:px-4">
-        <main className="w-full min-w-0">
-          {/* Contexto del modo, centrado sobre la imagen — mismo patrón que el
-              dateline/tagline del juego principal (cabecera ligera). */}
+      {/* Columna única centrada, calcada del Configurator/Túnel (max-w-md, gap). */}
+      <main className="mx-auto flex w-full max-w-md min-w-0 flex-col gap-5 px-4 pb-10 pt-4 safe-area-pad">
+        {/* Contexto del modo (kicker centrado), mismo patrón que el Túnel. */}
+        <div>
           <p className="text-center text-[10px] uppercase tracking-[0.28em] text-accent">
             {isVeteran ? t("repesca.veteranBadge") : t("repesca.modeSubheader")}
           </p>
           {!isVeteran && (
-            <p className="mb-3 mt-1 text-center text-xs text-muted/80">
+            <p className="mt-1 text-center text-xs text-muted/80">
               {t("repesca.gameRulesNote")}
             </p>
           )}
+        </div>
 
-          {/* Nota veterano: reglas más duras (1 intento, sin pistas). */}
-          {isVeteran && phase === "playing" && (
-            <div
-              className="
-                mb-3 mt-1 flex items-start gap-2 rounded-lg border border-amber-400/40
-                bg-amber-500/10 px-3 py-2 text-[12px] leading-snug text-amber-100
-              "
-              role="note"
-            >
-              <AchievementIcon name="spark" size="h-4 w-4" color="text-amber-300" />
-              <span>{t("repesca.veteranExplain")}</span>
-            </div>
-          )}
+        {/* Nota veterano: reglas más duras (1 intento, sin pistas). */}
+        {isVeteran && phase === "playing" && (
+          <div
+            className="
+              flex items-start gap-2 rounded-lg border border-amber-400/40
+              bg-amber-500/10 px-3 py-2 text-[12px] leading-snug text-amber-100
+            "
+            role="note"
+          >
+            <AchievementIcon name="spark" size="h-4 w-4" color="text-amber-300" />
+            <span>{t("repesca.veteranExplain")}</span>
+          </div>
+        )}
 
-          <CarImage
-            src={car.img}
-            blurData={car.blurData}
+        {/* Escenario con ladillo/pie editorial, como el daily/Túnel. Envuelto en
+            un div para neutralizar el order:2 de .prensa-area-foto en esta
+            columna flex (mismo truco que el Túnel: el order solo aplica entre
+            hermanos flex, y aquí el <section> es hijo único del div). */}
+        <div>
+          <ZoomStage
+            car={car}
             zoom={zoom}
+            status={ended ? phase : "playing"}
             hintIndex={hintIndex}
             totalHints={totalHints}
-            status={phase}
-            bottomCenter={
-              phase === "playing" ? (
-                <ShiftLights attempts={attempts} maxAttempts={effectiveMaxAttempts} />
-              ) : null
+            progress={
+              <AttemptProgress
+                attempts={attempts}
+                maxAttempts={effectiveMaxAttempts}
+                revealed={ended}
+              />
             }
           />
+        </div>
 
-          {/* Zona de acción FIJA bajo la imagen (igual que el juego principal):
-              formulario/resultado arriba, historial debajo. */}
-          {phase === "loading" ? null : phase === "playing" ? (
-            <GuessForm
-              onSubmit={submitGuess}
-              isSubmitting={isSubmitting}
-              guesses={guesses}
-              tolerance={ANIO_CORRECT_MARGIN}
-            />
-          ) : (
-            <ResultPanel
-              status={phase}
-              car={car}
-              attempts={attempts}
-              maxAttempts={effectiveMaxAttempts}
-              shareText={shareText}
-              score={score}
-              user={user}
-              showDailyStats={false}
-            />
-          )}
+        {/* Último intento entre imagen y formulario (fila viva, como el daily). */}
+        {phase === "playing" && guesses.length > 0 && (
+          <section
+            aria-label={t("cdd.lastAttempt")}
+            aria-live="polite"
+            className="flex flex-col gap-2"
+          >
+            <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+              {t("cdd.lastAttempt")}
+            </span>
+            <AttemptRow g={guesses[guesses.length - 1]} tolerance={ANIO_CORRECT_MARGIN} fresh />
+          </section>
+        )}
 
-          {guesses.length > 0 && <div className="my-4 h-px bg-border" />}
+        {/* Zona de acción: formulario (jugando) o botón de revelado (terminado). */}
+        {phase === "loading" ? null : phase === "playing" ? (
+          <GuessForm
+            onSubmit={submitGuess}
+            isSubmitting={isSubmitting}
+            guesses={guesses}
+            tolerance={ANIO_CORRECT_MARGIN}
+          />
+        ) : (
+          <button className="prensa-submit" onClick={() => setShowEnd(true)}>
+            {t("cdd.viewResult")}
+          </button>
+        )}
 
-          <GuessLog guesses={guesses} />
-        </main>
-      </div>
+        {/* Intentos anteriores (el último ya vive en la fila de arriba durante
+            la partida; al terminar se muestran todos, como en el daily). */}
+        {(ended ? guesses : guesses.slice(0, -1)).length > 0 && (
+          <AttemptList
+            guesses={ended ? guesses : guesses.slice(0, -1)}
+            pendingGuess={null}
+            justRevealedIndex={-1}
+            tolerance={ANIO_CORRECT_MARGIN}
+          />
+        )}
+      </main>
+
+      {/* Revelado final: mismas clases cdd-end del daily/Túnel (banda con foto +
+          veredicto + identidad), con el desglose de puntos de la repesca y el
+          CTA de vuelta al garaje en el cuerpo. */}
+      {showEnd && ended && (
+        <div className="cdd-end" role="dialog" aria-modal="true">
+          <div className="cdd-end-scrim" onClick={() => setShowEnd(false)} />
+          <div className="cdd-end-card">
+            <div className="cdd-reveal">
+              {car.img && (
+                <img
+                  src={car.img}
+                  alt=""
+                  draggable={false}
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              )}
+              <div className="cdd-reveal-grad" />
+              <div className="cdd-reveal-head">
+                <div className={"cdd-verdict cdd-mono " + (won ? "win" : "lose")}>
+                  {won
+                    ? t("cdd.endWin", { n: attempts, max: effectiveMaxAttempts })
+                    : t("cdd.endLose", { max: effectiveMaxAttempts })}
+                </div>
+                {hasReveal ? (
+                  <>
+                    <div className="cdd-reveal-name">
+                      <span className="cdd-reveal-brand">{car.marca}</span>
+                      <span className="cdd-reveal-model">{car.modelo}</span>
+                    </div>
+                    <div className="cdd-reveal-meta cdd-mono">
+                      {car.pais && <img className="cdd-flag" src={flagImagePath(car.pais)} alt="" />}
+                      {car.pais ? getLocalizedCountry(car.pais) : ""} · {car.anio}
+                    </div>
+                  </>
+                ) : (
+                  <div className="cdd-reveal-meta cdd-mono">{t("cdd.lockedAnswer")}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="cdd-end-body">
+              {/* Desglose de puntos (propio de la repesca: la mitad, sin racha).
+                  Devuelve null si el server no mandó score (p.ej. al recargar
+                  una partida ya cerrada). */}
+              <ScoreBreakdown score={score} won={won} />
+
+              {/* Recap de la partida: rejilla ✅/❌ (misma que el share del daily,
+                  aquí solo como resumen visual — la repesca no se comparte). */}
+              <div className="cdd-mono cdd-grid-k">{t("cdd.yourGame")}</div>
+              <pre className="cdd-grid">{shareGrid(guesses)}</pre>
+
+              {description && <p className="cdd-note">{description}</p>}
+
+              <button
+                className="cdd-submit"
+                onClick={() => {
+                  window.location.href = "/?garage=true";
+                }}
+              >
+                {t("result.backToGarage")}
+              </button>
+            </div>
+
+            {/* Cerrar el revelado y volver a ver la partida (mismo enlace
+                discreto que el EndScreen del daily). */}
+            <div className="cdd-end-links">
+              <button
+                type="button"
+                className="cdd-end-link cdd-mono"
+                onClick={() => setShowEnd(false)}
+              >
+                {t("cdd.seeGame")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1176,11 +1176,18 @@ body,
    300 dejaría la foto perdida entre márgenes. */
 @media (max-width: 480px) {
   .prensa .cdd-stage { width: 100%; max-width: 300px; align-self: center; }
+  /* El pie de foto respeta la SANGRÍA de la imagen: mismo tope y centrado que
+     .cdd-stage, así queda alineado bajo la foto y no a sangre del pliego. */
+  .prensa .prensa-pie { width: 100%; max-width: 300px; align-self: center; }
 }
+/* Pie de foto: cuerpo pequeño de PIE DE PERIÓDICO (9.5px). A ese tamaño el texto
+   completo entra en UNA sola línea dentro del ancho de la foto (300px en móvil);
+   en el pliego ancho de escritorio, de sobra. Cursiva Fraunces = la voz de los
+   pies. Sigue siendo flex: en la repesca comparte fila con sus pips. */
 .prensa-pie {
   display: flex; justify-content: space-between; align-items: center; gap: 14px;
   color: var(--cdd-muted); font-family: var(--font-display);
-  font-style: italic; font-size: 13px;
+  font-style: italic; font-size: 9.5px;
 }
 /* Pips "fotogramas": cuadraditos de negativo. Urgencia = SOLO rojo. */
 .prensa-pips { display: flex; gap: 5px; flex: none; }
@@ -1291,15 +1298,6 @@ body,
 .prensa-cupon-intento {
   font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em;
   text-transform: uppercase; color: var(--cdd-muted); white-space: nowrap;
-}
-/* Numeración de campos 1·2·3 (Courier, tinta apagada): refuerza la cadena de
-   foco marca→modelo→año y el aire de "formulario a rellenar". En tinta y NO en
-   rojo — el rojo queda para acción (foco/enviar) y fallo. */
-.prensa-cupon form { counter-reset: campo; }
-.prensa-cupon .prensa-label-txt::before {
-  counter-increment: campo; content: counter(campo) "\2009";
-  font-family: var(--font-mono); font-weight: 700; color: var(--cdd-muted);
-  margin-right: 6px; letter-spacing: 0;
 }
 /* Campos de línea base: la caja desaparece, queda el renglón. Lo escrito sale
    "a máquina" (Courier), como un formulario rellenado de verdad. */

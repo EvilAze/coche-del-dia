@@ -116,10 +116,7 @@ export default function Combo({
   // banderas, teclado) es la misma; solo cambia la piel.
   return (
     <div className="relative flex flex-col gap-1.5" ref={ref}>
-      {/* El texto va en su propia envoltura para que la numeración de campo
-          (contador CSS 1·2·3 del cupón) se anteponga SOLO al nombre y no rompa
-          el space-between del label (que alinea la pista "±2 años" a la derecha). */}
-      <label className="prensa-label"><span className="prensa-label-txt">{label}</span></label>
+      <label className="prensa-label">{label}</label>
       <input
         ref={setInputRef}
         className={"prensa-input" + (invalid && !open ? " invalida" : "")}

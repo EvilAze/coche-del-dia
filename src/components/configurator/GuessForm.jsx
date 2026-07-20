@@ -285,7 +285,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             micro-feedback de "listo para disparar". */}
         <button
           type="submit"
-          className={"prensa-submit" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
+          className={"prensa-submit mt-1.5" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
           disabled={formDisabled}
           aria-busy={isSubmitting}
         >

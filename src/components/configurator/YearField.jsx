@@ -8,7 +8,7 @@
 // 1968–1972). El teclado numérico teclea el año en 4 toques —más rápido y
 // directo— y el campo queda en la misma cadencia visual que los otros dos.
 
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { useT } from "../../i18n";
 
 const MIN_YEAR = 1886;
@@ -18,6 +18,8 @@ const MAX_YEAR = new Date().getFullYear();
 // modelo, el foco salta aquí y el teclado pasa a numérico solo).
 export default function YearField({ value, onChange, tolerance, inputRef = null }) {
   const { t } = useT();
+  // id estable para asociar <label> ↔ <input> (a11y: gemelo de Marca/Modelo).
+  const inputId = useId();
   // Ref interno (además del externo de la cadena de foco): lo necesita el
   // scrollIntoView de abajo aunque el padre no pase inputRef.
   const innerRef = useRef(null);
@@ -28,11 +30,12 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
   // Piel «Prensa del motor»: renglón de línea base, gemelo de Marca/Modelo.
   return (
     <div className="relative flex flex-col gap-1.5">
-      <span className="prensa-label">
+      <label htmlFor={inputId} className="prensa-label">
         {t("cdd.labelAnio")}
         <span className="pista-label">{t("cdd.yearTolerance", { n: tolerance })}</span>
-      </span>
+      </label>
       <input
+        id={inputId}
         ref={(el) => {
           innerRef.current = el;
           if (inputRef) inputRef.current = el;

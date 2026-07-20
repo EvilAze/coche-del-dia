@@ -9,6 +9,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useCountdown } from "../../hooks/useCountdown";
+import { useEscape } from "../../hooks/useEscape";
+import { useScrollLock } from "../../hooks/useScrollLock";
+import { useHistoryClose } from "../../hooks/useHistoryClose";
 import { useT, getCarDescription, getLocalizedCountry } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { track } from "../../lib/analytics";
@@ -84,6 +87,14 @@ export default function EndScreen({
   const copyTimer = useRef(null);
   useEffect(() => () => clearTimeout(copyTimer.current), []);
 
+  // El EndScreen es un modal a medida: aquí le damos el mismo comportamiento
+  // que al resto (Escape cierra, se bloquea el scroll del fondo) y, sobre todo,
+  // que la "atrás" del móvil lo CIERRE en vez de sacar de la web. Como solo se
+  // monta cuando está visible, el "active" de los tres es constante (true).
+  useScrollLock(true);
+  useEscape(true, onClose);
+  useHistoryClose(true, onClose);
+
   const hasReveal = Boolean(car?.marca && car?.modelo && car?.anio);
   const attempts = guesses.length;
   const description = getCarDescription(car)?.trim();
@@ -148,6 +159,23 @@ export default function EndScreen({
     <div className="cdd-end" role="dialog" aria-modal="true">
       <div className="cdd-end-scrim" onClick={onClose} />
       <div className="cdd-end-card">
+        {/* Cerrar SIEMPRE a la vista: botón fijo (sticky) arriba a la IZQUIERDA
+            —la derecha la ocupa el sello del veredicto— con área táctil de 44px.
+            Antes el único cierre era un enlace diminuto al final del panel, que
+            obligaba a scrollear hasta abajo para salir. La barra sticky es de
+            alto 0 (no empuja la banda de revelado); el botón flota sobre ella y
+            se queda a la vista aunque el cuerpo del panel scrollee. */}
+        <div className="cdd-end-topbar">
+          <button
+            type="button"
+            className="cdd-end-close"
+            aria-label={t("cdd.seeGame")}
+            onClick={() => { haptic.impactLight(); onClose?.(); }}
+          >
+            <Icon d={I.x} size={20} />
+          </button>
+        </div>
+
         {/* (Confetti retirado: en el lenguaje prensa la celebración es el
             SELLO estampándose — spec §2 del rediseño.) */}
 

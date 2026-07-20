@@ -1455,9 +1455,13 @@ body,
   width: 100%; background: transparent; border: 0; outline: 0;
   border-bottom: 1px solid var(--line-strong); border-radius: 0;
   font-family: var(--font-mono); font-size: 16px; color: var(--cdd-text);
-  padding: 11px 2px; transition: border-color .15s;
+  /* Padding vertical apretado (7px, antes 11): el texto/placeholder sube y queda
+     pegado a su etiqueta —el aire de arriba era el que sobraba— dejando el cupón
+     más compacto. El focus baja el padding-bottom en 1px para compensar el borde
+     de 1→2px y que el texto NO salte al enfocar. */
+  padding: 7px 2px; transition: border-color .15s;
 }
-.prensa-input:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 10px; }
+.prensa-input:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 6px; }
 .prensa-input.invalida { border-bottom: 2px solid var(--rojo); }
 .prensa-input:disabled { opacity: .45; }
 .prensa-input::placeholder { color: var(--placeholder); font-style: italic; font-family: var(--font-display); font-size: 14px; }

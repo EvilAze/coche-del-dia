@@ -1142,13 +1142,38 @@ body,
 .prensa-topbar > span:last-child > :last-child { padding-right: 0; }
 .prensa-topbar button:hover, .prensa-topbar a:hover { color: var(--rojo); }
 .prensa-topbar .sep { color: var(--cdd-muted); }
-/* Racha: oro viejo de tinta — "lo acumulado", nunca relleno (spec §2). */
-.prensa-topbar .racha { color: var(--gold); }
 /* Aviso de repesca pegado a GARAJE (corrección al margen, no a media palabra):
    sin letter-spacing heredado y con un aire fino, no los ~9px de antes. */
 .prensa-topbar .aviso { color: var(--rojo); font-weight: 800; margin-left: 2px; letter-spacing: 0; }
-/* CTA de competir (anónimo sin racha): la única llamada roja de la barra. */
-.prensa-topbar .cta { color: var(--rojo); }
+
+/* ── Badge de estado (puesto + racha) ──
+   El ranking es la mayor palanca de retención, así que el puesto deja de ser un
+   link camuflado de 10px y pasa a CHIP: filete oro (nunca relleno —reservado a lo
+   premium—), puesto en cuerpo grande y su movimiento vs ayer. Se lee de un vistazo
+   sin romper el masthead y da un objetivo táctil mayor que el texto suelto. El
+   margen negativo vertical amplía el área de toque sin engordar la barra; sale de
+   las versalitas (letter-spacing/uppercase) para que el "12º" respire. */
+.prensa-topbar .estado {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--gold); border-radius: 2px;
+  padding: 6px 9px; margin: -6px 0;
+  background: color-mix(in oklab, var(--gold) 8%, transparent);
+  letter-spacing: 0; text-transform: none; line-height: 1;
+}
+.prensa-topbar .estado:hover { background: color-mix(in oklab, var(--gold) 15%, transparent); color: inherit; }
+.prensa-topbar .estado .pos { color: var(--gold); font-weight: 900; font-size: 14px; letter-spacing: -.01em; }
+.prensa-topbar .estado .mov { font-weight: 700; font-size: 11px; }
+/* Subir = veredicto verde (acierto); bajar = tinta apagada, no rojo: la pérdida
+   informa, no alarma (el rojo es para el FALLO y para el CTA de competir). */
+.prensa-topbar .estado .mov--up { color: var(--verde); }
+.prensa-topbar .estado .mov--down { color: var(--cdd-muted); }
+.prensa-topbar .estado .div { width: 1px; height: 12px; background: color-mix(in oklab, var(--gold) 40%, transparent); }
+.prensa-topbar .estado .st { color: var(--gold); font-weight: 700; font-size: 12px; }
+/* CTA de competir (nuevo/anónimo sin puesto): mismo chip en filete ROJO —la única
+   llamada de la barra—, más visible que el texto de 10px de antes. */
+.prensa-topbar .estado--cta { border-color: var(--rojo); background: color-mix(in oklab, var(--rojo) 8%, transparent); }
+.prensa-topbar .estado--cta:hover { background: color-mix(in oklab, var(--rojo) 15%, transparent); }
+.prensa-topbar .estado--cta .txt { color: var(--rojo); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 /* Toggle de tema: glifo de línea (mismo peso que los iconos del juego),
    tinta apagada → rojo al pulsar, como el resto de enlaces de la barra. */
 .prensa-topbar .prensa-tema { color: var(--cdd-muted); }

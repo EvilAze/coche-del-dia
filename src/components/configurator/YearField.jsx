@@ -29,7 +29,7 @@ export default function YearField({ value, onChange, tolerance, inputRef = null 
 
   // Piel «Prensa del motor»: renglón de línea base, gemelo de Marca/Modelo.
   return (
-    <div className="relative flex flex-col gap-1.5">
+    <div className="relative flex flex-col gap-1">
       <label htmlFor={inputId} className="prensa-label">
         {t("cdd.labelAnio")}
         <span className="pista-label">{t("cdd.yearTolerance", { n: tolerance })}</span>

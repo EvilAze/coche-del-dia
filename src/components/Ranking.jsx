@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSeasonLeaderboard, getCurrentSeason } from "../lib/statsService";
+import { getSeasonLeaderboard, getCurrentSeason, getChampions } from "../lib/statsService";
 import { daysUntilClose } from "../lib/season";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
@@ -101,6 +101,12 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
   // Temporada activa, para el banner (número + tema) y el countdown de cierre.
   // null = sin temporada activa (hueco o aún no configurada) → no se pinta banner.
   const [season, setSeason] = useState(null);
+  // Pestaña activa: la clasificación de la temporada en curso ("temporada") o el
+  // SALÓN DE CAMPEONES histórico ("campeones"). El palmarés se carga PEREZOSO al
+  // abrir su pestaña por primera vez (no lastramos la apertura del ranking con
+  // un fetch que la mayoría no mira).
+  const [view, setView] = useState("temporada");
+  const [champions, setChampions] = useState({ loading: false, seasons: [], error: "", loaded: false });
   const [helpOpen, setHelpOpen] = useState(false);
   // Modal de perfil público al clicar una fila del ranking. Guardamos el userId
   // del jugador objetivo; null = cerrado.
@@ -119,6 +125,10 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
 
     let cancelled = false;
     setState({ loading: true, players: [], error: "" });
+    // Cada apertura arranca en la pestaña de temporada y descarta el palmarés
+    // cacheado (por si se cerró una temporada entre visitas).
+    setView("temporada");
+    setChampions({ loading: false, seasons: [], error: "", loaded: false });
 
     // El leaderboard de la temporada y la temporada activa (para el banner) son
     // independientes: los pedimos en paralelo.
@@ -145,6 +155,24 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
 
   useEscape(open && !helpOpen, onClose);
 
+  // Cambio de pestaña. La primera vez que se abre "Campeones" dispara el fetch
+  // del palmarés (perezoso, una sola vez por apertura del modal).
+  function selectView(next) {
+    setView(next);
+    if (next === "campeones" && !champions.loaded && !champions.loading) {
+      track("champions_view", { source: "ranking" });
+      setChampions({ loading: true, seasons: [], error: "", loaded: false });
+      getChampions()
+        .then((seasons) => setChampions({ loading: false, seasons, error: "", loaded: true }))
+        .catch((err) => {
+          // Mismo criterio que el leaderboard: logueamos (sin PII) y mostramos
+          // un mensaje genérico. Típico si aún no se aplicó la migración SQL.
+          console.error("[Ranking] fallo cargando el salón de campeones", err);
+          setChampions({ loading: false, seasons: [], error: t("ranking.errorLoad"), loaded: true });
+        });
+    }
+  }
+
   return (
     <>
     <ModalShell
@@ -169,6 +197,30 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
           </div>
         </div>
 
+        {/* Conmutador de pestañas: la clasificación de la temporada en curso vs
+            el SALÓN DE CAMPEONES (palmarés de temporadas cerradas). Segmentado
+            plano, coherente con la estética del modal (menta = activa). */}
+        <div className="mb-4 flex gap-1 rounded-lg border border-border bg-bg-tertiary p-1">
+          {[["temporada", t("ranking.tabSeason")], ["campeones", t("ranking.tabChampions")]].map(
+            ([id, lbl]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => selectView(id)}
+                aria-pressed={view === id}
+                className={`
+                  flex-1 rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition
+                  ${view === id ? "bg-mint/15 text-mint" : "text-muted-foreground hover:text-foreground"}
+                `}
+              >
+                {lbl}
+              </button>
+            )
+          )}
+        </div>
+
+        {view === "temporada" && (
+        <>
         {/* Banner de la temporada en curso: número + tema + countdown de cierre.
             El oro marca el momento premium (el campeonato es "valioso"). Sin
             temporada activa no se pinta. */}
@@ -363,6 +415,105 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
             )}
           </div>
         )}
+        </>
+        )}
+
+        {/* SALÓN DE CAMPEONES: temporadas cerradas con su podio 🥇🥈🥉. Los datos
+            ya se sellaban en season_podium al cerrar cada temporada; esto es la
+            vista que faltaba. Filas clicables al perfil igual que la temporada. */}
+        {view === "campeones" &&
+          (champions.loading ? (
+            <p className="text-sm text-muted-foreground">{t("ranking.loading")}</p>
+          ) : champions.error ? (
+            <p className="text-sm text-red-400">{champions.error}</p>
+          ) : champions.seasons.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("ranking.championsEmpty")}</p>
+          ) : (
+            <div className="scrollbar-premium max-h-[26rem] space-y-4 overflow-y-auto pr-1">
+              {champions.seasons.map((s) => {
+                const label = locale === "en" ? s.labelEn : s.labelEs;
+                let when = "";
+                try {
+                  when = new Date(`${s.endsAt}T00:00:00`).toLocaleDateString(
+                    locale === "en" ? "en-US" : "es-ES",
+                    { day: "numeric", month: "short", year: "numeric" }
+                  );
+                } catch {
+                  when = "";
+                }
+                return (
+                  <div key={s.number} className="overflow-hidden rounded-xl border border-border">
+                    <div className="border-b border-border bg-bg-tertiary px-3 py-2">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold/80">
+                          {t("ranking.seasonKicker", { n: s.number })}
+                        </p>
+                        {when && (
+                          <p className="shrink-0 text-[10px] text-muted-foreground">{when}</p>
+                        )}
+                      </div>
+                      <p className="truncate text-sm font-semibold text-foreground">{label}</p>
+                    </div>
+                    <div className={user ? "divide-y divide-border" : ""}>
+                      {s.podium.map((c) => {
+                        const isSelf = currentUserId && currentUserId === c.userId;
+                        const isClickable = !!user && !isSelf;
+                        const RowTag = isClickable ? "button" : "div";
+                        return (
+                          <RowTag
+                            key={c.rank}
+                            type={RowTag === "button" ? "button" : undefined}
+                            onClick={
+                              RowTag === "button"
+                                ? () => {
+                                    track("profile_view", { source: "champions" });
+                                    setOpenProfileId(c.userId);
+                                  }
+                                : undefined
+                            }
+                            className={`
+                              grid w-full grid-cols-[1.75rem_minmax(0,1fr)_4.25rem]
+                              items-center px-3 py-2.5 text-left
+                              ${isSelf ? "bg-mint/[0.07]" : "bg-transparent"}
+                              ${RowTag === "button" ? "transition hover:bg-papel-2/60 active:scale-[0.99]" : ""}
+                            `}
+                          >
+                            <div className="flex items-center">
+                              <RankMarker rank={c.rank} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex min-w-0 items-center gap-1.5">
+                                <p className="truncate text-sm font-medium text-foreground">
+                                  {c.displayName}
+                                </p>
+                                {isSelf && (
+                                  <span className="shrink-0 rounded-full bg-mint px-1.5 py-px font-mono text-[8.5px] font-bold uppercase tracking-wider text-mint-foreground">
+                                    {t("ranking.you")}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div
+                                className={`text-xl font-bold leading-none tabular-nums ${
+                                  c.rank === 1 ? "text-gold" : "text-foreground"
+                                }`}
+                              >
+                                {c.points}
+                              </div>
+                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                {t("ranking.points")}
+                              </div>
+                            </div>
+                          </RowTag>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
     </ModalShell>
 
     {/* Sub-modal hermano (no anidado): cada uno gestiona su propio backdrop y su

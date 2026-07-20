@@ -438,6 +438,44 @@ export async function getSeasonLeaderboard() {
   }));
 }
 
+// SALÓN DE CAMPEONES: palmarés histórico para la pestaña "Campeones" del
+// Ranking. Lee el RPC get_champions (ver scripts/2026-07-salon-campeones.sql):
+// temporadas cerradas con podio, cada una con su top-3 + nombre + puntos.
+// Devuelve las filas AGRUPADAS por temporada (más reciente primero, ya ordenado
+// por el SQL):
+//   [{ number, labelEs, labelEn, startsAt, endsAt, podium: [{ rank, userId,
+//      displayName, points }] }, ...]
+export async function getChampions(limit = 24) {
+  const { data, error } = await supabase.rpc("get_champions", { p_limit: limit });
+  if (error) throw error;
+
+  // El RPC llega en filas planas (una por medallista); las plegamos por
+  // temporada. Map preserva el orden de inserción, que ya viene "temporada
+  // desc, rank asc" del SQL, así que no reordenamos en cliente.
+  const bySeason = new Map();
+  for (const row of data || []) {
+    let s = bySeason.get(row.number);
+    if (!s) {
+      s = {
+        number: row.number,
+        labelEs: row.label_es,
+        labelEn: row.label_en,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        podium: [],
+      };
+      bySeason.set(row.number, s);
+    }
+    s.podium.push({
+      rank: row.rank,
+      userId: row.user_id,
+      displayName: row.display_name,
+      points: row.points || 0,
+    });
+  }
+  return Array.from(bySeason.values());
+}
+
 // Medallas de TEMPORADA (top 1/2/3 de temporadas cerradas) + su tema, para la
 // vitrina del perfil. Lee season_podium (público) join seasons por el label.
 // Orden por número de temporada desc (más reciente primero) en cliente: ordenar

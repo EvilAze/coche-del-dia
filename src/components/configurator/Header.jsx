@@ -161,7 +161,7 @@ export default function Header({
               {hasRank && mov && (
                 <span className={"mov mov--" + mov.dir} aria-hidden="true">{mov.glyph}{mov.n}</span>
               )}
-              {hasRank && hasStreak && <span className="div" aria-hidden="true" />}
+              {hasRank && hasStreak && <span className="sep" aria-hidden="true">·</span>}
               {hasStreak && <span className="st">✦{streak}</span>}
             </button>
           ) : (

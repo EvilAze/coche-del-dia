@@ -6,7 +6,7 @@
 // sistema Platino: en un periódico las secciones se NOMBRAN, no se iconizan —
 // y de paso el texto es más descubrible que un glifo (auditoría UX previa).
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { useTheme } from "../../lib/theme";
@@ -34,8 +34,7 @@ function SunGlyph() {
 }
 
 export default function Header({
-  streak = 0,
-  rank = null, // { rank, total } | null — puesto mensual del jugador logueado
+  rank = null, // { rank, total, delta } | null — puesto de temporada del logueado
   user,
   repescaAlert = false,
   onOpenProfile,
@@ -94,23 +93,7 @@ export default function Header({
   });
   const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
 
-  // Estampado breve cuando la racha SUBE (tras ganar). Solo en un incremento
-  // real (4→5): el 0→N de la carga inicial no debe animar (parecería glitch).
-  const prevStreak = useRef(streak);
-  const [pop, setPop] = useState(false);
-  useEffect(() => {
-    if (streak > prevStreak.current && prevStreak.current > 0) {
-      setPop(true);
-      const id = setTimeout(() => setPop(false), 440);
-      prevStreak.current = streak;
-      return () => clearTimeout(id);
-    }
-    prevStreak.current = streak;
-  }, [streak]);
-
-  const hasStreak = streak > 0;
   const hasRank = Boolean(rank && rank.rank > 0);
-  const showStatus = hasStreak || hasRank;
 
   // Movimiento del puesto vs ayer (misma lógica pura que el «parte» del final de
   // partida). Solo pintamos flecha en un cambio REAL de puesto: 'hold'/'new' no
@@ -121,20 +104,12 @@ export default function Header({
   if (rm && rm.kind === "up") mov = { dir: "up", glyph: "▲", n: rm.n };
   else if (rm && rm.kind === "down") mov = { dir: "down", glyph: "▼", n: rm.n };
 
-  let statusAria;
-  if (hasStreak && hasRank) statusAria = t("cdd.rankStreakAria", { streak, rank: rank.rank });
-  else if (hasRank) statusAria = t("cdd.rankAria", { rank: rank.rank });
-  else if (hasStreak) statusAria = t("cdd.streakAria", { streak });
-  else statusAria = t("cdd.competeAria");
+  const rankAria = hasRank ? t("cdd.rankAria", { rank: rank.rank }) : t("cdd.competeAria");
 
   return (
     <header className="prensa-area-cab">
       <nav className="prensa-topbar" aria-label={t("cdd.competeAria")}>
         <span>
-          {/* GARAJE queda como único ladillo de sección a la izquierda: el RANKING
-              deja de ser un link de 10px aquí porque su palanca real —el puesto—
-              sube a badge a la derecha (que ya abre el ranking al pulsar). Una sola
-              puerta al ranking, más grande y descubrible, en vez de dos pequeñas. */}
           <button
             type="button"
             aria-label={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
@@ -144,41 +119,39 @@ export default function Header({
             {/* Repesca pendiente: "(1)" rojo, como correcciones por publicar */}
             {repescaAlert && <span className="aviso" aria-hidden="true">(1)</span>}
           </button>
-        </span>
-        <span>
-          {showStatus ? (
-            // Badge de estado: el puesto (palanca #1 de retención) en oro viejo de
-            // FILETE —nunca relleno, que se reserva a momentos premium— con su
-            // movimiento vs ayer (▲/▼). Deja de camuflarse como texto de 10px y se
-            // lee de un vistazo sin romper el masthead. Abre el ranking al pulsar.
+          <span className="sep" aria-hidden="true">·</span>
+          {/* RANKING es la palanca de retención: su acceso debe ser lo MÁS fácil de
+              la barra, así que es la sección con más presencia. La palabra va en
+              tinta plena y su valor —tu puesto— se cuelga en oro a mayor cuerpo
+              (etiquetado por la sección, sin ambigüedad ni caja) con el movimiento
+              vs ayer. Todo el conjunto es un único objetivo táctil que abre el
+              ranking. Sin puesto (nuevo/anónimo): «RANKING →» en rojo, la única
+              llamada de la barra, a quien más le importa descubrirlo. */}
+          {hasRank ? (
             <button
               type="button"
-              className={"estado" + (pop ? " animate-estampar" : "")}
-              aria-label={statusAria}
+              className="rk"
+              aria-label={rankAria}
               onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
             >
-              {hasRank && <span className="pos">{rank.rank}º</span>}
-              {hasRank && mov && (
+              {t("prensa.ranking")}
+              <span className="pos">{rank.rank}º</span>
+              {mov && (
                 <span className={"mov mov--" + mov.dir} aria-hidden="true">{mov.glyph}{mov.n}</span>
               )}
-              {hasRank && hasStreak && <span className="sep" aria-hidden="true">·</span>}
-              {hasStreak && <span className="st">✦{streak}</span>}
             </button>
           ) : (
-            // Jugador nuevo/anónimo sin puesto ni racha: el CTA de competir sube a
-            // badge de filete ROJO —la única llamada de la barra— más visible que
-            // el antiguo texto de 10px. Es al recién llegado a quien más importa
-            // descubrir el ranking, así que aquí es donde más grita.
             <button
               type="button"
-              className="estado estado--cta"
+              className="rk rk--cta"
               aria-label={t("cdd.competeAria")}
               onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
             >
-              <span className="txt">{t("cdd.competeLabel")} →</span>
+              {t("prensa.ranking")} →
             </button>
           )}
-          <span className="sep" aria-hidden="true">·</span>
+        </span>
+        <span>
           <button
             type="button"
             aria-label={t("cdd.profileAria")}

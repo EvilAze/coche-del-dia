@@ -114,7 +114,6 @@ export default function Configurator({
           bloque real en el pliego ancho. */}
       <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3 safe-area-pad">
         <Header
-          streak={streak}
           rank={rank}
           user={user}
           repescaAlert={repescaAlert}

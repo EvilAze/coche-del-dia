@@ -118,7 +118,7 @@ export default function Combo({
   // + listbox de papel con filete. La lógica (autocomplete, anti-cheat,
   // banderas, teclado) es la misma; solo cambia la piel.
   return (
-    <div className="relative flex flex-col gap-1.5" ref={ref}>
+    <div className="relative flex flex-col gap-1" ref={ref}>
       <label htmlFor={inputId} className="prensa-label">{label}</label>
       <input
         id={inputId}

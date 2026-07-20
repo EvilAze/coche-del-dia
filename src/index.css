@@ -1257,11 +1257,14 @@ body,
    envíe" de toda la vida. Sin tijera-emoji: la línea de puntos ya lo dice y un
    glifo a color rompería la tinta. El margen holgado deja respirar al filete
    de corte sin que roce la columna vecina. */
+/* Simplificado: fuera el marco recortable (filete + línea de corte discontinua)
+   y el papel propio. El cupón se disuelve en la columna y sus campos alinean al
+   mismo borde que la foto — un formulario limpio, no una caja. Sin padding ni
+   margen que lo desmarquen del pliego. */
 .prensa-cupon {
-  position: relative; background: var(--surface);
-  border: 1.5px solid var(--line-strong);
-  outline: 1.5px dashed var(--line-strong); outline-offset: 5px;
-  padding: 15px 16px 14px; margin: 7px;
+  position: relative; background: transparent;
+  border: 0; outline: 0;
+  padding: 0; margin: 0;
 }
 /* Cabecera genérica "título entre filetes": la conserva la Nota de la Redacción
    (NotaRedaccion.jsx). El cupón usa su propia cabecera enriquecida de abajo. */
@@ -1272,25 +1275,14 @@ body,
 }
 .prensa-cupon-cab::before, .prensa-cupon-cab::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); }
 
-/* ── Cabecera del cupón en UN renglón (economía vertical) ──
-   La portada y la foto deben caber con el cupón sin scroll en móvil, así que la
-   cabecera colapsa a una sola línea: título en versalitas a la izquierda +
-   FOLIO DE INTENTO en Courier a la derecha, y el DOBLE FILETE de la fecha de
-   portada (3px double) como subrayado del renglón. Cita la portada (versalitas
-   + doble filete) sin gastar tres líneas. El lema y el folio de control del
-   primer boceto se retiraron: bonitos, pero peajes verticales que este juego
-   —foto + cupón de un vistazo— no se puede permitir. */
-.prensa-cupon-cabecera {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-  padding-bottom: 9px; margin-bottom: 13px;
-  border-bottom: 3px double var(--line-strong);
-}
-/* Título en versalitas Franklin (par de los ladillos de sección), NO serif: el
-   único gran serif de la página es el wordmark de portada; un segundo lo
-   diluiría (spec §2). El carácter de "cupón" lo dan el folio y el corte. */
-.prensa-cupon-titulo {
-  font-family: var(--font-body); font-weight: 800; font-size: 11.5px;
-  letter-spacing: .16em; text-transform: uppercase; line-height: 1; color: var(--cdd-text);
+/* ── Folio de intento: único vestigio de la vieja cabecera ──
+   Sin título "Cupón de respuesta" ni doble filete: solo el FOLIO en Courier
+   alineado a la derecha, sobre una fina línea que lo despega del pie de foto y
+   marca dónde empieza el área de respuesta. Un renglón, no una cabecera. */
+.prensa-cupon-folio {
+  display: flex; justify-content: flex-end;
+  padding-bottom: 8px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
 }
 /* Folio de intento ("Intento 3 de 5") como número de cupón de concurso:
    recuerda cuántas balas quedan justo donde se dispara. Courier, tinta apagada;

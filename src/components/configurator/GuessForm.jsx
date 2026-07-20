@@ -247,26 +247,27 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   }
 
   return (
-    // El cupón de respuesta como CUPÓN RECORTABLE: papel propio + filete de
-    // corte discontinuo por fuera ("recorte y envíe") y cabecera de una línea
-    // (título + folio de intento sobre doble filete). Compacto a propósito: la
-    // foto y el cupón deben caber sin scroll. El temblor de errata sacude la
-    // caja entera al validar en falso.
+    // Cupón de respuesta SIMPLIFICADO: fuera el marco recortable y el título
+    // "Cupón de respuesta". Queda un formulario limpio de tres renglones
+    // apilados (marca → modelo → año) a ancho completo, alineado al mismo borde
+    // que la foto. Solo sobrevive el folio de intento, arriba a la derecha. El
+    // temblor de errata sigue sacudiendo el bloque al validar en falso.
     <div
       className={"prensa-cupon" + (shake ? " animate-temblor" : "")}
       onAnimationEnd={() => setShake(false)}
     >
-      {/* Cabecera en un renglón: título + folio de intento, subrayados por el
-          doble filete de portada. Compacta a propósito (foto + cupón sin scroll). */}
-      <header className="prensa-cupon-cabecera">
-        <span className="prensa-cupon-titulo">{t("prensa.cupon")}</span>
+      {/* Único vestigio de la vieja cabecera: el folio de intento ("Intento 3
+          de 5") arriba a la derecha —las balas que quedan, justo donde se
+          dispara— sobre una fina línea que lo despega del pie de foto. */}
+      <div className="prensa-cupon-folio">
         <span className="prensa-cupon-intento">
           {t("prensa.cuponIntento", { n: intentoActual, max: maxAttempts })}
         </span>
-      </header>
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit} autoComplete="off">
-        {/* Marca + Modelo lado a lado (calcado del v0); Año y ADIVINAR a ancho completo. */}
-        <div className="grid grid-cols-2 gap-2">
+      </div>
+      <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
+        {/* Tres renglones apilados a ancho completo: marca, modelo y año. Cada
+            campo ocupa toda la fila (target grande, nombres largos legibles) en
+            vez del par marca|modelo comprimido de antes. */}
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
@@ -292,7 +293,6 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           invalid={modeloInvalido}
           enterKeyHint="next"
         />
-        </div>
         <YearField value={anio} onChange={setAnio} tolerance={tolerance} inputRef={anioRef} />
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
             Con campos incompletos el botón queda tocable con aspecto apagado

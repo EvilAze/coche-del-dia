@@ -4,7 +4,7 @@
 // navegación por teclado, banderas opcionales por opción, scroll táctil del
 // desplegable y auto-scroll del input en móvil (que no quede tras el teclado).
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { haptic } from "../../lib/haptics";
 import { useT } from "../../i18n";
 
@@ -31,6 +31,9 @@ export default function Combo({
   enterKeyHint = "search",
 }) {
   const { t } = useT();
+  // id estable para asociar <label> ↔ <input> (a11y: el lector de pantalla
+  // anuncia "Marca"/"Modelo" y tocar la etiqueta enfoca el campo).
+  const inputId = useId();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [hi, setHi] = useState(0);
@@ -116,8 +119,9 @@ export default function Combo({
   // banderas, teclado) es la misma; solo cambia la piel.
   return (
     <div className="relative flex flex-col gap-1.5" ref={ref}>
-      <label className="prensa-label">{label}</label>
+      <label htmlFor={inputId} className="prensa-label">{label}</label>
       <input
+        id={inputId}
         ref={setInputRef}
         className={"prensa-input" + (invalid && !open ? " invalida" : "")}
         type="search"

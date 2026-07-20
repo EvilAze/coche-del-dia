@@ -822,6 +822,23 @@ body,
 @keyframes cddFade { from { opacity: 0; } }
 @keyframes cddRise { from { opacity: 0; transform: translateY(22px) scale(.98); } }
 
+/* Cierre SIEMPRE visible: barra sticky de alto 0 (no empuja la banda de
+   revelado) con el botón de cerrar flotando arriba a la IZQUIERDA (la derecha
+   la ocupa el sello del veredicto). Área táctil de 44px. Sticky dentro del
+   card, que es el contenedor de scroll, así que se queda a la vista aunque el
+   cuerpo scrollee. pointer-events:none en la barra para no tapar la imagen;
+   auto en el botón para que sí reciba el toque. */
+.cdd-end-topbar { position: sticky; top: 0; z-index: 10; height: 0; display: flex; justify-content: flex-start; pointer-events: none; }
+.cdd-end-close {
+  pointer-events: auto; margin: 8px; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  border-radius: 999px; color: #fff;
+  background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.18);
+  transition: background .15s, transform .08s;
+}
+.cdd-end-close:hover { background: rgba(0,0,0,.62); }
+.cdd-end-close:active { transform: scale(.93); }
+
 /* Banda de revelado: alto fluido (clamp) para que en pantallas bajas no empuje
    el resto del contenido fuera de la tarjeta. */
 .cdd-reveal { position: relative; height: clamp(150px, 24svh, 230px); overflow: hidden; border-radius: 18px 18px 0 0; background: var(--surface); }
@@ -938,13 +955,19 @@ body,
   padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
 .cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
-/* Secundarios del final de partida ("ver mi partida") como ENLACES en una
-   fila, no botones: descargan la zona bajo Compartir (el único primario). */
-.cdd-end-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; margin: 14px 18px 16px; }
-.cdd-end-link { background: none; border: 0; cursor: pointer; padding: 4px 0;
-  font-family: var(--font-body); font-weight: 600; font-size: 10px; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--cdd-muted); border-bottom: 1px solid var(--line); }
-.cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
+/* "Ver mi partida" como botón secundario (ghost) de área táctil cómoda (≥44px),
+   no un enlace de 10px imposible de acertar con el pulgar. Sigue por DEBAJO de
+   Compartir (relleno = primario) y de la X de cerrar: es la salida etiquetada
+   "vuelvo a mi tablero", no el CTA principal. */
+.cdd-end-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 12px 18px 16px; }
+.cdd-end-link {
+  background: none; cursor: pointer; min-height: 44px; padding: 12px 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-body); font-weight: 700; font-size: 11.5px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--cdd-muted);
+  border: 1px solid var(--line); border-radius: 10px; transition: color .15s, border-color .15s;
+}
+.cdd-end-link:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
 
 /* ── Móvil: foto a tamaño máximo con «Adivinar» siempre visible ──
    Port del prototipo refinado (Claude Design). El "fold" —cabecera + intro +
@@ -1029,6 +1052,29 @@ body,
   .cdd-end-tabs { padding-top: 12px; }
   .cdd-end-body { padding-top: 10px; gap: 10px; }
   .cdd-next { margin-top: 6px; }
+}
+
+/* ── Móvil: el panel de fin como HOJA INFERIOR (bottom sheet) ──
+   En vez de una tarjeta flotante centrada —recortada arriba y abajo, con el
+   scroll atrapado en medio— la hoja se ancla al borde inferior, ocupa el ancho
+   completo y sube hasta 92svh. Es el patrón nativo: el pulgar llega al cierre y
+   a Compartir sin estirarse, y el scroll se siente intencionado (se agarra
+   desde abajo). La X sticky sigue arriba para salir sin bajar; queda un jirón de
+   scrim arriba (toca para cerrar). El env(safe-area) respeta la barra de gestos. */
+@media (max-width: 640px) {
+  .cdd-end { align-items: flex-end; padding: 0; }
+  .cdd-end-card {
+    max-width: none; width: 100%; max-height: 92svh;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Piel editorial: sin outline flotante (se saldría a sangre por los bordes)
+     ni esquinas; filete solo arriba, como una sección que emerge del pliego. */
+  .prensa .cdd-end-card {
+    outline: 0; border-radius: 0;
+    border-left: 0; border-right: 0; border-bottom: 0;
+    border-top: 2px solid var(--line-strong);
+  }
 }
 
 /* ── Desktop ── */
@@ -1467,6 +1513,17 @@ body,
   box-shadow: none;
 }
 .prensa .cdd-end-scrim { background: rgba(27, 23, 18, .45); }
+/* X de cerrar en piel editorial: cuadrada, tinta plena sobre papel, sin blur.
+   Al hover vira a rojo (acción), como el resto de controles prensa. */
+.prensa .cdd-end-close {
+  border-radius: 0; color: var(--cdd-text);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
+  border: 1px solid var(--line-strong);
+}
+.prensa .cdd-end-close:hover { color: var(--rojo); border-color: var(--rojo); background: var(--bg); }
+/* "Ver mi partida" editorial: cuadrado, tinta, hover rojo. */
+.prensa .cdd-end-link { border-radius: 0; color: var(--cdd-text); border-color: var(--line-strong); }
+.prensa .cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
 .prensa .cdd-reveal { border-radius: 0; background: var(--surface); border-bottom: 1px solid var(--line-strong); }
 .prensa .cdd-reveal-grad { background: linear-gradient(to top, var(--bg) 4%, transparent 55%); }
 .prensa .cdd-verdict { border-radius: 0; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none;

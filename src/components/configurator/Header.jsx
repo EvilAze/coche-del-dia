@@ -11,6 +11,7 @@ import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { useTheme } from "../../lib/theme";
 import { getCurrentSeason } from "../../lib/statsService";
+import { rankMovement } from "../../lib/rankMovement";
 
 // Glifos del toggle de tema (mismo trazo 1.6 y caja 24 que los iconos del
 // juego). Luna en día (invita a la noche); sol en noche (vuelve al día).
@@ -111,6 +112,15 @@ export default function Header({
   const hasRank = Boolean(rank && rank.rank > 0);
   const showStatus = hasStreak || hasRank;
 
+  // Movimiento del puesto vs ayer (misma lógica pura que el «parte» del final de
+  // partida). Solo pintamos flecha en un cambio REAL de puesto: 'hold'/'new' no
+  // llevan glifo (una flecha en 0 sería ruido). El delta ya viaja en el objeto
+  // rank { rank, total, delta, isNew } desde getMySeasonRank — no pedimos nada.
+  const rm = hasRank ? rankMovement(rank) : null;
+  let mov = null;
+  if (rm && rm.kind === "up") mov = { dir: "up", glyph: "▲", n: rm.n };
+  else if (rm && rm.kind === "down") mov = { dir: "down", glyph: "▼", n: rm.n };
+
   let statusAria;
   if (hasStreak && hasRank) statusAria = t("cdd.rankStreakAria", { streak, rank: rank.rank });
   else if (hasRank) statusAria = t("cdd.rankAria", { rank: rank.rank });
@@ -121,6 +131,10 @@ export default function Header({
     <header className="prensa-area-cab">
       <nav className="prensa-topbar" aria-label={t("cdd.competeAria")}>
         <span>
+          {/* GARAJE queda como único ladillo de sección a la izquierda: el RANKING
+              deja de ser un link de 10px aquí porque su palanca real —el puesto—
+              sube a badge a la derecha (que ya abre el ranking al pulsar). Una sola
+              puerta al ranking, más grande y descubrible, en vez de dos pequeñas. */}
           <button
             type="button"
             aria-label={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
@@ -130,37 +144,38 @@ export default function Header({
             {/* Repesca pendiente: "(1)" rojo, como correcciones por publicar */}
             {repescaAlert && <span className="aviso" aria-hidden="true">(1)</span>}
           </button>
-          <span className="sep" aria-hidden="true">·</span>
-          <button
-            type="button"
-            aria-label={t("cdd.statsAria")}
-            onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
-          >
-            {t("prensa.ranking")}
-          </button>
         </span>
         <span>
           {showStatus ? (
-            // Racha en oro viejo (lo acumulado); el puesto, si existe, al lado.
-            // Abre el ranking, igual que la píldora de estado anterior.
+            // Badge de estado: el puesto (palanca #1 de retención) en oro viejo de
+            // FILETE —nunca relleno, que se reserva a momentos premium— con su
+            // movimiento vs ayer (▲/▼). Deja de camuflarse como texto de 10px y se
+            // lee de un vistazo sin romper el masthead. Abre el ranking al pulsar.
             <button
               type="button"
-              className={"racha" + (pop ? " animate-estampar" : "")}
+              className={"estado" + (pop ? " animate-estampar" : "")}
               aria-label={statusAria}
               onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
             >
-              {hasStreak && <>✦ {streak}</>}
-              {hasStreak && hasRank && " · "}
-              {hasRank && <>{rank.rank}º</>}
+              {hasRank && <span className="pos">{rank.rank}º</span>}
+              {hasRank && mov && (
+                <span className={"mov mov--" + mov.dir} aria-hidden="true">{mov.glyph}{mov.n}</span>
+              )}
+              {hasRank && hasStreak && <span className="div" aria-hidden="true" />}
+              {hasStreak && <span className="st">✦{streak}</span>}
             </button>
           ) : (
+            // Jugador nuevo/anónimo sin puesto ni racha: el CTA de competir sube a
+            // badge de filete ROJO —la única llamada de la barra— más visible que
+            // el antiguo texto de 10px. Es al recién llegado a quien más importa
+            // descubrir el ranking, así que aquí es donde más grita.
             <button
               type="button"
-              className="cta"
+              className="estado estado--cta"
               aria-label={t("cdd.competeAria")}
               onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
             >
-              {t("cdd.competeLabel")} →
+              <span className="txt">{t("cdd.competeLabel")} →</span>
             </button>
           )}
           <span className="sep" aria-hidden="true">·</span>

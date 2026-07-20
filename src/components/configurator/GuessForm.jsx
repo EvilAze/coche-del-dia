@@ -156,14 +156,6 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   }
 
   const formDisabled = isSubmitting || !catalog;
-  // Nº de intento en curso para el renglón de "serie" del cupón (folio de
-  // concurso). Preferimos `attempts` (verdad del servidor); si no llega, caemos
-  // a la longitud del historial. Nunca pasa del máximo (el intento 5 es el
-  // último; al fallarlo la partida cierra y este formulario ya no se pinta).
-  const intentoActual = Math.min(
-    (typeof attempts === "number" ? attempts : guesses.length) + 1,
-    maxAttempts
-  );
   const anioNum = parseInt(anio, 10);
   const anioValido = !isNaN(anioNum) && anioNum >= MIN_YEAR && anioNum <= CURRENT_YEAR;
   const canSubmit = marcaValida && modeloValido && anioValido && !formDisabled;
@@ -247,23 +239,15 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   }
 
   return (
-    // Cupón de respuesta SIMPLIFICADO: fuera el marco recortable y el título
-    // "Cupón de respuesta". Queda un formulario limpio de tres renglones
-    // apilados (marca → modelo → año) a ancho completo, alineado al mismo borde
-    // que la foto. Solo sobrevive el folio de intento, arriba a la derecha. El
-    // temblor de errata sigue sacudiendo el bloque al validar en falso.
+    // Cupón de respuesta SIMPLIFICADO: fuera el marco recortable, el título
+    // "Cupón de respuesta" y el folio de intento. Queda un formulario limpio de
+    // tres renglones apilados (marca → modelo → año) a ancho completo, alineado
+    // al mismo borde que la foto. El temblor de errata sigue sacudiendo el
+    // bloque al validar en falso.
     <div
       className={"prensa-cupon" + (shake ? " animate-temblor" : "")}
       onAnimationEnd={() => setShake(false)}
     >
-      {/* Único vestigio de la vieja cabecera: el folio de intento ("Intento 3
-          de 5") arriba a la derecha —las balas que quedan, justo donde se
-          dispara— sobre una fina línea que lo despega del pie de foto. */}
-      <div className="prensa-cupon-folio">
-        <span className="prensa-cupon-intento">
-          {t("prensa.cuponIntento", { n: intentoActual, max: maxAttempts })}
-        </span>
-      </div>
       <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
         {/* Tres renglones apilados a ancho completo: marca, modelo y año. Cada
             campo ocupa toda la fila (target grande, nombres largos legibles) en

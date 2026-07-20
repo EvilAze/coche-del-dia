@@ -1275,22 +1275,8 @@ body,
 }
 .prensa-cupon-cab::before, .prensa-cupon-cab::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); }
 
-/* ── Folio de intento: único vestigio de la vieja cabecera ──
-   Sin título "Cupón de respuesta" ni doble filete: solo el FOLIO en Courier
-   alineado a la derecha, sobre una fina línea que lo despega del pie de foto y
-   marca dónde empieza el área de respuesta. Un renglón, no una cabecera. */
-.prensa-cupon-folio {
-  display: flex; justify-content: flex-end;
-  padding-bottom: 8px; margin-bottom: 12px;
-  border-bottom: 1px solid var(--line);
-}
-/* Folio de intento ("Intento 3 de 5") como número de cupón de concurso:
-   recuerda cuántas balas quedan justo donde se dispara. Courier, tinta apagada;
-   nunca rojo (el rojo es acción/fallo). */
-.prensa-cupon-intento {
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em;
-  text-transform: uppercase; color: var(--cdd-muted); white-space: nowrap;
-}
+/* El cupón ya no tiene cabecera: ni título "Cupón de respuesta", ni folio de
+   intento, ni filete. Arranca directo en el primer campo (marca). */
 /* Campos de línea base: la caja desaparece, queda el renglón. Lo escrito sale
    "a máquina" (Courier), como un formulario rellenado de verdad. */
 .prensa .cdd-label {

@@ -55,11 +55,16 @@ export default function ZoomStage({
         />
       </div>
 
-      {/* Pie de foto: la cursiva editorial narra; los pips cuentan. */}
-      <div className="prensa-pie">
-        <span>{t(revealed ? "prensa.pieFotoFin" : "prensa.pieFoto")}</span>
-        {progress}
-      </div>
+      {/* Pie de foto: SOLO al revelar (remate editorial del momento pico). Durante
+          el juego era una cursiva de 9,5px que se repetía idéntica cada día y
+          competía con el contador de intentos — se retira. Los pips (cuando el
+          flujo los pasa, p.ej. Repesca) siguen a la derecha en ambos estados. */}
+      {(revealed || progress) && (
+        <div className="prensa-pie">
+          {revealed && <span className="pie-cap">{t("prensa.pieFotoFin")}</span>}
+          {progress}
+        </div>
+      )}
     </section>
   );
 }

@@ -157,12 +157,9 @@
   /* (Sistema "Liquid Glass" retirado en el rediseño plano v0 — Fases 1-5.
      `.glass`, `.glass-strong`, `.scrim`, `.modal-panel-glass`, `.glass-panel`,
      `.glass-hover` y `.spec` se eliminaron: ya no los usa nadie. Las superficies
-     usan las primitivas planas de más abajo. Se conserva `.modal-scrim` (tinte
-     sin blur), que SÍ usan los modales aplanados.) */
-  /* Scrim de modal: SOLO tinte (sin blur). */
-  .modal-scrim {
-    background: rgba(4, 6, 9, 0.66);
-  }
+     usan las primitivas planas de más abajo. El `.modal-scrim` (tinte sin blur)
+     se define UNA sola vez en el bloque de prensa (F3), más abajo — antes había
+     aquí un duplicado más oscuro que la cascada pisaba y solo confundía.) */
 
   /* ─────────────────────────────────────────────────────────────────────
      Sistema PLANO (rediseño v0) — primitivas reutilizables (Fases 1-5)
@@ -1617,12 +1614,27 @@ body,
    así que el chasis y las utilidades de contenido (pm-*) usan colores
    CONCRETOS — misma razón histórica por la que .modal-panel-flat los usaba. */
 .modal-panel-flat {
-  background: var(--bg); color: var(--cdd-text);
-  border: 1px solid var(--cdd-text); border-radius: 0;
-  outline: 1px solid var(--cdd-text); outline-offset: 4px;
-  box-shadow: none;
+  /* Prensa afinada: el marco tiene que DESPEGAR del velo, no pegarse a él.
+     El viejo `outline-offset: 4px` dibujaba la 2ª raya del folio SOBRE el scrim
+     (el fondo oscurecido del juego se colaba entre las dos líneas) → leía como
+     un halo/artefacto, no como un doble filete. Ahora las dos rayas viven sobre
+     el PAPEL: filete de tinta al borde + raya interior a 4px como capa `inset`
+     del box-shadow (dos `inset`: papel hasta 4px, tinta al 30% de 4→5px). Y una
+     sombra de elevación REAL, que es todo el sentido de un modal sobre scrim.
+     Fondo en --surface (un pelo más claro que --bg) para reforzar ese "lift".
+     Todo se deriva de las ternas RGB del tema, así que noche lo hereda solo
+     (filete beige + sombra igual de válida sobre el grafito). */
+  background: var(--surface); color: var(--cdd-text);
+  border: 1.5px solid var(--cdd-text); border-radius: 0;
+  box-shadow:
+    inset 0 0 0 4px var(--surface),
+    inset 0 0 0 5px rgb(var(--tinta-rgb) / .30),
+    0 26px 55px -22px rgba(0, 0, 0, .55);
 }
-.modal-scrim, .scrim-flat { background: rgba(27, 23, 18, .45); }
+/* Scrim ÚNICO (antes había un duplicado muerto en @layer utilities). Subido del
+   45% al 72% de tinta cálida: sobre tema claro un panel de papel necesita MÁS
+   velo, no menos, para separarse del juego de fondo. */
+.modal-scrim, .scrim-flat { background: rgba(20, 16, 11, .72); }
 
 /* Utilidades de contenido de modal (concretas, reutilizables en F3-F4) */
 .pm-kicker { font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 800; font-size: 10px;

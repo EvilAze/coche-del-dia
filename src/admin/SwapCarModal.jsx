@@ -143,7 +143,7 @@ export default function SwapCarModal({
     <ModalShell
       open={open}
       onClose={isSubmitting ? undefined : onClose}
-      backdropClassName="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4 backdrop-blur-sm"
+      backdropClassName="modal-scrim fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4"
       panelClassName="relative flex w-full max-w-md max-h-[90vh] flex-col rounded-t-2xl sm:rounded-2xl border border-border bg-bg-primary shadow-2xl"
     >
       <div className="absolute right-2 top-2 z-10">

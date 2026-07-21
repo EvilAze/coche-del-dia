@@ -1145,7 +1145,7 @@ function CarDetail({ open, car, onClose, onStartRepesca }) {
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
+      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden"
     >
       {displayCar && (
         <>
@@ -1262,7 +1262,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
       onClose={onCancel}
       dismissOnBackdrop={!starting}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
+      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden"
     >
         <div className="px-5 py-5 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-accent">
@@ -1589,7 +1589,7 @@ function RepescaHelpModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden ring-1 ring-accent/40"
+      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden"
     >
         <div className="absolute right-2 top-2 z-10">
           <CloseButton onClick={onClose} />

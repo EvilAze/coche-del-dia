@@ -504,7 +504,7 @@ export default function App() {
         onClose={() => {}}
         dismissOnBackdrop={false}
         backdropClassName="modal-scrim fixed inset-0 z-[110] flex items-center justify-center p-4"
-        panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center ring-1 ring-accent/40"
+        panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
       >
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-2xl">
           🚗

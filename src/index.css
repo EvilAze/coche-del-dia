@@ -1246,10 +1246,16 @@ body,
    en el pliego ancho de escritorio, de sobra. Cursiva Fraunces = la voz de los
    pies. Sigue siendo flex: en la repesca comparte fila con sus pips. */
 .prensa-pie {
-  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  /* El pie ahora solo aparece al revelar (lo gatea ZoomStage): remate editorial,
+     no un adorno que se repite en cada intento. Legible de verdad (12px, no los
+     9,5 de antes) y a contraste AA vía .pie-cap. `flex-end` + margin-right:auto
+     en la cursiva deja los pips a la derecha aunque no haya texto (juego de
+     Repesca, que sí pasa `progress`). */
+  display: flex; justify-content: flex-end; align-items: center; gap: 14px;
   color: var(--cdd-muted); font-family: var(--font-display);
-  font-style: italic; font-size: 9.5px;
+  font-style: italic; font-size: 12px;
 }
+.prensa-pie .pie-cap { margin-right: auto; color: color-mix(in oklab, var(--cdd-text) 72%, var(--bg)); }
 /* Pips "fotogramas": cuadraditos de negativo. Urgencia = SOLO rojo. */
 .prensa-pips { display: flex; gap: 5px; flex: none; }
 .prensa-pips .pip { width: 9px; height: 9px; border: 1px solid var(--line-strong); border-radius: 0; }

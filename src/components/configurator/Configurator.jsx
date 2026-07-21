@@ -144,6 +144,24 @@ export default function Configurator({
             `order` (la fila viva sobre el cupón; historial y estadística
             debajo); en el broadsheet es la columna izquierda real. */}
         <div className="prensa-area-clas">
+          {/* "Primer" del pliego SOLO en el turno 1 (playing, sin intentos): ocupa
+              la columna izquierda del broadsheet —que si no nace en blanco— con
+              qué adivinar, intentos + zoom y la clave de color de las marcas de
+              corrector. Se desmonta al primer intento (el historial toma el sitio).
+              Oculto en móvil por CSS (.prensa-primer) para no empujar el fold. */}
+          {dataReady && !ended && guesses.length === 0 && !pendingGuess && (
+            <section className="prensa-primer" aria-label={t("prensa.primerLadillo")}>
+              <div className="prensa-ladillo">{t("prensa.primerLadillo")}</div>
+              <p className="primer-que">{t("prensa.primerQue")}</p>
+              <p className="primer-sub">{t("cdd.introSub", { max: maxAttempts })}</p>
+              <ul className="primer-clave" aria-label={t("prensa.primerClave")}>
+                <li><i className="clave-ej bien">{t("prensa.claveBien")}</i></li>
+                <li><i className="clave-ej cerca">{t("prensa.claveCerca")}</i></li>
+                <li><i className="clave-ej mal">{t("prensa.claveMal")}</i></li>
+              </ul>
+            </section>
+          )}
+
           {/* Último intento entre imagen y formulario. id=fila-viva: ancla del
               scroll post-envío del cupón (GuessForm). */}
           {dataReady && !ended && (pendingGuess || guesses.length > 0) && (

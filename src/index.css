@@ -1226,20 +1226,21 @@ body,
 }
 .prensa .cdd-stage-frame::after { display: none; } /* viñeta: innecesaria sobre papel */
 .prensa .cdd-hud, .prensa .cdd-grain { display: none; } /* atrezzo cámara: fuera */
-/* Móvil: la foto se topa en alto para que el cupón suba sobre el fold (foto +
-   cupón de un vistazo, sin scroll). MISMO recorte 4:3 —Regla 6, misma
-   dificultad—: solo se reduce el ANCHO y se centra, nunca se recorta. Tope
-   sobre .cdd-stage (el hijo directo de la columna flex): width:100% + max-width
-   + align-self:center lo dejan a 300px centrado sin que el stretch por defecto
-   lo estire. En el broadsheet ≥1100 la foto manda en su columna y no se topa.
-   El 300px es un dial: bajarlo aprieta más el fold a costa de una foto menor.
-   Solo en móviles (≤480px): en tablet en columna única sobra alto y un tope de
-   300 dejaría la foto perdida entre márgenes. */
-@media (max-width: 480px) {
-  .prensa .cdd-stage { width: 100%; max-width: 300px; align-self: center; }
-  /* El pie de foto respeta la SANGRÍA de la imagen: mismo tope y centrado que
-     .cdd-stage, así queda alineado bajo la foto y no a sangre del pliego. */
-  .prensa .prensa-pie { width: 100%; max-width: 300px; align-self: center; }
+/* Foto A SANGRE en columna única (≤1099): el marco 4:3 rompe la sangría de 18px
+   del pliego (.prensa-hoja padding-inline) con margin negativo y TOCA ambos
+   bordes. La foto ES el juego → gana el escenario, y cumple la promesa que ya
+   hacía el pie ("por fin a plena página"). MISMO recorte 4:3 —Regla 6, misma
+   dificultad—: crece el ANCHO de render, nunca el crop. Clave de la Regla 6: el
+   `sizes` de CarImage ya pide imágenes grandes (200vw en móvil), así que el
+   recurso elegido por el navegador NO cambia y el preload del middleware sigue
+   coherente byte-a-byte —no hay que tocar srcset ni middleware.js—.
+   Coste conocido (medido): la foto mayor empuja el cupón ~50px; en móviles
+   pequeños el botón queda justo bajo el fold (micro-scroll). El tope de 300px
+   anterior era el dial inverso (fold apretado, foto menor). */
+@media (max-width: 1099px) {
+  .prensa .cdd-stage { width: auto; max-width: none; margin-inline: -18px; align-self: stretch; }
+  /* El pie de foto NO sangra: es voz de pie, alineado al margen del pliego. */
+  .prensa .prensa-pie { width: 100%; max-width: none; align-self: stretch; }
 }
 /* Pie de foto: cuerpo pequeño de PIE DE PERIÓDICO (9.5px). A ese tamaño el texto
    completo entra en UNA sola línea dentro del ancho de la foto (300px en móvil);
@@ -1446,6 +1447,43 @@ body,
   .prensa-area-pie { grid-area: pie; }
 }
 
+/* ── "Primer" del pliego: siembra la columna izquierda en el TURNO 1 ──
+   Hasta el primer intento, la columna "clas" (fila viva + historial +
+   estadística) está vacía y el broadsheet de 3 columnas nace descuadrado (el
+   tercio izquierdo en blanco). Este primer la ocupa con materia editorial: qué
+   adivinar, intentos + zoom, y la CLAVE DE COLOR de las marcas de corrector
+   (reusa verde/ámbar/rojo del feedback real → enseña a leer los intentos). Al
+   llegar el primer intento, la condición en Configurator lo desmonta y el
+   historial toma el relevo. SOLO en el pliego ancho (≥1100): en columna única un
+   bloque más empujaría el cupón bajo el fold, lo contrario de la foto a sangre. */
+.prensa-primer { display: none; }
+@media (min-width: 1100px) {
+  .prensa-primer { display: flex; flex-direction: column; gap: 12px; }
+}
+.prensa-primer .primer-que {
+  margin: 0; font-family: var(--font-display); font-weight: 600;
+  font-size: 17px; line-height: 1.35; color: var(--cdd-text);
+}
+.prensa-primer .primer-sub {
+  margin: 0; font-family: var(--font-body); font-size: 12.5px;
+  line-height: 1.5; color: var(--cdd-muted);
+}
+.prensa-primer .primer-clave {
+  list-style: none; margin: 0; padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 8px;
+  font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted);
+}
+/* La clave replica EXACTAMENTE las marcas de AttemptList (mismo trazo/color) para
+   que el jugador reconozca el veredicto en cuanto lo vea en sus intentos. */
+.prensa-primer .clave-ej { font-style: normal; color: var(--cdd-text); }
+.prensa-primer .clave-ej.bien { border-bottom: 2px solid var(--verde); }
+.prensa-primer .clave-ej.cerca { border-bottom: 2px dashed var(--ambar); }
+.prensa-primer .clave-ej.mal {
+  text-decoration: line-through; text-decoration-color: var(--rojo);
+  text-decoration-thickness: 2px; color: var(--cdd-muted);
+}
+
 /* Foco de teclado del sistema prensa: anillo rojo uniforme (sustituye al
    .focus-ring menta en la pantalla de juego). focus-visible: solo teclado.
    Los <input> quedan FUERA a propósito: ya llevan su propio indicador de foco
@@ -1523,8 +1561,20 @@ body,
 }
 .prensa-submit:active:not(:disabled) { transform: translateY(1px); }
 .prensa-submit:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
-/* Incompleto pero TOCABLE (el tap explica qué falta con temblor + toast). */
-.prensa-submit.is-incomplete { background: transparent; color: var(--cdd-muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
+/* Incompleto pero TOCABLE (el tap explica qué falta con temblor + toast).
+   Afordancia: antes era transparente con un filete de 1px → el CTA principal se
+   leía como apagado y el recién llegado no sabía que ESE era el botón. Ahora es
+   un CUPÓN POR SELLAR: filete de 2px + tinte de papel + rótulo a tinta plena
+   (var(--cdd-text), 14.3:1). Pesa como acción primaria sin robarle el sólido de
+   tinta al estado "listo" (background:--line-strong), y queda claramente por
+   ENCIMA de :disabled (muerto, faint + 1px). El hover ahonda el tinte para
+   confirmar que responde (aunque el tap solo dispare shake+toast si falta algo). */
+.prensa-submit.is-incomplete {
+  background: color-mix(in srgb, var(--line-strong) 9%, transparent);
+  color: var(--cdd-text);
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+}
+.prensa-submit.is-incomplete:hover { background: color-mix(in srgb, var(--line-strong) 15%, transparent); }
 
 /* ── F2: Fin de partida — la crónica con sello ──
    El EndScreen hereda las variables de .prensa (vive dentro del root del

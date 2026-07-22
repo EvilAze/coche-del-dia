@@ -1416,7 +1416,26 @@ body,
    que ya monta Configurator). Escritorio ≥1100px: broadsheet 3 columnas
    historial | foto | cupón con filetes verticales. La ventana de la foto es
    4:3 SIEMPRE (regla 6: mismo recorte = misma dificultad). */
-.prensa-hoja { width: 100%; max-width: 560px; margin: 0 auto; padding: 0 18px 44px; }
+/* El padding vertical lleva el inset del sistema INCRUSTADO, no delegado en
+   .safe-area-pad. Motivo: en la app Android (edge-to-edge) el contenido se
+   dibuja BAJO las barras del sistema. .safe-area-pad (línea ~16) existe justo
+   para eso, pero esta regla va 1400 líneas después con la MISMA especificidad
+   (una clase) y su `padding` en shorthand reseteaba el padding-top a 0 — gana
+   la última. Resultado: el header (GARAJE/RANKING/ENTRAR) quedaba bajo la barra
+   de estado y sus taps se los comía el sistema; el botón de login era
+   literalmente impulsable, que es por lo que "el login no funcionaba en la app"
+   pese a estar bien configurado. Se usa el inset a pelo (sin el 1rem base de
+   .safe-area-pad) para no cambiar la web: ahí las variables valen 0 y el
+   padding-top sigue siendo 0, igual que antes. */
+.prensa-hoja {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding-left: 18px;
+  padding-right: 18px;
+  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  padding-bottom: calc(44px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+}
 /* Orden de la columna única (móvil): cabecera → foto → fila viva → cupón →
    historial → estadística → pie. El wrapper "clas" se disuelve
    (display:contents) para que sus bloques puedan intercalarse con el cupón. */

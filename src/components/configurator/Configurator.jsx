@@ -111,8 +111,11 @@ export default function Configurator({
           columnas ≥1100px vía grid-template-areas (.prensa-pliego). La columna
           "clas" agrupa fila viva + historial + estadística con display:contents
           en móvil (sus hijos fluyen sueltos con su propio `order`) y como
-          bloque real en el pliego ancho. */}
-      <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3 safe-area-pad">
+          bloque real en el pliego ancho.
+          Sin `safe-area-pad`: aquí no hacía nada (el `padding` de .prensa-hoja
+          la pisaba por orden de cascada) y daba la falsa sensación de que el
+          inset del sistema estaba resuelto. Ahora lo aplica .prensa-hoja. */}
+      <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3">
         <Header
           rank={rank}
           user={user}

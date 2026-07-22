@@ -52,6 +52,36 @@ export function getTheme() {
   return current;
 }
 
+// Arranque: el inline de index.html ya dejó el <html> pintado, pero la barra de
+// estado nativa no la toca nadie (arrancaría con el color estático del
+// capacitor.config.json). La sincronizamos una vez con el tema ya resuelto.
+syncNativeStatusBar(current);
+
+// App nativa (Capacitor): la barra de estado del sistema NO la pinta el CSS, así
+// que sin esto se quedaba con el valor estático de capacitor.config.json y el
+// jugador veía una franja de papel sobre la edición de noche (o al revés). El
+// import es dinámico y el fallo se traga: en web el plugin no existe y esto debe
+// ser un no-op, nunca romper el cambio de tema (regla 9: no degradar la home).
+//   Style.LIGHT = texto OSCURO para fondos claros; Style.DARK = texto CLARO.
+//   El nombre va por el CONTENIDO de la barra, no por el fondo — se lee al revés
+//   de lo que parece, y es el error clásico al tocar esto.
+function syncNativeStatusBar(tema) {
+  // Sin window no hay app nativa (tests en node): salimos antes de importar,
+  // para no dejar promesas colgando en la suite.
+  if (typeof window === "undefined") return;
+  Promise.all([import("@capacitor/core"), import("@capacitor/status-bar")])
+    .then(([{ Capacitor }, { StatusBar, Style }]) => {
+      if (!Capacitor.isNativePlatform()) return;
+      return Promise.all([
+        StatusBar.setStyle({ style: tema === "noche" ? Style.Dark : Style.Light }),
+        StatusBar.setBackgroundColor({ color: THEME_COLOR[tema] }),
+      ]);
+    })
+    .catch(() => {
+      /* plugin ausente (web) o API no disponible: la barra se queda como esté */
+    });
+}
+
 export function applyTheme(tema) {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
@@ -59,6 +89,7 @@ export function applyTheme(tema) {
   el.style.colorScheme = tema === "noche" ? "dark" : "light";
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", THEME_COLOR[tema]);
+  syncNativeStatusBar(tema);
 }
 
 export function setTheme(tema) {

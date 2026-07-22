@@ -70,14 +70,15 @@
       tienes un SVG verdaderamente vectorial (Figma / Illustrator export
       sin raster), añade aquí el link y bórralo del bundle de iconos.
 
-      El `?v=6` busta cualquier caché previa del navegador y del CDN tras
-      el rebrand del badge a verde menta (antes oro). Si vuelves a cambiar
-      los iconos, sube a v=7.
+      El `?v=7` busta cualquier caché previa del navegador y del CDN tras el
+      rebrand del badge a «Prensa del motor» (silueta de coupé en tinta sobre
+      papel; antes menta, y antes oro). Si vuelves a cambiar los iconos, sube
+      a v=8.
     -->
-    <link rel="icon" href="/favicon.ico?v=6" sizes="any" />
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=6" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/web-app-manifest-192x192.png?v=6" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=6" />
+    <link rel="icon" href="/favicon.ico?v=7" sizes="any" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=7" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/web-app-manifest-192x192.png?v=7" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=7" />
     <link rel="manifest" href="/manifest.json" />
 
     <title>El Coche del Día · Adivina el coche en 5 intentos</title>
@@ -100,15 +101,15 @@
       cambias el diseño o el texto, regenera con:
         node scripts/generate-og-image.mjs
       y commitea el resultado. El CDN cachea por URL — si quieres invalidar
-      un preview ya pegado en redes sociales, sube el bust query (?v=2).
+      un preview ya pegado en redes sociales, sube el bust query (?v=3).
     -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="El Coche del Día" />
     <meta property="og:url" content="https://cochedeldia.com/" />
     <meta property="og:title" content="El Coche del Día · El reto diario para entusiastas del motor" />
     <meta property="og:description" content="¿Eres un experto en motor? Adivina marca, modelo y año del coche del día en 5 intentos. Nuevo coche cada 24h." />
-    <meta property="og:image" content="https://cochedeldia.com/og-image.jpg?v=2" />
-    <meta property="og:image:secure_url" content="https://cochedeldia.com/og-image.jpg?v=2" />
+    <meta property="og:image" content="https://cochedeldia.com/og-image.jpg?v=3" />
+    <meta property="og:image:secure_url" content="https://cochedeldia.com/og-image.jpg?v=3" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -120,7 +121,7 @@
     <meta name="twitter:url" content="https://cochedeldia.com/" />
     <meta name="twitter:title" content="El Coche del Día · El reto diario de coches" />
     <meta name="twitter:description" content="Adivina marca, modelo y año del coche del día en 5 intentos. ¿Te atreves?" />
-    <meta name="twitter:image" content="https://cochedeldia.com/og-image.jpg?v=2" />
+    <meta name="twitter:image" content="https://cochedeldia.com/og-image.jpg?v=3" />
     <meta name="twitter:image:alt" content="El Coche del Día — El reto diario de coches" />
 
     <!--
@@ -162,7 +163,7 @@
         "name": "El Coche del Día",
         "url": "https://cochedeldia.com/"
       },
-      "image": "https://cochedeldia.com/og-image.jpg"
+      "image": "https://cochedeldia.com/og-image.jpg?v=3"
     }
     </script>
     </head>

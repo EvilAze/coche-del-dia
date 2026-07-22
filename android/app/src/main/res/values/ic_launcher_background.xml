@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Papel de prensa (#f3eee1 = --bg del tema día). El blanco puro anterior
+         venía del tema «Platino Eléctrico» y dejaba un halo frío alrededor del
+         badge en los launchers que recortan el icono adaptativo en círculo. -->
+    <color name="ic_launcher_background">#F3EEE1</color>
 </resources>

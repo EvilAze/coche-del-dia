@@ -16,11 +16,22 @@
 //   - apple-touch-icon.png           180×180 (iOS "añadir a inicio")
 //   - favicon.ico                    16/32/48 multi-resolución (fallback legacy)
 //
-// Nota: el máster ya trae ~22% de margen transparente alrededor del badge,
-// la MISMA proporción que tenían los iconos dorados previos. Por eso basta un
-// resize directo (sin trim): el encuadre queda idéntico al set anterior y el
-// rebrand oro→menta es 1:1. Se conserva el alfa (esquinas transparentes) para
-// no romper la paridad con el set histórico.
+// El máster llega TRANSPARENTE (solo el dibujo: coche + filete, con su zona de
+// seguridad ya reservada) y aquí se compone A SANGRE sobre el papel #f3eee1.
+// Dos razones, las dos eran bugs del set anterior:
+//
+//   1. `purpose: "maskable"` (manifest.json) exige que el icono llene el lienzo
+//      entero: el launcher lo recorta con la forma que quiera (círculo, squircle,
+//      gota). Un PNG con margen transparente se recortaba sobre el fondo del
+//      sistema y el badge quedaba flotando y diminuto.
+//   2. La estética «Prensa del motor» pinta en tinta #1b1712. Sobre transparente
+//      eso desaparece en una barra de pestañas oscura — la menta del tema viejo
+//      brillaba sobre cualquier fondo y disimulaba el problema. Llevando el
+//      icono su propio papel, se lee siempre.
+//
+// La zona de seguridad vive en el MÁSTER (dibujo al ~73% del ancho), no aquí:
+// así el mismo archivo sirve a la web y al foreground adaptativo de Android
+// (scripts/gen-cap-assets.js) sin que cada script invente su propio encuadre.
 //
 // El .ico se construye a mano embebiendo PNGs (PNG-in-ICO): sharp no exporta
 // .ico y no queremos depender de ImageMagick ni de paquetes extra. Todos los
@@ -39,13 +50,35 @@ const ROOT = resolve(__dirname, "..");
 const SRC = resolve(ROOT, "assets/brand-logo-source.png");
 const PUB = resolve(ROOT, "public");
 
-// Fondo transparente: el badge "flota", igual que el set anterior.
-const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
+// Papel de prensa = --bg del tema día (src/index.css). Opaco a propósito.
+const PAPEL = { r: 243, g: 238, b: 225, alpha: 1 };
 
-// Reescala el máster a un PNG cuadrado de NxN conservando alfa.
+// TAMAÑO ÓPTICO. El máster reserva zona de seguridad porque los iconos del
+// manifest son `maskable` y el launcher los recorta. Pero al favicon NO lo
+// recorta nadie, y a 16px ese margen se comía el dibujo: la silueta quedaba en
+// ~11px de ancho y se leía como una mancha gris (verificado ampliando el
+// render). Para los tamaños pequeños acercamos el encuadre; para los grandes
+// se respeta el máster tal cual.
+//   Recortar el 79% central sube el bloque del 73% al ~92% del lienzo.
+const ZOOM_PEQUENO = 0.79;
+const CORTE_OPTICO = 96; // ≤ 96px van apretados; por encima, encuadre completo
+
+// Reescala el máster a un PNG cuadrado de NxN y lo aplana sobre el papel.
+// `flatten` DESPUÉS del resize: al revés, el antialias de los bordes del dibujo
+// se mezclaría con el negro por defecto de sharp y dejaría un halo sucio.
 async function pngAt(size) {
-  return sharp(SRC)
-    .resize(size, size, { fit: "contain", background: TRANSPARENT })
+  let pipe = sharp(SRC);
+
+  if (size <= CORTE_OPTICO) {
+    const meta = await sharp(SRC).metadata();
+    const lado = Math.round(meta.width * ZOOM_PEQUENO);
+    const off = Math.round((meta.width - lado) / 2);
+    pipe = pipe.extract({ left: off, top: off, width: lado, height: lado });
+  }
+
+  return pipe
+    .resize(size, size, { fit: "contain", background: PAPEL })
+    .flatten({ background: PAPEL })
     .png({ compressionLevel: 9 })
     .toBuffer();
 }

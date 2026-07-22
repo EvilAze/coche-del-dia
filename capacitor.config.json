@@ -3,17 +3,17 @@
   "appName": "Coche del Día",
   "webDir": "build",
   "android": {
-    "backgroundColor": "#0d1014"
+    "backgroundColor": "#f3eee1"
   },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 800,
-      "backgroundColor": "#0d1014",
+      "backgroundColor": "#f3eee1",
       "showSpinner": false
     },
     "StatusBar": {
-      "style": "DARK",
-      "backgroundColor": "#0d1014"
+      "style": "LIGHT",
+      "backgroundColor": "#f3eee1"
     }
   }
 }

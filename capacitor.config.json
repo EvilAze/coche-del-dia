@@ -14,6 +14,14 @@
     "StatusBar": {
       "style": "LIGHT",
       "backgroundColor": "#f3eee1"
+    },
+    "SocialLogin": {
+      "providers": {
+        "google": true,
+        "facebook": false,
+        "apple": false,
+        "twitter": false
+      }
     }
   }
 }

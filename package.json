@@ -47,7 +47,8 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test": "npm run test:security && npm run test:attacks",
-    "cap:sync": "vite build && cap sync android",
+    "check:size": "node scripts/check-bundle-size.mjs",
+    "cap:sync": "vite build && node scripts/check-bundle-size.mjs && cap sync android",
     "cap:open": "cap open android",
     "cap:assets": "capacitor-assets generate --android"
   },

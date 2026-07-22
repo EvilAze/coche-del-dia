@@ -15,6 +15,49 @@ login Google) con **recordatorio diario local**. `appId`: `com.cochedeldia`.
 > entorno de Supabase` (lo lanza `src/supabaseClient.js`). Desde el repo
 > principal ya está; desde un worktree, copia el `.env` antes de `cap:sync`.
 
+## Peso de la app (lee esto antes de subir nada)
+
+Un AAB sano de este proyecto ronda los **6-9 MB**. Si te sale de tres cifras,
+algo se ha colado: no lo subas.
+
+**Qué pasó en la v1.0** (versionCode 1, la primera publicada): pesaba ~400 MB.
+No fue un cambio de código. `public/coches/` — 185 JPGs de 366 MB, las imágenes
+fuente de los coches — vivía en el disco de la máquina de build sin estar en
+git. Vite copia `public/` entero a `build/`, y `cap sync` copia `build/` entero
+a `android/app/src/main/assets/public`, así que viajaron al APK aunque la app
+**nunca** las use en runtime (el juego pide la imagen a `/api/daily-image` y el
+garaje a `/api/car-image`, ambos desde el CDN). Al no estar versionadas no
+aparecían en ningún diff ni en `git status`. Se borraron en `59e708e` y
+`public/coches/` está en `.gitignore`.
+
+**Qué lo impide ahora:** `npm run cap:sync` ejecuta
+`scripts/check-bundle-size.mjs` entre el `vite build` y el `cap sync`. Falla si
+`build/` pasa de 12 MB, si algún estático pasa de 500 KB, o si encuentra dentro
+de `public/` material pesado que git no versiona. Si el script se queja, **el
+problema es real**: sube el límite solo si el crecimiento es intencionado.
+
+**De dónde viene el resto del peso** (nativo, no web):
+- `minifyEnabled true` + `shrinkResources true` en `release`. Sin R8 el dex iba
+  entero (12,6 MB descomprimidos) con Play Services Auth, Credentials, OkHttp y
+  coroutines sin podar. Las keep rules las aportan los plugins vía
+  `consumerProguardFiles`; lo propio de la app está en `android/app/proguard-rules.pro`.
+- `capacitor.config.json` → `plugins.SocialLogin.providers` deja **solo Google**.
+  Por defecto `@capgo/capacitor-social-login` empaqueta también el SDK de
+  Facebook (~1,7 MB de AARs + 47 recursos `com_facebook_*`), más las rutas de
+  Apple y Twitter, que esta app no usa. Con `facebook: false` el plugin compila
+  contra sus stubs. **Este ajuste vive en la config de Capacitor, no en gradle**:
+  el hook `capacitor:sync:before` del plugin regenera
+  `node_modules/@capgo/capacitor-social-login/android/gradle.properties` en cada
+  `cap sync`, así que editar ese fichero a mano no sirve de nada.
+- `androidResources.localeFilters = ["es", "en"]`: la app solo habla esos dos
+  idiomas; el resto de traducciones de androidx sobran.
+
+Tras compilar, comprueba el peso antes de subir:
+
+```bash
+ls -lh android/app/build/outputs/bundle/release/app-release.aab
+```
+
 ## Requisitos (una vez)
 - Android Studio (Linux/Fedora nativo; no hace falta Mac).
 - JDK 17 (lo trae Android Studio) y Android SDK + plataforma reciente.

@@ -50,49 +50,99 @@ import {
   rarityTier,
   formatRarityPct,
 } from "../lib/archive";
+import { liveAngle, settleAngle, showsBack } from "../lib/flipAngle";
 
-// Distancia mínima de un swipe para que cuente como intención de voltear la
-// portada. 56 px ≈ el ancho de un pulgar: por debajo, cualquier temblor al
-// tocar un botón voltearía la carta sin querer.
-const SWIPE_MIN_PX = 56;
+// Píxeles de indecisión antes de decidir si el gesto es un volteo o un scroll.
+// Por debajo de esto no tocamos la carta: un tap con temblor no debe moverla.
+const DRAG_SLOP_PX = 8;
 
-// Swipe horizontal (izquierda o derecha, da igual: ambos voltean, como al
-// darle la vuelta a un cromo en la mano). Devuelve los handlers y un
-// `consumeSwipe` que los botones usan para no voltear DOS veces: el pointerup
-// que dispara el swipe va seguido de un click sintético, y si el gesto empezó
-// y acabó dentro del botón de volteo, ese click lo devolvería a su sitio.
-function useSwipeFlip(onFlip) {
+// Arrastre de volteo: la carta SIGUE AL DEDO en tiempo real y solo al soltar
+// decide si completa la vuelta o se recoloca. Antes era todo-o-nada (el swipe
+// disparaba un giro fijo al final del gesto), que se siente como un botón
+// escondido; seguir al dedo es lo que hace que la carta parezca un objeto
+// físico que estás girando con la mano.
+//
+// La matemática (ángulo en vivo, umbral, qué cara mira) vive en
+// lib/flipAngle.js; aquí solo está el cableado de eventos.
+//
+// Los listeners de move/up van en WINDOW, no en el nodo: si se soltara fuera
+// de la carta —que con un arrastre largo pasa constantemente— el pointerup
+// nunca llegaría y la carta se quedaría colgada a medio girar.
+function useFlipDrag(angle, setAngle) {
   const startRef = useRef(null);
-  const swipedRef = useRef(false);
+  const draggedRef = useRef(false);
+  const [dx, setDx] = useState(null);
+
+  // El ángulo que se pinta: el del dedo mientras se arrastra, el asentado si no.
+  const width = startRef.current?.w || 1;
+  const currentAngle = dx === null ? angle : liveAngle(angle, dx, width);
+
+  function onPointerDown(e) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Un gesto cada vez: con dos dedos, el segundo pisaría el origen del
+    // primero y la carta pegaría un salto.
+    if (startRef.current) return;
+    const w = e.currentTarget.getBoundingClientRect().width || 1;
+    const start = { x: e.clientX, y: e.clientY, w, axis: null };
+    startRef.current = start;
+    draggedRef.current = false;
+
+    const onMove = (ev) => {
+      const s = startRef.current;
+      if (!s) return;
+      const mx = ev.clientX - s.x;
+      const my = ev.clientY - s.y;
+      if (!s.axis) {
+        // Aún no sabemos qué gesto es. Esperamos a que se defina para no
+        // robarle el scroll vertical al usuario.
+        if (Math.abs(mx) < DRAG_SLOP_PX && Math.abs(my) < DRAG_SLOP_PX) return;
+        s.axis = Math.abs(mx) > Math.abs(my) ? "x" : "y";
+        if (s.axis === "y") {
+          finish();
+          return;
+        }
+        draggedRef.current = true;
+      }
+      setDx(mx);
+    };
+
+    const onUp = (ev) => {
+      const s = startRef.current;
+      if (s && s.axis === "x") {
+        setAngle(settleAngle(angle, ev.clientX - s.x, s.w));
+      }
+      finish();
+    };
+
+    function finish() {
+      startRef.current = null;
+      setDx(null);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", finish);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", finish);
+  }
 
   return {
-    consumeSwipe() {
-      const was = swipedRef.current;
-      swipedRef.current = false;
+    currentAngle,
+    // ¿Está el dedo puesto? Mientras lo esté, la transición CSS se apaga: con
+    // ella activa, la carta llegaría siempre medio segundo tarde respecto al
+    // dedo, que es exactamente lo que hace que una interacción se sienta
+    // barata.
+    dragging: dx !== null,
+    // Los botones lo consultan para no voltear DOS veces: al soltar un
+    // arrastre que empezó y acabó sobre el botón, el navegador dispara además
+    // un click sintético que desharía el giro recién hecho.
+    consumeDrag() {
+      const was = draggedRef.current;
+      draggedRef.current = false;
       return was;
     },
-    handlers: {
-      onPointerDown(e) {
-        if (e.pointerType === "mouse" && e.button !== 0) return;
-        startRef.current = { x: e.clientX, y: e.clientY };
-        swipedRef.current = false;
-      },
-      onPointerUp(e) {
-        const start = startRef.current;
-        startRef.current = null;
-        if (!start) return;
-        const dx = e.clientX - start.x;
-        const dy = e.clientY - start.y;
-        // Exigimos que el gesto sea claramente horizontal: si domina la
-        // vertical, el usuario estaba haciendo scroll, no volteando.
-        if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return;
-        swipedRef.current = true;
-        onFlip();
-      },
-      onPointerCancel() {
-        startRef.current = null;
-      },
-    },
+    handlers: { onPointerDown },
   };
 }
 
@@ -1134,13 +1184,15 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
   // mismo render — pero la animación de salida tarda ~250 ms. Sin esta cache
   // leeríamos car.marca de null durante ese intervalo y reventaría.
   const [displayCar, setDisplayCar] = useState(car);
-  const [flipped, setFlipped] = useState(false);
+  // Ángulo ACUMULADO, no un booleano: ver lib/flipAngle.js. Los múltiplos
+  // pares de 180° miran a la portada, los impares al dorso.
+  const [angle, setAngle] = useState(0);
   useEffect(() => {
     if (car) setDisplayCar(car);
   }, [car]);
   // Cada portada se abre por su cara buena.
   useEffect(() => {
-    if (open) setFlipped(false);
+    if (open) setAngle(0);
   }, [open, car?.id]);
 
   const isLocked = displayCar?.locked;
@@ -1150,18 +1202,22 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
   const rarityKind = rarity ? rarityTier(rarity.pct) : null;
   const rarityPct = rarity ? formatRarityPct(rarity.pct) : null;
 
-  const flip = () => setFlipped((f) => !f);
-  const swipe = useSwipeFlip(flip);
+  const drag = useFlipDrag(angle, setAngle);
+  // La cara visible se deriva del ángulo EN VIVO, así que a mitad de arrastre
+  // el dorso ya es "la cara actual" en el mismo instante en que el navegador
+  // empieza a pintarlo (backface-visibility cambia a los 90°).
+  const flipped = showsBack(drag.currentAngle);
 
-  // Flechas ←/→ como equivalente de teclado del swipe. Va por listener de
-  // ventana y no por onKeyDown del contenedor porque el foco lo tiene el panel
-  // de ModalShell (padre): un keydown allí nunca bajaría hasta la carta.
+  // Flechas ←/→ como equivalente de teclado del arrastre, cada una girando
+  // hacia su lado. Va por listener de ventana y no por onKeyDown del
+  // contenedor porque el foco lo tiene el panel de ModalShell (padre): un
+  // keydown allí nunca bajaría hasta la carta.
   useEffect(() => {
     if (!open || isLocked) return;
     const onKey = (e) => {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       e.preventDefault();
-      setFlipped((f) => !f);
+      setAngle((a) => a + (e.key === "ArrowRight" ? -180 : 180));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1182,7 +1238,11 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
     >
       {displayCar && (
         <>
-          <div className="absolute right-2 top-2 z-20">
+          {/* La X vive en su propia banda, FUERA del cromo. En absolute sobre
+              la esquina caía encima de la cabecera de la portada y pisaba el
+              nº de edición. Además queda fuera del contenedor que rota, así
+              que no gira con la carta. */}
+          <div className="flex justify-end px-2 pt-2">
             <CloseButton onClick={onClose} />
           </div>
 
@@ -1190,19 +1250,19 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
             /* Hueco: aquí SÍ enseñamos la lona borrosa (una sola petición, y
                solo cuando el usuario ha mostrado interés tocando el hueco).
                Es el momento de intriga: "¿qué se esconde ahí?". */
-            <div className="p-4">
+            <div className="px-4 pb-4 pt-1">
               <div className="border border-tinta/25">
                 <div className="flex items-center justify-between border-b border-tinta/15 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
                   <span>{t("garage.coverMasthead")}</span>
                   <span className="text-accent">{t("garage.issueShort")} ???</span>
                 </div>
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-papel-2">
+                <div className="arch-paspartu relative aspect-[4/3] w-full overflow-hidden">
                   {displayCar.img && (
                     <img
                       src={displayCar.img}
                       alt=""
                       aria-hidden="true"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
                       }}
@@ -1240,13 +1300,16 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                su botón sale del orden de tabulación: un lector de pantalla no
                debe leer el dorso mientras se ve la portada, ni el Tab llevar
                a un botón invisible. */
-            <div
-              className={`arch-flip ${flipped ? "dorso" : ""}`}
-              {...swipe.handlers}
-            >
-              <div className="arch-flip-inner">
+            <div className="arch-flip" {...drag.handlers}>
+              <div
+                className={`arch-flip-inner ${drag.dragging ? "arrastrando" : ""}`}
+                style={{ transform: `rotateY(${drag.currentAngle}deg)` }}
+              >
                 {/* ── Cara: la portada ── */}
-                <div className="arch-cara p-4" aria-hidden={flipped}>
+                <div
+                  className="arch-cara arch-cara--portada px-4 pb-4 pt-1"
+                  aria-hidden={flipped}
+                >
                   <div className="border border-tinta">
                     <div className="flex items-center justify-between border-b border-tinta/20 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
                       <span>{t("garage.coverMasthead")}</span>
@@ -1254,14 +1317,22 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                         {t("garage.issueShort")} {issueLabel(displayCar.issue)}
                       </span>
                     </div>
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-papel-2">
+                    {/* object-CONTAIN, no cover: en el detalle la foto se ve
+                        ENTERA. Con cover, un coche fotografiado en panorámico
+                        o en vertical perdía los extremos justo en la pantalla
+                        donde el jugador viene a mirarlo de cerca. Las bandas
+                        que deja el encaje son de papel: leen como el paspartú
+                        de una foto montada, no como un hueco. En la rejilla se
+                        mantiene cover, que es lo que da la cuadrícula regular
+                        de un álbum. */}
+                    <div className="arch-paspartu relative aspect-[4/3] w-full overflow-hidden">
                       <img
                         src={displayCar.img}
                         alt={`${displayCar.marca} ${displayCar.modelo}`}
                         // Sin esto, arrastrar la foto con el ratón inicia el
-                        // drag nativo de imagen y se come el swipe de volteo.
+                        // drag nativo de imagen y se come el gesto de volteo.
                         draggable={false}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                       {merits.length > 0 && (
                         <span className="arch-sellos" style={{ top: 8 }}>
@@ -1290,11 +1361,15 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                   <button
                     type="button"
                     onClick={() => {
-                      if (swipe.consumeSwipe()) return;
-                      setFlipped(true);
+                      if (drag.consumeDrag()) return;
+                      setAngle((a) => a + 180);
                     }}
                     tabIndex={flipped ? -1 : 0}
-                    className="pm-btn pm-btn--ghost arch-pie-cara mt-4"
+                    // Sin `arch-pie-cara` a propósito: en la portada el
+                    // sobrante lo reparte `justify-content: center`. Un
+                    // margin-top:auto aquí se lo comería entero y devolvería
+                    // el hueco entre el texto y el botón.
+                    className="pm-btn pm-btn--ghost mt-4"
                   >
                     {t("garage.flipToBack")}
                   </button>
@@ -1307,7 +1382,10 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                 </div>
 
                 {/* ── Cara: el dorso ── */}
-                <div className="arch-cara arch-cara--dorso p-4" aria-hidden={!flipped}>
+                <div
+                  className="arch-cara arch-cara--dorso px-4 pb-4 pt-1"
+                  aria-hidden={!flipped}
+                >
                   <div className="flex items-center justify-between border-b border-tinta/20 pb-1.5 font-mono text-[9px] uppercase tracking-wider text-muted">
                     <span>{displayCar.marca} · {displayCar.modelo}</span>
                     <span className="font-bold text-accent">
@@ -1371,8 +1449,8 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                   <button
                     type="button"
                     onClick={() => {
-                      if (swipe.consumeSwipe()) return;
-                      setFlipped(false);
+                      if (drag.consumeDrag()) return;
+                      setAngle((a) => a - 180);
                     }}
                     tabIndex={flipped ? 0 : -1}
                     className="pm-btn pm-btn--ghost arch-pie-cara mt-4"

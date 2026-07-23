@@ -254,6 +254,8 @@ export default function App() {
   const {
     car,
     isLoading,
+    initError,
+    retryInit,
     isSubmitting,
     guesses,
     pendingGuess,
@@ -301,6 +303,13 @@ export default function App() {
 
   const dataReady = !isLoading && !!car;
 
+  // El cartel de "edición no disponible" solo cuando NO hay nada que enseñar.
+  // Si el snapshot local trajo la partida de hoy, `car` existe y preferimos
+  // pintar esa aunque el servidor no conteste: la fuente de verdad sigue siendo
+  // el servidor, pero enseñar la partida cacheada es mejor que un cartel de
+  // error sobre una pantalla que el usuario ya tenía resuelta.
+  const showLoadError = !!initError && !car;
+
   // Preload del daily-image en cuanto conocemos la URL. CarImage va a
   // renderizar su <picture> en el mismo ciclo, así que la ganancia neta
   // es de pocos ms — pero el navegador trata `<link rel=preload>` con
@@ -344,6 +353,9 @@ export default function App() {
           siendo overlays globales gestionados aquí abajo. */}
       <Configurator
         dataReady={dataReady}
+        loadError={showLoadError ? initError : null}
+        onRetryLoad={retryInit}
+        isRetryingLoad={isLoading}
         car={car}
         status={status}
         zoom={zoom}

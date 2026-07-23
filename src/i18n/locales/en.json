@@ -198,6 +198,16 @@
     "saveProgressCta": "Save my progress",
     "backToGarage": "Back to Garage"
   },
+  "offline": {
+    "kicker": "No edition",
+    "titleOffline": "Delivery didn't arrive",
+    "bodyOffline": "You're offline, so we can't bring you today's car. We'll try again as soon as you're back on the network.",
+    "titleServer": "The presses aren't answering",
+    "bodyServer": "We couldn't load today's car. This is usually over in a moment.",
+    "retry": "Try again",
+    "retrying": "Loading…",
+    "autoRetry": "We'll retry on our own once you're back online."
+  },
   "notif": {
     "optInTitle": "Want a heads-up for the new car?",
     "optInBody": "I'll send one daily reminder at 10:00 when a new car is up. No spam.",

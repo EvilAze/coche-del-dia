@@ -1,5 +1,9 @@
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
+// Antes que index.css: los @font-face auto-hospedados (generados por
+// scripts/gen-local-fonts.mjs) tienen que estar declarados antes de que
+// cualquier regla los use. Sustituye al <link> a fonts.googleapis.com.
+import "./fonts.css";
 import "./index.css";
 import App from "./App";
 import ErrorFallback from "./components/ErrorFallback";

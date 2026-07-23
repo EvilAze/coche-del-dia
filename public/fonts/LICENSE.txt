@@ -1,0 +1,16 @@
+Fuentes auto-hospedadas en este directorio
+==========================================
+
+Las tres familias se distribuyen bajo la SIL Open Font License 1.1,
+que permite expresamente el uso incrustado y la redistribución:
+
+  Fraunces        © The Fraunces Project Authors
+                  https://github.com/undercasetype/Fraunces
+  Libre Franklin  © The Libre Franklin Project Authors
+                  https://github.com/impallari/Libre-Franklin
+  Courier Prime   © The Courier Prime Project Authors
+                  https://github.com/quoteunquoteapps/CourierPrime
+
+Texto completo de la licencia: https://openfontlicense.org
+
+Ficheros generados por scripts/gen-local-fonts.mjs — no editar a mano.

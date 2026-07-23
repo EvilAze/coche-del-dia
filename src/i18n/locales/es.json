@@ -198,6 +198,16 @@
     "saveProgressCta": "Guardar mi progreso",
     "backToGarage": "Volver al Garaje"
   },
+  "offline": {
+    "kicker": "Sin edición",
+    "titleOffline": "No llega el reparto",
+    "bodyOffline": "No hay conexión, así que hoy no podemos traerte el coche del día. En cuanto vuelvas a tener red, lo intentamos otra vez.",
+    "titleServer": "La rotativa no responde",
+    "bodyServer": "No hemos podido cargar el coche de hoy. Suele ser cosa de un momento.",
+    "retry": "Reintentar",
+    "retrying": "Cargando…",
+    "autoRetry": "Lo reintentamos solos al recuperar la conexión."
+  },
   "notif": {
     "optInTitle": "¿Te aviso del coche nuevo?",
     "optInBody": "Te mando un recordatorio diario a las 10:00 cuando haya coche nuevo. Sin spam.",

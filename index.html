@@ -31,24 +31,45 @@
     </script>
 
     <!--
-      Fuentes cargadas aquí con preconnect + <link> en lugar de @import en el
-      CSS: el @import encadena descargas en serie y retrasa el render del título
-      (el elemento más visible de la página). El preconnect abre la conexión a
-      gstatic antes de necesitarla; display=swap evita el texto invisible (FOIT).
-      gstatic va crossorigin (sirve los woff2).
-    -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!--
       Sistema «Prensa del motor»: Fraunces (display editorial, con itálica),
-      Libre Franklin (UI/labels) y Courier Prime (cupón/datos). Mismo patrón
-      preconnect + display=swap (anti-FOIT); pesos acotados a los que usa el
-      sistema para no engordar el LCP. (F5: retiradas Archivo + Space Mono, ya
-      sin uso tras portar todas las pantallas.)
+      Libre Franklin (UI/labels) y Courier Prime (cupón/datos). (F5: retiradas
+      Archivo + Space Mono, ya sin uso tras portar todas las pantallas.)
+
+      Las fuentes están AUTO-HOSPEDADAS en /fonts/ desde que la app Android
+      existe: el APK empaqueta todo el HTML/JS/CSS y luego pedía la tipografía
+      por red, así que el primer arranque sin cobertura perdía la identidad
+      entera y caía a la serif del sistema. Los @font-face viven en
+      src/fonts.css (generado por scripts/gen-local-fonts.mjs) y entran en el
+      bundle de CSS. De paso se van dos conexiones a terceros de la ruta
+      crítica: desde que Chrome particiona la caché HTTP por sitio (2020), el
+      "ya la tendrá cacheada de otra web" que justificaba el CDN dejó de ser
+      cierto.
+
+      Los dos preload de abajo son las caras que se ven SÍ o SÍ en el primer
+      paint: Fraunces para la cabecera (el elemento LCP) y Libre Franklin para
+      los labels de UI. Sin ellos el navegador no descubre la fuente hasta
+      haber parseado el CSS, y se pierde un viaje. Solo el subset `latin`: el
+      `latin-ext` (Škoda y compañía) lo pide el navegador si hace falta, que
+      para eso está el unicode-range.
+
+      OJO: estos href llevan el rango de pesos en el nombre y los genera el
+      script. Si cambias los pesos en gen-local-fonts.mjs, actualiza también
+      estas dos rutas o el preload dejará de casar (aviso en consola, y se
+      pierde la optimización en silencio).
     -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Libre+Franklin:wght@400;600;800&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/fraunces-normal-400-900-latin.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/libre-franklin-normal-400-800-latin.woff2"
+      crossorigin
     />
 
     <!--

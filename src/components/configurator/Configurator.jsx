@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
 import Header from "./Header";
+import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
@@ -23,6 +24,15 @@ const DEFAULT_ACCENT = "#b3271b";
 
 export default function Configurator({
   dataReady = true,
+  // Fallo de la carga inicial SIN nada cacheado que enseñar. Cuando llega,
+  // sustituye al escenario de la foto (que si no se quedaría en skeleton
+  // eterno) y conserva el resto del pliego: la cabecera sigue viva, así que
+  // GARAJE / RANKING / ENTRAR se pueden seguir usando sin red.
+  loadError = null,
+  onRetryLoad,
+  // `isLoading` de useGame: en un reintento vuelve a true, y es lo que apaga el
+  // botón para que no se pueda disparar cinco veces seguidas.
+  isRetryingLoad = false,
   car,
   status,
   zoom,
@@ -132,15 +142,19 @@ export default function Configurator({
           {t("cdd.wordAnio")}
         </h1>
 
-        <ZoomStage
-          car={car}
-          zoom={zoom}
-          status={status}
-          hintIndex={hintIndex}
-          totalHints={totalHints}
-          blurred={status === "lost" && !user}
-          onRevealLoad={onRevealLoad}
-        />
+        {loadError ? (
+          <EdicionNoDisponible onRetry={onRetryLoad} isRetrying={isRetryingLoad} />
+        ) : (
+          <ZoomStage
+            car={car}
+            zoom={zoom}
+            status={status}
+            hintIndex={hintIndex}
+            totalHints={totalHints}
+            blurred={status === "lost" && !user}
+            onRevealLoad={onRevealLoad}
+          />
+        )}
 
         {/* Columna "clas" del pliego: fila viva + historial + estadística.
             En móvil el wrapper es display:contents y cada bloque fluye con su

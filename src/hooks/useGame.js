@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { useToast } from "../components/Toast";
 import { notifyAchievementsAfterWin } from "../lib/achievementsNotifier";
@@ -126,6 +126,17 @@ export function useGame() {
   // considera dataReady=true en el primer paint y renderiza la UI completa
   // (con CarImage en skeleton hasta que llegue la foto).
   const [isLoading, setIsLoading] = useState(!initialAnon);
+  // Fallo de la carga inicial. Antes el catch de initGame solo hacía
+  // console.error y el finally apagaba isLoading: con `car` en null y la carga
+  // "terminada", App calculaba dataReady=false y el Configurator se quedaba
+  // ocultando secciones para siempre. El usuario veía una cáscara vacía sin
+  // explicación ni forma de reintentar — el peor sitio donde dejarle, y en la
+  // app Android es el caso NORMAL de abrir sin cobertura (el bundle es local,
+  // así que la app arranca perfectamente y luego no tiene nada que enseñar).
+  const [initError, setInitError] = useState(null);
+  // Se incrementa para forzar otra pasada de initGame (botón de reintento y
+  // vuelta de la conexión). Va en las deps del efecto, junto a `user`.
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [guesses, setGuesses] = useState(initialAnon?.guesses ?? []);
   // Fila "pending" que se pinta mientras esperamos respuesta del servidor.
@@ -254,15 +265,39 @@ export function useGame() {
             reveal: initialReveal,
           })
         );
+        // Llegamos al final sin excepciones: si veníamos de un fallo (reintento
+        // manual o vuelta de la conexión), limpiamos el estado de error.
+        setInitError(null);
       } catch (err) {
         console.error("Error al inicializar:", err);
+        // Guardamos el error para que la UI pueda ofrecer una salida. No va a
+        // Sentry: quedarse sin cobertura no es un bug de la app y saturaría la
+        // cuota del free tier (regla 8, Sentry solo errores de verdad).
+        setInitError(err instanceof Error ? err : new Error(String(err)));
       } finally {
         setIsLoading(false);
       }
     }
 
     initGame();
-  }, [user]);
+  }, [user, reloadNonce]);
+
+  // Reintento manual, para el botón de la pantalla de error.
+  const retryInit = useCallback(() => {
+    setReloadNonce((n) => n + 1);
+  }, []);
+
+  // Reintento AUTOMÁTICO al recuperar la conexión. Solo se suscribe si hay un
+  // fallo pendiente, así que en el camino feliz no hay listener colgado. Cubre
+  // el caso típico del móvil: abres la app en el metro, no carga, sales a la
+  // calle y quieres que esté lista sin tener que tocar nada.
+  useEffect(() => {
+    if (!initError) return;
+    if (typeof window === "undefined") return;
+    const alVolver = () => setReloadNonce((n) => n + 1);
+    window.addEventListener("online", alVolver);
+    return () => window.removeEventListener("online", alVolver);
+  }, [initError]);
 
   const attempts = guesses.length;
   const zoomIndex = Math.min(attempts, ZOOM_ATTEMPTS - 1);
@@ -498,6 +533,11 @@ export function useGame() {
     // jugando, sin z si ha terminado y queremos servir la imagen completa).
     car: car ? { ...car, img: dailyImgSrc } : car,
     isLoading,
+    // Fallo de la carga inicial + su salida. App solo pinta la pantalla de
+    // error si ADEMÁS no hay coche: con snapshot local preferimos enseñar la
+    // partida cacheada antes que un cartel de error (regla: no degradar).
+    initError,
+    retryInit,
     isSubmitting,
     guesses,
     pendingGuess,

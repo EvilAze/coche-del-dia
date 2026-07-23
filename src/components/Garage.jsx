@@ -28,6 +28,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
+import { useHistoryChain } from "../hooks/useHistoryClose";
 import { useScrollLock } from "../hooks/useScrollLock";
 import { useT, getCarDescription, getLocalizedCountry } from "../i18n";
 import { useToast } from "./Toast";
@@ -132,6 +133,37 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
     open && !helpOpen && !confirmRepesca && !detailCar && !filter,
     onClose
   );
+
+  // «Atrás» de Android / gesto del navegador: MISMA cadena que el ESC, en el
+  // mismo orden. Sin esto, la atrás dentro del archivo se salía de la app —
+  // que en un panel a pantalla completa es justo el gesto natural para
+  // descartar, así que el usuario lo pulsa por instinto y acaba fuera.
+  // Devolver true = "sigo abierto, mantén la trampa"; false = cerrado del todo.
+  function handleHistoryBack() {
+    // Durante el sorteo hay un redirect en vuelo: no dejamos escapar a medias.
+    if (drawAnim) return true;
+    if (helpOpen) {
+      setHelpOpen(false);
+      return true;
+    }
+    if (confirmRepesca) {
+      // Igual que el ESC: mientras el POST está en vuelo no se cancela.
+      if (!repescaStarting) setConfirmRepesca(false);
+      return true;
+    }
+    if (detailCar) {
+      setDetailCar(null);
+      return true;
+    }
+    if (filter) {
+      setFilter(null);
+      return true;
+    }
+    onClose();
+    return false;
+  }
+
+  useHistoryChain(open, handleHistoryBack);
 
   // Reset interno al cerrar.
   useEffect(() => {

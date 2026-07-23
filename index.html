@@ -3,7 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <!-- viewport-fit=cover: sin él, env(safe-area-inset-*) devuelve 0 en iOS y
-         el CTA del fold rozaría la barra de gestos (ver .cdd-fold en index.css). -->
+         el CTA del fold rozaría la barra de gestos (ver .cdd-fold en index.css).
+
+         maximum-scale=1 (bloquea el pellizco) es DELIBERADO, no un descuido de
+         accesibilidad: el juego consiste en adivinar el coche a partir de una
+         foto recortada y ampliada, y el zoom del navegador daría acceso a más
+         detalle del que ve un jugador legítimo en ese intento. Sería saltarse
+         por la vía del navegador el recorte que el servidor calcula a propósito
+         (regla 5: no filtrar la identidad del coche del día). El texto sigue
+         siendo escalable por la vía correcta —tamaño de fuente del sistema, que
+         el WebView respeta— y las áreas táctiles no dependen del zoom. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f3eee1" />
 

@@ -87,7 +87,20 @@ async function ensureChannel({ name, description }) {
       id: REMINDER_CHANNEL_ID,
       name,
       description,
-      importance: 3, // DEFAULT: aparece en la barra y suena, igual que antes
+      // LOW (2), no DEFAULT (3): sale en la barra y en la persiana, pero NO
+      // suena ni interrumpe con un heads-up. Es un juego casual de dos minutos
+      // y el opt-in promete literalmente "sin spam": un pitido a las 10:00 para
+      // recordarte un pasatiempo es justo la clase de fricción que hace que la
+      // gente desactive las notificaciones del todo, y entonces se pierde el
+      // recordatorio entero, no solo el sonido.
+      //
+      // OJO, esto solo afecta a INSTALACIONES NUEVAS: Android congela la
+      // importancia en cuanto el canal existe y a partir de ahí solo la puede
+      // cambiar el usuario desde los ajustes. Quien ya tenga el canal creado
+      // se queda con la que tuviera. Bajarlo a la fuerza exigiría crear un
+      // canal con id nuevo, y eso además borraría cualquier ajuste que el
+      // usuario hubiera hecho — no compensa.
+      importance: 2,
       visibility: 1, // PUBLIC: el recordatorio no dice nada sensible
     });
   } catch {

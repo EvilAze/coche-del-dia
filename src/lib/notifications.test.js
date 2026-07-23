@@ -66,6 +66,11 @@ describe("notifications", () => {
     expect(createChannel.mock.calls[0][0]).toMatchObject({
       id: n.REMINDER_CHANNEL_ID,
       name: "Recordatorio diario",
+      // LOW, no DEFAULT: se ve pero no suena. Es una decisión de producto
+      // (juego casual, el opt-in promete "sin spam"), y Android congela la
+      // importancia al crear el canal — subirla luego sin querer solo se
+      // notaría en instalaciones nuevas y ya sería irreversible desde la app.
+      importance: 2,
     });
     // El canal "Default" que planta el plugin se retira para que no quede un
     // interruptor mudo en los ajustes del móvil.

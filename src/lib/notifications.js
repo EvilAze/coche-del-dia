@@ -13,6 +13,17 @@ export const REMINDER_HOUR = 10;  // 10:00 hora local del dispositivo
 export const REMINDER_MINUTE = 0;
 const ASKED_KEY = "cd_notif_asked";
 
+// Canal propio del recordatorio (Android 8+). Sin esto el plugin manda todo por
+// su canal "default", que se llama literalmente "Default" y no es configurable
+// (está a fuego en LocalNotificationManager#createNotificationChannel). En los
+// ajustes de notificaciones del móvil el usuario veía "Default" y tenía que
+// adivinar que ese interruptor era el del coche del día.
+export const REMINDER_CHANNEL_ID = "recordatorio-diario";
+// El canal "default" lo crea el plugin al cargarse, pase lo que pase, así que
+// no se puede evitar que exista; sí se puede borrar DESPUÉS de crear el nuestro
+// para que no quede un interruptor huérfano y mudo en la lista.
+const CANAL_HUERFANO = "default";
+
 export function isNative() {
   return Capacitor.isNativePlatform();
 }
@@ -57,9 +68,52 @@ export async function ensurePermission() {
   return req.display === "granted";
 }
 
-export async function scheduleDailyReminder({ title, body }) {
+// Crea (o actualiza) el canal del recordatorio. Idempotente: Android reusa el
+// canal si el id ya existe. OJO: solo se pueden cambiar nombre y descripción de
+// un canal ya creado; la importancia la fija el usuario a partir de ahí y la app
+// no la puede tocar — por eso el canal nace con importancia 3 (la de siempre) y
+// no lo cambiamos en caliente.
+//
+// Devuelve true SOLO si el canal existe de verdad. Quien llama tiene que
+// respetarlo: en Android 8+ mandar una notificación con un `channelId` que no
+// existe hace que el sistema la DESCARTE sin avisar, así que un canal a medias
+// sería peor que no tener canal. Sin `name` ni siquiera lo intentamos: Android
+// exige nombre y fallaría igual.
+async function ensureChannel({ name, description }) {
+  if (!name) return false;
+  const { LocalNotifications: LN } = await loadLN();
+  try {
+    await LN.createChannel({
+      id: REMINDER_CHANNEL_ID,
+      name,
+      description,
+      importance: 3, // DEFAULT: aparece en la barra y suena, igual que antes
+      visibility: 1, // PUBLIC: el recordatorio no dice nada sensible
+    });
+  } catch {
+    /* Android < 8 no tiene canales, o el plugin no expone la API: seguimos
+       igual, la notificación se manda por el canal por defecto del plugin. */
+    return false;
+  }
+  try {
+    // Best-effort: quitar el canal "Default" que planta el plugin. Va DESPUÉS
+    // del createChannel a propósito — para entonces el plugin ya se ha cargado
+    // y ya lo ha creado, así que aquí sí existe algo que borrar. En su propio
+    // try: que no se pueda borrar el huérfano no invalida el canal bueno.
+    await LN.deleteChannel({ id: CANAL_HUERFANO });
+  } catch {
+    /* se queda el interruptor huérfano en los ajustes: feo, no roto */
+  }
+  return true;
+}
+
+export async function scheduleDailyReminder({ title, body, channelName, channelDescription }) {
   if (!isNative()) return;
   const { LocalNotifications: LN } = await loadLN();
+  const conCanal = await ensureChannel({
+    name: channelName,
+    description: channelDescription,
+  });
   // Cancelar el anterior (mismo id) antes de reprogramar evita acumulación.
   await LN.cancel({ notifications: [{ id: REMINDER_ID }] });
   await LN.schedule({
@@ -68,6 +122,10 @@ export async function scheduleDailyReminder({ title, body }) {
         id: REMINDER_ID,
         title,
         body,
+        // Solo si el canal existe (ver ensureChannel). Omitirlo hace que el
+        // plugin use su canal por defecto, que siempre está creado: peor
+        // nombre, pero la notificación LLEGA.
+        ...(conCanal ? { channelId: REMINDER_CHANNEL_ID } : {}),
         // `on` = repetición diaria al casar hora:minuto del dispositivo.
         schedule: {
           on: { hour: REMINDER_HOUR, minute: REMINDER_MINUTE },
@@ -86,9 +144,9 @@ export async function cancelDailyReminder() {
 
 // Re-arma en cada arranque SI el permiso ya está concedido. Si el usuario lo
 // revocó en los ajustes de Android, no reprogramamos (el SO "manda").
-export async function rearmIfEnabled({ title, body }) {
+export async function rearmIfEnabled({ title, body, channelName, channelDescription }) {
   if (!isNative()) return;
   if (await isPermissionGranted()) {
-    await scheduleDailyReminder({ title, body });
+    await scheduleDailyReminder({ title, body, channelName, channelDescription });
   }
 }

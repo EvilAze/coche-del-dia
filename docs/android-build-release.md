@@ -58,6 +58,45 @@ Tras compilar, comprueba el peso antes de subir:
 ls -lh android/app/build/outputs/bundle/release/app-release.aab
 ```
 
+## Config nativa: qué hace cada pieza y por qué
+
+`capacitor.config.json` es JSON puro y no admite comentarios, así que el
+*porqué* de sus claves vive aquí.
+
+| Clave | Valor | Por qué |
+|---|---|---|
+| `plugins.SplashScreen.launchAutoHide` | `false` | Antes era el temporizador ciego `launchShowDuration: 800`: a los 800 ms el splash se iba **pintara o no** la app, y un WebView en frío tarda 1-2 s. La secuencia real era splash → hueco vacío → app. Ahora lo cierra `src/lib/splash.js` cuando el primer frame está pintado, con tope de seguridad a 4 s. |
+| `plugins.LocalNotifications.smallIcon` | `ic_stat_cdd` | Sin esto el plugin cae a `android.R.drawable.ic_dialog_info`: el recordatorio diario salía con la "i" genérica de Android. |
+| `plugins.LocalNotifications.iconColor` | `#E0574A` | Rojo de marca de la edición de **noche**. Se elige ese y no el de día (`#B3271B`) porque la bandeja de notificaciones puede ser clara u oscura y el valor es único: el rojo claro se lee en ambas, el oscuro se apaga sobre bandeja oscura. |
+| `plugins.StatusBar` | solo `style` | `backgroundColor` y `overlaysWebView` **ya no hacen nada** con targetSdk 36 + Capacitor 8: Android impone edge-to-edge y no se puede desactivar (en API 35 quedaba `windowOptOutEdgeToEdgeEnforcement`; en 36 desapareció). Estaban puestos y engañaban. |
+| `android.backgroundColor` | `#f3eee1` | Solo es el suelo del WebView. El color que manda de verdad lo pone `MainActivity` desde `@color/cdd_window_bg`, que sí tiene variante `values-night`. |
+
+Y en `android/app/src/main/`:
+
+- **`AndroidManifest.xml` → `VIBRATE`**: sin este permiso `navigator.vibrate()`
+  es un no-op **silencioso** dentro de un WebView, y todo `src/lib/haptics.js`
+  no hacía nada en la app aunque funcionara en la web.
+- **`AndroidManifest.xml` → `dataExtractionRules` / `fullBackupContent`**:
+  excluyen `app_webview` del backup. Ahí vive el localStorage con el token de
+  sesión anónima; restaurarlo en otro móvil **clonaba** la identidad del jugador
+  anónimo y los dos dispositivos se pisaban la partida del día.
+- **`res/values/colors.xml` + `values-night/`**: paleta de marca. `colorAccent`
+  alimenta el cursor y los manipuladores de selección de texto que dibuja el
+  WebView — venían en rosa Material. Se aplican vía `AppTheme.NoActionBar` en
+  `styles.xml`, que es el tema real de la Activity (**no** hereda de `AppTheme`).
+
+### Regenerar el icono de notificación
+
+Solo hace falta si cambia `assets/brand-logo-source.png`:
+
+```bash
+node scripts/gen-notification-icon.mjs
+```
+
+Escribe `ic_stat_cdd.png` en las 5 densidades (~4,5 KB en total). Android usa
+**solo el canal alfa** del icono y lo tiñe él: un PNG a color sale como un
+cuadrado blanco sólido, que es el fallo clásico.
+
 ## Requisitos (una vez)
 - Android Studio (Linux/Fedora nativo; no hace falta Mac).
 - JDK 17 (lo trae Android Studio) y Android SDK + plataforma reciente.

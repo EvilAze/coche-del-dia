@@ -57,14 +57,24 @@ export function getTheme() {
 // capacitor.config.json). La sincronizamos una vez con el tema ya resuelto.
 syncNativeStatusBar(current);
 
-// App nativa (Capacitor): la barra de estado del sistema NO la pinta el CSS, así
-// que sin esto se quedaba con el valor estático de capacitor.config.json y el
-// jugador veía una franja de papel sobre la edición de noche (o al revés). El
-// import es dinámico y el fallo se traga: en web el plugin no existe y esto debe
-// ser un no-op, nunca romper el cambio de tema (regla 9: no degradar la home).
+// App nativa (Capacitor): el ESTILO de la barra de estado (claro/oscuro de sus
+// iconos) no lo pinta el CSS, así que hay que sincronizarlo a mano con el tema
+// elegido. El import es dinámico y el fallo se traga: en web el plugin no existe
+// y esto debe ser un no-op, nunca romper el cambio de tema (regla 9: no degradar
+// la home).
 //   Style.LIGHT = texto OSCURO para fondos claros; Style.DARK = texto CLARO.
 //   El nombre va por el CONTENIDO de la barra, no por el fondo — se lee al revés
 //   de lo que parece, y es el error clásico al tocar esto.
+//
+// Aquí NO se toca el color de FONDO de la barra, aunque lo pida el instinto:
+// con targetSdk 36 y Capacitor 8, Android impone edge-to-edge y ya no se puede
+// desactivar (en API 35 quedaba el escape de `windowOptOutEdgeToEdgeEnforcement`,
+// en 36 desapareció). Con edge-to-edge la barra es transparente por definición y
+// `StatusBar.setBackgroundColor()` es un no-op documentado por el propio plugin.
+// El fondo que se ve bajo la barra es el del contenido web, que ya lleva el tema
+// puesto — de ahí que .prensa-hoja incruste el inset superior (ver index.css).
+// Lo que había aquí era una llamada muerta que hacía creer que la franja se
+// estaba pintando.
 function syncNativeStatusBar(tema) {
   // Sin window no hay app nativa (tests en node): salimos antes de importar,
   // para no dejar promesas colgando en la suite.
@@ -72,10 +82,9 @@ function syncNativeStatusBar(tema) {
   Promise.all([import("@capacitor/core"), import("@capacitor/status-bar")])
     .then(([{ Capacitor }, { StatusBar, Style }]) => {
       if (!Capacitor.isNativePlatform()) return;
-      return Promise.all([
-        StatusBar.setStyle({ style: tema === "noche" ? Style.Dark : Style.Light }),
-        StatusBar.setBackgroundColor({ color: THEME_COLOR[tema] }),
-      ]);
+      return StatusBar.setStyle({
+        style: tema === "noche" ? Style.Dark : Style.Light,
+      });
     })
     .catch(() => {
       /* plugin ausente (web) o API no disponible: la barra se queda como esté */

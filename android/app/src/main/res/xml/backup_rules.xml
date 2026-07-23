@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Reglas de Auto Backup para Android 11 y anteriores (android:fullBackupContent).
+  Android 12+ usa data_extraction_rules.xml, que dice lo mismo con otra sintaxis.
+
+  Por qué existen: `allowBackup="true"` sin reglas se lleva a la nube TODO el
+  directorio de datos, y ahí dentro vive `app_webview`, que es donde el WebView
+  guarda el localStorage de la app. En ese localStorage está el token de sesión
+  anónima (src/lib/anonSession.js), que identifica al jugador que aún no ha
+  iniciado sesión.
+
+  El problema no es de privacidad sino de identidad: restaurar el backup en un
+  móvil nuevo CLONA ese token, y a partir de ahí dos dispositivos juegan como el
+  mismo anónimo, pisándose la partida del día contra el servidor. Excluyendo
+  `app_webview` el móvil nuevo arranca con sesión anónima limpia, que es lo
+  correcto: la fuente de verdad de las partidas es el servidor, y quien quiera
+  llevarse su progreso tiene el login de Google para eso.
+
+  El resto (shared_prefs con el estado del plugin de notificaciones, etc.) sí se
+  respalda: es estado de dispositivo, inofensivo al restaurarse.
+-->
+<full-backup-content>
+    <exclude domain="root" path="app_webview" />
+</full-backup-content>

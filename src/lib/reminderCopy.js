@@ -10,13 +10,24 @@
 export const STREAK_NUDGE_MIN = 2;
 
 export function reminderCopy(t, tn, streak = 0) {
+  // Nombre y descripción del CANAL de Android. Van fuera del if porque el canal
+  // es uno solo: el título del aviso cambia con la racha, pero el interruptor
+  // que el usuario ve en los ajustes del móvil es siempre el mismo y no puede
+  // llamarse "¡Tu racha está en juego!" unos días y otra cosa otros.
+  const canal = {
+    channelName: t("notif.channelName"),
+    channelDescription: t("notif.channelDescription"),
+  };
+
   if (typeof streak === "number" && streak >= STREAK_NUDGE_MIN) {
     return {
+      ...canal,
       title: t("notif.streakReminderTitle"),
       body: tn("notif.streakReminderBody", streak, { count: streak }),
     };
   }
   return {
+    ...canal,
     title: t("notif.reminderTitle"),
     body: t("notif.reminderBody"),
   };

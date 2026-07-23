@@ -205,6 +205,8 @@
     "optInDecline": "Not now",
     "reminderTitle": "New car today 🚗",
     "reminderBody": "Guess the car of the day and keep your streak.",
+    "channelName": "Daily reminder",
+    "channelDescription": "One notification a day when a new car is up.",
     "streakReminderTitle": "Your streak is on the line!",
     "streakReminderBody": {
       "one": "Don't lose your {count}-day streak. Guess today's car.",

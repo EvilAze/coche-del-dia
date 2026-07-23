@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paleta nativa (edición de DÍA). La variante de noche vive en
+  values-night/colors.xml y la elige el SO por su modo oscuro.
+
+  Estos nombres SOBREESCRIBEN los que trae @capacitor/android en su propio
+  res/values/colors.xml, que son los Material por defecto: índigo #3F51B5 y
+  rosa #FF4081. No son decorativos: `colorAccent` alimenta
+  `colorControlActivated`, y de ahí salen el CURSOR y los MANIPULADORES de
+  selección de texto que dibuja el WebView. Es decir, el campo de "adivina el
+  coche" venía pintando el cursor en rosa Material dentro de un tema editorial
+  en tinta y rojo. Se ve, y es de lo poco del chrome nativo que el CSS no puede
+  tocar.
+
+  Los valores son los mismos que las CSS vars de src/index.css (:root), en hex.
+  (Las vars se citan SIN su prefijo de dos guiones: ese par de caracteres dentro
+  de un comentario XML rompe el parser y tumba el build de recursos.)
+    papel  = rgb(243 238 225)  -> var bg-rgb
+    tinta  = rgb(27 23 18)     -> var tinta-rgb
+    rojo   = rgb(179 39 27)    -> var rojo-rgb
+  Si cambias la paleta ahí, cámbiala aquí (y en values-night).
+-->
+<resources>
+    <color name="colorPrimary">#1B1712</color>
+    <color name="colorPrimaryDark">#0F0C09</color>
+    <color name="colorAccent">#B3271B</color>
+
+    <!-- Fondo del WebView. Lo aplica MainActivity: la config estática de
+         Capacitor (android.backgroundColor) es un único hex y no sabe de
+         día/noche, así que en tema oscuro metía un destello de papel. -->
+    <color name="cdd_window_bg">#F3EEE1</color>
+</resources>

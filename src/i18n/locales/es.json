@@ -205,6 +205,8 @@
     "optInDecline": "Ahora no",
     "reminderTitle": "Hoy hay coche nuevo 🚗",
     "reminderBody": "Adivina el coche del día y mantén tu racha.",
+    "channelName": "Recordatorio diario",
+    "channelDescription": "Un aviso al día cuando hay coche nuevo.",
     "streakReminderTitle": "¡Tu racha está en juego!",
     "streakReminderBody": {
       "one": "No pierdas tu racha de {count} día. Adivina el coche de hoy.",

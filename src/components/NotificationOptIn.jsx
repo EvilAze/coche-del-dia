@@ -16,6 +16,7 @@ import {
   ensurePermission,
   scheduleDailyReminder,
 } from "../lib/notifications";
+import { reminderCopy } from "../lib/reminderCopy";
 import {
   isPushSupported,
   isIosNotInstalled,
@@ -36,7 +37,7 @@ function initialMode() {
 }
 
 export default function NotificationOptIn() {
-  const { t } = useT();
+  const { t, tn } = useT();
   const [mode, setMode] = useState(initialMode);
 
   useEffect(() => {
@@ -62,10 +63,9 @@ export default function NotificationOptIn() {
     setMode(null);
     const granted = await ensurePermission();
     if (granted) {
-      await scheduleDailyReminder({
-        title: t("notif.reminderTitle"),
-        body: t("notif.reminderBody"),
-      });
+      // Racha 0: quien acaba de aceptar el recordatorio no tiene racha que
+      // proteger todavía. reminderCopy trae además el nombre del canal.
+      await scheduleDailyReminder(reminderCopy(t, tn, 0));
     }
   }
 

@@ -10,7 +10,9 @@ import { installApiFetchShim } from "./lib/apiUrl";
 import { Capacitor } from "@capacitor/core";
 import { rearmIfEnabled } from "./lib/notifications";
 import { initNativeAuth } from "./lib/nativeAuth";
-import { t } from "./i18n";
+import { hideSplashWhenReady } from "./lib/splash";
+import { reminderCopy } from "./lib/reminderCopy";
+import { t, tn } from "./i18n";
 
 // Inicializar Sentry ANTES de cualquier render. Sin DSN configurado
 // (VITE_SENTRY_DSN), es no-op total — dev local sigue funcionando con
@@ -27,10 +29,12 @@ if (Capacitor.isNativePlatform()) {
   // Inicializa el plugin de login nativo (idempotente; no-op sin WEB_CLIENT_ID).
   initNativeAuth().catch(() => {});
 
-  rearmIfEnabled({
-    title: t("notif.reminderTitle"),
-    body: t("notif.reminderBody"),
-  }).catch(() => {});
+  // Racha 0 a propósito: aquí todavía no sabemos la del usuario (la trae App
+  // tras hablar con el servidor), así que va el copy genérico. App vuelve a
+  // re-armar con el copy de racha en cuanto la tiene. reminderCopy aporta
+  // también el nombre del canal de Android, que es lo que ve el usuario en los
+  // ajustes de notificaciones del móvil.
+  rearmIfEnabled(reminderCopy(t, tn, 0)).catch(() => {});
 
   import("@capacitor/app").then(({ App: CapApp }) => {
     CapApp.addListener("backButton", ({ canGoBack }) => {
@@ -119,6 +123,11 @@ root.render(
     </SentryErrorBoundary>
   </React.StrictMode>
 );
+
+// Solo nativo: retirar el splash cuando el primer frame esté pintado. Va aquí y
+// no en un efecto de App porque tiene que cubrir TODAS las rutas (repesca,
+// privacidad, admin), no solo el juego. En web es no-op.
+hideSplashWhenReady();
 
 // Registro del service worker para Web Push. Diferido a 'load' para no competir
 // con el primer render. Guard explícito de nativo: en la app Android NO

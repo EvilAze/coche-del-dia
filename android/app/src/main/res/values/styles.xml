@@ -9,10 +9,31 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <!-- ESTE es el tema con el que corre de verdad la Activity: BridgeActivity
+         hace setTheme(AppTheme_NoActionBar) nada más arrancar, en cuanto el
+         splash cede el paso. Ojo con el nombre: "AppTheme.NoActionBar" NO
+         hereda de "AppTheme" (el padre es explícito, y es DayNight), así que
+         los colores puestos allí arriba no llegan hasta aquí solos. Hay que
+         repetirlos, que es justo lo que hacen los tres <item> de color.
+
+         Y no son decorativos: colorAccent alimenta colorControlActivated, de
+         donde el WebView saca el CURSOR y los manipuladores de selección de
+         texto del campo "adivina el coche". Sin esto se quedaban en el rosa
+         Material (#FF4081) que trae @capacitor/android por defecto, dentro de
+         un tema editorial de tinta y rojo. Es de lo poco del chrome nativo que
+         el CSS no puede tocar.
+
+         windowBackground va al color de marca (papel/grafito según
+         values-night) para que lo que asome detrás del WebView durante la
+         transición del splash sea del tema y no el gris de AppCompat. -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/cdd_window_bg</item>
     </style>
 
 

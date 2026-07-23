@@ -1,9 +1,11 @@
 // api/garage.js
-// Devuelve el "Garaje" (álbum de cromos) del usuario autenticado:
+// Devuelve "El Archivo" (la colección de portadas) del usuario autenticado:
 // catálogo entero agrupado por país, marcando cuáles ha desbloqueado.
+// (El endpoint conserva el nombre histórico `garage`; el producto se llama
+// «El Archivo» desde el rediseño de colección.)
 //
 // Reglas:
-//   - Solo usuarios autenticados. El garaje es un beneficio de registrarse.
+//   - Solo usuarios autenticados. El archivo es un beneficio de registrarse.
 //   - Cromo desbloqueado = el usuario tiene una fila en user_guesses con
 //     status='won' para ese car_id (no importa la fecha; un coche que ya
 //     no es el del día sigue contando en el álbum).
@@ -32,6 +34,20 @@ import { captureServerError } from "./_lib/sentry.js";
 // al navegador (no se puede "abrir DevTools" para spoilear el coche).
 function carImageProxyUrl(carId, mode) {
   return `/api/car-image?t=${signImageToken({ carId, mode })}`;
+}
+
+// Nº de intentos con los que se ganó una partida. `guesses` es el historial
+// completo que persiste validate-guess; su longitud ES el nº de intentos.
+// Aceptamos array (jsonb) y string (si la columna viajase como text/json),
+// porque el SQL de temporadas castea `guesses::jsonb` y esa ambigüedad
+// sugiere que no siempre llega tipada.
+function attemptsFromGuesses(guesses) {
+  try {
+    const arr = typeof guesses === "string" ? JSON.parse(guesses) : guesses;
+    return Array.isArray(arr) && arr.length > 0 ? arr.length : null;
+  } catch {
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
@@ -64,9 +80,18 @@ export default async function handler(req, res) {
     // 2) Coches que el usuario ha ganado (status='won').
     //    user_guesses tiene RLS (auth.uid()=user_id), authClient incluye
     //    el bearer del usuario, así que la query devuelve solo SU historial.
+    //
+    //    Traemos también `date` y `guesses`: son la MEMORIA de cómo conseguiste
+    //    cada portada (cuándo y en cuántos intentos), y es lo que convierte la
+    //    cuadrícula en una colección — tu cromo deja de ser idéntico al mío.
+    //    Coste: `guesses` es el historial entero de cada partida ganada, así que
+    //    el payload Supabase→función crece con las victorias del usuario (mismo
+    //    datacenter, decenas de KB). Se descarta aquí mismo: al cliente solo le
+    //    viaja la longitud. Si algún día pesa, la salida limpia es un RPC que
+    //    devuelva jsonb_array_length(guesses) en vez del array.
     const { data: wins, error: winsErr } = await authClient
       .from("user_guesses")
-      .select("car_id")
+      .select("car_id, date, guesses")
       .eq("user_id", user.id)
       .eq("status", "won");
     if (winsErr) {
@@ -75,6 +100,20 @@ export default async function handler(req, res) {
     }
 
     const unlockedIds = new Set((wins || []).map((w) => w.car_id));
+
+    // Metadatos de la victoria por coche. Un mismo coche podría tener más de
+    // una fila ganada (la PK es user_id+car_id+date), así que nos quedamos con
+    // la PRIMERA vez que se ganó: es la fecha que el jugador recuerda como
+    // "cuándo lo conseguí".
+    const winMetaById = new Map();
+    for (const w of wins || []) {
+      const prev = winMetaById.get(w.car_id);
+      if (prev && prev.wonAt && w.date && prev.wonAt <= w.date) continue;
+      winMetaById.set(w.car_id, {
+        wonAt: w.date || null,
+        attempts: attemptsFromGuesses(w.guesses),
+      });
+    }
 
     // 2b) Coches que el usuario ha jugado y PERDIDO (status='lost') en
     //     algún momento. Sirve para detectar Modo Veterano:
@@ -97,19 +136,36 @@ export default async function handler(req, res) {
     }
     const lostIds = new Set((losses || []).map((l) => l.car_id));
 
-    // 3) Coches que YA han sido coche del día (fecha < hoy). Solo estos son
-    //    repescables. Usamos service_role: pick_daily_car y daily_cars están
-    //    revocados para anon/authenticated por hardening previo.
+    // 3) Historial de coches del día. Usamos service_role: pick_daily_car y
+    //    daily_cars están revocados para anon/authenticated por hardening previo.
+    //
+    //    Pedimos hasta HOY inclusive (antes era `< hoy`) porque de aquí sale
+    //    también el Nº DE EDICIÓN de cada portada, y el coche de hoy ya puede
+    //    estar ganado. Los dos usos se separan justo debajo:
+    //      - repesca  → solo fechas ESTRICTAMENTE anteriores a hoy.
+    //      - nº       → el orden cronológico completo (la edición nº 1 es el
+    //                   primer coche del día que existió).
     const todayDate = todayInMadrid();
-    const { data: pastDailies, error: dailiesErr } = await supabaseAdmin
+    const { data: dailies, error: dailiesErr } = await supabaseAdmin
       .from("daily_cars")
-      .select("car_id")
-      .lt("date", todayDate);
+      .select("car_id, date")
+      .lte("date", todayDate)
+      .order("date", { ascending: true });
     if (dailiesErr) {
       console.error("[garage] read daily_cars:", dailiesErr);
       return res.status(500).json({ error: "Failed to read history" });
     }
-    const pastDailyIds = new Set((pastDailies || []).map((d) => d.car_id));
+    const pastDailyIds = new Set(
+      (dailies || []).filter((d) => d.date < todayDate).map((d) => d.car_id)
+    );
+    // Nº de edición = posición cronológica del coche en la serie de portadas.
+    // Solo se adjunta a cromos DESBLOQUEADOS (ver el loop de abajo): en un
+    // bloqueado revelaría `wasDaily`, que es justo la señal que este endpoint
+    // dejó de exponer por-coche para cerrar el cheat pasivo.
+    const issueByCarId = new Map();
+    (dailies || []).forEach((d, i) => {
+      if (!issueByCarId.has(d.car_id)) issueByCarId.set(d.car_id, i + 1);
+    });
 
     // 4) Estado de la repesca del usuario: si hay una activa hoy, no puede
     //    iniciar otra. Si la activa coincide con un coche concreto, podemos
@@ -176,10 +232,21 @@ export default async function handler(req, res) {
               img: carImageProxyUrl(c.id, IMAGE_MODE_CLEAR),
               unlocked: true,
               // wonAsVeteran: lo ganó tras haberlo fallado previamente.
-              // Insignia discreta en garaje (más mérito que ganar a la
+              // Insignia discreta en el archivo (más mérito que ganar a la
               // primera, porque tuvo que recordar marca+modelo+año
               // exactos en un único intento).
               wonAsVeteran: wasLost,
+              // ── Memoria de la conquista (solo en cromos ya ganados) ──
+              // El jugador ya conoce este coche, así que nada de esto filtra
+              // información: es SU historia con la portada.
+              //   issue    → nº de edición (portada nº 128). null si el coche
+              //              nunca fue coche del día (no debería pasar: toda
+              //              victoria viene de un daily o de su repesca).
+              //   wonAt    → fecha (Madrid) de la primera vez que lo ganó.
+              //   attempts → intentos que le costó. 1 = pleno.
+              issue: issueByCarId.get(c.id) ?? null,
+              wonAt: winMetaById.get(c.id)?.wonAt ?? null,
+              attempts: winMetaById.get(c.id)?.attempts ?? null,
             }
           : {
               // Cromo bloqueado: id OPACO (pseudo HMAC por usuario). Si

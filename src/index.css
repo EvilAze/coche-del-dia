@@ -1731,3 +1731,208 @@ body,
 .pm-btn:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
 .pm-btn--ghost { background: transparent; color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--cdd-text); }
 .pm-btn--ghost:hover:not(:disabled) { background: transparent; color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL ARCHIVO — la colección de portadas (antes «Garaje»)
+   -----------------------------------------------------------------------
+   Idea rectora: cada coche ganado es una PORTADA numerada de la revista, y
+   el archivo es la colección de números atrasados. De ahí sale toda la
+   materialidad: marco de tinta, esquina viva, cabecera de kiosco con el nº
+   de edición, y sellos estampados con el mérito de cada conquista.
+
+   Vive aquí y no en clases Tailwind porque son piezas con trama, rotación y
+   volteo 3D — cosas que en utilidades quedan ilegibles. Colores CONCRETOS
+   vía var(--…) como el resto del bloque de modales: el archivo se renderiza
+   fuera de .prensa, pero las variables son de :root y siguen al tema solas.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Doble raya de folio: el separador editorial por excelencia. `double` de CSS
+   nos da las dos rayas con un solo borde. */
+.arch-filete { border-top: 3px double var(--line-strong); }
+
+/* Tira de filtros de país: scroll horizontal SIN barra visible (en móvil la
+   barra tapa los chips; el desbordamiento ya se insinúa con el corte). */
+.arch-tira { scrollbar-width: none; -ms-overflow-style: none; }
+.arch-tira::-webkit-scrollbar { display: none; }
+
+.arch-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--line); border-radius: 0; background: transparent;
+  color: var(--cdd-muted); cursor: pointer; white-space: nowrap;
+  padding: 5px 9px;
+  font-family: var(--font-body); font-weight: 700; font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.arch-chip:hover { color: var(--cdd-text); border-color: var(--cdd-text); }
+/* Activo = tinta plena. En papel, "seleccionado" se dice invirtiendo. */
+.arch-chip.on { background: var(--cdd-text); border-color: var(--cdd-text); color: var(--bg); }
+.arch-chip .cifra { font-family: var(--font-mono); letter-spacing: 0; opacity: .8; }
+.arch-chip .bandera { width: 16px; height: 11px; object-fit: cover; flex: none; }
+
+/* ── La portada (el cromo) ──────────────────────────────────────────── */
+.arch-portada {
+  position: relative; display: flex; flex-direction: column; width: 100%;
+  border: 1px solid var(--line-strong); border-radius: 0;
+  background: var(--surface); text-align: left; cursor: pointer;
+  overflow: hidden; transition: box-shadow .18s, transform .12s;
+}
+.arch-portada:hover { box-shadow: 0 8px 20px -12px rgba(0, 0, 0, .55); }
+.arch-portada:active { transform: translateY(1px); }
+/* Cabecera de kiosco: cabecera de la revista a la izquierda, nº de edición
+   en rojo a la derecha. Es lo que convierte la foto en un objeto seriado. */
+.arch-portada .cab {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 4px 6px; border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--cdd-muted);
+}
+.arch-portada .cab .cabecera { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arch-portada .cab .num { flex: none; color: var(--rojo); font-weight: 700; letter-spacing: .04em; }
+.arch-portada .foto { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--bg2); }
+.arch-portada .foto img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  transition: transform .5s cubic-bezier(.2, 1, .3, 1);
+}
+.arch-portada:hover .foto img { transform: scale(1.04); }
+.arch-portada .pie { padding: 6px 7px 7px; border-top: 1px solid var(--line); }
+.arch-portada .pie .marca {
+  font-family: var(--font-body); font-weight: 700; font-size: 9px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--rojo);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* El modelo es el TITULAR de la portada: Fraunces, dos líneas máximo. */
+.arch-portada .pie .modelo {
+  margin-top: 1px; font-family: var(--font-display); font-weight: 800;
+  font-size: 14px; line-height: 1.12; color: var(--cdd-text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.arch-portada .pie .anio {
+  margin-top: 2px; font-family: var(--font-mono); font-size: 10px;
+  color: var(--cdd-muted); font-variant-numeric: tabular-nums;
+}
+
+/* Sellos de mérito: caen estampados sobre la foto, con la misma física que
+   el sello de fin de partida (.prensa-sello). Apilados en columna para que
+   PLENO y VET puedan convivir sin solaparse. */
+.arch-sellos {
+  position: absolute; top: 26px; right: 6px; z-index: 3;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+}
+.arch-sello {
+  font-family: var(--font-body); font-weight: 800; font-size: 8px;
+  letter-spacing: .18em; text-transform: uppercase;
+  border: 1.5px solid currentColor; padding: 2px 4px;
+  transform: rotate(-7deg);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  animation: prensaSellar .45s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+.arch-sello--pleno { color: var(--rojo); }
+.arch-sello--vet { color: var(--gold); }
+
+/* Cinta «nuevo»: solo hasta la siguiente visita. Es el único elemento del
+   archivo que grita, y por eso tiene que ser efímero. */
+.arch-cinta {
+  position: absolute; top: 26px; left: 0; z-index: 3;
+  background: var(--rojo); color: var(--bg);
+  font-family: var(--font-body); font-weight: 800; font-size: 8px;
+  letter-spacing: .2em; text-transform: uppercase; padding: 3px 7px;
+}
+
+/* ── El hueco (número que aún te falta) ─────────────────────────────── */
+/* Papel en blanco con trama de imprenta. NO carga imagen: antes cada hueco
+   descargaba un JPEG desenfocado desde /api/car-image, así que una página de
+   catálogo disparaba cientos de peticiones (y otros tantos `sharp`) para
+   pintar recuadros negros. La lona borrosa sigue existiendo, pero solo se
+   pide al TOCAR el hueco, que es cuando de verdad genera intriga. */
+.arch-hueco {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 7px;
+  width: 100%; min-height: 190px; cursor: pointer; text-align: center;
+  border: 1px dashed rgb(var(--tinta-rgb) / .38); border-radius: 0;
+  background-color: var(--bg2);
+  background-image: repeating-linear-gradient(45deg,
+    transparent 0 7px, rgb(var(--tinta-rgb) / .045) 7px 14px);
+  transition: border-color .18s, color .18s;
+}
+.arch-hueco:hover { border-color: var(--rojo); }
+.arch-hueco .num {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em;
+  color: rgb(var(--tinta-rgb) / .45);
+}
+.arch-hueco .txt {
+  font-family: var(--font-body); font-weight: 700; font-size: 8.5px;
+  letter-spacing: .18em; text-transform: uppercase; line-height: 1.5;
+  color: rgb(var(--tinta-rgb) / .5);
+}
+.arch-hueco:hover .txt, .arch-hueco:hover .num { color: var(--rojo); }
+
+/* ── Especial de set completo ───────────────────────────────────────── */
+/* La recompensa por completar un país: una portada que NO existe en el
+   catálogo, solo se gana. El oro está reservado a estos momentos premium. */
+.arch-especial {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; min-height: 190px; padding: 12px; text-align: center;
+  border: 1px solid var(--gold); border-radius: 0;
+  background: color-mix(in srgb, var(--gold) 9%, var(--surface));
+}
+.arch-especial .kicker {
+  font-family: var(--font-body); font-weight: 800; font-size: 8px;
+  letter-spacing: .24em; text-transform: uppercase; color: var(--gold);
+}
+.arch-especial .titulo {
+  font-family: var(--font-display); font-weight: 900; font-size: 17px;
+  line-height: 1.05; color: var(--cdd-text);
+}
+.arch-especial .sub { font-family: var(--font-mono); font-size: 10px; color: var(--cdd-muted); }
+
+/* ── Regla de progreso ──────────────────────────────────────────────── */
+/* Una regla de imprenta, no una píldora: filete de tinta que se entinta de
+   rojo. Solo aparece en dominios ACOTADOS (un país, una marca), nunca sobre
+   el catálogo entero — ahí la barra vive permanentemente vacía y desmotiva. */
+.arch-regla { height: 6px; border: 1px solid var(--line-strong); background: var(--surface); }
+.arch-regla > i { display: block; height: 100%; background: var(--rojo); transition: width .7s cubic-bezier(.2, 1, .3, 1); }
+
+/* ── Ficha del dorso ────────────────────────────────────────────────── */
+.arch-dato {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  padding: 8px 0; border-bottom: 1px dotted rgb(var(--tinta-rgb) / .3);
+}
+.arch-dato:last-child { border-bottom: 0; }
+.arch-dato .k {
+  font-family: var(--font-body); font-weight: 600; font-size: 10px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.arch-dato .v {
+  font-family: var(--font-mono); font-size: 12px; color: var(--cdd-text);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.arch-dato .v.oro { color: var(--gold); }
+.arch-dato .v.rojo { color: var(--rojo); }
+
+/* ── Volteo de la portada en el detalle ─────────────────────────────── */
+/* Un modal es una ficha de producto; un CROMO se le da la vuelta. El gesto
+   es la mitad del placer de coleccionar, así que el detalle no "abre datos":
+   voltea la carta y los datos están detrás, como en un cromo de verdad. */
+.arch-flip { perspective: 1400px; }
+.arch-flip-inner {
+  position: relative; transform-style: preserve-3d;
+  transition: transform .62s cubic-bezier(.2, 1, .3, 1);
+}
+.arch-flip.dorso .arch-flip-inner { transform: rotateY(180deg); }
+.arch-cara { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+/* La cara que mira hacia atrás no debe capturar clicks: aunque no se vea,
+   ocupa el mismo rectángulo y robaría el toque a la cara visible. */
+.arch-cara[aria-hidden="true"] { pointer-events: none; }
+.arch-cara--dorso {
+  position: absolute; inset: 0; transform: rotateY(180deg);
+  overflow-y: auto; overscroll-behavior: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arch-sello { animation: none !important; }
+  .arch-flip-inner { transition: none !important; }
+  .arch-portada .foto img { transition: none !important; }
+  .arch-regla > i { transition: none !important; }
+}

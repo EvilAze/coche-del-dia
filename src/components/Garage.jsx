@@ -1,13 +1,28 @@
 // src/components/Garage.jsx
-// Álbum de cromos con navegación de 3 niveles:
-//   Vista 1 (Países)  → tarjetas con bandera de fondo.
-//   Vista 2 (Marcas)  → tarjetas con logo de la marca dentro del país.
-//   Vista 3 (Coches)  → cromos de la marca seleccionada (lona / desbloqueado).
-//   Detail (overlay) → ficha completa al hacer click en un cromo.
+// «EL ARCHIVO» — la colección de portadas del jugador.
 //
-// Estado: `selectedCountry` + `selectedBrand`. Si los dos son null → Vista 1;
-// solo país → Vista 2; país + marca → Vista 3. ESC y BackButton siempre
-// suben un nivel en la jerarquía.
+// (El archivo y el endpoint conservan el nombre histórico `garage`; el
+// producto se llama El Archivo desde el rediseño de colección. Renombrar los
+// ficheros obligaría a tocar rutas lazy y analítica sin ganar nada.)
+//
+// IDEA RECTORA: cada coche ganado es una PORTADA numerada de la revista, y
+// esto es su archivo de números atrasados. Todo lo demás se deriva de ahí.
+//
+// Estructura — UNA sola vista con filtro, no una jerarquía navegable:
+//   · Sin filtro  → la vitrina: TUS portadas, lo último conseguido primero.
+//                   Sin huecos: 300 casillas vacías comunican deuda, no
+//                   colección.
+//   · Con país    → la página del álbum de ese país: sus marcas, cada una
+//                   con sus portadas Y sus huecos. Aquí los huecos SÍ suman,
+//                   porque son contables ("me faltan 2 Ferrari") y por tanto
+//                   motivan. Es la regla del álbum de cromos de toda la vida.
+//   · Detalle     → la portada a tamaño grande que se VOLTEA para leer su
+//                   dorso (ficha + cómo la conseguiste). Un modal es una
+//                   ficha de producto; un cromo se le da la vuelta.
+//
+// El país dejó de ser un nivel de navegación (antes: países → marcas →
+// coches, dos taps hasta ver un solo cromo) y pasó a ser un chip de filtro:
+// se salta de país a país sin volver atrás.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
@@ -23,27 +38,28 @@ import RepescaDrawAnimation from "./RepescaDrawAnimation";
 import { track } from "../lib/analytics";
 import { flagImagePath } from "../data/countries";
 import { countryTier, brandTier, collectorTier, TIER_HEX } from "../lib/collectionTier";
+import {
+  collectCovers,
+  sortCovers,
+  groupByBrand,
+  meritsOf,
+  pickNewCovers,
+  issueLabel,
+  formatWonAt,
+} from "../lib/archive";
 
-// Mapa de profundidad de cada vista del Garaje. Sirve para decidir la
-// dirección del slide al cambiar de vista: bajar de nivel (countries →
-// brands) → entra desde la derecha. Subir (brands → countries) → entra
-// desde la izquierda. Mismo paradigma que la navegación nativa de iOS.
-const VIEW_DEPTH = { countries: 0, brands: 1, cars: 2 };
-
-// Variantes de slide. `dir` se pasa por `custom` a AnimatePresence — 1
-// significa "navegamos hacia adelante" (más profundo), -1 "hacia atrás".
-// La X de 40px es lo suficientemente sutil para no marear y suficientemente
-// claro para que el ojo capte la dirección. La opacidad acompaña al
-// movimiento para suavizar la entrada/salida.
-const slideVariants = {
-  enter: (dir) => ({ x: dir * 40, opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (dir) => ({ x: dir * -40, opacity: 0 }),
+// Cambio de filtro: un cruce corto (fade + 10px). No es navegación jerárquica
+// —no hay "adentro" ni "afuera"—, así que no lleva dirección: solo un relevo
+// limpio entre dos secciones hermanas.
+const swapVariants = {
+  enter: { opacity: 0, x: 10 },
+  center: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -10 },
 };
 
-const slideTransition = {
-  x: { type: "spring", stiffness: 320, damping: 32 },
-  opacity: { duration: 0.18 },
+const swapTransition = {
+  x: { type: "spring", stiffness: 340, damping: 34 },
+  opacity: { duration: 0.16 },
 };
 
 // Slug de marca según especificación del usuario: simple lowercase + spaces→-.
@@ -56,27 +72,6 @@ function brandLogoPath(marca) {
   return `/brands/${brandSlug(marca)}.png`;
 }
 
-// Agrupa el array de coches de un país por marca, devolviendo una lista
-// ordenada por progreso (desbloqueados desc) y luego alfabético.
-function groupCarsByBrand(cars) {
-  const map = new Map();
-  for (const car of cars || []) {
-    const m = car.marca || "Sin marca";
-    if (!map.has(m)) map.set(m, { marca: m, cars: [] });
-    map.get(m).cars.push(car);
-  }
-  return Array.from(map.values())
-    .map((b) => ({
-      ...b,
-      unlocked: b.cars.filter((c) => c.unlocked).length,
-      total: b.cars.length,
-    }))
-    .sort((a, b) => {
-      if (b.unlocked !== a.unlocked) return b.unlocked - a.unlocked;
-      return a.marca.localeCompare(b.marca, "es");
-    });
-}
-
 export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchievements }) {
   const { t } = useT();
   const toast = useToast();
@@ -85,14 +80,21 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
     data: null,
     error: "",
   });
-  const [selectedCountry, setSelectedCountry] = useState(null);
-  const [selectedBrand, setSelectedBrand] = useState(null);
+  // Filtro de país activo (null = vitrina completa). Sustituye a los antiguos
+  // selectedCountry + selectedBrand: la marca ya no es un nivel, es una
+  // sección dentro de la página del país.
+  const [filter, setFilter] = useState(null);
+  // Orden de la vitrina: "recent" (lo último conseguido primero) o "year".
+  const [order, setOrder] = useState("recent");
   const [detailCar, setDetailCar] = useState(null);
+  // Portadas ganadas desde la última visita → cinta "NUEVO". Se calcula una
+  // vez al cargar los datos y se consume ahí mismo (ver lib/archive.js).
+  const [newIds, setNewIds] = useState(() => new Set());
   // Modal de confirmación de repesca aleatoria: se abre tras pulsar el CTA
   // y antes de tocar el backend, para que el usuario revise las reglas
   // (una al día, mitad de puntos, no afecta a la racha).
   const [confirmRepesca, setConfirmRepesca] = useState(false);
-  // Modal "¿Cómo funciona la repesca?" (icono ? del header).
+  // Modal "¿Cómo funciona la repesca?" (link bajo el CTA).
   const [helpOpen, setHelpOpen] = useState(false);
   // Estado del POST a /api/repesca/start mientras se sortea un coche.
   const [repescaStarting, setRepescaStarting] = useState(false);
@@ -105,15 +107,15 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
   // esperamos hasta cumplir este tiempo para no truncar el efecto visual.
   const REPESCA_DRAW_MIN_MS = 2500;
 
-  // Bloquea el scroll del body mientras el modal Garage está abierto.
-  // Garage no usa ModalShell (es un motion.div directo a body), así que
-  // hay que llamar al hook a mano. Sus sub-modales (CarDetail,
-  // ScoringHelp, RepescaHelp, RandomRepescaConfirm) sí usan ModalShell
-  // y heredan el bloqueo desde ahí; el contador del hook impide que
-  // cerrar un sub-modal libere el scroll mientras Garage sigue abierto.
+  // Bloquea el scroll del body mientras El Archivo está abierto. No usa
+  // ModalShell (es un motion.div directo a body), así que hay que llamar al
+  // hook a mano. Sus sub-modales sí usan ModalShell y heredan el bloqueo; el
+  // contador interno del hook impide que cerrar un sub-modal libere el scroll
+  // mientras el archivo sigue abierto.
   useScrollLock(open);
 
-  // ESC: seis niveles encadenados, de más interno a más externo.
+  // ESC: cadena de más interno a más externo. Un nivel menos que antes
+  // (marca y país eran dos escalones; ahora el filtro es uno solo).
   useEscape(open && helpOpen, () => setHelpOpen(false));
   useEscape(open && !helpOpen && confirmRepesca, () => {
     if (!repescaStarting) setConfirmRepesca(false);
@@ -123,39 +125,26 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
     () => setDetailCar(null)
   );
   useEscape(
-    open && !helpOpen && !confirmRepesca && !detailCar && Boolean(selectedBrand),
-    () => setSelectedBrand(null)
+    open && !helpOpen && !confirmRepesca && !detailCar && Boolean(filter),
+    () => setFilter(null)
   );
   useEscape(
-    open && !helpOpen && !confirmRepesca && !detailCar && !selectedBrand && Boolean(selectedCountry),
-    () => setSelectedCountry(null)
-  );
-  useEscape(
-    open && !helpOpen && !confirmRepesca && !detailCar && !selectedBrand && !selectedCountry,
+    open && !helpOpen && !confirmRepesca && !detailCar && !filter,
     onClose
   );
 
   // Reset interno al cerrar.
   useEffect(() => {
     if (!open) {
-      setSelectedCountry(null);
-      setSelectedBrand(null);
+      setFilter(null);
       setDetailCar(null);
       setConfirmRepesca(false);
       setHelpOpen(false);
     }
   }, [open]);
 
-  // Si cambia el país elegido, deselecciona la marca (que pertenecía al
-  // país anterior).
-  useEffect(() => {
-    setSelectedBrand(null);
-  }, [selectedCountry]);
-
   // Instrumentación: una vez por apertura (logueado o no — el anónimo rebota
   // al login, pero su apertura ES interés por la colección y queremos medirlo).
-  // Sin esto estábamos a ciegas sobre cuánta gente abre el garaje, justo el
-  // dato que decide si la colección merece su sitio.
   const trackedOpenRef = useRef(false);
   useEffect(() => {
     if (open && !trackedOpenRef.current) {
@@ -186,6 +175,10 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
         if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
 
         setState({ loading: false, data: body, error: "" });
+        // "¿Qué hay nuevo desde la última vez?" es el motivo por el que se
+        // vuelve a un archivo. Se resuelve aquí, contra localStorage, en
+        // cuanto sabemos qué portadas tiene el usuario.
+        setNewIds(pickNewCovers(collectCovers(body.countries).map((c) => c.id)));
       } catch (err) {
         console.error("[Garage] fetch:", err);
         setState({
@@ -197,23 +190,26 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
     })();
   }, [open, user]);
 
-  // Resolución del país y la marca activos.
+  // País activo del filtro (null = vitrina completa).
   const currentCountry =
-    selectedCountry && state.data
-      ? state.data.countries.find((c) => c.pais === selectedCountry) || null
+    filter && state.data
+      ? state.data.countries.find((c) => c.pais === filter) || null
       : null;
 
-  // Agrupación cars→marca por país. Memoizado para no recalcular al
-  // abrir un detail o cambiar de vista.
-  const brandsInCountry = useMemo(() => {
-    if (!currentCountry) return null;
-    return groupCarsByBrand(currentCountry.cars);
-  }, [currentCountry]);
+  // Todas las portadas conseguidas, ya ordenadas. Memoizado: aplanar el
+  // catálogo entero en cada render (incluidos los del detalle) sería tirar
+  // trabajo a la basura.
+  const covers = useMemo(
+    () => sortCovers(collectCovers(state.data?.countries), order),
+    [state.data, order]
+  );
 
-  const currentBrand =
-    selectedBrand && brandsInCountry
-      ? brandsInCountry.find((b) => b.marca === selectedBrand) || null
-      : null;
+  // La última portada conseguida, para el titular del masthead. Se calcula
+  // SIEMPRE por recencia, independientemente del orden que elija el usuario.
+  const lastCover = useMemo(() => {
+    const byDate = sortCovers(collectCovers(state.data?.countries), "recent");
+    return byDate[0] || null;
+  }, [state.data]);
 
   // Tamaño de la pool de repesca: cuántos coches ya fueron daily y el
   // usuario aún no los ha ganado. Lo calcula el servidor en /api/garage
@@ -224,7 +220,14 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
   // /api/repesca/start (CSPRNG), así que el cliente nunca necesita los ids.
   const repescaPoolSize = state.data?.repescaPoolSize ?? 0;
 
-  // Click en el CTA "Repesca Aleatoria". Hace los pre-checks rápidos antes
+  // Al cambiar de sección, el scroll vuelve arriba: si no, entras a Italia
+  // y apareces a media página por donde estabas en la vitrina.
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [filter]);
+
+  // Click en el CTA "Números atrasados". Hace los pre-checks rápidos antes
   // de abrir el modal de confirmación — no merece la pena enseñar reglas si
   // el usuario no tiene nada que repescar.
   //   1. Si ya hay una repesca activa hoy → reanuda directamente (sin
@@ -367,76 +370,27 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
     }
   }
 
-  // ¿Qué vista estamos pintando?
-  //   "countries" → Vista 1
-  //   "brands"    → Vista 2 (país elegido, sin marca)
-  //   "cars"      → Vista 3 (país + marca)
-  const view = currentBrand ? "cars" : currentCountry ? "brands" : "countries";
-
-  // Direccionalidad del slide: comparamos la profundidad de la vista actual
-  // con la anterior. Si bajamos (countries → brands → cars), el nuevo
-  // contenido entra desde la derecha. Si subimos (cars → brands → countries
-  // o ESC), entra desde la izquierda. Esto da el "feel" nativo de iOS.
-  // Hooks ANTES del early return para no romper el orden de React.
-  const prevDepthRef = useRef(VIEW_DEPTH[view] ?? 0);
-  const direction = (VIEW_DEPTH[view] ?? 0) >= prevDepthRef.current ? 1 : -1;
-  useEffect(() => {
-    prevDepthRef.current = VIEW_DEPTH[view] ?? 0;
-  }, [view]);
-
-  // Swipe-from-edge para volver al nivel anterior (estilo iOS):
+  // Swipe-from-edge para retroceder (estilo iOS):
   //   - El motion.div del panel acepta drag horizontal, pero `dragListener`
   //     está desactivado: el drag SOLO se inicia desde el edge handle,
   //     evitando interferir con scroll vertical, taps en cards o clicks en
   //     el header.
   //   - Threshold: 80 px de offset o 500 px/s de velocidad. El segundo es
   //     un "fling" rápido — confirma intención aunque la distancia sea corta.
-  //   - dragConstraints right:200 limita cuánto puede arrastrarse, así no
-  //     se ve el panel desplazado fuera del viewport.
-  //   - dragElastic 0.15 da un toque de resistencia al final del rango.
   const dragControls = useDragControls();
 
   function handleSwipeEnd(_event, info) {
     const triggered = info.offset.x > 80 || info.velocity.x > 500;
     if (!triggered) return;
-    if (view === "cars") {
-      setSelectedBrand(null);
-    } else if (view === "brands") {
-      setSelectedCountry(null);
-    } else {
-      // En countries el swipe cierra el Garaje. Consistente con el ESC
-      // encadenado: cuando ya no hay nivel al que subir, salimos del modal.
-      onClose();
-    }
-  }
-
-  // Nota: hemos quitado el `if (!open) return null` que había aquí. Con
-  // AnimatePresence, el componente DEBE seguir renderizándose con open=false
-  // para que la animación de salida pueda completarse antes del desmount.
-  // El JSX final lo envuelve y solo monta el panel cuando open=true.
-
-  // Datos del header (label + título) y back button según vista.
-  let headerLabel = t("garage.headerCollection");
-  let headerTitle = t("garage.headerTitle");
-  let backLabel = null;
-  let onBack = null;
-  if (view === "brands") {
-    headerLabel = t("garage.headerLabelCountry");
-    headerTitle = getLocalizedCountry(currentCountry.pais);
-    backLabel = t("garage.backCountries");
-    onBack = () => setSelectedCountry(null);
-  } else if (view === "cars") {
-    headerLabel = t("garage.headerLabelBrand");
-    headerTitle = currentBrand.marca;
-    backLabel = getLocalizedCountry(currentCountry.pais);
-    onBack = () => setSelectedBrand(null);
+    // Mismo criterio que la cadena de ESC: si hay filtro, el swipe lo quita;
+    // si ya estamos en la vitrina, cierra el archivo.
+    if (filter) setFilter(null);
+    else onClose();
   }
 
   return (
     // AnimatePresence externo: el backdrop hace fade in/out (200 ms) y el
     // panel un slide-up con fade y un pizco de scale (~280 ms con spring).
-    // El "feel" es el de un bottom-sheet móvil al subir, adaptado al panel
-    // edge-to-edge alto del Garaje.
     <AnimatePresence>
       {open && (
         <motion.div
@@ -452,7 +406,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             key="garage-panel"
             className="
               relative flex w-full max-w-md flex-col overflow-hidden
-              border-x border-tinta/15 bg-papel shadow-2xl
+              border-x border-tinta/25 bg-papel
             "
             onClick={(e) => e.stopPropagation()}
             initial={{ y: 24, opacity: 0, scale: 0.98 }}
@@ -462,11 +416,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             // Drag horizontal armado pero NO autostart: el edge handle de
             // abajo es quien dispara dragControls.start(). Así el resto del
             // panel sigue siendo scrollable / clickable normal.
-            // dragSnapToOrigin: tras soltar, el panel vuelve a x=0 SIEMPRE
-            // (haya disparado swipe-back o no). Si dispara, el cambio de
-            // vista lo anima la cadena de Fase A (slide direccional del
-            // contenido interno); el panel mismo no se "va" del viewport,
-            // así evitamos dos animaciones de slide compitiendo.
+            // dragSnapToOrigin: tras soltar, el panel vuelve a x=0 SIEMPRE.
             drag="x"
             dragListener={false}
             dragControls={dragControls}
@@ -478,12 +428,8 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             {/*
               Edge handle invisible. Cubre los 16 px más a la izquierda del
               panel (coincide con el padding-x del body, por eso no solapa
-              con BackButton, cards, ni CloseButton). En cuanto el usuario
-              hace pointer-down aquí, dragControls.start toma el control
-              y empieza a seguir el dedo. Si el movimiento resulta vertical,
-              Framer reconoce que no es un drag horizontal y lo descarta;
-              touchAction: pan-y refuerza eso permitiendo scroll vertical
-              nativo dentro de la zona del handle.
+              con cards ni CloseButton). touchAction: pan-y permite que el
+              scroll vertical nativo siga funcionando dentro de la zona.
             */}
             <div
               aria-hidden="true"
@@ -492,117 +438,114 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
               style={{ touchAction: "pan-y" }}
             />
 
-        {/* Header */}
-        <div className="border-b border-tinta/15 px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              {backLabel && (
-                <BackButton onClick={onBack} label={backLabel} />
-              )}
-              <p className={`text-[10px] uppercase tracking-[0.28em] text-accent ${backLabel ? "mt-2" : ""}`}>
-                {headerLabel}
-              </p>
-              <h2 className="truncate font-display text-2xl tracking-widest text-tinta">
-                {headerTitle}
-              </h2>
-            </div>
-            <div className="flex items-center gap-1">
-              {view === "countries" && (
+            {/* Cabecera fija: la cabecera del periódico. No cambia al filtrar
+                —el archivo es el mismo— así el usuario nunca se pierde. */}
+            <div className="flex items-center justify-between gap-3 border-b border-tinta/25 px-4 py-3">
+              <div className="min-w-0">
+                <p className="pm-kicker">{t("garage.headerCollection")}</p>
+                <h2 className="truncate font-display text-[26px] font-black leading-none tracking-tight text-tinta">
+                  {t("garage.headerTitle")}
+                </h2>
+              </div>
+              <div className="flex flex-none items-center gap-1">
                 <button
                   type="button"
                   onClick={() => { onClose(); onOpenAchievements?.(); }}
                   aria-label={t("header.achievements")}
                   title={t("header.achievements")}
-                  className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-accent/15 hover:text-accent"
+                  className="focus-ring flex h-9 w-9 items-center justify-center text-muted transition-colors hover:text-accent"
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <circle cx="12" cy="8" r="5" />
                     <path d="M8.21 13.89 7 22l5-3 5 3-1.21-8.11" />
                   </svg>
                 </button>
-              )}
-              <CloseButton onClick={onClose} />
+                <CloseButton onClick={onClose} />
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Body */}
-        {!user ? (
-          <AuthWall
-            onLogin={() => {
-              onClose();
-              onOpenLogin?.();
-            }}
-          />
-        ) : state.loading ? (
-          <CenterMessage text={t("garage.loading")} pulse />
-        ) : state.error ? (
-          <CenterMessage text={state.error} tone="error" />
-        ) : !state.data || state.data.countries.length === 0 ? (
-          <CenterMessage text={t("garage.emptyCatalog")} />
-        ) : (
-          // AnimatePresence con mode="wait": espera a que la vista saliente
-          // complete su exit antes de montar la entrante. Sin esto, ambas
-          // se superpondrían visualmente durante ~200 ms. `custom` propaga
-          // `direction` a las variantes para que sepan hacia dónde slidear.
-          // `initial={false}`: la primera vez que se abre el modal, la vista
-          // de countries aparece directamente sin slide entrante (estamos
-          // recién montando, no es una navegación).
-          // El overflow-hidden del motion.div corta el contenido cuando
-          // entra/sale por los bordes, evitando ver el barrido fuera de la
-          // columna del modal.
-          <AnimatePresence mode="wait" custom={direction} initial={false}>
-            <motion.div
-              key={view}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={slideTransition}
-              className="flex flex-1 flex-col overflow-hidden"
-            >
-              {view === "cars" ? (
-                <BrandShowroom
-                  country={currentCountry}
-                  brand={currentBrand}
-                  onSelectCar={setDetailCar}
+            {/* Cuerpo */}
+            {!user ? (
+              <AuthWall
+                onLogin={() => {
+                  onClose();
+                  onOpenLogin?.();
+                }}
+              />
+            ) : state.loading ? (
+              <CenterMessage text={t("garage.loading")} pulse />
+            ) : state.error ? (
+              <CenterMessage text={state.error} tone="error" />
+            ) : !state.data || state.data.countries.length === 0 ? (
+              <CenterMessage text={t("garage.emptyCatalog")} />
+            ) : (
+              <div
+                ref={scrollRef}
+                className="flex-1 overflow-y-auto overscroll-contain"
+              >
+                {/* El masthead y los números atrasados solo viven en la
+                    vitrina: dentro de un país estorban, porque ahí la
+                    cabecera es la del propio país. */}
+                {!currentCountry && (
+                  <>
+                    <Masthead
+                      total={state.data.totalUnlocked}
+                      lastCover={lastCover}
+                    />
+                    <BackIssuesBand
+                      poolSize={repescaPoolSize}
+                      available={!!state.data?.repescaAvailable}
+                      hasActive={!!state.data?.repescaActiveCarId}
+                      starting={repescaStarting}
+                      onClick={handleRandomRepesca}
+                      onOpenHelp={() => setHelpOpen(true)}
+                    />
+                  </>
+                )}
+
+                <FilterStrip
+                  countries={state.data.countries}
+                  total={state.data.totalUnlocked}
+                  active={filter}
+                  onSelect={setFilter}
                 />
-              ) : view === "brands" ? (
-                <BrandsMenu
-                  country={currentCountry}
-                  brands={brandsInCountry}
-                  onSelectBrand={setSelectedBrand}
-                />
-              ) : (
-                <CountriesMenu
-                  data={state.data}
-                  onSelectCountry={setSelectedCountry}
-                  repescaPoolSize={repescaPoolSize}
-                  repescaAvailable={!!state.data?.repescaAvailable}
-                  repescaActiveCarId={state.data?.repescaActiveCarId || null}
-                  repescaStarting={repescaStarting}
-                  onRandomRepesca={handleRandomRepesca}
-                  onOpenHelp={() => setHelpOpen(true)}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        )}
+
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={filter || "__all__"}
+                    variants={swapVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={swapTransition}
+                  >
+                    {currentCountry ? (
+                      <CountryPage
+                        country={currentCountry}
+                        newIds={newIds}
+                        onSelectCar={setDetailCar}
+                      />
+                    ) : (
+                      <Showcase
+                        covers={covers}
+                        newIds={newIds}
+                        order={order}
+                        onChangeOrder={setOrder}
+                        onSelectCar={setDetailCar}
+                      />
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            )}
           </motion.div>
 
           {/*
             Los sub-modales reciben siempre `open` (boolean) además de su data,
-            y permanecen montados aunque open=false: así AnimatePresence
-            (dentro de ModalShell) puede animar el exit antes de desmontarlos.
-            Para CarDetail: cuando se cierra, `detailCar` queda
-            momentáneamente en el state durante la animación de salida. Si
-            el coche cambiara a null mientras aún se anima, intentaríamos
-            leer car.marca de null → crash. Por eso conservamos el último
-            valor en `displayCar` y lo pintamos hasta que la animación
-            termina.
+            y permanecen montados aunque open=false: así ModalShell puede
+            animar el exit antes de desmontarlos.
           */}
-          <CarDetail
+          <CoverDetail
             open={Boolean(detailCar)}
             car={detailCar}
             onClose={() => setDetailCar(null)}
@@ -625,10 +568,9 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
       )}
 
       {/* Overlay de barajado de cromos: vive FUERA del motion.div del panel
-          del Garaje para que cubra toda la pantalla (z-[120]) y no quede
-          recortado por el max-w-md del panel. Solo se monta cuando el
-          usuario ha aceptado el sorteo y se desmonta cuando hay redirect
-          (o si el POST falla y volvemos al estado inicial). */}
+          para que cubra toda la pantalla (z-[120]) y no quede recortado por
+          el max-w-md. Solo se monta cuando el usuario ha aceptado el sorteo
+          y se desmonta cuando hay redirect (o si el POST falla). */}
       {drawAnim && (
         <RepescaDrawAnimation
           veteran={drawAnim.veteran}
@@ -639,257 +581,331 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
 }
 
 // ============================================================================
-// Vista 1: Menú de países
+// Masthead: el titular del archivo
 // ============================================================================
+//
+// Sustituye a la barra de progreso global + "47 / 1200". Sobre un catálogo
+// grande ese porcentaje vive permanentemente cerca de cero: una barra vacía
+// que solo comunica lo lejos que estás. Aquí el titular es lo que TIENES, y
+// el hilo de nivel (tier de coleccionista, compartido con el carnet del
+// Perfil) baja a una línea de pie, no a un chip que compite con el número.
 
-function CountriesMenu({
-  data,
-  onSelectCountry,
-  repescaPoolSize,
-  repescaAvailable,
-  repescaActiveCarId,
-  repescaStarting,
-  onRandomRepesca,
-  onOpenHelp,
-}) {
-  const { t, locale } = useT();
-  const countries = data.countries || [];
-
-  // Tier global de coleccionista + progreso, para el panel de estado. Mismo
-  // cálculo que el carnet del Perfil (collectorTier): un único hilo de nivel.
-  const tier = collectorTier(data.totalUnlocked);
+function Masthead({ total, lastCover }) {
+  const { t, tn, locale } = useT();
+  const tier = collectorTier(total);
   const tierLabel = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
   const nextLabel = tier.next ? tier.next.label?.[locale] || tier.next.label?.es : null;
-  const pct = data.totalCatalog
-    ? Math.min(100, Math.round((data.totalUnlocked / data.totalCatalog) * 100))
-    : 0;
 
   return (
-    <>
-      <div className="border-b border-tinta/15 bg-papel/[0.02] px-4 py-3">
-        {/* Panel de estado de colección: barra + tier global + siguiente nivel.
-            Entrar al Garaje pasa a sentirse como abrir una vitrina, no como
-            leer una cifra suelta. */}
-        <div className="relative overflow-hidden rounded-xl border border-gold/20 bg-papel/[0.03] px-3.5 py-3 text-left">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-oro-viejo/60 to-transparent" />
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-sm text-tinta">
-              <CollectionIcon className="h-4 w-4 text-gold" />
-              {t("garage.collector")}
-            </span>
-            {tierLabel && (
-              <span className="rounded-full border border-gold/35 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-gold">
-                {tierLabel}
-              </span>
-            )}
-          </div>
-          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full border border-tinta/15 bg-tinta/40">
-            <div
-              className="h-full rounded-full bg-accent transition-[width] duration-700"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="tabular-nums">
-              <span className="font-semibold text-accent">{data.totalUnlocked}</span>
-              <span className="text-muted"> / {data.totalCatalog} {t("garage.cars")}</span>
-            </span>
-            {nextLabel && (
-              <span className="text-muted">{t("garage.nextTier")} · {nextLabel}</span>
-            )}
-          </div>
-        </div>
+    <div className="px-4 pb-3 pt-4">
+      <p className="pm-label">{t("garage.mastheadKicker")}</p>
+      <h3 className="mt-1 font-display text-[34px] font-black leading-none tracking-tight text-tinta">
+        <span className="tabular-nums">{total}</span>{" "}
+        <span className="text-[19px] font-bold">{tn("garage.covers", total)}</span>
+      </h3>
 
-        <div className="mt-3">
-          <RandomRepescaButton
-            poolSize={repescaPoolSize}
-            available={repescaAvailable}
-            hasActive={!!repescaActiveCarId}
-            starting={repescaStarting}
-            onClick={onRandomRepesca}
-          />
-          {/* Link contextual de ayuda: vive debajo del CTA en lugar de
-              flotar junto al título del modal. Solo aparece en la vista
-              raíz (countries), que es donde el modo Repesca tiene
-              sentido. Al navegar a un país o marca, el link desaparece
-              con el resto de la vista. */}
-          <button
-            type="button"
-            onClick={onOpenHelp}
-            className="
-              mt-2 inline-flex items-center gap-1 text-[11px]
-              text-muted/80 transition-colors duration-150
-              hover:text-accent
-            "
-          >
-            <svg
-              className="h-3 w-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2.5-3 4.5" />
-              <path d="M12 18h.01" />
-            </svg>
-            {t("garage.helpRepesca")}
-          </button>
-        </div>
-      </div>
+      {lastCover && (
+        <p className="mt-1.5 truncate font-mono text-[11px] text-muted">
+          {t("garage.lastIssue", {
+            issue: issueLabel(lastCover.issue),
+            model: `${lastCover.marca} ${lastCover.modelo}`,
+          })}
+        </p>
+      )}
 
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-2">
-        <div className="flex flex-col">
-          {countries.map((c) => (
-            <CountryRow
-              key={c.pais}
-              country={c}
-              onClick={() => onSelectCountry(c.pais)}
-            />
-          ))}
-        </div>
+      <div className="arch-filete mt-3 flex items-center justify-between gap-3 pt-2">
+        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider">
+          <CollectionIcon className="h-3.5 w-3.5 text-gold" />
+          <span className="text-muted">{t("garage.collector")}</span>
+          {tierLabel && <span className="font-bold text-gold">{tierLabel}</span>}
+        </span>
+        {nextLabel && (
+          <span className="truncate font-mono text-[10px] text-muted">
+            {t("garage.nextTierAt", {
+              label: nextLabel,
+              count: tier.next.required,
+            })}
+          </span>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
-// Fila de país (índice de álbum): la bandera se ve ENTERA en un chip, el
-// progreso es una barra por país, y caben el doble en pantalla. La épica del
-// banderón a pantalla completa se traslada a la cabecera del país al entrar.
-function CountryRow({ country, onClick }) {
-  const tier = countryTier(country.unlocked, country.total);
-  const started = country.unlocked > 0;
-  const pct = country.total
-    ? Math.min(100, Math.round((country.unlocked / country.total) * 100))
-    : 0;
+// ============================================================================
+// Números atrasados (repesca)
+// ============================================================================
+//
+// El mismo motor de siempre, reencuadrado: deja de ser "un botón de app" y
+// pasa a ser la sección del archivo donde se piden los números que faltan.
+// La narrativa es gratis y hace que el modo Repesca deje de parecer un
+// añadido para parecer parte de la revista.
 
+function BackIssuesBand({
+  poolSize,
+  available,
+  hasActive,
+  starting,
+  onClick,
+  onOpenHelp,
+}) {
+  const { t, tn } = useT();
+
+  // Cuatro estados, mismo orden de prioridad que el CTA anterior.
+  let cta = t("garage.repescaPlay");
+  let body = tn("garage.backIssuesPending", poolSize);
+  let disabled = false;
+  if (starting) {
+    cta = t("garage.repescaStarting");
+    disabled = true;
+  } else if (hasActive) {
+    cta = t("garage.repescaContinue");
+  } else if (poolSize === 0) {
+    cta = t("garage.repescaComplete");
+    body = t("garage.backIssuesNone");
+    disabled = true;
+  } else if (!available) {
+    cta = t("garage.repescaNoneToday");
+    disabled = true;
+  }
+
+  return (
+    <div className="mx-4 mb-3 border border-tinta/25 bg-papel-mat px-3 py-2.5">
+      <div className="flex items-center gap-3">
+        <DiceIcon className="h-5 w-5 flex-none text-accent" />
+        <div className="min-w-0 flex-1">
+          <p className="pm-label">{t("garage.backIssuesTitle")}</p>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-tinta">{body}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          aria-busy={starting}
+          className="
+            flex-none border border-tinta bg-tinta px-3 py-1.5
+            font-body text-[10px] font-extrabold uppercase tracking-[0.18em] text-papel
+            transition-colors hover:bg-accent hover:border-accent
+            disabled:cursor-not-allowed disabled:border-tinta/25 disabled:bg-transparent
+            disabled:text-muted
+          "
+        >
+          {cta}
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenHelp}
+        className="mt-1.5 font-mono text-[10px] text-muted underline underline-offset-2 transition-colors hover:text-accent"
+      >
+        {t("garage.helpRepesca")}
+      </button>
+    </div>
+  );
+}
+
+// ============================================================================
+// Tira de filtros de país
+// ============================================================================
+//
+// Antes esto era una VISTA entera (lista de países) y una segunda vista de
+// marcas encima. Al bajarlo a chips, ver un cromo pasa de tres taps a cero, y
+// saltar de Italia a Alemania de "atrás + entrar" a un solo toque.
+
+function FilterStrip({ countries, total, active, onSelect }) {
+  const { t } = useT();
+  return (
+    <div className="sticky top-0 z-10 border-y border-tinta/25 bg-papel">
+      <div
+        className="arch-tira flex gap-1.5 overflow-x-auto px-4 py-2"
+        role="group"
+        aria-label={t("garage.filterAria")}
+      >
+        <button
+          type="button"
+          onClick={() => onSelect(null)}
+          aria-pressed={!active}
+          className={`arch-chip ${!active ? "on" : ""}`}
+        >
+          {t("garage.filterAll")}
+          <span className="cifra">{total}</span>
+        </button>
+
+        {countries.map((c) => {
+          const tier = countryTier(c.unlocked, c.total);
+          const on = active === c.pais;
+          return (
+            <button
+              key={c.pais}
+              type="button"
+              onClick={() => onSelect(c.pais)}
+              aria-pressed={on}
+              className={`arch-chip ${on ? "on" : ""}`}
+            >
+              <img
+                src={flagImagePath(c.pais)}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                loading="lazy"
+                className="bandera"
+              />
+              {getLocalizedCountry(c.pais)}
+              <span className="cifra">
+                {c.unlocked}/{c.total}
+              </span>
+              {tier && <TierMedal tier={tier} className="h-3 w-3" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Vitrina: TODAS tus portadas
+// ============================================================================
+
+function Showcase({ covers, newIds, order, onChangeOrder, onSelectCar }) {
+  const { t } = useT();
+
+  if (covers.length === 0) {
+    return (
+      <div className="px-6 py-12 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center border border-tinta/25">
+          <CollectionIcon className="h-7 w-7 text-muted" />
+        </div>
+        <p className="font-display text-xl font-black text-tinta">
+          {t("garage.emptyTitle")}
+        </p>
+        <p className="pm-body mx-auto mt-2 max-w-[36ch]">{t("garage.emptyBody")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 py-3">
+      {/* Selector de orden: dos palabras, sin caja. El coleccionista quiere
+          ver "lo último" o "por época"; cualquier cosa más rica que eso sería
+          fricción sin demanda. */}
+      <div className="mb-2.5 flex items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wider">
+        <span className="text-muted">{t("garage.sortAria")}</span>
+        <OrderButton on={order === "recent"} onClick={() => onChangeOrder("recent")}>
+          {t("garage.sortRecent")}
+        </OrderButton>
+        <span className="text-muted/50" aria-hidden="true">·</span>
+        <OrderButton on={order === "year"} onClick={() => onChangeOrder("year")}>
+          {t("garage.sortYear")}
+        </OrderButton>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 pb-4 sm:grid-cols-3">
+        {covers.map((car) => (
+          <Cover
+            key={car.id}
+            car={car}
+            isNew={newIds.has(car.id)}
+            onClick={() => onSelectCar(car)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OrderButton({ on, onClick, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group flex items-center gap-3 border-b border-tinta/[0.06] px-1 py-2.5 text-left transition-colors hover:bg-papel/[0.03] active:scale-[0.99] ${
-        started ? "" : "opacity-60"
+      aria-pressed={on}
+      className={`transition-colors ${
+        on ? "font-bold text-tinta underline underline-offset-2" : "text-muted hover:text-tinta"
       }`}
     >
-      <div className="h-[26px] w-9 shrink-0 overflow-hidden rounded-[5px] border border-tinta/25">
-        <img
-          src={flagImagePath(country.pais)}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-          loading="lazy"
-          className="h-full w-full object-cover"
-        />
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className={`truncate text-[15px] font-semibold ${started ? "text-tinta" : "text-tinta-2"}`}>
-            {getLocalizedCountry(country.pais)}
-          </span>
-          <span className="shrink-0 text-xs tabular-nums text-muted">
-            {country.unlocked} / {country.total}
-          </span>
-        </div>
-        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-papel/[0.07]">
-          <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
-        </div>
-      </div>
-
-      <TierMedalInline tier={tier} />
-      <ChevronIcon className="h-4 w-4 shrink-0 text-tinta-2/70" />
+      {children}
     </button>
   );
 }
 
 // ============================================================================
-// Vista 2: Menú de marcas dentro del país
+// Página de país: el álbum abierto por esa sección
 // ============================================================================
+//
+// Aquí SÍ se pintan los huecos, y es deliberado: en un dominio acotado ("me
+// faltan 2 Ferrari") el hueco es un objetivo; en el catálogo entero ("te
+// faltan 340") es una factura. Esa es toda la diferencia entre un álbum de
+// cromos y una lista de tareas.
 
-function BrandsMenu({
-  country,
-  brands,
-  onSelectBrand,
-}) {
+function CountryPage({ country, newIds, onSelectCar }) {
   const { t } = useT();
-  const visibleBrands = brands || [];
+  const brands = useMemo(() => groupByBrand(country.cars), [country]);
+  const pct = country.total
+    ? Math.min(100, Math.round((country.unlocked / country.total) * 100))
+    : 0;
+  const complete = country.total > 0 && country.unlocked >= country.total;
+
   return (
-    <>
-      {/* Banda con bandera de fondo y progreso del país.
-          - SIN `border-b` blanco: en oscuro renderiza como una línea
-            "más clara" en el filo inferior.
-          - Gradient terminado a opacidad 1 (mismo color que el fondo
-            del modal `#0d1014`): así el corte con la zona inferior es
-            invisible, en lugar de dejar pasar un 10% de la bandera
-            (bordes blancos de Union Jack/Países Bajos delataban el corte). */}
-      <div
-        className="relative h-40"
-        style={{
-          backgroundImage: `linear-gradient(rgba(10,10,12,0.7), rgba(10,10,12,1)), url('${flagImagePath(country.pais)}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="relative flex h-full flex-col items-center justify-center px-4 text-center">
-          <p
-            className="font-display text-3xl font-bold uppercase tracking-widest text-tinta"
-            style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
-          >
+    <div className="px-4 py-3">
+      {/* Cabecera de sección. La bandera es una VIÑETA, no un banderón a
+          pantalla completa oscurecido con negro: sobre papel, aquel bloque
+          oscuro era un agujero en mitad de la revista. */}
+      <div className="mb-3">
+        <div className="flex items-center gap-2.5">
+          <img
+            src={flagImagePath(country.pais)}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="h-[15px] w-[22px] flex-none border border-tinta/25 object-cover"
+          />
+          <h3 className="min-w-0 flex-1 truncate font-display text-2xl font-black leading-none tracking-tight text-tinta">
             {getLocalizedCountry(country.pais)}
-          </p>
-          <p className="mt-2 text-xs font-medium tabular-nums text-muted">
-            {t("garage.countryCount", { unlocked: country.unlocked, total: country.total })}
-          </p>
+          </h3>
+          <span className="flex-none font-mono text-[11px] tabular-nums text-muted">
+            {country.unlocked}/{country.total}
+          </span>
+        </div>
+        <div className="arch-regla mt-2">
+          <i style={{ width: `${pct}%` }} />
         </div>
       </div>
 
-      {/* Índice de marcas: mismo idioma que la lista de países (emblema en
-          chip + barra + progreso). El emblema real de /brands/*.png se ve
-          nítido; si falta, cae a la inicial vía onError. */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-2">
-        <div className="flex flex-col">
-          {visibleBrands.map((brand) => (
-            <BrandRow
-              key={brand.marca}
-              brand={brand}
-              onClick={() => onSelectBrand(brand.marca)}
-            />
-          ))}
-        </div>
-      </div>
-    </>
+      {brands.map((brand) => (
+        <BrandSection
+          key={brand.marca}
+          brand={brand}
+          newIds={newIds}
+          // El país se anota al abrir el detalle porque los coches vienen
+          // agrupados por país y no lo llevan dentro (en la vitrina lo añade
+          // collectCovers). Sin esto, el dorso perdería la línea de país solo
+          // cuando se entra por la página de un país — justo al revés.
+          onSelectCar={(car) => onSelectCar({ ...car, pais: country.pais })}
+        />
+      ))}
+
+      {complete && <SpecialCard country={country} />}
+
+      <div className="h-4" aria-hidden="true" />
+    </div>
   );
 }
 
-// Fila de marca (índice): emblema real de la marca en un chip + barra +
-// progreso. Si el .png falta o falla, cae a la inicial. Las marcas sin empezar
-// (0/X) van atenuadas y en gris, para que el índice diga "empezada vs pendiente"
-// de un vistazo.
-function BrandRow({ brand, onClick }) {
+// Cada marca es una PÁGINA del álbum: ladillo con su emblema y su rejilla,
+// portadas primero y huecos después (el servidor ya devuelve los cromos en
+// ese orden dentro de cada país).
+function BrandSection({ brand, newIds, onSelectCar }) {
   const [logoFailed, setLogoFailed] = useState(false);
   const tier = brandTier(brand.unlocked, brand.total);
-  const started = brand.unlocked > 0;
-  const pct = brand.total
-    ? Math.min(100, Math.round((brand.unlocked / brand.total) * 100))
-    : 0;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group flex items-center gap-3 border-b border-tinta/[0.06] px-1 py-2.5 text-left transition-colors hover:bg-papel/[0.03] active:scale-[0.99] ${
-        started ? "" : "opacity-60"
-      }`}
-    >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-tinta/15 bg-papel/[0.04]">
-        {logoFailed ? (
-          <span className="text-sm font-bold text-tinta-2">
-            {(brand.marca?.[0] || "?").toUpperCase()}
-          </span>
-        ) : (
+    <section className="mb-5">
+      {/* Ladillo de marca. Mismo gramaje que .prensa-ladillo, pero con el
+          filete ENTRE el nombre y el contador (el ::after del ladillo lo
+          empujaría al final, detrás de la cifra). */}
+      <div className="mb-2 flex items-center gap-2.5 font-body text-[11px] font-extrabold uppercase tracking-[0.22em] text-tinta">
+        {!logoFailed ? (
           <img
             src={brandLogoPath(brand.marca)}
             alt=""
@@ -897,346 +913,323 @@ function BrandRow({ brand, onClick }) {
             draggable={false}
             loading="lazy"
             onError={() => setLogoFailed(true)}
-            className={`h-full w-full object-contain p-1 ${started ? "" : "opacity-40 grayscale"}`}
+            className={`h-4 w-4 flex-none object-contain ${
+              brand.unlocked > 0 ? "" : "opacity-40 grayscale"
+            }`}
           />
+        ) : null}
+        <span className="min-w-0 truncate">{brand.marca}</span>
+        {tier && <TierMedal tier={tier} className="h-3.5 w-3.5 flex-none" />}
+        <span className="h-px flex-1 bg-tinta/25" aria-hidden="true" />
+        <span className="flex-none font-mono text-[10px] font-normal tracking-normal tabular-nums text-muted">
+          {brand.unlocked}/{brand.total}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        {brand.cars.map((car) =>
+          car.unlocked ? (
+            <Cover
+              key={car.id}
+              car={car}
+              isNew={newIds.has(car.id)}
+              onClick={() => onSelectCar(car)}
+            />
+          ) : (
+            <Hole
+              key={car.id}
+              onClick={() => onSelectCar({ ...car, locked: true })}
+            />
+          )
         )}
       </div>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className={`truncate text-[15px] font-semibold ${started ? "text-tinta" : "text-tinta-2"}`}>
-            {brand.marca}
-          </span>
-          <span className="shrink-0 text-xs tabular-nums text-muted">
-            {brand.unlocked} / {brand.total}
-          </span>
-        </div>
-        <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-papel/[0.07]">
-          <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
-        </div>
-      </div>
-
-      <TierMedalInline tier={tier} />
-      <ChevronIcon className="h-4 w-4 shrink-0 text-tinta-2/70" />
-    </button>
+    </section>
   );
 }
 
-// ============================================================================
-// Vista 3: Showroom de una marca
-// ============================================================================
-
-function BrandShowroom({
-  country,
-  brand,
-  onSelectCar,
-}) {
+// Recompensa por completar un país: una portada que no está en el catálogo,
+// solo se gana. Es el objetivo que le faltaba a la colección — hasta ahora,
+// completar Italia no producía NADA que enseñar.
+function SpecialCard({ country }) {
   const { t } = useT();
-  const progressPct = brand.total
-    ? Math.round((brand.unlocked / brand.total) * 100)
-    : 0;
-  const [logoFailed, setLogoFailed] = useState(false);
-
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Cabecera con logo de marca + barra de progreso. La bandera del país
-          va de fondo, muy oscurecida, como guiño de contexto.
-          Mismas precauciones que la Vista 2: sin border-b blanco y gradient
-          terminado a opacidad 1 para fundir limpio con el bg del modal. */}
-      <div
-        className="relative px-4 py-5 text-center"
-        style={{
-          backgroundImage: `linear-gradient(rgba(10,10,12,0.78), rgba(10,10,12,1)), url('${flagImagePath(country.pais)}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="relative flex flex-col items-center">
-          {!logoFailed ? (
-            <img
-              src={brandLogoPath(brand.marca)}
-              alt={brand.marca}
-              draggable={false}
-              className="mb-2 h-12 w-auto object-contain"
-              onError={() => setLogoFailed(true)}
-            />
-          ) : (
-            <p
-              className="font-display text-2xl font-bold uppercase tracking-widest text-tinta"
-              style={{ textShadow: "0 2px 8px rgba(0,0,0,0.9)" }}
-            >
-              {brand.marca}
-            </p>
-          )}
-          <p className="mt-1 text-xs font-medium tabular-nums text-muted">
-            {t("garage.brandCount", { unlocked: brand.unlocked, total: brand.total })}
-          </p>
-          <div className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-papel-2">
-            <div
-              className="h-full rounded-full bg-accent transition-[width] duration-700"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Grid de coches de la marca: 2 estados posibles
-            A — Desbloqueado: foto a color, click → ficha
-            B — Bloqueado: lona blureada + candado, no interactiva.
-                La única forma de jugar un coche bloqueado es el botón
-                "Repesca Aleatoria" del menú de países, que oculta marca,
-                modelo e incluso a qué país pertenece. */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-        <div className="grid grid-cols-2 gap-3 pb-3 sm:grid-cols-3">
-          {brand.cars.map((car) =>
-            car.unlocked ? (
-              <UnlockedCard
-                key={car.id}
-                car={car}
-                onClick={() => onSelectCar(car)}
-              />
-            ) : (
-              <LockedCard
-                key={car.id}
-                car={car}
-                onClick={() => onSelectCar({ ...car, locked: true })}
-              />
-            )
-          )}
-        </div>
-      </div>
+    <div className="arch-especial mb-5">
+      <p className="kicker">{t("garage.specialKicker")}</p>
+      <p className="titulo">{getLocalizedCountry(country.pais)}</p>
+      <p className="sub">
+        {t("garage.specialSub", { total: country.total })}
+      </p>
     </div>
   );
 }
 
-function UnlockedCard({ car, onClick }) {
+// ============================================================================
+// La portada (el cromo) y el hueco
+// ============================================================================
+
+function Cover({ car, isNew, onClick }) {
   const { t } = useT();
+  const merits = meritsOf(car);
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="
-        group relative aspect-[4/5] w-full overflow-hidden rounded-lg
-        border border-accent/40 bg-bg-secondary
-        shadow-md shadow-black/40 transition
-        hover:border-accent hover:shadow-accent/20
-        active:scale-[0.97]
-      "
-    >
-      <div className="absolute inset-0 overflow-hidden">
+    <button type="button" onClick={onClick} className="arch-portada focus-ring">
+      <div className="cab">
+        <span className="cabecera">{t("garage.coverMasthead")}</span>
+        <span className="num">
+          {t("garage.issueShort")} {issueLabel(car.issue)}
+        </span>
+      </div>
+
+      <div className="foto">
         <img
           src={car.img}
           alt={`${car.marca} ${car.modelo}`}
           draggable={false}
           loading="lazy"
-          className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
         />
       </div>
 
-      {/* Gradient elegante de abajo hacia arriba */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black via-black/60 to-transparent" />
-
-      {/* Etiqueta con jerarquía: marca pequeña amarilla, modelo blanco bold */}
-      {/* Etiqueta sobre el scrim de la foto: texto CLARO (papel) — sobre la
-          fotografía manda el negativo, no la tinta. */}
-      <div className="absolute inset-x-0 bottom-0 p-2.5 text-left">
-        <p className="truncate text-xs font-medium uppercase tracking-widest text-papel/75">
-          {car.marca}
-        </p>
-        <p className="truncate text-sm font-bold text-papel">
-          {car.modelo}
-        </p>
-        <p className="text-[10px] tabular-nums text-papel/60">{car.anio}</p>
+      <div className="pie">
+        <p className="marca">{car.marca}</p>
+        <p className="modelo">{car.modelo}</p>
+        <p className="anio">{car.anio}</p>
       </div>
 
-      <div className="absolute right-1.5 top-1.5 border border-papel/50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-papel">
-        ✓
-      </div>
+      {isNew && <span className="arch-cinta">{t("garage.ribbonNew")}</span>}
 
-      {/* Insignia de mérito VET (ámbar), esquina superior-izquierda: cromo
-          ganado tras haberlo fallado antes (repesca veterano: 1 intento sin
-          pistas). Premia el completismo "duro" — recordar marca+modelo+año
-          exactos a la primera. */}
-      {car.wonAsVeteran && (
-        <div
-          className="
-            absolute left-1.5 top-1.5 rounded-full border border-papel/50
-            bg-tinta/30 px-1.5 py-0.5 text-[9px] font-semibold uppercase
-            tracking-widest text-papel
-          "
-          title={t("garage.veteranBadgeAria")}
-          aria-label={t("garage.veteranBadgeAria")}
-        >
-          {t("garage.veteranBadgeShort")}
-        </div>
+      {merits.length > 0 && (
+        <span className="arch-sellos">
+          {merits.map((m) => (
+            <span
+              key={m}
+              className={`arch-sello arch-sello--${m}`}
+              title={t(`garage.merit_${m}_aria`)}
+              aria-label={t(`garage.merit_${m}_aria`)}
+            >
+              {t(`garage.merit_${m}`)}
+            </span>
+          ))}
+        </span>
       )}
     </button>
   );
 }
 
-function LockedCard({ car, onClick }) {
+// El hueco NO carga imagen (ver .arch-hueco en index.css): la lona borrosa
+// solo se pide al abrir el detalle. Aquí es papel en blanco con trama, que
+// además es lo que un álbum de cromos enseña de verdad en una casilla vacía.
+function Hole({ onClick }) {
   const { t } = useT();
-  // El blur va aplicado SERVER-SIDE en /api/car-image (mode=blurred): lo que
-  // llega al navegador es un JPEG ya desenfocado y oscurecido. No usamos
-  // CSS blur a propósito — sería trivial de quitar abriendo DevTools y leyendo
-  // la `src` original (que en este flujo, además, nunca existe en el cliente).
-  // El overlay CSS que sí ponemos es decorativo, no de seguridad.
   return (
     <button
       type="button"
       onClick={onClick}
-      className="
-        group relative aspect-[4/5] w-full overflow-hidden rounded-lg
-        border border-tinta/15 bg-[#0d0d10]
-        shadow-md shadow-black/40 transition-all duration-300
-        hover:border-papel/40 hover:scale-[1.02]
-        active:scale-[0.98] cursor-pointer
-      "
+      className="arch-hueco focus-ring"
       aria-label={t("garage.ariaLockedCard")}
     >
-      <img
-        src={car?.img}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        loading="lazy"
-        className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-      />
-
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/40" />
-
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center">
-        <LockIcon className="h-7 w-7 text-papel/80 transition-transform duration-300 group-hover:scale-110" />
-        <p
-          className="text-[10px] font-semibold uppercase tracking-[0.22em] text-papel/85 transition-colors duration-300 group-hover:text-papel"
-          style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
-        >
-          {t("garage.lockedLabel")}
-        </p>
-      </div>
+      <span className="num">{t("garage.issueShort")} ???</span>
+      <LockIcon className="h-5 w-5 text-tinta/35" />
+      <span className="txt">{t("garage.holeTitle")}</span>
     </button>
   );
 }
 
 // ============================================================================
-// Detail del cromo
+// Detalle: la portada a tamaño grande, con dorso
 // ============================================================================
 
-function CarDetail({ open, car, onClose, onStartRepesca }) {
-  const { t } = useT();
-  // Conservamos el último coche válido en estado local. Cuando el padre
-  // hace setDetailCar(null) para cerrar el modal, `car` pasa a null y `open`
-  // a false en el mismo render — pero el exit-animation tarda ~250 ms en
-  // completarse. Sin esta cache, durante ese intervalo intentaríamos leer
-  // car.marca de null y reventaría. displayCar solo se actualiza con
-  // valores no-null, así que sobrevive a la animación de salida.
+function CoverDetail({ open, car, onClose, onStartRepesca }) {
+  const { t, tn, dateLocale } = useT();
+  // Conservamos el último coche válido en estado local. Cuando el padre hace
+  // setDetailCar(null) para cerrar, `car` pasa a null y `open` a false en el
+  // mismo render — pero la animación de salida tarda ~250 ms. Sin esta cache
+  // leeríamos car.marca de null durante ese intervalo y reventaría.
   const [displayCar, setDisplayCar] = useState(car);
+  const [flipped, setFlipped] = useState(false);
   useEffect(() => {
     if (car) setDisplayCar(car);
   }, [car]);
+  // Cada portada se abre por su cara buena.
+  useEffect(() => {
+    if (open) setFlipped(false);
+  }, [open, car?.id]);
 
   const isLocked = displayCar?.locked;
+  const merits = displayCar ? meritsOf(displayCar) : [];
+  const wonAt = formatWonAt(displayCar?.wonAt, dateLocale);
 
   return (
     <ModalShell
       open={open}
       onClose={onClose}
+      label={t("garage.headerTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden"
+      panelClassName="modal-panel-flat relative w-full max-w-sm"
     >
       {displayCar && (
         <>
-          <div className="absolute right-2 top-2 z-10">
+          <div className="absolute right-2 top-2 z-20">
             <CloseButton onClick={onClose} />
           </div>
 
-          <div className="relative aspect-[4/3] w-full overflow-hidden bg-bg-secondary">
-            <img
-              src={displayCar.img}
-              alt={isLocked ? t("garage.ariaLockedCard") : `${displayCar.marca} ${displayCar.modelo}`}
-              className="h-full w-full object-cover"
-            />
-            {isLocked && (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-black/40" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-center">
-                  <LockIcon className="h-9 w-9 text-papel/80 animate-pulse" />
-                  <p
-                    className="text-xs font-semibold uppercase tracking-[0.22em] text-papel/85"
-                    style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
-                  >
-                    {t("garage.lockedLabel")}
-                  </p>
+          {isLocked ? (
+            /* Hueco: aquí SÍ enseñamos la lona borrosa (una sola petición, y
+               solo cuando el usuario ha mostrado interés tocando el hueco).
+               Es el momento de intriga: "¿qué se esconde ahí?". */
+            <div className="p-4">
+              <div className="border border-tinta/25">
+                <div className="flex items-center justify-between border-b border-tinta/15 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
+                  <span>{t("garage.coverMasthead")}</span>
+                  <span className="text-accent">{t("garage.issueShort")} ???</span>
                 </div>
-              </>
-            )}
-          </div>
-
-          <div className="p-4">
-            <p className="text-xs font-medium uppercase tracking-widest text-accent">
-              {displayCar.marca}
-            </p>
-
-            {isLocked ? (
-              <>
-                <div className="mt-1.5">
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-gold/30 bg-gold/[0.06] px-2.5 py-1 text-xs font-medium text-gold/90">
-                    <LockIcon className="h-3.5 w-3.5" />
-                    {t("garage.modelHidden")}
-                  </span>
-                </div>
-                <div className="mt-4 rounded-lg border border-tinta/15 bg-papel/[0.03] px-3 py-3 text-left">
-                  <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
-                    {t("garage.repescaTag")}
-                  </p>
-                  <p className="text-sm leading-relaxed text-tinta">
-                    {t("garage.lockedCardDetailBody")}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onStartRepesca?.();
-                  }}
-                  className="
-                    mt-4 w-full rounded-lg bg-accent px-4 py-2.5
-                    text-xs font-semibold uppercase tracking-[0.12em] text-bg-primary
-                    transition hover:brightness-110 active:scale-[0.98]
-                  "
-                >
-                  {t("garage.lockedCardDetailCta")}
-                </button>
-              </>
-            ) : (
-              <>
-                <h3 className="mt-0.5 font-display text-2xl font-bold tracking-wider text-tinta">
-                  {displayCar.modelo}
-                </h3>
-                <p className="mt-0.5 font-display text-base tabular-nums text-muted">
-                  {displayCar.anio}
-                </p>
-
-                {getCarDescription(displayCar) ? (
-                  <div className="mt-4 rounded-lg border border-tinta/15 bg-papel/[0.03] px-3 py-3 text-left">
-                    <p className="mb-1 text-[10px] uppercase tracking-[0.22em] text-accent">
-                      {t("garage.carSpec")}
-                    </p>
-                    <p className="text-sm leading-relaxed text-tinta">
-                      {getCarDescription(displayCar)}
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-papel-2">
+                  {displayCar.img && (
+                    <img
+                      src={displayCar.img}
+                      alt=""
+                      aria-hidden="true"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-papel/70 text-center">
+                    <LockIcon className="h-8 w-8 text-tinta/70" />
+                    <p className="font-body text-[10px] font-extrabold uppercase tracking-[0.22em] text-tinta/80">
+                      {t("garage.lockedLabel")}
                     </p>
                   </div>
-                ) : (
-                  <p className="mt-4 rounded-lg border border-tinta/15 bg-papel/[0.02] px-3 py-3 text-xs italic text-muted">
-                    {t("garage.carNoDescription")}
+                </div>
+              </div>
+
+              <p className="pm-kicker mt-4">{displayCar.marca}</p>
+              <p className="mt-1 font-display text-xl font-black text-tinta">
+                {t("garage.modelHidden")}
+              </p>
+              <p className="pm-body mt-2">{t("garage.lockedCardDetailBody")}</p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onStartRepesca?.();
+                }}
+                className="pm-btn mt-4"
+              >
+                {t("garage.lockedCardDetailCta")}
+              </button>
+            </div>
+          ) : (
+            /* Las dos caras están SIEMPRE montadas (si no, no hay volteo que
+               animar), así que la que mira hacia atrás se marca aria-hidden y
+               su botón sale del orden de tabulación: un lector de pantalla no
+               debe leer el dorso mientras se ve la portada, ni el Tab llevar
+               a un botón invisible. */
+            <div className={`arch-flip ${flipped ? "dorso" : ""}`}>
+              <div className="arch-flip-inner">
+                {/* ── Cara: la portada ── */}
+                <div className="arch-cara p-4" aria-hidden={flipped}>
+                  <div className="border border-tinta">
+                    <div className="flex items-center justify-between border-b border-tinta/20 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
+                      <span>{t("garage.coverMasthead")}</span>
+                      <span className="font-bold text-accent">
+                        {t("garage.issueShort")} {issueLabel(displayCar.issue)}
+                      </span>
+                    </div>
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-papel-2">
+                      <img
+                        src={displayCar.img}
+                        alt={`${displayCar.marca} ${displayCar.modelo}`}
+                        className="h-full w-full object-cover"
+                      />
+                      {merits.length > 0 && (
+                        <span className="arch-sellos" style={{ top: 8 }}>
+                          {merits.map((m) => (
+                            <span key={m} className={`arch-sello arch-sello--${m}`}>
+                              {t(`garage.merit_${m}`)}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="pm-kicker mt-3">{displayCar.marca}</p>
+                  <h3 className="mt-0.5 font-display text-[26px] font-black leading-none tracking-tight text-tinta">
+                    {displayCar.modelo}
+                  </h3>
+                  <p className="mt-1 font-mono text-xs tabular-nums text-muted">
+                    {displayCar.anio}
+                    {displayCar.pais ? ` · ${getLocalizedCountry(displayCar.pais)}` : ""}
                   </p>
-                )}
-              </>
-            )}
-          </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setFlipped(true)}
+                    tabIndex={flipped ? -1 : 0}
+                    className="pm-btn pm-btn--ghost mt-4"
+                  >
+                    {t("garage.flipToBack")}
+                  </button>
+                </div>
+
+                {/* ── Cara: el dorso ── */}
+                <div className="arch-cara arch-cara--dorso p-4" aria-hidden={!flipped}>
+                  <div className="flex items-center justify-between border-b border-tinta/20 pb-1.5 font-mono text-[9px] uppercase tracking-wider text-muted">
+                    <span>{displayCar.marca} · {displayCar.modelo}</span>
+                    <span className="font-bold text-accent">
+                      {t("garage.issueShort")} {issueLabel(displayCar.issue)}
+                    </span>
+                  </div>
+
+                  <p className="pm-label mt-3">{t("garage.carSpec")}</p>
+                  {getCarDescription(displayCar) ? (
+                    <p className="pm-body mt-1">{getCarDescription(displayCar)}</p>
+                  ) : (
+                    <p className="pm-body mt-1 italic">{t("garage.carNoDescription")}</p>
+                  )}
+
+                  <p className="pm-label arch-filete mt-4 pt-3">
+                    {t("garage.backTitle")}
+                  </p>
+                  <div className="mt-1">
+                    {wonAt && (
+                      <div className="arch-dato">
+                        <span className="k">{t("garage.datoWonAt")}</span>
+                        <span className="v">{wonAt}</span>
+                      </div>
+                    )}
+                    {Number.isFinite(displayCar.attempts) && (
+                      <div className="arch-dato">
+                        <span className="k">{t("garage.datoAttempts")}</span>
+                        <span className={`v ${displayCar.attempts === 1 ? "rojo" : ""}`}>
+                          {tn("garage.attemptsN", displayCar.attempts)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="arch-dato">
+                      <span className="k">{t("garage.datoMerit")}</span>
+                      <span className={`v ${merits.length ? "oro" : ""}`}>
+                        {merits.length
+                          ? merits.map((m) => t(`garage.merit_${m}`)).join(" · ")
+                          : t("garage.datoMeritNone")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setFlipped(false)}
+                    tabIndex={flipped ? 0 : -1}
+                    className="pm-btn pm-btn--ghost mt-4"
+                  >
+                    {t("garage.flipToFront")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </ModalShell>
@@ -1247,39 +1240,37 @@ function CarDetail({ open, car, onClose, onStartRepesca }) {
 // Modal de confirmación de Repesca Aleatoria
 // ============================================================================
 //
-// Se abre tras pulsar el CTA principal y antes de tocar /api/repesca/start.
-// Muestra las condiciones (una al día, mitad de puntos, no afecta racha)
-// y nada de info del coche — porque ni siquiera nosotros sabemos cuál nos
-// va a tocar todavía (el random sale en el `onAccept`).
+// Se abre tras pulsar el CTA de números atrasados y antes de tocar
+// /api/repesca/start. Muestra las condiciones (una al día, mitad de puntos,
+// no afecta racha) y nada de info del coche — porque ni siquiera nosotros
+// sabemos cuál va a tocar todavía (lo sortea el servidor en el onAccept).
 function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) {
   const { t } = useT();
-  // Si está en pleno proceso de "Sorteando..." (starting=true), bloqueamos
-  // que se cierre tocando el backdrop. La animación de salida del modal
-  // confundiría: parecería que se cancela cuando en realidad sigue el POST.
+  // Si está en pleno "Sorteando...", bloqueamos el cierre por backdrop: la
+  // animación de salida confundiría (parecería cancelado cuando sigue el POST).
   return (
     <ModalShell
       open={open}
       onClose={onCancel}
       dismissOnBackdrop={!starting}
+      label={t("garage.repescaConfirmTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden"
     >
         <div className="px-5 py-5 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-accent">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center border border-accent text-accent">
             <DiceIcon className="h-7 w-7" />
           </div>
-          <p className="mt-4 text-[10px] uppercase tracking-[0.28em] text-accent">
-            {t("garage.repescaTag")}
-          </p>
-          <h3 className="mt-1 font-display text-xl tracking-wider text-tinta">
+          <p className="pm-kicker mt-4">{t("garage.repescaTag")}</p>
+          <h3 className="mt-1 font-display text-xl font-black tracking-tight text-tinta">
             {t("garage.repescaConfirmTitle")}
           </h3>
 
-          <p className="mt-3 text-sm text-muted">
+          <p className="pm-body mt-3">
             {t("garage.repescaConfirmBody", { poolSize })}
           </p>
 
-          <div className="mt-4 rounded-lg border border-tinta/15 bg-papel/[0.03] px-3 py-1 text-left">
+          <div className="mt-4 border border-tinta/20 px-3 py-1 text-left">
             <RuleRow icon={<CalendarIcon />}>{t("garage.repescaRuleOnePerDay")}</RuleRow>
             <RuleRow icon={<HalfIcon />}>{t("garage.repescaRuleHalfPoints")}</RuleRow>
             <RuleRow icon={<StreakSafeIcon />} last>{t("garage.repescaRuleNoStreak")}</RuleRow>
@@ -1290,12 +1281,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
               type="button"
               onClick={onCancel}
               disabled={starting}
-              className="
-                flex-1 rounded-lg border border-tinta/15 bg-papel/[0.04]
-                px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-tinta
-                transition hover:border-tinta/25 hover:text-tinta
-                disabled:cursor-not-allowed disabled:opacity-50
-              "
+              className="pm-btn pm-btn--ghost flex-1"
             >
               {t("common.cancel")}
             </button>
@@ -1303,12 +1289,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
               type="button"
               onClick={onAccept}
               disabled={starting}
-              className="
-                flex-1 rounded-lg bg-accent
-                px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-bg-primary
-                transition hover:brightness-110
-                disabled:cursor-not-allowed disabled:opacity-60
-              "
+              className="pm-btn flex-1"
               aria-busy={starting}
             >
               {starting ? t("garage.repescaStarting") : t("garage.repescaAccept")}
@@ -1320,89 +1301,11 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
 }
 
 // ============================================================================
-// Botón "Repesca Aleatoria" (CTA principal del Garaje)
-// ============================================================================
-//
-// Sustituye al flujo antiguo de "elegir coche bloqueado + confirmar". Ahora el
-// usuario no ve ni marca ni país del coche que va a jugar: el servidor
-// (vía /api/repesca/start) consume el intento del día y la página /repesca
-// muestra solo la lona blureada hasta que se hace el primer intento.
-//
-// Estados visuales:
-//   - hasActive  → "Continuar repesca": ya hay una partida en curso hoy.
-//   - !available → "Sin repescas hoy" : ya consumió su intento, pero la
-//                   partida está terminada (ganada o perdida). Botón
-//                   desactivado.
-//   - poolSize=0 → "Álbum completo"   : no quedan coches pendientes.
-//                   Botón desactivado.
-//   - default    → icono de dado + "Jugar Repesca Aleatoria".
-function RandomRepescaButton({
-  poolSize,
-  available,
-  hasActive,
-  starting,
-  onClick,
-}) {
-  const { t } = useT();
-  let label;
-  let Icon = DiceIcon;
-  let disabled = false;
-  let tone = "accent";
-
-  if (starting) {
-    label = t("garage.repescaStarting");
-    Icon = DiceIcon;
-  } else if (hasActive) {
-    label = t("garage.repescaContinue");
-    Icon = RefreshIcon;
-  } else if (poolSize === 0) {
-    label = t("garage.repescaComplete");
-    Icon = StarIcon;
-    disabled = true;
-    tone = "muted";
-  } else if (!available) {
-    label = t("garage.repescaNoneToday");
-    Icon = HourglassIcon;
-    disabled = true;
-    tone = "muted";
-  } else {
-    label = t("garage.repescaPlay");
-  }
-
-  const base =
-    "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 " +
-    "text-xs font-semibold uppercase tracking-[0.16em] transition-all active:scale-[0.98] " +
-    "disabled:cursor-not-allowed disabled:opacity-60";
-  const toneCls =
-    tone === "accent"
-      ? "border border-accent/50 bg-accent/15 text-accent hover:border-accent hover:bg-accent/25"
-      : "border border-tinta/15 bg-papel/[0.04] text-tinta-2";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || starting}
-      aria-busy={starting}
-      className={`${base} ${toneCls}`}
-    >
-      <Icon className="h-[18px] w-[18px]" />
-      <span>{label}</span>
-      {!disabled && !starting && poolSize > 0 && !hasActive && (
-        <span className="ml-1 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] tabular-nums tracking-wider text-accent">
-          {poolSize}
-        </span>
-      )}
-    </button>
-  );
-}
-
-// ============================================================================
 // Subcomponentes auxiliares
 // ============================================================================
 
-// ── Iconos line-art del Garaje (stroke currentColor, NO emoji — coherencia
-// con el sistema de iconos de la app y cross-platform) ───────────────────
+// ── Iconos line-art (stroke currentColor, NO emoji — coherencia con el
+// sistema de iconos de la app y cross-platform) ──────────────────────────
 const GICO = {
   fill: "none",
   stroke: "currentColor",
@@ -1411,18 +1314,10 @@ const GICO = {
   strokeLinejoin: "round",
 };
 
-function ChevronIcon({ className = "h-4 w-4" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} strokeWidth="2" aria-hidden="true">
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
-
 function CollectionIcon({ className = "h-4 w-4" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <rect x="3" y="6" width="12" height="14" rx="2" />
+      <rect x="3" y="6" width="12" height="14" rx="1" />
       <path d="M8 6V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-1" />
     </svg>
   );
@@ -1431,7 +1326,7 @@ function CollectionIcon({ className = "h-4 w-4" }) {
 function DiceIcon({ className = "h-[18px] w-[18px]" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <rect x="4" y="4" width="16" height="16" rx="3.5" />
+      <rect x="4" y="4" width="16" height="16" rx="1" />
       <circle cx="8.5" cy="8.5" r="1.15" fill="currentColor" stroke="none" />
       <circle cx="15.5" cy="8.5" r="1.15" fill="currentColor" stroke="none" />
       <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
@@ -1441,37 +1336,10 @@ function DiceIcon({ className = "h-[18px] w-[18px]" }) {
   );
 }
 
-function RefreshIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <path d="M20 11a8 8 0 1 0-1.6 5.2" />
-      <path d="M20 5v6h-6" />
-    </svg>
-  );
-}
-
-function StarIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <path d="M12 3.5l2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.65l5.9-.85z" />
-    </svg>
-  );
-}
-
-function HourglassIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <path d="M6 3h12M6 21h12" />
-      <path d="M7 3v3.2c0 1.8 5 3 5 5.8s-5 4-5 5.8V21" />
-      <path d="M17 3v3.2c0 1.8-5 3-5 5.8" />
-    </svg>
-  );
-}
-
 function CalendarIcon({ className = "h-[15px] w-[15px]" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <rect x="4" y="5" width="16" height="16" rx="2" />
+      <rect x="4" y="5" width="16" height="16" rx="1" />
       <path d="M4 9h16M8 3v4M16 3v4" />
     </svg>
   );
@@ -1495,28 +1363,25 @@ function StreakSafeIcon({ className = "h-[15px] w-[15px]" }) {
   );
 }
 
-// Medalla de tier inline (filas del índice). Slot de ancho fijo para que el
-// chevron quede alineado, haya medalla o no.
-function TierMedalInline({ tier }) {
+// Medalla de tier: bronce/plata/oro de una colección (país o marca).
+function TierMedal({ tier, className = "h-4 w-4" }) {
+  if (!tier) return null;
   return (
-    <span className="flex w-4 shrink-0 justify-center" aria-hidden="true">
-      {tier ? (
-        <svg
-          viewBox="0 0 24 24"
-          className="h-4 w-4"
-          style={{ color: TIER_HEX[tier] }}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="12" cy="14" r="6" fill={TIER_HEX[tier]} fillOpacity="0.18" />
-          <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
-          <circle cx="12" cy="14" r="6" />
-        </svg>
-      ) : null}
-    </span>
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      style={{ color: TIER_HEX[tier] }}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="14" r="6" fill={TIER_HEX[tier]} fillOpacity="0.18" />
+      <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
+      <circle cx="12" cy="14" r="6" />
+    </svg>
   );
 }
 
@@ -1524,8 +1389,8 @@ function TierMedalInline({ tier }) {
 function RuleRow({ icon, children, last = false }) {
   return (
     <div
-      className={`flex items-center gap-2.5 py-2 text-xs text-muted ${
-        last ? "" : "border-b border-tinta/[0.06]"
+      className={`flex items-center gap-2.5 py-2 font-body text-xs text-muted ${
+        last ? "" : "border-b border-tinta/[0.12]"
       }`}
     >
       <span className="shrink-0 text-accent">{icon}</span>
@@ -1534,43 +1399,17 @@ function RuleRow({ icon, children, last = false }) {
   );
 }
 
-function BackButton({ onClick, label }) {
-  const { t } = useT();
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={t("garage.backTo", { label })}
-      className="
-        inline-flex max-w-full items-center gap-1.5
-        rounded-md border border-tinta/15 bg-papel/[0.04]
-        px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta
-        transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent
-        active:scale-95
-      "
-    >
-      <svg
-        viewBox="0 0 24 24"
-        className="h-3.5 w-3.5 shrink-0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M15 18l-6-6 6-6" />
-      </svg>
-      <span className="truncate">{t("garage.backTo", { label })}</span>
-    </button>
-  );
-}
-
 function CenterMessage({ text, pulse = false, tone = "default" }) {
-  const toneClass = tone === "error" ? "text-red-400" : "text-muted";
+  // El error usa el rojo del sistema (`accent`), no un red-400 suelto fuera
+  // de paleta: en una revista impresa solo hay una tinta roja.
+  const toneClass = tone === "error" ? "text-accent" : "text-muted";
   return (
     <div className="flex flex-1 items-center justify-center p-6 text-center">
-      <p className={`text-sm ${toneClass} ${pulse ? "animate-pulse uppercase tracking-widest" : ""}`}>
+      <p
+        className={`font-mono text-sm ${toneClass} ${
+          pulse ? "animate-pulse uppercase tracking-widest" : ""
+        }`}
+      >
         {text}
       </p>
     </div>
@@ -1578,16 +1417,16 @@ function CenterMessage({ text, pulse = false, tone = "default" }) {
 }
 
 // Modal con la explicación completa del modo Repesca. Lo lanza el link
-// contextual "Cómo funciona la repesca" debajo del CTA de la vista raíz.
-// Se complementa con RandomRepescaConfirm, que es el modal corto
-// que sale justo antes de gastar la repesca; este de aquí está pensado
-// para consultarse antes de decidir.
+// contextual bajo la banda de números atrasados. Se complementa con
+// RandomRepescaConfirm, que es el modal corto justo antes de gastarla; este
+// está pensado para consultarse ANTES de decidir.
 function RepescaHelpModal({ open, onClose }) {
   const { t } = useT();
   return (
     <ModalShell
       open={open}
       onClose={onClose}
+      label={t("garage.repescaHelpTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden"
     >
@@ -1597,24 +1436,20 @@ function RepescaHelpModal({ open, onClose }) {
 
         <div className="px-5 pb-5 pt-6 text-left">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-accent">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-accent text-accent">
               <DiceIcon className="h-6 w-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
-                {t("garage.repescaHelpTag")}
-              </p>
-              <h3 className="font-display text-xl tracking-wider text-tinta">
+              <p className="pm-kicker">{t("garage.repescaHelpTag")}</p>
+              <h3 className="font-display text-xl font-black tracking-tight text-tinta">
                 {t("garage.repescaHelpTitle")}
               </h3>
             </div>
           </div>
 
-          <p className="mt-4 text-sm leading-relaxed text-tinta">
-            {t("garage.repescaHelpBody")}
-          </p>
+          <p className="pm-body mt-4">{t("garage.repescaHelpBody")}</p>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-2">
             <HelpRow icon={<DiceIcon className="h-4 w-4" />} title={t("garage.repescaHelpSurprise")}>
               {t("garage.repescaHelpSurpriseDesc")}
             </HelpRow>
@@ -1635,15 +1470,7 @@ function RepescaHelpModal({ open, onClose }) {
             </HelpRow>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="
-              mt-5 w-full rounded-lg border border-accent/50 bg-accent/15
-              px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-accent
-              transition hover:border-accent hover:bg-accent/25 active:scale-[0.98]
-            "
-          >
+          <button type="button" onClick={onClose} className="pm-btn mt-5">
             {t("garage.repescaHelpOk")}
           </button>
         </div>
@@ -1653,15 +1480,15 @@ function RepescaHelpModal({ open, onClose }) {
 
 function HelpRow({ icon, title, children }) {
   return (
-    <div className="flex gap-3 rounded-lg border border-tinta/15 bg-papel/[0.03] px-3 py-2.5">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 font-display text-sm text-accent">
+    <div className="flex gap-3 border border-tinta/20 px-3 py-2.5">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center text-accent">
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-tinta">
+        <p className="font-body text-[11px] font-bold uppercase tracking-[0.14em] text-tinta">
           {title}
         </p>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted">{children}</p>
+        <p className="pm-body mt-0.5 text-[13px]">{children}</p>
       </div>
     </div>
   );
@@ -1671,26 +1498,23 @@ function AuthWall({ onLogin }) {
   const { t } = useT();
   return (
     <div className="flex flex-1 items-center justify-center p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-tinta/15 bg-bg-secondary/60 p-6 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full border border-accent/40 bg-accent/10">
-          <LockIcon className="h-9 w-9 text-accent" />
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 border border-tinta/25 bg-papel-mat p-6 text-center">
+        <div className="flex h-16 w-16 items-center justify-center border border-accent">
+          <LockIcon className="h-8 w-8 text-accent" />
         </div>
         <div>
-          <p className="font-display text-xl tracking-widest text-tinta">
+          <p className="font-display text-xl font-black tracking-tight text-tinta">
             {t("garage.authTitle")}
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            {t("garage.authBody")}
-          </p>
+          <p className="pm-body mt-2">{t("garage.authBody")}</p>
         </div>
+        {/* El botón de Google era `bg-papel … text-papel`: texto invisible
+            sobre su propio fondo, herencia del tema oscuro donde `papel` era
+            blanco sobre grafito. Ahora es el botón sólido del sistema. */}
         <button
           type="button"
           onClick={onLogin}
-          className="
-            flex w-full items-center justify-center gap-3
-            rounded-lg bg-papel px-4 py-3 text-sm font-semibold text-papel
-            transition-transform hover:scale-[1.02] active:scale-[0.98]
-          "
+          className="pm-btn flex items-center justify-center gap-3"
         >
           <GoogleIcon className="h-4 w-4" />
           {t("common.continueWithGoogle")}
@@ -1716,7 +1540,7 @@ function LockIcon({ className = "" }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <rect x="4" y="11" width="16" height="9" rx="2" />
+      <rect x="4" y="11" width="16" height="9" rx="1" />
       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
     </svg>
   );

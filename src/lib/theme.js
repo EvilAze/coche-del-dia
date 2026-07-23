@@ -57,37 +57,49 @@ export function getTheme() {
 // capacitor.config.json). La sincronizamos una vez con el tema ya resuelto.
 syncNativeStatusBar(current);
 
-// App nativa (Capacitor): el ESTILO de la barra de estado (claro/oscuro de sus
-// iconos) no lo pinta el CSS, así que hay que sincronizarlo a mano con el tema
-// elegido. El import es dinámico y el fallo se traga: en web el plugin no existe
-// y esto debe ser un no-op, nunca romper el cambio de tema (regla 9: no degradar
-// la home).
-//   Style.LIGHT = texto OSCURO para fondos claros; Style.DARK = texto CLARO.
-//   El nombre va por el CONTENIDO de la barra, no por el fondo — se lee al revés
-//   de lo que parece, y es el error clásico al tocar esto.
+// App nativa (Capacitor): el ESTILO de las barras del sistema (claro/oscuro de
+// sus iconos) no lo pinta el CSS, así que hay que sincronizarlo a mano con el
+// tema elegido. El import es dinámico y el fallo se traga: en web esto debe ser
+// un no-op, nunca romper el cambio de tema (regla 9: no degradar la home).
+//   Style.LIGHT = contenido OSCURO para fondos claros; Style.DARK = contenido
+//   CLARO. El nombre va por el CONTENIDO de la barra, no por el fondo — se lee
+//   al revés de lo que parece, y es el error clásico al tocar esto.
 //
-// Aquí NO se toca el color de FONDO de la barra, aunque lo pida el instinto:
-// con targetSdk 36 y Capacitor 8, Android impone edge-to-edge y ya no se puede
-// desactivar (en API 35 quedaba el escape de `windowOptOutEdgeToEdgeEnforcement`,
-// en 36 desapareció). Con edge-to-edge la barra es transparente por definición y
-// `StatusBar.setBackgroundColor()` es un no-op documentado por el propio plugin.
-// El fondo que se ve bajo la barra es el del contenido web, que ya lleva el tema
-// puesto — de ahí que .prensa-hoja incruste el inset superior (ver index.css).
-// Lo que había aquí era una llamada muerta que hacía creer que la franja se
-// estaba pintando.
+// Usa `SystemBars`, integrado en @capacitor/core desde Capacitor 8, en vez del
+// antiguo @capacitor/status-bar. Dos motivos, los dos visibles:
+//
+//   1. `StatusBar.setStyle` solo tocaba la barra de ESTADO. La de NAVEGACIÓN se
+//      quedaba con la apariencia del SO, y como con edge-to-edge el contenido se
+//      dibuja debajo, en «edición de noche» sobre un móvil en modo claro la
+//      píldora de gestos salía oscura sobre grafito: invisible.
+//      `SystemBars.setStyle` sin `bar` aplica a las DOS.
+//
+//   2. SystemBars ya estaba activo igualmente (es quien inyecta las
+//      --safe-area-inset-* que usa index.css) y reaplica SU estilo en cada
+//      cambio de configuración. Como el estilo se fijaba por el otro plugin,
+//      SystemBars no se enteraba y al rotar el móvil —o al cambiar el modo
+//      oscuro del SO, o la densidad: todos están en el `configChanges` de la
+//      Activity— pisaba nuestra elección y las barras volvían al tema del
+//      sistema. Fijándolo por SystemBars, lo que reaplica al rotar es lo NUESTRO.
+//
+// Aquí NO se toca el color de FONDO de la barra, aunque lo pida el instinto: con
+// targetSdk 36 Android impone edge-to-edge sin opt-out posible, la barra es
+// transparente por definición y el fondo que se ve es el del contenido web, que
+// ya lleva el tema puesto (por eso .prensa-hoja incrusta el inset superior).
 function syncNativeStatusBar(tema) {
   // Sin window no hay app nativa (tests en node): salimos antes de importar,
   // para no dejar promesas colgando en la suite.
   if (typeof window === "undefined") return;
-  Promise.all([import("@capacitor/core"), import("@capacitor/status-bar")])
-    .then(([{ Capacitor }, { StatusBar, Style }]) => {
+  import("@capacitor/core")
+    .then(({ Capacitor, SystemBars, SystemBarsStyle }) => {
       if (!Capacitor.isNativePlatform()) return;
-      return StatusBar.setStyle({
-        style: tema === "noche" ? Style.Dark : Style.Light,
+      // Sin `bar`: aplica a la barra de estado Y a la de navegación.
+      return SystemBars.setStyle({
+        style: tema === "noche" ? SystemBarsStyle.Dark : SystemBarsStyle.Light,
       });
     })
     .catch(() => {
-      /* plugin ausente (web) o API no disponible: la barra se queda como esté */
+      /* API no disponible (web, versión vieja): las barras se quedan como estén */
     });
 }
 

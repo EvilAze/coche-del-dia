@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cochedeldia",
+      "sha256_cert_fingerprints": [
+        "AD:01:CA:7D:48:99:F4:2E:AF:71:64:9E:3B:1C:B9:64:6A:6F:C5:4B:10:17:26:FB:40:9E:C8:96:6B:44:10:4D"
+      ]
+    }
+  }
+]

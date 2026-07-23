@@ -21,6 +21,36 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Android App Links: los enlaces a cochedeldia.com abren la app en
+                 vez del navegador. Sin esto, el resultado que un jugador
+                 comparte por WhatsApp llevaba a la web AUNQUE el amigo tuviera
+                 la app instalada, que es un agujero en el bucle de crecimiento
+                 del juego.
+
+                 `autoVerify="true"` hace que Android compruebe al instalar que
+                 https://cochedeldia.com/.well-known/assetlinks.json contiene la
+                 huella con la que está firmada la app. Si casa, los enlaces
+                 abren la app en silencio, sin el diálogo de "¿con qué quieres
+                 abrir esto?".
+
+                 SOLO se declara el apex, a propósito y con cuidado: desde
+                 Android 12 la verificación es TODO O NADA entre los hosts del
+                 manifest. Añadir www. o carguessr.org y que uno solo de ellos
+                 no sirva su assetlinks.json tumbaría la verificación de TODOS,
+                 y el fallo se ve únicamente en un móvil real ya instalado. El
+                 apex está confirmado sirviendo sin redirección a www (ver la
+                 comprobación con curl en docs/android-build-release.md).
+
+                 No lleva pathPattern: la app es la MISMA SPA que la web, así
+                 que puede atender cualquier ruta. El enrutado del enlace
+                 entrante lo hace el listener appUrlOpen de src/index.jsx. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="cochedeldia.com" />
+            </intent-filter>
         </activity>
     </application>
 

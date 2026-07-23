@@ -68,7 +68,7 @@ ls -lh android/app/build/outputs/bundle/release/app-release.aab
 | `plugins.SplashScreen.launchAutoHide` | `false` | Antes era el temporizador ciego `launchShowDuration: 800`: a los 800 ms el splash se iba **pintara o no** la app, y un WebView en frío tarda 1-2 s. La secuencia real era splash → hueco vacío → app. Ahora lo cierra `src/lib/splash.js` cuando el primer frame está pintado, con tope de seguridad a 4 s. |
 | `plugins.LocalNotifications.smallIcon` | `ic_stat_cdd` | Sin esto el plugin cae a `android.R.drawable.ic_dialog_info`: el recordatorio diario salía con la "i" genérica de Android. |
 | `plugins.LocalNotifications.iconColor` | `#E0574A` | Rojo de marca de la edición de **noche**. Se elige ese y no el de día (`#B3271B`) porque la bandeja de notificaciones puede ser clara u oscura y el valor es único: el rojo claro se lee en ambas, el oscuro se apaga sobre bandeja oscura. |
-| `plugins.StatusBar` | solo `style` | `backgroundColor` y `overlaysWebView` **ya no hacen nada** con targetSdk 36 + Capacitor 8: Android impone edge-to-edge y no se puede desactivar (en API 35 quedaba `windowOptOutEdgeToEdgeEnforcement`; en 36 desapareció). Estaban puestos y engañaban. |
+| `plugins.SystemBars.style` | `DEFAULT` | Sustituye al viejo bloque `StatusBar` (el plugin `@capacitor/status-bar` está **desinstalado**). `SystemBars` viene integrado en `@capacitor/core` desde Capacitor 8 y aplica el estilo a la barra de estado **y a la de navegación**; el otro solo tocaba la de estado, así que en «edición de noche» sobre un móvil en modo claro la píldora de gestos quedaba invisible. `DEFAULT` arranca siguiendo el modo del SO —la misma heurística que el anti-FOUC de `index.html`— y `theme.js` lo ajusta al tema real acto seguido. Nota: `backgroundColor` y `overlaysWebView` **no existen** aquí porque con targetSdk 36 Android impone edge-to-edge sin opt-out y no harían nada. |
 | `android.backgroundColor` | `#f3eee1` | Solo es el suelo del WebView. El color que manda de verdad lo pone `MainActivity` desde `@color/cdd_window_bg`, que sí tiene variante `values-night`. |
 
 Y en `android/app/src/main/`:
@@ -84,6 +84,50 @@ Y en `android/app/src/main/`:
   alimenta el cursor y los manipuladores de selección de texto que dibuja el
   WebView — venían en rosa Material. Se aplican vía `AppTheme.NoActionBar` en
   `styles.xml`, que es el tema real de la Activity (**no** hereda de `AppTheme`).
+
+### App Links (los enlaces a cochedeldia.com abren la app)
+
+Dos piezas que tienen que casar:
+
+1. `android/app/src/main/AndroidManifest.xml` → `<intent-filter android:autoVerify="true">`
+   con `https://cochedeldia.com`.
+2. `public/.well-known/assetlinks.json` → la huella **SHA-256** de la clave que
+   firma el APK que llega al usuario.
+
+La huella que va ahí es la de **Play App Signing** (Play Console → Configuración
+→ Integridad de la app), **no** la del upload key ni la de debug: Google
+re-firma el AAB antes de distribuirlo, así que la app instalada lleva esa.
+
+> **Solo se declara el apex, y es a propósito.** Desde Android 12 la
+> verificación es **todo o nada** entre los hosts del manifest: si añades
+> `www.` o `carguessr.org` y uno solo de ellos no sirve su `assetlinks.json`,
+> se cae la verificación de **todos** — y eso solo se ve en un móvil real ya
+> instalado.
+
+Comprobar que el fichero se sirve bien (sin redirección y como JSON):
+
+```bash
+curl -sI https://cochedeldia.com/.well-known/assetlinks.json
+```
+
+Espera `HTTP/2 200` y `content-type: application/json`. El rewrite SPA de
+`vercel.json` ya lo excluye (su patrón descarta cualquier ruta con punto).
+
+Comprobar la verificación en el dispositivo:
+
+```bash
+adb shell pm get-app-links com.cochedeldia
+```
+
+Debe poner `verified` para `cochedeldia.com`. Un build de **debug** NO
+verificará (está firmado con otra clave, que no es la del `assetlinks.json`):
+para probarlo antes de publicar, actívalo a mano en Ajustes → Aplicaciones →
+Coche del Día → Abrir de forma predeterminada → Añadir enlace.
+
+El enrutado del enlace entrante lo hace `src/lib/deepLink.js` (el WebView sirve
+desde `https://localhost`, así que hay que traducir la ruta) y valida esquema y
+host: cualquier app puede lanzar un intent explícito a la Activity, el
+`intent-filter` solo gobierna lo que Android nos enruta.
 
 ### Regenerar el icono de notificación
 

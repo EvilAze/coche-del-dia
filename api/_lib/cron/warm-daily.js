@@ -303,6 +303,38 @@ export async function warmDaily(req, res) {
       });
     }
 
+    // ---- PASO 7: recalcular la rareza de las portadas (El Archivo) -------
+    // Piggyback best-effort, mismo motivo que PASO 4/5/6. Cuenta, por coche,
+    // cuántos coleccionistas lo han ganado, para que El Archivo pueda decir
+    // «solo el 8 % la tiene» — el dato que hace que dos cromos del mismo
+    // coche no valgan lo mismo. Va precalculado porque es un COUNT(DISTINCT)
+    // sobre user_guesses entero: en vivo sería un escaneo completo por cada
+    // apertura del archivo, y el dato solo cambia de día en día. Idempotente.
+    // Ver scripts/2026-07-rareza-portadas.sql.
+    const step7Start = Date.now();
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      if (!supabaseAdmin) {
+        result.steps.push({ step: "recalc-rarity", skipped: true, reason: "admin envs ausentes" });
+      } else {
+        const { data, error } = await supabaseAdmin.rpc("recompute_cover_rarity");
+        result.steps.push({
+          step: "recalc-rarity",
+          ms: Date.now() - step7Start,
+          ...(error
+            ? { ok: false, error: error.message || "RPC failed" }
+            : { ok: true, carsRecomputed: typeof data === "number" ? data : data ?? null }),
+        });
+      }
+    } catch (err) {
+      result.steps.push({
+        step: "recalc-rarity",
+        ms: Date.now() - step7Start,
+        ok: false,
+        error: err?.message || "uncaught",
+      });
+    }
+
     result.ok = true;
     result.totalMs = Date.now() - t0;
     return res.status(200).json(result);

@@ -504,6 +504,13 @@
       "other": "{count} intentos"
     },
     "emptyTitle": "Tu archivo está en blanco",
-    "emptyBody": "Cada coche que aciertes se archiva aquí como una portada numerada, con su fecha y los intentos que te costó."
+    "emptyBody": "Cada coche que aciertes se archiva aquí como una portada numerada, con su fecha y los intentos que te costó.",
+    "rarityTitle": "Tirada",
+    "rarity_wide": "Tirada amplia",
+    "rarity_short": "Tirada corta",
+    "rarity_soldout": "Número agotado",
+    "rarityBody": "La tienen el {pct} % de {collectors} coleccionistas",
+    "sortRarity": "Rareza",
+    "flipHint": "Desliza para darle la vuelta"
   }
 }

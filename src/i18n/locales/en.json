@@ -504,6 +504,13 @@
       "other": "{count} attempts"
     },
     "emptyTitle": "Your archive is blank",
-    "emptyBody": "Every car you guess is filed here as a numbered cover, with its date and the attempts it took you."
+    "emptyBody": "Every car you guess is filed here as a numbered cover, with its date and the attempts it took you.",
+    "rarityTitle": "Print run",
+    "rarity_wide": "Wide run",
+    "rarity_short": "Short run",
+    "rarity_soldout": "Sold out",
+    "rarityBody": "{pct} % of {collectors} collectors have it",
+    "sortRarity": "Rarity",
+    "flipHint": "Swipe to turn it over"
   }
 }

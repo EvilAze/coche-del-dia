@@ -10,6 +10,10 @@
 //   - Tipada por convención: usa nombres `snake_case` para eventos para
 //     que el dashboard de Umami los ordene alfabéticamente sin saltos.
 //
+// Propiedad implícita en TODOS los eventos:
+//   - plataforma  "app" (WebView de Capacitor) | "web" (navegador)
+//     No hace falta pasarla: track() la añade sola. Ver plataforma() abajo.
+//
 // Convención de eventos:
 //   - achievement_unlocked  { id, category, tier? }  — al desbloquear medalla
 //   - profile_view          { source }                — abrir perfil ajeno
@@ -31,6 +35,29 @@
 //        RETORNO desde una notificación se mide por UTM (?utm_source=push), que
 //        Umami atribuye solo (no hace falta evento).
 
+// Plataforma de origen, añadida a TODOS los eventos como `plataforma`.
+//
+// Por qué: hasta ahora la app Android no reportaba nada (su hostname,
+// `localhost`, no estaba en el `data-domains` de index.html, y Umami usa esa
+// lista como puerta). Al abrirla, los eventos de la app se mezclarían con los de
+// la web y no habría forma de saber cuánto uso viene de Play. Con esta
+// propiedad el dashboard separa los dos mundos sin tocar los nombres de evento
+// ya establecidos.
+//
+// Se calcula UNA vez: Capacitor.isNativePlatform() no cambia en caliente.
+let plataformaCache;
+function plataforma() {
+  if (plataformaCache) return plataformaCache;
+  try {
+    // Import estático no: analytics.js lo usa también el bundle web, y no
+    // queremos que el arranque dependa de resolver el core de Capacitor.
+    plataformaCache = window.Capacitor?.isNativePlatform?.() ? "app" : "web";
+  } catch {
+    plataformaCache = "web";
+  }
+  return plataformaCache;
+}
+
 /**
  * Dispara un evento custom en Umami. Falla en silencio si el script
  * no está disponible (adblock, dev local sin script, etc.).
@@ -43,7 +70,7 @@ export function track(eventName, data) {
   try {
     const umami = window.umami;
     if (umami && typeof umami.track === "function") {
-      umami.track(eventName, data);
+      umami.track(eventName, { ...data, plataforma: plataforma() });
     } else if (import.meta.env.DEV) {
       // En dev mostramos por consola para poder verificar que la llamada
       // ocurre. En prod, simplemente no se envía (script no cargado).

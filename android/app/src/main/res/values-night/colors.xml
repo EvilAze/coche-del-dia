@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paleta nativa (edición de NOCHE). Ver values/colors.xml para el porqué.
+  Mismos valores que :root[data-tema="noche"] en src/index.css (las vars se
+  citan sin su prefijo de dos guiones: rompe el comentario XML):
+    grafito = rgb(23 19 13)    -> var bg-rgb
+    tinta   = rgb(236 225 207) -> var tinta-rgb
+    rojo    = rgb(224 87 74)   -> var rojo-rgb  (subido en luminosidad para que
+                                  contraste sobre grafito, igual que en la web)
+-->
+<resources>
+    <color name="colorPrimary">#ECE1CF</color>
+    <color name="colorPrimaryDark">#17130D</color>
+    <color name="colorAccent">#E0574A</color>
+
+    <color name="cdd_window_bg">#17130D</color>
+</resources>

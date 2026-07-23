@@ -136,11 +136,20 @@
       `data-website-id` es el mismo de siempre — un único website en Umami,
       solo cambia el dominio en su dashboard.
     -->
+    <!--
+      `data-domains` es una LISTA BLANCA de hostnames: Umami compara
+      location.hostname contra ella y, si no casa, no trackea nada. La app
+      Android sirve el bundle desde el WebView de Capacitor, cuyo origen es
+      https://localhost — que no estaba en la lista. Resultado: cero eventos y
+      cero Web Vitals de la app, pero la petición a cloud.umami.is salía igual
+      en cada arranque. Es decir, pagábamos el coste sin llevarnos el dato.
+      Con `localhost` dentro, la app por fin reporta.
+    -->
     <script
       defer
       src="https://cloud.umami.is/script.js"
       data-website-id="6d3e8cc0-401e-42b0-8cd4-dfc2a2748f1b"
-      data-domains="cochedeldia.com,carguessr.org"
+      data-domains="cochedeldia.com,carguessr.org,localhost"
     ></script>
     <script type="application/ld+json">
     {

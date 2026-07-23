@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Reglas de backup para Android 12+ (android:dataExtractionRules). Equivalente
+  moderno de backup_rules.xml; el motivo completo está documentado allí.
+
+  Resumen: `app_webview` guarda el localStorage del WebView, y ahí vive el token
+  de sesión anónima. Restaurarlo en otro móvil clonaría la identidad del jugador
+  anónimo y los dos dispositivos se pisarían la partida del día.
+
+  Se excluye en los DOS canales:
+    cloud-backup   copia a Google Drive.
+    device-transfer  copia directa móvil a móvil al estrenar terminal.
+  El segundo es el que más se usa hoy y el que más fácil se olvida.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="app_webview" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="app_webview" />
+    </device-transfer>
+</data-extraction-rules>

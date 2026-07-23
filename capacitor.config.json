@@ -7,13 +7,16 @@
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 800,
+      "launchAutoHide": false,
       "backgroundColor": "#f3eee1",
       "showSpinner": false
     },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_cdd",
+      "iconColor": "#E0574A"
+    },
     "StatusBar": {
-      "style": "LIGHT",
-      "backgroundColor": "#f3eee1"
+      "style": "LIGHT"
     },
     "SocialLogin": {
       "providers": {

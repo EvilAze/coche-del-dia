@@ -37,6 +37,99 @@ describe("notifications", () => {
     expect(arg.schedule.on).toEqual({ hour: 10, minute: 0 });
   });
 
+  it("nativo: crea el canal propio, borra el huérfano y etiqueta el aviso", async () => {
+    const schedule = vi.fn().mockResolvedValue();
+    const createChannel = vi.fn().mockResolvedValue();
+    const deleteChannel = vi.fn().mockResolvedValue();
+    vi.doMock("@capacitor/core", () => ({
+      Capacitor: { isNativePlatform: () => true },
+    }));
+    vi.doMock("@capacitor/local-notifications", () => ({
+      LocalNotifications: {
+        checkPermissions: vi.fn().mockResolvedValue({ display: "granted" }),
+        requestPermissions: vi.fn().mockResolvedValue({ display: "granted" }),
+        schedule,
+        cancel: vi.fn().mockResolvedValue(),
+        createChannel,
+        deleteChannel,
+      },
+    }));
+    const n = await import("./notifications");
+    await n.rearmIfEnabled({
+      title: "t",
+      body: "b",
+      channelName: "Recordatorio diario",
+      channelDescription: "Un aviso al día.",
+    });
+
+    expect(createChannel).toHaveBeenCalledTimes(1);
+    expect(createChannel.mock.calls[0][0]).toMatchObject({
+      id: n.REMINDER_CHANNEL_ID,
+      name: "Recordatorio diario",
+    });
+    // El canal "Default" que planta el plugin se retira para que no quede un
+    // interruptor mudo en los ajustes del móvil.
+    expect(deleteChannel).toHaveBeenCalledWith({ id: "default" });
+    // Y el aviso tiene que ir POR el canal nuevo; si no, el interruptor bonito
+    // no controlaría nada.
+    expect(schedule.mock.calls[0][0].notifications[0].channelId).toBe(
+      n.REMINDER_CHANNEL_ID
+    );
+  });
+
+  it("nativo con plugin viejo (sin createChannel): programa igual", async () => {
+    const schedule = vi.fn().mockResolvedValue();
+    vi.doMock("@capacitor/core", () => ({
+      Capacitor: { isNativePlatform: () => true },
+    }));
+    // Sin createChannel/deleteChannel: simula Android < 8 o una versión del
+    // plugin sin la API de canales. La programación NO puede caerse por eso.
+    vi.doMock("@capacitor/local-notifications", () => ({
+      LocalNotifications: {
+        checkPermissions: vi.fn().mockResolvedValue({ display: "granted" }),
+        requestPermissions: vi.fn().mockResolvedValue({ display: "granted" }),
+        schedule,
+        cancel: vi.fn().mockResolvedValue(),
+      },
+    }));
+    const n = await import("./notifications");
+    await expect(
+      n.rearmIfEnabled({ title: "t", body: "b", channelName: "x" })
+    ).resolves.toBeUndefined();
+    expect(schedule).toHaveBeenCalledTimes(1);
+    // CLAVE: sin canal creado NO se puede etiquetar el aviso con su channelId.
+    // Android 8+ descarta en silencio las notificaciones dirigidas a un canal
+    // inexistente, así que hacerlo cambiaría "nombre feo en los ajustes" por
+    // "el recordatorio no llega nunca".
+    expect(
+      schedule.mock.calls[0][0].notifications[0].channelId
+    ).toBeUndefined();
+  });
+
+  it("nativo sin nombre de canal: no lo crea y no etiqueta el aviso", async () => {
+    const schedule = vi.fn().mockResolvedValue();
+    const createChannel = vi.fn().mockResolvedValue();
+    vi.doMock("@capacitor/core", () => ({
+      Capacitor: { isNativePlatform: () => true },
+    }));
+    vi.doMock("@capacitor/local-notifications", () => ({
+      LocalNotifications: {
+        checkPermissions: vi.fn().mockResolvedValue({ display: "granted" }),
+        requestPermissions: vi.fn().mockResolvedValue({ display: "granted" }),
+        schedule,
+        cancel: vi.fn().mockResolvedValue(),
+        createChannel,
+        deleteChannel: vi.fn().mockResolvedValue(),
+      },
+    }));
+    const n = await import("./notifications");
+    // Un caller que no pasa el copy del canal (i18n a medias, llamada antigua):
+    // Android exige nombre, así que ni se intenta.
+    await n.rearmIfEnabled({ title: "t", body: "b" });
+    expect(createChannel).not.toHaveBeenCalled();
+    expect(schedule.mock.calls[0][0].notifications[0].channelId).toBeUndefined();
+  });
+
   it("nativo + permiso denegado: rearmIfEnabled NO programa", async () => {
     const schedule = vi.fn().mockResolvedValue();
     vi.doMock("@capacitor/core", () => ({

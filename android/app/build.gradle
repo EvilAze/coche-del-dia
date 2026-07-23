@@ -1,5 +1,23 @@
 apply plugin: 'com.android.application'
 
+// Credenciales de firma del release, fuera del control de versiones.
+// `android/keystore.properties` está en .gitignore junto a *.keystore y *.jks:
+// sin la clave de subida no se pueden publicar actualizaciones en Play, así que
+// no puede acabar en el repo ni por accidente.
+//
+// El fichero es OPCIONAL a propósito: si no existe (CI, un clon recién hecho,
+// alguien que solo quiere compilar un debug) el build sigue funcionando y solo
+// el `bundleRelease` sale sin firmar. Antes esto no estaba y la firma dependía
+// del asistente de Android Studio, que no deja rastro en el repo de cómo se
+// firmó.
+//
+// Plantilla en android/keystore.properties.example.
+def ficheroKeystore = rootProject.file("keystore.properties")
+def propsKeystore = new Properties()
+if (ficheroKeystore.exists()) {
+    ficheroKeystore.withInputStream { propsKeystore.load(it) }
+}
+
 android {
     namespace = "com.cochedeldia"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +34,28 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            // Solo se rellena si existe keystore.properties. Gradle evalúa este
+            // bloque siempre, así que sin el `if` petaría en cualquier máquina
+            // que no tenga la clave — incluido un `assembleDebug`.
+            if (ficheroKeystore.exists()) {
+                storeFile file(propsKeystore['storeFile'])
+                storePassword propsKeystore['storePassword']
+                keyAlias propsKeystore['keyAlias']
+                keyPassword propsKeystore['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // Sin keystore.properties el release sale SIN FIRMAR en vez de
+            // romper el build. Es lo que permite que un clon limpio compile.
+            // Los paréntesis NO son decorativos: `signingConfig a ? b : c` sin
+            // ellos es ambiguo para el parser de Groovy (se lee como la llamada
+            // `signingConfig(a)` seguida de un ternario suelto).
+            signingConfig(ficheroKeystore.exists() ? signingConfigs.release : null)
             // R8 activado: sin él, el dex del release iba SIN encoger (12,6 MB
             // descomprimidos) porque arrastraba entero Play Services Auth,
             // Credentials, OkHttp y coroutines aunque la app solo use una

@@ -178,9 +178,19 @@ publicar updates):
 keytool -genkey -v -keystore cochedeldia-release.keystore \
   -alias cochedeldia -keyalg RSA -keysize 2048 -validity 10000
 ```
-Configura la firma en `android/app/build.gradle` (bloque `signingConfigs`) o vía
-`android/keystore.properties`. **NUNCA** commitees el keystore ni las
-contraseñas (ya están en `.gitignore`).
+
+La firma ya está cableada en `android/app/build.gradle`: lee las credenciales de
+**`android/keystore.properties`**, que está en `.gitignore` junto a `*.keystore`
+y `*.jks`. Copia la plantilla y rellénala:
+
+```bash
+cp android/keystore.properties.example android/keystore.properties
+```
+
+El fichero es **opcional**: si no existe, el build sigue funcionando y solo el
+`bundleRelease` sale sin firmar. Eso permite que un clon limpio (u otra máquina,
+o CI) compile sin tener la clave. **NUNCA** commitees el keystore ni las
+contraseñas.
 
 ## AAB para Play
 ```bash

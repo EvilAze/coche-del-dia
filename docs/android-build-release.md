@@ -15,6 +15,15 @@ login Google) con **recordatorio diario local**. `appId`: `com.cochedeldia`.
 > entorno de Supabase` (lo lanza `src/supabaseClient.js`). Desde el repo
 > principal ya está; desde un worktree, copia el `.env` antes de `cap:sync`.
 
+> IMPORTANTE (worktrees): **compila el AAB que subes a Play desde el repo
+> principal**, no desde un worktree de `.claude/worktrees/…`. Un worktree no
+> tiene `node_modules` propio, así que `cap sync` reescribe
+> `android/capacitor.settings.gradle` y `android/app/capacitor.build.gradle`
+> apuntando a `../../../../node_modules/…`. Esas rutas solo son válidas dentro
+> de ese worktree: si se cuelan en un commit, rompen el build en el repo
+> principal y en cualquier clon. Si compilas en un worktree para probar, revisa
+> `git status` y revierte esos dos ficheros generados antes de commitear.
+
 ## Peso de la app (lee esto antes de subir nada)
 
 Un AAB sano de este proyecto ronda los **6-9 MB**. Si te sale de tres cifras,
@@ -199,9 +208,74 @@ cd android
 ./gradlew bundleRelease
 # salida: android/app/build/outputs/bundle/release/app-release.aab
 ```
-Sube el `.aab` a **Play Console** → empieza por el track de **Internal testing**.
-Rellena ficha, privacidad (ya existe la política en /privacidad) y data safety
-(v1 anónima: sin login, sin recogida de datos personales identificables).
+Sube el `.aab` a **Play Console**. Rellena ficha, privacidad (ya existe la
+política en /privacidad) y data safety — ojo con esto último, ver más abajo.
+
+## Prueba cerrada (closed testing)
+
+Track por encima de *internal testing*: a diferencia de esa, **pasa revisión de
+Google** (de horas a varios días la primera vez), así que la ficha y los
+formularios tienen que estar completos antes de subir nada.
+
+### Data safety: la app YA NO es anónima
+
+Este apartado estuvo mal mucho tiempo y es el que más caro sale: declarar de
+menos en data safety es motivo de rechazo o de suspensión, no de un aviso.
+
+Desde que existe el login de Google nativo (`@capgo/capacitor-social-login` →
+`supabase.auth.signInWithIdToken`), la app **sí recoge datos personales** si el
+usuario inicia sesión. La v1 anónima ya no describe lo que se publica: el build
+lleva `VITE_GOOGLE_WEB_CLIENT_ID` incrustado y el botón de login es funcional.
+
+Lo que hay que declarar:
+
+| Dato | Se recoge | Se enlaza a identidad | Para qué |
+|---|---|---|---|
+| Dirección de email | Sí (solo con login) | Sí | Cuenta de usuario |
+| Nombre | Sí (solo con login) | Sí | Mostrar perfil / ranking |
+| ID de usuario | Sí (solo con login) | Sí | Cuenta y progreso |
+| Actividad in-app (partidas, racha, logros) | Sí | Sí con login, no en anónimo | Funcionalidad del juego |
+
+Todo va cifrado en tránsito (HTTPS) y el usuario puede cerrar sesión desde "Mis
+estadísticas". La política publicada en `/privacidad` ya lo refleja (menciona
+identificador de cuenta, nombre, email y progreso) — el enlace que pide Play es
+`https://cochedeldia.com/privacidad`.
+
+Jugar **sin** iniciar sesión sigue siendo posible y no recoge nada
+identificable: la sesión anónima es un token local.
+
+### Antes de subir
+
+1. `versionCode` **estrictamente mayor** que el último subido a Play (cualquier
+   track: internal y closed comparten numeración). Play rechaza el AAB al
+   instante si se repite.
+2. AAB **firmado** con el upload key — comprueba que el build no ha salido sin
+   firmar (ver "Verificar la firma" abajo). Sin `android/keystore.properties`
+   sale sin firmar y Play lo rechaza.
+3. Peso razonable (**6-9 MB**; ahora ~5 MB). Si sale de tres cifras, lee la
+   sección de peso de arriba antes de subir nada.
+4. Testers: en closed testing se invita por **lista de emails o grupo de
+   Google**. Los testers tienen que **aceptar la invitación** (les llega un
+   enlace de opt-in) o no verán la app en Play.
+
+> **Si la cuenta de desarrollador es personal y se creó después de nov-2023**,
+> Google exige un mínimo de **12 testers con el opt-in activo durante 14 días
+> seguidos** en un track cerrado antes de poder solicitar acceso a producción.
+> Es un contador continuo: si un tester se sale, se reinicia. Confírmalo en
+> Play Console → Prueba cerrada, que muestra el estado real de tu cuenta.
+
+### Verificar la firma del AAB antes de subirlo
+
+```bash
+keytool -printcert -jarfile android/app/build/outputs/bundle/release/app-release.aab
+```
+
+Si responde que no encuentra firma, el AAB salió **sin firmar**: falta
+`android/keystore.properties` o tiene credenciales incorrectas.
+
+Recuerda que la SHA-256 que va en `public/.well-known/assetlinks.json` es la de
+**Play App Signing**, no la que sale de este comando (que es la del upload key).
+Google re-firma el AAB antes de distribuirlo.
 
 ## Actualizar la app
 Para cambios de UI hay que **resubir** (es bundled): `npm run cap:sync`, sube

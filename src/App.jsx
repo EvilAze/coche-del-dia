@@ -14,6 +14,7 @@ import { useGame } from "./hooks/useGame";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useModalState } from "./hooks/useModalState";
 import { useEscape } from "./hooks/useEscape";
+import { useHistoryClose } from "./hooks/useHistoryClose";
 import { useDayRollover } from "./hooks/useDayRollover";
 import { useT } from "./i18n";
 import { apiUrl } from "./lib/apiUrl";
@@ -242,6 +243,21 @@ export default function App() {
   }, []);
 
   useEscape(activeModal === "login", closeModal);
+
+  // «Atrás» de Android / gesto del navegador: cierra el overlay activo en vez
+  // de sacar al usuario de la web. Como `activeModal` es un único slot, una
+  // sola línea cubre login, ranking, perfil, logros y cómo-se-juega.
+  //
+  // El Archivo queda FUERA a propósito: tiene niveles internos (detalle →
+  // filtro → cerrar) y gestiona su propia cadena con useHistoryChain. Si lo
+  // incluyéramos aquí habría dos entradas fantasma compitiendo por la misma
+  // pulsación. NicknameModal también queda fuera, pero por lo contrario: es un
+  // modal obligatorio (ni scrim ni Escape lo cierran), así que tampoco debe
+  // cerrarse con la atrás.
+  useHistoryClose(
+    activeModal !== null && activeModal !== "garage",
+    closeModal
+  );
 
   // Day rollover: el usuario dejó la pestaña abierta cruzando medianoche.
   // El front muestra los datos de "ayer" pero el server ya valida contra

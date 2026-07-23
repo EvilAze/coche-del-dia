@@ -15,6 +15,7 @@ import { Capacitor } from "@capacitor/core";
 import { rearmIfEnabled } from "./lib/notifications";
 import { initNativeAuth } from "./lib/nativeAuth";
 import { hideSplashWhenReady } from "./lib/splash";
+import { rutaDesdeEnlace, debeNavegar } from "./lib/deepLink";
 import { reminderCopy } from "./lib/reminderCopy";
 import { t, tn } from "./i18n";
 
@@ -44,6 +45,22 @@ if (Capacitor.isNativePlatform()) {
     CapApp.addListener("backButton", ({ canGoBack }) => {
       if (canGoBack) window.history.back();
       else CapApp.exitApp();
+    });
+
+    // App Links: llega un enlace a cochedeldia.com y hay que abrir ESA ruta, no
+    // la portada. El WebView sirve desde https://localhost, así que asignamos
+    // solo la parte relativa y el navegador la resuelve contra su propio
+    // origen; rutaDesdeEnlace ya se ha encargado de que nunca venga un origen
+    // ajeno (ver el bloque de seguridad en lib/deepLink.js).
+    //
+    // Se usa location.replace y no href para no dejar la portada en el
+    // historial: si no, la "atrás" del móvil llevaría a la pantalla que el
+    // usuario nunca pidió ver en vez de salir de la app.
+    CapApp.addListener("appUrlOpen", ({ url }) => {
+      const destino = rutaDesdeEnlace(url);
+      if (debeNavegar(destino, window.location)) {
+        window.location.replace(destino);
+      }
     });
   });
 }

@@ -15,8 +15,8 @@
       "smallIcon": "ic_stat_cdd",
       "iconColor": "#E0574A"
     },
-    "StatusBar": {
-      "style": "LIGHT"
+    "SystemBars": {
+      "style": "DEFAULT"
     },
     "SocialLogin": {
       "providers": {

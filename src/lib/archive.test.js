@@ -8,6 +8,8 @@ import {
   readSeen,
   issueLabel,
   formatWonAt,
+  rarityTier,
+  formatRarityPct,
   SEEN_KEY,
 } from "./archive";
 
@@ -111,6 +113,87 @@ describe("sortCovers", () => {
     const list = [cover({ id: "a", wonAt: "2026-01-01" }), cover({ id: "b", wonAt: "2026-05-01" })];
     sortCovers(list);
     expect(list.map((c) => c.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("rarityTier", () => {
+  it("tirada amplia a partir del 50 %", () => {
+    expect(rarityTier(50)).toBe("wide");
+    expect(rarityTier(87.4)).toBe("wide");
+    expect(rarityTier(100)).toBe("wide");
+  });
+
+  it("tirada corta entre el 15 % y el 50 %", () => {
+    expect(rarityTier(15)).toBe("short");
+    expect(rarityTier(49.9)).toBe("short");
+  });
+
+  it("número agotado por debajo del 15 %", () => {
+    expect(rarityTier(14.9)).toBe("soldout");
+    expect(rarityTier(0)).toBe("soldout");
+  });
+
+  it("null sin dato", () => {
+    expect(rarityTier(null)).toBe(null);
+    expect(rarityTier(undefined)).toBe(null);
+    expect(rarityTier(-1)).toBe(null);
+  });
+});
+
+describe("formatRarityPct", () => {
+  it("redondea a entero", () => {
+    expect(formatRarityPct(12.4)).toBe("12");
+    expect(formatRarityPct(12.6)).toBe("13");
+  });
+
+  // Redondear 0.4 % daría «0 %», que se lee como "no la tiene nadie" justo en
+  // la portada más exclusiva que puedes tener.
+  it("por debajo del 1 % escribe <1 en vez de 0", () => {
+    expect(formatRarityPct(0.4)).toBe("<1");
+    expect(formatRarityPct(0.9)).toBe("<1");
+  });
+
+  it("el 0 real sigue siendo 0", () => {
+    expect(formatRarityPct(0)).toBe("0");
+  });
+
+  it("null sin dato", () => {
+    expect(formatRarityPct(null)).toBe(null);
+    expect(formatRarityPct("12")).toBe(null);
+  });
+});
+
+describe("sortCovers por rareza", () => {
+  it("lo más escaso primero", () => {
+    const list = [
+      cover({ id: "comun", rarity: { pct: 80 } }),
+      cover({ id: "joya", rarity: { pct: 3 } }),
+      cover({ id: "media", rarity: { pct: 40 } }),
+    ];
+    expect(sortCovers(list, "rarity").map((c) => c.id)).toEqual([
+      "joya",
+      "media",
+      "comun",
+    ]);
+  });
+
+  it("las portadas sin dato de rareza caen al final", () => {
+    const list = [
+      cover({ id: "sin" }),
+      cover({ id: "con", rarity: { pct: 90 } }),
+    ];
+    expect(sortCovers(list, "rarity").map((c) => c.id)).toEqual(["con", "sin"]);
+  });
+
+  it("un orden desconocido cae a recencia en vez de romper", () => {
+    const list = [
+      cover({ id: "vieja", wonAt: "2026-01-01" }),
+      cover({ id: "nueva", wonAt: "2026-06-01" }),
+    ];
+    expect(sortCovers(list, "inventado").map((c) => c.id)).toEqual([
+      "nueva",
+      "vieja",
+    ]);
   });
 });
 

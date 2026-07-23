@@ -41,6 +41,17 @@ function carImageProxyUrl(carId, mode) {
 // Aceptamos array (jsonb) y string (si la columna viajase como text/json),
 // porque el SQL de temporadas castea `guesses::jsonb` y esa ambigüedad
 // sugiere que no siempre llega tipada.
+// Columnas del catálogo. La rareza va aparte porque se pide en un select
+// separado que puede fallar si la migración aún no está aplicada (ver abajo).
+const CAR_COLS =
+  "id, make, model, year, pais, description, description_en, image_url";
+const RARITY_COLS = "rarity_owners, rarity_collectors, rarity_pct";
+
+// Coleccionistas mínimos para que un porcentaje de rareza signifique algo.
+// Con menos, cada usuario nuevo mueve el dato varios puntos y la etiqueta
+// («número agotado») sería puro ruido con aires de dato.
+const MIN_COLLECTORS_FOR_RARITY = 20;
+
 function attemptsFromGuesses(guesses) {
   try {
     const arr = typeof guesses === "string" ? JSON.parse(guesses) : guesses;
@@ -66,16 +77,45 @@ export default async function handler(req, res) {
       return res.status(authError.status).json({ error: authError.message });
     }
 
-    // 1) Catálogo completo (con image_url y description, columnas
+    // 1) Catálogo completo (con image_url, description y rareza: columnas
     //    privilegiadas → service_role).
-    const { data: cars, error: carsErr } = await supabaseAdmin
+    //    rarity_* lo precalcula el cron nocturno (recompute_cover_rarity);
+    //    aquí solo se lee y se adjunta a los cromos ya desbloqueados.
+    //
+    //    El reintento SIN las columnas de rareza no es paranoia: el SQL de
+    //    scripts/2026-07-rareza-portadas.sql se aplica a mano en Supabase, así
+    //    que existe una ventana en la que este código ya está desplegado y las
+    //    columnas todavía no. Sin el fallback, esa ventana deja El Archivo
+    //    entero en 500 por una función de adorno. Con él, el archivo funciona
+    //    igual y solo falta la línea de rareza.
+    let { data: cars, error: carsErr } = await supabaseAdmin
       .from("cars")
-      .select("id, make, model, year, pais, description, description_en, image_url")
+      .select(`${CAR_COLS}, ${RARITY_COLS}`)
       .order("year", { ascending: true });
+    let rarityColumnsExist = !carsErr;
+    if (carsErr) {
+      console.warn(
+        "[garage] rarity columns unavailable, degrading:",
+        carsErr.message || carsErr.code
+      );
+      ({ data: cars, error: carsErr } = await supabaseAdmin
+        .from("cars")
+        .select(CAR_COLS)
+        .order("year", { ascending: true }));
+    }
     if (carsErr) {
       console.error("[garage] read cars:", carsErr);
       return res.status(500).json({ error: "Failed to read catalog" });
     }
+
+    // La rareza solo se publica con MUESTRA SUFICIENTE. Con 8 coleccionistas,
+    // uno solo mueve el dato 12 puntos: enseñar «lo tiene el 12,5 %» sería
+    // inventarse una escasez que no significa nada. Por debajo del umbral, el
+    // dorso simplemente no habla de rareza.
+    const rarityCollectors =
+      cars?.find((c) => c.rarity_collectors > 0)?.rarity_collectors ?? 0;
+    const rarityReady =
+      rarityColumnsExist && rarityCollectors >= MIN_COLLECTORS_FOR_RARITY;
 
     // 2) Coches que el usuario ha ganado (status='won').
     //    user_guesses tiene RLS (auth.uid()=user_id), authClient incluye
@@ -247,6 +287,14 @@ export default async function handler(req, res) {
               issue: issueByCarId.get(c.id) ?? null,
               wonAt: winMetaById.get(c.id)?.wonAt ?? null,
               attempts: winMetaById.get(c.id)?.attempts ?? null,
+              //   rarity → cuántos coleccionistas tienen esta portada. Es lo
+              //            que hace que dos cromos del mismo coche no valgan
+              //            igual. Solo en desbloqueados: en un bloqueado
+              //            filtraría que el coche ya fue coche del día.
+              rarity:
+                rarityReady && Number.isFinite(c.rarity_pct)
+                  ? { pct: c.rarity_pct, owners: c.rarity_owners ?? 0 }
+                  : null,
             }
           : {
               // Cromo bloqueado: id OPACO (pseudo HMAC por usuario). Si
@@ -307,6 +355,11 @@ export default async function handler(req, res) {
       totalCatalog,
       totalUnlocked,
       countries,
+      // Nº de coleccionistas sobre el que se calculó la rareza. El front lo usa
+      // para poder decir «de 340 coleccionistas» en vez de un % huérfano; 0
+      // significa que la rareza no se está publicando (muestra insuficiente o
+      // migración sin aplicar) y el dorso omite la línea entera.
+      rarityCollectors: rarityReady ? rarityCollectors : 0,
       // Repesca (sistema "una al día"):
       //   repescaPoolSize      → cuántos coches del catálogo ya fueron daily
       //                          pero el usuario no ha ganado. Sustituye al

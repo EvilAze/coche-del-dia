@@ -24,6 +24,37 @@ export function meritsOf(car) {
   return out;
 }
 
+// ── Rareza ──────────────────────────────────────────────────────────────
+// «¿Cuánta gente tiene este cromo?» es LA pregunta de un coleccionista, y la
+// única que hace que tu portada y la mía no valgan lo mismo. El servidor manda
+// el porcentaje ya calculado (cars.rarity_pct, del cron nocturno); aquí solo
+// lo traducimos a lenguaje de imprenta.
+//
+// Umbrales, pensados para que la etiqueta rara SEA rara: si «número agotado»
+// lo lleva un tercio del archivo, deja de significar nada.
+//   ≥ 50 %  tirada amplia   → la tiene media comunidad
+//   ≥ 15 %  tirada corta    → minoría clara
+//   <  15 % número agotado  → puñado de coleccionistas
+const RARITY_STEPS = [
+  { tier: "wide", min: 50 },
+  { tier: "short", min: 15 },
+  { tier: "soldout", min: 0 },
+];
+
+export function rarityTier(pct) {
+  if (!Number.isFinite(pct) || pct < 0) return null;
+  return RARITY_STEPS.find((s) => pct >= s.min)?.tier ?? null;
+}
+
+// Porcentaje listo para pintar. Por debajo del 1 % redondear daría «0 %», que
+// leería como «no la tiene nadie» justo en la portada más exclusiva del
+// archivo — el caso que más ilusión hace enseñar. Ahí escribimos «<1».
+export function formatRarityPct(pct) {
+  if (!Number.isFinite(pct) || pct < 0) return null;
+  if (pct > 0 && pct < 1) return "<1";
+  return String(Math.round(pct));
+}
+
 // ── Aplanado y orden ────────────────────────────────────────────────────
 // Recorre el payload agrupado por país y devuelve TODAS las portadas
 // conseguidas en una sola lista, anotando el país en cada una (en la vista
@@ -62,9 +93,25 @@ export function compareByYear(a, b) {
   return String(a?.modelo || "").localeCompare(String(b?.modelo || ""), "es");
 }
 
+// Orden por escasez: lo más raro arriba. Es el orden que un coleccionista pide
+// en cuanto sabe que la rareza existe («enséñame mis joyas»). Las portadas sin
+// dato de rareza van al final: no son comunes, es que no lo sabemos.
+export function compareByRarity(a, b) {
+  const ar = Number.isFinite(a?.rarity?.pct) ? a.rarity.pct : Infinity;
+  const br = Number.isFinite(b?.rarity?.pct) ? b.rarity.pct : Infinity;
+  if (ar !== br) return ar - br;
+  return compareByRecency(a, b);
+}
+
+const ORDERS = {
+  year: compareByYear,
+  rarity: compareByRarity,
+  recent: compareByRecency,
+};
+
 export function sortCovers(covers, order = "recent") {
   const list = [...(covers || [])];
-  return list.sort(order === "year" ? compareByYear : compareByRecency);
+  return list.sort(ORDERS[order] || compareByRecency);
 }
 
 // Agrupa los coches de un país por marca. Dentro del país, cada marca es una

@@ -47,7 +47,54 @@ import {
   pickNewCovers,
   issueLabel,
   formatWonAt,
+  rarityTier,
+  formatRarityPct,
 } from "../lib/archive";
+
+// Distancia mínima de un swipe para que cuente como intención de voltear la
+// portada. 56 px ≈ el ancho de un pulgar: por debajo, cualquier temblor al
+// tocar un botón voltearía la carta sin querer.
+const SWIPE_MIN_PX = 56;
+
+// Swipe horizontal (izquierda o derecha, da igual: ambos voltean, como al
+// darle la vuelta a un cromo en la mano). Devuelve los handlers y un
+// `consumeSwipe` que los botones usan para no voltear DOS veces: el pointerup
+// que dispara el swipe va seguido de un click sintético, y si el gesto empezó
+// y acabó dentro del botón de volteo, ese click lo devolvería a su sitio.
+function useSwipeFlip(onFlip) {
+  const startRef = useRef(null);
+  const swipedRef = useRef(false);
+
+  return {
+    consumeSwipe() {
+      const was = swipedRef.current;
+      swipedRef.current = false;
+      return was;
+    },
+    handlers: {
+      onPointerDown(e) {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        startRef.current = { x: e.clientX, y: e.clientY };
+        swipedRef.current = false;
+      },
+      onPointerUp(e) {
+        const start = startRef.current;
+        startRef.current = null;
+        if (!start) return;
+        const dx = e.clientX - start.x;
+        const dy = e.clientY - start.y;
+        // Exigimos que el gesto sea claramente horizontal: si domina la
+        // vertical, el usuario estaba haciendo scroll, no volteando.
+        if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return;
+        swipedRef.current = true;
+        onFlip();
+      },
+      onPointerCancel() {
+        startRef.current = null;
+      },
+    },
+  };
+}
 
 // Cambio de filtro: un cruce corto (fade + 10px). No es navegación jerárquica
 // —no hay "adentro" ni "afuera"—, así que no lleva dirección: solo un relevo
@@ -564,6 +611,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
                         order={order}
                         onChangeOrder={setOrder}
                         onSelectCar={setDetailCar}
+                        hasRarity={(state.data?.rarityCollectors || 0) > 0}
                       />
                     )}
                   </motion.div>
@@ -580,6 +628,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
           <CoverDetail
             open={Boolean(detailCar)}
             car={detailCar}
+            collectors={state.data?.rarityCollectors || 0}
             onClose={() => setDetailCar(null)}
             onStartRepesca={handleRandomRepesca}
           />
@@ -799,7 +848,7 @@ function FilterStrip({ countries, total, active, onSelect }) {
 // Vitrina: TODAS tus portadas
 // ============================================================================
 
-function Showcase({ covers, newIds, order, onChangeOrder, onSelectCar }) {
+function Showcase({ covers, newIds, order, onChangeOrder, onSelectCar, hasRarity }) {
   const { t } = useT();
 
   if (covers.length === 0) {
@@ -818,9 +867,9 @@ function Showcase({ covers, newIds, order, onChangeOrder, onSelectCar }) {
 
   return (
     <div className="px-4 py-3">
-      {/* Selector de orden: dos palabras, sin caja. El coleccionista quiere
-          ver "lo último" o "por época"; cualquier cosa más rica que eso sería
-          fricción sin demanda. */}
+      {/* Selector de orden: palabras sueltas, sin caja. "Rareza" solo aparece
+          cuando el servidor publica el dato — un orden que no ordena nada es
+          peor que no ofrecerlo. */}
       <div className="mb-2.5 flex items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wider">
         <span className="text-muted">{t("garage.sortAria")}</span>
         <OrderButton on={order === "recent"} onClick={() => onChangeOrder("recent")}>
@@ -830,6 +879,14 @@ function Showcase({ covers, newIds, order, onChangeOrder, onSelectCar }) {
         <OrderButton on={order === "year"} onClick={() => onChangeOrder("year")}>
           {t("garage.sortYear")}
         </OrderButton>
+        {hasRarity && (
+          <>
+            <span className="text-muted/50" aria-hidden="true">·</span>
+            <OrderButton on={order === "rarity"} onClick={() => onChangeOrder("rarity")}>
+              {t("garage.sortRarity")}
+            </OrderButton>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 pb-4 sm:grid-cols-3">
@@ -1070,7 +1127,7 @@ function Hole({ onClick }) {
 // Detalle: la portada a tamaño grande, con dorso
 // ============================================================================
 
-function CoverDetail({ open, car, onClose, onStartRepesca }) {
+function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
   const { t, tn, dateLocale } = useT();
   // Conservamos el último coche válido en estado local. Cuando el padre hace
   // setDetailCar(null) para cerrar, `car` pasa a null y `open` a false en el
@@ -1089,6 +1146,26 @@ function CoverDetail({ open, car, onClose, onStartRepesca }) {
   const isLocked = displayCar?.locked;
   const merits = displayCar ? meritsOf(displayCar) : [];
   const wonAt = formatWonAt(displayCar?.wonAt, dateLocale);
+  const rarity = displayCar?.rarity || null;
+  const rarityKind = rarity ? rarityTier(rarity.pct) : null;
+  const rarityPct = rarity ? formatRarityPct(rarity.pct) : null;
+
+  const flip = () => setFlipped((f) => !f);
+  const swipe = useSwipeFlip(flip);
+
+  // Flechas ←/→ como equivalente de teclado del swipe. Va por listener de
+  // ventana y no por onKeyDown del contenedor porque el foco lo tiene el panel
+  // de ModalShell (padre): un keydown allí nunca bajaría hasta la carta.
+  useEffect(() => {
+    if (!open || isLocked) return;
+    const onKey = (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      setFlipped((f) => !f);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, isLocked]);
 
   return (
     <ModalShell
@@ -1096,7 +1173,12 @@ function CoverDetail({ open, car, onClose, onStartRepesca }) {
       onClose={onClose}
       label={t("garage.headerTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm"
+      // El dorso ya no scrollea por dentro (las dos caras se apilan en grid y
+      // la carta mide lo que mide la más alta), así que la ficha se lee
+      // entera. Esto es solo la VÁLVULA para el caso patológico: una
+      // descripción larguísima haría una carta más alta que la pantalla y
+      // dejaría contenido inalcanzable. En una ficha normal no se activa.
+      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-[88vh] overflow-y-auto"
     >
       {displayCar && (
         <>
@@ -1158,7 +1240,10 @@ function CoverDetail({ open, car, onClose, onStartRepesca }) {
                su botón sale del orden de tabulación: un lector de pantalla no
                debe leer el dorso mientras se ve la portada, ni el Tab llevar
                a un botón invisible. */
-            <div className={`arch-flip ${flipped ? "dorso" : ""}`}>
+            <div
+              className={`arch-flip ${flipped ? "dorso" : ""}`}
+              {...swipe.handlers}
+            >
               <div className="arch-flip-inner">
                 {/* ── Cara: la portada ── */}
                 <div className="arch-cara p-4" aria-hidden={flipped}>
@@ -1173,6 +1258,9 @@ function CoverDetail({ open, car, onClose, onStartRepesca }) {
                       <img
                         src={displayCar.img}
                         alt={`${displayCar.marca} ${displayCar.modelo}`}
+                        // Sin esto, arrastrar la foto con el ratón inicia el
+                        // drag nativo de imagen y se come el swipe de volteo.
+                        draggable={false}
                         className="h-full w-full object-cover"
                       />
                       {merits.length > 0 && (
@@ -1196,14 +1284,26 @@ function CoverDetail({ open, car, onClose, onStartRepesca }) {
                     {displayCar.pais ? ` · ${getLocalizedCountry(displayCar.pais)}` : ""}
                   </p>
 
+                  {/* El click sintético que sigue a un swipe se descarta: si
+                      no, un swipe que empieza y acaba sobre este botón
+                      voltearía dos veces y la carta se quedaría igual. */}
                   <button
                     type="button"
-                    onClick={() => setFlipped(true)}
+                    onClick={() => {
+                      if (swipe.consumeSwipe()) return;
+                      setFlipped(true);
+                    }}
                     tabIndex={flipped ? -1 : 0}
-                    className="pm-btn pm-btn--ghost mt-4"
+                    className="pm-btn pm-btn--ghost arch-pie-cara mt-4"
                   >
                     {t("garage.flipToBack")}
                   </button>
+                  {/* El swipe es un gesto nuevo y no se descubre solo. Una
+                      línea de pie basta: el botón de arriba ya cubre a quien
+                      no lo lea. Solo en la portada — en el dorso ya lo sabe. */}
+                  <p className="mt-1.5 text-center font-mono text-[9px] uppercase tracking-wider text-muted/70">
+                    {t("garage.flipHint")}
+                  </p>
                 </div>
 
                 {/* ── Cara: el dorso ── */}
@@ -1220,6 +1320,24 @@ function CoverDetail({ open, car, onClose, onStartRepesca }) {
                     <p className="pm-body mt-1">{getCarDescription(displayCar)}</p>
                   ) : (
                     <p className="pm-body mt-1 italic">{t("garage.carNoDescription")}</p>
+                  )}
+
+                  {/* TIRADA: cuánta gente tiene esta portada. Va ANTES de "en
+                      tu archivo" porque es el dato que no depende de ti — el
+                      que convierte un cromo en una pieza con valor. Se omite
+                      entero si el servidor no publica rareza (muestra
+                      insuficiente): mejor callar que inventar escasez. */}
+                  {rarity && rarityPct !== null && (
+                    <div className={`arch-tirada mt-4 t-${rarityKind}`}>
+                      <p className="pm-label">{t("garage.rarityTitle")}</p>
+                      <p className="etiqueta">{t(`garage.rarity_${rarityKind}`)}</p>
+                      <p className="apoyo">
+                        {t("garage.rarityBody", {
+                          pct: rarityPct,
+                          collectors,
+                        })}
+                      </p>
+                    </div>
                   )}
 
                   <p className="pm-label arch-filete mt-4 pt-3">
@@ -1252,9 +1370,12 @@ function CoverDetail({ open, car, onClose, onStartRepesca }) {
 
                   <button
                     type="button"
-                    onClick={() => setFlipped(false)}
+                    onClick={() => {
+                      if (swipe.consumeSwipe()) return;
+                      setFlipped(false);
+                    }}
                     tabIndex={flipped ? 0 : -1}
-                    className="pm-btn pm-btn--ghost mt-4"
+                    className="pm-btn pm-btn--ghost arch-pie-cara mt-4"
                   >
                     {t("garage.flipToFront")}
                   </button>

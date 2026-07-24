@@ -1948,28 +1948,36 @@ body,
      compite con el scroll de la página y el flip se dispara a medias. */
   touch-action: pan-y;
 }
-/* Las dos caras se APILAN en la misma celda de grid en vez de posicionar el
-   dorso en absolute. Es lo que hace que la ficha completa quepa sin scroll:
-   con `absolute` la altura la fijaba solo la portada y todo lo que el dorso
-   añadiera (ficha larga + datos) se iba a una barra de scroll interna. En
-   grid, la fila mide lo que mide la cara MÁS ALTA y ambas caben enteras. */
+/* ALTURA: la carta mide lo que mide LA CARA VISIBLE, y el componente la anima
+   al voltear (ver measure/ResizeObserver en CoverDetail).
+   Se probaron las otras dos opciones y ninguna vale:
+     · altura del contenido (caras apiladas en grid) → la fila mide lo que la
+       cara MÁS ALTA, casi siempre el dorso, así que mirar solo la foto dejaba
+       un palmo de aire arriba y abajo.
+     · altura fija con scroll interno → la ficha deja de leerse de un vistazo,
+       que es justo lo que un dorso de cromo tiene que hacer.
+   Las dos caras van en `absolute` para que NINGUNA arrastre la altura. La que
+   sobra del alto declarado no se ve: a esa rotación su reverso está oculto por
+   backface-visibility, así que desborda en silencio y no hace falta recortar
+   (recortar habría comido el bulto en 3D de la carta al girar). */
 .arch-flip-inner {
-  display: grid;
+  position: relative;
   transform-style: preserve-3d;
   /* El ángulo lo fija el componente en `style` (sigue al dedo). Esta curva
      solo entra en el ASENTAMIENTO, al soltar: sale rápido y frena largo, que
      es como se para un objeto con inercia. */
-  transition: transform .5s cubic-bezier(.16, 1, .3, 1);
+  transition: transform .5s cubic-bezier(.16, 1, .3, 1),
+              height .42s cubic-bezier(.16, 1, .3, 1);
 }
-/* Con el dedo puesto, cero transición: si no, la carta va medio segundo por
-   detrás del dedo y el gesto se siente gomoso en vez de directo. */
-.arch-flip-inner.arrastrando { transition: none; }
-.arch-flip-inner > .arch-cara { grid-area: 1 / 1; }
-/* La portada centra su contenido: cuando el dorso es la cara más alta, el
-   sobrante de la portada se reparte arriba y abajo en vez de acumularse en un
-   hueco entre el texto y el botón. */
-.arch-cara--portada { justify-content: center; }
+/* Con el dedo puesto, cero transición EN EL GIRO: si no, la carta va medio
+   segundo por detrás del dedo y el gesto se siente gomoso en vez de directo.
+   La altura sí sigue animada: cambia al cruzar el canto (90°), donde la carta
+   está de perfil y el cambio no se ve. */
+.arch-flip-inner.arrastrando {
+  transition: height .42s cubic-bezier(.16, 1, .3, 1);
+}
 .arch-cara {
+  position: absolute; top: 0; left: 0; width: 100%;
   display: flex; flex-direction: column;
   backface-visibility: hidden; -webkit-backface-visibility: hidden;
 }
@@ -1977,10 +1985,6 @@ body,
    ocupa el mismo rectángulo y robaría el toque a la cara visible. */
 .arch-cara[aria-hidden="true"] { pointer-events: none; }
 .arch-cara--dorso { transform: rotateY(180deg); }
-/* El botón de volteo se pega abajo: cuando una cara es más corta que la otra,
-   el sobrante de altura va ANTES del botón, no después. Si no, el botón queda
-   flotando a media carta con un hueco debajo. */
-.arch-cara > .arch-pie-cara { margin-top: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .arch-sello { animation: none !important; }

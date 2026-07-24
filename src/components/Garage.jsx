@@ -24,7 +24,7 @@
 // coches, dos taps hasta ver un solo cromo) y pasó a ser un chip de filtro:
 // se salta de país a país sin volver atrás.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
@@ -1208,16 +1208,47 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
   // empieza a pintarlo (backface-visibility cambia a los 90°).
   const flipped = showsBack(drag.currentAngle);
 
+  // ── Altura = la de la CARA VISIBLE ──────────────────────────────────────
+  // El dorso casi siempre es más alto (ficha + tirada + datos). Si la carta
+  // midiera lo más alto, ver solo la portada dejaría un palmo de aire arriba y
+  // abajo. Medimos ambas caras y damos a la carta la altura de la que se está
+  // viendo; el cambio salta a los 90° (carta de perfil), donde no se ve, y la
+  // transición CSS de `height` lo suaviza.
+  const portadaRef = useRef(null);
+  const dorsoRef = useRef(null);
+  const [faceH, setFaceH] = useState(null);
+  useLayoutEffect(() => {
+    const portada = portadaRef.current;
+    const dorso = dorsoRef.current;
+    if (!portada || !dorso) return;
+    // Las caras están en `absolute`, así que su offsetHeight es su alto de
+    // contenido, independientemente de la rotación del padre. Medir en
+    // useLayoutEffect (pre-paint) evita que la carta nazca colapsada a 0.
+    const measure = () => {
+      const h = (flipped ? dorso : portada).offsetHeight;
+      if (h) setFaceH(h);
+    };
+    measure();
+    // La ficha puede crecer tras el primer paint (fuentes que cargan, texto
+    // largo que reflowea): el observer mantiene la altura al día sin re-medir
+    // en cada frame del arrastre (dependemos de `flipped`, no de `dx`).
+    const ro = new ResizeObserver(measure);
+    ro.observe(portada);
+    ro.observe(dorso);
+    return () => ro.disconnect();
+  }, [flipped, displayCar]);
+
   // Flechas ←/→ como equivalente de teclado del arrastre, cada una girando
-  // hacia su lado. Va por listener de ventana y no por onKeyDown del
-  // contenedor porque el foco lo tiene el panel de ModalShell (padre): un
-  // keydown allí nunca bajaría hasta la carta.
+  // hacia su lado (misma correspondencia que el dedo: derecha → +). Va por
+  // listener de ventana y no por onKeyDown del contenedor porque el foco lo
+  // tiene el panel de ModalShell (padre): un keydown allí nunca bajaría hasta
+  // la carta.
   useEffect(() => {
     if (!open || isLocked) return;
     const onKey = (e) => {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       e.preventDefault();
-      setAngle((a) => a + (e.key === "ArrowRight" ? -180 : 180));
+      setAngle((a) => a + (e.key === "ArrowRight" ? 180 : -180));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1229,11 +1260,11 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
       onClose={onClose}
       label={t("garage.headerTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      // El dorso ya no scrollea por dentro (las dos caras se apilan en grid y
-      // la carta mide lo que mide la más alta), así que la ficha se lee
-      // entera. Esto es solo la VÁLVULA para el caso patológico: una
-      // descripción larguísima haría una carta más alta que la pantalla y
-      // dejaría contenido inalcanzable. En una ficha normal no se activa.
+      // La carta mide lo que mide la cara visible (ver faceH), así que no hay
+      // aire sobrante ni scroll interno: la ficha se lee entera. max-h + scroll
+      // es solo la VÁLVULA para el caso patológico —una descripción larguísima
+      // que hiciera el dorso más alto que la pantalla—; en una ficha normal no
+      // se activa.
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-[88vh] overflow-y-auto"
     >
       {displayCar && (
@@ -1303,10 +1334,14 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
             <div className="arch-flip" {...drag.handlers}>
               <div
                 className={`arch-flip-inner ${drag.dragging ? "arrastrando" : ""}`}
-                style={{ transform: `rotateY(${drag.currentAngle}deg)` }}
+                style={{
+                  transform: `rotateY(${drag.currentAngle}deg)`,
+                  height: faceH ? `${faceH}px` : undefined,
+                }}
               >
                 {/* ── Cara: la portada ── */}
                 <div
+                  ref={portadaRef}
                   className="arch-cara arch-cara--portada px-4 pb-4 pt-1"
                   aria-hidden={flipped}
                 >
@@ -1365,10 +1400,6 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                       setAngle((a) => a + 180);
                     }}
                     tabIndex={flipped ? -1 : 0}
-                    // Sin `arch-pie-cara` a propósito: en la portada el
-                    // sobrante lo reparte `justify-content: center`. Un
-                    // margin-top:auto aquí se lo comería entero y devolvería
-                    // el hueco entre el texto y el botón.
                     className="pm-btn pm-btn--ghost mt-4"
                   >
                     {t("garage.flipToBack")}
@@ -1383,6 +1414,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
 
                 {/* ── Cara: el dorso ── */}
                 <div
+                  ref={dorsoRef}
                   className="arch-cara arch-cara--dorso px-4 pb-4 pt-1"
                   aria-hidden={!flipped}
                 >
@@ -1453,7 +1485,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                       setAngle((a) => a - 180);
                     }}
                     tabIndex={flipped ? 0 : -1}
-                    className="pm-btn pm-btn--ghost arch-pie-cara mt-4"
+                    className="pm-btn pm-btn--ghost mt-4"
                   >
                     {t("garage.flipToFront")}
                   </button>

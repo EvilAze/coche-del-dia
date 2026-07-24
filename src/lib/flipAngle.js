@@ -28,9 +28,13 @@ export function liveAngle(settled, dx, width) {
   const w = Number.isFinite(width) && width > 0 ? width : 1;
   const delta = Number.isFinite(dx) ? dx : 0;
   const clamped = Math.max(-w, Math.min(w, delta));
-  // Signo negativo: arrastrar a la derecha empuja el borde derecho hacia
-  // dentro, que es como se voltea una carta sujetándola con la mano.
-  return settled - (clamped / w) * 180;
+  // SIGNO: arrastrar a la derecha gira hacia la derecha. En CSS, rotateY
+  // positivo hunde el borde derecho y trae el izquierdo, así que sobre el
+  // papel el modelo "empujo la superficie en el sentido del dedo" pedía el
+  // signo contrario... pero probado con el dedo se lee al revés: lo que el
+  // ojo sigue es hacia dónde ESCORA la carta, no qué borde se hunde. Manda
+  // la mano, no la geometría.
+  return settled + (clamped / w) * 180;
 }
 
 // Ángulo al que asentar cuando se suelta: media vuelta en la dirección del
@@ -38,7 +42,9 @@ export function liveAngle(settled, dx, width) {
 export function settleAngle(settled, dx, width) {
   const delta = Number.isFinite(dx) ? dx : 0;
   if (Math.abs(delta) < commitThreshold(width)) return settled;
-  return settled + (delta > 0 ? -180 : 180);
+  // Mismo signo que liveAngle: la carta termina de girar hacia donde iba, no
+  // corrigiendo el rumbo al soltar.
+  return settled + (delta > 0 ? 180 : -180);
 }
 
 // ¿Qué cara mira al usuario en este ángulo? Sirve tanto para el estado asentado

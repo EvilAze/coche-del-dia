@@ -10,6 +10,7 @@ import ErrorFallback from "./components/ErrorFallback";
 import { ToastProvider } from "./components/Toast";
 import { initSentry, SentryErrorBoundary } from "./lib/sentry";
 import { reportWebVitals } from "./lib/webVitals";
+import { reportViewportCompat } from "./lib/compat";
 import { installApiFetchShim } from "./lib/apiUrl";
 import { Capacitor } from "@capacitor/core";
 import { rearmIfEnabled } from "./lib/notifications";
@@ -144,6 +145,17 @@ root.render(
     </SentryErrorBoundary>
   </React.StrictMode>
 );
+
+// Sonda de compatibilidad del escenario, SOLO en la app de juego (el cuadrado
+// de la foto solo existe ahí). Mide cuántos usuarios usan navegadores in-app /
+// viejos sin cqmin/svh, que reciben el fallback @supports del cuadrado. Diferida
+// a 'load' para que el script de Umami (defer) ya esté disponible y no perder el
+// evento. Ver src/lib/compat.js.
+if (isMainApp) {
+  const sonda = () => reportViewportCompat();
+  if (document.readyState === "complete") sonda();
+  else window.addEventListener("load", sonda, { once: true });
+}
 
 // Solo nativo: retirar el splash cuando el primer frame esté pintado. Va aquí y
 // no en un efecto de App porque tiene que cubrir TODAS las rutas (repesca,

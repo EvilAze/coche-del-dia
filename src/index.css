@@ -1014,6 +1014,22 @@ body,
   .cdd-fold .cdd-stage:not(.revealed) .cdd-stage-frame {
     width: 100cqmin; height: 100cqmin; aspect-ratio: 1 / 1; flex: none;
   }
+  /* Fallback compat — navegadores in-app (Reddit/Instagram/Facebook) y móviles
+     viejos SIN unidades de container (cqmin) o de viewport pequeño (svh): CSS de
+     2022-2023. Sin ellas, el cuadrado de arriba degenera en un rectángulo más
+     ancho y object-cover revela coche de más → el zoom "salta a coche completo"
+     un par de intentos antes (justo el público de captación social, que abre los
+     enlaces en esos WebViews). Aquí reconstruimos el cuadrado 1:1 con vmin
+     (universal), DESACOPLÁNDOLO del alto del fold: preserva el recorte cuadrado,
+     que es lo único crítico (misma dificultad, no filtrar coche de más). 92vmin ≈
+     el lado menor del viewport, así cabe por ancho o por alto. La sonda de
+     src/lib/compat.js mide cuántos usuarios llegan aquí. `not (A and B)` = falta
+     al menos una de las dos (De Morgan) → cubre ambos huecos con un solo bloque. */
+  @supports not ((width: 100cqmin) and (height: 100svh)) {
+    .cdd-fold .cdd-stage:not(.revealed) .cdd-stage-frame {
+      width: min(100%, 92vmin); height: auto; aspect-ratio: 1 / 1; flex: none;
+    }
+  }
   /* Revelado: el marco se ajusta al aspecto NATURAL de la foto (el aspect-ratio
      lo fija CarImage inline = ratio de la imagen) para mostrarla completa, sin
      florituras. Soltamos el "fold" de 100svh (.is-ended) para que la foto tome

@@ -31,6 +31,10 @@
 //   - push_optin             { result, surface }        — accept|decline|dismiss
 //   - push_subscribed        { locale }                 — suscriptor REAL captado
 //   - push_unsubscribed      {}                         — se da de baja
+//   - viewport_compat        { cq, svh }                — navegador SIN cqmin/svh
+//        Solo se dispara cuando falta soporte (una vez por sesión). Cruzado con
+//        el desglose de navegador de Umami dice qué WebViews reciben el fallback
+//        @supports del cuadrado del escenario. Ver src/lib/compat.js.
 //        Embudo de retención Web Push: shown → optin(accept) → subscribed. El
 //        RETORNO desde una notificación se mide por UTM (?utm_source=push), que
 //        Umami atribuye solo (no hace falta evento).

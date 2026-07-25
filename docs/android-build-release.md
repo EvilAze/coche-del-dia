@@ -138,6 +138,35 @@ desde `https://localhost`, así que hay que traducir la ruta) y valida esquema y
 host: cualquier app puede lanzar un intent explícito a la Activity, el
 `intent-filter` solo gobierna lo que Android nos enruta.
 
+### Idioma por app (Android 13+)
+
+`android:localeConfig="@xml/locales_config"` enciende el selector de idioma por
+app del sistema (Ajustes → Aplicaciones → Coche del Día → Idioma), con es/en.
+
+Pero declararlo solo no basta: la app YA tiene su propio selector (LanguageStrip
+→ override en `localStorage`), y si ese override manda siempre, el del sistema no
+hace nada y no hay pista de por qué. Para que ambos convivan hace falta
+distinguir *"el usuario eligió este idioma por app"* de *"es el idioma por
+defecto del sistema"* — y esa diferencia `navigator.language` no la ve.
+
+`LocaleBridgePlugin.java` la resuelve: expone
+`AppCompatDelegate.getApplicationLocales()` (vacío = no elegido) al bundle como
+interfaz JS **síncrona** `CochePlatform.getPersistedLocale()`. Se registra en
+`load()` —no en `onCreate`— para que exista antes de que cargue la página
+(`addJavascriptInterface` no surte efecto hasta la siguiente carga). La
+precedencia final la decide `src/i18n/resolveLocale.js`: el selector de la app
+sella el idioma nativo vigente al elegir, y si Android cambia después, gana
+Android. **Solo lectura**: no llamamos a `setApplicationLocales` para no forzar
+recreaciones de la Activity a media partida.
+
+En Android < 13 `getApplicationLocales()` va siempre vacío (nunca lo fijamos),
+así que el puente no aporta nada y el idioma se resuelve como siempre (override
+→ navegador → defecto). Degradación limpia; nada que probar ahí.
+
+Verificar en dispositivo (API 33+): Ajustes → Coche del Día → Idioma → English,
+y la app debe arrancar en inglés aunque antes hubieras tocado el selector de
+dentro.
+
 ### Regenerar el icono de notificación
 
 Solo hace falta si cambia `assets/brand-logo-source.png`:

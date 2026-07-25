@@ -124,6 +124,16 @@ export default function AnalyticsPanel() {
     return () => { cancelled = true; };
   }, [selectedUser]);
 
+  // Derivados para los KPIs de jugadores totales / anónimos. Misma base que la
+  // gráfica de composición: totalAvg (daily_stats, incl. anónimos) y
+  // registeredFinishedAvg (registrados que terminaron), ambos "completó el
+  // daily", así que anónimos = total − registrados es exacto. Guardas para
+  // cuando aún no hay `data` (primer render / carga).
+  const totalAvg = data?.engagement?.totalAvg || 0;
+  const registeredFinishedAvg = data?.engagement?.registeredFinishedAvg || 0;
+  const anonAvg = Math.max(0, totalAvg - registeredFinishedAvg);
+  const anonPct = totalAvg > 0 ? anonAvg / totalAvg : null;
+
   return (
     <div className="space-y-6">
       {/* CABECERA + SELECTOR DE RANGO */}
@@ -168,10 +178,12 @@ export default function AnalyticsPanel() {
       {data && (
         <>
           {/* ROW 1 · KPIs principales */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <KpiCard label="Usuarios totales" value={data.users.total} />
             <KpiCard label="Nuevos en periodo" value={`+${data.users.newInPeriod}`} positive={data.users.newInPeriod > 0} />
-            <KpiCard label="DAU promedio" value={data.engagement.dauAvg.toFixed(1)} />
+            <KpiCard label="DAU promedio" value={data.engagement.dauAvg.toFixed(1)} hint="registrados que jugaron" />
+            <KpiCard label="Jugadores/día" value={totalAvg.toFixed(1)} hint="total, incl. anónimos" />
+            <KpiCard label="% anónimos" value={pct(anonPct)} hint={`≈ ${anonAvg.toFixed(1)}/día`} />
             <KpiCard
               label="Repesca usage"
               value={pct(data.engagement.repescaUsage.rate)}

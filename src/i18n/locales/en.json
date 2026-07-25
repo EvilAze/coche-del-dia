@@ -139,7 +139,8 @@
     "garageRepescaAria": "My archive · rescue available",
     "helpAria": "How to play",
     "peekAria": "Back to the photo",
-    "unlockKicker": "New cover"
+    "unlockKicker": "New cover",
+    "carImageAlt": "Car of the day"
   },
   "prensa": {
     "lema": "The daily for those who know a car by its headlight.",
@@ -389,6 +390,15 @@
   },
   "toast": {
     "closeAria": "Close notification"
+  },
+  "errors": {
+    "selectCar": "Pick a car from the list.",
+    "network": "Connection error. Check your network.",
+    "invalidResponse": "Invalid response from the server.",
+    "validationFailed": "Couldn't validate your guess.",
+    "validationDetail": "Error: {detail}",
+    "unexpectedResponse": "Unexpected response from the server.",
+    "processingResponse": "Error processing the response."
   },
   "repesca": {
     "errorNeedLogin": "You need to sign in to play the rescue.",

@@ -182,9 +182,23 @@ export default function AnalyticsPanel() {
           {/* ROW 1.5 · Dificultad global (DDA Arq. A) */}
           {data.difficulty && <GlobalDifficultyCard d={data.difficulty} />}
 
-          {/* ROW 2 · DAU chart */}
-          <Card title="Usuarios activos por día (DAU)">
+          {/* ROW 2 · DAU chart (SOLO registrados) */}
+          <Card title="Registrados activos por día (DAU)">
+            <p className="mb-2 text-[10px] leading-relaxed text-muted">
+              Solo usuarios con cuenta (tabla user_guesses). Los anónimos no
+              cuentan aquí — para el total mira la gráfica de abajo.
+            </p>
             <DauLineChart series={data.engagement.dauSeries} />
+          </Card>
+
+          {/* ROW 2.bis · Jugadores totales (incluye anónimos) */}
+          <Card title="Jugadores totales por día (incluye anónimos)">
+            <TotalVsRegisteredChart
+              total={data.engagement.totalSeries}
+              registered={data.engagement.registeredFinishedSeries}
+              totalAvg={data.engagement.totalAvg}
+              registeredAvg={data.engagement.registeredFinishedAvg}
+            />
           </Card>
 
           {/* ROW 3 · Retención */}
@@ -454,6 +468,127 @@ function DauLineChart({ series }) {
         ) : null
       )}
     </svg>
+  );
+}
+
+// Chart de líneas superpuestas: jugadores TOTALES que completaron el daily
+// (daily_stats.total_games, incluye anónimos) vs REGISTRADOS que lo
+// completaron (user_guesses con status won/lost). Ambas series comparten base
+// ("partidas completadas") y llegan alineadas 1:1 por fecha desde el servidor,
+// así que el hueco entre líneas = jugadores anónimos EXACTO (nunca negativo).
+// OJO: la línea de registrados aquí NO es la del DAU de arriba (esa cuenta
+// "hizo un intento"; esta cuenta "terminó"). Mismo lenguaje visual que
+// DauLineChart.
+function TotalVsRegisteredChart({ total, registered, totalAvg, registeredAvg }) {
+  const W = 600;
+  const H = 160;
+  const PAD = { top: 10, right: 8, bottom: 22, left: 28 };
+
+  if (!total || total.length === 0) {
+    return <div className="py-8 text-center text-sm text-muted">Sin datos.</div>;
+  }
+
+  // Escala común a ambas series para que sean comparables a simple vista.
+  const maxY = Math.max(
+    1,
+    ...total.map((d) => d.count),
+    ...(registered || []).map((d) => d.count)
+  );
+  const stepX = (W - PAD.left - PAD.right) / Math.max(1, total.length - 1);
+
+  const toPoints = (series) =>
+    (series || []).map((d, i) => {
+      const x = PAD.left + i * stepX;
+      const y = PAD.top + (H - PAD.top - PAD.bottom) * (1 - d.count / maxY);
+      return { x, y, d };
+    });
+
+  const totalPts = toPoints(total);
+  const regPts = toPoints(registered);
+
+  const toPath = (pts) =>
+    pts.reduce(
+      (acc, p, i) => acc + (i === 0 ? `M ${p.x} ${p.y}` : ` L ${p.x} ${p.y}`),
+      ""
+    );
+
+  const totalPath = toPath(totalPts);
+  const totalArea =
+    totalPath +
+    ` L ${totalPts[totalPts.length - 1].x} ${H - PAD.bottom} L ${totalPts[0].x} ${H - PAD.bottom} Z`;
+  const regPath = regPts.length ? toPath(regPts) : "";
+
+  const labelStep = Math.max(1, Math.ceil(total.length / 6));
+
+  // Anónimos/día = total − registrados. Ambas series comparten base ("partidas
+  // completadas"), así que la resta es exacta (el max(0,..) es solo defensivo
+  // ante ruido de redondeo).
+  const anonAvg = Math.max(0, (totalAvg || 0) - (registeredAvg || 0));
+
+  return (
+    <div>
+      {/* Leyenda + medias del periodo */}
+      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+        <span className="inline-flex items-center gap-1.5 text-white/80">
+          <span className="inline-block h-0.5 w-4 rounded" style={{ background: "#7af0c8" }} />
+          Total <span className="font-mono text-white/60">≈ {(totalAvg || 0).toFixed(1)}/día</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-white/60">
+          <span className="inline-block h-0.5 w-4 rounded border-t border-dashed" style={{ borderColor: "rgba(255,255,255,0.55)" }} />
+          Registrados <span className="font-mono text-white/50">≈ {(registeredAvg || 0).toFixed(1)}/día</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-accent/80">
+          Anónimos <span className="font-mono">≈ {anonAvg.toFixed(1)}/día</span>
+        </span>
+      </div>
+
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none">
+        {/* Grid horizontal: techo y suelo */}
+        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top} y2={PAD.top} stroke="rgba(255,255,255,0.08)" />
+        <line x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom} y2={H - PAD.bottom} stroke="rgba(255,255,255,0.15)" />
+        {/* Etiquetas eje Y: 0 y max */}
+        <text x={PAD.left - 6} y={H - PAD.bottom} textAnchor="end" dominantBaseline="middle" fill="rgba(255,255,255,0.5)" fontSize="10">0</text>
+        <text x={PAD.left - 6} y={PAD.top} textAnchor="end" dominantBaseline="middle" fill="rgba(255,255,255,0.5)" fontSize="10">{maxY}</text>
+        {/* Área bajo el total */}
+        <path d={totalArea} fill="rgba(122, 240, 200, 0.10)" />
+        {/* Línea de registrados (punteada, tenue) por detrás */}
+        {regPath && (
+          <path d={regPath} fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeDasharray="4 3" strokeLinejoin="round" strokeLinecap="round" />
+        )}
+        {/* Línea principal: total */}
+        <path d={totalPath} fill="none" stroke="#7af0c8" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {/* Puntos del total con tooltip que desglosa registrados/anónimos */}
+        {totalPts.map((p, i) => {
+          const reg = regPts[i] ? regPts[i].d.count : 0;
+          const anon = Math.max(0, p.d.count - reg);
+          return (
+            <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#7af0c8">
+              <title>{`${shortDate(p.d.date)}: ${p.d.count} total · ${reg} reg · ${anon} anón`}</title>
+            </circle>
+          );
+        })}
+        {/* Etiquetas eje X */}
+        {totalPts.map((p, i) =>
+          i % labelStep === 0 ? (
+            <text key={i} x={p.x} y={H - PAD.bottom + 14} textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="10">
+              {shortDate(p.d.date)}
+            </text>
+          ) : null
+        )}
+      </svg>
+
+      <p className="mt-3 text-[10px] leading-relaxed text-muted">
+        <span className="text-white/70">Total</span> = partidas del daily
+        completadas ese día (tabla <code>daily_stats</code>), incluye anónimos y
+        registrados. Como cada persona completa un daily al día, equivale al nº
+        de jugadores del día. <span className="text-white/70">Registrados</span>{" "}
+        = usuarios con cuenta que terminaron el daily; el hueco entre ambas ={" "}
+        <span className="text-accent/90">anónimos</span>. (No confundir con el
+        DAU de arriba, que cuenta "hizo un intento", no "terminó".) Métrica{" "}
+        <span className="text-white/70">retroactiva</span>: usa el histórico ya
+        acumulado en daily_stats, sin tracking nuevo.
+      </p>
+    </div>
   );
 }
 

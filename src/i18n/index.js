@@ -17,25 +17,37 @@ import { useEffect, useState } from "react";
 import es from "./locales/es.json";
 import en from "./locales/en.json";
 import { COUNTRY_CODES } from "../data/countries";
+import { resolveLocale } from "./resolveLocale";
+import { readNativeLocale } from "../lib/nativeLocale";
 
 const DICTIONARIES = { es, en };
 export const SUPPORTED = Object.keys(DICTIONARIES);
 const DEFAULT = "es";
 const STORAGE_KEY = "carguessr_locale";
+// Idioma NATIVO por app (Android) sellado en el momento de elegir dentro de la
+// app. Es lo que permite detectar que el usuario cambió el idioma desde los
+// ajustes de Android DESPUÉS. Ver resolveLocale.js para toda la lógica.
+const NATIVE_SEAL_KEY = "carguessr_locale_native_seal";
 
 function detectInitialLocale() {
-  // 1. Override explícito en localStorage (lo que el usuario eligió).
+  let stored = null;
+  let sello = null;
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && SUPPORTED.includes(stored)) return stored;
+    stored = localStorage.getItem(STORAGE_KEY);
+    sello = localStorage.getItem(NATIVE_SEAL_KEY);
   } catch {
     // ignore: localStorage puede fallar en modo privado / iframe sandboxed
   }
-  // 2. Browser language. Cogemos solo el código primario ("en-GB" → "en").
-  const browser = (navigator?.language || "").slice(0, 2).toLowerCase();
-  if (SUPPORTED.includes(browser)) return browser;
-  // 3. Fallback.
-  return DEFAULT;
+  return resolveLocale(
+    {
+      nativo: readNativeLocale(), // "" en web y en Android < 13 sin elección
+      override: stored,
+      sello,
+      navegador: navigator?.language || "",
+    },
+    SUPPORTED,
+    DEFAULT
+  );
 }
 
 let currentLocale = detectInitialLocale();
@@ -92,6 +104,12 @@ export function setLocale(locale) {
   document.documentElement.lang = locale;
   try {
     localStorage.setItem(STORAGE_KEY, locale);
+    // Sellamos el idioma NATIVO por app vigente AHORA. Si más adelante el
+    // usuario lo cambia desde los ajustes de Android, ese valor diferirá del
+    // sello y sabremos que esta elección quedó obsoleta. En web readNativeLocale
+    // devuelve "", que sella inofensivamente (siempre igual al nativo → el
+    // override manda, como debe ser en web). Ver resolveLocale.js.
+    localStorage.setItem(NATIVE_SEAL_KEY, readNativeLocale());
   } catch {
     // ignore
   }

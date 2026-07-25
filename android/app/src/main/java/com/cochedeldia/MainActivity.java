@@ -31,6 +31,11 @@ public class MainActivity extends BridgeActivity {
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // registerPlugin ANTES de super.onCreate(): el Bridge se construye
+        // dentro de super y ahí llama al load() de cada plugin, que es donde
+        // LocaleBridgePlugin engancha su interfaz JS. Registrarlo después
+        // llegaría tarde (el WebView ya habría empezado a cargar la página).
+        registerPlugin(LocaleBridgePlugin.class);
         super.onCreate(savedInstanceState);
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().setBackgroundColor(ContextCompat.getColor(this, R.color.cdd_window_bg));

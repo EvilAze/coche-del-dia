@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Idiomas que ofrece el selector de idioma POR APP de Android 13+ (Ajustes →
+  Aplicaciones → Coche del Día → Idioma). Tiene que coincidir con los que habla
+  el juego (src/i18n: es/en) y con `androidResources.localeFilters` de
+  build.gradle.
+
+  Declararlo solo ENCIENDE el selector del sistema; que ese selector haga algo
+  de verdad depende de que el WebView respete la elección — de eso se encarga
+  LocaleBridgePlugin, que expone el idioma elegido al i18n del bundle. Sin esa
+  segunda pieza, poner "English" aquí no cambiaría nada y sería un ajuste mudo.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="es" />
+    <locale android:name="en" />
+</locale-config>

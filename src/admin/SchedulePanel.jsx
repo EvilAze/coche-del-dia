@@ -39,6 +39,9 @@ export default function SchedulePanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [randomizing, setRandomizing] = useState(false);
+  // Qué se está liberando: "all" | "YYYY-MM-DD" | null. Sirve para deshabilitar
+  // solo el botón que se pulsó, no todos.
+  const [freeing, setFreeing] = useState(null);
   const [localRefresh, setLocalRefresh] = useState(0);
 
   useEffect(() => {
@@ -124,6 +127,52 @@ export default function SchedulePanel({
     }
   }
 
+  // Libera uno o varios días. `target` = "all" o una fecha YYYY-MM-DD.
+  // OJO: liberar NO deja el día vacío. Borra la asignación y, al repintar el
+  // calendario, pick_daily_car vuelve a sortear — ahora sí respetando la
+  // temática de la temporada activa. Por eso el día sigue mostrando un coche
+  // después de liberarlo (otro, y del tema).
+  async function freeDates(target) {
+    if (target === "all") {
+      const ok = window.confirm(
+        "¿Liberar todos los días futuros?\n\nSe volverán a sortear al instante, " +
+          "respetando la temática de la temporada activa. El coche de hoy no se toca."
+      );
+      if (!ok) return;
+    }
+
+    setFreeing(target);
+    setError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sin sesión");
+
+      const res = await fetch("/api/admin/schedule", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(target === "all" ? { all: true } : { date: target }),
+      });
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      }
+
+      setLocalRefresh((prev) => prev + 1);
+    } catch (err) {
+      console.error("[SchedulePanel] free:", err);
+      setError(err?.message || "No se pudo liberar el calendario.");
+    } finally {
+      setFreeing(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <header className="border-b border-border pb-3">
@@ -131,8 +180,10 @@ export default function SchedulePanel({
           Calendario (14 días)
         </h2>
         <p className="mt-1 text-xs text-muted">
-          Los coches futuros ya están fijados — el orden aleatorio no cambia
-          al previsualizar. Edita lo que necesites o haz swap.
+          Abrir esta pestaña <strong className="text-white">fija</strong> los 14
+          días: a partir de ahí el sorteo ya no los toca. Si acabas de crear una
+          temporada con temática, libera los días futuros para que se vuelvan a
+          sortear con ella. El coche de hoy nunca se puede liberar.
         </p>
       </header>
 
@@ -149,6 +200,23 @@ export default function SchedulePanel({
         "
       >
         {randomizing ? "🎲 Aleatorizando..." : "🎲 Aleatorizar próximos 6 días"}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => freeDates("all")}
+        disabled={loading || randomizing || freeing !== null}
+        className="
+          w-full rounded-xl border border-amber-400/40 bg-amber-400/5 px-4 py-3
+          text-sm font-semibold uppercase tracking-[0.18em] text-amber-300
+          transition hover:border-amber-400 hover:bg-amber-400/10
+          disabled:cursor-not-allowed disabled:opacity-40
+          flex items-center justify-center gap-2
+        "
+      >
+        {freeing === "all"
+          ? "Liberando..."
+          : "Liberar días futuros y re-sortear"}
       </button>
 
       {loading && (
@@ -251,6 +319,24 @@ export default function SchedulePanel({
                   title={item.isToday ? "El coche de hoy no se puede cambiar" : undefined}
                 >
                   Cambiar coche
+                </button>
+                <div className="w-px bg-border" aria-hidden="true" />
+                <button
+                  type="button"
+                  disabled={item.isToday || freeing !== null}
+                  onClick={() => freeDates(item.date)}
+                  className="
+                    flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.18em] text-amber-300
+                    transition hover:bg-amber-400/10
+                    disabled:cursor-not-allowed disabled:opacity-40 disabled:text-muted
+                  "
+                  title={
+                    item.isToday
+                      ? "El coche de hoy ya está en juego"
+                      : "Borra la asignación y vuelve a sortear este día"
+                  }
+                >
+                  {freeing === item.date ? "..." : "Liberar"}
                 </button>
               </div>
             </li>

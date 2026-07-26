@@ -24,6 +24,10 @@ const initialForm = {
   pais: "",
   description: "",
   description_en: "",
+  // Etiquetas de Temporada Temática (texto separado por comas; la API recibe
+  // array). Opcionales en el alta: casi siempre se etiqueta después, al montar
+  // la temporada, pero poder hacerlo aquí evita una segunda pasada por el coche.
+  tags: "",
   file: null,
   // Punto focal del zoom. 0.5/0.5 = centro (igual que el comportamiento
   // por defecto del servidor antes de existir las columnas).
@@ -206,6 +210,10 @@ export default function AddCarPanel({
           focus_x: form.focus_x,
           focus_y: form.focus_y,
           zoom_base: form.zoom_base,
+          tags: String(form.tags || "")
+            .split(/[,\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
         }),
       });
       const addBody = await addRes.json().catch(() => ({}));
@@ -387,6 +395,19 @@ export default function AddCarPanel({
               <option key={p} value={p} />
             ))}
           </datalist>
+        </Field>
+
+        <Field label="Etiquetas (temporadas)">
+          <input
+            type="text"
+            value={form.tags}
+            onChange={(e) => updateField("tags", e.target.value)}
+            placeholder="grupo-b, rally"
+            maxLength={300}
+            disabled={isSubmitting}
+            autoComplete="off"
+            className={inputClass}
+          />
         </Field>
 
         <Field

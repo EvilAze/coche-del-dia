@@ -257,7 +257,7 @@
     "streakFreezesCount": "{count} of {max} shields",
     "streakCurrent": "On a streak",
     "streakBest": "Best streak",
-    "destinations": "Your destinations",
+    "destinations": "Your sections",
     "rankNone": "Unranked",
     "ptsShort": "pts"
   },
@@ -293,9 +293,9 @@
     "noMedalsYet": "No medals earned yet."
   },
   "nickname": {
-    "tag": "New driver",
+    "tag": "New byline",
     "title": "Pick your Nick",
-    "description": "This will be your name on the arcade ranking. We won't use your Google name or photo.",
+    "description": "This will be your byline on the standings. We won't use your Google name or photo.",
     "permanentWarning": "Choose carefully: your nick will be permanent and you won't be able to change it later.",
     "placeholder": "MAX12",
     "rules": "Letters and numbers",
@@ -326,7 +326,7 @@
     "cta": "See the standings"
   },
   "ranking": {
-    "tag": "Arcade Board",
+    "tag": "The standings",
     "title": "Ranking",
     "helpButtonAria": "How scoring works",
     "seasonKicker": "Season {n}",
@@ -337,13 +337,13 @@
     },
     "loading": "Loading ranking...",
     "errorLoad": "Couldn't load the ranking.",
-    "empty": "No drivers with a nickname yet.",
+    "empty": "No ranked readers yet.",
     "emptySeason": "No scores yet this season. Be the first!",
     "tabSeason": "Season",
     "tabChampions": "Champions",
     "championsEmpty": "No closed seasons with a podium yet.",
     "colRank": "#",
-    "colPlayer": "Driver",
+    "colPlayer": "Reader",
     "colPoints": "Pts",
     "bestStreak": "Best streak: {value}",
     "seasonWins": "{value} wins this season",

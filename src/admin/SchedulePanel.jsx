@@ -42,6 +42,10 @@ export default function SchedulePanel({
   // Qué se está liberando: "all" | "YYYY-MM-DD" | null. Sirve para deshabilitar
   // solo el botón que se pulsó, no todos.
   const [freeing, setFreeing] = useState(null);
+  // "Voy montando el tema": permite que el sorteo elija coches SIN FOTO. Es
+  // opt-in y arranca apagado — un borrador que llega a su día sin imagen deja
+  // la jornada injugable, así que nunca puede ser el default.
+  const [includeDrafts, setIncludeDrafts] = useState(false);
   const [localRefresh, setLocalRefresh] = useState(0);
 
   useEffect(() => {
@@ -85,8 +89,18 @@ export default function SchedulePanel({
         ...formatDate(d.date),
         isToday: d.date === today,
         offset: idx,
+        // Programado pero sin imagen: si llega a su día así, la jornada queda
+        // injugable. Es el aviso más importante de este panel.
+        needsPhoto: Boolean(d.car && !d.car.image_url),
       })),
     [days, today]
+  );
+
+  // Días futuros programados sin foto, en orden. El primero es la fecha límite
+  // real: es la que hay que cubrir antes.
+  const pendingPhotos = useMemo(
+    () => items.filter((i) => i.needsPhoto && !i.isToday),
+    [items]
   );
 
   async function handleRandomize() {
@@ -136,7 +150,11 @@ export default function SchedulePanel({
     if (target === "all") {
       const ok = window.confirm(
         "¿Liberar todos los días futuros?\n\nSe volverán a sortear al instante, " +
-          "respetando la temática de la temporada activa. El coche de hoy no se toca."
+          "respetando la temática de la temporada activa. El coche de hoy no se toca." +
+          (includeDrafts
+            ? "\n\nINCLUYENDO COCHES SIN FOTO: tendrás que subir la imagen de cada " +
+              "uno antes de que llegue su día, o esa jornada quedará injugable."
+            : "")
       );
       if (!ok) return;
     }
@@ -156,7 +174,10 @@ export default function SchedulePanel({
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify(target === "all" ? { all: true } : { date: target }),
+        body: JSON.stringify({
+          ...(target === "all" ? { all: true } : { date: target }),
+          include_drafts: includeDrafts,
+        }),
       });
 
       const body = await res.json().catch(() => ({}));
@@ -219,6 +240,38 @@ export default function SchedulePanel({
           : "Liberar días futuros y re-sortear"}
       </button>
 
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-black/20 px-4 py-3">
+        <input
+          type="checkbox"
+          checked={includeDrafts}
+          onChange={(e) => setIncludeDrafts(e.target.checked)}
+          disabled={freeing !== null}
+          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-amber-400"
+        />
+        <span className="text-xs leading-relaxed text-muted">
+          <strong className="text-white">Incluir coches sin foto</strong> — para
+          montar una temporada al vuelo: el sorteo puede elegir borradores y tú
+          les vas subiendo la imagen antes de que llegue su día. Mañana nunca
+          recibe un borrador (haría falta subir la foto en menos de 24 h).
+        </span>
+      </label>
+
+      {pendingPhotos.length > 0 && (
+        <div className="rounded-xl border border-amber-400/50 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+          <p className="font-semibold">
+            {pendingPhotos.length === 1
+              ? "1 día programado sin foto"
+              : `${pendingPhotos.length} días programados sin foto`}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-200/80">
+            El más cercano es el {pendingPhotos[0].short} (
+            {pendingPhotos[0].car.marca} {pendingPhotos[0].car.modelo}). Si llega
+            su día sin imagen, esa jornada queda injugable — súbela desde «Editar
+            coche».
+          </p>
+        </div>
+      )}
+
       {loading && (
         <p className="animate-pulse text-xs uppercase tracking-widest text-muted">
           Cargando calendario...
@@ -280,6 +333,11 @@ export default function SchedulePanel({
                       <p className="text-xs text-muted">
                         {item.car.anio} · {item.car.pais}
                       </p>
+                      {item.needsPhoto && (
+                        <span className="mt-1 self-start rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">
+                          Falta la foto
+                        </span>
+                      )}
                     </>
                   ) : (
                     <p className="mt-1 text-xs text-muted">Sin coche asignado.</p>

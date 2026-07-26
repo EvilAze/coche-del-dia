@@ -5,7 +5,12 @@
 // El Archivo, los logros y las estadísticas.
 
 import { describe, it, expect } from "vitest";
-import { validateFreeDate } from "./schedule-free.js";
+import {
+  validateFreeDate,
+  draftsAllowedFor,
+  daysBetween,
+  MIN_DRAFT_OFFSET_DAYS,
+} from "./schedule-free.js";
 
 const TODAY = "2026-07-26";
 const MAX = "2026-08-08"; // hoy + 13 (ventana de 14 días del panel)
@@ -60,6 +65,61 @@ describe("validateFreeDate — lo que sí", () => {
 
   it("recorta espacios alrededor", () => {
     expect(call("  2026-07-27  ")).toEqual({ ok: true, date: "2026-07-27" });
+  });
+});
+
+describe("daysBetween", () => {
+  it("cuenta días de calendario", () => {
+    expect(daysBetween("2026-07-26", "2026-07-27")).toBe(1);
+    expect(daysBetween("2026-07-26", "2026-07-26")).toBe(0);
+    expect(daysBetween("2026-07-26", "2026-08-08")).toBe(13);
+  });
+
+  it("cuenta bien a través de mes y año", () => {
+    expect(daysBetween("2026-07-31", "2026-08-01")).toBe(1);
+    expect(daysBetween("2026-12-31", "2027-01-01")).toBe(1);
+  });
+
+  it("es negativo hacia atrás y null con basura", () => {
+    expect(daysBetween("2026-07-27", "2026-07-26")).toBe(-1);
+    expect(daysBetween("mañana", "2026-07-26")).toBeNull();
+    expect(daysBetween("2026-07-26", null)).toBeNull();
+  });
+});
+
+describe("draftsAllowedFor — margen para subir la foto", () => {
+  const today = TODAY; // 2026-07-26
+
+  it("mañana NO puede recibir un coche sin foto", () => {
+    // Menos de 24 h para subir la imagen, y ninguna ventaja frente a usar
+    // pasado mañana: si se le pasa, la jornada queda injugable.
+    expect(draftsAllowedFor({ date: "2026-07-27", today })).toBe(false);
+  });
+
+  it("pasado mañana sí", () => {
+    expect(draftsAllowedFor({ date: "2026-07-28", today })).toBe(true);
+  });
+
+  it("hoy y el pasado tampoco", () => {
+    expect(draftsAllowedFor({ date: today, today })).toBe(false);
+    expect(draftsAllowedFor({ date: "2026-07-20", today })).toBe(false);
+  });
+
+  it("el resto de la ventana sí", () => {
+    expect(draftsAllowedFor({ date: "2026-08-08", today })).toBe(true);
+  });
+
+  it("ante fechas inválidas falla hacia lo seguro (solo coches con foto)", () => {
+    for (const date of ["", "mañana", null, undefined, 20260728]) {
+      expect(draftsAllowedFor({ date, today })).toBe(false);
+    }
+  });
+
+  it("respeta el margen configurado", () => {
+    expect(MIN_DRAFT_OFFSET_DAYS).toBe(2);
+    expect(
+      draftsAllowedFor({ date: "2026-07-27", today, minOffsetDays: 1 })
+    ).toBe(true);
   });
 });
 

@@ -17,6 +17,45 @@
 
 export const FREE_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Cuántos días de margen exigimos para asignar un coche SIN FOTO. Con 2, el
+// primer día que puede recibir un borrador es pasado mañana.
+//
+// El motivo no es simetría con nada: un borrador en el día de MAÑANA deja menos
+// de 24 h para subir la imagen, y si se le pasa, la jornada queda injugable para
+// todo el mundo (no hay imagen que servir). Y no hay ninguna ventaja en usar
+// mañana en vez de pasado mañana — el reparto del tema sale igual. Es riesgo sin
+// contrapartida, así que se corta aquí.
+//
+// Hoy nunca entra: liberar solo toca días estrictamente futuros.
+export const MIN_DRAFT_OFFSET_DAYS = 2;
+
+// Días de calendario entre dos fechas YYYY-MM-DD. null si alguna no es válida.
+// Se parsea a mediodía UTC-neutral (T00:00:00Z sobre ambas) para que la resta sea
+// exacta en días y ningún cambio de hora se coma uno.
+export function daysBetween(from, to) {
+  if (!FREE_DATE_RE.test(String(from)) || !FREE_DATE_RE.test(String(to))) return null;
+  const a = Date.parse(`${from}T00:00:00Z`);
+  const b = Date.parse(`${to}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return Math.round((b - a) / 86400000);
+}
+
+/**
+ * ¿Puede este día recibir un coche sin foto?
+ *
+ * @param {object} input
+ * @param {string} input.date   Día a asignar (YYYY-MM-DD).
+ * @param {string} input.today  Hoy en Madrid.
+ * @param {number} [input.minOffsetDays]
+ * @returns {boolean} false también si las fechas son inválidas — ante la duda,
+ *   NO se permite el borrador. El fallo seguro es "solo coches con foto".
+ */
+export function draftsAllowedFor({ date, today, minOffsetDays = MIN_DRAFT_OFFSET_DAYS }) {
+  const diff = daysBetween(today, date);
+  if (diff === null) return false;
+  return diff >= minOffsetDays;
+}
+
 /**
  * ¿Es liberable esta fecha?
  *

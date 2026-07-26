@@ -168,10 +168,12 @@
      borde 1px, sin blur ni glints. Se introducen en la Fase 1 (pantalla de
      juego) y las heredan los modales/páginas en fases posteriores. */
   /* (Purga F5: .surface-flat, .btn--mint, .btn--icon e .input-flat eran las
-     primitivas del rediseño plano v0 — ya no las usa ningún componente vivo
-     (las pantallas migraron a .prensa-*/.pm-*). Solo sobrevive la pareja
+     primitivas del rediseño plano v0 — ya no las usa ningún componente vivo:
+     las pantallas migraron a las clases prensa y pm. Solo sobrevive la pareja
      .btn/.btn--ghost, que consumen EdicionNoDisponible, ErrorFallback,
-     NotificationOptIn y el Garaje.) */
+     NotificationOptIn y el Garaje. OJO: jamás cites un glob tipo «.prensa-» +
+     asterisco + barra dentro de un comentario CSS — esa secuencia lo CIERRA y
+     el resto queda como selector crudo; así se rompió un build de Vercel.) */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     border: 0; cursor: pointer; font-family: var(--font-body);

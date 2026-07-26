@@ -10,6 +10,7 @@ import { useCountdown } from "../../hooks/useCountdown";
 import Header from "./Header";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
+import PhotoPeek from "./PhotoPeek";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
@@ -92,8 +93,39 @@ export default function Configurator({
   // Conector del H1 según idioma ("marca, modelo y/and año").
   const conn = locale === "es" ? "y" : "and";
 
-  // (PhotoPeek + IntersectionObserver retirados: el rediseño v0 es scroll natural
-  // sin miniatura flotante.)
+  // El «recorte» (PhotoPeek): cuando el escenario sale del viewport en plena
+  // partida —el caso real es el teclado móvil abierto sobre el cupón—, una
+  // miniatura fija mantiene la referencia visual del coche. El v0 lo retiró
+  // apostando por "scroll natural", pero sin él el jugador tecleaba marca y
+  // modelo a ciegas (auditoría UX 2026-07). Observamos la sección de la foto
+  // con un IntersectionObserver de umbral 0.25: con menos de un cuarto de la
+  // foto a la vista, la referencia ya no sirve y entra el recorte.
+  const fotoRef = useRef(null);
+  const [fotoVisible, setFotoVisible] = useState(true);
+  useEffect(() => {
+    // Solo durante la partida y con datos: al revelar, la foto entera manda y
+    // el recorte sobra. `IntersectionObserver` falta en algún WebView viejo:
+    // sin él simplemente no hay recorte (mejora progresiva, regla 9).
+    if (!dataReady || ended) return;
+    const el = fotoRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => setFotoVisible(entry.isIntersecting),
+      { threshold: 0.25 }
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      // Al desconectar (fin de partida), la miniatura no debe quedar colgada.
+      setFotoVisible(true);
+    };
+  }, [dataReady, ended]);
+
+  // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
+  function volverALaFoto() {
+    document.activeElement?.blur?.();
+    fotoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   // Historial bajo el formulario: SOLO los intentos anteriores al que ya muestra
   // la "fila viva" de arriba (calcado del guess-history de v0, que recibe
@@ -153,7 +185,15 @@ export default function Configurator({
             totalHints={totalHints}
             blurred={status === "lost" && !user}
             onRevealLoad={onRevealLoad}
+            sectionRef={fotoRef}
           />
+        )}
+
+        {/* El recorte flotante: solo en partida y con la foto fuera de vista.
+            El CSS lo oculta en el pliego ancho (≥1100px): allí la foto es la
+            columna central y no se pierde. z-50, bajo EndScreen y modales. */}
+        {dataReady && !ended && !fotoVisible && (
+          <PhotoPeek src={car?.img ?? null} zoom={zoom} onClick={volverALaFoto} />
         )}
 
         {/* Columna "clas" del pliego: fila viva + historial + estadística.

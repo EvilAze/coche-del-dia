@@ -335,7 +335,11 @@ export function useGame() {
     // Los ids del catálogo son UUIDs (string). Solo exigimos que venga algo.
     if (typeof guessCarId !== "string" || !guessCarId) {
       console.error("[submitGuess] guessCarId inválido:", guessCarId);
-      toast.push("Selecciona un coche del listado.", { type: "error" });
+      // Todos los errores de cara al usuario van por i18n (claves errors.*):
+      // antes iban hardcodeados en español y el jugador EN los veía en
+      // castellano justo en el momento más frágil (fallo al enviar el intento).
+      // Los console.error sí quedan en español: son para nosotros, no para él.
+      toast.push(t("errors.selectCar"), { type: "error" });
       return;
     }
 
@@ -381,7 +385,7 @@ export function useGame() {
         message: networkErr?.message,
       });
       haptic.error();
-      toast.push("Error de conexión. Comprueba tu red.", { type: "error" });
+      toast.push(t("errors.network"), { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
       return;
@@ -406,7 +410,7 @@ export function useGame() {
         parseError: parseErr?.message,
       });
       haptic.error();
-      toast.push("Respuesta inválida del servidor.", { type: "error" });
+      toast.push(t("errors.invalidResponse"), { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
       return;
@@ -422,10 +426,13 @@ export function useGame() {
         payload,
       });
       haptic.error();
+      // `data.error` viene del servidor tal cual (no está localizado): se
+      // interpola en la plantilla i18n para que al menos el prefijo hable el
+      // idioma del jugador.
       toast.push(
         data?.error
-          ? `Error: ${data.error}`
-          : "No se pudo validar el intento.",
+          ? t("errors.validationDetail", { detail: data.error })
+          : t("errors.validationFailed"),
         { type: "error" }
       );
       setPendingGuess(null);
@@ -438,7 +445,7 @@ export function useGame() {
       if (nextRevealToken) setRevealToken(nextRevealToken);
       if (!result) {
         console.error("[submitGuess] respuesta sin `result`", data);
-        toast.push("Respuesta inesperada del servidor.", { type: "error" });
+        toast.push(t("errors.unexpectedResponse"), { type: "error" });
         setPendingGuess(null);
         setIsSubmitting(false);
         return;
@@ -520,7 +527,7 @@ export function useGame() {
         data,
       });
       haptic.error();
-      toast.push("Error procesando la respuesta.", { type: "error" });
+      toast.push(t("errors.processingResponse"), { type: "error" });
       setPendingGuess(null);
     } finally {
       setIsSubmitting(false);

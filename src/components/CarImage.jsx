@@ -323,7 +323,7 @@ export default function CarImage({
               : undefined
           }
           sizes={isApiProxy && !imgFailed ? "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px" : undefined}
-          alt="Coche del día"
+          alt={t("cdd.carImageAlt")}
           draggable={false}
           // Pistas al navegador para optimizar LCP: la foto del coche es el
           // hero element de la página y siempre está above-the-fold.
@@ -382,12 +382,13 @@ export default function CarImage({
         </div>
       )}
 
-      {/* Etiqueta narrativa de pista con mini progress bar */}
+      {/* Etiqueta narrativa de pista con mini progress bar. El texto va por
+          i18n (misma clave prensa.pista que el ladillo del escenario): antes
+          "Pista" iba hardcodeado y el jugador EN lo veía en español. */}
       {showLabel && loaded && (
         <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 rounded-full border border-border bg-black/70 px-3 py-1.5">
-          <span className="text-[10px] uppercase tracking-widest text-white">
-            Pista <span className="tabular-nums">{hintIndex + 1}</span>
-            <span className="text-muted"> / {totalHints}</span>
+          <span className="text-[10px] uppercase tracking-widest text-white tabular-nums">
+            {t("prensa.pista", { n: hintIndex + 1, max: totalHints })}
           </span>
           <div className="flex gap-0.5">
             {Array.from({ length: totalHints }).map((_, i) => (
@@ -497,7 +498,7 @@ export default function CarImage({
               )}
               <img
                 src={isApiProxy ? `${proxBase}&f=jpeg&w=1920` : src}
-                alt="Coche del día"
+                alt={t("cdd.carImageAlt")}
                 draggable={false}
                 className="absolute inset-0 h-full w-full object-cover"
                 style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}

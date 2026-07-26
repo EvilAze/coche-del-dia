@@ -56,8 +56,8 @@
    index.html + src/lib/theme.js). La consume TODO: el CSS del juego
    (.cdd-, .prensa- y .pm- vía var(--...)) y Tailwind (tailwind.config.js
    apunta sus colores a estas mismas variables). Los temas de admin
-   (.theme-platino/.theme-cobre) siguen fijando sus tokens localmente y NO
-   se tematizan.
+   (.theme-platino, conservado para las previews del admin) siguen fijando
+   sus tokens localmente y NO se tematizan.
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
   color-scheme: light;
@@ -167,17 +167,13 @@
      Sustituyen al material "liquid glass" en superficies aplanadas. Sólido +
      borde 1px, sin blur ni glints. Se introducen en la Fase 1 (pantalla de
      juego) y las heredan los modales/páginas en fases posteriores. */
-  /* Superficie plana "global" (p.ej. ResultPanel de repesca, fuera del tema):
-     colores concretos por la misma razón que .modal-panel-flat. */
-  .surface-flat {
-    /* Prensa (F5): superficie de papel con filete de tinta y esquinas vivas
-       (era grafito #14181e). La usa el ResultPanel de la repesca. */
-    background: var(--surface);
-    border: 1px solid var(--cdd-text);
-    border-radius: 0;
-  }
-  /* Botón v0: plano, font-semibold SIN tracking/display, mint sólido; disabled e
-     "incompleto" en gris neutro (como el ADIVINAR gris del mockup de v0). */
+  /* (Purga F5: .surface-flat, .btn--mint, .btn--icon e .input-flat eran las
+     primitivas del rediseño plano v0 — ya no las usa ningún componente vivo:
+     las pantallas migraron a las clases prensa y pm. Solo sobrevive la pareja
+     .btn/.btn--ghost, que consumen EdicionNoDisponible, ErrorFallback,
+     NotificationOptIn y el Garaje. OJO: jamás cites un glob tipo «.prensa-» +
+     asterisco + barra dentro de un comentario CSS — esa secuencia lo CIERRA y
+     el resto queda como selector crudo; así se rompió un build de Vercel.) */
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     border: 0; cursor: pointer; font-family: var(--font-body);
@@ -186,63 +182,29 @@
   }
   .btn:active:not(:disabled) { transform: scale(.99); }
   .btn:disabled { cursor: not-allowed; }
-  .btn--mint { background: var(--accent); color: var(--accent-ink); }
-  .btn--mint:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 92%, #000); }
-  .btn--mint:disabled, .btn--mint.is-incomplete {
-    background: #565d66; color: #c9ced6;
-  }
   .btn--ghost {
     background: transparent; color: var(--accent);
     border: 1px solid color-mix(in oklab, var(--accent) 55%, var(--line));
   }
   .btn--ghost:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 10%, transparent); }
-  .btn--icon {
-    width: 36px; height: 36px; border-radius: 10px; background: transparent;
-    color: var(--cdd-muted);
-  }
-  .btn--icon:hover { background: color-mix(in oklab, var(--cdd-text) 8%, transparent); color: var(--cdd-text); }
-  /* Input v0: h-11 (44px), rounded-xl, borde sutil, fondo ligeramente elevado,
-     foco menta (borde + ring). text-sm 14px, peso normal. */
-  .input-flat {
-    width: 100%; height: 44px; background: var(--surface2); color: var(--cdd-text);
-    border: 1px solid var(--line); border-radius: 12px;
-    padding: 0 12px; font-family: var(--font-body); font-size: 14px; font-weight: 400;
-    outline: 0; transition: border-color .15s, box-shadow .15s, background-color .15s;
-  }
-  .input-flat::placeholder { color: color-mix(in oklab, var(--cdd-muted) 65%, transparent); }
-  .input-flat:focus { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 40%, transparent); }
   /* Chasis plano de modal. Colores CONCRETOS (no var()): los modales se
      renderizan FUERA del root del juego (overlay a nivel de documento). El
      bloque de PAPEL definitivo (F3) vive más abajo y sobreescribe estas
      posiciones; aquí solo queda position:relative como base compartida. */
   .modal-panel-flat { position: relative; }
 
-  /* Lift: micro-interacción de elevación al pasar el ratón / pulsar. Solo en
-     dispositivos con hover real (en táctil no hay hover y basta el :active);
-     anulada en reduced-motion. La sombra/glow la sube cada superficie en su
-     propio :hover (esta clase solo mueve el plano). */
-  @media (hover: hover) and (pointer: fine) {
-    .lift { transition: transform .2s ease, box-shadow .2s ease; }
-    .lift:hover { transform: translateY(-2px); }
-    .lift:active { transform: translateY(0); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .lift { transition: none; }
-    .lift:hover, .lift:active { transform: none; }
-  }
-
-
   /* Acento ORO premium (texto). Prensa (F4): oro viejo de tinta var(--gold) —
-     legible sobre papel (el #e8c87a era para grafito). Sin halo (fuera glows);
-     .text-gold-glow queda como alias plano. Racha, victoria, podio, logros. */
+     legible sobre papel (el #e8c87a era para grafito). Sin halo (fuera glows).
+     Racha, victoria, podio, logros. */
   .text-gold { color: var(--gold); }
-  .text-gold-glow { color: var(--gold); }
-  /* Relleno oro viejo con texto papel legible (chips/badges premium). */
-  .fill-gold { background-color: var(--gold); color: var(--bg); }
 
+  /* Barra de scroll de los paneles largos (Ranking, Logros, Leyendas).
+     Prensa (F5): pulgar de TINTA vía terna RGB — antes era menta #7af0c8, un
+     resto del sistema Platino que desentonaba dentro del periódico. Al salir
+     de la terna, el modo noche lo hereda solo (tinta beige sobre grafito). */
   .scrollbar-premium {
     scrollbar-width: thin;
-    scrollbar-color: rgba(122, 240, 200, 0.35) transparent;
+    scrollbar-color: rgb(var(--tinta-rgb) / 0.35) transparent;
     scrollbar-gutter: stable;
   }
   .scrollbar-premium::-webkit-scrollbar {
@@ -253,11 +215,11 @@
     margin: 4px 0;
   }
   .scrollbar-premium::-webkit-scrollbar-thumb {
-    background-color: rgba(122, 240, 200, 0.35);
+    background-color: rgb(var(--tinta-rgb) / 0.35);
     border-radius: 9999px;
   }
   .scrollbar-premium::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(122, 240, 200, 0.6);
+    background-color: rgb(var(--tinta-rgb) / 0.6);
   }
 }
 
@@ -269,34 +231,8 @@ body,
   overflow-x: hidden;
 }
 
-/* Confetti: keyframe global porque se referencia desde inline `animation`,
-   no desde una clase animate-* de Tailwind. */
-@keyframes confettiBurst {
-  0% {
-    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0);
-    opacity: 0;
-  }
-  12% {
-    transform: translate(-50%, -50%) translate(0, 0) rotate(calc(var(--rot, 0deg) * 0.1)) scale(1);
-    opacity: 1;
-  }
-  55% {
-    transform:
-      translate(-50%, -50%)
-      translate(var(--tx, 0), var(--ty, 0))
-      rotate(var(--rot, 0deg))
-      scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform:
-      translate(-50%, -50%)
-      translate(calc(var(--tx, 0px) * 1.15), calc(var(--ty, 0px) + 520px))
-      rotate(calc(var(--rot, 0deg) * 1.4))
-      scale(0.6);
-    opacity: 0;
-  }
-}
+/* (Purga F5: el keyframe confettiBurst se fue con el confetti — en el
+   lenguaje prensa la celebración es el sello estampándose, spec §2.) */
 
 @media (prefers-reduced-motion: reduce) {
   .animate-hint-flash,
@@ -311,15 +247,16 @@ body,
 }
 
 /* ===================================================================
-   REDISEÑO "CONFIGURADOR PREMIUM" — pantalla de juego (dir. Platino)
+   CHASIS .cdd-* — piezas VIVAS del juego re-vestidas por .prensa
    -------------------------------------------------------------------
-   Port fiel del prototipo `Coche del Día.html` (Claude Design). Todo vive
-   bajo `.cdd-app`, así que no contamina el resto de la app. Se omiten los
-   resets globales del prototipo (ya los aporta Tailwind/index.css) y las
-   piezas exclusivas del mock (image-slot/blueprint/droptag): en producción la
-   foto la sirve el pipeline seguro de CarImage. Dos temas conmutables por
-   clase (.theme-platino por defecto, .theme-cobre disponible); el acento se
-   inyecta inline en `.cdd-app`.
+   Herencia del rediseño "configurador premium" (dir. Platino). Tras la purga
+   F5 aquí solo quedan los selectores que el juego actual sigue montando
+   (escenario/lightbox, EndScreen, distribución, recorte…) — la capa .prensa
+   de más abajo los sobreescribe por cascada — y `.theme-platino`, que
+   conserva el admin: PreviewPanel envuelve sus previews del escenario en ese
+   tema para verlas como las ve el juego. (.theme-cobre, el header de iconos,
+   los chips de intento y el formulario .cdd-combo/.cdd-input se borraron:
+   ningún componente vivo los renderizaba.)
    =================================================================== */
 .theme-platino {
   --bg: #0d1014; --bg2: #07090c; --surface: #14181e; --surface2: #1b212a;
@@ -340,22 +277,9 @@ body,
   --font-mono: 'Space Mono', monospace;
   --ambient: radial-gradient(900px 500px at 50% -8%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
 }
-.theme-cobre {
-  --bg: #16110c; --bg2: #0d0a06; --surface: #1e1812; --surface2: #271f17;
-  --line: rgba(255,238,220,.10); --line-2: rgba(255,238,220,.05);
-  --cdd-text: #f4ece1; --cdd-muted: #a4917c; --faint: #74634f;
-  --accent-ink: #1a0d04; --good-ink: #1a0d04;
-  /* Mismo rojo de fallo que Platino (coherente con el pip gastado). */
-  --bad: #e26060; --bad-ink: #f0a39c; --bad-sub: #d98b83;
-  --warn: #eab44e;
-  /* En tema cobre el oro y el acento conviven cálidos; el oro tira a ámbar. */
-  --gold: #e8c87a; --gold-ink: #1a0d04; --gold-glow: rgba(232,200,122,.42);
-  /* (Material "Liquid Glass" retirado en el rediseño plano — ver platino.) */
-  --line-strong: rgba(255,238,220,.26);
-  --font-display: 'Sora', sans-serif; --font-body: 'Sora', sans-serif;
-  --font-mono: 'Space Mono', monospace;
-  --ambient: radial-gradient(900px 520px at 50% -8%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 72%);
-}
+/* (Purga F5: .theme-cobre era el tema alternativo del configurador Platino;
+   nadie lo montaba ya — el conmutador real de temas es día/noche vía
+   :root[data-tema], y el admin usa .theme-platino.) */
 
 .cdd-app {
   position: relative; min-height: 100svh; width: 100%;
@@ -363,141 +287,16 @@ body,
   font-family: var(--font-body); -webkit-font-smoothing: antialiased;
   overflow-x: clip;
 }
-/* Fondo plano (rediseño v0): se retira la aurora animada; el fondo es sólido
-   (var(--bg) en .cdd-app). El elemento .cdd-ambient sigue en el JSX pero no
-   pinta nada (display:none) — sin churn de componente. */
-.cdd-ambient { display: none; }
-@keyframes cddAurora {
-  0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
-  100% { transform: translate3d(3%, 2%, 0) scale(1.08); }
-}
-@media (prefers-reduced-motion: reduce) { .cdd-ambient { animation: none; } }
-/* Ritmo vertical intencional: gap:0 + margen propio por bloque (antes un gap
-   uniforme de 22px arrastraba todo y dejaba demasiado aire header↔fecha). */
-.cdd-shell {
-  position: relative; z-index: 1; width: 100%; max-width: 480px; margin: 0 auto;
-  padding: 18px 18px 40px; display: flex; flex-direction: column; gap: 0;
-}
+/* (Purga F5: .cdd-ambient/cddAurora y el shell de columna del Platino
+   (.cdd-shell) se fueron con su Configurator; el pliego actual monta
+   .prensa-hoja/.prensa-pliego.) */
 .cdd-mono { font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 
-/* ── Cabecera (ceñida; compactada para hacer la foto más cuadrada) ── */
-.cdd-header {
-  position: sticky; top: 0; z-index: 40;
-  display: flex; align-items: center; justify-content: space-between;
-  /* Barra sticky PLANA (rediseño v0): fondo sólido + línea inferior, sin blur ni
-     glints. Al scrollear, el contenido pasa por debajo sobre fondo opaco. */
-  margin-bottom: 14px; padding: 9px 4px; border-radius: 0;
-  background: var(--bg);
-  border: 0; border-bottom: 1px solid var(--line);
-  box-shadow: none;
-}
-/* Bloque de marca: título + fecha apilados, centrados verticalmente y pegados
-   a la izquierda (align-items: flex-start). justify-content: center los centra
-   en la altura completa de la barra (header en stretch). */
-.cdd-wordmark { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; min-width: 0; }
-/* Sin badge "CDD": el wordmark "Coche del Día" es ahora el protagonista de la
-   barra — más grande y rotundo, con el acento reservado para fecha + H1. */
-/* Valores compactos (antes duplicados inline en Header.jsx; centralizados aquí
-   como el resto del rediseño): clamp ceñido que regala alto al fold. */
-/* Wordmark adelgazado (antes 800 / clamp 18-22): en vertical no necesita gritar
-   cada día. Más ligero y pequeño → el header baja ~35% y la foto sube. */
-.cdd-title { font-family: var(--font-display); font-weight: 700; font-size: clamp(16px, 4.2vw, 19px); letter-spacing: -.01em; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Glyphs libres ceñidos: juntos se leen como UN grupo de acciones, no como
-   iconos sueltos perdidos por la barra. */
-.cdd-nav { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.cdd-iconbtn {
-  position: relative;
-  display: inline-flex; align-items: center; justify-content: center;
-  height: 36px; min-width: 32px; padding: 0 2px; flex: none;
-  /* Glyphs libres (dir. visionOS): SIN contenedor — el icono respira solo. El
-     chrome (caja/borde/blur) restaba sensación premium; aquí manda el contenido. */
-  background: none; border: 0; box-shadow: none;
-  color: var(--cdd-muted); cursor: pointer; transition: color .18s, transform .15s;
-}
-.cdd-iconbtn:hover { color: var(--cdd-text); background: color-mix(in oklab, var(--cdd-text) 8%, transparent); border-radius: 10px; }
-.cdd-iconbtn:active { transform: scale(.88); }
-
-/* ── Píldora de estado: racha + puesto en el ranking ──
-   El ranking asciende de icono mudo a estado vivo (muestra el puesto). Compacta
-   (32px) pero CON algo de peso: un tinte tenue de acento de fondo para que el
-   puesto destaque como la palanca de retención que es. Iconos en acento,
-   números en texto claro. tabular-nums para que el #N no salte al subir. */
-.cdd-statuspill {
-  position: relative;
-  display: inline-flex; align-items: center; gap: 7px; flex: none;
-  height: 36px; padding: 0 2px;
-  /* Glyph libre: racha (oro) + puesto (texto), sin caja. */
-  background: none; border: 0; box-shadow: none;
-  color: var(--cdd-muted);
-  font-family: var(--font-mono); font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer; transition: color .18s, transform .15s;
-}
-/* Racha = oro premium: icono + número en oro con halo tenue. El puesto
-   (.seg-rank) hereda el acento menta de la píldora — dos motores de retorno,
-   dos colores: menta "actúa/sube", oro "lo que ya has acumulado". */
-.cdd-statuspill .seg-streak { color: var(--gold); }
-.cdd-statuspill .seg-streak b { color: var(--gold); }
-.cdd-statuspill:hover { color: var(--cdd-text); transform: translateY(-1px); }
-.cdd-statuspill:active { transform: scale(.96); }
-.cdd-statuspill .seg { display: inline-flex; align-items: center; gap: 4px; }
-.cdd-statuspill b { color: var(--cdd-text); font-weight: 700; }
-.cdd-statuspill .divider {
-  width: 1px; height: 13px; flex: none;
-  background: color-mix(in oklab, var(--accent) 22%, var(--line));
-}
-
-/* Variante CTA (anónimo / sin datos): "Compite →" en GHOST — texto y borde de
-   acento sobre fondo translúcido, NO relleno macizo. Al entrar, la tarea del
-   jugador es jugar (mirar foto → adivinar); el acento macizo se reserva para el
-   CTA real (ADIVINAR) y para los aciertos. Sigue siendo descubrible —y el modal de
-   ranking trae su propio login para el anónimo— sin robarle el foco al juego. */
-/* CTA anónimo "Compite →": glyph libre en menta (es una acción → menta). */
-.cdd-statuspill.cta { color: var(--accent); }
-.cdd-statuspill.cta b { color: var(--accent); }
-.cdd-statuspill.cta:hover { color: var(--accent); filter: brightness(1.15); }
-
-/* Punto de alerta de repesca sobre el icono de garaje */
-.cdd-iconbtn .cdd-alert-dot { position: absolute; top: 2px; right: 0; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-
-/* ── Dateline (bajo el wordmark, dentro del header) ── */
-/* 10.5px y no los 9px que iban inline en Header: mono caps por debajo de 10px
-   con tracking .12em se empasta en DPI bajo (auditoría UX, mismo criterio que
-   .cdd-label). El tracking baja a .08em por la misma razón. */
-/* nowrap: la fecha NUNCA se parte en dos líneas. Si la barra apura el ancho,
-   antes cede el wordmark (ellipsis) que la fecha — partir "JUEVES, 11 DE /
-   JUNIO" se veía roto. */
-.cdd-date { font-size: 10px; letter-spacing: .08em; margin-top: 3px; color: var(--cdd-muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-/* Marcador editorial: barrita de acento antes de la fecha */
-.cdd-date::before { content: ""; width: 14px; height: 2px; border-radius: 2px; flex: none;
-  background: var(--accent); box-shadow: 0 0 10px -1px var(--accent); }
-
-/* ── Onboarding (SOLO primera visita; ver Configurator) ── */
-/* NO es el subtítulo del juego (ese se eliminó): es una pista de ayuda — un chip
-   "Cómo se juega" que guía al recién llegado hacia el modal de reglas. En el día
-   a día no se pinta (barra limpia). */
-.cdd-intro { display: flex; align-items: center; margin-bottom: 8px; }
-.cdd-helpchip { position: relative; display: inline-flex; align-items: center; gap: 6px;
-  height: 30px; padding: 0 12px; border-radius: 999px;
-  background: var(--surface2); border: 1px solid var(--line); box-shadow: none;
-  color: var(--cdd-muted); font-family: var(--font-body); font-size: 12.5px;
-  cursor: pointer; transition: .18s; }
-.cdd-helpchip:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
-/* Latido suave que invita a abrir "cómo se juega" sin modal forzado. Se apaga
-   al abrirlo (App pone howtoPulse=false). */
-.cdd-helpchip.pulse { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); animation: cddHelpPulse 2.2s ease-in-out infinite; }
-@keyframes cddHelpPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 40%, transparent); }
-  50% { box-shadow: 0 0 0 6px transparent; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cdd-helpchip.pulse { animation: none; }
-}
-
-/* ── Main / columnas (margen propio; antes lo daba el gap del shell) ── */
-.cdd-main { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; }
-.cdd-col { display: flex; flex-direction: column; gap: 14px; }
+/* (Purga F5: la cabecera de glyphs del Platino —.cdd-header/.cdd-wordmark/
+   .cdd-title/.cdd-nav/.cdd-iconbtn—, la píldora de estado .cdd-statuspill,
+   el dateline .cdd-date, el chip de onboarding .cdd-helpchip y las columnas
+   .cdd-main/.cdd-col se borraron: el juego monta la cabecera de periódico
+   (.prensa-topbar/masthead/folio) y el pliego .prensa-pliego.) */
 
 /* ── Escenario / zoom ── */
 .cdd-stage { width: 100%; }
@@ -533,228 +332,29 @@ body,
     repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.12) 2px 3px),
     radial-gradient(120% 90% at 50% 0%, transparent 60%, rgba(0,0,0,.45)); }
 
-/* ── Barra de progreso de intentos (AttemptProgress) ──
-   Vive DENTRO del marco, anclada al borde inferior de la foto (sobre la viñeta
-   ::after que oscurece esa franja → legible sobre carrocerías claras). Así no
-   ocupa una fila propia que reste alto a la imagen. Es deliberadamente DISCRETA
-   (sin texto ni halo, fina): el único canal es el COLOR de los segmentos
-   RESTANTES, que vira con la urgencia; el tono lo fija cuántos quedan, no la
-   posición. La foto es tap-para-ampliar y el lightbox no pinta la barra: un toque
-   muestra la imagen limpia. */
-.cdd-progress { display: flex; }
-.cdd-progress-track { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; }
-/* Dots v0: restante = punto pequeño apagado; usado = barra sólida; actual = barra
-   menta. El COLOR del 'actual' lleva la urgencia (ver tonos abajo). */
-.cdd-progress-seg { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.28); transition: background .3s; }
-.cdd-progress-seg.spent { width: 22px; background: rgba(255,255,255,.6); }
-.cdd-progress-seg.current { width: 22px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-/* Urgencia: a falta de 2 el 'actual' vira a ámbar; en el último intento, rojo
-   pulsante (única vez que la barra reclama atención). */
-.cdd-progress.tone-warn .cdd-progress-seg.current { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
-.cdd-progress.tone-danger .cdd-progress-seg.current { background: var(--bad); box-shadow: 0 0 8px var(--bad);
-  animation: cddPulse 1.1s ease-in-out infinite; }
-@keyframes cddPulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+/* (Purga F5: la barra de dots .cdd-progress del Platino se borró —
+   AttemptProgress pinta ahora los pips de negativo .prensa-pips, en el pie
+   de foto del sistema prensa.) */
 
-/* ── PhotoPeek: miniatura flotante de la foto (auditoría UX #7) ──
-   Aparece cuando el escenario sale del viewport en plena partida (teclado
-   abierto en móvil, o scroll al historial): la referencia visual sigue a un
-   vistazo. Marco 1:1 ESTRICTO — imprescindible: con object-cover + el mismo
-   scale(zoom), solo la misma proporción garantiza el mismo recorte (ni un
-   píxel más que el escenario; mismo principio que .cdd-lightbox-frame).
-   z-50: sobre el contenido pero bajo EndScreen (60) y modales (100+).
-   fixed + top: anclado al viewport LAYOUT — con teclado abierto lo fijado
-   arriba sigue visible (lo problemático es anclar abajo). */
-.cdd-peek { position: fixed; top: calc(64px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 50;
-  width: 96px; height: 96px; padding: 0; overflow: hidden; cursor: pointer;
-  border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
-  box-shadow: 0 12px 30px -14px rgba(0,0,0,.8);
-  animation: cddPeekIn .22s cubic-bezier(.16,1,.3,1); }
-/* CUADRADO BLINDADO, igual de estricto que el escenario:
-   - height EXPLÍCITO en el botón (no aspect-ratio): con todos los hijos en
-     absoluto no hay contenido en flujo y el alto dependería del cálculo de
-     aspect-ratio — si falla, el img hereda un alto roto y la foto SE ESTIRA.
-   - picture { display: contents }: fuera la caja intermedia; el img se ancla
-     directamente al botón, sin depender de cómo cada motor posicione <picture>.
-   - object-fit: cover en el img: NUNCA deforma — recorta, como en el escenario.
-     Es lo que garantiza "mismo formato, mismos píxeles" (regla 5). */
-.cdd-peek picture { display: contents; }
-.cdd-peek img { position: absolute; top: 0; left: 0; display: block;
-  width: 100%; height: 100%; object-fit: cover; object-position: center;
-  transform-origin: center center; }
-.cdd-peek:active { transform: scale(.96); }
-@keyframes cddPeekIn { from { opacity: 0; transform: translateY(-6px) scale(.92); } }
-@media (prefers-reduced-motion: reduce) {
-  .cdd-peek { animation: none; }
-}
+/* (PhotoPeek: el bloque .cdd-peek vive ahora en el sistema «Prensa del
+   motor», más abajo — el «recorte». Este hueco documenta la mudanza: el peek
+   antiguo era 1:1 porque el escenario Platino era cuadrado; el escenario
+   prensa es 4:3 y la miniatura debe seguirlo para no cambiar el crop.) */
 
-/* ── Intentos ── */
-/* El historial vive bajo el fold (fuera del viewport hasta hacer scroll), como
-   bloque propio del shell: se da su propio respiro respecto al formulario. */
-.cdd-attempts { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-/* Fila viva del último intento, DENTRO del fold sobre el formulario: feedback
-   visible sin scroll (el flip-reveal/pending ocurrían fuera de pantalla).
-   Aquí cada píxel de alto se lo come la foto (la protagonista del fold), así que
-   esta fila va MÁS COMPACTA que el historial de abajo: chips más bajos, menos
-   padding/gap y SIN margin-bottom (el gap de .cdd-col ya separa del formulario;
-   sumar margin duplicaba el aire). El historial bajo el fold conserva su tamaño
-   holgado porque no compite por el alto del viewport. */
-.cdd-live-attempt { margin-bottom: 0; }
-/* Kicker "ÚLTIMO INTENTO" (rediseño v0): etiqueta editorial sobre la fila viva. */
-.cdd-live-kicker { display: block; margin-bottom: 6px; font-size: 10px; letter-spacing: .14em; color: var(--cdd-muted); }
-.cdd-live-attempt .cdd-attempt-chips { gap: 6px; }
-/* La 'fila viva' compite por el alto del fold con la foto: nombre un punto más
-   pequeño (12px) y meta más ceñida que en el historial de abajo. */
-.cdd-live-attempt .cdd-chip {
-  min-height: 36px; padding: 5px 10px; border-radius: 9px; gap: 2px; font-size: 12px;
-}
-.cdd-live-attempt .cdd-chip-meta { min-height: 12px; gap: 4px; }
-/* La fila de un intento ES directamente la rejilla de 3 celdas (marca/modelo/año).
-   Ya no hay columna con el número de intento (01,02…): el HUD general dice en qué
-   intento vas, y en móvil esos ~32px de ancho son oxígeno que necesitan los
-   nombres largos. El grid (no flex) sigue siendo lo correcto: alinea las 3 celdas
-   entre filas y reparte el ancho proporcionalmente (el modelo, el nombre más
-   largo, se lleva el track más ancho). */
-/* Reparto de tracks: modelo el más ancho (nombres más largos). Marca un punto más
-   que año porque, además de la marca, carga el subtexto más largo (MISMO PAÍS /
-   SAME COUNTRY); el año, sin ya el texto MÁS NUEVO/ANTIGUO, es el que menos pide. */
-.cdd-attempt-chips { display: grid; grid-template-columns: 1.15fr 1.4fr 0.95fr; gap: 8px; min-width: 0; perspective: 700px; }
-/* Chip en 2 zonas APILADAS: fila 1 = nombre a ancho completo, fila 2 = meta de
-   estado. Separarlas en vertical es la clave del rediseño: el nombre nunca compite
-   con el icono por el ancho horizontal. min-height fija un suelo común para que
-   todas las celdas de una fila midan igual aunque su meta varíe (✓ suelto vs
-   bandera + etiqueta). */
-.cdd-chip { display: flex; flex-direction: column; gap: 2px; justify-content: center; align-items: flex-start;
-  padding: 6px 12px; border-radius: 10px; min-height: 40px; font-size: 13px; font-weight: 600; line-height: 1.15; min-width: 0;
-  border: 1px solid var(--line); background: var(--surface2); }
-/* Fila 1 = solo el nombre, a ancho completo: nada le roba espacio horizontal. */
-.cdd-chip-main { display: block; width: 100%; min-width: 0; }
-/* Una sola línea: el nombre largo lo encoge useFitText (no parte en 2). Al ocupar
-   el 100% del ancho, su clientWidth ES el ancho disponible que mide el hook. */
-.cdd-chip-text { display: block; width: 100%; min-width: 0; white-space: nowrap; overflow: hidden; line-height: 1.18; }
-/* Fila 2 = meta de estado: icono/bandera + (opcional) etiqueta. min-height la
-   reserva aunque solo haya un ✓/✕, para que la altura no baile entre celdas. */
-.cdd-chip-meta { display: flex; align-items: center; gap: 5px; min-width: 0; max-width: 100%; min-height: 14px; }
-.cdd-chip-mark { display: inline-flex; flex: none; }
-/* Etiqueta de estado (MISMO PAÍS / SAME COUNTRY / ±2): mono en versalitas. El
-   shrink-to-fit (useFitText con min 7.5px) la encoge a UNA línea si compite por el
-   ancho con la bandera/flecha; el ellipsis queda solo como última red por debajo
-   de ese suelo. letter-spacing bajo (.04em) para que casi nunca tenga que encoger. */
-.cdd-chip-sub { font-size: 8.5px; font-weight: 400; opacity: .9; font-family: var(--font-mono); letter-spacing: .04em; text-transform: uppercase; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cdd-chip .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
-/* Acierto: tinte menta plano + texto/icono acento (v0; antes relleno macizo). */
-.tone-good { background: color-mix(in oklab, var(--accent) 14%, var(--surface)); color: var(--cdd-text);
-  border-color: color-mix(in oklab, var(--accent) 38%, var(--line)); box-shadow: none; }
-.tone-good .cdd-chip-sub { color: var(--accent); opacity: .8; }
-.tone-good .cdd-chip-mark { color: var(--accent); }
-/* Mismo país (partial): tinte ámbar + borde discontinuo + bandera reforzada. El
-   ámbar lo distingue del acierto (menta) y del fallo (rojo). */
-.tone-near { background: color-mix(in oklab, var(--warn) 12%, var(--surface)); color: var(--cdd-text);
-  border: 1px dashed color-mix(in oklab, var(--warn) 50%, var(--line)); }
-.tone-near .cdd-chip-sub { color: var(--warn); }
-.tone-near .cdd-flag { width: 20px; height: 13px; }
-/* Fallo: superficie neutra sólida + borde/icono rojo discreto (v0). */
-.tone-off { background: var(--surface2); color: var(--cdd-text);
-  border: 1px solid color-mix(in oklab, var(--bad) 28%, var(--line)); }
-.tone-off .cdd-chip-mark { color: var(--bad-ink); }
-.tone-off .cdd-chip-sub { color: var(--bad-sub); }
-/* Fila pendiente (esperando al servidor): shimmer neutro */
-.cdd-chip.is-pending { background: var(--surface); border: 1px solid var(--line); color: var(--faint); position: relative; overflow: hidden; }
-.cdd-chip.is-pending::after { content: ""; position: absolute; inset: 0;
-  background: linear-gradient(110deg, transparent 35%, color-mix(in oklab, var(--cdd-text) 8%, transparent) 50%, transparent 65%);
-  background-size: 200% 100%; animation: cddShimmer 1.4s linear infinite; }
-@keyframes cddShimmer { 0% { background-position: 150% 0; } 100% { background-position: -150% 0; } }
-/* Flip-reveal por celda en el intento recién validado (efecto "carta") */
-.cdd-chip.flip { animation: cddFlip .5s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: center; backface-visibility: hidden; }
-@keyframes cddFlip { 0% { opacity: 0; transform: rotateX(88deg); } 55% { opacity: 1; transform: rotateX(-12deg); } 100% { opacity: 1; transform: rotateX(0); } }
-/* Pop de la píldora de estado al subir la racha */
-.cdd-statuspill.pop { animation: cddStreakPop .44s cubic-bezier(0.16, 1, 0.3, 1); }
-@keyframes cddStreakPop { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
+/* (Purga F5: los chips de intento del Platino —.cdd-attempts/.cdd-chip y sus
+   tonos tone-good/near/off, shimmer y flip— se borraron: la clasificación
+   actual son las filas tipográficas .prensa-fila/.prensa-dato con marcas de
+   corrector. Se conserva solo el freno de reduced-motion de la barra de
+   distribución, que sigue viva en EndScreen/estadística del día.) */
 @media (prefers-reduced-motion: reduce) {
-  .cdd-chip.flip, .cdd-statuspill.pop,
-  .cdd-progress.tone-danger .cdd-progress-seg:not(.spent) { animation: none !important; }
   .cdd-dist-bar { transition: none !important; }
 }
 
-/* ── Formulario ── */
-.cdd-form { display: flex; flex-direction: column; gap: 14px;
-  /* Panel plano (rediseño v0): superficie sólida + borde 1px, sin blur ni glints. */
-  padding: 16px; border-radius: 18px;
-  background: var(--surface); border: 1px solid var(--line); box-shadow: none; }
-/* Fila 2 columnas: Marca y Modelo lado a lado (v0); Año y ADIVINAR a ancho completo. */
-.cdd-form-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.cdd-field { display: flex; flex-direction: column; gap: 7px; position: relative; }
-/* 11px/10px y no 10/9: el mono caps por debajo de 11px se empasta en pantallas
-   de DPI bajo (auditoría UX #11) — y son los labels más leídos del juego. */
-/* Polish premium #2: labels editoriales — mas tracking y un punto mas de
-   contraste = sensacion "ficha tecnica" (jerarquia tipografica). */
-/* Micro-tipografía: labels más espaciados y MÁS APAGADOS (ficha técnica). Bajar
-   su contraste hace que el valor real (blanco) destaque por jerarquía. */
-.cdd-label { font-size: 11px; letter-spacing: .26em; color: color-mix(in oklab, var(--cdd-muted) 78%, transparent); display: flex; align-items: center; justify-content: space-between; }
-.cdd-label-hint { font-family: var(--font-mono); font-size: 10px; color: var(--faint); text-transform: none; letter-spacing: .02em; }
-.cdd-combo, .cdd-year { position: relative; display: flex; align-items: center;
-  /* Campo plano (rediseño v0): superficie sólida + borde 1px. */
-  background: var(--surface2); border: 1px solid var(--line); border-radius: 12px;
-  transition: .18s; }
-.cdd-combo.is-open, .cdd-combo:focus-within, .cdd-year:focus-within {
-  border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
-  /* Subimos el campo activo sobre sus hermanos para que su desplegable (listbox /
-     décadas) se dibuje encima de los campos siguientes (no romper MARCA sobre
-     MODELO/AÑO). */
-  z-index: 40; }
-.cdd-combo.is-disabled { opacity: .5; }
-.cdd-combo.is-invalid { border-color: color-mix(in oklab, #d9604e 60%, var(--line)); }
-.cdd-input { flex: 1; width: 100%; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--cdd-text);
-  font-family: var(--font-body); font-size: 15px; font-weight: 500; padding: 14px 14px; -webkit-appearance: none; appearance: none; }
-/* Solo táctil: el scrollIntoView(block:"start") de Combo/YearField respeta este
-   margen y deja el campo enfocado POR DEBAJO de la franja del PhotoPeek
-   (top 10 + 96 + respiro) — sin él, la miniatura caería encima del input. */
-@media (pointer: coarse) {
-  .cdd-input { scroll-margin-top: 172px; }
-}
-/* Placeholder en muted, no faint: "Escribe o elige…" es la invitación a la
-   acción principal y con --faint quedaba a ~2.9:1 sobre --surface (auditoría
-   UX #13). El combo deshabilitado (modelo sin marca) ya se atenúa entero vía
-   .is-disabled { opacity:.5 }, así que conserva su jerarquía de "aún no". */
-.cdd-input::placeholder { color: var(--cdd-muted); }
-.cdd-input::-webkit-search-cancel-button, .cdd-input::-webkit-search-decoration { -webkit-appearance: none; }
-.cdd-combo-caret { background: transparent; border: 0; color: var(--cdd-muted); padding: 0 12px; cursor: pointer; display: flex; }
-.cdd-listbox { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
-  max-height: min(260px, 42dvh); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
-  margin: 0; padding: 6px; list-style: none;
-  /* Overlay flotante plano (rediseño v0): sólido + borde, sin blur. */
-  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px;
-  box-shadow: 0 24px 50px -22px rgba(0,0,0,.85); }
-.cdd-opt { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--cdd-text); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-/* Opción resaltada: tinte de acento + barra de acento a la izquierda (da
-   profundidad y "foco" — antes era un cambio de gris apenas perceptible). */
-.cdd-opt:hover, .cdd-opt.hi { background: color-mix(in oklab, var(--accent) 15%, var(--surface2)); box-shadow: inset 2px 0 0 0 var(--accent); }
-.cdd-opt.sel { color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
-.cdd-opt-empty { color: var(--faint); cursor: default; }
-.cdd-opt .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,.5); flex: none; }
-.cdd-year-input { padding-right: 6px; }
-/* Steppers EN FILA (− +), no apilados: la pila definía el alto del campo
-   (60px con targets dignos) y en el fold cada px de alto sale de la FOTO.
-   En fila, el campo vuelve al alto del input (~42px) y los targets CRECEN
-   (36×32 por botón) — más área táctil Y más foto, sin tradeoff. */
-.cdd-year-steps { display: flex; flex-direction: row; align-items: center; padding: 0 6px 0 0; gap: 6px; }
-/* Glifos +/− tipográficos (no flechas ↑/↓: ese glifo ya significa "el año real
-   es más nuevo/antiguo" en el feedback del intento — mismo símbolo, otra
-   semántica, confusión gratis). */
-.cdd-year-steps button { width: 36px; height: 32px; display: flex; align-items: center; justify-content: center;
-  background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; color: var(--cdd-muted); cursor: pointer;
-  font-size: 16px; font-weight: 700; line-height: 1; padding: 0; }
-.cdd-year-steps button:hover { color: var(--accent); border-color: var(--accent); }
-/* Décadas rápidas: overlay absoluto bajo el campo de año (cero layout shift,
-   mismo patrón que .cdd-listbox). Visible solo con el campo enfocado y vacío. */
-.cdd-decades { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
-  display: flex; gap: 5px; padding: 6px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-  box-shadow: 0 18px 40px -18px rgba(0,0,0,.8); }
-.cdd-decade { flex: 1; padding: 8px 0; min-width: 0; text-align: center;
-  background: var(--surface2); border: 1px solid var(--line); border-radius: 8px;
-  color: var(--cdd-text); font-size: 11px; cursor: pointer; transition: .15s; }
-.cdd-decade:hover, .cdd-decade:active { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
-
+/* ── Botón de acción .cdd-submit ──
+   (Purga F5: el resto del formulario Platino —.cdd-form/.cdd-combo/.cdd-input/
+   .cdd-listbox/.cdd-decades/steppers— se borró: el cupón vivo usa las clases
+   .prensa-* de más abajo. .cdd-submit SÍ sigue vivo: lo montan EndScreen
+   (COMPARTIR + su variante ghost) y el revelado de la Repesca.) */
 .cdd-submit { width: 100%; height: 56px; border: 0; border-radius: 12px; cursor: pointer;
   /* Botón plano (rediseño v0): menta sólida, sin degradado ni gloss. */
   background: var(--accent);
@@ -790,14 +390,9 @@ body,
 .cdd-submit--ghost:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 10%, transparent);
   border-color: var(--accent); box-shadow: none; }
 
-.cdd-shakewrap.shake { animation: cddShake .42s cubic-bezier(.36,.07,.19,.97); }
-@keyframes cddShake { 10%,90%{transform:translateX(-1px)} 30%,70%{transform:translateX(-4px)} 50%{transform:translateX(4px)} }
-
-/* ── Footer ── */
-.cdd-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; font-size: 10px; color: var(--faint);
-  border-top: 1px solid var(--line); padding-top: 16px; margin-top: 20px; }
-.cdd-foot-link { background: transparent; border: 0; color: var(--cdd-muted); cursor: pointer; font: inherit; letter-spacing: .12em; text-decoration: none; }
-.cdd-foot-link:hover { color: var(--accent); }
+/* (Purga F5: .cdd-shakewrap y el footer .cdd-footer/.cdd-foot-link eran del
+   Configurator Platino; el temblor vivo es .animate-temblor sobre el cupón y
+   el pie actual es .prensa-cierre.) */
 
 /* ── End screen ── */
 /* Modal de fin de partida: centrado y SIEMPRE contenido en el viewport. El
@@ -880,7 +475,6 @@ body,
 .cdd-end-body { padding: 14px 18px 4px; display: flex; flex-direction: column; gap: 14px; }
 
 .cdd-sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.cdd-sheet-3 { grid-template-columns: repeat(3, 1fr); }
 .cdd-stat { background: var(--surface2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; }
 .cdd-stat-k { font-size: 9px; color: var(--faint); margin-bottom: 4px; }
 .cdd-stat-v { font-size: 15px; font-weight: 700; }
@@ -966,81 +560,10 @@ body,
 }
 .cdd-end-link:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
 
-/* ── Móvil: foto a tamaño máximo con «Adivinar» siempre visible ──
-   Port del prototipo refinado (Claude Design). El "fold" —cabecera + intro +
-   escenario + formulario— ocupa exactamente el viewport (100svh): el escenario
-   deja su proporción fija y crece con flex:1, absorbiendo TODO el alto libre, así
-   la foto es lo más grande posible y el CTA «Adivinar» queda completo en el
-   primer pintado, sin scroll. El historial de intentos (dentro del panel, flex
-   fijo) y el pie fluyen justo debajo del fold (scroll). Al acumular intentos el
-   panel crece y la foto cede lo justo, manteniendo el botón visible.
-
-   SOLO móvil (<1000px): en desktop manda el grid de dos columnas (más abajo) y
-   .cdd-fold es un contenedor neutro. Es reparto vertical puro: NO toca el zoom,
-   el crop ni la dificultad (eso lo controla el juego/servidor). El escenario es
-   un CUADRADO ESTRICTO (1:1) en todos los dispositivos, así object-cover muestra
-   EXACTAMENTE el mismo recorte del coche tanto en un iPhone SE como en un S25
-   Ultra — misma dificultad. El lightbox (.cdd-lightbox-frame) se mantiene en 4:3. */
-@media (max-width: 999px) {
-  /* El fold llena el viewport; -14px = el padding-top del shell (abajo).
-     El padding inferior suma la safe-area (barra de gestos de iPhone sin
-     botón): sin ella, «Adivinar» rozaba el home indicator. Requiere
-     viewport-fit=cover en el meta viewport (index.html). */
-  .cdd-fold {
-    height: calc(100svh - 14px);
-    box-sizing: border-box;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    display: flex; flex-direction: column;
-  }
-  /* La foto absorbe el alto sobrante: cada nivel propaga el flex-grow con
-     min-height:0 para poder ceder espacio cuando entran los intentos. */
-  .cdd-fold .cdd-main { flex: 1 1 auto; min-height: 0; margin-bottom: 0; gap: 12px; }
-  .cdd-fold .cdd-col { gap: 12px; }
-  .cdd-fold .cdd-col-stage { flex: 1 1 auto; min-height: 0; }
-  .cdd-fold .cdd-stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-
-  /* CUADRADO QUE SIEMPRE CABE — clave para la coherencia entre dispositivos.
-     Hacemos del escenario un "container" de consulta de tamaño y pedimos el lado
-     MENOR de su caja (100cqmin): el marco es un cuadrado del tamaño del lado más
-     corto, así cabe entero tanto si la pantalla limita por ancho (móviles altos
-     tipo S25 Ultra) como por alto (móviles bajos tipo iPhone SE). Resultado: 1:1
-     EXACTO siempre → mismo recorte, misma dificultad. El bug anterior
-     (width:100% + max-height:100%) degeneraba en un rectángulo apaisado en
-     pantallas bajas y revelaba coche de más por los lados. */
-  /* container-type:size SOLO en juego: nos deja pedir el lado menor (cqmin) para
-     el cuadrado. Al revelar lo quitamos (la foto fluye con alto natural; con
-     size-containment activo el escenario colapsaría a 0 de alto). */
-  .cdd-fold .cdd-stage:not(.revealed) { container-type: size; }
-  .cdd-fold .cdd-stage:not(.revealed) .cdd-stage-frame {
-    width: 100cqmin; height: 100cqmin; aspect-ratio: 1 / 1; flex: none;
-  }
-  /* Revelado: el marco se ajusta al aspecto NATURAL de la foto (el aspect-ratio
-     lo fija CarImage inline = ratio de la imagen) para mostrarla completa, sin
-     florituras. Soltamos el "fold" de 100svh (.is-ended) para que la foto tome
-     su alto natural y el historial de intentos fluya justo debajo, sin huecos. */
-  .cdd-fold .cdd-stage.revealed .cdd-stage-frame {
-    width: 100%; height: auto; flex: none;
-  }
-  .cdd-fold.is-ended { height: auto; }
-  .cdd-fold.is-ended .cdd-main { flex: 0 0 auto; }
-  .cdd-fold.is-ended .cdd-stage,
-  .cdd-fold.is-ended .cdd-col-stage { flex: 0 0 auto; }
-  .cdd-fold .cdd-col-panel { flex: none; }
-
-  /* Ritmo más ceñido para regalar alto a la foto (sin sentirse apretado). */
-  .cdd-shell { padding: 8px 12px 10px; }
-  /* 8px (antes 4): al eliminar la fila de intro, el header quedaba pegado a la
-     foto — la intro hacía de colchón. Un respiro mínimo en su lugar; el grueso
-     del alto recuperado sigue yendo a la foto. */
-  .cdd-header { margin-bottom: 8px; }
-  .cdd-form { gap: 10px; }
-  .cdd-field { gap: 6px; }
-  /* Inputs un punto más compactos manteniendo el área táctil (~44px). */
-  .cdd-input { padding: 11px 14px; }
-  .cdd-submit { height: 54px; }
-  /* Steppers en fila: ya no definen el alto del campo, no hay nada que
-     compactar en móvil (el alto lo manda el padding del input, arriba). */
-}
+/* (Purga F5: el "fold" móvil del Platino —.cdd-fold y su cuadrado 100cqmin—
+   se borró: el pliego prensa reparte la columna única con `order` y la foto
+   a sangre, y el marco vive en 4:3 fijo. El reparto vertical actual está en
+   .prensa-hoja/.prensa-pliego, más abajo.) */
 
 /* Pantallas bajas (móvil apaisado, ventanas cortas): el modal de fin de partida
    aprieta su ritmo vertical para no necesitar scroll interno. */
@@ -1074,21 +597,12 @@ body,
   }
 }
 
-/* ── Desktop ── */
-@media (min-width: 1000px) {
-  .cdd-shell { max-width: 1080px; padding: 32px 32px 56px; gap: 0; }
-  .cdd-main { display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start; margin-bottom: 36px; }
-  .cdd-stage-frame { aspect-ratio: 4 / 3; }
-  .cdd-title { font-size: 24px; }
-  .cdd-col-panel { position: sticky; top: 88px; }
-  /* El historial salió del panel sticky (ahora vive bajo el fold). Lo alineamos
-     bajo la columna del formulario (track derecho ~.85fr del grid) para conservar
-     el equilibrio de dos columnas en vez de ocupar todo el ancho. */
-  .cdd-attempts { max-width: 420px; margin-left: auto; }
-}
+/* (Purga F5: el grid desktop del Platino —.cdd-shell/.cdd-main/.cdd-col-panel—
+   se borró; el broadsheet de 3 columnas vive en .prensa-pliego ≥1100px. El
+   aspect-ratio 4:3 del marco ya lo fija la regla base de .cdd-stage-frame.) */
 
 @media (prefers-reduced-motion: reduce) {
-  .cdd-end-scrim, .cdd-end-card, .cdd-shakewrap.shake, .cdd-chip.is-pending::after { animation: none !important; }
+  .cdd-end-scrim, .cdd-end-card { animation: none !important; }
 }
 /* ═══════════════════════════════════════════════════════════════════════
    SISTEMA «PRENSA DEL MOTOR» — F1 (pantalla de juego)
@@ -1198,6 +712,19 @@ body,
 .prensa-masthead--compacto { padding: 14px 0 8px; }
 .prensa-masthead--compacto .titulo { font-size: clamp(26px, 6vw, 46px); }
 .prensa-masthead--compacto .temporada { margin-top: 6px; }
+/* Viewports BAJOS (≤700px de alto: iPhone SE, androids compactos, móvil
+   apaisado) en columna única: masthead compacto SIEMPRE, también en la
+   primera visita. La portada íntegra con lema es un lujo de presentación que
+   en estas pantallas se paga con el cupón entero bajo el fold — y la regla
+   del pliego es que ADIVINAR quepa sin scroll. Mismos valores que
+   .prensa-masthead--compacto; en el pliego ancho (≥1100px) no aplica: allí
+   sobra alto y la portada es identidad. */
+@media (max-width: 1099px) and (max-height: 700px) {
+  .prensa-masthead { padding: 14px 0 8px; }
+  .prensa-masthead .titulo { font-size: clamp(26px, 6vw, 46px); }
+  .prensa-masthead .lema { display: none; }
+  .prensa-masthead .temporada { margin-top: 6px; }
+}
 .prensa-folio {
   display: flex; justify-content: center; align-items: baseline; gap: 8px;
   flex-wrap: nowrap; white-space: nowrap;
@@ -1264,6 +791,39 @@ body,
 .prensa-pips .pip.actual { border-color: var(--rojo); background: var(--rojo); }
 .prensa-pips .pip.actual.peligro { animation: prensaParpadeo 1.1s ease-in-out infinite; }
 @keyframes prensaParpadeo { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+/* ── El «recorte»: miniatura flotante de la foto (PhotoPeek) ──
+   Aparece cuando el escenario sale del viewport en plena partida (teclado
+   abierto sobre el cupón, o scroll al historial): la referencia visual sigue
+   a un vistazo. Marco 4:3 ESTRICTO — imprescindible: con object-cover + el
+   mismo scale(zoom), solo la MISMA proporción que .cdd-stage-frame garantiza
+   el mismo crop (ni un píxel más que el escenario; mismo principio que
+   .cdd-lightbox-frame). ALTO EXPLÍCITO en el botón (no aspect-ratio): con
+   todos los hijos en absoluto no hay contenido en flujo, y si aspect-ratio
+   fallara el img heredaría un alto roto y la foto SE ESTIRARÍA.
+   Piel prensa: filete fuerte, esquina viva y la sombra funcional de overlay
+   (la misma del listbox: sin ella el recorte no despega del papel).
+   z-50: sobre el contenido pero bajo EndScreen (60) y modales (100+).
+   fixed + top: anclado al viewport LAYOUT — con teclado abierto lo fijado
+   arriba sigue visible (lo problemático es anclar abajo). */
+.cdd-peek { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 50;
+  width: 104px; height: 78px; padding: 0; overflow: hidden; cursor: pointer;
+  border-radius: 0; border: 1px solid var(--line-strong); background: var(--surface);
+  box-shadow: 0 12px 24px var(--line-2);
+  animation: cddPeekIn .22s cubic-bezier(.16,1,.3,1); }
+/* picture { display: contents }: fuera la caja intermedia; el img se ancla
+   directamente al botón, sin depender de cómo cada motor posicione <picture>.
+   object-fit: cover NUNCA deforma — recorta, como en el escenario (regla 5). */
+.cdd-peek picture { display: contents; }
+.cdd-peek img { position: absolute; top: 0; left: 0; display: block;
+  width: 100%; height: 100%; object-fit: cover; object-position: center;
+  transform-origin: center center; }
+.cdd-peek:active { transform: scale(.96); }
+/* En el pliego ancho la foto ES la columna central: nunca se pierde de vista
+   y el recorte solo taparía la esquina del cupón. Fuera. */
+@media (min-width: 1100px) { .cdd-peek { display: none; } }
+@keyframes cddPeekIn { from { opacity: 0; transform: translateY(-6px) scale(.92); } }
+@media (prefers-reduced-motion: reduce) { .cdd-peek { animation: none; } }
 
 /* ── Clasificación: marcas de corrector de pruebas ──
    Verde = correcto, rojo = incorrecto: la convención universal, la que promete
@@ -1345,40 +905,10 @@ body,
 
 /* El cupón ya no tiene cabecera: ni título "Cupón de respuesta", ni folio de
    intento, ni filete. Arranca directo en el primer campo (marca). */
-/* Campos de línea base: la caja desaparece, queda el renglón. Lo escrito sale
-   "a máquina" (Courier), como un formulario rellenado de verdad. */
-.prensa .cdd-label {
-  font-family: var(--font-body); font-weight: 600; font-size: 10px;
-  letter-spacing: .2em; color: var(--cdd-muted);
-}
-.prensa .cdd-combo, .prensa .cdd-year {
-  background: transparent; border: 0; border-bottom: 1px solid var(--line-strong);
-  border-radius: 0;
-}
-.prensa .cdd-combo.is-open, .prensa .cdd-combo:focus-within, .prensa .cdd-year:focus-within {
-  border-color: var(--rojo); box-shadow: 0 1px 0 0 var(--rojo);
-}
-.prensa .cdd-combo.is-invalid { border-bottom-color: var(--rojo); }
-.prensa .cdd-input {
-  font-family: var(--font-mono); font-size: 16px; font-weight: 400;
-  padding: 11px 2px; color: var(--cdd-text);
-}
-.prensa .cdd-input::placeholder { color: var(--placeholder); font-style: italic; font-family: var(--font-display); }
-/* Overlay flotante (listbox/décadas): papel con filete. ÚNICA sombra funcional
-   permitida del sistema — sin ella el desplegable no se despega del papel. */
-.prensa .cdd-listbox, .prensa .cdd-decades {
-  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 0;
-  box-shadow: 0 12px 24px var(--line-2);
-}
-.prensa .cdd-opt { border-radius: 0; font-family: var(--font-body); }
-.prensa .cdd-opt:hover, .prensa .cdd-opt.hi {
-  background: rgba(179, 39, 27, .08); box-shadow: inset 2px 0 0 0 var(--rojo);
-}
-.prensa .cdd-opt.sel { color: var(--rojo); background: transparent; }
-.prensa .cdd-decade { border-radius: 0; background: transparent; border: 1px solid var(--line); color: var(--cdd-text); }
-.prensa .cdd-decade:hover, .prensa .cdd-decade:active { background: var(--line-strong); border-color: var(--line-strong); color: var(--bg); }
-.prensa .cdd-year-steps button { border-radius: 0; background: transparent; border: 1px solid var(--line); color: var(--cdd-muted); }
-.prensa .cdd-year-steps button:hover { color: var(--rojo); border-color: var(--rojo); }
+/* (Purga F5: los overrides .prensa del formulario Platino —cdd-label/combo/
+   input/listbox/opt/decades/steppers— se fueron con sus clases base: el cupón
+   vivo usa directamente .prensa-label/.prensa-input/.prensa-listbox/
+   .prensa-opt, definidos más abajo en F1-T8.) */
 /* ADIVINAR: bloque de tinta → rojo al pasar. Sin estados "neón". */
 .prensa .cdd-submit {
   border-radius: 0; background: var(--line-strong); color: var(--bg);
@@ -1521,8 +1051,8 @@ body,
 
 /* ── Cupón: inputs de línea base, listbox de papel y submit de tinta (F1-T8).
       Los componentes (Combo/YearField/GuessForm) usan estas clases prensa-*
-      directamente; las primitivas v0 (input-flat, btn--mint) quedan para las
-      pantallas sin portar hasta F5. ── */
+      directamente. (Las primitivas v0 —input-flat, btn--mint— se borraron en
+      la purga F5: ya no quedaba ninguna pantalla sin portar que las usara.) ── */
 .prensa-label {
   font-family: var(--font-body); font-weight: 600; font-size: 10px;
   letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
@@ -1542,6 +1072,15 @@ body,
 .prensa-input:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 6px; }
 .prensa-input.invalida { border-bottom: 2px solid var(--rojo); }
 .prensa-input:disabled { opacity: .45; }
+/* Solo táctil: el scrollIntoView(block:"start") de Combo/YearField respeta
+   este margen y deja el campo enfocado POR DEBAJO de la franja del «recorte»
+   (top 10 + alto 78 + respiro ≈ 116). Sin él, la miniatura caería encima del
+   input; y sin margen alguno (el bug que arregla esta regla: el 172px antiguo
+   apuntaba a .cdd-input, que el cupón prensa no usa) el campo subía a ras del
+   borde y la foto desaparecía entera al abrir el teclado. */
+@media (pointer: coarse) {
+  .prensa-input { scroll-margin-top: 116px; }
+}
 .prensa-input::placeholder { color: var(--placeholder); font-style: italic; font-family: var(--font-display); font-size: 14px; }
 .prensa-listbox {
   position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40;

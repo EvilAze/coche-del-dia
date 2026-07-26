@@ -19,12 +19,18 @@ export default function ZoomStage({
   overlay = null,
   progress = null,
   onRevealLoad,
+  // Ref opcional a la <section> del escenario. Lo usa Configurator para
+  // observar (IntersectionObserver) cuándo la foto sale del viewport y
+  // mostrar el "recorte" flotante (PhotoPeek). No se puede envolver la
+  // sección en un div: la clase prensa-area-foto es la que engancha el
+  // grid-area/order del pliego y un wrapper lo rompería.
+  sectionRef = null,
 }) {
   const { t } = useT();
   const revealed = status !== "playing";
 
   return (
-    <section className="prensa-area-foto flex flex-col gap-2">
+    <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-2">
       <div className="prensa-ladillo">
         {t("prensa.ladilloFoto")}
         <span className="aparte">

@@ -139,7 +139,8 @@
     "garageRepescaAria": "Mi archivo · repesca disponible",
     "helpAria": "Cómo se juega",
     "peekAria": "Volver a la foto",
-    "unlockKicker": "Nueva portada"
+    "unlockKicker": "Nueva portada",
+    "carImageAlt": "Coche del día"
   },
   "prensa": {
     "lema": "El diario de los que reconocen un coche por el faro.",
@@ -256,7 +257,7 @@
     "streakFreezesCount": "{count} de {max} escudos",
     "streakCurrent": "En racha",
     "streakBest": "Mejor racha",
-    "destinations": "Tus destinos",
+    "destinations": "Tus secciones",
     "rankNone": "Sin clasificar",
     "ptsShort": "pts"
   },
@@ -292,9 +293,9 @@
     "noMedalsYet": "Aún no ha conseguido medallas."
   },
   "nickname": {
-    "tag": "Nuevo piloto",
+    "tag": "Nueva firma",
     "title": "Elige tu Nick",
-    "description": "Este será tu nombre en el ranking arcade. No usaremos tu nombre ni tu foto de Google.",
+    "description": "Esta será tu firma en la clasificación. No usaremos tu nombre ni tu foto de Google.",
     "permanentWarning": "Elige con cuidado: tu nick será permanente y no podrás cambiarlo después.",
     "placeholder": "MAX12",
     "rules": "Letras y números",
@@ -325,7 +326,7 @@
     "cta": "Ver la clasificación"
   },
   "ranking": {
-    "tag": "Arcade Board",
+    "tag": "La clasificación",
     "title": "Ranking",
     "helpButtonAria": "Cómo se puntúa",
     "seasonKicker": "Temporada {n}",
@@ -336,13 +337,13 @@
     },
     "loading": "Cargando ranking...",
     "errorLoad": "No se pudo cargar el ranking.",
-    "empty": "Todavía no hay pilotos con nickname.",
+    "empty": "Todavía no hay lectores clasificados.",
     "emptySeason": "Esta temporada aún no hay puntuaciones. ¡Sé el primero!",
     "tabSeason": "Temporada",
     "tabChampions": "Campeones",
     "championsEmpty": "Aún no hay temporadas cerradas con podio.",
     "colRank": "#",
-    "colPlayer": "Piloto",
+    "colPlayer": "Lector",
     "colPoints": "Pts",
     "bestStreak": "Mejor racha: {value}",
     "seasonWins": "{value} aciertos esta temporada",
@@ -389,6 +390,15 @@
   },
   "toast": {
     "closeAria": "Cerrar notificación"
+  },
+  "errors": {
+    "selectCar": "Selecciona un coche del listado.",
+    "network": "Error de conexión. Comprueba tu red.",
+    "invalidResponse": "Respuesta inválida del servidor.",
+    "validationFailed": "No se pudo validar el intento.",
+    "validationDetail": "Error: {detail}",
+    "unexpectedResponse": "Respuesta inesperada del servidor.",
+    "processingResponse": "Error procesando la respuesta."
   },
   "repesca": {
     "errorNeedLogin": "Necesitas iniciar sesión para jugar la repesca.",

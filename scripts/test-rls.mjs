@@ -159,6 +159,14 @@ expectSelectBlocked(
   "SELECT id, description_en FROM cars",
   await anon.from("cars").select("id, description_en").limit(1)
 );
+// cars.tags — etiquetas de Temporada Temática. NO tienen GRANT a propósito
+// (scripts/2026-07-temporadas-tematicas.sql): son la pertenencia de cada coche
+// al tema en curso. Legibles desde el cliente, cruzarlas con el catálogo
+// público reduciría el coche del día a la lista exacta de candidatos.
+expectSelectBlocked(
+  "SELECT id, tags FROM cars (pool de la temporada temática)",
+  await anon.from("cars").select("id, tags").limit(1)
+);
 
 // Contra-test: la query que SÍ debe funcionar (la que usa /api/list-cars
 // para el autocomplete). Verificamos que no rompemos funcionalidad
@@ -184,6 +192,42 @@ expectSelectBlocked(
       "[cars] SELECT campos públicos (autocomplete) funciona",
       `(${data.length} filas)`
     );
+  }
+}
+
+// ============================================================================
+console.log("\n[seasons] — el filtro temático NO debe leerse del cliente");
+// ============================================================================
+
+// `seasons` es de lectura pública a propósito: el banner necesita número,
+// temática y fechas, y eso es marketing. Pero `theme_filter` describe de qué
+// coches sortea el juego durante la temporada — es el pool del día en forma
+// declarativa. Con él, el atacante lo reproduce contra /api/list-cars y acota
+// el coche del día a un puñado de candidatos.
+expectSelectBlocked(
+  "SELECT * FROM seasons (incluye theme_filter)",
+  await anon.from("seasons").select("*").limit(1)
+);
+expectSelectBlocked(
+  "SELECT id, theme_filter FROM seasons",
+  await anon.from("seasons").select("id, theme_filter").limit(1)
+);
+
+// Contra-test: lo que SÍ lee el banner (statsService.getCurrentSeason). Si
+// esto rompe, el GRANT por columna se aplicó mal y la home se queda sin
+// temporada.
+{
+  const { error } = await anon
+    .from("seasons")
+    .select("id, number, label_es, label_en, starts_at, ends_at")
+    .limit(1);
+  if (error) {
+    fail(
+      "[seasons] SELECT campos del banner",
+      `ROTO: ${error.code || error.message}. ¿Revocaste SELECT sin re-GRANT por columna?`
+    );
+  } else {
+    pass("[seasons] SELECT campos del banner funciona");
   }
 }
 

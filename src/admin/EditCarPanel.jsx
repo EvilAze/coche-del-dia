@@ -43,7 +43,20 @@ const initialForm = {
   focus_y: 0.5,
   // Zoom inicial (dificultad). Default = comportamiento histórico.
   zoom_base: DEFAULT_ZOOM_BASE,
+  // Etiquetas de Temporada Temática, como texto separado por comas (la API
+  // recibe y devuelve array; el form trabaja con string por comodidad de
+  // edición). El servidor las normaliza a slug — ver api/_lib/season-theme.js.
+  tags: "",
 };
+
+// "grupo-b, rally" → ["grupo-b", "rally"]. El saneado real (slug, dedupe,
+// tope) lo hace el servidor; aquí solo troceamos.
+function parseTagList(raw) {
+  return String(raw || "")
+    .split(/[,\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 export default function EditCarPanel({
   selectedCarId = "",
@@ -203,6 +216,7 @@ export default function EditCarPanel({
           focus_y: typeof data.focus_y === "number" ? data.focus_y : 0.5,
           zoom_base:
             typeof data.zoom_base === "number" ? data.zoom_base : DEFAULT_ZOOM_BASE,
+          tags: Array.isArray(data.tags) ? data.tags.join(", ") : "",
         };
 
         const ovr = overridesRef.current;
@@ -264,7 +278,8 @@ export default function EditCarPanel({
       form.file != null ||
       form.focus_x !== originalForm.focus_x ||
       form.focus_y !== originalForm.focus_y ||
-      form.zoom_base !== originalForm.zoom_base
+      form.zoom_base !== originalForm.zoom_base ||
+      form.tags !== originalForm.tags
     );
   }, [form, originalForm, selectedCarId]);
 
@@ -419,6 +434,9 @@ export default function EditCarPanel({
       if (form.focus_x !== originalForm.focus_x) patch.focus_x = form.focus_x;
       if (form.focus_y !== originalForm.focus_y) patch.focus_y = form.focus_y;
       if (form.zoom_base !== originalForm.zoom_base) patch.zoom_base = form.zoom_base;
+      // Se manda el array aunque quede vacío: `[]` significa "quítale todas las
+      // etiquetas", y sin esto no habría forma de desetiquetar un coche.
+      if (form.tags !== originalForm.tags) patch.tags = parseTagList(form.tags);
 
       const res = await fetch("/api/admin/save-car", {
         method: "POST",
@@ -638,6 +656,25 @@ export default function EditCarPanel({
                   <option key={p} value={p} />
                 ))}
               </datalist>
+            </Field>
+
+            <Field label="Etiquetas (temporadas)">
+              <input
+                type="text"
+                value={form.tags}
+                onChange={(e) => updateField("tags", e.target.value)}
+                placeholder="grupo-b, rally"
+                maxLength={300}
+                disabled={isSubmitting}
+                autoComplete="off"
+                className={inputClass}
+              />
+              <span className="text-[11px] leading-relaxed text-muted">
+                Separadas por comas. Solo sirven para que una Temporada Temática
+                pueda filtrar por ellas — no se muestran al jugador ni salen del
+                servidor. Úsalas para temas que no se deducen de marca, país o
+                año (Grupo B, prototipos de Le Mans, coches de película).
+              </span>
             </Field>
 
             <Field

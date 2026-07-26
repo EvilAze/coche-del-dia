@@ -76,7 +76,7 @@ Cliente único con `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. Lanza si falt
 
 1. **`vercel dev`, no `npm start`/`npm run dev`.** Si tocas `/api/*` necesitas el runtime de Vercel; Vite solo levanta el front y las funciones no existirán.
 2. **Nunca uses `const supabase = createClient(...)` a nivel de módulo en server.** Usa siempre los getters lazy de `_lib/supabase.js`.
-3. **Toda columna nueva en `public.cars` necesita `GRANT SELECT (col) TO anon, authenticated`** o `/api/list-cars` rompe. Acompaña el cambio con su SQL en `scripts/`.
+3. **Toda columna nueva en `public.cars` necesita `GRANT SELECT (col) TO anon, authenticated`** o `/api/list-cars` rompe. Acompaña el cambio con su SQL en `scripts/`. **Excepción deliberada: `cars.tags`** (etiquetas de Temporada Temática) **NO lleva GRANT**, y `seasons.theme_filter` tampoco — ambos describen el pool del que sortea `pick_daily_car`, y leerlos desde el cliente permitiría acotar el coche del día cruzándolos con el catálogo público (regla 5). Viajan solo por endpoints admin con `service_role`. No "arregles" ese GRANT ausente: `test:rls` falla si aparece.
 4. **El RLS es la red de seguridad.** Usa `createAuthClient(token)` para datos del usuario; reserva `getSupabaseAdmin()` para lo estrictamente privilegiado. Los scripts `test:rls`/`test:attacks` deben seguir pasando.
 5. **No filtrar la identidad del coche del día.** No devolver `id`, ni la URL real del CDN (se sirve vía proxy `/api/daily-image`), ni más imagen de la que ve un jugador legítimo en el intento 5. Las descripciones/ficha solo se revelan en victoria.
 6. **Coherencia de imagen entre `middleware.js` y `CarImage.jsx`.** El `srcset`/`sizes` del preload debe coincidir byte-a-byte con el `<picture>`, o el navegador descarga la imagen dos veces.

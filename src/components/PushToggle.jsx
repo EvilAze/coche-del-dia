@@ -83,11 +83,15 @@ export default function PushToggle() {
     >
       <BellIcon />
       {on && (
-        // Punto de estado "activado": acento menta con glow, anclado al hombro
-        // del icono (mismo lenguaje que el dot de alerta del garaje).
+        // Marca de estado "activado", anclada al hombro del icono. Cuadrado de
+        // tinta roja, no punto: el sistema marca los estados con cuadraditos
+        // (.pm-dot, los pips del pie) porque en papel un círculo con halo no
+        // existe. El anterior era menta #7af0c8 hardcodeada —de dos temas
+        // atrás— con glow y un anillo #0d0c0a que sobre el papel del modo día
+        // dibujaba un borde negro alrededor del punto.
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_6px_#7af0c8] ring-2 ring-[#0d0c0a]"
+          className="pointer-events-none absolute right-2.5 top-2.5 h-1.5 w-1.5 bg-rojo"
         />
       )}
     </button>

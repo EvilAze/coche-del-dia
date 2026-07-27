@@ -98,8 +98,8 @@ export async function notifyAchievementsAfterWin({ toast, t, locale }) {
       // Stagger: 600 ms entre toasts. Da tiempo a leer cada uno sin que
       // pisen al anterior (el Toast por defecto dura ~3-4s).
       setTimeout(() => {
-        toast.push(`🏅 ${t("achievements.toastUnlocked")} ${title}`, {
-          type: "success",
+        toast.push(`${t("achievements.toastUnlocked")} ${title}`, {
+          type: "logro",
         });
       }, i * 600);
     });
@@ -107,8 +107,8 @@ export async function notifyAchievementsAfterWin({ toast, t, locale }) {
     if (rest > 0) {
       setTimeout(() => {
         toast.push(
-          `🏅 ${t("achievements.toastMore", { count: rest })}`,
-          { type: "success" }
+          t("achievements.toastMore", { count: rest }),
+          { type: "logro" }
         );
       }, head.length * 600);
     }

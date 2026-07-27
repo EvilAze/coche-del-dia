@@ -532,25 +532,27 @@ export default function App() {
         onClose={() => {}}
         dismissOnBackdrop={false}
         backdropClassName="modal-scrim fixed inset-0 z-[110] flex items-center justify-center p-4"
-        panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
+        panelClassName="modal-panel-flat relative w-full max-w-sm p-6"
       >
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-accent/40 bg-accent/10 text-2xl">
-          🚗
+        {/* Sello de "edición caducada", esquina superior derecha. Sustituye al
+            emoji 🚗 dentro de un disco de acento que había aquí: era el único
+            modal que no llegó a migrar al sistema pm-, así que arrastraba a la
+            vez el emoji (que cada SO dibuja a su manera y a su tamaño) y el
+            lenguaje del tema neón anterior. El sello dice lo mismo sin dibujar
+            un coche, y `sellar` le da el golpe de muñeca al estampar. */}
+        <div className="absolute -top-2 right-4 animate-sellar">
+          <span className="pm-sello" aria-hidden="true">
+            {t("app.dayRolloverStamp")}
+          </span>
         </div>
-        <h2 className="font-display text-xl tracking-widest text-accent">
-          {t("app.dayRolloverTitle")}
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted">
-          {t("app.dayRolloverBody")}
-        </p>
+
+        <p className="pm-kicker">{t("app.dayRolloverKicker")}</p>
+        <h2 className="pm-title mt-1.5">{t("app.dayRolloverTitle")}</h2>
+        <p className="pm-body mt-2.5">{t("app.dayRolloverBody")}</p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="
-            mt-5 w-full rounded-lg bg-accent px-4 py-3
-            font-display text-base tracking-widest text-bg-primary
-            transition-transform hover:scale-[1.02] active:scale-[0.98]
-          "
+          className="pm-btn mt-6"
         >
           {t("app.dayRolloverButton")}
         </button>

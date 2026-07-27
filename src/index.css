@@ -77,6 +77,12 @@
      del share (✅/❌). Verde: tinta de "visto bueno" (AA 5.4:1 sobre el crema).
      Ámbar: ocre de "parcial", ni acierto ni fallo (AA 4.9:1). */
   --verde-rgb: 20 110 51; --ambar-rgb: 154 85 16;
+  /* Podio: plata y bronce. Existen como token porque el oro ya lo era y sus dos
+     hermanos se estaban pintando con paleta cruda de Tailwind (zinc-300 /
+     amber-700), que NO sigue al tema: sobre el papel crema el zinc-300 quedaba
+     en 1.4:1 — una medalla de plata invisible en modo día. Estas ternas son las
+     del día (AA sobre crema: plata 5.0:1, bronce 5.6:1). */
+  --plata-rgb: 95 99 106; --bronce-rgb: 140 82 45;
 
   /* Colores completos derivados (día y noche comparten estas fórmulas). */
   --bg: rgb(var(--bg-rgb)); --bg2: rgb(var(--bg2-rgb));
@@ -95,6 +101,7 @@
   --rojo: rgb(var(--rojo-rgb)); --rojo-dark: rgb(var(--rojo-dark-rgb));
   --gold: rgb(var(--gold-rgb)); --gold-dark: rgb(var(--gold-dark-rgb));
   --verde: rgb(var(--verde-rgb)); --ambar: rgb(var(--ambar-rgb));
+  --plata: rgb(var(--plata-rgb)); --bronce: rgb(var(--bronce-rgb));
   --gold-ink: rgb(var(--bg-rgb)); --gold-glow: transparent;
   --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
   --warn: rgb(var(--rojo-rgb));
@@ -112,6 +119,8 @@
   --gold-rgb: 217 184 119; --gold-dark-rgb: 185 151 90;
   /* Verde y ámbar del veredicto, subidos para contraste AA sobre el grafito. */
   --verde-rgb: 107 191 136; --ambar-rgb: 224 160 74;
+  /* Plata y bronce del podio, subidos igual (AA sobre el grafito: 9.7:1 y 6.1:1). */
+  --plata-rgb: 186 190 199; --bronce-rgb: 205 133 90;
 }
 
 @layer utilities {
@@ -1270,6 +1279,33 @@ body,
 .pm-btn:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
 .pm-btn--ghost { background: transparent; color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--cdd-text); }
 .pm-btn--ghost:hover:not(:disabled) { background: transparent; color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }
+
+/* ── Sello de caucho ────────────────────────────────────────────────────
+   El sustituto tipográfico del icono. Donde antes había un emoji dentro de
+   un disco de acento (el modal de recarga tenía un coche de 24px que cada
+   sistema operativo dibujaba distinto), ahora hay un SELLO: doble filete,
+   Courier, rotado como se estampa a mano. Es vocabulario que la app ya
+   habla — el archivo estampa sus portadas y `animate-sellar` existe desde
+   el rediseño — y a diferencia de un icono no necesita dibujar un objeto
+   para significar algo, así que nunca se ve genérico ni "de librería".
+
+   Doble filete: `double` de CSS necesita 3px o pinta una sola raya. */
+.pm-sello {
+  display: inline-block; padding: 5px 10px; border-radius: 0;
+  border: 3px double var(--rojo); color: var(--rojo);
+  font-family: var(--font-mono); font-weight: 700; font-size: 9px;
+  letter-spacing: .18em; text-transform: uppercase; white-space: nowrap;
+  /* .88 en vez de 1: la tinta de un sello nunca cubre del todo el papel. */
+  opacity: .88;
+  /* Inclinación por defecto — un sello estampado a mano nunca sale recto.
+     Donde el sello se anima (el cromo del sorteo), framer-motion escribe su
+     propio `transform` inline y esta regla cede el paso sola. */
+  transform: rotate(-7deg);
+}
+/* Variante oro para los momentos premium (veterano, podio, logros): mismo
+   objeto, otra tinta. La regla de marca de siempre — rojo es "atención",
+   oro es "esto vale algo". */
+.pm-sello--oro { border-color: var(--gold); color: var(--gold); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    EL ARCHIVO — la colección de portadas (antes «Garaje»)

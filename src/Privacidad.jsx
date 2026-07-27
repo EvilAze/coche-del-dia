@@ -6,8 +6,13 @@
 //
 // Acceso: /privacidad  (enrutado desde src/index.js)
 //
-// Diseño deliberadamente sobrio — fondo neutro oscuro, jerarquía clara
-// por tipografía y mucho aire blanco para que sea legible y "serio".
+// Diseño deliberadamente sobrio — jerarquía clara por tipografía y mucho aire
+// para que sea legible y "serio".
+//
+// Migrada al sistema «Prensa del motor»: era la última pantalla que seguía en
+// la paleta `neutral-*` sobre fondo oscuro, con acentos ámbar de un tema ya
+// retirado. En una web que es un periódico, la letra pequeña legal es
+// exactamente eso: letra pequeña, sobre el mismo papel que el resto.
 
 import { useEffect } from "react";
 
@@ -51,17 +56,15 @@ export default function Privacidad() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-neutral-900 text-neutral-200">
+    <div className="min-h-screen w-full bg-papel font-serif text-tinta">
       <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
-        <header className="border-b border-neutral-800 pb-6">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-amber-500">
-            Documento legal
-          </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+        <header className="border-b border-border pb-6">
+          <p className="pm-kicker">Documento legal</p>
+          <h1 className="pm-title mt-2 !text-[26px] sm:!text-[32px]">
             Política de Privacidad
           </h1>
-          <p className="mt-2 text-sm text-neutral-400">
-            Aplicación: <span className="text-neutral-200">El Coche del Día</span> ·
+          <p className="mt-2 text-sm text-muted">
+            Aplicación: <span className="pm-strong">El Coche del Día</span> ·
             Última actualización: {LAST_UPDATED}
           </p>
         </header>
@@ -73,11 +76,11 @@ export default function Privacidad() {
               proporcionados por tu cuenta de Google en el momento del inicio
               de sesión:
             </p>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-neutral-300">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-tinta">
               <li>Tu nombre.</li>
               <li>Tu dirección de correo electrónico.</li>
             </ul>
-            <p className="mt-3 text-neutral-400">
+            <p className="mt-3 text-muted">
               No solicitamos, recopilamos ni almacenamos ningún otro dato
               personal por encima de los anteriores.
             </p>
@@ -88,7 +91,7 @@ export default function Privacidad() {
               La única finalidad de estos datos es la creación de una cuenta
               de usuario en El Coche del Día que permita:
             </p>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-neutral-300">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-tinta">
               <li>
                 Guardar tu progreso de juego (intentos, victorias, derrotas).
               </li>
@@ -100,7 +103,7 @@ export default function Privacidad() {
                 Registrar tu puntuación en el ranking diario y global.
               </li>
             </ul>
-            <p className="mt-3 text-neutral-400">
+            <p className="mt-3 text-muted">
               Los datos no se utilizan para ninguna otra finalidad distinta
               de las indicadas.
             </p>
@@ -109,11 +112,11 @@ export default function Privacidad() {
           <Section title="3. Almacenamiento y seguridad">
             <p>
               Los datos se almacenan de forma segura en la infraestructura de{" "}
-              <span className="text-neutral-100">Supabase</span>, un proveedor
+              <span className="pm-strong">Supabase</span>, un proveedor
               de servicios de base de datos que aplica cifrado de los datos
               en reposo y en tránsito.
             </p>
-            <p className="mt-3 text-neutral-400">
+            <p className="mt-3 text-muted">
               El Coche del Día aplica además políticas de control de acceso a nivel
               de fila (Row Level Security) para garantizar que cada usuario
               únicamente pueda consultar y modificar sus propios datos.
@@ -122,11 +125,11 @@ export default function Privacidad() {
 
           <Section title="4. Compartición con terceros">
             <p>
-              El Coche del Día <span className="text-white">no comparte</span>,{" "}
-              <span className="text-white">no vende</span> ni cede tu nombre
+              El Coche del Día <span className="pm-strong">no comparte</span>,{" "}
+              <span className="pm-strong">no vende</span> ni cede tu nombre
               o tu correo electrónico a terceros bajo ninguna circunstancia.
             </p>
-            <p className="mt-3 text-neutral-400">
+            <p className="mt-3 text-muted">
               Tampoco utilizamos tu correo electrónico para enviar
               comunicaciones promocionales, publicitarias ni de ningún otro
               tipo. El Coche del Día no envía correos electrónicos a sus usuarios.
@@ -136,26 +139,26 @@ export default function Privacidad() {
           <Section title="5. Cookies y servicios técnicos">
             <p>
               El Coche del Día utiliza únicamente cookies{" "}
-              <span className="text-white">estrictamente necesarias</span>{" "}
+              <span className="pm-strong">estrictamente necesarias</span>{" "}
               para el funcionamiento del juego. Conforme al artículo 22.2
               de la LSSI y la Directiva ePrivacy, estas cookies no
               requieren consentimiento previo:
             </p>
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-neutral-300">
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-tinta">
               <li>
-                <span className="text-white">Cookie de sesión anónima:</span>{" "}
+                <span className="pm-strong">Cookie de sesión anónima:</span>{" "}
                 firmada, permite contar tus intentos del día y mantener tu
                 progreso sin necesidad de cuenta. Caduca cada 24 horas.
               </li>
               <li>
-                <span className="text-white">
+                <span className="pm-strong">
                   Cookies de autenticación (Supabase):
                 </span>{" "}
                 solo si inicias sesión con Google. Mantienen tu sesión
                 activa entre visitas.
               </li>
             </ul>
-            <p className="mt-3 text-neutral-400">
+            <p className="mt-3 text-muted">
               No utilizamos cookies publicitarias, de tracking de terceros
               ni de redes sociales.
             </p>
@@ -168,22 +171,22 @@ export default function Privacidad() {
               propias políticas de privacidad y a acuerdos de tratamiento
               de datos (DPA) cuando aplica.
             </p>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-neutral-300">
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-tinta">
               <li>
-                <span className="text-white">Supabase</span> (alojado en
+                <span className="pm-strong">Supabase</span> (alojado en
                 AWS, regiones EU). Base de datos y autenticación. Recibe:
                 tu identificador de cuenta, nombre, email y progreso de
                 juego. Base legal: ejecución del contrato (Art. 6.1.b GDPR).
               </li>
               <li>
-                <span className="text-white">Vercel</span> (alojamiento de
+                <span className="pm-strong">Vercel</span> (alojamiento de
                 la web). Recibe: tu dirección IP y user-agent durante las
                 peticiones HTTP, como cualquier servidor web. Logs
                 operacionales con retención corta. Base legal: interés
                 legítimo en operar el sitio (Art. 6.1.f GDPR).
               </li>
               <li>
-                <span className="text-white">Umami Analytics</span>{" "}
+                <span className="pm-strong">Umami Analytics</span>{" "}
                 (alojado en EU). Estadísticas agregadas de uso de la web.
                 No usa cookies. No registra identificadores personales:
                 solo página visitada y país aproximado derivado de la IP
@@ -191,7 +194,7 @@ export default function Privacidad() {
                 medir tráfico anónimo (Art. 6.1.f GDPR).
               </li>
               <li>
-                <span className="text-white">Sentry</span> (alojado en EU).
+                <span className="pm-strong">Sentry</span> (alojado en EU).
                 Recibe automáticamente los errores que ocurren en tu
                 navegador o en nuestros servidores, junto con el contexto
                 técnico necesario para reproducirlos (URL, mensaje del
@@ -202,7 +205,7 @@ export default function Privacidad() {
                 seguridad y la fiabilidad del servicio (Art. 6.1.f GDPR).
               </li>
             </ul>
-            <p className="mt-3 text-neutral-400">
+            <p className="mt-3 text-muted">
               El Coche del Día no transfiere tus datos a terceros con fines
               comerciales ni publicitarios.
             </p>
@@ -214,7 +217,7 @@ export default function Privacidad() {
               todos los datos asociados (estadísticas, garaje, historial de
               partidas) en cualquier momento.
             </p>
-            <p className="mt-3 text-neutral-400">
+            <p className="mt-3 text-muted">
               Para ejercer este derecho, envía un correo electrónico a la
               dirección indicada en la sección de contacto, identificando
               la cuenta que deseas suprimir. La solicitud se atenderá en un
@@ -231,7 +234,7 @@ export default function Privacidad() {
             <p className="mt-3">
               <a
                 href={`mailto:${ADMIN_CONTACT_EMAIL}`}
-                className="font-medium text-amber-400 underline decoration-amber-700 underline-offset-4 transition hover:text-amber-300"
+                className="font-medium text-rojo underline decoration-rojo/40 underline-offset-4 transition hover:decoration-rojo"
               >
                 {ADMIN_CONTACT_EMAIL}
               </a>
@@ -239,8 +242,8 @@ export default function Privacidad() {
           </Section>
         </main>
 
-        <footer className="mt-12 flex flex-col items-start gap-4 border-t border-neutral-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-neutral-500">
+        <footer className="mt-12 flex flex-col items-start gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted">
             © {new Date().getFullYear()} El Coche del Día · Todos los derechos
             reservados.
           </p>
@@ -251,13 +254,12 @@ export default function Privacidad() {
               window.location.href = "/";
             }}
             className="
-              inline-flex items-center gap-2
-              rounded-lg border border-neutral-700 bg-neutral-800
-              px-4 py-2 text-sm font-medium text-neutral-200
+              focus-ring inline-flex items-center gap-2
+              rounded-none border border-tinta bg-transparent
+              px-4 py-2 font-body text-xs font-semibold uppercase tracking-[0.18em] text-tinta
               transition-colors
-              hover:border-neutral-500 hover:bg-neutral-700 hover:text-white
-              active:scale-95
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500
+              hover:border-rojo hover:text-rojo
+              active:translate-y-px
             "
           >
             <svg
@@ -287,10 +289,10 @@ export default function Privacidad() {
 function Section({ title, children }) {
   return (
     <section>
-      <h2 className="mb-3 text-base font-semibold text-white sm:text-lg">
+      <h2 className="mb-3 font-display text-base font-black text-tinta sm:text-lg">
         {title}
       </h2>
-      <div className="text-neutral-300">{children}</div>
+      <div className="text-tinta">{children}</div>
     </section>
   );
 }

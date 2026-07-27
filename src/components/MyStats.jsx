@@ -98,11 +98,15 @@ function ChevronRightIcon({ className = "h-4 w-4" }) {
   );
 }
 
-// Avatar circular con inicial sobre disco menta.
+// Avatar: inicial sobre disco de papel con filete de tinta. Este es el avatar
+// CANÓNICO — PublicProfile monta el mismo para que el perfil propio y el ajeno
+// no parezcan de dos apps distintas (el público se quedó con un degradado
+// menta del tema anterior). `text-rojo` en vez del alias `text-mint`: el alias
+// apunta a la misma terna roja, pero el nombre miente sobre lo que pinta.
 function Avatar({ initial }) {
   return (
     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-tinta bg-papel-2">
-      <span className="font-bold text-xl text-mint">{initial}</span>
+      <span className="font-bold text-xl text-rojo">{initial}</span>
     </div>
   );
 }

@@ -1148,9 +1148,16 @@ body,
 .prensa-area-clas { display: contents; }
 .prensa-area-cab { order: 1; }
 .prensa-area-foto { order: 2; }
-.prensa-fila-viva { order: 3; }
 .prensa-area-jugar { order: 4; }
 .prensa-historial { order: 5; }
+/* Historial DURANTE la partida: solo en el pliego ancho, donde llena la columna
+   izquierda sin quitarle sitio a nada. En columna única se oculta — el combo ya
+   elimina de la lista lo fallado y la horquilla del año acota el rango en un
+   renglón, así que la lista de filas era, sobre todo, altura. Al terminar la
+   partida el componente pierde esta clase y aparece también en móvil. */
+@media (max-width: 1099px) {
+  .prensa-historial--ancho { display: none; }
+}
 .prensa-estadistica { order: 6; }
 /* La faja de clasificación cuando NO va en cabecera (visitante sin sesión):
    entre la estadística y el pie. Ver el porqué en Configurator.jsx. */
@@ -1262,6 +1269,75 @@ body,
   .prensa-input { scroll-margin-top: 116px; }
 }
 .prensa-input::placeholder { color: var(--placeholder); font-style: italic; font-family: var(--font-display); font-size: 14px; }
+
+/* ── EL VEREDICTO EN EL PROPIO CAMPO ────────────────────────────────────────
+   El resultado del intento dejó de vivir en una fila aparte y se estampa sobre
+   el renglón donde se escribió. Reusa el lenguaje de MARCAS DE CORRECTOR que ya
+   tenía la clasificación (.prensa-dato.bien/.cerca/.mal): verde firme al
+   acertar, tachado a pluma roja al descartar. La diferencia con `invalida` —que
+   también es roja— es deliberada y está en la FORMA: invalida solo tiñe el
+   filete inferior («lo escrito no vale, corrígelo»), mientras que descartado
+   tacha la palabra («esto ya se ha probado y no era»). Dos mensajes distintos,
+   dos marcas distintas. */
+.prensa-campo { position: relative; display: flex; align-items: baseline; gap: 8px; }
+.prensa-campo .prensa-input { flex: 1; min-width: 0; }
+/* Marca a la derecha del renglón (✓, bandera, flecha). No captura el toque: el
+   objetivo táctil sigue siendo el campo entero. */
+.prensa-campo-marca {
+  flex: none; pointer-events: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-body); font-weight: 700; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.prensa-campo-marca.bien { color: var(--verde); font-size: 15px; letter-spacing: 0; }
+.prensa-campo-marca.cerca { color: var(--ambar); }
+.prensa-campo-marca.cerca .bandera { width: 16px; height: 11px; object-fit: cover; }
+.prensa-campo-marca.dir { color: var(--rojo); }
+
+/* Resuelto: el campo deja de ser un renglón por rellenar y pasa a ser un dato
+   cerrado. Filete verde firme y texto en tinta plena (no apagado: es un acierto,
+   no un campo deshabilitado). El cursor lo dice también. */
+.prensa-input.veredicto-resuelto {
+  border-bottom: 2px solid var(--verde); padding-bottom: 6px;
+  color: var(--cdd-text); cursor: default;
+}
+.prensa-input.veredicto-resuelto:focus { border-bottom-color: var(--verde); }
+.prensa-label .pista-label.resuelta { color: var(--verde); font-weight: 700; }
+
+/* El veredicto de FALLO va en una capa ENCIMA del campo, no dentro (ver el
+   comentario largo de Combo.jsx): el input de debajo ya está vacío y sigue
+   siendo tecleable, así que el jugador puede empezar el intento siguiente sin
+   esperar a que el flash termine. `pointer-events: none` para que el toque
+   atraviese la capa y caiga en el campo. Alineada con el texto del input
+   (mismas métricas y padding) para que ocupe exactamente su sitio. */
+.prensa-veredicto {
+  position: absolute; left: 2px; top: 0; bottom: 0;
+  display: flex; align-items: center; pointer-events: none;
+  font-family: var(--font-mono); font-size: 16px;
+  color: var(--rojo); text-decoration: line-through;
+  text-decoration-color: var(--rojo); text-decoration-thickness: 2px;
+  animation: veredictoEstampa .22s cubic-bezier(.16, 1, .3, 1) both;
+}
+/* Mismo país: ámbar y sin tachar — no está descartada, está cerca. */
+.prensa-veredicto.veredicto-cerca {
+  color: var(--ambar); text-decoration: none;
+}
+/* Con la capa puesta, el placeholder del campo vacío asomaría por debajo. */
+.prensa-input.con-veredicto::placeholder { color: transparent; }
+@keyframes veredictoEstampa {
+  from { opacity: .35; transform: scale(1.04); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prensa-veredicto { animation: none; }
+}
+
+/* La horquilla del año: el rango que sigue vivo según las flechas acumuladas.
+   Nota al pie del campo, en la cursiva de las apostillas — es una acotación del
+   corrector, no un dato del formulario. */
+.prensa-horquilla {
+  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
+  color: var(--cdd-muted); margin-top: 3px;
+}
 .prensa-listbox {
   position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40;
   max-height: min(260px, 42dvh); overflow-y: auto; overscroll-behavior: contain;

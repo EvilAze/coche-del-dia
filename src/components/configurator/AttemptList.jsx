@@ -124,7 +124,10 @@ export default function AttemptList({ guesses = [], pendingGuess = null, justRev
   // Cabecera de columnas alineada con la MISMA rejilla de las filas + filas
   // (más reciente primero). El estampado lo dispara justRevealedIndex.
   return (
-    <section aria-label={t("cdd.lastAttempt")} className="flex flex-col">
+    // El aria-label era `cdd.lastAttempt` («Último intento»), heredado de cuando
+    // esta lista convivía con la fila viva y solo mostraba los ANTERIORES.
+    // Retirada la fila, esta sección es el historial entero y así se anuncia.
+    <section aria-label={t("guessLog.label")} className="flex flex-col">
       <div className="prensa-fila cabecera" aria-hidden="true">
         <span className="num"></span>
         <span>{t("cdd.labelMarca")}</span>

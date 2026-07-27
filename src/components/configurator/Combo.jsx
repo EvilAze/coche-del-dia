@@ -29,6 +29,29 @@ export default function Combo({
   inputRef = null,
   onCommit = null,
   enterKeyHint = "search",
+  // ── VEREDICTO EN EL PROPIO CAMPO ──────────────────────────────────────────
+  // El resultado del intento dejó de vivir en una fila aparte («último intento»)
+  // y se estampa aquí, sobre el renglón donde se escribió. Tres estados:
+  //   · "resuelto"   → acertado. Valor + ✓ y campo BLOQUEADO: no se vuelve a
+  //                    teclear en toda la partida. El formulario encoge de 3
+  //                    campos a 2 a 1 según aciertas.
+  //   · "descartado" → fallado. EFÍMERO: el valor se tacha a pluma roja ~1,2s y
+  //                    el campo se limpia solo. El acuse de recibo sin heredar
+  //                    el trabajo de borrarlo (y sin chocar con `invalida`, que
+  //                    es otra cosa: «lo escrito no vale»).
+  //   · "cerca"      → mismo país. PERSISTE mientras dure el veredicto y lleva
+  //                    bandera de apostilla: es información que se sigue usando.
+  estado = null,
+  bloqueado = false,
+  // Valor a pintar mientras dura el veredicto de FALLO. Va en una capa ENCIMA
+  // del input, no dentro: el input ya se vació al recibir el resultado y debe
+  // seguir siendo tecleable durante el flash. Metido en el `value` (que fue el
+  // primer intento) teclear en ese 1,2s concatenaba sobre la palabra tachada
+  // —"Volvov"— y obligaba a poner el campo readOnly, que a su vez se comía la
+  // primera tecla. La capa no captura el puntero, así que el campo de debajo
+  // funciona como si no estuviera.
+  valorVeredicto = null,
+  apostilla = null,
 }) {
   const { t } = useT();
   // id estable para asociar <label> ↔ <input> (a11y: el lector de pantalla
@@ -96,7 +119,11 @@ export default function Combo({
   }
 
   function onFocus() {
-    if (disabled) return;
+    // Campo resuelto: ni desplegable ni auto-scroll. Es un dato ya cerrado, no
+    // un renglón por rellenar — abrirle la lista invitaría a cambiar algo que
+    // no se puede cambiar. (`resuelto` se declara abajo; para cuando el usuario
+    // puede enfocar, el render ya lo ha inicializado.)
+    if (disabled || resuelto) return;
     setOpen(true);
     const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
     if (coarse) {
@@ -107,6 +134,7 @@ export default function Combo({
   }
 
   function onKey(e) {
+    if (resuelto) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setHi((h) => Math.min(h + 1, filtered.length - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
     else if (e.key === "Enter" && open && filtered[hi]) { e.preventDefault(); choose(filtered[hi]); }
@@ -117,29 +145,64 @@ export default function Combo({
   // renglón de un formulario impreso; lo escrito sale "a máquina" en Courier)
   // + listbox de papel con filete. La lógica (autocomplete, anti-cheat,
   // banderas, teclado) es la misma; solo cambia la piel.
+  // El campo resuelto sale del flujo de edición por completo: readOnly (no
+  // `disabled`, que lo sacaría del árbol accesible y del tab-order sin decir por
+  // qué) y sin desplegable. El lector de pantalla anuncia el valor y su estado.
+  const resuelto = estado === "resuelto" || bloqueado;
+
   return (
     <div className="relative flex flex-col gap-0.5" ref={ref}>
-      <label htmlFor={inputId} className="prensa-label">{label}</label>
-      <input
-        id={inputId}
-        ref={setInputRef}
-        className={"prensa-input" + (invalid && !open ? " invalida" : "")}
-        type="search"
-        enterKeyHint={enterKeyHint}
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        data-1p-ignore="true"
-        data-lpignore="true"
-        value={text}
-        disabled={disabled}
-        placeholder={placeholder}
-        onChange={(e) => { onChange(""); setQ(e.target.value); setOpen(true); }}
-        onFocus={onFocus}
-        onKeyDown={onKey}
-      />
-      {open && !disabled && (
+      <label htmlFor={inputId} className="prensa-label">
+        {label}
+        {resuelto && <span className="pista-label resuelta">{t("cdd.fieldSolved")}</span>}
+      </label>
+      <div className="prensa-campo">
+        <input
+          id={inputId}
+          ref={setInputRef}
+          className={
+            "prensa-input" +
+            (invalid && !open ? " invalida" : "") +
+            (resuelto ? " veredicto-resuelto" : "") +
+            (valorVeredicto ? " con-veredicto" : "")
+          }
+          type="search"
+          enterKeyHint={enterKeyHint}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-1p-ignore="true"
+          data-lpignore="true"
+          value={text}
+          disabled={disabled}
+          readOnly={resuelto}
+          aria-readonly={resuelto || undefined}
+          placeholder={placeholder}
+          onChange={(e) => { onChange(""); setQ(e.target.value); setOpen(true); }}
+          onFocus={onFocus}
+          onKeyDown={onKey}
+        />
+        {/* Capa del veredicto de fallo: la palabra intentada, tachada a pluma,
+            flotando sobre el campo ya vacío. */}
+        {valorVeredicto && (
+          <span
+            className={"prensa-veredicto veredicto-" + (estado || "descartado")}
+            aria-hidden="true"
+          >
+            {valorVeredicto}
+          </span>
+        )}
+        {/* El ✓ del campo resuelto y la bandera del «mismo país» viven FUERA del
+            input (un <input> no admite hijos) pero dentro de su renglón, a la
+            derecha y sin capturar el toque: el objetivo táctil sigue siendo el
+            campo entero. */}
+        {resuelto && (
+          <span className="prensa-campo-marca bien" aria-hidden="true">✓</span>
+        )}
+        {!resuelto && apostilla}
+      </div>
+      {open && !disabled && !resuelto && (
         <ul className="prensa-listbox" role="listbox" ref={listRef}>
           {filtered.length === 0 && (
             <li className="prensa-opt vacia">{t("cdd.noMatches")}</li>

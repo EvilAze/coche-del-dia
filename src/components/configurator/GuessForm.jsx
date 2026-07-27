@@ -12,11 +12,19 @@ import { useToast } from "../Toast";
 import { haptic } from "../../lib/haptics";
 import { flagImagePath } from "../../data/countries";
 import { resolver } from "../../lib/resolver";
+import { yearRange } from "../../lib/yearRange";
 import Combo from "./Combo";
 import YearField from "./YearField";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
+
+// Cuánto dura el veredicto de FALLO sobre el campo antes de que se limpie solo.
+// Se probaron las dos alternativas: dejarlo fijo hasta que el jugador tocara el
+// campo obliga a un gesto extra por intento (y en móvil, a seleccionar y borrar);
+// no enseñarlo deja el intento sin acuse de recibo. 1,2s es lo que tarda en
+// leerse una palabra tachada — el feedback dura exactamente lo que sirve.
+const VEREDICTO_MS = 1200;
 
 export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5 }) {
   const { t } = useT();
@@ -30,6 +38,24 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
 
+  // ── Veredicto estampado sobre los propios campos ──────────────────────────
+  // Sustituye a la fila «último intento», que repetía bajo la foto lo que el
+  // jugador acababa de escribir tres renglones más abajo. Shape:
+  //   { marca: {val, estado}, modelo: {...}, anio: {...} } | null
+  // con estado ∈ "resuelto" | "descartado" | "cerca". Los campos ACERTADOS no
+  // dependen de este estado —se derivan de `solved`, que viene del servidor y
+  // sobrevive a recargas—; esto es solo para el flash de los fallados.
+  const [veredicto, setVeredicto] = useState(null);
+  const veredictoTimer = useRef(null);
+  useEffect(() => () => clearTimeout(veredictoTimer.current), []);
+
+  // Cualquier intervención del jugador cancela el flash: si ya está tecleando el
+  // intento siguiente, el anterior sobra y no debe pisarle el campo.
+  function cancelarVeredicto() {
+    clearTimeout(veredictoTimer.current);
+    setVeredicto(null);
+  }
+
   // Cadena de foco (QoL móvil) para no abrir/cerrar el teclado 4 veces por
   // intento: elegir marca → enfoca modelo; elegir modelo → enfoca año. El foco
   // se mueve SOLO en selecciones reales del usuario (onCommit del Combo),
@@ -37,6 +63,9 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const marcaRef = useRef(null);
   const modeloRef = useRef(null);
   const anioRef = useRef(null);
+  // Destino del scroll post-envío en móvil (antes era la fila «último intento»,
+  // que ya no existe: el veredicto vive en estos campos).
+  const cuponRef = useRef(null);
 
   // El campo siguiente puede acabar de habilitarse en ESTE mismo render (modelo
   // se activa al elegir una marca válida), así que esperamos al frame siguiente
@@ -131,6 +160,45 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     }
     return s;
   }, [guesses]);
+
+  // Campos ya resueltos → BLOQUEADOS el resto de la partida. El formulario
+  // encoge de tres renglones a dos a uno según se acierta: el juego se vuelve
+  // más fácil de operar según se vuelve más difícil de resolver.
+  const bloqueo = {
+    marca: Boolean(solved.marca),
+    modelo: Boolean(solved.modelo),
+    anio: solved.anio != null,
+  };
+
+  // ── Pistas que SOBREVIVEN al flash ────────────────────────────────────────
+  // El valor tachado es efímero (ya lo has leído y el combo no te deja
+  // repetirlo), pero la PISTA que dejó no lo es: se sigue usando en los
+  // intentos siguientes, así que se queda pegada al campo hasta que se resuelva.
+  //
+  // Marca: el «mismo país». Se deriva del historial, no del veredicto en curso,
+  // porque su vida útil es toda la partida: si en el intento 1 supiste que el
+  // coche es alemán, esa bandera te sirve en el 2, en el 3 y en el 4.
+  const paisCerca = useMemo(() => {
+    if (solved.marca) return null;
+    for (let i = guesses.length - 1; i >= 0; i--) {
+      const m = guesses[i]?.marca;
+      if (m?.status === "partial" && m.pais) return m.pais;
+    }
+    return null;
+  }, [guesses, solved.marca]);
+
+  // Año: la flecha del último fallo y la horquilla que acumulan todos.
+  const ultimaDireccion = useMemo(() => {
+    for (let i = guesses.length - 1; i >= 0; i--) {
+      const a = guesses[i]?.anio;
+      if (a && a.status !== "correct" && a.direction) return a.direction;
+    }
+    return null;
+  }, [guesses]);
+  const horquilla = useMemo(
+    () => yearRange(guesses, tolerance, CURRENT_YEAR),
+    [guesses, tolerance]
+  );
 
   const prefilledRef = useRef({ marca: null, modelo: null, anio: null });
   useEffect(() => {
@@ -228,12 +296,26 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     setModelo(result.modelo.status === "correct" ? modeloFinal : "");
     setAnio(result.anio.status === "correct" ? anioNum : "");
 
-    // QoL móvil (columna única): cerrar el teclado y centrar el veredicto
-    // recién estampado (la foto asoma por arriba; el cupón queda a un gesto).
+    // El veredicto se estampa sobre los campos. Solo necesitamos entrada para
+    // los FALLADOS: el campo acertado ya se pinta como resuelto a partir de
+    // `solved`, que viene del servidor y no caduca.
+    const aEstado = (st) =>
+      st === "correct" ? null : st === "partial" ? "cerca" : "descartado";
+    setVeredicto({
+      marca: { val: marcaFinal, estado: aEstado(result.marca.status) },
+      modelo: { val: modeloFinal, estado: aEstado(result.modelo.status) },
+      anio: { val: anioNum, estado: aEstado(result.anio.status) },
+    });
+    clearTimeout(veredictoTimer.current);
+    veredictoTimer.current = setTimeout(() => setVeredicto(null), VEREDICTO_MS);
+
+    // QoL móvil (columna única): cerrar el teclado y devolver el cupón entero a
+    // la vista. Antes se centraba la fila «último intento»; ahora el veredicto
+    // está EN los campos, así que el destino del scroll es el propio cupón.
     if (window.matchMedia("(max-width: 1099px)").matches) {
       document.activeElement?.blur?.();
       requestAnimationFrame(() => {
-        document.getElementById("fila-viva")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        cuponRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
     }
   }
@@ -245,17 +327,47 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     // al mismo borde que la foto. El temblor de errata sigue sacudiendo el
     // bloque al validar en falso.
     <div
+      ref={cuponRef}
       className={"prensa-cupon" + (shake ? " animate-temblor" : "")}
       onAnimationEnd={() => setShake(false)}
     >
+      {/* El veredicto es visual (color + marca de corrector sobre el campo), así
+          que para el lector de pantalla lo dictamos aquí. Sustituye al
+          aria-live que tenía la fila «último intento». */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {veredicto
+          ? [
+              `${t("cdd.labelMarca")}: ${veredicto.marca.val} — ${
+                veredicto.marca.estado === null
+                  ? t("cdd.srCorrect")
+                  : veredicto.marca.estado === "cerca"
+                  ? t("cdd.sameCountry")
+                  : t("cdd.srWrong")
+              }`,
+              `${t("cdd.labelModelo")}: ${veredicto.modelo.val} — ${
+                veredicto.modelo.estado === null ? t("cdd.srCorrect") : t("cdd.srWrong")
+              }`,
+              `${t("cdd.labelAnio")}: ${veredicto.anio.val} — ${
+                veredicto.anio.estado === null
+                  ? t("cdd.srCorrect")
+                  : ultimaDireccion
+                  ? t(ultimaDireccion === "up" ? "cdd.yearNewer" : "cdd.yearOlder")
+                  : t("cdd.srWrong")
+              }`,
+            ].join(". ")
+          : ""}
+      </p>
+
       <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
         {/* Tres renglones apilados a ancho completo: marca, modelo y año. Cada
             campo ocupa toda la fila (target grande, nombres largos legibles) en
-            vez del par marca|modelo comprimido de antes. */}
+            vez del par marca|modelo comprimido de antes. Cada uno lleva ahora su
+            propio veredicto: el resuelto se queda con ✓ y bloqueado, el fallado
+            se tacha 1,2s y se limpia. */}
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
-          onChange={(v) => { setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
+          onChange={(v) => { cancelarVeredicto(); setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
           onCommit={() => focusSoon(modeloRef)}
           inputRef={marcaRef}
           options={availableMarcas}
@@ -264,11 +376,22 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           invalid={marcaInvalida}
           optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
           enterKeyHint="next"
+          bloqueado={bloqueo.marca}
+          estado={bloqueo.marca ? "resuelto" : veredicto?.marca.estado ?? null}
+          valorVeredicto={!bloqueo.marca && veredicto ? veredicto.marca.val : null}
+          apostilla={
+            paisCerca ? (
+              <span className="prensa-campo-marca cerca">
+                <img className="bandera" src={flagImagePath(paisCerca)} alt="" draggable={false} />
+                {t("cdd.sameCountry")}
+              </span>
+            ) : null
+          }
         />
         <Combo
           label={t("cdd.labelModelo")}
           value={modelo}
-          onChange={setModelo}
+          onChange={(v) => { cancelarVeredicto(); setModelo(v); }}
           onCommit={() => focusSoon(anioRef)}
           inputRef={modeloRef}
           options={modelOptions}
@@ -276,8 +399,21 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           disabled={formDisabled || !marcaValida}
           invalid={modeloInvalido}
           enterKeyHint="next"
+          bloqueado={bloqueo.modelo}
+          estado={bloqueo.modelo ? "resuelto" : veredicto?.modelo.estado ?? null}
+          valorVeredicto={!bloqueo.modelo && veredicto ? veredicto.modelo.val : null}
         />
-        <YearField value={anio} onChange={setAnio} tolerance={tolerance} inputRef={anioRef} />
+        <YearField
+          value={anio}
+          onChange={(v) => { cancelarVeredicto(); setAnio(v); }}
+          tolerance={tolerance}
+          inputRef={anioRef}
+          bloqueado={bloqueo.anio}
+          estado={bloqueo.anio ? "resuelto" : veredicto?.anio.estado ?? null}
+          valorVeredicto={!bloqueo.anio && veredicto ? String(veredicto.anio.val) : null}
+          direccion={ultimaDireccion}
+          horquilla={horquilla}
+        />
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
             Con campos incompletos el botón queda tocable con aspecto apagado
             (.is-incomplete): el tap dispara el shake + toast de arriba. La

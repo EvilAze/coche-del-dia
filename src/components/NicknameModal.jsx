@@ -1,13 +1,50 @@
-import { useState } from "react";
+// src/components/NicknameModal.jsx
+// Elegir (o cambiar) la firma que aparece en la clasificación.
+//
+// ANTES ERA UN PEAJE. Este modal se abría solo en cuanto detectaba a un usuario
+// logueado sin display_name, no se podía cerrar (ni scrim, ni Escape, ni la
+// «atrás») y bloqueaba el juego entero. O sea: el jugador acababa de decidir
+// crear cuenta —el momento de máxima buena voluntad de toda su vida como
+// usuario— y lo primero que recibía era un formulario obligatorio pidiéndole
+// una decisión irreversible.
+//
+// Y sobraba, porque el nick NO hace falta para jugar: `display_name` solo lo usa
+// la clasificación (las SQL de temporada filtran `WHERE p.display_name IS NOT
+// NULL`). Jugar, la racha, las estadísticas, el Archivo y los logros funcionan
+// sin él. Se bloqueaba el juego completo por el requisito de UNA función.
+//
+// Ahora: no se abre solo nunca. Se pide donde el nick significa algo —al abrir
+// la clasificación y al ganar— y se puede cerrar. El «permanente» también se
+// fue (ver saveDisplayName en lib/statsService.js), así que este mismo modal
+// sirve para estrenar firma y para cambiarla.
+
+import { useEffect, useState } from "react";
 import { saveDisplayName } from "../lib/statsService";
 import { useT } from "../i18n";
 import ModalShell from "./ModalShell";
+import CloseButton from "./CloseButton";
 
-export default function NicknameModal({ open, onSaved }) {
+export default function NicknameModal({ open, onClose, onSaved, valorActual = null }) {
   const { t } = useT();
-  const [displayName, setDisplayName] = useState("");
+  const editando = Boolean(valorActual);
+  const [displayName, setDisplayName] = useState(valorActual || "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Al abrir, partimos del nick vigente (si lo hay): cambiar «MAX» por «MAX2»
+  // no debería obligar a reteclearlo entero.
+  useEffect(() => {
+    if (open) {
+      setDisplayName(valorActual || "");
+      setError("");
+    }
+  }, [open, valorActual]);
+
+  // La «atrás» de Android ya la cubre el useHistoryClose GLOBAL de App.jsx, que
+  // actúa sobre el slot `activeModal` — y este modal ya vive en ese slot (antes
+  // no: se abría por estado derivado propio y quedaba fuera). Poner aquí un
+  // segundo trap dejaría dos entradas de historial peleándose por la misma
+  // pulsación, que es justo el fallo que documenta App.jsx para el Archivo.
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -19,6 +56,13 @@ export default function NicknameModal({ open, onSaved }) {
       return;
     }
 
+    // Cambiar por el mismo nick no es un error, pero tampoco es una petición:
+    // cerramos sin tocar la base de datos.
+    if (editando && clean === valorActual) {
+      onClose?.();
+      return;
+    }
+
     setSaving(true);
     setError("");
 
@@ -26,12 +70,12 @@ export default function NicknameModal({ open, onSaved }) {
       const profile = await saveDisplayName(clean);
       onSaved(profile);
     } catch (err) {
-      // Mapeamos cÃ³digos conocidos a strings traducidos; si no, mostramos el
-      // mensaje crudo del backend o un genÃ©rico de save.
-      let msg;
-      if (err?.code === "DUPLICATE_DISPLAY_NAME") msg = t("nickname.errorDuplicate");
-      else if (err?.code === "DISPLAY_NAME_LOCKED") msg = t("nickname.errorLocked");
-      else msg = err?.message || t("nickname.errorSave");
+      // Mapeamos códigos conocidos a strings traducidos; si no, mostramos el
+      // mensaje crudo del backend o un genérico de save.
+      const msg =
+        err?.code === "DUPLICATE_DISPLAY_NAME"
+          ? t("nickname.errorDuplicate")
+          : err?.message || t("nickname.errorSave");
       setError(msg);
     } finally {
       setSaving(false);
@@ -39,29 +83,24 @@ export default function NicknameModal({ open, onSaved }) {
   }
 
   return (
-    // dismissOnBackdrop=false: el nickname es obligatorio antes de jugar
-    // logueado. Cerrar tocando fuera dejarÃ­a al usuario en un estado raro
-    // (logueado pero sin display_name) que el resto del flujo ya esquiva.
     <ModalShell
       open={open}
-      // Sin onClose: este modal no se cierra hasta que onSaved se llama
-      // tras un guardado exitoso. El padre lo controla con `open`.
-      onClose={() => {}}
-      dismissOnBackdrop={false}
+      onClose={onClose}
       backdropClassName="modal-scrim fixed inset-0 z-[120] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat w-full max-w-sm p-6 text-center"
+      panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
     >
+      <div className="absolute right-4 top-4 z-10">
+        <CloseButton onClick={onClose} />
+      </div>
+
       <form onSubmit={handleSubmit}>
         <p className="pm-kicker">{t("nickname.tag")}</p>
 
-        <h2 className="pm-title mt-2">{t("nickname.title")}</h2>
+        <h2 className="pm-title mt-2">
+          {editando ? t("nickname.titleChange") : t("nickname.title")}
+        </h2>
 
         <p className="pm-body mt-3">{t("nickname.description")}</p>
-
-        {/* Aviso "permanente": filete de tinta discontinuo, no tinte ámbar */}
-        <p className="pm-body mt-3 border border-dashed border-tinta px-3 py-2 text-xs">
-          {t("nickname.permanentWarning")}
-        </p>
 
         <input
           autoFocus
@@ -89,7 +128,7 @@ export default function NicknameModal({ open, onSaved }) {
           disabled={saving || !displayName.trim()}
           className="pm-btn mt-5"
         >
-          {saving ? t("nickname.saving") : t("nickname.submit")}
+          {saving ? t("nickname.saving") : editando ? t("nickname.submitChange") : t("nickname.submit")}
         </button>
       </form>
     </ModalShell>

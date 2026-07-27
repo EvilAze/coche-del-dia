@@ -53,6 +53,9 @@ export default function Configurator({
   rank,
   rankCargando = false,
   user,
+  // Logueado sin firma: el EndScreen se la ofrece al ganar (ver App.jsx).
+  necesitaNick = false,
+  onOpenNickname,
   repescaAlert,
   shareText,
   revealReady, // eslint-disable-line no-unused-vars -- reservado
@@ -369,6 +372,8 @@ export default function Configurator({
           shareText={shareText}
           user={user}
           rank={rank}
+          necesitaNick={necesitaNick}
+          onOpenNickname={onOpenNickname}
           onOpenLogin={onOpenLogin}
           onOpenGarage={onOpenGarage}
           onOpenRanking={onOpenRanking}

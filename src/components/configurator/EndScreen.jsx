@@ -72,6 +72,8 @@ export default function EndScreen({
   shareText,
   user,
   rank,
+  necesitaNick = false,
+  onOpenNickname,
   onClose,
   onOpenLogin,
   onOpenGarage,
@@ -289,6 +291,19 @@ export default function EndScreen({
             {!user && (
               <button className="cdd-submit cdd-submit--ghost" onClick={onOpenLogin}>
                 <span>{t("result.saveProgressCta")}</span>
+              </button>
+            )}
+
+            {/* Logueado, ha GANADO y aún no tiene firma: su resultado de hoy
+                puntúa pero no sale en la tabla. Este es el único momento en que
+                elegir nick tiene una consecuencia inmediata y visible, así que
+                es aquí donde se pide — no en un modal obligatorio al registrarse.
+                Solo en victoria: al que acaba de perder, ofrecerle entrar en una
+                clasificación es sordera. Mismo estilo ghost que el CTA anónimo:
+                compartir sigue siendo el único CTA de tinta. */}
+            {won && user && necesitaNick && (
+              <button className="cdd-submit cdd-submit--ghost" onClick={onOpenNickname}>
+                <span>{t("result.pickNickCta")}</span>
               </button>
             )}
 

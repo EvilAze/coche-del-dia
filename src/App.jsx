@@ -53,7 +53,9 @@ export default function App() {
     activeModal,
     setActiveModal,
     mounted,
-    mountModal,
+    // (`mountModal` ya no se usa aquí: lo consumía el auto-montaje del modal de
+    // nick, que se abría solo. Ahora el nick se pide con `openModal`, que monta
+    // y activa de una vez, como el resto.)
     openModal,
     closeModal,
   } = useModalState();
@@ -214,13 +216,29 @@ export default function App() {
     closeModal();
   }
 
-  // NicknameModal se abre solo (onboarding) cuando un usuario logueado no
-  // tiene nick. Como es lazy, lo marcamos para montar en cuanto esa condición
-  // se cumple.
-  const nicknameOpen = Boolean(user && !checkingProfile && !profile?.display_name);
-  useEffect(() => {
-    if (nicknameOpen) mountModal("nickname");
-  }, [nicknameOpen, mountModal]);
+  // ── EL NICK YA NO ES UN PEAJE ─────────────────────────────────────────────
+  // Antes, este componente abría NicknameModal SOLO en cuanto veía a un usuario
+  // logueado sin display_name, y el modal no se podía cerrar: el jugador que
+  // acababa de crear cuenta se topaba con un formulario obligatorio antes de
+  // poder jugar. Y sobraba, porque el nick solo lo usa la clasificación (ver el
+  // comentario largo de NicknameModal.jsx).
+  //
+  // Ahora `necesitaNick` no ABRE nada: solo informa a las dos pantallas donde la
+  // firma significa algo —la clasificación y la victoria— para que ofrezcan
+  // elegirla. El jugador que nunca mire el ranking nunca verá este modal.
+  const necesitaNick = Boolean(user && !checkingProfile && !profile?.display_name);
+
+  // A dónde volver tras guardar. El slot de modal activo es único, así que pedir
+  // el nick desde el ranking lo cierra; sin esto, el jugador guardaba su firma y
+  // se quedaba mirando el juego, lejos de la tabla que iba a ver.
+  const [nickVolverA, setNickVolverA] = useState(null);
+  const openNickname = useCallback(
+    (volverA = null) => {
+      setNickVolverA(volverA);
+      openModal("nickname");
+    },
+    [openModal]
+  );
 
   // Prefetch de los chunks de modales ligeros cuando el navegador está OCIOSO.
   // El bundle inicial sigue ligero (no se ejecutan al cargar), pero al pulsar
@@ -249,14 +267,17 @@ export default function App() {
 
   // «Atrás» de Android / gesto del navegador: cierra el overlay activo en vez
   // de sacar al usuario de la web. Como `activeModal` es un único slot, una
-  // sola línea cubre login, ranking, perfil, logros y cómo-se-juega.
+  // sola línea cubre login, ranking, perfil, logros, cómo-se-juega y el nick.
   //
   // El Archivo queda FUERA a propósito: tiene niveles internos (detalle →
   // filtro → cerrar) y gestiona su propia cadena con useHistoryChain. Si lo
   // incluyéramos aquí habría dos entradas fantasma compitiendo por la misma
-  // pulsación. NicknameModal también queda fuera, pero por lo contrario: es un
-  // modal obligatorio (ni scrim ni Escape lo cierran), así que tampoco debe
-  // cerrarse con la atrás.
+  // pulsación.
+  //
+  // NicknameModal ya NO es la excepción que era: cuando era obligatorio (ni
+  // scrim ni Escape lo cerraban) tampoco debía cerrarse con la atrás, y además
+  // vivía fuera de `activeModal`. Ahora es un modal normal en el slot, así que
+  // esta línea lo cubre — y por eso el componente NO monta su propio trap.
   useHistoryClose(
     activeModal !== null && activeModal !== "garage",
     closeModal
@@ -397,6 +418,11 @@ export default function App() {
         // así que el primer paint ya cae del lado prudente.
         rankCargando={checkingProfile}
         user={user}
+        // Al ganar, el EndScreen ofrece elegir firma si aún no la tiene: es el
+        // único momento en que el nick le sirve para algo inmediato (su
+        // resultado entra en la tabla de hoy).
+        necesitaNick={necesitaNick}
+        onOpenNickname={openNickname}
         repescaAlert={repescaAlert}
         shareText={buildShareText(streak)}
         revealReady={revealReady}
@@ -476,6 +502,10 @@ export default function App() {
             onClose={closeModal}
             user={user}
             onOpenLogin={openLogin}
+            // Aquí es donde el nick significa algo: sin firma no se sale en la
+            // tabla. Se ofrece dentro del ranking, no como puerta para entrar.
+            necesitaNick={necesitaNick}
+            onOpenNickname={() => openNickname("ranking")}
           />
         </Suspense>
       )}
@@ -501,6 +531,8 @@ export default function App() {
             onOpenAchievements={openAchievements}
             onOpenGarage={openGarage}
             onOpenRanking={openRanking}
+            // El candado junto al nick pasa a ser un botón: ya se puede cambiar.
+            onOpenNickname={() => openNickname("profile")}
           />
         </Suspense>
       )}
@@ -517,10 +549,21 @@ export default function App() {
       {mounted.nickname && (
         <Suspense fallback={null}>
           <NicknameModal
-            open={nicknameOpen}
+            open={activeModal === "nickname"}
+            valorActual={profile?.display_name ?? null}
+            onClose={closeModal}
             onSaved={(nextProfile) => {
               setProfile(nextProfile);
-              setActiveModal(null);
+              // Devolvemos al jugador de donde venía (la clasificación, casi
+              // siempre): guardó la firma PARA ver algo, no por el gusto de
+              // rellenar un formulario.
+              if (nickVolverA) {
+                const destino = nickVolverA;
+                setNickVolverA(null);
+                openModal(destino);
+              } else {
+                setActiveModal(null);
+              }
             }}
           />
         </Suspense>

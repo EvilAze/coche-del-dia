@@ -284,6 +284,18 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
       toast.push(t("guess.yearAlreadyTried"), { type: "error" });
       return;
     }
+    // Año FUERA de la horquilla ya deducida. Sin esta comprobación el juego
+    // aceptaba un intento que él mismo sabía imposible —las flechas ↑/↓ previas
+    // ya lo habían descartado, y encima se lo estábamos enseñando al jugador
+    // bajo el campo— y le gastaba uno de sus cinco intentos en él. En una
+    // partida de cinco, regalar uno por descuido es la fricción más cara que
+    // hay. Mismo trato que el año repetido: temblor + aviso, no bloqueo del
+    // botón (un botón muerto no explica nada).
+    if (horquilla.acotada && (anioNum < horquilla.min || anioNum > horquilla.max)) {
+      haptic.warning(); triggerShake();
+      toast.push(t("guess.yearOutOfRange"), { type: "error" });
+      return;
+    }
 
     const guessCar = CARS.find((c) => c.marca === marcaFinal && c.modelo === modeloFinal);
     if (!guessCar) return;

@@ -1,10 +1,10 @@
 // src/components/AchievementsModal.jsx
-// Destino propio para los Logros personales (ColecciÃ³n + Rachas). Antes
-// vivÃ­an dentro de "Mi Perfil"; se separan para que cada destino haga una
+// Destino propio para los Logros personales (Colección + Rachas). Antes
+// vivían dentro de "Mi Perfil"; se separan para que cada destino haga una
 // sola cosa y los logros tengan sitio para respirar.
 //
-// Las colecciones por marca/paÃ­s NO estÃ¡n aquÃ­: son el Garaje (que ahora
-// muestra la medalla de tier en cada tarjeta). AquÃ­ solo hitos y rachas.
+// Las colecciones por marca/país NO están aquí: son el Garaje (que ahora
+// muestra la medalla de tier en cada tarjeta). Aquí solo hitos y rachas.
 
 import { useEffect, useState } from "react";
 import { getMyStats } from "../lib/statsService";

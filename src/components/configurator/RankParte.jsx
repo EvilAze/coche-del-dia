@@ -14,7 +14,6 @@
 import { useEffect, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
-import { track } from "../../lib/analytics";
 import { rankMovement } from "../../lib/rankMovement";
 import { getCurrentSeason } from "../../lib/statsService";
 import { Icon, I } from "./icons";
@@ -53,9 +52,10 @@ export default function RankParte({ rank, user, onOpenRanking }) {
 
   const openRanking = () => {
     haptic.impactLight();
-    // Mide la palanca: cuántas aperturas del ranking nacen del final de partida.
-    track("ranking_open", { source: "end_screen" });
-    onOpenRanking?.();
+    // El `source` lo emite el ÚNICO track de openRanking (App.jsx). Antes se
+    // disparaba también aquí, así que cada apertura desde el final de partida
+    // contaba dos veces y la comparación entre orígenes salía sesgada.
+    onOpenRanking?.("end_screen");
   };
 
   const Cta = (

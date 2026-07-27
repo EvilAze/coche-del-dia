@@ -49,6 +49,7 @@ export default function Configurator({
   submitGuess,
   streak,
   rank,
+  rankCargando = false,
   user,
   repescaAlert,
   shareText,
@@ -160,6 +161,7 @@ export default function Configurator({
       <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3">
         <Header
           rank={rank}
+          rankCargando={rankCargando}
           user={user}
           repescaAlert={repescaAlert}
           onOpenProfile={onOpenProfile}

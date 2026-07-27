@@ -144,16 +144,21 @@ export async function saveDisplayName(displayName) {
     throw new Error("Usa solo letras y números, máximo 12 caracteres.");
   }
 
-  // El nick es permanente: si ya existe una fila con display_name, rechazamos
-  // el cambio. Defensa en la app; el blindaje real debería estar en una RLS
-  // policy o trigger en Supabase (UPDATE de display_name solo si era NULL).
-  const existing = await getMyProfile(user.id);
-  if (existing?.display_name) {
-    const lockedError = new Error("Tu nick ya está fijado y no se puede cambiar.");
-    lockedError.code = "DISPLAY_NAME_LOCKED";
-    throw lockedError;
-  }
-
+  // EL NICK YA NO ES PERMANENTE (jul-2026). Antes esta función rechazaba
+  // cualquier cambio si el perfil ya tenía display_name, y el modal lo avisaba
+  // en mayúsculas: «elige con cuidado, será permanente». Era una decisión
+  // irreversible exigida a alguien que llevaba cuatro segundos registrado —
+  // justo el momento en que menos contexto tiene para tomarla.
+  //
+  // Lo que protegía se mantiene igual sin el candado: la identidad en la tabla
+  // la garantiza el índice UNIQUE de la columna (el 23505 de más abajo), no la
+  // inmutabilidad. Un nick libre se puede tomar, exactamente como antes.
+  //
+  // Único hueco conocido y asumido: al renombrarse, el nick viejo queda libre y
+  // otro jugador podría adoptarlo. Con una tabla de bragging rights de un juego
+  // diario, el coste de eso es menor que el de la fricción que quitamos; si
+  // algún día molesta, el sitio de la solución es la base de datos (cooldown o
+  // reserva temporal del nombre liberado), no volver a congelarlo aquí.
   const { data, error } = await supabase
     .from("profiles")
     .upsert(

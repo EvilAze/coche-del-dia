@@ -51,11 +51,13 @@ function ShieldIcon({ className = "h-5 w-5" }) {
   );
 }
 
-function LockIcon({ className = "h-3.5 w-3.5" }) {
+// (LockIcon se retiró: acompañaba al nick para explicar que era permanente.
+// Ahora se puede cambiar y en su sitio va el lápiz.)
+function PencilIcon({ className = "h-3.5 w-3.5" }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} strokeWidth="2" aria-hidden="true">
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
+      <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z" />
+      <path d="M13.5 6.5l4 4" />
     </svg>
   );
 }
@@ -185,6 +187,7 @@ export default function MyStats({
   onOpenAchievements,
   onOpenGarage,
   onOpenRanking,
+  onOpenNickname,
 }) {
   const { t, locale } = useT();
   const [state, setState] = useState({
@@ -300,15 +303,21 @@ export default function MyStats({
             <div className="flex items-center gap-3">
               <Avatar initial={initial} />
               <div className="min-w-0 flex-1">
+                {/* El candado se fue con el «permanente»: el nick ya se puede
+                    cambiar (ver saveDisplayName en lib/statsService.js), así que
+                    lo que había aquí para explicar por qué NO se podía tocar es
+                    ahora el botón para tocarlo. */}
                 <div className="flex min-w-0 items-center gap-1.5">
                   <p className="truncate text-lg font-bold text-foreground">{nickname}</p>
-                  <span
-                    className="shrink-0 text-muted-foreground/50"
-                    title={t("myStats.nickPermanent")}
-                    aria-label={t("myStats.nickPermanentAria")}
+                  <button
+                    type="button"
+                    onClick={() => go(onOpenNickname)}
+                    className="shrink-0 text-muted-foreground/60 transition hover:text-rojo"
+                    title={t("myStats.changeNick")}
+                    aria-label={t("myStats.changeNick")}
                   >
-                    <LockIcon />
-                  </span>
+                    <PencilIcon />
+                  </button>
                 </div>
                 <p className="truncate text-xs text-muted-foreground">{email}</p>
               </div>

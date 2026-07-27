@@ -60,6 +60,7 @@
     "yearStepperUp": "Year +1",
     "yearStepperDown": "Year -1",
     "yearAlreadyTried": "You already tried that year",
+    "yearOutOfRange": "Your guesses already ruled that year out",
     "modelAlreadyTried": "You already tried that model",
     "marcaAlreadyTried": "You already tried that make",
     "missingMarca": "Pick a make from the list",
@@ -204,6 +205,7 @@
     "saveProgressTitle": "What a streak",
     "saveProgressBody": "Don't lose your stats. Sign up to save your wins and compete on the leaderboard.",
     "saveProgressCta": "Save my progress",
+    "pickNickCta": "Pick my name",
     "backToGarage": "Back to the Archive"
   },
   "offline": {
@@ -252,9 +254,8 @@
     "errorLoad": "Couldn't load your stats.",
     "errorSignOut": "Couldn't sign out.",
     "noNickname": "No nickname",
+    "changeNick": "Change my nick",
     "promoLogin": "Sign in to save your streaks and stats.",
-    "nickPermanent": "Your nick is permanent",
-    "nickPermanentAria": "Permanent nick",
     "statStreak": "Streak",
     "statMaxStreak": "Best",
     "statWins": "Wins",
@@ -302,8 +303,9 @@
   "nickname": {
     "tag": "New byline",
     "title": "Pick your Nick",
+    "titleChange": "Change your nick",
+    "submitChange": "Save",
     "description": "This will be your byline on the standings. We won't use your Google name or photo.",
-    "permanentWarning": "Choose carefully: your nick will be permanent and you won't be able to change it later.",
     "placeholder": "MAX12",
     "rules": "Letters and numbers",
     "saving": "Saving...",
@@ -313,7 +315,6 @@
     "errorRules": "Use only letters and numbers, max 12 characters.",
     "errorDuplicate": "This name is already taken. Pick another one.",
     "errorSave": "Couldn't save the nickname.",
-    "errorLocked": "Your nick is already set and can't be changed.",
     "errorAuth": "You need to sign in."
   },
   "parte": {
@@ -359,6 +360,8 @@
     "yourPosition": "Your position",
     "loginPrompt": "Sign in to see the full table and your current position.",
     "loginCta": "Join the competition",
+    "nickPrompt": "You're not on the board yet: pick your name.",
+    "nickCta": "Pick my name",
     "streakAria": "Streak of {count} days, bonus {bonus}",
     "streakTitle": "Streak of {count} days",
     "legends": "Legends",

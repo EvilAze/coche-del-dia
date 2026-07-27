@@ -91,7 +91,16 @@ function RankMarker({ rank }) {
   );
 }
 
-export default function Ranking({ open, onClose, user, onOpenLogin }) {
+export default function Ranking({
+  open,
+  onClose,
+  user,
+  onOpenLogin,
+  // Logueado sin display_name: no aparece en la tabla. Se le ofrece elegir firma
+  // AQUÍ, que es donde eso se nota (ver NicknameModal.jsx).
+  necesitaNick = false,
+  onOpenNickname,
+}) {
   const { t, tn, locale } = useT();
   const [state, setState] = useState({
     loading: true,
@@ -248,6 +257,20 @@ export default function Ranking({ open, onClose, user, onOpenLogin }) {
               </div>
             );
           })()}
+
+        {/* Logueado pero sin firma: aquí —y solo aquí— el nick significa algo,
+            porque sin él no se sale en la tabla (las SQL de temporada filtran
+            `display_name IS NOT NULL`). Antes esto se cobraba por adelantado con
+            un modal obligatorio nada más entrar; ahora se ofrece en el sitio
+            donde el jugador entiende para qué sirve. */}
+        {necesitaNick && (
+          <div className="mb-3 border border-dashed border-tinta px-4 py-3 text-center">
+            <p className="pm-body text-sm">{t("ranking.nickPrompt")}</p>
+            <button type="button" onClick={onOpenNickname} className="pm-btn mt-3">
+              {t("ranking.nickCta")}
+            </button>
+          </div>
+        )}
 
         {state.loading ? (
           <p className="text-sm text-muted-foreground">{t("ranking.loading")}</p>

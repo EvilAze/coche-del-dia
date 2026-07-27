@@ -3,13 +3,10 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
 import Configurator from "./components/configurator/Configurator";
-import CloseButton from "./components/CloseButton";
-import LanguageStrip from "./components/LanguageStrip";
+import LoginModal from "./components/LoginModal";
 import ModalShell from "./components/ModalShell";
-import { useToast } from "./components/Toast";
 import { getMySeasonRank } from "./lib/statsService";
 import { track } from "./lib/analytics";
-import { signInWithGoogle } from "./lib/auth";
 import { useGame } from "./hooks/useGame";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useModalState } from "./hooks/useModalState";
@@ -34,7 +31,6 @@ const HowToPlayModal = lazy(() => import("./components/HowToPlayModal"));
 
 export default function App() {
   const { t, tn } = useT();
-  const toast = useToast();
   // Sesión + perfil + racha: la lógica de auth vive en useAuthSession; aquí
   // solo consumimos el estado y los setters que necesitan otros flujos.
   const {
@@ -200,7 +196,8 @@ export default function App() {
   const openProfile = () => openModal("profile");
   const openAchievements = () => openModal("achievements");
 
-  // Login va por ModalShell inline (no lazy), no necesita mountModal.
+  // LoginModal NO es lazy a propósito: es la puerta de entrada y un chunk que
+  // descargar en ese momento se nota. No necesita mountModal.
   function openLogin() {
     setActiveModal("login");
   }
@@ -436,50 +433,7 @@ export default function App() {
       />
 
 
-      <ModalShell
-        open={activeModal === "login"}
-        onClose={closeModal}
-        backdropClassName="modal-scrim fixed inset-0 z-[100] flex items-center justify-center p-4"
-        panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
-      >
-        <div className="absolute right-4 top-4 z-10">
-          <CloseButton onClick={closeModal} />
-        </div>
-
-        <h2 className="mb-4 font-display text-2xl tracking-widest text-accent">
-          {t("app.loginModalTitle")}
-        </h2>
-        <p className="mb-8 text-sm text-muted">
-          {t("app.loginModalDescription")}
-        </p>
-
-        <button
-          onClick={async () => {
-            // En nativo (app) el login va por plugin; si falla (p.ej. falta
-            // VITE_GOOGLE_WEB_CLIENT_ID o el usuario cancela con error), damos
-            // feedback visible en vez de "no pasa nada". En web, signInWithOAuth
-            // redirige y el error path no se alcanza normalmente.
-            const { error } = (await signInWithGoogle()) || {};
-            if (error) toast.push(t("app.loginError"), { type: "error" });
-          }}
-          className="flex w-full items-center justify-center gap-3 rounded-lg bg-white px-4 py-3 font-semibold text-black transition-transform hover:scale-105 active:scale-95"
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-          </svg>
-          {t("common.continueWithGoogle")}
-        </button>
-
-        {/* Selector de idioma para usuarios anónimos. Antes vivía en el
-            popover del header; al quitarlo, este modal (al que llega el
-            anónimo desde el icono de perfil) es su nuevo hogar. */}
-        <div className="mt-6 border-t border-border pt-4 text-left">
-          <LanguageStrip />
-        </div>
-      </ModalShell>
+      <LoginModal open={activeModal === "login"} onClose={closeModal} />
 
       {/* Modales lazy: solo se montan tras su primera apertura (mounted.*) y,
           una vez montados, permanecen para conservar la animación de salida.

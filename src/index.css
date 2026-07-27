@@ -905,14 +905,32 @@ body,
      orden, así que un cap declarado fuera —como estaba— no llegaba a aplicarse
      justo en el único breakpoint donde hace falta.
 
-     Al capar se cambia también el margen negativo por `auto`: la foz deja de
-     sangrar y se centra. Ese es el orden de sacrificios correcto — el primer
-     tramo de reducción es exactamente renunciar a la sangría (36px de ancho,
-     27 de alto), y solo si aún no basta se entra en la columna. Entre "la foto
-     toca los bordes" y "se ve el botón de jugar", gana el botón. */
+     Al capar, la foto deja de sangrar y se centra. Ese es el orden de
+     sacrificios correcto — el primer tramo de reducción es exactamente
+     renunciar a la sangría (36px de ancho, 27 de alto), y solo si aún no basta
+     se entra en la columna. Entre "la foto toca los bordes" y "se ve el botón
+     de jugar", gana el botón.
+
+     OJO CON EL ANCHO — aquí se colapsó el escenario a una miniatura:
+     el cap NO puede hacerse con `max-width` + `margin-inline: auto` sobre la
+     regla de arriba. Un ítem flex solo se ESTIRA si su tamaño en el eje cruzado
+     es `auto` y NINGUNO de sus dos márgenes de ese eje es `auto`; en cuanto se
+     pide centrado con márgenes automáticos, el `align-self: stretch` deja de
+     aplicar y el ancho pasa a ser el intrínseco del contenido. Y el contenido
+     del marco es una imagen posicionada en absoluto, o sea intrínsecamente
+     CERO: la foto se quedaba en un sello de correos y el `max-width` ni
+     intervenía. Por eso el ancho va EXPLÍCITO y el centrado por `align-self`,
+     que no depende del estirado. El fallback de la variable es el ancho de la
+     columna: sin sangría, pero nunca colapsado. */
   .prensa .escenario-encajado .cdd-stage {
-    max-width: var(--cdd-marco-max, none);
-    margin-inline: auto;
+    /* El tope es el ancho natural CON sangría (la columna más los 18px de
+       cada lado que rompe la regla de arriba), no el de la columna: si el
+       recorte necesario es pequeño, hay que poder quedarse entre medias en vez
+       de renunciar a la sangría entera de golpe. */
+    width: var(--cdd-marco-max, 100%);
+    max-width: calc(100% + 36px);
+    margin-inline: 0;
+    align-self: center;
   }
 }
 /* Pie de foto: cuerpo pequeño de PIE DE PERIÓDICO (9.5px). A ese tamaño el texto

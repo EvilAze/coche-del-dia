@@ -313,20 +313,32 @@ export default function App() {
   // recibimos vía `score` (de useGame) y lo aplicamos al header al instante,
   // sin un refetch extra a Supabase.
   // Solo actuamos si:
-  //   - hay usuario logueado (los anónimos no tienen streak),
   //   - score viene de un POST persistido (score.persisted),
   //   - currentStreak está presente (puede ser 0 si perdió y se cortó).
+  //
+  // Ya NO se exige `user`. Desde las sesiones anónimas, el jugador sin cuenta
+  // TAMBIÉN tiene racha: su partida se persiste con el JWT anónimo y
+  // record_daily_result_v2 le devuelve su currentStreak como a cualquiera. Es
+  // justo la cifra que el final de partida necesita para poder decirle «no
+  // pierdas tu racha de N días» en vez de un genérico «guarda tu progreso».
+  // `score.persisted` ya garantiza que hubo escritura real en servidor, así
+  // que sirve de gate por sí solo.
   useEffect(() => {
-    if (!user) return;
     if (score?.persisted && typeof score.currentStreak === "number") {
       setStreak(score.currentStreak);
-      // El resultado persistido también cambia mis puntos de la temporada → mi
-      // puesto puede haber subido. Refrescamos la píldora de estado. Solo aplicamos
-      // si llega un puesto real: así un fallo transitorio (null) NO borra el valor
+      // El puesto SÍ sigue siendo cosa de cuentas reales: un anónimo no sale en
+      // la tabla (sin display_name), así que preguntar por su puesto es un viaje
+      // para un null garantizado.
+      //
+      // El resultado persistido cambia mis puntos de la temporada → mi puesto
+      // puede haber subido. Refrescamos la píldora de estado. Solo aplicamos si
+      // llega un puesto real: así un fallo transitorio (null) NO borra el valor
       // bueno que ya tenía la píldora (evita el parpadeo "tengo puesto → nada").
-      getMySeasonRank(user.id).then((next) => {
-        if (next) setRank(next);
-      });
+      if (user) {
+        getMySeasonRank(user.id).then((next) => {
+          if (next) setRank(next);
+        });
+      }
     }
   }, [user, score?.persisted, score?.currentStreak]);
 

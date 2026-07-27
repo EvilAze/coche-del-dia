@@ -19,7 +19,7 @@ import { useT } from "../i18n";
 // (extremo intacto), solo se redistribuyen los intermedios para revelar antes.
 import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 import { anonHeaders, setAnonToken } from "../lib/anonSession";
-import { haySesionLocal } from "../lib/auth";
+import { haySesionLocal, esCuentaReal, asegurarSesionAnonima } from "../lib/auth";
 // "Hoy" en zona Madrid: helper único compartido con dates.js / useDayRollover
 // (antes había una copia local idéntica de este formateador en cada sitio).
 import { getMadridDateStr } from "../lib/dates";
@@ -167,7 +167,18 @@ export function useGame() {
     // "Aparcando coche...". Manteniendo la referencia previa cuando el id
     // no cambia, evitamos ese re-fetch.
     function applySession(session) {
-      const nextUser = session?.user ?? null;
+      // Las sesiones ANÓNIMAS no cuentan como `user` aquí, y no es cosmética:
+      // este estado alimenta el useEffect([user]) que RE-EJECUTA initGame(). La
+      // sesión anónima nace a mitad de partida (al enviar el primer intento),
+      // así que tratarla como login dispararía un re-init justo entonces —
+      // get-daily-car volvería con cero intentos porque el validate-guess que
+      // los persiste aún está en vuelo, y la partida se borraría en pantalla.
+      //
+      // El JWT NO se pierde por esto: los headers se construyen leyendo la
+      // sesión en el momento de cada petición (getSession), no desde este
+      // estado. Ver esCuentaReal() en lib/auth.js.
+      const sessionUser = session?.user ?? null;
+      const nextUser = esCuentaReal(sessionUser) ? sessionUser : null;
       setUser((prev) => (prev?.id === nextUser?.id ? prev : nextUser));
     }
 
@@ -362,6 +373,15 @@ export function useGame() {
 
     let response;
     try {
+      // AQUÍ nace la sesión anónima, si no había ninguna: en el primer intento
+      // que envía el jugador. Con ella, este intento y todos los siguientes
+      // viajan con JWT, y `validate-guess` los persiste en user_guesses por el
+      // camino normal — que es lo que le da racha, estadísticas y Archivo a un
+      // jugador que no se ha registrado. Devuelve null si no se pudo (p.ej.
+      // «Anonymous sign-ins» desactivado) y entonces seguimos con el flujo
+      // anónimo de siempre: token HMAC + localStorage. Ver lib/auth.js.
+      await asegurarSesionAnonima();
+
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 

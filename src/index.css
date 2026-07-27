@@ -867,6 +867,22 @@ body,
   border-radius: 0; border: 1px solid var(--line-strong);
   background: var(--surface); padding: 8px;
 }
+/* Encaje del escenario: el ancho máximo lo calcula useEncajeEscenario y lo
+   deja en --cdd-marco-max sobre el pliego, para que el botón ADIVINAR entre
+   entero en pantalla al abrir. Se capa el ANCHO y jamás el alto: el marco es
+   4:3 y de esa proporción dependen el recorte del servidor y el lightbox
+   (reglas 5 y 7); tocando la altura el marco se volvería apaisado y
+   `object-fit: cover` enseñaría MENOS coche del que toca ese intento.
+   Encogiendo por el ancho, la foto es la misma — solo más pequeña, igual que
+   en un móvil más estrecho.
+   Sin variable (Repesca, pliego ancho, navegador sin ResizeObserver) el
+   fallback `none` deja el escenario exactamente como estaba. */
+.prensa .cdd-stage { max-width: var(--cdd-marco-max, none); margin-inline: auto; }
+/* En el pliego la foto es la columna central y el cupón vive a su lado: no hay
+   nada que encajar. Se neutraliza también en CSS y no solo en el hook, por si
+   alguien llega aquí ensanchando la ventana a media partida (el hook deja de
+   medir tras el primer intento, a propósito). */
+@media (min-width: 1100px) { .prensa .cdd-stage { max-width: none; } }
 .prensa .cdd-stage-frame::after { display: none; } /* viñeta: innecesaria sobre papel */
 .prensa .cdd-hud, .prensa .cdd-grain { display: none; } /* atrezzo cámara: fuera */
 /* Foto A SANGRE en columna única (≤1099): el marco 4:3 rompe la sangría de 18px

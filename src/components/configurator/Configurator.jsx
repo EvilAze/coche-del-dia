@@ -14,7 +14,7 @@ import FajaClasificacion from "./FajaClasificacion";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
 import PhotoPeek from "./PhotoPeek";
-import AttemptList, { AttemptRow } from "./AttemptList";
+import AttemptList from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
 import { useDailyStats, Distribution } from "./dailyStats";
@@ -161,11 +161,9 @@ export default function Configurator({
     fotoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  // Historial bajo el formulario: SOLO los intentos anteriores al que ya muestra
-  // la "fila viva" de arriba (calcado del guess-history de v0, que recibe
-  // olderGuesses). Con partida terminada o intento pendiente, se muestran todos.
-  const olderGuesses =
-    ended || pendingGuess ? guesses : guesses.slice(0, -1);
+  // (Aquí se calculaba `olderGuesses`, que le quitaba al historial el intento
+  // que ya pintaba la fila viva. Sin fila viva no hay nada que descontar: el
+  // historial recibe `guesses` entero.)
 
   // La estadística del día como bloque de página (columna izquierda del
   // broadsheet / final en móvil). GATEADA a partida cerrada: el hook ni
@@ -281,36 +279,27 @@ export default function Configurator({
             </section>
           )}
 
-          {/* Último intento entre imagen y formulario. id=fila-viva: ancla del
-              scroll post-envío del cupón (GuessForm). */}
-          {dataReady && !ended && (pendingGuess || guesses.length > 0) && (
-            <section
-              id="fila-viva"
-              aria-label={t("cdd.lastAttempt")}
-              aria-live="polite"
-              className="prensa-fila-viva flex flex-col gap-1"
-            >
-              <div className="prensa-ladillo">{t("cdd.lastAttempt")}</div>
-              {pendingGuess ? (
-                <AttemptRow g={pendingGuess} tolerance={tolerance} pending num={guesses.length + 1} />
-              ) : (
-                <AttemptRow
-                  g={guesses[guesses.length - 1]}
-                  tolerance={tolerance}
-                  fresh={justRevealedIndex === guesses.length - 1}
-                  num={guesses.length}
-                />
-              )}
-            </section>
-          )}
+          {/* (La fila «último intento» se retiró: repetía bajo la foto lo que el
+              jugador acababa de escribir tres renglones más abajo. El veredicto
+              vive ahora EN los campos del cupón —verde y bloqueado si acierta,
+              tachado 1,2s si falla— y la fila era su duplicado.) */}
 
-          {/* Intentos anteriores (más reciente primero lo ordena AttemptList). */}
-          {olderGuesses.length > 0 && (
-            <div className="prensa-historial">
+          {/* El historial completo. Ya no se le quita el último intento (no hay
+              fila viva que lo muestre aparte), y mientras se juega solo se pinta
+              en el PLIEGO ANCHO: allí ocupa la columna izquierda, que si no nace
+              vacía, y no le quita sitio a nada.
+
+              En móvil, durante la partida, se oculta (.prensa-historial--ancho).
+              Sus tres trabajos se reparten mejor: «no repetir marca/modelo» ya lo
+              hace el combo eliminando de la lista lo fallado, y «acotar el año»
+              lo hace la horquilla del propio campo en un renglón. Lo que queda
+              —recapitular— importa al terminar, y al terminar sí se pinta. */}
+          {guesses.length > 0 && (
+            <div className={"prensa-historial" + (ended ? "" : " prensa-historial--ancho")}>
               <AttemptList
-                guesses={olderGuesses}
+                guesses={guesses}
                 pendingGuess={null}
-                justRevealedIndex={ended ? justRevealedIndex : -1}
+                justRevealedIndex={justRevealedIndex}
                 tolerance={tolerance}
               />
             </div>

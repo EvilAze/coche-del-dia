@@ -175,7 +175,14 @@ export default function Configurator({
           inset del sistema estaba resuelto. Ahora lo aplica .prensa-hoja. */}
       <main
         ref={hojaRef}
-        className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3"
+        // `escenario-encajado` es lo que ACTIVA el cap: la regla de la foto a
+        // sangre declara `max-width: none` con la misma especificidad, así que
+        // hace falta una clase para ganarle sin depender del orden del fichero.
+        // Sin ella el cap se declaraba y no se aplicaba nunca.
+        className={
+          "prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3" +
+          (anchoEscenario && !ended ? " escenario-encajado" : "")
+        }
         // El cap que calcula useEncajeEscenario. Va como variable en el pliego
         // (no como estilo del marco) para que la consuma el CSS del sistema y
         // el marco siga siendo cosa de CarImage.

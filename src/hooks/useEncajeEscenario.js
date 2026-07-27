@@ -31,7 +31,27 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 // Aire bajo el botón: sin él queda pegado al borde y no se lee como "cabe",
 // se lee como "está cortado justo ahí".
-const AIRE = 10;
+const AIRE = 12;
+
+// Alto de la franja inferior del sistema (la barra de gestos de Android). En la
+// app nativa el WebView va a pantalla completa, así que `innerHeight` la INCLUYE
+// aunque encima de ella no se pueda poner nada usable: sin descontarla, el
+// botón cae justo debajo del pill y se ve cortado — que es exactamente como se
+// veía en el móvil de prueba.
+//
+// Se mide con una sonda porque `env(safe-area-inset-bottom)` no se puede leer
+// desde JS: las custom properties se sustituyen sin resolver, así que pedirla
+// por `getPropertyValue` devuelve el literal `env(...)`, no los píxeles.
+function medirFranjaInferior() {
+  const sonda = document.createElement("div");
+  sonda.style.cssText =
+    "position:fixed;bottom:0;left:0;width:0;visibility:hidden;pointer-events:none;" +
+    "height:env(safe-area-inset-bottom,0px)";
+  document.body.appendChild(sonda);
+  const alto = sonda.getBoundingClientRect().height;
+  sonda.remove();
+  return alto;
+}
 // Suelo de la foto. Por debajo de esto el escenario deja de ser jugable (el
 // zoom del primer intento ya enseña un detalle diminuto), así que preferimos
 // perder el botón antes que servir un sello de correos. Pantallas así de bajas
@@ -50,7 +70,9 @@ const PLIEGO = "(min-width: 1100px)";
 //   extras       lo que ocupa la sección aparte del marco (ladillo, pie)
 //   hueco        separación entre bloques del pliego
 //   altoJugar    el cupón entero, botón ADIVINAR incluido
-//   altoNatural  lo que mediría el marco sin capar (ancho de columna en 4:3)
+//   altoNatural  lo que mediría el marco sin capar, SANGRÍA INCLUIDA
+//   franja       barra de gestos del sistema, que innerHeight cuenta pero no
+//                se puede usar
 export function calcularEncaje({
   altoVentana,
   arriba,
@@ -58,8 +80,10 @@ export function calcularEncaje({
   hueco,
   altoJugar,
   altoNatural,
+  franja = 0,
 }) {
-  const disponible = altoVentana - arriba - extras - hueco - altoJugar - AIRE;
+  const disponible =
+    altoVentana - franja - arriba - extras - hueco - altoJugar - AIRE;
   if (disponible >= altoNatural) return null;
   return Math.round((Math.max(disponible, ALTO_MINIMO) * 4) / 3);
 }
@@ -78,6 +102,9 @@ export function useEncajeEscenario({ fotoRef, jugarRef, hojaRef, activo }) {
   const altoVentanaRef = useRef(
     typeof window === "undefined" ? 0 : window.innerHeight
   );
+  // Barra de gestos del sistema. Se mide una vez al montar y se refresca al
+  // girar; no cambia por nada más.
+  const franjaRef = useRef(0);
 
   const medir = useCallback(() => {
     const foto = fotoRef.current;
@@ -115,13 +142,22 @@ export function useEncajeEscenario({ fotoRef, jugarRef, hojaRef, activo }) {
     // 12: si algún día cambia el `gap-3`, esto sigue cuadrando.
     const hueco = parseFloat(getComputedStyle(hoja).rowGap) || 0;
 
-    // El alto que el marco tendría sin capar: el ancho de la columna en 4:3.
-    // Se calcula desde el ancho de la SECCIÓN (nunca del marco, que puede venir
-    // ya capado de una medición anterior y nos haría oscilar).
-    const altoNatural = (foto.clientWidth * 3) / 4;
+    // El alto que el marco tendría sin capar. OJO: en columna única el
+    // escenario va A SANGRE — rompe la sangría del pliego con un margen
+    // negativo y toca ambos bordes—, así que su ancho natural es el de la
+    // columna MÁS esa sangría a cada lado. Calcularlo solo desde la columna
+    // (como hacía la primera versión) subestimaba el alto real justo en
+    // `sangría * 2 * 3/4` ≈ 27px, que era exactamente lo que se salía de
+    // pantalla: el hook creía que cabía y no capaba nada.
+    //
+    // Se parte del ancho de la SECCIÓN y no del marco porque el marco puede
+    // venir ya capado de una medición anterior y nos haría oscilar.
+    const sangria = parseFloat(getComputedStyle(hoja).paddingLeft) || 0;
+    const altoNatural = ((foto.clientWidth + sangria * 2) * 3) / 4;
 
     const siguiente = calcularEncaje({
       altoVentana: altoVentanaRef.current,
+      franja: franjaRef.current,
       arriba,
       extras,
       hueco,
@@ -143,6 +179,7 @@ export function useEncajeEscenario({ fotoRef, jugarRef, hojaRef, activo }) {
 
     // useLayoutEffect: la primera medida entra ANTES del primer pintado, así
     // que el jugador no ve la foto grande y luego encogerse.
+    franjaRef.current = medirFranjaInferior();
     medir();
 
     // Qué observamos y por qué cada uno:
@@ -177,6 +214,8 @@ export function useEncajeEscenario({ fotoRef, jugarRef, hojaRef, activo }) {
       raf = requestAnimationFrame(() => {
         anchoPrevio = window.innerWidth;
         altoVentanaRef.current = window.innerHeight;
+        // Al girar, la franja del sistema cambia de sitio (y de tamaño).
+        franjaRef.current = medirFranjaInferior();
         medir();
       });
     };

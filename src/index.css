@@ -867,22 +867,19 @@ body,
   border-radius: 0; border: 1px solid var(--line-strong);
   background: var(--surface); padding: 8px;
 }
-/* Encaje del escenario: el ancho máximo lo calcula useEncajeEscenario y lo
-   deja en --cdd-marco-max sobre el pliego, para que el botón ADIVINAR entre
-   entero en pantalla al abrir. Se capa el ANCHO y jamás el alto: el marco es
-   4:3 y de esa proporción dependen el recorte del servidor y el lightbox
-   (reglas 5 y 7); tocando la altura el marco se volvería apaisado y
-   `object-fit: cover` enseñaría MENOS coche del que toca ese intento.
-   Encogiendo por el ancho, la foto es la misma — solo más pequeña, igual que
-   en un móvil más estrecho.
-   Sin variable (Repesca, pliego ancho, navegador sin ResizeObserver) el
-   fallback `none` deja el escenario exactamente como estaba. */
-.prensa .cdd-stage { max-width: var(--cdd-marco-max, none); margin-inline: auto; }
-/* En el pliego la foto es la columna central y el cupón vive a su lado: no hay
-   nada que encajar. Se neutraliza también en CSS y no solo en el hook, por si
-   alguien llega aquí ensanchando la ventana a media partida (el hook deja de
-   medir tras el primer intento, a propósito). */
-@media (min-width: 1100px) { .prensa .cdd-stage { max-width: none; } }
+/* Encaje del escenario: el ancho máximo lo calcula useEncajeEscenario y lo deja
+   en --cdd-marco-max sobre el pliego, para que el botón ADIVINAR entre entero
+   en pantalla al abrir. Se capa el ANCHO y jamás el alto: el marco es 4:3 y de
+   esa proporción dependen el recorte del servidor y el lightbox (reglas 5 y 7);
+   tocando la altura el marco se volvería apaisado y `object-fit: cover`
+   enseñaría MENOS coche del que toca ese intento. Encogiendo por el ancho la
+   foto es la misma, solo más pequeña — igual que en un móvil más estrecho.
+
+   La regla que APLICA el cap vive en la media query de columna única, más
+   abajo, junto a la de la foto a sangre: son la misma decisión (cuánto ancho se
+   lleva el escenario) y tenerlas separadas fue justo el error de la primera
+   versión, que quedó pisada por orden de cascada. En el pliego ancho no se capa
+   nada — allí el cupón vive en su propia columna, al lado de la foto. */
 .prensa .cdd-stage-frame::after { display: none; } /* viñeta: innecesaria sobre papel */
 .prensa .cdd-hud, .prensa .cdd-grain { display: none; } /* atrezzo cámara: fuera */
 /* Foto A SANGRE en columna única (≤1099): el marco 4:3 rompe la sangría de 18px
@@ -893,13 +890,30 @@ body,
    `sizes` de CarImage ya pide imágenes grandes (200vw en móvil), así que el
    recurso elegido por el navegador NO cambia y el preload del middleware sigue
    coherente byte-a-byte —no hay que tocar srcset ni middleware.js—.
-   Coste conocido (medido): la foto mayor empuja el cupón ~50px; en móviles
-   pequeños el botón queda justo bajo el fold (micro-scroll). El tope de 300px
-   anterior era el dial inverso (fold apretado, foto menor). */
+   El coste que tenía documentado —"la foto mayor empuja el cupón ~50px; en
+   móviles pequeños el botón queda justo bajo el fold"— ya no se paga: lo
+   resuelve el encaje de abajo, que renuncia a la sangría antes que al botón. */
 @media (max-width: 1099px) {
   .prensa .cdd-stage { width: auto; max-width: none; margin-inline: -18px; align-self: stretch; }
   /* El pie de foto NO sangra: es voz de pie, alineado al margen del pliego. */
   .prensa .prensa-pie { width: 100%; max-width: none; align-self: stretch; }
+
+  /* ENCAJE: cuando useEncajeEscenario decide que el botón ADIVINAR no cabe,
+     marca el pliego y aquí capamos el escenario. Va DENTRO de esta media query
+     y con un selector más específico a propósito: la regla de la sangría de
+     arriba declara `max-width: none` con la misma especificidad y gana por
+     orden, así que un cap declarado fuera —como estaba— no llegaba a aplicarse
+     justo en el único breakpoint donde hace falta.
+
+     Al capar se cambia también el margen negativo por `auto`: la foz deja de
+     sangrar y se centra. Ese es el orden de sacrificios correcto — el primer
+     tramo de reducción es exactamente renunciar a la sangría (36px de ancho,
+     27 de alto), y solo si aún no basta se entra en la columna. Entre "la foto
+     toca los bordes" y "se ve el botón de jugar", gana el botón. */
+  .prensa .escenario-encajado .cdd-stage {
+    max-width: var(--cdd-marco-max, none);
+    margin-inline: auto;
+  }
 }
 /* Pie de foto: cuerpo pequeño de PIE DE PERIÓDICO (9.5px). A ese tamaño el texto
    completo entra en UNA sola línea dentro del ancho de la foto (300px en móvil);

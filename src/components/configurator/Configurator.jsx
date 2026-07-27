@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
+import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import Header from "./Header";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
@@ -122,6 +123,20 @@ export default function Configurator({
     };
   }, [dataReady, ended]);
 
+  // Encaje del escenario: capa el ANCHO de la foto (nunca el alto — el 4:3 es
+  // intocable, reglas 5 y 7) lo justo para que el botón ADIVINAR entre entero
+  // en pantalla al abrir. Solo mide en el primer turno: después aparece la fila
+  // viva y volver a encoger la foto a media partida sería peor que perder el
+  // botón de vista. Detalle completo en el hook.
+  const hojaRef = useRef(null);
+  const jugarRef = useRef(null);
+  const anchoEscenario = useEncajeEscenario({
+    fotoRef,
+    jugarRef,
+    hojaRef,
+    activo: dataReady && !ended && guesses.length === 0 && !pendingGuess,
+  });
+
   // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
   function volverALaFoto() {
     document.activeElement?.blur?.();
@@ -158,7 +173,23 @@ export default function Configurator({
           Sin `safe-area-pad`: aquí no hacía nada (el `padding` de .prensa-hoja
           la pisaba por orden de cascada) y daba la falsa sensación de que el
           inset del sistema estaba resuelto. Ahora lo aplica .prensa-hoja. */}
-      <main className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3">
+      <main
+        ref={hojaRef}
+        className="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3"
+        // El cap que calcula useEncajeEscenario. Va como variable en el pliego
+        // (no como estilo del marco) para que la consuma el CSS del sistema y
+        // el marco siga siendo cosa de CarImage.
+        //
+        // Al TERMINAR se suelta: el cap existe para proteger el botón ADIVINAR
+        // y, acabada la partida, ese botón ya no está. El revelado recupera
+        // todo el ancho, que es justo lo que promete su propio pie de foto —
+        // «el ejemplar de hoy, por fin a plena página».
+        style={
+          anchoEscenario && !ended
+            ? { "--cdd-marco-max": `${anchoEscenario}px` }
+            : undefined
+        }
+      >
         <Header
           rank={rank}
           rankCargando={rankCargando}
@@ -265,7 +296,7 @@ export default function Configurator({
           )}
         </div>
 
-        <div className="prensa-area-jugar">
+        <div className="prensa-area-jugar" ref={jugarRef}>
           {dataReady &&
             (!ended ? (
               <GuessForm

@@ -75,12 +75,14 @@ function MedalIcon({ className = "h-[18px] w-[18px]" }) {
   );
 }
 
-// Avatar circular con inicial sobre disco menta (idéntico a MyStats: hilo
-// visual entre el Perfil propio y el público).
+// Avatar: réplica EXACTA del de MyStats (hilo visual entre el perfil propio y
+// el público). El comentario ya decía "idéntico a MyStats", pero no lo era: se
+// quedó con el degradado menta del tema anterior mientras MyStats migraba a
+// papel + filete de tinta, así que los dos perfiles parecían de apps distintas.
 function Avatar({ initial }) {
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-mint/25 bg-gradient-to-br from-mint/30 to-mint/[0.04]">
-      <span className="text-xl font-bold text-mint">{initial}</span>
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-tinta bg-papel-2">
+      <span className="text-xl font-bold text-rojo">{initial}</span>
     </div>
   );
 }
@@ -363,22 +365,24 @@ function PublicBadge({ achievement, locale }) {
   const isCollection = Array.isArray(tiers) && tiers.length > 0;
   const tierForBorder = isCollection ? currentTier || "gold" : "gold";
 
+  // Tiers por token (ver PodiumMedals): plata y bronce iban con paleta cruda
+  // de Tailwind, que no sigue al tema y desaparecía sobre el papel del día.
   const borderClass =
     tierForBorder === "gold"
       ? "border-gold/60"
       : tierForBorder === "silver"
-      ? "border-zinc-300/50"
+      ? "border-plata/60"
       : tierForBorder === "bronze"
-      ? "border-amber-700/60"
-      : "border-mint/50";
+      ? "border-bronce/60"
+      : "border-rojo/50";
   const labelClass =
     tierForBorder === "gold"
       ? "text-gold"
       : tierForBorder === "silver"
-      ? "text-zinc-300"
+      ? "text-plata"
       : tierForBorder === "bronze"
-      ? "text-amber-600"
-      : "text-mint";
+      ? "text-bronce"
+      : "text-rojo";
 
   const title =
     achievement.title?.[locale] ||

@@ -21,6 +21,13 @@ const TYPE_STYLES = {
   info: { glifo: "text-tinta-2", icon: "ℹ" },
   success: { glifo: "text-tinta", icon: "✓" },
   error: { glifo: "text-rojo", icon: "✕" },
+  // Logro: el único tipo en ORO, porque es el único que celebra algo (la regla
+  // de marca: menta/rojo = acción, oro = "esto vale algo"). Existe como TIPO y
+  // no como emoji en el texto porque el notificador venía metiendo un 🏅 dentro
+  // del string traducido — rompía la gramática de glifos del propio toast y
+  // dejaba un emoji distinto en cada sistema operativo junto a un glifo
+  // tipográfico. El mérito lo marca el canal, no la cadena.
+  logro: { glifo: "text-gold", icon: "★" },
 };
 
 function ToastItem({ toast, onDismiss }) {

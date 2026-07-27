@@ -38,7 +38,6 @@ import GuessForm from "./components/configurator/GuessForm";
 // EndScreen habla de racha/percentil). En la repesca los puntos van a la mitad
 // y no afectan a la racha, así que este bloque es la recompensa visible.
 import ScoreBreakdown from "./components/ScoreBreakdown";
-import AchievementIcon from "./components/AchievementIcons";
 import { useToast } from "./components/Toast";
 import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
 import { flagImagePath } from "./data/countries";
@@ -528,15 +527,22 @@ export default function Repesca() {
 
         {/* Nota veterano: reglas más duras (1 intento, sin pistas). */}
         {isVeteran && phase === "playing" && (
+          // Recuadro de aviso editorial: filete grueso a la izquierda (el
+          // "destacado" de una columna de periódico) sobre papel, en vez de la
+          // caja ámbar redondeada con icono que había antes — ámbar crudo de
+          // Tailwind del tema anterior, que sobre papel se leía como un post-it.
+          // El oro marca que esto es una condición premium, no una advertencia.
           <div
             className="
-              flex items-start gap-2 rounded-lg border border-amber-400/40
-              bg-amber-500/10 px-3 py-2 text-[12px] leading-snug text-amber-100
+              border-l-2 border-oro-viejo bg-papel-2 px-3 py-2
+              font-serif text-[12px] leading-snug text-tinta
             "
             role="note"
           >
-            <AchievementIcon name="spark" size="h-4 w-4" color="text-amber-300" />
-            <span>{t("repesca.veteranExplain")}</span>
+            {/* Sin etiqueta propia: el kicker de arriba ya dice "Modo
+                Veterano" y repetirlo aquí sonaba a tartamudeo. El filete de
+                oro es la etiqueta. */}
+            {t("repesca.veteranExplain")}
           </div>
         )}
 

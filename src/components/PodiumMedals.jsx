@@ -15,10 +15,14 @@ import { getSeasonMedals, getMonthlyMedals } from "../lib/statsService";
 
 // Estilo del borde + texto según el puesto, en sintonía con los tiers de logros
 // (oro/plata/bronce). El icono hereda este color vía currentColor.
+// Los tres van por token: el oro ya lo era, pero plata y bronce se pintaban
+// con paleta cruda de Tailwind (zinc-300 / amber-700), que no sigue al tema.
+// El zinc-300 sobre el papel crema del modo día daba 1.4:1 — una medalla de
+// plata prácticamente invisible justo para el jugador que la ganó.
 const RANK_STYLE = {
   1: { border: "border-gold/60", text: "text-gold" },
-  2: { border: "border-zinc-300/50", text: "text-zinc-300" },
-  3: { border: "border-amber-700/60", text: "text-amber-600" },
+  2: { border: "border-plata/60", text: "text-plata" },
+  3: { border: "border-bronce/60", text: "text-bronce" },
 };
 
 // Medalla line-art (mismo trazo que el set de iconos del Perfil). NO usamos emoji

@@ -37,6 +37,11 @@ module.exports = {
         },
         rojo: "rgb(var(--rojo-rgb) / <alpha-value>)",
         "oro-viejo": "rgb(var(--gold-rgb) / <alpha-value>)",
+        // Los dos hermanos del oro en el podio. Antes se pintaban con paleta
+        // cruda de Tailwind (zinc-300 / amber-700), que no sigue al tema: en
+        // modo día la plata quedaba invisible sobre el papel crema.
+        plata: "rgb(var(--plata-rgb) / <alpha-value>)",
+        bronce: "rgb(var(--bronce-rgb) / <alpha-value>)",
 
         bg: {
           primary: "rgb(var(--bg-rgb) / <alpha-value>)",

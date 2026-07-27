@@ -386,7 +386,11 @@ export default function CarImage({
           i18n (misma clave prensa.pista que el ladillo del escenario): antes
           "Pista" iba hardcodeado y el jugador EN lo veía en español. */}
       {showLabel && loaded && (
-        <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 rounded-full border border-border bg-black/70 px-3 py-1.5">
+        // Rectángulo, no píldora: sobre la foto esto es un PIE de imagen, y el
+        // sistema no redondea nada. El fondo oscuro se queda (va encima de una
+        // fotografía cualquiera, ahí el papel no es una opción) pero pierde la
+        // forma de burbuja del tema anterior.
+        <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 rounded-none border border-white/20 bg-black/70 px-3 py-1.5">
           <span className="text-[10px] uppercase tracking-widest text-white tabular-nums">
             {t("prensa.pista", { n: hintIndex + 1, max: totalHints })}
           </span>
@@ -416,7 +420,7 @@ export default function CarImage({
               HUD "· INTENTO" abajo-izquierda): toda la foto es tappable y el
               encuadre de visor ya invita a tocarla. En el resto de modos sí. */}
           {!configurator && (
-            <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/70 transition group-hover:border-accent/60 group-hover:text-accent">
+            <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-none border border-white/20 bg-black/40 text-white/70 transition group-hover:border-accent/60 group-hover:text-accent">
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
               </svg>
@@ -509,7 +513,7 @@ export default function CarImage({
               type="button"
               onClick={() => setExpanded(false)}
               aria-label={t("common.close")}
-              className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/50 text-white/80 transition hover:border-accent/60 hover:text-accent active:scale-90"
+              className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-none border border-white/20 bg-black/50 text-white/80 transition hover:border-accent/60 hover:text-accent active:scale-90"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6 6l12 12M18 6L6 18" />

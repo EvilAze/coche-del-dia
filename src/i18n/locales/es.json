@@ -39,6 +39,8 @@
     "loginModalDescription": "Guarda tus estadísticas en la nube, compite en el ranking global y juega desde cualquier dispositivo.",
     "loginError": "No se pudo iniciar sesión. Inténtalo de nuevo.",
     "footerPrivacy": "Política de Privacidad",
+    "dayRolloverKicker": "Cierre de edición",
+    "dayRolloverStamp": "Edición caducada",
     "dayRolloverTitle": "¡Nuevo coche del día!",
     "dayRolloverBody": "El reto de hoy ya está disponible. Recarga la página para jugarlo.",
     "dayRolloverButton": "Recargar"
@@ -194,7 +196,7 @@
     "shareCopiedShort": "Copiado",
     "shareUnsupported": "No se pudo compartir desde este navegador",
     "shareError": "No se pudo compartir",
-    "saveProgressTitle": "🔥 Menuda racha",
+    "saveProgressTitle": "Menuda racha",
     "saveProgressBody": "No pierdas tus estadísticas. Regístrate para guardar tus victorias y competir en el ranking.",
     "saveProgressCta": "Guardar mi progreso",
     "backToGarage": "Volver al Archivo"
@@ -233,7 +235,7 @@
   },
   "score": {
     "base": "Base",
-    "streakBonus": "Bonus racha 🔥",
+    "streakBonus": "Bonus racha",
     "yourScore": "Tu puntuación",
     "streakBroken": "Racha rota",
     "points": "pts",
@@ -468,6 +470,7 @@
     "drawShuffling": "Barajando cromos…",
     "drawPicking": "Eligiendo…",
     "drawRevealed": "¡Tu coche!",
+    "drawCoupon": "Sorteo",
     "drawYours": "Tu coche",
     "drawVeteran": "Modo Veterano",
     "authTitle": "Archivo cerrado",

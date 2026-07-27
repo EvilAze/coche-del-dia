@@ -9,7 +9,14 @@
 //   2. (450-1050)  Se abren en abanico (translateX + rotate).
 //   3. (1050-1850) Barajado: dos pasadas de cruce con stagger.
 //   4. (1850-2200) Una carta se separa, se centra y se voltea con flip 3D.
-//   5. (2200-2500) Pausa dramática + texto "TU COCHE".
+//   5. (2200-2500) Pausa dramática + sello "TU COCHE" estampado.
+//
+// Materialidad: el cromo es un CUPÓN de periódico, no una tarjeta de juego.
+// Reverso = papel tramado (el halftone de una foto sin revelar); anverso =
+// impreso con cabecera de kiosco, sello de caucho y pie de doble filete. La
+// versión anterior mezclaba dos temas en la misma carta (chasis de papel con
+// halos ámbar y anillos redondos del rediseño neón anterior), que sobre el
+// papel del tema actual leía como un parche pegado.
 //
 // El padre (Garage.jsx) llama `onAnimationComplete` y `onReady` cuando le
 // hace falta — aquí solo cuenta una historia visual.
@@ -52,10 +59,14 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
     return () => timers.forEach(clearTimeout);
   }, []);
 
+  // Nota sobre el velo: la clase `scrim` a secas se quedó sin definición al
+  // retirar el sistema Liquid Glass (index.css lo documenta), así que el
+  // overlay llevaba desde entonces SIN velo — el sorteo flotaba sobre la
+  // página a plena luz. `scrim-flat` es el tinte plano que usan hoy los modales.
   return (
     <motion.div
       className="
-        scrim
+        scrim-flat
         fixed inset-0 z-[120] flex items-center justify-center
       "
       initial={{ opacity: 0 }}
@@ -129,71 +140,68 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                 animate={animate}
                 transition={transition}
               >
-                {/* CARA TRASERA del cromo (mystery): fondo oscuro con
-                    silueta de coche + logo "?" central. */}
+                {/* CARA TRASERA del cromo: cupón boca abajo. Papel con TRAMA
+                    de puntos (el halftone de una foto de periódico sin revelar)
+                    e interrogante en Fraunces. Antes era un degradado casi negro
+                    con rayas ámbar — colores de dos temas atrás que sobre el
+                    papel del tema actual leían como un parche pegado. */}
                 <div
                   className="
-                    absolute inset-0 rounded-xl border border-accent/40
-                    bg-gradient-to-br from-[#16161a] to-[#08080a]
-                    shadow-[0_8px_24px_rgba(0,0,0,0.6)]
+                    absolute inset-0 rounded-none border border-tinta
+                    bg-papel-2
+                    shadow-[0_8px_20px_-12px_rgba(0,0,0,0.55)]
                     flex items-center justify-center
                     overflow-hidden
                   "
                   style={{ backfaceVisibility: "hidden" }}
                 >
-                  {/* Patrón sutil de "cromos de garaje" */}
+                  {/* Trama de puntos: el gris de imprenta. Un punto de tinta
+                      cada 6px — a tamaño de cromo se lee como textura, no como
+                      lunares. */}
                   <div
-                    className="absolute inset-0 opacity-20"
+                    className="absolute inset-0"
                     style={{
                       backgroundImage:
-                        "repeating-linear-gradient(45deg, rgba(255,191,0,0.08) 0 2px, transparent 2px 16px)",
+                        "radial-gradient(rgb(var(--tinta-rgb) / 0.30) 1px, transparent 1px)",
+                      backgroundSize: "6px 6px",
                     }}
                   />
-                  <span className="font-display text-5xl text-accent/70">?</span>
-                  <div className="absolute bottom-3 left-0 right-0 text-center text-[8px] uppercase tracking-[0.24em] text-accent/40">
+                  <span className="relative font-display text-5xl font-black text-tinta/45">
+                    ?
+                  </span>
+                  <div className="absolute bottom-3 left-0 right-0 text-center font-mono text-[8px] uppercase tracking-[0.24em] text-tinta-2">
                     Coche del Día
                   </div>
                 </div>
 
-                {/* CARA FRONTAL del cromo: reveal premium. La rotateY:180
-                    inicial la mantiene oculta hasta que el flip la gira.
-                    Componentes: glow radial + barrido de luz al voltear +
-                    icono SVG en anillo (no emoji — renderiza consistente
-                    cross-OS y se ve "diseñado", no pegado) + tipografía
-                    display con tracking. */}
+                {/* CARA FRONTAL: el cupón de sorteo, ya adjudicado. La
+                    rotateY:180 inicial la mantiene oculta hasta el flip.
+                    Aquí NO hay icono: antes había una silueta de coche de
+                    librería dentro de un anillo con halo ámbar, y las dos
+                    cosas sobraban — el halo era de la paleta anterior (sobre
+                    papel se ensuciaba) y la silueta repetía en dibujo lo que
+                    el texto ya dice. Lo que queda es un impreso: cabecera,
+                    sello estampado y pie. */}
                 <div
                   className={`
-                    absolute inset-0 rounded-xl border-2
-                    flex flex-col items-center justify-center gap-3
-                    overflow-hidden
-                    ${
-                      veteran
-                        ? "border-oro-viejo bg-papel-2"
-                        : "border-tinta bg-papel-2"
-                    }
+                    absolute inset-0 rounded-none border
+                    flex flex-col overflow-hidden bg-papel
+                    ${veteran ? "border-oro-viejo" : "border-tinta"}
                   `}
                   style={{
                     backfaceVisibility: "hidden",
                     transform: "rotateY(180deg)",
                   }}
                 >
-                  {/* Glow radial detrás del icono */}
-                  <div
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      background: veteran
-                        ? "radial-gradient(circle at 50% 42%, rgba(251,191,36,0.22), transparent 62%)"
-                        : "radial-gradient(circle at 50% 42%, rgba(255,191,0,0.2), transparent 62%)",
-                    }}
-                  />
-
-                  {/* Barrido de luz: cruza la carta una vez al revelarse.
-                      Solo se dispara en la hero (las demás no se voltean). */}
+                  {/* Barrido al revelarse. Sobre papel un destello BLANCO es
+                      invisible (el papel ya es casi blanco), así que la luz se
+                      invierte: lo que cruza la carta es una sombra de tinta,
+                      como la de una hoja al pasar por el rodillo. */}
                   <motion.div
-                    className="pointer-events-none absolute inset-0"
+                    className="pointer-events-none absolute inset-0 z-10"
                     style={{
                       background:
-                        "linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%)",
+                        "linear-gradient(105deg, transparent 35%, rgb(var(--tinta-rgb) / 0.10) 50%, transparent 65%)",
                     }}
                     initial={{ x: "-130%" }}
                     animate={
@@ -204,43 +212,72 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                     transition={{ duration: 0.7, ease: "easeOut", delay: 0.12 }}
                   />
 
-                  {/* Icono en anillo con glow */}
+                  {/* Cabecera de kiosco: mismo patrón que las portadas de El
+                      Archivo (rótulo a la izquierda, referencia en rojo a la
+                      derecha). Es lo que hace que el cromo lea como un impreso
+                      numerado y no como una tarjeta genérica. */}
                   <div
                     className={`
-                      relative flex h-14 w-14 items-center justify-center rounded-full border
-                      ${
-                        veteran
-                          ? "border-amber-300/60 bg-amber-500/15 shadow-[0_0_18px_rgba(251,191,36,0.45)]"
-                          : "border-accent/60 bg-accent/15 shadow-[0_0_18px_rgba(255,191,0,0.4)]"
-                      }
+                      flex items-center justify-between gap-1.5 border-b px-2 py-1
+                      font-mono text-[7.5px] uppercase tracking-[0.14em] text-tinta-2
+                      ${veteran ? "border-oro-viejo/40" : "border-border"}
                     `}
                   >
-                    <CarGlyph
-                      className={`h-7 w-7 ${veteran ? "text-amber-200" : "text-accent"}`}
-                    />
+                    <span>{t("garage.drawCoupon")}</span>
+                    <span className={veteran ? "text-oro-viejo" : "text-rojo"}>
+                      N.º&nbsp;{HERO_INDEX + 1}
+                    </span>
                   </div>
 
-                  {/* Label */}
-                  <p
-                    className={`
-                      relative text-center font-display text-sm uppercase tracking-[0.22em]
-                      ${veteran ? "text-amber-100" : "text-tinta"}
-                    `}
-                  >
-                    {veteran ? t("garage.drawVeteran") : t("garage.drawYours")}
-                  </p>
+                  {/* El sello: estampado con overshoot al revelarse (entra
+                      grande y torcido y se asienta), que es exactamente el
+                      gesto de sellar a mano. Sustituye al icono como pieza
+                      central de la carta. */}
+                  <div className="flex flex-1 items-center justify-center px-2">
+                    <motion.span
+                      className={`pm-sello ${veteran ? "pm-sello--oro" : ""}`}
+                      initial={{ scale: 1.7, rotate: -14, opacity: 0 }}
+                      animate={
+                        isHero && (phase === "flip" || phase === "done")
+                          ? { scale: 1, rotate: -7, opacity: 0.88 }
+                          : { scale: 1.7, rotate: -14, opacity: 0 }
+                      }
+                      transition={{
+                        type: "spring",
+                        stiffness: 320,
+                        damping: 14,
+                        delay: 0.22,
+                      }}
+                    >
+                      {veteran ? t("garage.drawVeteran") : t("garage.drawYours")}
+                    </motion.span>
+                  </div>
+
+                  {/* Pie: doble filete + cabecera de la publicación. Cierra el
+                      impreso por abajo, igual que el folio de la portada. */}
+                  <div className="arch-filete mx-2 mb-2 pt-1.5 text-center font-mono text-[7.5px] uppercase tracking-[0.2em] text-tinta-2">
+                    Coche del Día
+                  </div>
                 </div>
               </motion.div>
             );
           })}
         </div>
 
-        {/* Etiqueta de estado bajo el mazo: cambia según la fase. */}
-        <div className="mt-4 h-6 text-center">
+        {/* Etiqueta de estado bajo el mazo: cambia según la fase. Va sobre una
+            FAJA de papel y no suelta sobre el velo: el velo es tinta oscura en
+            los dos temas, así que un `text-tinta` (oscuro en modo día) quedaba
+            literalmente invisible de día. Sobre su propia tira de papel el
+            rótulo es legible en ambos temas y además lee como el pie de una
+            foto de prensa. */}
+        <div className="mt-4 h-7 text-center">
           <AnimatePresence mode="wait">
             <motion.p
               key={phase}
-              className="text-[11px] uppercase tracking-[0.28em] text-tinta"
+              className="
+                inline-block border border-tinta bg-papel px-3 py-1
+                font-mono text-[10px] uppercase tracking-[0.24em] text-tinta
+              "
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
@@ -259,27 +296,3 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
   );
 }
 
-// Silueta de coche (perfil lateral, estilo Lucide "car"). SVG en vez de
-// emoji 🚗: renderiza idéntico en iOS / Android / Windows y se integra con
-// el sistema de iconos del resto de la app (stroke currentColor, hereda el
-// color del contenedor). El emoji se veía distinto en cada dispositivo y
-// "pegado" sobre la carta.
-function CarGlyph({ className = "" }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-      <circle cx="7" cy="17" r="2" />
-      <path d="M9 17h6" />
-      <circle cx="17" cy="17" r="2" />
-    </svg>
-  );
-}

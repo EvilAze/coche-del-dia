@@ -15,7 +15,10 @@ export default function ZoomStage({
   status,
   hintIndex,
   totalHints,
-  blurred = false,
+  // (`blurred` se retiró: existía solo para emborronar el coche al anónimo que
+  // perdía hasta que iniciara sesión, y ese muro ya no existe — ver «Política
+  // de revelado» en api/validate-guess.js. Ningún consumidor lo pasaba a true
+  // salvo aquel caso, así que la prop se va con él.)
   overlay = null,
   progress = null,
   onRevealLoad,
@@ -55,7 +58,6 @@ export default function ZoomStage({
           totalHints={totalHints}
           status={status}
           showHintLabel={false}
-          blurred={blurred}
           overlay={overlay}
           onRevealLoad={onRevealLoad}
         />

@@ -254,10 +254,18 @@ export default async function handler(request) {
       console.error("[get-daily-car] signAnonSession:", err?.message || err);
     }
 
-    // Asimetría intencional con el caso "lost": solo firmamos revealToken al
-    // anónimo que GANÓ, para no regalarle la imagen completa al perdedor.
+    // Partida cerrada (ganada O perdida) → imagen completa. La asimetría
+    // anterior (solo al anónimo que ganaba) sostenía el muro del perdedor
+    // anónimo; ese muro se retiró en validate-guess (ver la nota larga de su
+    // «Política de revelado»), así que aquí se sigue el mismo criterio o la
+    // foto volvería a recortarse al recargar.
+    //
+    // La IDENTIDAD del coche no viaja por aquí en la rama anónima: el anónimo
+    // no tiene partida en servidor (base.guesses va vacío) y su estado —
+    // incluido el `reveal` que devolvió validate-guess— vive en el snapshot
+    // de localStorage que lee useGame.
     let revealToken = null;
-    if (valid && session.s === "won") {
+    if (valid && (session.s === "won" || session.s === "lost")) {
       try {
         revealToken = await signRevealToken(today);
       } catch (err) {
@@ -312,8 +320,13 @@ export default async function handler(request) {
         // (marca, modelo, año, país) se revela en ambos casos para que
         // el usuario sepa qué falló. La ficha de lore queda reservada
         // como recompensa para victorias.
-        description: liveCar.description ?? null,
-        description_en: liveCar.description_en ?? null,
+        //
+        // El gate faltaba: `isWon` se calculaba y no se usaba, así que al
+        // recargar una partida PERDIDA llegaba la ficha completa — justo lo
+        // que este comentario dice que no debe pasar (y que validate-guess sí
+        // respeta en el momento de perder). Corregido al unificar la política.
+        description: isWon ? liveCar.description ?? null : null,
+        description_en: isWon ? liveCar.description_en ?? null : null,
       };
     }
     revealToken = signedToken;

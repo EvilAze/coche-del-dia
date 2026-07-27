@@ -642,7 +642,7 @@ export default function Repesca() {
                     </div>
                   </>
                 ) : (
-                  <div className="cdd-reveal-meta cdd-mono">{t("cdd.lockedAnswer")}</div>
+                  <div className="cdd-reveal-meta cdd-mono">{t("cdd.revealUnavailable")}</div>
                 )}
               </div>
             </div>

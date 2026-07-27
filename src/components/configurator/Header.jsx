@@ -41,6 +41,12 @@ function SunGlyph() {
 export default function Header({
   rank = null, // { rank, total, delta } | null — puesto de temporada del logueado
   rankCargando = false, // aún no sabemos el puesto (≠ "no tiene puesto")
+  // ¿Va la faja de clasificación AQUÍ o debajo del cupón? Lo decide Configurator
+  // (ver su comentario): en cabecera solo para quien ya tiene sesión, porque solo
+  // ese jugador puede tener un puesto que enseñar. Para el anónimo la faja no
+  // trae dato, trae invitación — y una invitación no vale 60px por delante de la
+  // fotografía.
+  fajaEnCabecera = true,
   user,
   repescaAlert = false,
   onOpenProfile,
@@ -169,13 +175,15 @@ export default function Header({
 
       {/* La clasificación cierra la portada: es lo último que se lee antes de
           la foto del día, en el sitio donde un periódico pone su recuadro de
-          resultados. Se monta SIEMPRE — con puesto muestra la cifra; sin él,
-          una línea de invitación. */}
-      <FajaClasificacion
-        rank={rank}
-        cargando={rankCargando}
-        onOpenRanking={onOpenRanking}
-      />
+          resultados. Ya NO se monta siempre: para el visitante sin sesión la
+          monta Configurator debajo del cupón (misma pieza, otro sitio). */}
+      {fajaEnCabecera && (
+        <FajaClasificacion
+          rank={rank}
+          cargando={rankCargando}
+          onOpenRanking={onOpenRanking}
+        />
+      )}
     </header>
   );
 }

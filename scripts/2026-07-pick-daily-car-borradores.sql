@@ -1,11 +1,39 @@
 -- scripts/2026-07-pick-daily-car-borradores.sql
--- pick_daily_car gana un flag OPCIONAL para permitir coches sin foto
--- (image_ready = FALSE) en el sorteo. Sirve para montar una temporada temática
--- "al vuelo": el admin programa los 14 días con coches del tema aunque todavía
--- no tengan imagen, y va subiendo las fotos antes de que llegue cada día.
+-- Versión DEFINITIVA de pick_daily_car. Supersede la de
+-- scripts/2026-07-temporadas-tematicas.sql (bloque [4]) y hace dos cosas:
+--
+--   1. Gana un flag OPCIONAL para permitir coches sin foto (image_ready=FALSE)
+--      en el sorteo, para montar una temporada temática "al vuelo".
+--   2. ELIMINA el paso 2b (repetir un coche del tema). Ver más abajo: era un
+--      paso imposible, y en producción puso el mismo coche hoy y mañana.
 --
 -- Aplicar en el SQL editor de Supabase DESPUÉS de
 -- scripts/2026-07-temporadas-tematicas.sql. Idempotente.
+--
+-- ---------------------------------------------------------------------------
+-- POR QUÉ MUERE EL PASO 2b
+-- ---------------------------------------------------------------------------
+-- La versión anterior tenía un escalón intermedio: si se agotaban los coches
+-- del tema sin estrenar, repetía el del tema que llevara más tiempo sin salir,
+-- con el argumento de que "un repetido decepciona, pero romper la temática
+-- rompe la promesa". Ese argumento estaba mal, por dos motivos.
+--
+-- El práctico: con un pool de un solo coche, ese "el que lleva más tiempo sin
+-- salir" es el coche de HOY, así que mañana salía otra vez el mismo. Repetir un
+-- coche de hace tres meses se tolera; repetir el de hoy mañana es indefendible.
+--
+-- El de fondo, que es el que debí ver antes de escribirlo: este código asume
+-- **un coche = un solo día**. lib/admin-handlers/schedule.js hace
+-- `.eq("car_id", carId).maybeSingle()` para localizar la fecha de un coche, y
+-- eso revienta en cuanto un coche está en dos fechas. Bajo esa invariante, 2b
+-- solo podía devolver coches YA asignados — es decir, sus únicas salidas
+-- posibles eran todas inválidas. Y "del tema y sin asignar" es literalmente el
+-- paso 2a. 2b nunca tuvo un caso legítimo.
+--
+-- Consecuencia asumida: si el pool del tema no llega a los días de la
+-- temporada, la temática SE ROMPE esos días (caen al paso 3, catálogo general)
+-- en vez de repetir. Es lo correcto: el aviso de pool del panel de Temporadas
+-- existe justo para que no se llegue a ese caso, y ahora dice la verdad.
 --
 -- ---------------------------------------------------------------------------
 -- POR QUÉ UN FLAG Y NO QUITAR EL FILTRO
@@ -25,10 +53,14 @@
 -- DROP, Postgres tendría dos candidatas y la llamada de un argumento fallaría
 -- con «function is not unique».
 --
--- El resto del cuerpo es idéntico al de 2026-07-temporadas-tematicas.sql: misma
--- escalera (día fijado → tema sin estrenar → tema menos reciente → histórico),
--- mismo lock, misma re-lectura. Lo único que cambia es que las cuatro
--- condiciones de `image_ready` pasan a ser «(p_allow_drafts OR image_ready)».
+-- Escalera final:
+--   1) Día ya fijado en daily_cars       → manda (incluye el Calendario admin)
+--   2) Coche DEL TEMA sin estrenar       → el caso normal en temporada
+--   3) Coche cualquiera sin estrenar     → sin tema, o pool del tema agotado
+--   4) Coche cualquiera al azar          → catálogo entero agotado
+--
+-- Ningún paso puede devolver un coche ya asignado salvo el 4, que es el fondo
+-- de saco preexistente para "no quedan coches en el catálogo".
 
 DROP FUNCTION IF EXISTS public.pick_daily_car(date);
 
@@ -59,8 +91,10 @@ begin
   order by s.starts_at desc
   limit 1;
 
+  -- 2) Coches del tema que NUNCA han salido. Si no queda ninguno, NO se repite
+  --    dentro del tema: se cae al paso 3 (ver la cabecera de este archivo —
+  --    repetir violaría la invariante "un coche = un solo día" del calendario).
   if v_filter is not null and v_filter <> '{}'::jsonb then
-    -- 2a) Coches del tema que NUNCA han salido.
     select c.id into v_car_id
     from cars c
     where (p_allow_drafts or c.image_ready = true)
@@ -68,18 +102,6 @@ begin
       and not exists (select 1 from daily_cars dc where dc.car_id = c.id)
     order by random()
     limit 1;
-
-    -- 2b) Pool temático agotado: el del tema que lleva MÁS tiempo sin salir.
-    if v_car_id is null then
-      select c.id into v_car_id
-      from cars c
-      where (p_allow_drafts or c.image_ready = true)
-        and car_matches_theme(c.tags, c.pais, c.make, c.year, v_filter)
-      order by
-        (select max(dc.date) from daily_cars dc where dc.car_id = c.id) asc nulls first,
-        random()
-      limit 1;
-    end if;
   end if;
 
   -- 3) Sin temporada, sin temática, o temática que no casa con NINGÚN coche.
@@ -143,3 +165,20 @@ REVOKE EXECUTE ON FUNCTION public.pick_daily_car(date, boolean) FROM authenticat
 -- b) `proacl` NO debe incluir anon ni authenticated. Si sale NULL, quiere decir
 --    que están los defaults de Postgres (EXECUTE para PUBLIC) → vuelve a correr
 --    los tres REVOKE de arriba.
+--
+-- c) LIMPIEZA de los duplicados que dejó el paso 2b antes de morir. Un coche en
+--    dos fechas rompe el swap del calendario (schedule.js localiza la fecha de
+--    un coche con `.eq("car_id", …).maybeSingle()`, que falla con dos filas).
+--    Esta consulta los lista:
+--
+-- SELECT dc.car_id, c.make, c.model, count(*) AS veces,
+--        array_agg(dc.date ORDER BY dc.date) AS fechas
+-- FROM daily_cars dc
+-- JOIN cars c ON c.id = dc.car_id
+-- GROUP BY dc.car_id, c.make, c.model
+-- HAVING count(*) > 1;
+--
+--    NO hace falta SQL para arreglarlo: pulsa «Liberar días futuros» en el
+--    panel. Al liberar y re-sortear, el duplicado futuro desaparece y el paso 2
+--    ya no puede volver a crearlo. Solo usa un DELETE manual si el duplicado
+--    está en fechas PASADAS (y entonces piénsalo dos veces: es histórico).

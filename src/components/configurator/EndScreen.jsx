@@ -209,7 +209,7 @@ export default function EndScreen({
                 </div>
               </>
             ) : (
-              <div className="cdd-reveal-meta cdd-mono">{t("cdd.lockedAnswer")}</div>
+              <div className="cdd-reveal-meta cdd-mono">{t("cdd.revealUnavailable")}</div>
             )}
           </div>
         </div>
@@ -278,10 +278,15 @@ export default function EndScreen({
                 único CTA de tinta; el parte es la única "caja" de la pantalla. */}
             <RankParte rank={rank} user={user} onOpenRanking={onOpenRanking} />
 
-            {/* CTA de registro para anónimos que ganan (conserva la pieza de
-                producción: no perder racha/estadísticas). Estilo SECUNDARIO
-                (ghost): es otra clase de acción y no debe competir con compartir. */}
-            {won && !user && (
+            {/* CTA de registro para CUALQUIER anónimo que termina, gane o
+                pierda. Antes solo se ofrecía al que ganaba, porque al que perdía
+                ya se le empujaba a la cuenta con un muro ("inicia sesión para
+                ver la respuesta"). Retirado el muro, la invitación se hace aquí
+                y en su forma sana: el jugador ya tiene su coche revelado y lo
+                que se le ofrece es CONSERVAR lo jugado, no comprar el desenlace.
+                Estilo SECUNDARIO (ghost): es otra clase de acción y no debe
+                competir con compartir. */}
+            {!user && (
               <button className="cdd-submit cdd-submit--ghost" onClick={onOpenLogin}>
                 <span>{t("result.saveProgressCta")}</span>
               </button>

@@ -6,16 +6,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
+import { haySesionLocal } from "../../lib/auth";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import Header from "./Header";
+import FajaClasificacion from "./FajaClasificacion";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
 import PhotoPeek from "./PhotoPeek";
 import AttemptList, { AttemptRow } from "./AttemptList";
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
-import NotaRedaccion from "./NotaRedaccion";
 import { useDailyStats, Distribution } from "./dailyStats";
 
 // Dirección visual «Prensa del motor»: papel + tinta + rojo de rotativa. El
@@ -137,6 +138,23 @@ export default function Configurator({
     activo: dataReady && !ended && guesses.length === 0 && !pendingGuess,
   });
 
+  // ¿Dónde va la faja de clasificación? En cabecera solo si hay sesión.
+  //
+  // La faja mide 60px y cerraba la portada, justo delante de la fotografía. Para
+  // el jugador con cuenta eso es su puesto: el dato por el que vuelve, y se ha
+  // ganado el sitio. Para el que llega sin sesión —todo visitante nuevo— la faja
+  // no puede enseñar ningún puesto, así que cae a su variante de invitación
+  // («Gana hoy y entras en la tabla»): una tabla en la que no está, ofrecida
+  // antes de haber visto el coche. Ahí deja de ser información y pasa a ser
+  // reclamo, y el reclamo va DESPUÉS del juego, nunca por delante.
+  //
+  // Se decide con `haySesionLocal()` (lectura síncrona de localStorage) y NO con
+  // la prop `user`, que llega async: con `user` el logueado pintaría primero el
+  // layout de anónimo y la faja daría un salto al aparecer. Se congela en un
+  // initializer de useState para que la posición no cambie a media sesión (al
+  // loguearse desde el modal, la faja aparecerá arriba en la siguiente carga).
+  const [fajaEnCabecera] = useState(() => haySesionLocal());
+
   // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
   function volverALaFoto() {
     document.activeElement?.blur?.();
@@ -200,6 +218,7 @@ export default function Configurator({
         <Header
           rank={rank}
           rankCargando={rankCargando}
+          fajaEnCabecera={fajaEnCabecera}
           user={user}
           repescaAlert={repescaAlert}
           onOpenProfile={onOpenProfile}
@@ -217,13 +236,16 @@ export default function Configurator({
         {loadError ? (
           <EdicionNoDisponible onRetry={onRetryLoad} isRetrying={isRetryingLoad} />
         ) : (
+          // Aquí iba `blurred={status === "lost" && !user}`: al anónimo que
+          // perdía se le emborronaba el coche hasta que iniciara sesión. El
+          // muro se retiró entero —ver «Política de revelado» en
+          // api/validate-guess.js— y con él la prop.
           <ZoomStage
             car={car}
             zoom={zoom}
             status={status}
             hintIndex={hintIndex}
             totalHints={totalHints}
-            blurred={status === "lost" && !user}
             onRevealLoad={onRevealLoad}
             sectionRef={fotoRef}
           />
@@ -321,6 +343,20 @@ export default function Configurator({
             ))}
         </div>
 
+        {/* La clasificación del visitante SIN sesión: misma pieza que cerraba la
+            portada, ahora después del cupón. Sigue siendo la palanca de
+            retención y sigue a un tap — pero se ofrece cuando el jugador ya ha
+            visto de qué va esto, no como peaje de entrada. */}
+        {!fajaEnCabecera && (
+          <div className="prensa-area-clasif">
+            <FajaClasificacion
+              rank={rank}
+              cargando={rankCargando}
+              onOpenRanking={onOpenRanking}
+            />
+          </div>
+        )}
+
         {/* Pie de página: enlaces en versalitas + reloj de cierre de edición. */}
         <footer className="prensa-area-pie prensa-cierre">
           <span>
@@ -333,9 +369,6 @@ export default function Configurator({
           </span>
         </footer>
       </main>
-
-      {/* Aviso one-time del rediseño (se auto-gatea por localStorage). */}
-      <NotaRedaccion />
 
       {showEnd && ended && (
         <EndScreen

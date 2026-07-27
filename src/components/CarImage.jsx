@@ -16,7 +16,6 @@ export default function CarImage({
   hintIndex,
   totalHints,
   status,
-  blurred = false,
   overlay = null,
   showHintLabel = true,
   // Nodo opcional anidado en el borde inferior-centro de la imagen. Decorativo:
@@ -168,8 +167,7 @@ export default function CarImage({
   // tappable). El HUD va con pointer-events:none, así que el toque pasa al botón
   // de zoom de abajo; solo ocultamos el icono de esquina en modo configurador
   // para que no choque visualmente con el HUD (ver más abajo).
-  const canExpand =
-    loaded && !blurred && Boolean(src) && status === "playing";
+  const canExpand = loaded && Boolean(src) && status === "playing";
   useEscape(expanded, () => setExpanded(false));
 
   function handleImageLoad(e) {
@@ -340,12 +338,9 @@ export default function CarImage({
             opacity: loaded ? 1 : 0,
             transformOrigin: "center center",
             transform: isWinReveal ? undefined : `scale(${zoom})`,
-            // La transición de filter suaviza el candado del anónimo-perdedor
-            // (blurred); inocua en el resto de modos (filter estático).
             transition: isWinReveal
               ? "opacity 0.25s ease-out"
-              : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out, filter 0.75s cubic-bezier(0.4,0,0.2,1)",
-            filter: blurred ? "blur(18px) saturate(0.85)" : undefined,
+              : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out",
             "--zoom-from": zoomFrom,
           }}
         />

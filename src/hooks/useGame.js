@@ -19,6 +19,7 @@ import { useT } from "../i18n";
 // (extremo intacto), solo se redistribuyen los intermedios para revelar antes.
 import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 import { anonHeaders, setAnonToken } from "../lib/anonSession";
+import { haySesionLocal } from "../lib/auth";
 // "Hoy" en zona Madrid: helper único compartido con dates.js / useDayRollover
 // (antes había una copia local idéntica de este formateador en cada sitio).
 import { getMadridDateStr } from "../lib/dates";
@@ -55,16 +56,11 @@ const DEFAULT_MAX_ATTEMPTS = 5;
 function readInitialAnonState() {
   if (typeof window === "undefined") return null;
   try {
-    // Detectar sesión Supabase: la lib guarda el token en una clave del
-    // estilo `sb-<projectref>-auth-token`. Si hay una, el usuario está
-    // logueado y NO debemos confiar en el snapshot anon local.
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith("sb-") && key.endsWith("-auth-token")) {
-        const val = localStorage.getItem(key);
-        if (val && val !== "null" && val !== '""') return null;
-      }
-    }
+    // Si hay sesión Supabase en localStorage, el usuario está logueado y NO
+    // debemos confiar en el snapshot anon local. (La detección vivía aquí
+    // inline; se extrajo a lib/auth para que Header la comparta al decidir
+    // dónde colocar la faja de clasificación — misma heurística, un solo sitio.)
+    if (haySesionLocal()) return null;
     const raw = localStorage.getItem("cocheDia_state");
     if (!raw) return null;
     const saved = JSON.parse(raw);

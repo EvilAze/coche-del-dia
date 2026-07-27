@@ -285,30 +285,30 @@ export default async function handler(req, res) {
     }
 
     // -------- 9. Política de revelado ------------------------------------
-    //   Política asimétrica intencional según (status, autenticación):
+    //   Con la partida CERRADA revelamos siempre la IDENTIDAD del coche
+    //   (marca/modelo/año/país), gane o pierda, esté logueado o no. La
+    //   DESCRIPCIÓN/ficha sigue siendo recompensa exclusiva de la victoria
+    //   (simetría con /api/repesca/validate).
     //
-    //   - WIN (logueado o anónimo): revelamos TODO, incluida la
-    //     descripción/ficha del coche. El jugador ganó, se merece la
-    //     recompensa completa de lore.
-    //   - LOST + logueado: revelamos IDENTIDAD (marca/modelo/año/país)
-    //     pero NO la descripción. El usuario tiene cuenta, el resultado
-    //     queda en su historial — la "trampa del incógnito" no le sirve
-    //     porque la pérdida queda registrada. Aprende qué coche era
-    //     (necesario para mejorar) pero la ficha completa queda
-    //     reservada como recompensa para victorias futuras o repesca
-    //     exitosa.
-    //   - LOST + anónimo: NO revelamos NADA. Si lo hiciéramos, el cheat
-    //     sería trivial: abrir incógnito → fallar adrede los 5 → leer
-    //     el coche → cerrar incógnito → jugar con la cuenta real
-    //     sabiendo la respuesta. Por eso el anónimo perdedor ve solo la
-    //     imagen blurred + overlay de login (renderizado por CarImage).
-    //     El ResultPanel pinta el fallback `result.lockedAnswer` cuando
-    //     reveal viene null.
+    //   POR QUÉ SE QUITÓ EL MURO AL ANÓNIMO PERDEDOR (jul-2026):
+    //   la versión anterior no revelaba NADA al anónimo que perdía —foto
+    //   emborronada + "inicia sesión para verla"— para cerrar este cheat:
+    //   abrir incógnito → fallar adrede los 5 → leer el coche → volver a
+    //   la cuenta real sabiendo la respuesta.
     //
-    //   Simetría con /api/repesca/validate: ambos endpoints aplican la
-    //   misma regla — descripción solo en victoria. Coherencia narrativa
-    //   en toda la app.
-    const shouldReveal = result.win || (isGameOver && Boolean(user));
+    //   El muro no cerraba ese cheat: LOST + logueado YA revelaba la
+    //   identidad, así que al tramposo le bastaba una segunda cuenta de
+    //   Google (gratis e ilimitadas) para el mismo resultado. Lo único que
+    //   añadía era el coste de crearla — trivial y de una sola vez para
+    //   quien quiere hacer trampa, permanente para todo recién llegado.
+    //
+    //   Y el precio era el peor posible: el visitante nuevo que llega de un
+    //   grupo de Telegram, pierde su primera partida y, en lugar del pago
+    //   emocional del juego ("ah, era un Volvo S60"), se encuentra un muro
+    //   de OAuth que además se lee como castigo por haber fallado. Primero
+    //   se da, luego se pide: el EndScreen le ofrece guardar el progreso
+    //   DESPUÉS de enseñarle el coche.
+    const shouldReveal = result.win || isGameOver;
     let reveal = null;
     if (shouldReveal) {
       reveal = {
@@ -316,8 +316,10 @@ export default async function handler(req, res) {
         modelo: realCar.modelo,
         anio: realCar.anio,
         pais: realCar.pais,
-        description: realCar.description ?? null,
-        description_en: realCar.description_en ?? null,
+        // La ficha de lore, solo al que gana (en derrota van a null y el
+        // EndScreen simplemente no pinta la nota).
+        description: result.win ? realCar.description ?? null : null,
+        description_en: result.win ? realCar.description_en ?? null : null,
       };
     }
 
@@ -326,11 +328,11 @@ export default async function handler(req, res) {
     //              y lo devolvemos en el body (anonToken). El cliente lo
     //              persiste en localStorage y lo reenvía en el próximo intento.
     //   revealToken: token firmado para que el cliente pida la imagen
-    //              completa a /api/daily-image. Solo lo emitimos cuando
-    //              corresponde revelar (misma regla que `reveal`). Si lo
-    //              firmáramos al anónimo perdedor, equivaldría a regalarle
-    //              la foto del coche — exactamente el cheat que estamos
-    //              cerrando con la asimetría de arriba.
+    //              completa a /api/daily-image. Misma regla que `reveal`:
+    //              con la partida cerrada, la foto entera. Enseñar el nombre
+    //              del coche y seguir escondiendo su foto sería lo peor de
+    //              los dos mundos — el jugador ya sabe qué era y el recorte
+    //              solo le niega el remate visual de su propia partida.
     // Token anónimo actualizado: lo devolvemos en el body (antes era Set-Cookie).
     // El cliente lo persiste en localStorage y lo reenvía en el próximo intento.
     let anonToken = null;

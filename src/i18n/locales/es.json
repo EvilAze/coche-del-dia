@@ -217,6 +217,10 @@
     "saveProgressTitle": "Menuda racha",
     "saveProgressBody": "No pierdas tus estadísticas. Regístrate para guardar tus victorias y competir en el ranking.",
     "saveProgressCta": "Guardar mi progreso",
+    "saveStreakCta": {
+      "one": "No pierdas tu racha de {count} día",
+      "other": "No pierdas tu racha de {count} días"
+    },
     "pickNickCta": "Elegir mi firma",
     "backToGarage": "Volver al Archivo"
   },

@@ -288,9 +288,18 @@ export default function EndScreen({
                 que se le ofrece es CONSERVAR lo jugado, no comprar el desenlace.
                 Estilo SECUNDARIO (ghost): es otra clase de acción y no debe
                 competir con compartir. */}
+            {/* Sin cuenta. Si ya lleva racha —la sesión anónima se la guarda de
+                verdad desde su primer intento—, se la nombramos: «no pierdas tu
+                racha de 5 días» pesa lo que no pesa «guarda tu progreso», porque
+                habla de algo que el jugador YA tiene y puede perder. Con racha 0
+                o 1 no hay nada que presumir y se queda el genérico. */}
             {!user && (
               <button className="cdd-submit cdd-submit--ghost" onClick={onOpenLogin}>
-                <span>{t("result.saveProgressCta")}</span>
+                <span>
+                  {streak > 1
+                    ? tn("result.saveStreakCta", streak)
+                    : t("result.saveProgressCta")}
+                </span>
               </button>
             )}
 

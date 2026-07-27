@@ -246,9 +246,11 @@ export default function MyStats({
   const onStreak = (stats?.current_streak ?? 0) > 0;
 
   // Cierra el perfil y abre el destino de la puerta.
-  function go(opener) {
+  // `source` viaja al opener (openRanking lo usa para saber de dónde nacen las
+  // aperturas del ranking). Los demás openers ignoran el argumento.
+  function go(opener, source) {
     onClose?.();
-    opener?.();
+    opener?.(source);
   }
 
   // Datos de las puertas (cada uno cae con elegancia si su fuente falló).
@@ -383,7 +385,7 @@ export default function MyStats({
               icon={<MedalIcon />}
               label={t("ranking.title")}
               value={rankValue}
-              onClick={() => go(onOpenRanking)}
+              onClick={() => go(onOpenRanking, "perfil")}
             />
             <DoorRow
               icon={<TrophyIcon />}

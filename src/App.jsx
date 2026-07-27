@@ -175,7 +175,10 @@ export default function App() {
     // navegado a /repesca, jugado, y vuelto. activeModal === null tras eso.
   }, [user, activeModal]);
 
-  const openRanking = () => {
+  // `source` = desde dónde se abrió (faja de la portada, faja pegada, final de
+  // partida…). Sin él no hay forma de saber si ascender el ranking a sección
+  // propia funcionó: el evento contaba aperturas, pero no de dónde venían.
+  const openRanking = (source = "unknown") => {
     // Medir cuánto se usa la "palanca" del ranking. Dos sumideros:
     //   1) Umami (track): visible en el dashboard de Umami (free tier).
     //   2) Contador propio en Supabase: lo lee el panel admin de Analítica.
@@ -184,7 +187,7 @@ export default function App() {
     //      permiso de escritura del cliente, corre como owner). Misma
     //      convención `auth` que garage_open.
     const auth = user ? "user" : "anon";
-    track("ranking_open", { auth });
+    track("ranking_open", { auth, source: typeof source === "string" ? source : "unknown" });
     // Fire-and-forget: jamás bloquear ni romper la apertura del ranking.
     supabase
       .rpc("increment_feature_event", { p_event: "ranking_open", p_auth: auth })
@@ -387,6 +390,12 @@ export default function App() {
         submitGuess={submitGuess}
         streak={streak}
         rank={rank}
+        // La faja de clasificación necesita distinguir "aún no sé tu puesto" de
+        // "no tienes puesto": sin esto, un jugador rankeado veía medio segundo
+        // la invitación de «gana hoy y entras en la tabla» antes de que llegara
+        // su cifra — mentira y salto de altura. `checkingProfile` nace en true,
+        // así que el primer paint ya cae del lado prudente.
+        rankCargando={checkingProfile}
         user={user}
         repescaAlert={repescaAlert}
         shareText={buildShareText(streak)}

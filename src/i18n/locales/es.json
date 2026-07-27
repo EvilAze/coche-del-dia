@@ -171,7 +171,15 @@
     "garaje": "Archivo",
     "ranking": "Ranking",
     "perfil": "Perfil",
-    "entrar": "Entrar"
+    "entrar": "Entrar",
+    "navAria": "Secciones",
+    "fajaLadillo": "La clasificación",
+    "fajaLadilloCorto": "Clasificación",
+    "fajaVer": "Ver",
+    "fajaAyer": "desde ayer",
+    "fajaHold": "Sin cambios",
+    "fajaNueva": "Estreno",
+    "fajaInvita": "Gana hoy y entras en la tabla"
   },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",

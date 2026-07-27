@@ -666,27 +666,11 @@ body,
    sin letter-spacing heredado y con un aire fino, no los ~9px de antes. */
 .prensa-topbar .aviso { color: var(--rojo); font-weight: 800; margin-left: 2px; letter-spacing: 0; }
 
-/* ── RANKING con su puesto ──
-   El ranking es la mayor palanca de retención, así que su acceso tiene que ser lo
-   MÁS fácil de la barra: es la sección con más presencia. La palabra va en tinta
-   plena (como el resto de ladillos) y su valor —tu puesto— se cuelga en ORO a mayor
-   cuerpo, ETIQUETADO por la sección a la que pertenece (sin ambigüedad ni caja: en
-   un periódico un dato destaca por tipografía, no por un recuadro de otro sistema).
-   Con el movimiento vs ayer al lado. Todo el conjunto —palabra + cifra— es un único
-   objetivo táctil que abre el ranking (el gap lo separa; el área de toque la da el
-   padding heredado del botón). */
-.prensa-topbar .rk { gap: 6px; }
-.prensa-topbar .rk .pos {
-  color: var(--gold); font-weight: 800; font-size: 15px;
-  letter-spacing: -.01em; text-transform: none;
-}
-.prensa-topbar .rk .mov { font-weight: 700; font-size: 10px; letter-spacing: 0; text-transform: none; }
-/* Subir = veredicto verde (acierto); bajar = tinta apagada, no rojo: la pérdida
-   informa, no alarma (el rojo es para el FALLO y para el CTA de competir). */
-.prensa-topbar .rk .mov--up { color: var(--verde); }
-.prensa-topbar .rk .mov--down { color: var(--cdd-muted); }
-/* Sin puesto (nuevo/anónimo): «RANKING →» en rojo, la única llamada de la barra. */
-.prensa-topbar .rk--cta { color: var(--rojo); font-weight: 700; }
+/* (El bloque .rk —RANKING con su puesto dentro de esta barra— se retiró: el
+   ranking dejó de ser un enlace de la fila y pasó a ser sección propia, la
+   .prensa-faja de más abajo. Se intentó dos veces darle presencia AQUÍ, con más
+   cuerpo y con la cifra en oro, y las dos se quedó corto por lo mismo: en una
+   fila de versalitas todos los elementos pesan lo mismo por construcción.) */
 /* Toggle de tema: glifo de línea (mismo peso que los iconos del juego),
    tinta apagada → rojo al pulsar, como el resto de enlaces de la barra. */
 .prensa-topbar .prensa-tema { color: var(--cdd-muted); }
@@ -745,6 +729,129 @@ body,
   font-size: clamp(8px, 2.4vw, 10px); letter-spacing: .1em; text-transform: uppercase;
 }
 .prensa-folio .rojo { color: var(--rojo); }
+
+/* ── LA CLASIFICACIÓN — la faja de ranking ──────────────────────────────
+   El ranking es la mayor palanca de retención y estaba resuelto como una
+   palabra en la fila de navegación, donde por definición pesa lo mismo que sus
+   vecinas. Aquí deja de ser un enlace y pasa a ser una SECCIÓN del periódico:
+   ladillo, filete y cifra. Dos consecuencias buscadas — presencia (38px de oro
+   frente a 10px de versalita) y alcance (el objetivo táctil pasa de ~50px de
+   ancho a la caja entera).
+
+   Sin borde superior: hereda el doble filete inferior del folio, justo encima.
+   El suyo cierra la portada por abajo. La caja NO se dibuja con recuadro: en
+   este sistema un dato destaca por tipografía y filetes, nunca por una tarjeta.
+
+   La cifra usa exactamente la escala del «parte» del final de partida
+   (.cdd-parte-pos): son el mismo objeto —tu puesto— al abrir y al cerrar el
+   periódico, así que tienen que reconocerse entre sí. */
+.prensa-faja {
+  display: flex; flex-direction: column; gap: 3px;
+  width: 100%; padding: 9px 0 10px; margin: 0;
+  border: 0; border-bottom: 3px double var(--line-strong); border-radius: 0;
+  background: transparent; text-align: left; cursor: pointer;
+  font-family: var(--font-body); color: var(--cdd-text);
+  transition: background .16s;
+}
+/* Realimentación de pulsación en toda la faja: un lavado de tinta al 4%, que
+   sobre papel es lo que hace un dedo. Nada de elevación ni de halo. */
+.prensa-faja:hover { background: rgb(var(--tinta-rgb) / .04); }
+.prensa-faja:active { background: rgb(var(--tinta-rgb) / .07); }
+
+.prensa-faja .faja-cab { display: flex; align-items: center; gap: 10px; }
+.prensa-faja .faja-cab .lad {
+  font-weight: 800; font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.prensa-faja .faja-cab .filete { flex: 1; border-top: 1px solid var(--line-strong); }
+.prensa-faja .faja-cab .ver {
+  flex: none; font-weight: 800; font-size: 10px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--rojo); white-space: nowrap;
+}
+
+.prensa-faja .faja-dato { display: flex; align-items: baseline; gap: 9px; }
+.prensa-faja .faja-dato .pos {
+  font-family: var(--font-display); font-weight: 900; font-size: 38px; line-height: .95;
+  letter-spacing: -.02em; color: var(--gold);
+}
+.prensa-faja .faja-dato .de {
+  font-family: var(--font-display); font-style: italic; font-size: 13px; color: var(--cdd-muted);
+}
+/* Puesto aún desconocido: la raya ocupa el mismo alto que la cifra (misma
+   familia y cuerpo) y se pinta en tinta apagada. Reserva el sitio sin fingir
+   un dato ni montar un esqueleto animado por medio segundo. */
+.prensa-faja .faja-dato .pos--pendiente { color: var(--line); }
+/* El movimiento se va al margen derecho: es una anotación al dato, no parte de
+   él. Subir = verde del veredicto (acierto); bajar = tinta apagada y NO rojo —
+   la pérdida informa, no alarma (el rojo es del fallo y de las llamadas). */
+.prensa-faja .faja-dato .mov {
+  margin-left: auto; flex: none; font-weight: 700; font-size: 11px; letter-spacing: .02em;
+}
+.prensa-faja .faja-dato .mov--up { color: var(--verde); }
+.prensa-faja .faja-dato .mov--down { color: var(--cdd-muted); }
+.prensa-faja .faja-dato .mov--hold,
+.prensa-faja .faja-dato .mov--new { color: var(--cdd-muted); font-style: italic; font-weight: 600; }
+
+/* Variante sin puesto: una línea de invitación en cursiva, sin bloque de
+   cifras vacío. Ocupa la mitad de alto que la versión con puesto — el que aún
+   no compite no merece que le quiten fold por una tabla que no le habla. */
+.prensa-faja .faja-invita {
+  font-family: var(--font-display); font-style: italic; font-size: 14px;
+  line-height: 1.35; color: var(--cdd-text);
+}
+
+/* ── La faja fina (pegada) ──
+   Cuando la portada se va con el scroll, el acceso al ranking se queda pegado
+   arriba a la izquierda. Comparte chasis con el «recorte» de la foto
+   (.cdd-peek): papel, filete de tinta, misma sombra, misma entrada y mismo
+   offset superior — se leen como una pareja, "lo que miras" a la derecha y
+   "dónde vas" a la izquierda.
+
+   `left` se ancla al borde del pliego (max-width 560px → 280px a cada lado del
+   centro) en pantallas anchas, y a 12px del borde en móvil. El `max-width`
+   reserva los 104px del recorte + su margen para que jamás se solapen. */
+.prensa-faja-mini {
+  position: fixed; z-index: 50;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: max(12px, calc(50vw - 280px));
+  max-width: calc(100% - 140px);
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 0;
+  background: var(--surface); color: var(--cdd-text); cursor: pointer;
+  box-shadow: 0 12px 24px var(--line-2);
+  font-family: var(--font-body); font-weight: 700; font-size: 9.5px;
+  letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
+  animation: cddPeekIn .22s cubic-bezier(.16, 1, .3, 1);
+}
+.prensa-faja-mini .lad { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.prensa-faja-mini .pos {
+  flex: none; font-size: 13px; font-weight: 800; letter-spacing: 0;
+  text-transform: none; color: var(--gold);
+}
+.prensa-faja-mini .mov { flex: none; letter-spacing: 0; text-transform: none; }
+.prensa-faja-mini .mov--up { color: var(--verde); }
+.prensa-faja-mini .mov--down { color: var(--cdd-muted); }
+.prensa-faja-mini .ver { flex: none; color: var(--rojo); }
+.prensa-faja-mini .chev { flex: none; color: var(--cdd-muted); font-size: 13px; letter-spacing: 0; }
+.prensa-faja-mini:hover { border-color: var(--rojo); }
+.prensa-faja-mini:active { transform: scale(.97); }
+/* En el pliego ancho el recorte se oculta (la foto es la columna central y no
+   se pierde de vista), así que aquí la faja fina recupera todo su ancho. */
+/* En el pliego el ancho útil sube a 1260px, así que la faja fina se reancla a
+   ESE borde: con el cálculo de móvil (280 = medio pliego estrecho) acababa
+   flotando sobre la columna central en vez de en el margen. */
+@media (min-width: 1100px) {
+  .prensa-faja-mini { max-width: none; left: max(12px, calc(50vw - 630px)); }
+  /* En el pliego la cabecera ocupa las tres columnas: empujar el movimiento al
+     margen derecho abriría un vacío de casi un metro entre "de 128 lectores" y
+     "▲2 desde ayer", y dejarían de leerse como una sola frase. Aquí se queda
+     pegado al dato. */
+  .prensa-faja .faja-dato .mov { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prensa-faja-mini { animation: none; }
+  .prensa-faja-mini:active { transform: none; }
+}
 
 /* ── Ladillos de sección: versalitas + filete que llena la línea ── */
 .prensa-ladillo {

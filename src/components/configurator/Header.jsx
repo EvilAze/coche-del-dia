@@ -1,17 +1,22 @@
 // src/components/configurator/Header.jsx
 // Cabecera de periódico (rediseño «Prensa del motor»): topbar de enlaces en
-// versalitas (GARAJE/RANKING a la izquierda; racha o CTA de competir + perfil
-// a la derecha), masthead con el nombre del diario y su lema, y folio con la
-// fecha completa entre filetes dobles. Sustituye a la barra de iconos del
-// sistema Platino: en un periódico las secciones se NOMBRAN, no se iconizan —
-// y de paso el texto es más descubrible que un glifo (auditoría UX previa).
+// versalitas (archivo a la izquierda; perfil y tema a la derecha), masthead con
+// el nombre del diario y su lema, folio con la fecha completa entre filetes
+// dobles y, cerrando la portada, la FAJA DE CLASIFICACIÓN. Sustituye a la barra
+// de iconos del sistema Platino: en un periódico las secciones se NOMBRAN, no
+// se iconizan — y de paso el texto es más descubrible que un glifo (auditoría
+// UX previa).
+//
+// El ranking NO está en la topbar: era una palabra entre iguales y ahora es una
+// sección con su propio bloque (ver FajaClasificacion.jsx). La barra se queda
+// con lo secundario a propósito.
 
 import { useEffect, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { useTheme } from "../../lib/theme";
 import { getCurrentSeason } from "../../lib/statsService";
-import { rankMovement } from "../../lib/rankMovement";
+import FajaClasificacion from "./FajaClasificacion";
 
 // Glifos del toggle de tema (mismo trazo 1.6 y caja 24 que los iconos del
 // juego). Luna en día (invita a la noche); sol en noche (vuelve al día).
@@ -35,6 +40,7 @@ function SunGlyph() {
 
 export default function Header({
   rank = null, // { rank, total, delta } | null — puesto de temporada del logueado
+  rankCargando = false, // aún no sabemos el puesto (≠ "no tiene puesto")
   user,
   repescaAlert = false,
   onOpenProfile,
@@ -93,22 +99,11 @@ export default function Header({
   });
   const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
 
-  const hasRank = Boolean(rank && rank.rank > 0);
-
-  // Movimiento del puesto vs ayer (misma lógica pura que el «parte» del final de
-  // partida). Solo pintamos flecha en un cambio REAL de puesto: 'hold'/'new' no
-  // llevan glifo (una flecha en 0 sería ruido). El delta ya viaja en el objeto
-  // rank { rank, total, delta, isNew } desde getMySeasonRank — no pedimos nada.
-  const rm = hasRank ? rankMovement(rank) : null;
-  let mov = null;
-  if (rm && rm.kind === "up") mov = { dir: "up", glyph: "▲", n: rm.n };
-  else if (rm && rm.kind === "down") mov = { dir: "down", glyph: "▼", n: rm.n };
-
-  const rankAria = hasRank ? t("cdd.rankAria", { rank: rank.rank }) : t("cdd.competeAria");
-
   return (
     <header className="prensa-area-cab">
-      <nav className="prensa-topbar" aria-label={t("cdd.competeAria")}>
+      {/* El aria-label ya no puede ser «únete al ranking»: esa era la promesa de
+          la barra cuando el ranking vivía en ella. Ahora es navegación a secas. */}
+      <nav className="prensa-topbar" aria-label={t("prensa.navAria")}>
         <span>
           <button
             type="button"
@@ -119,37 +114,12 @@ export default function Header({
             {/* Repesca pendiente: "(1)" rojo, como correcciones por publicar */}
             {repescaAlert && <span className="aviso" aria-hidden="true">(1)</span>}
           </button>
-          <span className="sep" aria-hidden="true">·</span>
-          {/* RANKING es la palanca de retención: su acceso debe ser lo MÁS fácil de
-              la barra, así que es la sección con más presencia. La palabra va en
-              tinta plena y su valor —tu puesto— se cuelga en oro a mayor cuerpo
-              (etiquetado por la sección, sin ambigüedad ni caja) con el movimiento
-              vs ayer. Todo el conjunto es un único objetivo táctil que abre el
-              ranking. Sin puesto (nuevo/anónimo): «RANKING →» en rojo, la única
-              llamada de la barra, a quien más le importa descubrirlo. */}
-          {hasRank ? (
-            <button
-              type="button"
-              className="rk"
-              aria-label={rankAria}
-              onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
-            >
-              {t("prensa.ranking")}
-              <span className="pos">{rank.rank}º</span>
-              {mov && (
-                <span className={"mov mov--" + mov.dir} aria-hidden="true">{mov.glyph}{mov.n}</span>
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="rk rk--cta"
-              aria-label={t("cdd.competeAria")}
-              onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
-            >
-              {t("prensa.ranking")} →
-            </button>
-          )}
+          {/* RANKING ya no vive aquí: ascendió de enlace a SECCIÓN y es la faja
+              de más abajo. Mantenerlo además en esta fila sería un segundo
+              acceso al mismo destino compitiendo con el primero — y lo que le
+              faltaba al ranking no era otra puerta, era dejar de ser una
+              palabra entre iguales. La barra se queda con lo secundario, que es
+              justo lo que la hace callar para que hable la faja. */}
         </span>
         <span>
           <button
@@ -196,6 +166,16 @@ export default function Header({
         <span aria-hidden="true">·</span>
         <span className="rojo">{t("prensa.folioEdicion")}</span>
       </div>
+
+      {/* La clasificación cierra la portada: es lo último que se lee antes de
+          la foto del día, en el sitio donde un periódico pone su recuadro de
+          resultados. Se monta SIEMPRE — con puesto muestra la cifra; sin él,
+          una línea de invitación. */}
+      <FajaClasificacion
+        rank={rank}
+        cargando={rankCargando}
+        onOpenRanking={onOpenRanking}
+      />
     </header>
   );
 }

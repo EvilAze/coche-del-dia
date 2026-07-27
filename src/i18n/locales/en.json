@@ -171,7 +171,15 @@
     "garaje": "Archive",
     "ranking": "Standings",
     "perfil": "Profile",
-    "entrar": "Sign in"
+    "entrar": "Sign in",
+    "navAria": "Sections",
+    "fajaLadillo": "The standings",
+    "fajaLadilloCorto": "Standings",
+    "fajaVer": "See",
+    "fajaAyer": "since yesterday",
+    "fajaHold": "No change",
+    "fajaNueva": "New entry",
+    "fajaInvita": "Win today and you're on the board"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",

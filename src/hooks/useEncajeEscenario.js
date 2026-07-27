@@ -105,12 +105,21 @@ export function useEncajeEscenario({ fotoRef, jugarRef, hojaRef, activo }) {
   // Barra de gestos del sistema. Se mide una vez al montar y se refresca al
   // girar; no cambia por nada más.
   const franjaRef = useRef(0);
+  // Pestillo de rendición: si al aplicar el cap el marco NO acaba midiendo lo
+  // que pedimos, dejamos de capar para siempre en esta sesión. Existe porque
+  // este hook ya rompió una vez de la peor manera posible: un `margin-inline:
+  // auto` desactivó el estirado del ítem flex, el escenario colapsó a su ancho
+  // intrínseco —cero, porque la foto va posicionada en absoluto— y la foto del
+  // día se sirvió como una miniatura de 24px. Ante la duda, mejor sin encaje
+  // (el botón se ve al hacer un scroll corto) que sin foto (no hay juego).
+  const rendidoRef = useRef(false);
 
   const medir = useCallback(() => {
     const foto = fotoRef.current;
     const jugar = jugarRef.current;
     const hoja = hojaRef.current;
     if (!foto || !jugar || !hoja) return;
+    if (rendidoRef.current) return;
 
     if (window.matchMedia(PLIEGO).matches) {
       if (ultimoRef.current !== null) {
@@ -130,6 +139,17 @@ export function useEncajeEscenario({ fotoRef, jugarRef, hojaRef, activo }) {
     const rFoto = foto.getBoundingClientRect();
     const rMarco = marco.getBoundingClientRect();
     const rJugar = jugar.getBoundingClientRect();
+
+    // Comprobación de cordura: si ya hay un cap puesto, el marco tiene que
+    // medirlo. Si mide MUCHO menos, el cap no se está aplicando como creemos
+    // (una regla que gana por cascada, un ítem flex que deja de estirarse…) y
+    // lo único sensato es soltarlo y no volver a intentarlo. Ver `rendidoRef`.
+    if (ultimoRef.current != null && rMarco.width < ultimoRef.current * 0.6) {
+      rendidoRef.current = true;
+      ultimoRef.current = null;
+      setMaxAncho(null);
+      return;
+    }
 
     // Lo que ocupa la sección de la foto SIN el marco: el ladillo de arriba y
     // el pie con los pips. No depende del cap, así que la resta es estable

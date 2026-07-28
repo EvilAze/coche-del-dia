@@ -37,22 +37,6 @@ import { componerTarjetaOG } from "./_lib/og-card.js";
 // Intento cuyo encuadre se publica. 1 = el más cerrado. Ver la nota de arriba.
 const INTENTO = 1;
 
-// Meses en español para el antetítulo. Sin Intl a propósito: el runtime de
-// Vercel no siempre trae los datos de locale completos (full-icu), y un
-// "28 de July" en la portada sería peor que no poner fecha.
-const MESES = [
-  "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-  "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE",
-];
-
-/** "2026-07-28" → "28 DE JULIO". Cabe en el antetítulo sin chocar con el dominio. */
-function kickerDeFecha(iso) {
-  const [, mes, dia] = String(iso).split("-");
-  const m = MESES[parseInt(mes, 10) - 1];
-  if (!m) return "EDICIÓN DIARIA";
-  return `${parseInt(dia, 10)} DE ${m}`;
-}
-
 /**
  * Segundos que faltan para la medianoche de Madrid. Es la vida útil exacta de
  * esta tarjeta: a las 00:00 hay coche nuevo y la de hoy deja de ser cierta.
@@ -144,7 +128,7 @@ export default async function handler(req, res) {
     const foto = await recorte.toBuffer();
 
     // 5) La portada.
-    const tarjeta = await componerTarjetaOG(foto, { kicker: kickerDeFecha(hoy) });
+    const tarjeta = await componerTarjetaOG(foto);
 
     // 6) Cache hasta la medianoche de Madrid, que es cuando deja de ser cierta.
     //    Las plataformas sociales cachean por su cuenta y de forma bastante

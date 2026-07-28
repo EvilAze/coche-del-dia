@@ -1,43 +1,75 @@
 // scripts/generate-og-image.mjs
 //
-// Genera public/og-image.jpg (1200×630): el RESPALDO estático de la tarjeta
-// Open Graph.
+// Pre-renderiza las dos piezas fijas de la tarjeta Open Graph. **Hay que
+// ejecutarlo en una máquina con fuentes de verdad** (tu portátil), nunca
+// confiando en que las tenga el servidor — que fue exactamente el fallo que
+// sacó la tarjeta con las letras convertidas en cajitas. Ver la nota larga de
+// api/_lib/og-card.js.
 //
-// Ya no es la tarjeta que se publica. Desde jul-2026 el og:image apunta a
-// /api/og-image, que compone la misma portada con el recorte del coche de HOY
-// (ver api/og-image.js). Este fichero sigue existiendo porque ese endpoint cae
-// aquí ante cualquier fallo —Supabase caído, CDN sin responder, sharp
-// petardeando— y un preview genérico es infinitamente mejor que un enlace sin
-// preview, que en un chat parece un enlace roto.
+// Produce:
+//   1. api/_lib/og-overlay.js  → la CAPA FIJA (wordmark, filetes, lema,
+//      dominio) rasterizada a PNG con transparencia donde va la foto, embebida
+//      en base64. La usa api/og-image.js en cada petición para componer la
+//      tarjeta viva sin dibujar una sola letra en el servidor.
+//   2. public/og-image.jpg     → el RESPALDO estático completo, con la foto de
+//      splash. /api/og-image cae aquí con un 302 ante cualquier fallo
+//      (regla 9): un preview genérico es mejor que un enlace sin preview, que
+//      en un chat parece roto.
 //
-// La COMPOSICIÓN vive en api/_lib/og-card.js, compartida con el endpoint: si se
-// rediseña la tarjeta, se rediseña en un solo sitio y el respaldo no se queda
-// con la piel antigua. Aquí solo queda elegir la foto base y dónde escribir.
+// Va en base64 dentro de un módulo JS y no como fichero suelto a propósito: el
+// empaquetado de funciones de Vercel sigue los imports, no los assets, así que
+// un .png en el árbol podría no viajar con la función. Un módulo importado
+// viaja siempre. El coste son unos KB en el bundle; la alternativa es un fallo
+// silencioso en producción, que es justo lo que estamos arreglando.
 //
 // Uso:
-//   node scripts/generate-og-image.mjs
+//   npm run og:build
 //
-// Idempotente: sobrescribe el output cada vez. Versiona el archivo generado
-// (public/og-image.jpg) en git — es un respaldo, tiene que estar desplegado
-// aunque nadie regenere nada.
+// Idempotente. Ambos artefactos se versionan en git.
 
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { componerTarjetaOG, W, H } from "../api/_lib/og-card.js";
+import sharp from "sharp";
+import { construirOverlaySvg, W, H } from "../api/_lib/og-card.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const BASE = resolve(ROOT, "public/splash-car.jpg");
-const OUT = resolve(ROOT, "public/og-image.jpg");
+const OUT_OVERLAY = resolve(ROOT, "api/_lib/og-overlay.js");
+const OUT_JPG = resolve(ROOT, "public/og-image.jpg");
 
 async function generate() {
-  // Sin `kicker`: el respaldo se queda con el "EDICIÓN DIARIA" genérico. La
-  // fecha solo la pone la tarjeta viva, que es la única que sabe de qué día
-  // está hablando.
+  // 1) La capa fija. Rasterizamos el SVG AQUÍ, donde hay fuentes.
+  const png = await sharp(Buffer.from(construirOverlaySvg()))
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+
+  const modulo = `// api/_lib/og-overlay.js
+// GENERADO — no editar a mano. Se regenera con: npm run og:build
+//
+// La capa fija de la tarjeta Open Graph (${W}×${H}), ya rasterizada: wordmark,
+// filetes, lema y dominio, con el hueco de la foto transparente. Viene en
+// píxeles y no en SVG porque el runtime de Vercel no tiene fuentes y dibujar
+// texto allí produce tofu. El porqué completo, en api/_lib/og-card.js.
+export const OVERLAY_PNG_BASE64 =
+  "${png.toString("base64")}";
+`;
+  await writeFile(OUT_OVERLAY, modulo, "utf8");
+  console.log(`✓ ${OUT_OVERLAY} (${Math.round(png.length / 1024)} KB de PNG)`);
+
+  // 2) El respaldo estático completo, compuesto con la misma función que usa
+  //    el endpoint — así el respaldo no puede quedarse con una piel antigua.
+  //
+  //    Import DINÁMICO y con cache-buster a propósito: og-card.js importa la
+  //    capa que acabamos de reescribir dos líneas más arriba, y un import
+  //    estático se habría resuelto al arrancar el script, con la capa VIEJA.
+  //    El respaldo saldría con el diseño anterior y nadie lo notaría hasta que
+  //    fallara el endpoint, que es el peor momento para descubrirlo.
+  const { componerTarjetaOG } = await import(`../api/_lib/og-card.js?v=${Date.now()}`);
   const tarjeta = await componerTarjetaOG(BASE);
-  await writeFile(OUT, tarjeta);
-  console.log(`✓ Generada ${OUT} (${W}×${H})`);
+  await writeFile(OUT_JPG, tarjeta);
+  console.log(`✓ ${OUT_JPG} (${W}×${H})`);
 }
 
 generate().catch((err) => {

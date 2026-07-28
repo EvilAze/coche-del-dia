@@ -50,7 +50,8 @@
     "check:size": "node scripts/check-bundle-size.mjs",
     "cap:sync": "vite build && node scripts/check-bundle-size.mjs && cap sync android",
     "cap:open": "cap open android",
-    "cap:assets": "capacitor-assets generate --android"
+    "cap:assets": "capacitor-assets generate --android",
+    "og:build": "node scripts/generate-og-image.mjs"
   },
   "browserslist": {
     "production": [

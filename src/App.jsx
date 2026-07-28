@@ -7,6 +7,11 @@ import LoginModal from "./components/LoginModal";
 import ModalShell from "./components/ModalShell";
 import { getMySeasonRank } from "./lib/statsService";
 import { track } from "./lib/analytics";
+import {
+  leerErrorAuth,
+  limpiarErrorAuth,
+  esIdentidadYaVinculada,
+} from "./lib/authCallback";
 import { useGame } from "./hooks/useGame";
 import { useAuthSession } from "./hooks/useAuthSession";
 import { useModalState } from "./hooks/useModalState";
@@ -66,6 +71,26 @@ export default function App() {
       // localStorage puede fallar (modo privado/iframe): sin pulso, sin drama.
     }
   }, []);
+
+  // ── VUELTA DE UN LOGIN FALLIDO ──────────────────────────────────────────
+  // Si el flujo de OAuth vuelve con error, la URL lo trae y hasta ahora no lo
+  // miraba nadie: supabase-js no encontraba tokens, la app se quedaba como
+  // estaba y el jugador veía… nada. Ese silencio es lo que convirtió un fallo
+  // concreto (vincular Google a una sesión anónima cuando esa cuenta ya es de
+  // otro usuario) en un «no funciona» imposible de diagnosticar.
+  //
+  // Se lee UNA vez al arrancar, se limpia la URL —si no, recargar repite el
+  // aviso y el enlace queda con el error pegado— y se abre el modal de login
+  // con la explicación y la salida.
+  const [avisoLogin, setAvisoLogin] = useState(null);
+  useEffect(() => {
+    const err = leerErrorAuth();
+    if (!err) return;
+    limpiarErrorAuth();
+    console.warn("[auth] vuelta con error:", err.code, err.description);
+    setAvisoLogin(esIdentidadYaVinculada(err) ? "identidad-ocupada" : "generico");
+    setActiveModal("login");
+  }, [setActiveModal]);
 
   // Detecta si venimos de repesca con ?garage=true y abre el garaje automáticamente
   useEffect(() => {
@@ -445,7 +470,11 @@ export default function App() {
       />
 
 
-      <LoginModal open={activeModal === "login"} onClose={closeModal} />
+      <LoginModal
+        open={activeModal === "login"}
+        onClose={() => { setAvisoLogin(null); closeModal(); }}
+        aviso={avisoLogin}
+      />
 
       {/* Modales lazy: solo se montan tras su primera apertura (mounted.*) y,
           una vez montados, permanecen para conservar la animación de salida.

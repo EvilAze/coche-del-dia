@@ -36,6 +36,8 @@
     "loginModalTitle": "INICIAR SESIÓN",
     "loginModalDescription": "Guarda tus estadísticas en la nube, compite en el ranking global y juega desde cualquier dispositivo.",
     "loginError": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+    "loginLinkTakenBody": "Esa cuenta de Google ya tiene partidas guardadas. Entra con ella y seguirás donde lo dejaste — el progreso de este dispositivo sin cuenta no se puede unir a otra que ya existe.",
+    "loginFailedBody": "No se pudo completar el acceso. Vuelve a intentarlo.",
     "orSeparator": "o",
     "emailLabel": "Tu correo",
     "emailPlaceholder": "tu@correo.com",

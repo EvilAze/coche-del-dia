@@ -36,6 +36,8 @@
     "loginModalTitle": "SIGN IN",
     "loginModalDescription": "Save your stats in the cloud, compete on the global ranking and play from any device.",
     "loginError": "Couldn't sign in. Please try again.",
+    "loginLinkTakenBody": "That Google account already has saved games. Sign in with it and you'll pick up where you left off — progress from this device can't be merged into an account that already exists.",
+    "loginFailedBody": "Couldn't complete sign-in. Please try again.",
     "orSeparator": "or",
     "emailLabel": "Your email",
     "emailPlaceholder": "you@email.com",

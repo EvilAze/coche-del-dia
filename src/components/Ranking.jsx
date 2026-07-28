@@ -1,6 +1,27 @@
+// src/components/Ranking.jsx
+// LA CLASIFICACIÓN — la tabla de la temporada y el salón de campeones.
+//
+// Este modal era la última superficie grande de la web pública que seguía
+// montada sobre el chasis anterior: tarjetas redondeadas, píldoras, pestañas
+// segmentadas sobre gris, halo pulsante en la racha y —lo que más daño hacía—
+// el puesto pintado como un `7` gris en Franklin. La faja de portada prometía
+// una cifra dorada de 38px en Fraunces y al tocarla aparecía otra cosa: el
+// reconocimiento no se rompía al salir, se rompía al LLEGAR.
+//
+// Ahora es un recuadro de resultados de periódico: ladillo con filete, doble
+// filete de cierre, cifras en Fraunces tabulares, sellos en vez de píldoras y
+// el mismo marcador de puesto (PuestoCifra) que la faja, la faja fina y el
+// parte del final de partida.
+//
+// LA CONTINUIDAD: lo primero bajo el ladillo es TU puesto, en el mismo glifo
+// que acabas de tocar. Se pinta antes de que llegue la tabla (el dato ya lo
+// tiene App.jsx), así que el modal abre enseñando lo que el jugador venía a
+// ver, no un «Cargando ranking...».
+
 import { useEffect, useState } from "react";
 import { getSeasonLeaderboard, getCurrentSeason, getChampions } from "../lib/statsService";
 import { daysUntilClose } from "../lib/season";
+import { rankMovement } from "../lib/rankMovement";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
@@ -8,49 +29,19 @@ import ModalShell from "./ModalShell";
 import AchievementIcon from "./AchievementIcons";
 import ScoringHelpModal from "./ScoringHelpModal";
 import PublicProfile from "./PublicProfile";
+import PuestoCifra, { tonoPorPuesto, ordinal } from "./PuestoCifra";
 import { track } from "../lib/analytics";
-import { TIER_HEX } from "../lib/collectionTier";
-
-function HelpButton({ onClick }) {
-  const { t } = useT();
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={t("ranking.helpButtonAria")}
-      title={t("ranking.helpButtonAria")}
-      className="
-        flex h-7 w-7 shrink-0 items-center justify-center
-        rounded-full border border-border bg-bg-tertiary
-        text-muted-foreground transition
-        hover:border-mint/60 hover:bg-mint/10 hover:text-mint
-        active:scale-90
-      "
-    >
-      <svg
-        className="h-3.5 w-3.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2.5-3 4.5" />
-        <path d="M12 18h.01" />
-      </svg>
-    </button>
-  );
-}
 
 function getStreakDisplay(streak) {
   if (!streak || streak < 2) return null;
-  if (streak >= 4) return { icon: "blaze", bonus: "+3", onFire: true };
-  if (streak === 3) return { icon: "spark_double", bonus: "+2", onFire: false };
-  return { icon: "spark", bonus: "+1", onFire: false };
+  if (streak >= 4) return { icon: "blaze", bonus: "+3" };
+  if (streak === 3) return { icon: "spark_double", bonus: "+2" };
+  return { icon: "spark", bonus: "+1" };
 }
 
+// La racha, en oro viejo y quieta. Antes latía (`animate-pulse`) y venía en el
+// menta del tema anterior: sobre papel, un halo que respira no existe — y el
+// bonus de racha es justo lo que el oro significa, «esto vale algo».
 function StreakBadge({ streak }) {
   const { t } = useT();
   const display = getStreakDisplay(streak);
@@ -58,36 +49,86 @@ function StreakBadge({ streak }) {
 
   return (
     <span
-      className={`
-        inline-flex shrink-0 items-center gap-1 leading-none
-        ${display.onFire ? "animate-pulse" : ""}
-      `}
+      className="inline-flex shrink-0 items-center gap-1 leading-none"
       title={t("ranking.streakTitle", { count: streak })}
       aria-label={t("ranking.streakAria", { count: streak, bonus: display.bonus })}
     >
-      <AchievementIcon name={display.icon} size="h-4 w-4" color="text-mint" />
-      <span className="text-xs font-semibold text-mint">
-        {display.bonus}
-      </span>
+      <AchievementIcon name={display.icon} size="h-4 w-4" color="text-oro-viejo" />
+      <span className="font-body text-[11px] font-bold text-oro-viejo">{display.bonus}</span>
     </span>
   );
 }
 
-// Puesto: el top-3 colorea el NÚMERO en oro/plata/bronce (mismos tonos que los
-// tiers del Garaje/Logros — un único idioma en toda la web), SIN redondel: el
-// disco relleno pesaba demasiado para lo limpia que es la fila. Del #4 en
-// adelante, número en gris.
-const RANK_COLOR = { 1: TIER_HEX.gold, 2: TIER_HEX.silver, 3: TIER_HEX.bronze };
+// El sello «TÚ» de una fila: doble filete y Courier, sin rotación (en una fila
+// de tabla el sello estampado a mano se comería la línea de al lado).
+function SelloYo() {
+  const { t } = useT();
+  return <span className="pm-sello pm-sello--plano rank-yo">{t("ranking.you")}</span>;
+}
 
-function RankMarker({ rank }) {
-  const color = RANK_COLOR[rank];
+// El bloque de puntos de una fila: cifra en Fraunces tabular + su etiqueta.
+function Puntos({ value, destacado = false }) {
+  const { t } = useT();
   return (
-    <span
-      className={`text-lg font-bold tabular-nums ${color ? "" : "text-muted-foreground"}`}
-      style={color ? { color } : undefined}
+    <div className="text-right">
+      <div
+        className={
+          "font-display text-xl font-black leading-none tabular-nums " +
+          (destacado ? "text-oro-viejo" : "text-tinta")
+        }
+      >
+        {value}
+      </div>
+      <div className="font-body text-[9px] uppercase tracking-[0.18em] text-tinta-2">
+        {t("ranking.points")}
+      </div>
+    </div>
+  );
+}
+
+// Una fila de la tabla — la misma en la temporada y en el salón de campeones.
+// Vive FUERA del componente a propósito: definida dentro, React la trataría como
+// un tipo nuevo en cada render y desmontaría/remontaría la tabla entera cada vez
+// que cambia cualquier estado del modal (abrir un perfil, cambiar de pestaña).
+function Fila({
+  pos, userId, nombre, puntos, sub, streak,
+  currentUserId, clicable, source, onAbrirPerfil,
+}) {
+  const isSelf = currentUserId && currentUserId === userId;
+  // Tu propia fila nunca es clicable (para verte a ti ya tienes MyStats), y los
+  // visitantes anónimos ven la tabla pero no abren perfiles ajenos.
+  const isClickable = clicable && !isSelf;
+  const RowTag = isClickable ? "button" : "div";
+  return (
+    <RowTag
+      type={RowTag === "button" ? "button" : undefined}
+      onClick={
+        RowTag === "button"
+          ? () => {
+              track("profile_view", { source });
+              onAbrirPerfil(userId);
+            }
+          : undefined
+      }
+      className={
+        "grid w-full grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] items-center gap-2 px-3 py-2.5 text-left " +
+        (isSelf ? "bg-tinta/[0.05] " : "") +
+        (RowTag === "button" ? "transition-colors hover:bg-tinta/[0.04]" : "")
+      }
     >
-      {rank}
-    </span>
+      <PuestoCifra pos={pos} size="s" tono={tonoPorPuesto(pos)} />
+
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <p className="truncate font-display text-sm font-semibold text-tinta">{nombre}</p>
+          {isSelf && <SelloYo />}
+          <StreakBadge streak={streak} />
+        </div>
+        {sub && <p className="mt-0.5 font-display text-[11px] italic text-tinta-2">{sub}</p>}
+      </div>
+
+      <Puntos value={puntos} destacado={pos === 1} />
+    </RowTag>
   );
 }
 
@@ -95,6 +136,10 @@ export default function Ranking({
   open,
   onClose,
   user,
+  // Mi puesto de temporada, el MISMO objeto que alimenta la faja de portada.
+  // Llega ya resuelto desde App.jsx: por eso la cabecera puede pintarlo sin
+  // esperar a que baje la tabla.
+  rank = null,
   onOpenLogin,
   // Logueado sin display_name: no aparece en la tabla. Se le ofrece elegir firma
   // AQUÍ, que es donde eso se nota (ver NicknameModal.jsx).
@@ -182,34 +227,78 @@ export default function Ranking({
     }
   }
 
+  // ── La cabecera de continuidad: tu puesto, en el glifo de la faja ──
+  const mv = rankMovement(rank);
+  const movText =
+    mv.kind === "up" ? tn("parte.up", mv.n)
+    : mv.kind === "down" ? tn("parte.down", mv.n)
+    : mv.kind === "hold" ? t("parte.hold")
+    : mv.kind === "new" ? t("parte.new")
+    : null;
+  const arriba = mv.kind === "unranked" ? "" : ordinal(mv.pos - 1, locale);
+  const distancia =
+    mv.kind === "unranked"
+      ? null
+      : mv.pos === 1
+      ? t("prensa.fajaLider")
+      : rank?.gap === 0
+      ? t("prensa.fajaEmpate", { pos: arriba })
+      : rank?.gap > 0
+      ? tn("prensa.fajaDistancia", rank.gap, { pos: arriba })
+      : null;
+
+  // Props comunes a todas las filas de la tabla.
+  const filaBase = {
+    currentUserId,
+    clicable: !!user,
+    onAbrirPerfil: setOpenProfileId,
+  };
+
   return (
     <>
     <ModalShell
       open={open}
       onClose={onClose}
+      label={t("ranking.tag")}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat w-full max-w-md p-6"
+      panelClassName="modal-panel-flat w-full max-w-md p-5"
     >
         {/* X anclada a la esquina de la tarjeta plana (el panel es relative). */}
-        <div className="absolute right-4 top-4 z-10">
+        <div className="absolute right-2 top-2 z-10">
           <CloseButton onClick={onClose} />
         </div>
-        <div className="mb-5 pr-10">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-mint">
-            {t("ranking.tag")}
-          </p>
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              {t("ranking.title")}
-            </h2>
-            <HelpButton onClick={() => setHelpOpen(true)} />
+
+        {/* Ladillo de sección: la MISMA palabra que la faja de portada
+            («La clasificación»), no un título distinto para el mismo sitio. */}
+        <div className="prensa-ladillo pr-10">{t("ranking.tag")}</div>
+
+        {/* Tu puesto, en el glifo que se acaba de tocar. Es la pieza de
+            continuidad: sin ella el modal empezaba por una tabla ajena. */}
+        {mv.kind !== "unranked" && (
+          <div className="rank-tuyo">
+            {/* «Tu puesto» y no «Tu posición»: esa segunda etiqueta ya marca tu
+                FILA cuando quedas fuera del top visible, y con las dos iguales
+                el modal parecía decir lo mismo dos veces. */}
+            <span className="rank-tuyo-lad">{t("ranking.yourStanding")}</span>
+            <div className="rank-tuyo-row">
+              <PuestoCifra pos={mv.pos} total={mv.total} size="l" />
+              {movText && (
+                <span className={"rank-tuyo-mov rank-tuyo-mov--" + mv.kind}>{movText}</span>
+              )}
+            </div>
+            {distancia && <p className="rank-tuyo-dist">{distancia}</p>}
           </div>
-        </div>
+        )}
 
         {/* Conmutador de pestañas: la clasificación de la temporada en curso vs
-            el SALÓN DE CAMPEONES (palmarés de temporadas cerradas). Segmentado
-            plano, coherente con la estética del modal (menta = activa). */}
-        <div className="mb-4 flex gap-1 rounded-lg border border-border bg-bg-tertiary p-1">
+            el SALÓN DE CAMPEONES (palmarés de temporadas cerradas). Versalitas
+            con filete rojo bajo la activa — el segmentado con fondo gris era
+            vocabulario de app, no de periódico. */}
+        <div className="rank-tabs">
+          {/* `aria-pressed` y no el patrón role="tablist"/"tab": ese exige
+              paneles con aria-controls y navegación por flechas, y aquí son dos
+              botones que reemplazan el contenido. Un patrón ARIA a medias
+              confunde más al lector de pantalla que no ponerlo. */}
           {[["temporada", t("ranking.tabSeason")], ["campeones", t("ranking.tabChampions")]].map(
             ([id, lbl]) => (
               <button
@@ -217,43 +306,39 @@ export default function Ranking({
                 type="button"
                 onClick={() => selectView(id)}
                 aria-pressed={view === id}
-                className={`
-                  flex-1 rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition
-                  ${view === id ? "bg-mint/15 text-mint" : "text-muted-foreground hover:text-foreground"}
-                `}
+                className={"rank-tab" + (view === id ? " rank-tab--activa" : "")}
               >
                 {lbl}
               </button>
             )
           )}
+          <button type="button" className="rank-ayuda" onClick={() => setHelpOpen(true)}>
+            {t("ranking.helpButtonAria")}
+          </button>
         </div>
 
         {view === "temporada" && (
         <>
         {/* Banner de la temporada en curso: número + tema + countdown de cierre.
-            El oro marca el momento premium (el campeonato es "valioso"). Sin
-            temporada activa no se pinta. */}
+            Cabecera de sección de periódico (versalitas en oro sobre doble
+            filete), no una tarjeta con esquinas redondeadas. */}
         {season &&
           (() => {
             const d = daysUntilClose(season.ends_at);
             const label = locale === "en" ? season.label_en : season.label_es;
             return (
-              <div className="mb-4 rounded-xl border border-gold/40 bg-gold/[0.06] px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold/80">
-                      {t("ranking.seasonKicker", { n: season.number })}
-                    </p>
-                    <p className="truncate text-lg font-semibold text-foreground">
-                      {label}
-                    </p>
-                  </div>
-                  {d != null && (
-                    <span className="shrink-0 rounded-full border border-gold/40 px-2.5 py-1 text-[11px] font-semibold text-gold">
-                      {d <= 0 ? t("ranking.closesToday") : tn("ranking.closesIn", d)}
-                    </span>
-                  )}
+              <div className="rank-temporada">
+                <div className="min-w-0">
+                  <p className="rank-temporada-kicker">
+                    {t("ranking.seasonKicker", { n: season.number })}
+                  </p>
+                  <p className="rank-temporada-tema">{label}</p>
                 </div>
+                {d != null && (
+                  <span className="rank-temporada-cierre">
+                    {d <= 0 ? t("ranking.closesToday") : tn("ranking.closesIn", d)}
+                  </span>
+                )}
               </div>
             );
           })()}
@@ -273,21 +358,21 @@ export default function Ranking({
         )}
 
         {state.loading ? (
-          <p className="text-sm text-muted-foreground">{t("ranking.loading")}</p>
+          <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
         ) : state.error ? (
-          <p className="text-sm text-red-400">{state.error}</p>
+          <p className="py-3 font-display text-sm text-rojo">{state.error}</p>
         ) : state.players.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("ranking.emptySeason")}
-          </p>
+          <p className="pm-body py-3 text-sm">{t("ranking.emptySeason")}</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border">
+          <div className="rank-tabla">
+            {/* El `pr` extra cuando la tabla scrollea compensa el ancho de la
+                barra: la cabecera vive FUERA del contenedor con scroll, y sin
+                esto la columna de puntos quedaba 6px desalineada de sus cifras. */}
             <div
-              className={`
-                grid grid-cols-[1.75rem_minmax(0,1fr)_5rem] bg-bg-tertiary
-                px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground
-                ${user && state.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : ""}
-              `}
+              className={
+                "rank-cabecera grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] gap-2 px-3 py-2 " +
+                (user && state.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : "")
+              }
             >
               <span>{t("ranking.colRank")}</span>
               <span>{t("ranking.colPlayer")}</span>
@@ -296,141 +381,68 @@ export default function Ranking({
 
             <div
               className={`
-                relative
-                ${user ? "divide-y divide-border" : ""}
+                relative divide-y divide-border
                 ${user && state.players.length > 5 ? "scrollbar-premium max-h-[22rem] overflow-y-auto" : ""}
                 ${!user && state.players.length > 3 ? "max-h-[17.9rem] overflow-hidden sm:max-h-[19rem]" : ""}
               `}
             >
-              {state.players.map((player, index) => {
-                // Solo usuarios LOGUEADOS pueden abrir perfiles ajenos. Para
-                // visitantes anónimos el ranking es informativo pero no
-                // interactivo. Además: tu propia fila nunca es clicable (tienes
-                // MyStats para verte a ti).
-                const isSelf = currentUserId && currentUserId === player.userId;
-                const isClickable = !!user && !isSelf;
-                const RowTag = isClickable ? "button" : "div";
-                return (
-                  <RowTag
-                    key={player.userId}
-                    type={RowTag === "button" ? "button" : undefined}
-                    onClick={
-                      RowTag === "button"
-                        ? () => {
-                            track("profile_view", { source: "ranking" });
-                            setOpenProfileId(player.userId);
-                          }
-                        : undefined
-                    }
-                    className={`
-                      grid w-full grid-cols-[1.75rem_minmax(0,1fr)_4.25rem]
-                      items-center px-3 py-2.5 text-left
-                      ${isSelf ? "bg-mint/[0.07]" : "bg-transparent"}
-                      ${!user && index < 2 ? "border-b border-border" : ""}
-                      ${!user && index === 3 ? "border-t border-border" : ""}
-                      ${RowTag === "button" ? "transition hover:bg-papel-2/60 active:scale-[0.99]" : ""}
-                    `}
-                    style={
-                      !user && index > 2
-                        ? {
-                            filter: "blur(1.2px)",
-                            opacity: 0.62,
-                          }
-                        : undefined
-                    }
-                  >
-                    <div className="flex items-center">
-                      <RankMarker rank={player.rank} />
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {player.displayName}
-                        </p>
-                        {isSelf && (
-                          <span className="shrink-0 rounded-full bg-mint px-1.5 py-px font-mono text-[8.5px] font-bold uppercase tracking-wider text-mint-foreground">
-                            {t("ranking.you")}
-                          </span>
-                        )}
-                        <StreakBadge streak={player.currentStreak} />
-                      </div>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {t("ranking.seasonWins", { value: player.totalWins })}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <div className={`text-xl font-bold leading-none tabular-nums ${player.rank === 1 ? "text-gold" : "text-foreground"}`}>
-                        {player.totalPoints}
-                      </div>
-                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                        {t("ranking.points")}
-                      </div>
-                    </div>
-                  </RowTag>
-                );
-              })}
+              {state.players.map((player, index) => (
+                <div
+                  key={player.userId}
+                  // El velo del anónimo: de la 4ª fila en adelante el dato se
+                  // desenfoca. No es adorno — es la razón de existir del CTA de
+                  // abajo, y por eso el desenfoque va aquí y no en el CSS de la
+                  // fila (que es compartida con campeones).
+                  style={
+                    !user && index > 2 ? { filter: "blur(1.2px)", opacity: 0.62 } : undefined
+                  }
+                >
+                  <Fila
+                    {...filaBase}
+                    source="ranking"
+                    pos={player.rank}
+                    userId={player.userId}
+                    nombre={player.displayName}
+                    puntos={player.totalPoints}
+                    sub={t("ranking.seasonWins", { value: player.totalWins })}
+                    streak={player.currentStreak}
+                  />
+                </div>
+              ))}
 
               {!user && state.players.length > 3 && (
-                <>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-papel/80 to-papel" />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-papel/88 to-papel sm:hidden" />
-                </>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-papel/80 to-papel" />
               )}
             </div>
 
+            {/* Fuera del top visible: tu fila se fija al pie de la tabla, con
+                doble filete de por medio (es un aparte, no la fila siguiente). */}
             {selfRow && selfRow.rank > 5 && (
-              <div className="border-t border-border-strong">
-                <p className="px-3 pb-1 pt-2 text-center text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
-                  {t("ranking.yourPosition")}
-                </p>
-                <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_4.25rem] items-center bg-mint/[0.07] px-3 py-2.5 text-left">
-                  <div className="flex items-center">
-                    <RankMarker rank={selfRow.rank} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-1.5">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {selfRow.displayName}
-                      </p>
-                      <span className="shrink-0 rounded-full bg-mint px-1.5 py-px font-mono text-[8.5px] font-bold uppercase tracking-wider text-mint-foreground">
-                        {t("ranking.you")}
-                      </span>
-                      <StreakBadge streak={selfRow.currentStreak} />
-                    </div>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {t("ranking.seasonWins", { value: selfRow.totalWins })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xl font-bold leading-none tabular-nums text-foreground">
-                      {selfRow.totalPoints}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {t("ranking.points")}
-                    </div>
-                  </div>
-                </div>
+              <div className="arch-filete">
+                <p className="rank-tuposicion">{t("ranking.yourPosition")}</p>
+                <Fila
+                  {...filaBase}
+                  clicable={false}
+                  pos={selfRow.rank}
+                  userId={selfRow.userId}
+                  nombre={selfRow.displayName}
+                  puntos={selfRow.totalPoints}
+                  sub={t("ranking.seasonWins", { value: selfRow.totalWins })}
+                  streak={selfRow.currentStreak}
+                />
               </div>
             )}
 
             {!user && state.players.length > 3 && (
-              <div className="bg-gradient-to-b from-black/5 to-black/40 p-4">
-                <p className="text-center text-sm text-muted-foreground">
-                  {t("ranking.loginPrompt")}
-                </p>
+              <div className="border-t border-border-strong p-4">
+                <p className="pm-body text-center text-sm">{t("ranking.loginPrompt")}</p>
                 <button
                   type="button"
                   onClick={() => {
                     onClose();
                     onOpenLogin?.();
                   }}
-                  className="
-                    mt-3 w-full rounded-lg border border-mint/60 bg-mint/10 px-4 py-2.5
-                    text-xs font-semibold uppercase tracking-wide text-mint
-                    transition hover:bg-mint/20 active:scale-[0.98]
-                  "
+                  className="pm-btn mt-3"
                 >
                   {t("ranking.loginCta")}
                 </button>
@@ -441,16 +453,16 @@ export default function Ranking({
         </>
         )}
 
-        {/* SALÓN DE CAMPEONES: temporadas cerradas con su podio 🥇🥈🥉. Los datos
-            ya se sellaban en season_podium al cerrar cada temporada; esto es la
-            vista que faltaba. Filas clicables al perfil igual que la temporada. */}
+        {/* SALÓN DE CAMPEONES: temporadas cerradas con su podio. Los datos ya se
+            sellaban en season_podium al cerrar cada temporada; esto es la vista
+            que faltaba. Filas clicables al perfil igual que la temporada. */}
         {view === "campeones" &&
           (champions.loading ? (
-            <p className="text-sm text-muted-foreground">{t("ranking.loading")}</p>
+            <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
           ) : champions.error ? (
-            <p className="text-sm text-red-400">{champions.error}</p>
+            <p className="py-3 font-display text-sm text-rojo">{champions.error}</p>
           ) : champions.seasons.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("ranking.championsEmpty")}</p>
+            <p className="pm-body py-3 text-sm">{t("ranking.championsEmpty")}</p>
           ) : (
             <div className="scrollbar-premium max-h-[26rem] space-y-4 overflow-y-auto pr-1">
               {champions.seasons.map((s) => {
@@ -465,72 +477,28 @@ export default function Ranking({
                   when = "";
                 }
                 return (
-                  <div key={s.number} className="overflow-hidden rounded-xl border border-border">
-                    <div className="border-b border-border bg-bg-tertiary px-3 py-2">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold/80">
+                  <div key={s.number} className="rank-tabla">
+                    <div className="rank-temporada rank-temporada--palmares">
+                      <div className="min-w-0">
+                        <p className="rank-temporada-kicker">
                           {t("ranking.seasonKicker", { n: s.number })}
                         </p>
-                        {when && (
-                          <p className="shrink-0 text-[10px] text-muted-foreground">{when}</p>
-                        )}
+                        <p className="rank-temporada-tema">{label}</p>
                       </div>
-                      <p className="truncate text-sm font-semibold text-foreground">{label}</p>
+                      {when && <span className="rank-temporada-fecha">{when}</span>}
                     </div>
-                    <div className={user ? "divide-y divide-border" : ""}>
-                      {s.podium.map((c) => {
-                        const isSelf = currentUserId && currentUserId === c.userId;
-                        const isClickable = !!user && !isSelf;
-                        const RowTag = isClickable ? "button" : "div";
-                        return (
-                          <RowTag
-                            key={c.rank}
-                            type={RowTag === "button" ? "button" : undefined}
-                            onClick={
-                              RowTag === "button"
-                                ? () => {
-                                    track("profile_view", { source: "champions" });
-                                    setOpenProfileId(c.userId);
-                                  }
-                                : undefined
-                            }
-                            className={`
-                              grid w-full grid-cols-[1.75rem_minmax(0,1fr)_4.25rem]
-                              items-center px-3 py-2.5 text-left
-                              ${isSelf ? "bg-mint/[0.07]" : "bg-transparent"}
-                              ${RowTag === "button" ? "transition hover:bg-papel-2/60 active:scale-[0.99]" : ""}
-                            `}
-                          >
-                            <div className="flex items-center">
-                              <RankMarker rank={c.rank} />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex min-w-0 items-center gap-1.5">
-                                <p className="truncate text-sm font-medium text-foreground">
-                                  {c.displayName}
-                                </p>
-                                {isSelf && (
-                                  <span className="shrink-0 rounded-full bg-mint px-1.5 py-px font-mono text-[8.5px] font-bold uppercase tracking-wider text-mint-foreground">
-                                    {t("ranking.you")}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div
-                                className={`text-xl font-bold leading-none tabular-nums ${
-                                  c.rank === 1 ? "text-gold" : "text-foreground"
-                                }`}
-                              >
-                                {c.points}
-                              </div>
-                              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                                {t("ranking.points")}
-                              </div>
-                            </div>
-                          </RowTag>
-                        );
-                      })}
+                    <div className="divide-y divide-border">
+                      {s.podium.map((c) => (
+                        <Fila
+                          {...filaBase}
+                          key={c.rank}
+                          source="champions"
+                          pos={c.rank}
+                          userId={c.userId}
+                          nombre={c.displayName}
+                          puntos={c.points}
+                        />
+                      ))}
                     </div>
                   </div>
                 );

@@ -192,7 +192,18 @@
     "fajaAyer": "since yesterday",
     "fajaHold": "No change",
     "fajaNueva": "New entry",
-    "fajaInvita": "Win today and you're on the board"
+    "fajaInvita": "Win today and you're on the board",
+    "fajaDistancia": {
+      "one": "{count} point behind {pos}",
+      "other": "{count} points behind {pos}"
+    },
+    "fajaEmpate": "Tied with {pos}",
+    "fajaLider": "You lead the table",
+    "fajaCierra": {
+      "one": "Closes in {count} day",
+      "other": "Closes in {count} days"
+    },
+    "fajaCierraHoy": "Closes today"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",
@@ -368,7 +379,7 @@
     "tabSeason": "Season",
     "tabChampions": "Champions",
     "championsEmpty": "No closed seasons with a podium yet.",
-    "colRank": "#",
+    "colRank": "Rank",
     "colPlayer": "Reader",
     "colPoints": "Pts",
     "bestStreak": "Best streak: {value}",
@@ -383,7 +394,8 @@
     "streakAria": "Streak of {count} days, bonus {bonus}",
     "streakTitle": "Streak of {count} days",
     "legends": "Legends",
-    "legendsSubtitle": "All-time ranking"
+    "legendsSubtitle": "All-time ranking",
+    "yourStanding": "Your standing"
   },
   "podium": {
     "title": "Monthly podiums",

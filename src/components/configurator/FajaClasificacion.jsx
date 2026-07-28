@@ -16,16 +16,26 @@
 // (bloque con cifra a 38px en oro, no una palabra de 10px) y alcance (objetivo
 // táctil de ancho completo, imposible de fallar).
 //
-// Deliberadamente comparte tipografía con el «parte de la clasificación» del
-// final de partida (RankParte / .cdd-parte): son el MISMO objeto —tu puesto—
-// en los dos momentos en que importa, al abrir el periódico y al cerrarlo.
+// Comparte el marcador de puesto (PuestoCifra) con el parte del final de
+// partida, la faja fina y el modal: es el MISMO objeto —tu puesto— en todos los
+// momentos en que importa, y por eso se dibuja siempre igual.
+//
+// LAS TRES LÍNEAS:
+//   1. ladillo + «ver →»            (qué sección es y que se puede tocar)
+//   2. tu puesto + movimiento        (dónde estás)
+//   3. distancia al de arriba + cierre de temporada  (qué puedes hacer hoy)
+// La tercera es la que convierte el dato en objetivo: un puesto es un hecho
+// consumado, «a 3 puntos del 6º» es una tarde de juego. Si la base de datos aún
+// no tiene la migración de la distancia (scripts/2026-07-clasificacion-distancia.sql)
+// `gap` llega null y la línea simplemente no se pinta.
 //
 // LA FAJA FINA: la portada se va con el scroll, y el jugador pasa la partida
-// abajo, en el cupón. Cuando la faja grande sale de vista se queda pegada
-// arriba una versión de una línea, al lado del «recorte» de la foto y con su
-// mismo lenguaje (papel, filete, sombra): a la derecha lo que estás mirando, a
-// la izquierda dónde vas. Nunca se solapan — el ancho máximo de la faja fina
-// reserva el hueco del recorte.
+// abajo, en el cupón. Cuando la faja grande sale de vista se queda pegada una
+// versión de una línea, con el mismo lenguaje (papel, filete, sombra). MIENTRAS
+// SE JUEGA vive arriba, junto al «recorte» de la foto (a la derecha lo que
+// miras, a la izquierda dónde vas, y nunca se solapan porque el ancho máximo
+// reserva el hueco). ACABADA LA PARTIDA baja al borde inferior: ya no hay cupón
+// que escribir ni teclado que esquivar, y ahí es donde está el pulgar.
 //
 // Si `IntersectionObserver` no existe, no hay faja fina y ya está: la grande
 // sigue funcionando (regla 9, la home nunca se degrada a rota).
@@ -34,11 +44,38 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { rankMovement } from "../../lib/rankMovement";
+import { daysUntilClose } from "../../lib/season";
+import { getCurrentSeason } from "../../lib/statsService";
+import PuestoCifra, { ordinal } from "../PuestoCifra";
 
-export default function FajaClasificacion({ rank, cargando = false, onOpenRanking }) {
-  const { t } = useT();
+export default function FajaClasificacion({
+  rank,
+  cargando = false,
+  // Partida cerrada: la faja fina se muda al borde inferior (ver cabecera).
+  partidaCerrada = false,
+  onOpenRanking,
+}) {
+  const { t, tn, locale } = useT();
   const fajaRef = useRef(null);
   const [pegada, setPegada] = useState(false);
+
+  // Temporada activa solo para el «cierra en N días». `getCurrentSeason` está
+  // memoizada por día en statsService, así que compartimos la petición con el
+  // masthead y el parte en vez de abrir una cuarta. Sin temporada → sin línea.
+  const [season, setSeason] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentSeason()
+      .then((s) => {
+        if (!cancelled) setSeason(s);
+      })
+      .catch(() => {
+        if (!cancelled) setSeason(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const el = fajaRef.current;
@@ -72,6 +109,35 @@ export default function FajaClasificacion({ rank, cargando = false, onOpenRankin
   else if (mv.kind === "down") mov = { dir: "down", texto: `▼${mv.n} ${t("prensa.fajaAyer")}` };
   else if (mv.kind === "hold") mov = { dir: "hold", texto: t("prensa.fajaHold") };
   else if (mv.kind === "new") mov = { dir: "new", texto: t("prensa.fajaNueva") };
+
+  // La distancia al de arriba. Tres casos, en orden de "qué le digo hoy":
+  //   líder      → no hay nadie delante, se le dice que lo defienda
+  //   empatado   → mismos puntos, les separa el desempate (última victoria)
+  //   a N puntos → el caso normal, y el único que da un objetivo numérico
+  let distancia = null;
+  if (rankeado) {
+    // El puesto de arriba, escrito como ordinal del idioma activo («6º» / «6th»).
+    const arriba = ordinal(mv.pos - 1, locale);
+    if (mv.pos === 1) distancia = t("prensa.fajaLider");
+    else if (rank?.gap === 0) distancia = t("prensa.fajaEmpate", { pos: arriba });
+    else if (rank?.gap > 0)
+      distancia = tn("prensa.fajaDistancia", rank.gap, { pos: arriba });
+  }
+
+  // Cierre de temporada: urgencia en tres palabras. Solo desde el último tramo
+  // —con 12 días por delante no es una noticia, es ruido— y siempre que haya
+  // temporada activa.
+  const dias = season ? daysUntilClose(season.ends_at) : null;
+  const cierre =
+    dias == null || dias > 3
+      ? null
+      : dias <= 0
+      ? t("prensa.fajaCierraHoy")
+      : tn("prensa.fajaCierra", dias);
+
+  // El pie de la faja: distancia y cierre en una sola línea, separados por el
+  // punto medio de siempre. Cualquiera de los dos puede faltar.
+  const pie = [distancia, cierre].filter(Boolean).join(" · ");
 
   // Mientras carga, el nombre accesible es el neutro de la sección: anunciar
   // "únete al ranking" a alguien que ya está dentro sería tan falso al oído
@@ -112,10 +178,7 @@ export default function FajaClasificacion({ rank, cargando = false, onOpenRankin
           </span>
         ) : rankeado ? (
           <span className="faja-dato">
-            <span className="pos">{mv.pos}º</span>
-            {mv.total > 0 && (
-              <span className="de">{t("parte.of", { total: mv.total })}</span>
-            )}
+            <PuestoCifra pos={mv.pos} total={mv.total} size="xl" />
             {mov && <span className={"mov mov--" + mov.dir}>{mov.texto}</span>}
           </span>
         ) : (
@@ -125,19 +188,28 @@ export default function FajaClasificacion({ rank, cargando = false, onOpenRankin
           // tabla antes de haber jugado.
           <span className="faja-invita">{t("prensa.fajaInvita")}</span>
         )}
+
+        {/* La línea de abajo solo aparece cuando tiene algo que decir: al que
+            aún no compite no se le habla de distancias. */}
+        {!cargando && pie && <span className="faja-pie">{pie}</span>}
       </button>
 
       {pegada && (
         <button
           type="button"
-          className="prensa-faja-mini"
+          className={
+            "prensa-faja-mini" + (partidaCerrada ? " prensa-faja-mini--pie" : "")
+          }
           aria-label={aria}
           onClick={() => abrir("header_faja_pegada")}
         >
           <span className="lad">{t("prensa.fajaLadilloCorto")}</span>
           {rankeado ? (
             <>
-              <span className="pos">{mv.pos}º</span>
+              {/* El MISMO marcador que la faja grande, a cuerpo pequeño: es lo
+                  que hace que la pieza pegada se lea como la de arriba y no
+                  como otro botón cualquiera. */}
+              <PuestoCifra pos={mv.pos} size="s" />
               {mov && (mv.kind === "up" || mv.kind === "down") && (
                 <span className={"mov mov--" + mov.dir} aria-hidden="true">
                   {mv.kind === "up" ? "▲" : "▼"}

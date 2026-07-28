@@ -153,10 +153,20 @@ export default function Configurator({
   //
   // Se decide con `hayCuentaRealLocal()` (lectura síncrona de localStorage) y NO con
   // la prop `user`, que llega async: con `user` el logueado pintaría primero el
-  // layout de anónimo y la faja daría un salto al aparecer. Se congela en un
-  // initializer de useState para que la posición no cambie a media sesión (al
-  // loguearse desde el modal, la faja aparecerá arriba en la siguiente carga).
-  const [fajaEnCabecera] = useState(() => hayCuentaRealLocal());
+  // layout de anónimo y la faja daría un salto al aparecer. Por eso el valor
+  // INICIAL sale de localStorage, en un initializer de useState.
+  //
+  // Pero solo el inicial: antes se congelaba para siempre y quien iniciaba
+  // sesión a media sesión —justo el momento de máxima intención— se quedaba con
+  // la faja debajo del cupón, y encima con la invitación «gana hoy y entras en
+  // la tabla» ofrecida a alguien que ya estaba dentro, hasta recargar la página.
+  // Ahora la faja ASCIENDE cuando aparece `user`, y nunca baja: promocionar es
+  // ganar sitio (la portada ya está arriba), degradar sería mover la sección
+  // bajo los pies del jugador.
+  const [fajaEnCabecera, setFajaEnCabecera] = useState(() => hayCuentaRealLocal());
+  useEffect(() => {
+    if (user) setFajaEnCabecera(true);
+  }, [user]);
 
   // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
   function volverALaFoto() {
@@ -220,6 +230,7 @@ export default function Configurator({
           rank={rank}
           rankCargando={rankCargando}
           fajaEnCabecera={fajaEnCabecera}
+          partidaCerrada={ended}
           user={user}
           repescaAlert={repescaAlert}
           onOpenProfile={onOpenProfile}
@@ -344,14 +355,24 @@ export default function Configurator({
             <FajaClasificacion
               rank={rank}
               cargando={rankCargando}
+              partidaCerrada={ended}
               onOpenRanking={onOpenRanking}
             />
           </div>
         )}
 
-        {/* Pie de página: enlaces en versalitas + reloj de cierre de edición. */}
+        {/* Pie de página: enlaces en versalitas + reloj de cierre de edición.
+            LA CLASIFICACIÓN ABRE LA FILA a propósito. No duplica a la faja —
+            la cubre en el único momento en que la faja no está a mano: al
+            cerrar el final de partida el jugador se queda AQUÍ, al fondo de la
+            página y con el pulgar en la mitad baja de la pantalla, que es
+            justo donde la portada ya no llega. */}
         <footer className="prensa-area-pie prensa-cierre">
           <span>
+            <button type="button" className="pie-clasif" onClick={() => onOpenRanking?.("pie")}>
+              {t("prensa.fajaLadilloCorto")}
+            </button>
+            {" · "}
             <button type="button" onClick={onOpenHowTo}>{t("cdd.helpAria")}</button>
             {" · "}
             <a href="/privacidad">{t("app.footerPrivacy")}</a>

@@ -7,6 +7,7 @@ import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import LanguageStrip from "./LanguageStrip";
 import PodiumMedals from "./PodiumMedals";
+import { ordinal } from "./PuestoCifra";
 import Legends from "./Legends";
 
 // Tope de congelados — sincronizado con v_freeze_cap en
@@ -262,8 +263,10 @@ export default function MyStats({
       ? `${state.collection.unlocked} / ${state.collection.total}`
       : `${state.collection.unlocked}`
     : null;
+  // Ordinal «7º» y no «#7»: es la firma de la clasificación (ver PuestoCifra) y
+  // aquí es texto dentro de una fila, así que se escribe igual que se dibuja.
   const rankValue = state.rank?.rank
-    ? `#${state.rank.rank} · ${state.points} ${t("myStats.ptsShort")}`
+    ? `${ordinal(state.rank.rank, locale)} · ${state.points} ${t("myStats.ptsShort")}`
     : state.points > 0
       ? `${state.points} ${t("myStats.ptsShort")}`
       : t("myStats.rankNone");
@@ -290,7 +293,7 @@ export default function MyStats({
       {state.loading ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : state.error && !state.user ? (
-        <p className="text-sm text-red-400">{state.error}</p>
+        <p className="text-sm text-rojo">{state.error}</p>
       ) : !state.user ? (
         <p className="text-sm text-muted-foreground">{t("myStats.promoLogin")}</p>
       ) : (
@@ -419,14 +422,14 @@ export default function MyStats({
             <button
               type="button"
               onClick={handleSignOut}
-              className="text-xs uppercase tracking-wide text-muted-foreground transition hover:text-red-500"
+              className="text-xs uppercase tracking-wide text-muted-foreground transition hover:text-rojo"
             >
               {t("common.signOut")}
             </button>
           </div>
 
           {state.error && (
-            <p className="mt-3 text-center text-sm text-red-400">{state.error}</p>
+            <p className="mt-3 text-center text-sm text-rojo">{state.error}</p>
           )}
         </>
       )}

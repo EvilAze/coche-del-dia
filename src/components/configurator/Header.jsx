@@ -47,6 +47,8 @@ export default function Header({
   // trae dato, trae invitación — y una invitación no vale 60px por delante de la
   // fotografía.
   fajaEnCabecera = true,
+  // Partida cerrada: la faja fina se muda al pie (ver FajaClasificacion).
+  partidaCerrada = false,
   user,
   repescaAlert = false,
   onOpenProfile,
@@ -181,6 +183,7 @@ export default function Header({
         <FajaClasificacion
           rank={rank}
           cargando={rankCargando}
+          partidaCerrada={partidaCerrada}
           onOpenRanking={onOpenRanking}
         />
       )}

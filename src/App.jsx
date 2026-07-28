@@ -496,6 +496,10 @@ export default function App() {
             open={activeModal === "ranking"}
             onClose={closeModal}
             user={user}
+            // El mismo objeto que alimenta la faja de portada: el modal abre
+            // enseñando TU puesto en el glifo que el jugador acaba de tocar, sin
+            // esperar a que baje la tabla.
+            rank={rank}
             onOpenLogin={openLogin}
             // Aquí es donde el nick significa algo: sin firma no se sale en la
             // tabla. Se ofrece dentro del ranking, no como puerta para entrar.

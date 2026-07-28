@@ -533,10 +533,16 @@ body,
   letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-text);
 }
 .cdd-parte-lad::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-2px); }
+/* La cifra la pone PuestoCifra (.pm-puesto), compartida con la faja de portada
+   y el modal — antes se redibujaba aquí a mano y era un tercer dialecto del
+   mismo dato. */
 .cdd-parte-row { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; }
-.cdd-parte-pos { font-family: var(--font-display); font-weight: 900; font-size: 38px; line-height: .9; color: var(--gold); }
-.cdd-parte-of { font-family: var(--font-display); font-style: italic; font-size: 13px; color: var(--cdd-muted); }
 .cdd-parte-mov { font-family: var(--font-display); font-size: 14px; margin-top: 6px; }
+/* La distancia al de arriba: dato de acción, en la voz de pie de foto. */
+.cdd-parte-dist {
+  font-family: var(--font-display); font-style: italic; font-size: 13px;
+  color: var(--cdd-muted); margin-top: 3px;
+}
 .cdd-parte-mov--up   { color: var(--gold); font-weight: 600; }   /* subir = premium */
 .cdd-parte-mov--down { color: var(--rojo); font-weight: 600; }   /* bajar = urgencia */
 .cdd-parte-mov--hold,
@@ -781,18 +787,18 @@ body,
   text-transform: uppercase; color: var(--rojo); white-space: nowrap;
 }
 
+/* La cifra y el «de N lectores» ya no se estilan aquí: los pone PuestoCifra
+   (.pm-puesto), que es el mismo marcador que usan el parte, la faja fina y el
+   modal. Aquí queda solo lo que es PROPIO de la faja — el layout de la línea,
+   la raya de carga y la anotación de movimiento. */
 .prensa-faja .faja-dato { display: flex; align-items: baseline; gap: 9px; }
-.prensa-faja .faja-dato .pos {
-  font-family: var(--font-display); font-weight: 900; font-size: 38px; line-height: .95;
-  letter-spacing: -.02em; color: var(--gold);
-}
-.prensa-faja .faja-dato .de {
-  font-family: var(--font-display); font-style: italic; font-size: 13px; color: var(--cdd-muted);
-}
 /* Puesto aún desconocido: la raya ocupa el mismo alto que la cifra (misma
    familia y cuerpo) y se pinta en tinta apagada. Reserva el sitio sin fingir
    un dato ni montar un esqueleto animado por medio segundo. */
-.prensa-faja .faja-dato .pos--pendiente { color: var(--line); }
+.prensa-faja .faja-dato .pos--pendiente {
+  font-family: var(--font-display); font-weight: 900; font-size: 38px; line-height: .95;
+  color: var(--line);
+}
 /* El movimiento se va al margen derecho: es una anotación al dato, no parte de
    él. Subir = verde del veredicto (acierto); bajar = tinta apagada y NO rojo —
    la pérdida informa, no alarma (el rojo es del fallo y de las llamadas). */
@@ -812,6 +818,15 @@ body,
   line-height: 1.35; color: var(--cdd-text);
 }
 
+/* El pie de la faja: «A 3 puntos del 6º · Cierra en 2 días». Es la línea que
+   convierte el puesto en objetivo, así que va en la voz del periódico
+   (Fraunces cursiva, como los pies de foto) y no en versalitas de etiqueta.
+   Tinta apagada: acompaña al dato, no compite con la cifra. */
+.prensa-faja .faja-pie {
+  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
+  line-height: 1.3; color: var(--cdd-muted);
+}
+
 /* ── La faja fina (pegada) ──
    Cuando la portada se va con el scroll, el acceso al ranking se queda pegado
    arriba a la izquierda. Comparte chasis con el «recorte» de la foto
@@ -821,25 +836,38 @@ body,
 
    `left` se ancla al borde del pliego (max-width 560px → 280px a cada lado del
    centro) en pantallas anchas, y a 12px del borde en móvil. El `max-width`
-   reserva los 104px del recorte + su margen para que jamás se solapen. */
+   reserva los 104px del recorte + su margen para que jamás se solapen.
+
+   ALTO MÍNIMO 44px: era una tira de 30px con texto a 9.5px en el borde
+   superior de la pantalla — el peor sitio para el pulgar y por debajo del
+   objetivo táctil mínimo (44pt Apple / 48dp Material). El chasis no cambia,
+   solo respira. */
 .prensa-faja-mini {
   position: fixed; z-index: 50;
   top: calc(10px + env(safe-area-inset-top, 0px));
   left: max(12px, calc(50vw - 280px));
   max-width: calc(100% - 140px);
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 0;
+  min-height: 44px;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 0;
   background: var(--surface); color: var(--cdd-text); cursor: pointer;
   box-shadow: 0 12px 24px var(--line-2);
-  font-family: var(--font-body); font-weight: 700; font-size: 9.5px;
+  font-family: var(--font-body); font-weight: 700; font-size: 10px;
   letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
   animation: cddPeekIn .22s cubic-bezier(.16, 1, .3, 1);
 }
-.prensa-faja-mini .lad { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.prensa-faja-mini .pos {
-  flex: none; font-size: 13px; font-weight: 800; letter-spacing: 0;
-  text-transform: none; color: var(--gold);
+/* Acabada la partida la faja fina baja al PIE: ya no hay cupón que rellenar ni
+   teclado que esquivar, y el pulgar vive abajo. Arriba se queda solo mientras
+   se juega, donde hace pareja con el recorte de la foto. */
+.prensa-faja-mini--pie {
+  top: auto;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
+.prensa-faja-mini .lad { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* El marcador compartido dentro de la faja fina: hereda su cuerpo de
+   .pm-puesto--s, pero aquí hay que devolverle la caja normal (el contenedor
+   está en versalitas con interletraje ancho). */
+.prensa-faja-mini .pm-puesto { flex: none; letter-spacing: 0; text-transform: none; }
 .prensa-faja-mini .mov { flex: none; letter-spacing: 0; text-transform: none; }
 .prensa-faja-mini .mov--up { color: var(--verde); }
 .prensa-faja-mini .mov--down { color: var(--cdd-muted); }
@@ -1113,6 +1141,14 @@ body,
   text-transform: inherit; text-decoration: none;
 }
 .prensa-cierre button:hover, .prensa-cierre a:hover { color: var(--rojo); }
+/* La clasificación en el pie: en tinta plena y no en gris, porque no es un
+   enlace de servicio como los otros dos (ayuda, privacidad) sino la sección
+   que el jugador puede querer abrir justo al terminar la partida. El filete
+   inferior la señala sin sacarla de la fila. */
+.prensa-cierre .pie-clasif {
+  color: var(--cdd-text); font-weight: 800;
+  border-bottom: 2px solid var(--rojo); padding-bottom: 3px;
+}
 /* Reloj de cierre: MISMA familia que el pie (lección del prototipo — la
    Courier aquí desentonaba) + tabular-nums para que no baile cada segundo. */
 .prensa-cierre .reloj { color: var(--cdd-text); font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -1547,6 +1583,131 @@ body,
    objeto, otra tinta. La regla de marca de siempre — rojo es "atención",
    oro es "esto vale algo". */
 .pm-sello--oro { border-color: var(--gold); color: var(--gold); }
+
+/* ── El marcador de puesto (PuestoCifra.jsx) ──────────────────────────────
+   El ordinal «7º» en Fraunces sobre oro viejo es la FIRMA de la
+   clasificación: el mismo glifo en la faja de portada, en la faja fina, en el
+   parte del final de partida, en la cabecera del modal y en las filas de la
+   tabla. Antes cada sitio lo dibujaba a su manera (incluido un `7` gris en
+   Franklin dentro del modal) y el jugador no reconocía al llegar el dato que
+   acababa de tocar.
+
+   Cambia de CUERPO según el sitio, nunca de familia ni de color. `tabular-nums`
+   porque en una tabla los puestos tienen que alinearse en columna. */
+.pm-puesto { display: inline-flex; align-items: baseline; gap: 8px; min-width: 0; }
+.pm-puesto .cifra {
+  font-family: var(--font-display); font-weight: 900; line-height: .95;
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.pm-puesto .de {
+  font-family: var(--font-display); font-style: italic; font-size: 13px;
+  color: var(--cdd-muted); white-space: nowrap;
+}
+.pm-puesto--xl .cifra { font-size: 38px; }
+.pm-puesto--l  .cifra { font-size: 30px; }
+.pm-puesto--s  .cifra { font-size: 15px; }
+.pm-puesto--s  .de    { font-size: 11px; }
+/* Los cuatro tonos. Fuera de una tabla el puesto va SIEMPRE en oro (es tu
+   dato, no compite con nadie); dentro, el oro se reserva al podio para que
+   siga significando algo. */
+.pm-puesto--oro    .cifra { color: var(--gold); }
+.pm-puesto--plata  .cifra { color: var(--plata); }
+.pm-puesto--bronce .cifra { color: var(--bronce); }
+.pm-puesto--tinta  .cifra { color: var(--cdd-muted); }
+
+/* ── El modal de la clasificación (Ranking.jsx) ───────────────────────────
+   Recuadro de resultados de periódico. Todo lo de aquí existe para que el
+   destino se parezca a la puerta: quien toca la faja de portada tiene que
+   reconocer al instante que ha llegado al mismo sitio, no a otra pantalla.
+
+   TU PUESTO, arriba del todo y en el mismo glifo que se acaba de tocar. Doble
+   filete inferior porque cierra un bloque, igual que el folio de la portada. */
+.rank-tuyo { padding: 10px 0 9px; border-bottom: 3px double var(--line-strong); }
+.rank-tuyo-lad {
+  font-family: var(--font-body); font-weight: 800; font-size: 9px;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.rank-tuyo-row { display: flex; align-items: baseline; gap: 10px; margin-top: 5px; }
+.rank-tuyo-mov {
+  margin-left: auto; flex: none; font-family: var(--font-display); font-size: 12px;
+}
+.rank-tuyo-mov--up   { color: var(--verde); font-weight: 600; }
+.rank-tuyo-mov--down { color: var(--cdd-muted); font-weight: 600; }
+.rank-tuyo-mov--hold,
+.rank-tuyo-mov--new  { color: var(--cdd-muted); font-style: italic; }
+.rank-tuyo-dist {
+  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
+  color: var(--cdd-muted); margin-top: 4px;
+}
+
+/* Pestañas: versalitas con filete rojo bajo la activa. El segmentado con fondo
+   gris y esquinas redondeadas era vocabulario de app. «Cómo se puntúa» viaja
+   en la misma fila, al margen derecho y en texto — un interrogante dentro de un
+   círculo es justo el tipo de glifo que nadie toca. */
+.rank-tabs {
+  display: flex; align-items: center; gap: 16px;
+  margin: 12px 0 12px; border-bottom: 1px solid var(--line);
+}
+.rank-tab {
+  background: none; border: 0; padding: 6px 0 8px; cursor: pointer;
+  font-family: var(--font-body); font-weight: 800; font-size: 10px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color .16s;
+}
+.rank-tab:hover { color: var(--cdd-text); }
+.rank-tab--activa { color: var(--cdd-text); border-bottom-color: var(--rojo); }
+.rank-ayuda {
+  margin-left: auto; background: none; border: 0; padding: 6px 0 8px; cursor: pointer;
+  font-family: var(--font-body); font-weight: 700; font-size: 9.5px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--rojo);
+}
+.rank-ayuda:hover { text-decoration: underline; }
+
+/* Cabecera de temporada: kicker en oro, tema en Fraunces y el cierre al
+   margen. Sobre doble filete, como una cabecera de sección. */
+.rank-temporada {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 0 10px; margin-bottom: 10px;
+  border-top: 3px double var(--gold); border-bottom: 1px solid var(--line);
+}
+.rank-temporada--palmares { margin: 0; padding: 8px 12px; border-top: 0; }
+.rank-temporada-kicker {
+  font-family: var(--font-mono); font-weight: 700; font-size: 9.5px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--gold);
+}
+.rank-temporada-tema {
+  font-family: var(--font-display); font-weight: 700; font-size: 16px;
+  line-height: 1.2; color: var(--cdd-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rank-temporada-cierre {
+  flex: none; font-family: var(--font-body); font-weight: 800; font-size: 9.5px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--gold);
+  border: 1px solid var(--gold); padding: 4px 8px;
+}
+.rank-temporada-fecha {
+  flex: none; font-family: var(--font-display); font-style: italic; font-size: 11px;
+  color: var(--cdd-muted);
+}
+
+/* La tabla: filete alrededor, sin redondeos. */
+.rank-tabla { border: 1px solid var(--line-strong); }
+.rank-cabecera {
+  border-bottom: 3px double var(--line-strong);
+  font-family: var(--font-body); font-weight: 800; font-size: 9px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
+}
+/* El aparte de «tu posición» cuando quedas fuera del top visible. */
+.rank-tuposicion {
+  padding: 7px 12px 0; text-align: center;
+  font-family: var(--font-body); font-weight: 800; font-size: 9px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
+}
+/* El sello «TÚ» de una fila: el sello de siempre, pero derecho. Inclinado se
+   comía el nombre de al lado en una línea de 24px. */
+.pm-sello--plano { transform: none; }
+.rank-yo { padding: 2px 5px; font-size: 8px; border-width: 2px; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    EL ARCHIVO — la colección de portadas (antes «Garaje»)

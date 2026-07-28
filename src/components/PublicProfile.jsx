@@ -245,7 +245,7 @@ export default function PublicProfile({ open, onClose, userId }) {
       {state.loading ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : state.error ? (
-        <p className="text-sm text-red-400">{state.error}</p>
+        <p className="text-sm text-rojo">{state.error}</p>
       ) : (
         <>
           {/* Carnet: identidad + ficha de specs en un solo objeto premium,

@@ -77,7 +77,7 @@ export default function Legends({ open, onClose }) {
       {state.loading ? (
         <p className="text-sm text-muted-foreground">{t("ranking.loading")}</p>
       ) : state.error ? (
-        <p className="text-sm text-red-400">{state.error}</p>
+        <p className="text-sm text-rojo">{state.error}</p>
       ) : state.players.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("ranking.empty")}</p>
       ) : (

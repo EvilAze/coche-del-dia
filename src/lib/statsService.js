@@ -128,6 +128,12 @@ export async function getMySeasonRank(userId) {
     total: row?.total ?? null,
     delta: row?.delta ?? null,
     isNew: prevRank == null,
+    // La DISTANCIA al de arriba (scripts/2026-07-clasificacion-distancia.sql).
+    // `?? null` no es defensivo de más: si la base de datos aún no tiene esa
+    // migración, la RPC vieja no devuelve estas columnas y la faja simplemente
+    // no pinta la línea de distancia. La web nunca depende de ellas.
+    points: row?.points ?? null,
+    gap: row?.gap ?? null,
   };
 }
 
@@ -400,10 +406,30 @@ function todayMadridStr() {
 }
 
 // Temporada activa (o null si hay hueco entre temporadas). Lectura pública
-// directa de `seasons`. La consumen el banner del modal de ranking y el «parte»
-// (label + countdown). Nunca lanza: la UI cae con elegancia sin temporada.
-export async function getCurrentSeason() {
+// directa de `seasons`. La consumen el banner del modal de ranking, el «parte»
+// y el ladillo de la faja (label + countdown). Nunca lanza: la UI cae con
+// elegancia sin temporada.
+//
+// MEMOIZADA POR DÍA: son ya cuatro consumidores (masthead, faja, parte, modal) y
+// la temporada no cambia dentro de una sesión salvo al cruzar la medianoche de
+// Madrid — que es justo lo que distingue la clave. Cacheamos la PROMESA, no el
+// resultado: si dos componentes montan en el mismo tick, comparten la petición
+// en vuelo en vez de disparar dos. Un fallo no se cachea (se borra la entrada),
+// para que el siguiente consumidor pueda reintentar.
+let seasonCache = { key: null, promise: null };
+
+export function getCurrentSeason() {
   const today = todayMadridStr();
+  if (seasonCache.key === today && seasonCache.promise) return seasonCache.promise;
+  const promise = fetchCurrentSeason(today).catch((err) => {
+    if (seasonCache.key === today) seasonCache = { key: null, promise: null };
+    throw err;
+  });
+  seasonCache = { key: today, promise };
+  return promise;
+}
+
+async function fetchCurrentSeason(today) {
   const { data, error } = await supabase
     .from("seasons")
     .select("id, number, label_es, label_en, starts_at, ends_at")

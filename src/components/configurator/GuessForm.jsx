@@ -257,7 +257,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     // partida de cinco, regalar uno por descuido es la fricción más cara que
     // hay. Mismo trato que el año repetido: temblor + aviso, no bloqueo del
     // botón (un botón muerto no explica nada).
-    if (horquilla.acotada && (anioNum < horquilla.min || anioNum > horquilla.max)) {
+    if (horquilla.acotada && (anioNum < horquilla.min - tolerance || anioNum > horquilla.max + tolerance)) {
       haptic.warning(); triggerShake();
       toast.push(t("guess.yearOutOfRange"), { type: "error" });
       return;

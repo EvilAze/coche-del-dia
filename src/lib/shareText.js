@@ -37,20 +37,25 @@
 //      EndScreen inserta el percentil ("Mejor que el N%…") JUSTO ANTES de esta
 //      línea — cuenta con que el dominio cierra el mensaje.
 //
-//      LLEVA LA FECHA (?d=DD-MM) Y NO ES DECORACIÓN. Desde jul-2026 el og:image
-//      es una tarjeta viva con el recorte del coche de hoy (api/og-image.js),
-//      pero las plataformas cachean el preview POR URL: si todo el mundo
-//      comparte `cochedeldia.com` a secas, Telegram enseña eternamente el
-//      primer preview que llegó a cachear y la tarjeta nueva no la ve nadie.
-//      Con la fecha, el enlace de cada día es una URL distinta → preview nuevo
-//      → recorte del día. Es la mitad del trabajo que hace que la OG dinámica
-//      sirva de algo.
+//      LLEVA LA PARTIDA (/r/DD-MM/CODIGO) Y NO ES DECORACIÓN. El enlace es lo
+//      que hace que la tarjeta del preview sea la TUYA:
+//        · La fecha, porque las plataformas cachean el preview POR URL. Si todo
+//          el mundo comparte `cochedeldia.com` a secas, Telegram enseña
+//          eternamente el primer preview que llegó a cachear.
+//        · El código de la partida (ver lib/resultCode.js), porque el
+//          middleware lo lee de la ruta y reescribe el og:image apuntando a
+//          /api/og-image?r=…, que dibuja TU rejilla en la portada.
 //
-//      El parámetro lo ignora la app (el ruteo de index.jsx solo mira rutas
-//      concretas) y no crea contenido duplicado para Google: index.html declara
-//      <link rel="canonical"> a la raíz.
+//      Es una RUTA y no un query (?d=…) a propósito: el middleware solo
+//      intercepta /r/*, así que la home nunca pasa por la transformación del
+//      HTML y su camino queda intacto (regla 9).
+//
+//      La app ignora la ruta —el ruteo de index.jsx solo mira prefijos
+//      concretos y cae a la portada— y no crea contenido duplicado para Google:
+//      index.html declara <link rel="canonical"> a la raíz.
 
 import { getMadridDateStr } from "./dates";
+import { encodeResult } from "./resultCode";
 
 // Fallback de intentos máximos para el score del share. La fuente de verdad es
 // el servidor (get-daily-car), que el caller pasa explícitamente; este default
@@ -102,6 +107,7 @@ export function buildShareText(
   // La fecha va DD/MM en la cabecera (legible) y DD-MM en la URL (la barra
   // habría que escaparla y `%2F` en mitad de un enlace de chat es feo).
   const fechaUrl = getShareDate(todayStr).replace("/", "-");
+  const codigo = encodeResult(list);
 
-  return `Coche del Día · ${getShareDate(todayStr)} · ${score}${streakChunk}\ncochedeldia.com/?d=${fechaUrl}`;
+  return `Coche del Día · ${getShareDate(todayStr)} · ${score}${streakChunk}\ncochedeldia.com/r/${fechaUrl}/${codigo}`;
 }

@@ -33,6 +33,7 @@ import { methodGuard } from "./_lib/http.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
 import { componerTarjetaOG } from "./_lib/og-card.js";
+import { decodeResult } from "./_lib/result-code.js";
 
 // Intento cuyo encuadre se publica. 1 = el más cerrado. Ver la nota de arriba.
 const INTENTO = 1;
@@ -127,8 +128,19 @@ export default async function handler(req, res) {
     }
     const foto = await recorte.toBuffer();
 
-    // 5) La portada.
-    const tarjeta = await componerTarjetaOG(foto);
+    // 5) La portada. Con `?r=` viene la partida de quien compartió el enlace y
+    //    la tarjeta lleva su rejilla; sin él sale genérica (el caso de quien
+    //    entra a la home directamente, sin venir del enlace de nadie).
+    //
+    //    El código llega de una URL pública que cualquiera puede teclear, así
+    //    que decodeResult está escrito para no lanzar jamás: la basura acaba en
+    //    una lista vacía y la tarjeta sale genérica. Falsificarlo es posible
+    //    —se puede escribir "7" y presumir de haberlo sacado a la primera—
+    //    igual que en Wordle se puede teclear la rejilla a mano. Son derechos
+    //    de fanfarronería, no un saldo.
+    const codigo = new URL(req.url, "https://cochedeldia.com").searchParams.get("r");
+    const intentos = codigo ? decodeResult(codigo) : null;
+    const tarjeta = await componerTarjetaOG(foto, { intentos });
 
     // 6) Cache hasta la medianoche de Madrid, que es cuando deja de ser cierta.
     //    Las plataformas sociales cachean por su cuenta y de forma bastante

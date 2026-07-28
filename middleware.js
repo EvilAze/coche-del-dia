@@ -28,10 +28,72 @@ import { next } from "@vercel/edge";
 import { get } from "@vercel/edge-config";
 
 export const config = {
-  // Solo la home. Es donde se monta CarImage con el coche del día. Otras
-  // rutas (/privacidad, /repesca) no consumen esta imagen.
-  matcher: "/",
+  // Dos cometidos, dos rutas:
+  //   "/"      → el preload de la imagen hero (lo de arriba).
+  //   "/r/:p*" → los enlaces COMPARTIDOS, que llevan la partida en la ruta y
+  //              necesitan un og:image propio (ver más abajo).
+  // Nada más. Cuanto menos tráfico pase por aquí, menos superficie de fallo.
+  matcher: ["/", "/r/:path*"],
 };
+
+// ─── ENLACES COMPARTIDOS: /r/DD-MM/CODIGO ───────────────────────────────────
+// El og:image de index.html es estático e igual para todos, así que por sí solo
+// no puede enseñar la partida de quien comparte. Aquí es donde se arregla: para
+// las rutas /r/* cogemos el HTML, le cambiamos las etiquetas de imagen por
+// /api/og-image?d=…&r=… y devolvemos eso. El crawler ve la tarjeta con la
+// rejilla del jugador; el navegador de una persona recibe el mismo HTML de
+// siempre y la SPA arranca igual (el ruteo de index.jsx ignora la ruta y cae a
+// la portada).
+//
+// LA HOME NO PASA POR AQUÍ. Es deliberado y es media regla 9: transformar el
+// cuerpo del HTML es la operación más arriesgada de todo el middleware, y no se
+// le hace a la página que carga el 95% del tráfico. Si esto falla, falla solo
+// para quien viene de un enlace compartido — y encima falla hacia `next()`, que
+// sirve la página normal con la tarjeta genérica.
+const RUTA_RESULTADO = /^\/r\/(\d{2}-\d{2})\/([0-7]{0,5})\/?$/;
+
+function reescribirEtiquetas(html, fecha, codigo) {
+  const tarjeta = `https://cochedeldia.com/api/og-image?d=${fecha}&r=${codigo}`;
+  // Sustitución por atributo completo y no por búsqueda de la URL suelta: así
+  // da igual si algún día cambia el valor por defecto en index.html.
+  return html
+    .replace(
+      /(<meta\s+property="og:image"\s+content=")[^"]*(")/,
+      `$1${tarjeta}$2`
+    )
+    .replace(
+      /(<meta\s+property="og:image:secure_url"\s+content=")[^"]*(")/,
+      `$1${tarjeta}$2`
+    )
+    .replace(
+      /(<meta\s+name="twitter:image"\s+content=")[^"]*(")/,
+      `$1${tarjeta}$2`
+    );
+}
+
+async function servirEnlaceCompartido(request, url) {
+  const m = url.pathname.match(RUTA_RESULTADO);
+  if (!m) return null; // /r/ con forma rara → que siga el flujo normal
+  const [, fecha, codigo] = m;
+
+  // El HTML base, pedido a nuestro propio origen. `/index.html` NO está en el
+  // matcher, así que esta petición no vuelve a entrar aquí (nada de bucles).
+  const res = await fetch(new URL("/index.html", url), {
+    headers: { "x-middleware-og": "1" },
+  });
+  if (!res.ok) return null;
+
+  const html = await res.text();
+  return new Response(reescribirEtiquetas(html, fecha, codigo), {
+    status: 200,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      // Cacheable en el edge: la partida de un enlace concreto no cambia nunca.
+      // El crawler y las visitas siguientes se sirven sin recomponer nada.
+      "cache-control": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800",
+    },
+  });
+}
 
 // Fecha de hoy en Europe/Madrid (YYYY-MM-DD). Mismo formato que usa el
 // resto del backend (todayInMadrid) y que el cron guarda en `date`.
@@ -87,7 +149,22 @@ async function getPreloadCached(today) {
   return value;
 }
 
-export default async function middleware() {
+export default async function middleware(request) {
+  const url = new URL(request.url);
+
+  // Enlaces compartidos: su propio camino, y ninguno de los dos se pisa.
+  if (url.pathname.startsWith("/r/")) {
+    try {
+      const respuesta = await servirEnlaceCompartido(request, url);
+      if (respuesta) return respuesta;
+    } catch {
+      // Cualquier fallo (el fetch del HTML, un regex que no casa) cae a la
+      // página normal con la tarjeta genérica. Un preview menos personalizado
+      // es infinitamente mejor que un enlace roto.
+    }
+    return next();
+  }
+
   try {
     const today = todayInMadrid();
     const preload = await getPreloadCached(today);

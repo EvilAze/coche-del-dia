@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
-import { haySesionLocal } from "../../lib/auth";
+import { hayCuentaRealLocal } from "../../lib/auth";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import Header from "./Header";
@@ -151,12 +151,12 @@ export default function Configurator({
   // antes de haber visto el coche. Ahí deja de ser información y pasa a ser
   // reclamo, y el reclamo va DESPUÉS del juego, nunca por delante.
   //
-  // Se decide con `haySesionLocal()` (lectura síncrona de localStorage) y NO con
+  // Se decide con `hayCuentaRealLocal()` (lectura síncrona de localStorage) y NO con
   // la prop `user`, que llega async: con `user` el logueado pintaría primero el
   // layout de anónimo y la faja daría un salto al aparecer. Se congela en un
   // initializer de useState para que la posición no cambie a media sesión (al
   // loguearse desde el modal, la faja aparecerá arriba en la siguiente carga).
-  const [fajaEnCabecera] = useState(() => haySesionLocal());
+  const [fajaEnCabecera] = useState(() => hayCuentaRealLocal());
 
   // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
   function volverALaFoto() {

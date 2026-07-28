@@ -383,7 +383,10 @@
     "colPlayer": "Lector",
     "colPoints": "Pts",
     "bestStreak": "Mejor racha: {value}",
-    "seasonWins": "{value} aciertos esta temporada",
+    "seasonWins": {
+      "one": "{count} acierto esta temporada",
+      "other": "{count} aciertos esta temporada"
+    },
     "points": "puntos",
     "you": "Tú",
     "yourPosition": "Tu posición",

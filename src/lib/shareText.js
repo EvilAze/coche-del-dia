@@ -91,23 +91,7 @@ export function buildShareText(
   todayStr = getMadridDateStr()
 ) {
   const list = Array.isArray(guesses) ? guesses : [];
+  const grid = shareGrid(list);
 
-  // Victoria = última fila con las tres celdas correctas (no hay otra forma de
-  // ganar; la partida se cierra ahí). Derrota → "X/5" estilo Wordle.
-  const last = list[list.length - 1];
-  const won = Boolean(
-    last &&
-      last.marca?.status === "correct" &&
-      last.modelo?.status === "correct" &&
-      last.anio?.status === "correct"
-  );
-  const score = `${won ? list.length : "X"}/${maxAttempts}`;
-  const streakChunk = streak > 0 ? ` · 🔥${streak}` : "";
-
-  // La fecha va DD/MM en la cabecera (legible) y DD-MM en la URL (la barra
-  // habría que escaparla y `%2F` en mitad de un enlace de chat es feo).
-  const fechaUrl = getShareDate(todayStr).replace("/", "-");
-  const codigo = encodeResult(list);
-
-  return `Coche del Día · ${getShareDate(todayStr)} · ${score}${streakChunk}\ncochedeldia.com/r/${fechaUrl}/${codigo}`;
+  return `Coche del Día · ${getShareDate(todayStr)}\n${grid}\ncochedeldia.com`;
 }

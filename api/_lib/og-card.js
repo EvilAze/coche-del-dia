@@ -150,16 +150,69 @@ async function procesarFoto(entrada) {
     .toBuffer();
 }
 
+// ── LA REJILLA DEL RESULTADO ────────────────────────────────────────────────
+// Va en el hueco de papel que queda entre el wordmark y la foto (x 500-730),
+// que hasta ahora estaba vacío. Tres columnas —marca, modelo, año— y una fila
+// por intento.
+//
+// SE DIBUJA CON FORMAS, NO CON LETRAS, y no es casualidad: es lo único de la
+// tarjeta que cambia por jugador, así que es lo único que hay que rasterizar en
+// el servidor... donde no hay fuentes (ver la nota de cabecera). Círculos y
+// aros no dependen de ninguna, así que la parte dinámica es inmune al fallo que
+// nos dejó la tarjeta llena de cajitas.
+//
+// Y no hace falta escribir "3/5" en ninguna parte: el número de filas ES el
+// marcador. Un disco relleno es acierto; un aro vacío, fallo. Monocromo en
+// tinta y no verde/rojo como en el juego, porque la paleta del periódico no
+// tiene verde y meterlo aquí solo para esto rompería la portada.
+// La primera colocación (x=516) pegaba los discos a la "e" de «El Coche» y la
+// rejilla se leía como parte del wordmark. Corrida a la derecha, deja aire por
+// los dos lados: ~120px hasta el wordmark y ~77px hasta el filete de la foto.
+const REJILLA_X = 600;
+const CELDA = 36; // paso entre centros
+const RADIO = 11;
+// Centro óptico del bloque del wordmark. La rejilla se centra AQUÍ en vez de
+// colgar de una Y fija, para que una partida de dos intentos y otra de cinco
+// queden las dos equilibradas frente al masthead en lugar de irse hacia arriba.
+const REJILLA_CENTRO_Y = 315;
+
+function dibujarRejilla(intentos) {
+  if (!intentos?.length) return null;
+  const y0 = REJILLA_CENTRO_Y - ((intentos.length - 1) * CELDA) / 2;
+  const marcas = intentos
+    .map((fila, f) =>
+      [fila.marca, fila.modelo, fila.anio]
+        .map((ok, c) => {
+          const cx = REJILLA_X + c * CELDA;
+          const cy = y0 + f * CELDA;
+          return ok
+            ? `<circle cx="${cx}" cy="${cy}" r="${RADIO}" fill="${TINTA}"/>`
+            : `<circle cx="${cx}" cy="${cy}" r="${RADIO - 1}" fill="none" stroke="${TINTA}" stroke-opacity="0.28" stroke-width="2"/>`;
+        })
+        .join("")
+    )
+    .join("");
+  return Buffer.from(
+    `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">${marcas}</svg>`
+  );
+}
+
 /**
- * Compone la tarjeta completa: foto del día debajo, capa fija encima.
+ * Compone la tarjeta completa: foto del día debajo, capa fija encima y —si se
+ * comparte una partida concreta— su rejilla.
  *
- * Sin rasterizar SVG ni dibujar texto — la capa llega ya en píxeles. Por eso
- * esto funciona igual en el servidor que en tu portátil.
+ * El texto llega ya en píxeles desde la capa pre-renderizada; lo único que se
+ * rasteriza aquí son círculos. Por eso esto funciona igual en el servidor que
+ * en tu portátil.
  *
  * @param {Buffer|string} foto  Bytes de la imagen (o ruta, para el script).
+ * @param {object} [opciones]
+ * @param {Array}  [opciones.intentos]  Partida decodificada (result-code.js).
+ *   Sin ella, la tarjeta sale genérica — que es lo que quiere quien llega a la
+ *   home sin venir del enlace de nadie.
  * @returns {Promise<Buffer>} JPEG 1200×630.
  */
-export async function componerTarjetaOG(foto) {
+export async function componerTarjetaOG(foto, { intentos = null } = {}) {
   // 1) Papel a sangre como base. La capa fija ya trae su propio papel en el
   //    lado del texto; este lienzo cubre el caso de que la foto no llene su
   //    tercio por completo (no debería, va con fit:"cover", pero un lienzo de
@@ -172,14 +225,18 @@ export async function componerTarjetaOG(foto) {
 
   const grabado = await procesarFoto(foto);
   const capaFija = Buffer.from(OVERLAY_PNG_BASE64, "base64");
+  const rejilla = dibujarRejilla(intentos);
 
-  // 2) Foto primero, capa fija después: el filete vertical de la capa remata
-  //    el borde del grabado.
+  // 2) Foto primero, capa fija después (su filete vertical remata el borde del
+  //    grabado) y la rejilla al final, sobre el papel ya pintado.
+  const capas = [
+    { input: grabado, top: 0, left: FOTO_X },
+    { input: capaFija, top: 0, left: 0 },
+  ];
+  if (rejilla) capas.push({ input: rejilla, top: 0, left: 0 });
+
   return sharp(papel)
-    .composite([
-      { input: grabado, top: 0, left: FOTO_X },
-      { input: capaFija, top: 0, left: 0 },
-    ])
+    .composite(capas)
     .jpeg({ quality: 88, mozjpeg: true })
     .toBuffer();
 }

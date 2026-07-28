@@ -45,7 +45,7 @@ describe("buildShareText", () => {
   it("victoria: cabecera y enlace, DOS líneas y ninguna más", () => {
     const guesses = [row(C, W, C), row(C, C, C)];
     const text = buildShareText(guesses, 0, 5, WIN_DATE);
-    expect(text).toBe("Coche del Día · 24/05 · 2/5\ncochedeldia.com/?d=24-05");
+    expect(text).toBe("Coche del Día · 24/05 · 2/5\ncochedeldia.com/r/24-05/57");
   });
 
   // El mensaje se pega en un canal de Telegram con cientos de personas: cada
@@ -71,14 +71,17 @@ describe("buildShareText", () => {
     expect(shareGrid([row(C, W, C)])).toBe("✅❌✅");
   });
 
-  // La fecha del enlace NO es decoración: es lo que hace que cada día sea una
-  // URL distinta para el crawler y las plataformas pidan un preview nuevo (con
-  // el recorte del coche de hoy, api/og-image.js). Si alguien la quita "por
-  // limpiar la URL", la tarjeta dinámica deja de verse y nada más lo delata.
-  it("el enlace lleva la fecha del día, con guion y no barra", () => {
-    const text = buildShareText([row(C, C, C)], 0, 5, "2026-01-05");
+  // La ruta del enlace NO es decoración. Lleva dos cosas y ambas hacen trabajo:
+  //   · la FECHA, para que cada día sea una URL nueva y las plataformas pidan
+  //     preview otra vez en vez de reusar el que cachearon;
+  //   · el CÓDIGO de la partida, que el middleware convierte en el og:image con
+  //     TU rejilla dibujada.
+  // Si alguien la simplifica «para limpiar la URL», la tarjeta deja de ser la
+  // del jugador y nada más lo delata: cada mitad sigue funcionando por su lado.
+  it("el enlace lleva la fecha del día y el código de la partida", () => {
+    const text = buildShareText([row(W, W, C), row(C, C, C)], 0, 5, "2026-01-05");
     const ultima = text.split("\n").pop();
-    expect(ultima).toBe("cochedeldia.com/?d=05-01");
+    expect(ultima).toBe("cochedeldia.com/r/05-01/17");
     expect(ultima).not.toContain("%2F");
   });
 

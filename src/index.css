@@ -791,7 +791,10 @@ body,
    (.pm-puesto), que es el mismo marcador que usan el parte, la faja fina y el
    modal. Aquí queda solo lo que es PROPIO de la faja — el layout de la línea,
    la raya de carga y la anotación de movimiento. */
-.prensa-faja .faja-dato { display: flex; align-items: baseline; gap: 9px; }
+/* `flex-wrap` por la misma razón que en .pm-puesto: con un total de cuatro
+   cifras o un idioma más largo, el «▲2 desde ayer» del margen derecho se
+   quedaba sin sitio. Que baje de línea, nunca que se monte. */
+.prensa-faja .faja-dato { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 9px; }
 /* Puesto aún desconocido: la raya ocupa el mismo alto que la cifra (misma
    familia y cuerpo) y se pinta en tinta apagada. Reserva el sitio sin fingir
    un dato ni montar un esqueleto animado por medio segundo. */
@@ -1594,7 +1597,13 @@ body,
 
    Cambia de CUERPO según el sitio, nunca de familia ni de color. `tabular-nums`
    porque en una tabla los puestos tienen que alinearse en columna. */
-.pm-puesto { display: inline-flex; align-items: baseline; gap: 8px; min-width: 0; }
+/* `min-width: 0` estaba aquí y era justo lo que provocaba el solape: dejaba
+   que el marcador se encogiera por debajo de su contenido, y como el «de 13
+   lectores» va en `nowrap` se desbordaba de su propia caja y se pintaba encima
+   de lo que tuviera al lado. Sin él, el marcador conserva su ancho y empuja a
+   sus vecinos; y si aun así no cupiese, `flex-wrap` baja el «de N lectores» a
+   la línea siguiente en vez de montarlo. */
+.pm-puesto { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .pm-puesto .cifra {
   font-family: var(--font-display); font-weight: 900; line-height: .95;
   letter-spacing: -.02em; font-variant-numeric: tabular-nums;
@@ -1628,9 +1637,8 @@ body,
   letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .rank-tuyo-row { display: flex; align-items: baseline; gap: 10px; margin-top: 5px; }
-.rank-tuyo-mov {
-  margin-left: auto; flex: none; font-family: var(--font-display); font-size: 12px;
-}
+/* El movimiento, en su propia línea bajo la cifra (ver el porqué en el JSX). */
+.rank-tuyo-mov { font-family: var(--font-display); font-size: 12.5px; margin-top: 4px; }
 .rank-tuyo-mov--up   { color: var(--verde); font-weight: 600; }
 .rank-tuyo-mov--down { color: var(--cdd-muted); font-weight: 600; }
 .rank-tuyo-mov--hold,
@@ -1644,12 +1652,18 @@ body,
    gris y esquinas redondeadas era vocabulario de app. «Cómo se puntúa» viaja
    en la misma fila, al margen derecho y en texto — un interrogante dentro de un
    círculo es justo el tipo de glifo que nadie toca. */
+/* `flex-wrap` como red de seguridad: en Español la fila llega JUSTO al borde
+   derecho en un móvil de 412px, así que en uno de 360 se saldría. Si no cabe,
+   «cómo se puntúa» baja de línea en vez de desbordar el panel (regla: nunca
+   scroll horizontal). Y los tres son objetivos táctiles de 44px: eran de 26,
+   el mismo defecto que se corrigió en la faja fina. */
 .rank-tabs {
-  display: flex; align-items: center; gap: 16px;
-  margin: 12px 0 12px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: stretch; flex-wrap: wrap; gap: 0 16px;
+  margin: 12px 0; border-bottom: 1px solid var(--line);
 }
 .rank-tab {
-  background: none; border: 0; padding: 6px 0 8px; cursor: pointer;
+  min-height: 44px; display: inline-flex; align-items: center;
+  background: none; border: 0; padding: 0; cursor: pointer;
   font-family: var(--font-body); font-weight: 800; font-size: 10px;
   letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
   border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -1658,9 +1672,10 @@ body,
 .rank-tab:hover { color: var(--cdd-text); }
 .rank-tab--activa { color: var(--cdd-text); border-bottom-color: var(--rojo); }
 .rank-ayuda {
-  margin-left: auto; background: none; border: 0; padding: 6px 0 8px; cursor: pointer;
-  font-family: var(--font-body); font-weight: 700; font-size: 9.5px;
-  letter-spacing: .14em; text-transform: uppercase; color: var(--rojo);
+  margin-left: auto; min-height: 44px; display: inline-flex; align-items: center;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font-family: var(--font-body); font-weight: 700; font-size: 9px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--rojo);
 }
 .rank-ayuda:hover { text-decoration: underline; }
 

@@ -282,10 +282,15 @@ export default function Ranking({
             <span className="rank-tuyo-lad">{t("ranking.yourStanding")}</span>
             <div className="rank-tuyo-row">
               <PuestoCifra pos={mv.pos} total={mv.total} size="l" />
-              {movText && (
-                <span className={"rank-tuyo-mov rank-tuyo-mov--" + mv.kind}>{movText}</span>
-              )}
             </div>
+            {/* El movimiento va en su PROPIA línea, no al margen derecho de la
+                cifra. Aquí el texto es la frase larga del parte («Estrenas
+                puesto esta temporada»), no el telegrama de la faja («▲2 desde
+                ayer»): empujado a la derecha de «13º de 13 lectores» no cabía
+                en un móvil y se montaba encima. */}
+            {movText && (
+              <p className={"rank-tuyo-mov rank-tuyo-mov--" + mv.kind}>{movText}</p>
+            )}
             {distancia && <p className="rank-tuyo-dist">{distancia}</p>}
           </div>
         )}
@@ -404,7 +409,7 @@ export default function Ranking({
                     userId={player.userId}
                     nombre={player.displayName}
                     puntos={player.totalPoints}
-                    sub={t("ranking.seasonWins", { value: player.totalWins })}
+                    sub={tn("ranking.seasonWins", player.totalWins)}
                     streak={player.currentStreak}
                   />
                 </div>
@@ -427,7 +432,7 @@ export default function Ranking({
                   userId={selfRow.userId}
                   nombre={selfRow.displayName}
                   puntos={selfRow.totalPoints}
-                  sub={t("ranking.seasonWins", { value: selfRow.totalWins })}
+                  sub={tn("ranking.seasonWins", selfRow.totalWins)}
                   streak={selfRow.currentStreak}
                 />
               </div>

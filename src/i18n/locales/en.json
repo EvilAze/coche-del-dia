@@ -383,7 +383,10 @@
     "colPlayer": "Reader",
     "colPoints": "Pts",
     "bestStreak": "Best streak: {value}",
-    "seasonWins": "{value} wins this season",
+    "seasonWins": {
+      "one": "{count} win this season",
+      "other": "{count} wins this season"
+    },
     "points": "points",
     "you": "You",
     "yourPosition": "Your position",

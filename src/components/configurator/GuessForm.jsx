@@ -24,7 +24,7 @@ const MIN_YEAR = 1886;
 // campo obliga a un gesto extra por intento (y en móvil, a seleccionar y borrar);
 // no enseñarlo deja el intento sin acuse de recibo. 1,2s es lo que tarda en
 // leerse una palabra tachada — el feedback dura exactamente lo que sirve.
-const VEREDICTO_MS = 1200;
+
 
 export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5 }) {
   const { t } = useT();
@@ -45,16 +45,6 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   // con estado ∈ "resuelto" | "descartado" | "cerca". Los campos ACERTADOS no
   // dependen de este estado —se derivan de `solved`, que viene del servidor y
   // sobrevive a recargas—; esto es solo para el flash de los fallados.
-  const [veredicto, setVeredicto] = useState(null);
-  const veredictoTimer = useRef(null);
-  useEffect(() => () => clearTimeout(veredictoTimer.current), []);
-
-  // Cualquier intervención del jugador cancela el flash: si ya está tecleando el
-  // intento siguiente, el anterior sobra y no debe pisarle el campo.
-  function cancelarVeredicto() {
-    clearTimeout(veredictoTimer.current);
-    setVeredicto(null);
-  }
 
   // Cadena de foco (QoL móvil) para no abrir/cerrar el teclado 4 veces por
   // intento: elegir marca → enfoca modelo; elegir modelo → enfoca año. El foco
@@ -170,31 +160,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     anio: solved.anio != null,
   };
 
-  // ── Pistas que SOBREVIVEN al flash ────────────────────────────────────────
-  // El valor tachado es efímero (ya lo has leído y el combo no te deja
-  // repetirlo), pero la PISTA que dejó no lo es: se sigue usando en los
-  // intentos siguientes, así que se queda pegada al campo hasta que se resuelva.
-  //
-  // Marca: el «mismo país». Se deriva del historial, no del veredicto en curso,
-  // porque su vida útil es toda la partida: si en el intento 1 supiste que el
-  // coche es alemán, esa bandera te sirve en el 2, en el 3 y en el 4.
-  const paisCerca = useMemo(() => {
-    if (solved.marca) return null;
-    for (let i = guesses.length - 1; i >= 0; i--) {
-      const m = guesses[i]?.marca;
-      if (m?.status === "partial" && m.pais) return m.pais;
-    }
-    return null;
-  }, [guesses, solved.marca]);
-
-  // Año: la flecha del último fallo y la horquilla que acumulan todos.
-  const ultimaDireccion = useMemo(() => {
-    for (let i = guesses.length - 1; i >= 0; i--) {
-      const a = guesses[i]?.anio;
-      if (a && a.status !== "correct" && a.direction) return a.direction;
-    }
-    return null;
-  }, [guesses]);
+  // Año: la horquilla que acumulan todos los intentos previos.
   const horquilla = useMemo(
     () => yearRange(guesses, tolerance, CURRENT_YEAR),
     [guesses, tolerance]
@@ -308,18 +274,6 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     setModelo(result.modelo.status === "correct" ? modeloFinal : "");
     setAnio(result.anio.status === "correct" ? anioNum : "");
 
-    // El veredicto se estampa sobre los campos. Solo necesitamos entrada para
-    // los FALLADOS: el campo acertado ya se pinta como resuelto a partir de
-    // `solved`, que viene del servidor y no caduca.
-    const aEstado = (st) =>
-      st === "correct" ? null : st === "partial" ? "cerca" : "descartado";
-    setVeredicto({
-      marca: { val: marcaFinal, estado: aEstado(result.marca.status) },
-      modelo: { val: modeloFinal, estado: aEstado(result.modelo.status) },
-      anio: { val: anioNum, estado: aEstado(result.anio.status) },
-    });
-    clearTimeout(veredictoTimer.current);
-    veredictoTimer.current = setTimeout(() => setVeredicto(null), VEREDICTO_MS);
 
     // QoL móvil (columna única): cerrar el teclado y devolver el cupón entero a
     // la vista. Antes se centraba la fila «último intento»; ahora el veredicto
@@ -343,32 +297,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
       className={"prensa-cupon" + (shake ? " animate-temblor" : "")}
       onAnimationEnd={() => setShake(false)}
     >
-      {/* El veredicto es visual (color + marca de corrector sobre el campo), así
-          que para el lector de pantalla lo dictamos aquí. Sustituye al
-          aria-live que tenía la fila «último intento». */}
-      <p className="sr-only" role="status" aria-live="polite">
-        {veredicto
-          ? [
-              `${t("cdd.labelMarca")}: ${veredicto.marca.val} — ${
-                veredicto.marca.estado === null
-                  ? t("cdd.srCorrect")
-                  : veredicto.marca.estado === "cerca"
-                  ? t("cdd.sameCountry")
-                  : t("cdd.srWrong")
-              }`,
-              `${t("cdd.labelModelo")}: ${veredicto.modelo.val} — ${
-                veredicto.modelo.estado === null ? t("cdd.srCorrect") : t("cdd.srWrong")
-              }`,
-              `${t("cdd.labelAnio")}: ${veredicto.anio.val} — ${
-                veredicto.anio.estado === null
-                  ? t("cdd.srCorrect")
-                  : ultimaDireccion
-                  ? t(ultimaDireccion === "up" ? "cdd.yearNewer" : "cdd.yearOlder")
-                  : t("cdd.srWrong")
-              }`,
-            ].join(". ")
-          : ""}
-      </p>
+
 
       <form className="prensa-cupon p-5 mb-6 border-[3px] border-dashed border-tinta/50 bg-papel-mat flex flex-col gap-3 relative shadow-sm" onSubmit={handleSubmit} autoComplete="off">
         {/* Tres renglones apilados a ancho completo: marca, modelo y año. Cada
@@ -379,7 +308,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
-          onChange={(v) => { cancelarVeredicto(); setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
+          onChange={(v) => { setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
           onCommit={() => focusSoon(modeloRef)}
           inputRef={marcaRef}
           options={availableMarcas}
@@ -389,21 +318,12 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
           enterKeyHint="next"
           bloqueado={bloqueo.marca}
-          estado={bloqueo.marca ? "resuelto" : veredicto?.marca.estado ?? null}
-          valorVeredicto={!bloqueo.marca && veredicto ? veredicto.marca.val : null}
-          apostilla={
-            paisCerca ? (
-              <span className="prensa-campo-marca cerca">
-                <img className="bandera" src={flagImagePath(paisCerca)} alt="" draggable={false} />
-                {t("cdd.sameCountry")}
-              </span>
-            ) : null
-          }
+          estado={bloqueo.marca ? "resuelto" : null}
         />
         <Combo
           label={t("cdd.labelModelo")}
           value={modelo}
-          onChange={(v) => { cancelarVeredicto(); setModelo(v); }}
+          onChange={(v) => setModelo(v)}
           onCommit={() => focusSoon(anioRef)}
           inputRef={modeloRef}
           options={modelOptions}
@@ -412,18 +332,15 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           invalid={modeloInvalido}
           enterKeyHint="next"
           bloqueado={bloqueo.modelo}
-          estado={bloqueo.modelo ? "resuelto" : veredicto?.modelo.estado ?? null}
-          valorVeredicto={!bloqueo.modelo && veredicto ? veredicto.modelo.val : null}
+          estado={bloqueo.modelo ? "resuelto" : null}
         />
         <YearField
           value={anio}
-          onChange={(v) => { cancelarVeredicto(); setAnio(v); }}
+          onChange={(v) => setAnio(v)}
           tolerance={tolerance}
           inputRef={anioRef}
           bloqueado={bloqueo.anio}
-          estado={bloqueo.anio ? "resuelto" : veredicto?.anio.estado ?? null}
-          valorVeredicto={!bloqueo.anio && veredicto ? String(veredicto.anio.val) : null}
-          direccion={ultimaDireccion}
+          estado={bloqueo.anio ? "resuelto" : null}
           horquilla={horquilla}
         />
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).

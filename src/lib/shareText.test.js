@@ -46,8 +46,19 @@ describe("buildShareText", () => {
     const guesses = [row(C, W, C), row(C, C, C)];
     const text = buildShareText(guesses, 0, 5, WIN_DATE);
     expect(text).toBe(
-      "Coche del Día · 24/05 · 2/5\n✅❌✅\n✅✅✅\ncochedeldia.com"
+      "Coche del Día · 24/05 · 2/5\n✅❌✅\n✅✅✅\ncochedeldia.com/?d=24-05"
     );
+  });
+
+  // La fecha del enlace NO es decoración: es lo que hace que cada día sea una
+  // URL distinta para el crawler y las plataformas pidan un preview nuevo (con
+  // el recorte del coche de hoy, api/og-image.js). Si alguien la quita "por
+  // limpiar la URL", la tarjeta dinámica deja de verse y nada más lo delata.
+  it("el enlace lleva la fecha del día, con guion y no barra", () => {
+    const text = buildShareText([row(C, C, C)], 0, 5, "2026-01-05");
+    const ultima = text.split("\n").pop();
+    expect(ultima).toBe("cochedeldia.com/?d=05-01");
+    expect(ultima).not.toContain("%2F");
   });
 
   it("derrota (última fila no perfecta) → X/max", () => {

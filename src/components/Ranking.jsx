@@ -229,11 +229,21 @@ export default function Ranking({
 
   // ── La cabecera de continuidad: tu puesto, en el glifo de la faja ──
   const mv = rankMovement(rank);
+  // El movimiento SOLO cuando lo hay. Las otras dos variantes del parte no se
+  // pintan aquí:
+  //   · «Mantienes tu puesto» gasta una línea entera en decir que no ha pasado
+  //     nada, justo encima de la única línea accionable («a 2 puntos del 12º»).
+  //   · «Estrenas puesto esta temporada» es peor que relleno: es `kind: "new"`,
+  //     que no significa "eres nuevo" sino "no hay snapshot de hoy en
+  //     rank_snapshots" (rankMovement lo deriva de `prev_rank == null`). A un
+  //     jugador de siempre al que le falte la fila del día le estaríamos
+  //     afirmando algo falso.
+  // El parte del final de partida sí las conserva: allí el bloque existe para
+  // contarte cómo ha ido el día, y "no te has movido" es una respuesta legítima
+  // a esa pregunta. Aquí la pregunta es "dónde estoy y qué me falta".
   const movText =
     mv.kind === "up" ? tn("parte.up", mv.n)
     : mv.kind === "down" ? tn("parte.down", mv.n)
-    : mv.kind === "hold" ? t("parte.hold")
-    : mv.kind === "new" ? t("parte.new")
     : null;
   const arriba = mv.kind === "unranked" ? "" : ordinal(mv.pos - 1, locale);
   const distancia =

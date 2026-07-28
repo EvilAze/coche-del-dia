@@ -327,8 +327,8 @@ export default function Ranking({
               </button>
             )
           )}
-          <button type="button" className="rank-ayuda" onClick={() => setHelpOpen(true)}>
-            {t("ranking.helpButtonAria")}
+          <button type="button" className="rank-ayuda group" onClick={() => setHelpOpen(true)} aria-label={t("ranking.helpButtonAria")} title={t("ranking.helpButtonAria")}>
+            <span className="flex items-center justify-center w-5 h-5 rounded-full border border-current font-serif text-sm font-medium transition-colors group-hover:bg-rojo group-hover:text-papel">?</span>
           </button>
         </div>
 

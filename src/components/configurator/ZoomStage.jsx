@@ -33,7 +33,7 @@ export default function ZoomStage({
   const revealed = status !== "playing";
 
   return (
-    <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-2">
+    <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-3 px-4 md:px-8 pb-4">
       <div className="prensa-ladillo">
         {t("prensa.ladilloFoto")}
         <span className="aparte">
@@ -48,7 +48,7 @@ export default function ZoomStage({
         </span>
       </div>
 
-      <div className={"cdd-stage" + (revealed ? " revealed" : "")}>
+      <div className={"cdd-stage p-2 md:p-3 bg-papel-mat border border-line shadow-sm" + (revealed ? " revealed" : "")}>
         <CarImage
           configurator
           src={car?.img ?? null}

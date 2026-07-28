@@ -128,12 +128,6 @@ export default function AttemptList({ guesses = [], pendingGuess = null, justRev
     // esta lista convivía con la fila viva y solo mostraba los ANTERIORES.
     // Retirada la fila, esta sección es el historial entero y así se anuncia.
     <section aria-label={t("guessLog.label")} className="flex flex-col">
-      <div className="prensa-fila cabecera" aria-hidden="true">
-        <span className="num"></span>
-        <span>{t("cdd.labelMarca")}</span>
-        <span>{t("cdd.labelModelo")}</span>
-        <span>{t("cdd.labelAnio")}</span>
-      </div>
       {pendingGuess && (
         <AttemptRow key="pending" g={pendingGuess} tolerance={tolerance} pending num={guesses.length + 1} />
       )}

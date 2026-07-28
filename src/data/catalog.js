@@ -13,11 +13,23 @@ import { useCallback, useEffect, useState } from "react";
 let catalogPromise = null;
 
 async function fetchCatalog() {
-  const res = await fetch("/api/list-cars");
-  if (!res.ok) {
-    throw new Error(`/api/list-cars devolvió ${res.status}`);
-  }
-  return res.json();
+  // const res = await fetch("/api/list-cars");
+  // if (!res.ok) {
+  //   throw new Error(`/api/list-cars devolvió ${res.status}`);
+  // }
+  // return res.json();
+  
+  // MOCK LOCAL PARA PRUEBAS DE UI:
+  return {
+    cars: [
+      { id: "1", marca: "Toyota", modelo: "Corolla", year: 2020 },
+      { id: "2", marca: "Honda", modelo: "Civic", year: 2021 },
+      { id: "3", marca: "Ford", modelo: "Mustang", year: 2019 }
+    ],
+    marcas: ["Toyota", "Honda", "Ford"],
+    paises: ["Japón", "EEUU"],
+    marcaPais: { "Toyota": "Japón", "Honda": "Japón", "Ford": "EEUU" }
+  };
 }
 
 export function loadCatalog() {

@@ -6,15 +6,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
-import { hayCuentaRealLocal } from "../../lib/auth";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import Header from "./Header";
-import FajaClasificacion from "./FajaClasificacion";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
 import PhotoPeek from "./PhotoPeek";
 import AttemptList from "./AttemptList";
+
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
 import { useDailyStats, Distribution } from "./dailyStats";
@@ -141,33 +140,6 @@ export default function Configurator({
     activo: dataReady && !ended && guesses.length === 0 && !pendingGuess,
   });
 
-  // ¿Dónde va la faja de clasificación? En cabecera solo si hay sesión.
-  //
-  // La faja mide 60px y cerraba la portada, justo delante de la fotografía. Para
-  // el jugador con cuenta eso es su puesto: el dato por el que vuelve, y se ha
-  // ganado el sitio. Para el que llega sin sesión —todo visitante nuevo— la faja
-  // no puede enseñar ningún puesto, así que cae a su variante de invitación
-  // («Gana hoy y entras en la tabla»): una tabla en la que no está, ofrecida
-  // antes de haber visto el coche. Ahí deja de ser información y pasa a ser
-  // reclamo, y el reclamo va DESPUÉS del juego, nunca por delante.
-  //
-  // Se decide con `hayCuentaRealLocal()` (lectura síncrona de localStorage) y NO con
-  // la prop `user`, que llega async: con `user` el logueado pintaría primero el
-  // layout de anónimo y la faja daría un salto al aparecer. Por eso el valor
-  // INICIAL sale de localStorage, en un initializer de useState.
-  //
-  // Pero solo el inicial: antes se congelaba para siempre y quien iniciaba
-  // sesión a media sesión —justo el momento de máxima intención— se quedaba con
-  // la faja debajo del cupón, y encima con la invitación «gana hoy y entras en
-  // la tabla» ofrecida a alguien que ya estaba dentro, hasta recargar la página.
-  // Ahora la faja ASCIENDE cuando aparece `user`, y nunca baja: promocionar es
-  // ganar sitio (la portada ya está arriba), degradar sería mover la sección
-  // bajo los pies del jugador.
-  const [fajaEnCabecera, setFajaEnCabecera] = useState(() => hayCuentaRealLocal());
-  useEffect(() => {
-    if (user) setFajaEnCabecera(true);
-  }, [user]);
-
   // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
   function volverALaFoto() {
     document.activeElement?.blur?.();
@@ -229,7 +201,6 @@ export default function Configurator({
         <Header
           rank={rank}
           rankCargando={rankCargando}
-          fajaEnCabecera={fajaEnCabecera}
           partidaCerrada={ended}
           user={user}
           repescaAlert={repescaAlert}
@@ -237,6 +208,7 @@ export default function Configurator({
           onOpenLogin={onOpenLogin}
           onOpenRanking={onOpenRanking}
           onOpenGarage={onOpenGarage}
+          onOpenHowTo={onOpenHowTo}
         />
 
         {/* H1 real solo para lectores de pantalla/SEO (v0 no lo pinta). */}
@@ -275,29 +247,6 @@ export default function Configurator({
             `order` (la fila viva sobre el cupón; historial y estadística
             debajo); en el broadsheet es la columna izquierda real. */}
         <div className="prensa-area-clas">
-          {/* "Primer" del pliego SOLO en el turno 1 (playing, sin intentos): ocupa
-              la columna izquierda del broadsheet —que si no nace en blanco— con
-              qué adivinar, intentos + zoom y la clave de color de las marcas de
-              corrector. Se desmonta al primer intento (el historial toma el sitio).
-              Oculto en móvil por CSS (.prensa-primer) para no empujar el fold. */}
-          {dataReady && !ended && guesses.length === 0 && !pendingGuess && (
-            <section className="prensa-primer" aria-label={t("prensa.primerLadillo")}>
-              <div className="prensa-ladillo">{t("prensa.primerLadillo")}</div>
-              <p className="primer-que">{t("prensa.primerQue")}</p>
-              <p className="primer-sub">{t("cdd.introSub", { max: maxAttempts })}</p>
-              <ul className="primer-clave" aria-label={t("prensa.primerClave")}>
-                <li><i className="clave-ej bien">{t("prensa.claveBien")}</i></li>
-                <li><i className="clave-ej cerca">{t("prensa.claveCerca")}</i></li>
-                <li><i className="clave-ej mal">{t("prensa.claveMal")}</i></li>
-              </ul>
-            </section>
-          )}
-
-          {/* (La fila «último intento» se retiró: repetía bajo la foto lo que el
-              jugador acababa de escribir tres renglones más abajo. El veredicto
-              vive ahora EN los campos del cupón —verde y bloqueado si acierta,
-              tachado 1,2s si falla— y la fila era su duplicado.) */}
-
           {/* El historial completo. Ya no se le quita el último intento (no hay
               fila viva que lo muestre aparte), y mientras se juega solo se pinta
               en el PLIEGO ANCHO: allí ocupa la columna izquierda, que si no nace
@@ -309,7 +258,7 @@ export default function Configurator({
               lo hace la horquilla del propio campo en un renglón. Lo que queda
               —recapitular— importa al terminar, y al terminar sí se pinta. */}
           {guesses.length > 0 && (
-            <div className={"prensa-historial" + (ended ? "" : " prensa-historial--ancho")}>
+            <div className="prensa-historial">
               <AttemptList
                 guesses={guesses}
                 pendingGuess={null}
@@ -318,6 +267,8 @@ export default function Configurator({
               />
             </div>
           )}
+
+
 
           {/* La estadística del día: SOLO con la edición cerrada (spec §3). */}
           {ended && daily.ready && (
@@ -345,41 +296,18 @@ export default function Configurator({
               </button>
             ))}
         </div>
-
-        {/* La clasificación del visitante SIN sesión: misma pieza que cerraba la
-            portada, ahora después del cupón. Sigue siendo la palanca de
-            retención y sigue a un tap — pero se ofrece cuando el jugador ya ha
-            visto de qué va esto, no como peaje de entrada. */}
-        {!fajaEnCabecera && (
-          <div className="prensa-area-clasif">
-            <FajaClasificacion
-              rank={rank}
-              cargando={rankCargando}
-              partidaCerrada={ended}
-              onOpenRanking={onOpenRanking}
-            />
+        
+        {/* Pie de página: cierre de edición sutil, enlaces centrados. */}
+        <footer className="prensa-area-pie prensa-cierre flex flex-col items-center justify-center text-center gap-3 py-6">
+          <div className="text-xs font-bold uppercase text-tinta tabular-nums tracking-wider">
+            <span className="text-rojo mr-2">{t("prensa.cierre")}</span>
+            {countdown.formatted}
           </div>
-        )}
-
-        {/* Pie de página: enlaces en versalitas + reloj de cierre de edición.
-            LA CLASIFICACIÓN ABRE LA FILA a propósito. No duplica a la faja —
-            la cubre en el único momento en que la faja no está a mano: al
-            cerrar el final de partida el jugador se queda AQUÍ, al fondo de la
-            página y con el pulgar en la mitad baja de la pantalla, que es
-            justo donde la portada ya no llega. */}
-        <footer className="prensa-area-pie prensa-cierre">
-          <span>
-            <button type="button" className="pie-clasif" onClick={() => onOpenRanking?.("pie")}>
-              {t("prensa.fajaLadilloCorto")}
-            </button>
-            {" · "}
-            <button type="button" onClick={onOpenHowTo}>{t("cdd.helpAria")}</button>
-            {" · "}
-            <a href="/privacidad">{t("app.footerPrivacy")}</a>
-          </span>
-          <span>
-            {t("prensa.cierre")} <span className="reloj">{countdown.formatted}</span>
-          </span>
+          <div className="flex justify-center items-center gap-x-3 text-xs text-muted font-bold uppercase">
+            <button type="button" onClick={onOpenHowTo} className="hover:text-rojo transition-colors">{t("cdd.helpAria")}</button>
+            <span>·</span>
+            <a href="/privacidad" className="hover:text-rojo transition-colors">{t("app.footerPrivacy")}</a>
+          </div>
         </footer>
       </main>
 

@@ -11,11 +11,10 @@
 // sección con su propio bloque (ver FajaClasificacion.jsx). La barra se queda
 // con lo secundario a propósito.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { useTheme } from "../../lib/theme";
-import { getCurrentSeason } from "../../lib/statsService";
 import FajaClasificacion from "./FajaClasificacion";
 
 // Glifos del toggle de tema (mismo trazo 1.6 y caja 24 que los iconos del
@@ -41,12 +40,6 @@ function SunGlyph() {
 export default function Header({
   rank = null, // { rank, total, delta } | null — puesto de temporada del logueado
   rankCargando = false, // aún no sabemos el puesto (≠ "no tiene puesto")
-  // ¿Va la faja de clasificación AQUÍ o debajo del cupón? Lo decide Configurator
-  // (ver su comentario): en cabecera solo para quien ya tiene sesión, porque solo
-  // ese jugador puede tener un puesto que enseñar. Para el anónimo la faja no
-  // trae dato, trae invitación — y una invitación no vale 60px por delante de la
-  // fotografía.
-  fajaEnCabecera = true,
   // Partida cerrada: la faja fina se muda al pie (ver FajaClasificacion).
   partidaCerrada = false,
   user,
@@ -55,49 +48,22 @@ export default function Header({
   onOpenLogin,
   onOpenRanking,
   onOpenGarage,
+  onOpenHowTo,
 }) {
   const { t, dateLocale, locale } = useT();
   const { tema, toggle } = useTheme();
 
-  // Temporada activa para el subtítulo del masthead ("Temporada N · Tema"). Lectura
-  // pública barata; NO bloquea el primer paint — el masthead aparece y la línea se
-  // añade al resolver. null = sin temporada activa → no se pinta (sin salto brusco).
-  const [season, setSeason] = useState(null);
-  useEffect(() => {
-    let cancelled = false;
-    getCurrentSeason()
-      .then((s) => {
-        if (!cancelled) setSeason(s);
-      })
-      .catch(() => {
-        if (!cancelled) setSeason(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
-  // Portada completa (con lema) SOLO en la primera visita: el jugador RECURRENTE
-  // ve un masthead compacto para que la foto y el cupón entren en pantalla sin
-  // hacer scroll (la portada íntegra era un peaje vertical repetido cada día).
-  // Lectura SÍNCRONA de localStorage en el initializer para decidir bien en el
-  // primer paint —si esperásemos a un useEffect, el lema aparecería/desaparecería
-  // de golpe (CLS)—. Fail-open a la portada completa si localStorage no está
-  // (modo privado / webview efímero): regla 9, la home nunca se degrada a roto.
-  const [portadaCompleta] = useState(() => {
-    try {
-      return !localStorage.getItem("ccd_masthead_seen");
-    } catch {
-      return true;
-    }
-  });
   useEffect(() => {
-    try {
-      localStorage.setItem("ccd_masthead_seen", "1");
-    } catch {
-      // localStorage puede fallar (modo privado/iframe): sin marca, sin drama —
-      // el visitante seguirá viendo la portada completa, que es el fallback bueno.
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
     }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Fecha COMPLETA con año: es la línea de folio de un periódico, no un pie
@@ -112,81 +78,84 @@ export default function Header({
       {/* El aria-label ya no puede ser «únete al ranking»: esa era la promesa de
           la barra cuando el ranking vivía en ella. Ahora es navegación a secas. */}
       <nav className="prensa-topbar" aria-label={t("prensa.navAria")}>
-        <span>
+        {/* IZQUIERDA: Menú desplegable con Archivo, Perfil, etc. */}
+        <span className="relative" ref={menuRef}>
           <button
             type="button"
-            aria-label={repescaAlert ? t("cdd.garageRepescaAria") : t("cdd.garageAria")}
-            onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
+            aria-expanded={menuOpen}
+            onClick={() => { haptic.impactLight(); setMenuOpen(!menuOpen); }}
           >
-            {t("prensa.garaje")}
-            {/* Repesca pendiente: "(1)" rojo, como correcciones por publicar */}
+            {t("header.menuTitle").toUpperCase()}
             {repescaAlert && <span className="aviso" aria-hidden="true">(1)</span>}
           </button>
-          {/* RANKING ya no vive aquí: ascendió de enlace a SECCIÓN y es la faja
-              de más abajo. Mantenerlo además en esta fila sería un segundo
-              acceso al mismo destino compitiendo con el primero — y lo que le
-              faltaba al ranking no era otra puerta, era dejar de ser una
-              palabra entre iguales. La barra se queda con lo secundario, que es
-              justo lo que la hace callar para que hable la faja. */}
+          
+          {menuOpen && (
+            <div className="absolute top-full left-0 mt-2 min-w-max bg-papel-mat border border-border-strong shadow-glass-lg z-50 py-2 flex flex-col items-start prensa-menu-dropdown">
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 hover:text-rojo hover:bg-papel-2 transition-colors flex items-center justify-between gap-4"
+                onClick={() => { haptic.impactLight(); setMenuOpen(false); onOpenGarage?.(); }}
+              >
+                <span>{t("prensa.garaje")}</span>
+                {repescaAlert && <span className="text-rojo font-bold">(1)</span>}
+              </button>
+              
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 hover:text-rojo hover:bg-papel-2 transition-colors"
+                onClick={() => { haptic.impactLight(); setMenuOpen(false); (user ? onOpenProfile : onOpenLogin)?.(); }}
+              >
+                {user ? t("prensa.perfil") : t("prensa.entrar")}
+              </button>
+              
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 hover:text-rojo hover:bg-papel-2 transition-colors flex items-center justify-between gap-4"
+                onClick={() => { haptic.impactLight(); setMenuOpen(false); toggle(); }}
+              >
+                <span>{tema === "noche" ? t("cdd.themeToDay") : t("cdd.themeToNight")}</span>
+                {tema === "noche" ? <SunGlyph /> : <MoonGlyph />}
+              </button>
+
+              <button
+                type="button"
+                className="w-full text-left px-4 py-2 hover:text-rojo hover:bg-papel-2 transition-colors"
+                onClick={() => { haptic.impactLight(); setMenuOpen(false); onOpenHowTo?.(); }}
+              >
+                {t("cdd.helpAria", "CÓMO SE JUEGA")}
+              </button>
+            </div>
+          )}
         </span>
+        
+        {/* DERECHA: Clasificación / Puesto del jugador */}
         <span>
           <button
             type="button"
-            aria-label={t("cdd.profileAria")}
-            onClick={() => { haptic.impactLight(); (user ? onOpenProfile : onOpenLogin)?.(); }}
+            className="text-gold font-bold hover:text-rojo transition-colors"
+            onClick={() => { haptic.impactLight(); onOpenRanking?.(); }}
           >
-            {user ? t("prensa.perfil") : t("prensa.entrar")}
-          </button>
-          <span className="sep" aria-hidden="true">·</span>
-          <button
-            type="button"
-            className="prensa-tema"
-            aria-pressed={tema === "noche"}
-            aria-label={tema === "noche" ? t("cdd.themeToDay") : t("cdd.themeToNight")}
-            onClick={() => { haptic.impactLight(); toggle(); }}
-          >
-            {tema === "noche" ? <SunGlyph /> : <MoonGlyph />}
+            {user && rank ? (
+              <span>🏆 PUESTO #{rank.rank}</span>
+            ) : rankCargando ? (
+              <span>...</span>
+            ) : (
+              <span>CLASIFICACIÓN</span>
+            )}
           </button>
         </span>
       </nav>
 
-      <div className={"prensa-masthead" + (portadaCompleta ? "" : " prensa-masthead--compacto")}>
+      <div className="prensa-masthead prensa-masthead--compacto">
         {/* El h1 real (SEO/lectores) vive sr-only en Configurator; este es el
             wordmark visual del masthead. */}
         <p className="titulo">{t("app.title")}</p>
-        {/* El lema es voz de marca de "portada": se pinta en la primera visita y
-            se retira para el recurrente (gana altura sobre el fold). El título y
-            el folio (identidad + fecha) se quedan siempre. */}
-        {portadaCompleta && <p className="lema">{t("prensa.lema")}</p>}
-        {/* Temporada temática en curso: sello dorado que señala de un vistazo que
-            el juego va por temporadas y en cuál estamos. Solo si hay una activa. */}
-        {season && (
-          <p className="temporada">
-            {t("prensa.temporada", {
-              tema: locale === "en" ? season.label_en : season.label_es,
-            })}
-          </p>
-        )}
       </div>
 
       <div className="prensa-folio">
         <span>{dateLabel}</span>
-        <span aria-hidden="true">·</span>
-        <span className="rojo">{t("prensa.folioEdicion")}</span>
       </div>
 
-      {/* La clasificación cierra la portada: es lo último que se lee antes de
-          la foto del día, en el sitio donde un periódico pone su recuadro de
-          resultados. Ya NO se monta siempre: para el visitante sin sesión la
-          monta Configurator debajo del cupón (misma pieza, otro sitio). */}
-      {fajaEnCabecera && (
-        <FajaClasificacion
-          rank={rank}
-          cargando={rankCargando}
-          partidaCerrada={partidaCerrada}
-          onOpenRanking={onOpenRanking}
-        />
-      )}
     </header>
   );
 }

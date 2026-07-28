@@ -1397,37 +1397,31 @@ body,
 /* El campo Año ya no tiene steppers ni caja propia: usa .prensa-input, gemelo
    exacto de Marca/Modelo (línea base, mono, alineado a la izquierda). */
 .prensa-submit {
-  width: 100%; height: 54px; border: 0; border-radius: 0; cursor: pointer;
-  background: var(--line-strong); color: var(--bg);
-  /* Filete interior fino (margen de papel + tinta) → aspecto de SELLO
-     franqueado: la barra de "ADIVINAR" es el gesto de estampar el cupón, en la
-     misma familia visual que el sello de fin de partida (.prensa-sello). El
-     margen usa surface para fundirse con el papel del cupón. */
-  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--line-strong);
-  font-family: var(--font-body); font-weight: 800; font-size: 13px;
-  letter-spacing: .3em; text-transform: uppercase;
-  transition: background .18s, color .18s, box-shadow .18s;
+  width: 100%; height: 64px; border: 0; border-radius: 0; cursor: pointer;
+  background: rgb(var(--rojo-rgb)); color: var(--bg);
+  font-family: var(--font-display); font-weight: 900; font-size: 24px;
+  letter-spacing: .05em; text-transform: uppercase;
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .prensa-submit:hover:not(:disabled):not(.is-incomplete) {
-  background: var(--rojo);
-  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--rojo);
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0px rgb(var(--tinta-rgb));
 }
-.prensa-submit:active:not(:disabled) { transform: translateY(1px); }
+.prensa-submit:active:not(:disabled) { 
+  transform: translateY(2px); 
+  box-shadow: 0px 0px 0px rgb(var(--tinta-rgb));
+}
 .prensa-submit:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
-/* Incompleto pero TOCABLE (el tap explica qué falta con temblor + toast).
-   Afordancia: antes era transparente con un filete de 1px → el CTA principal se
-   leía como apagado y el recién llegado no sabía que ESE era el botón. Ahora es
-   un CUPÓN POR SELLAR: filete de 2px + tinte de papel + rótulo a tinta plena
-   (var(--cdd-text), 14.3:1). Pesa como acción primaria sin robarle el sólido de
-   tinta al estado "listo" (background:--line-strong), y queda claramente por
-   ENCIMA de :disabled (muerto, faint + 1px). El hover ahonda el tinte para
-   confirmar que responde (aunque el tap solo dispare shake+toast si falta algo). */
+
+/* Incompleto pero TOCABLE */
 .prensa-submit.is-incomplete {
-  background: color-mix(in srgb, var(--line-strong) 9%, transparent);
-  color: var(--cdd-text);
-  box-shadow: inset 0 0 0 2px var(--line-strong);
+  background: rgb(var(--tinta-rgb));
+  color: var(--bg);
+  box-shadow: none;
 }
-.prensa-submit.is-incomplete:hover { background: color-mix(in srgb, var(--line-strong) 15%, transparent); }
+.prensa-submit.is-incomplete:hover { 
+  background: color-mix(in srgb, rgb(var(--tinta-rgb)) 80%, black);
+}
 
 /* ── F2: Fin de partida — la crónica con sello ──
    El EndScreen hereda las variables de .prensa (vive dentro del root del
@@ -1676,7 +1670,7 @@ body,
   font-family: var(--font-body); font-weight: 700; font-size: 9px;
   letter-spacing: .1em; text-transform: uppercase; color: var(--rojo);
 }
-.rank-ayuda:hover { text-decoration: underline; }
+.rank-ayuda:hover { opacity: 0.8; }
 
 /* Cabecera de temporada: kicker en oro, tema en Fraunces y el cierre al
    margen. Sobre doble filete, como una cabecera de sección. */

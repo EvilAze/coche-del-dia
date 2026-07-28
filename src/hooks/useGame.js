@@ -232,8 +232,18 @@ export function useGame() {
         const headers = { ...anonHeaders() };
         if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-        const res = await fetch("/api/get-daily-car", { headers });
-        const daily = await res.json();
+        // const res = await fetch("/api/get-daily-car", { headers });
+        // const daily = await res.json();
+        
+        // MOCK LOCAL PARA PRUEBAS DE UI:
+        const daily = {
+          date: today,
+          img: "https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?q=80&w=1920&auto=format&fit=crop", // Coche genérico de prueba
+          maxAttempts: 5,
+          guesses: [],
+          status: "playing",
+          zoomBase: 3.7
+        };
         // El servidor devuelve el token (nuevo o renovado): lo persistimos.
         if (daily?.anonToken) setAnonToken(daily.anonToken);
         // daily = { date, img, maxAttempts, guesses, status, reveal, revealToken }
@@ -380,19 +390,34 @@ export function useGame() {
       // jugador que no se ha registrado. Devuelve null si no se pudo (p.ej.
       // «Anonymous sign-ins» desactivado) y entonces seguimos con el flujo
       // anónimo de siempre: token HMAC + localStorage. Ver lib/auth.js.
-      await asegurarSesionAnonima();
+      await asegurarSesionAnonima().catch(() => {});
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null }}));
       const accessToken = session?.access_token;
 
       const headers = { "Content-Type": "application/json", ...anonHeaders() };
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-      response = await fetch("/api/validate-guess", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      });
+      // MOCK LOCAL PARA PRUEBAS UI:
+      const target = { id: "1", marca: "Toyota", modelo: "Corolla", anio: 2020 };
+      const isCorrect = payload.guessCarId === target.id && parseInt(payload.anio, 10) === target.anio;
+      response = {
+        ok: true,
+        clone: () => response,
+        json: async () => ({
+          result: {
+            marca: { val: payload.marca || "Toyota", status: payload.guessCarId === target.id || payload.marca === target.marca ? "correct" : "incorrect" },
+            modelo: { val: payload.modelo || "Corolla", status: payload.guessCarId === target.id ? "correct" : "incorrect" },
+            anio: { 
+              val: parseInt(payload.anio, 10), 
+              status: parseInt(payload.anio, 10) === target.anio ? "correct" : "incorrect",
+              direction: parseInt(payload.anio, 10) > target.anio ? -1 : 1
+            },
+            win: isCorrect
+          },
+          status: isCorrect ? "won" : "playing"
+        })
+      };
     } catch (networkErr) {
       // Aquí solo llegan errores de red puros: DNS, CORS, offline, abort.
       console.error("[submitGuess] fetch falló a nivel de red", {

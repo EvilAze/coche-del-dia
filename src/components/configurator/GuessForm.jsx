@@ -370,7 +370,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           : ""}
       </p>
 
-      <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
+      <form className="prensa-cupon p-5 mb-6 border-[3px] border-dashed border-tinta/50 bg-papel-mat flex flex-col gap-3 relative shadow-sm" onSubmit={handleSubmit} autoComplete="off">
         {/* Tres renglones apilados a ancho completo: marca, modelo y año. Cada
             campo ocupa toda la fila (target grande, nombres largos legibles) en
             vez del par marca|modelo comprimido de antes. Cada uno lleva ahora su
@@ -430,10 +430,18 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             Con campos incompletos el botón queda tocable con aspecto apagado
             (.is-incomplete): el tap dispara el shake + toast de arriba. La
             transición CSS apagado→accent al completarse el formulario es el
-            micro-feedback de "listo para disparar". */}
+            micro-feedback de "listo para disparar". Le sumamos un leve pulso
+            para invitar al clic cuando ya están los tres. */}
         <button
           type="submit"
-          className={"prensa-submit mt-1.5" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
+          className={
+            "prensa-submit mt-2 transition-all duration-300 " +
+            (!canSubmit && !formDisabled
+              ? " is-incomplete"
+              : canSubmit
+              ? " shadow-[0_0_15px_rgba(var(--rojo-rgb),0.35)] scale-[1.01]"
+              : "")
+          }
           disabled={formDisabled}
           aria-busy={isSubmitting}
         >

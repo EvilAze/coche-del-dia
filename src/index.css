@@ -1639,10 +1639,9 @@ body,
 .rank-tuyo-row { display: flex; align-items: baseline; gap: 10px; margin-top: 5px; }
 /* El movimiento, en su propia línea bajo la cifra (ver el porqué en el JSX). */
 .rank-tuyo-mov { font-family: var(--font-display); font-size: 12.5px; margin-top: 4px; }
+/* Solo up/down: aquí no se pintan «mantienes» ni «estrenas» (ver Ranking.jsx). */
 .rank-tuyo-mov--up   { color: var(--verde); font-weight: 600; }
 .rank-tuyo-mov--down { color: var(--cdd-muted); font-weight: 600; }
-.rank-tuyo-mov--hold,
-.rank-tuyo-mov--new  { color: var(--cdd-muted); font-style: italic; }
 .rank-tuyo-dist {
   font-family: var(--font-display); font-style: italic; font-size: 12.5px;
   color: var(--cdd-muted); margin-top: 4px;

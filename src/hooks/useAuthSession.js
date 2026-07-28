@@ -43,8 +43,11 @@ export function useAuthSession() {
     async function syncUser(session) {
       const sessionUser = session?.user ?? null;
       const nextId = sessionUser?.id ?? null;
-      if (lastUserIdRef.current === nextId) return;
-      lastUserIdRef.current = nextId;
+      const nextAnon = sessionUser?.is_anonymous ?? false;
+      const nextKey = nextId ? `${nextId}-${nextAnon}` : null;
+
+      if (lastUserIdRef.current === nextKey) return;
+      lastUserIdRef.current = nextKey;
 
       // `user` = CUENTA REAL. Una sesión anónima tiene JWT y fila en auth.users,
       // pero para la interfaz sigue siendo un visitante sin registrar: el header

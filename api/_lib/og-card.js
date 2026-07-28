@@ -54,7 +54,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import sharp from "sharp";
-import { OVERLAY_PNG_BASE64 } from "./og-overlay.js";
+// Import de NAMESPACE y no de named exports a propósito. og-overlay.js lo
+// genera el propio script que importa este módulo, así que añadir un export
+// nuevo creaba un huevo-y-gallina: el generador no arrancaba porque la capa
+// vieja aún no lo exportaba. Con el namespace, un export que falte es
+// `undefined` en vez de un error de módulo — el generador corre, reescribe la
+// capa, y de paso la tarjeta degrada sola si algún día se despliega con una
+// capa desfasada (sale sin marcador en vez de romper).
+import * as capa from "./og-overlay.js";
+
+const OVERLAY_PNG_BASE64 = capa.OVERLAY_PNG_BASE64;
+const MARCADORES_BASE64 = capa.MARCADORES_BASE64 ?? {};
 
 export const W = 1200;
 export const H = 630;
@@ -165,26 +175,48 @@ async function procesarFoto(entrada) {
 // marcador. Un disco relleno es acierto; un aro vacío, fallo. Monocromo en
 // tinta y no verde/rojo como en el juego, porque la paleta del periódico no
 // tiene verde y meterlo aquí solo para esto rompería la portada.
-// La primera colocación (x=516) pegaba los discos a la "e" de «El Coche» y la
-// rejilla se leía como parte del wordmark. Corrida a la derecha, deja aire por
-// los dos lados: ~120px hasta el wordmark y ~77px hasta el filete de la foto.
-const REJILLA_X = 600;
-const CELDA = 36; // paso entre centros
-const RADIO = 11;
-// Centro óptico del bloque del wordmark. La rejilla se centra AQUÍ en vez de
-// colgar de una Y fija, para que una partida de dos intentos y otra de cinco
-// queden las dos equilibradas frente al masthead en lugar de irse hacia arriba.
-const REJILLA_CENTRO_Y = 315;
+// EL MARCADOR MANDA, LA REJILLA ACOMPAÑA.
+//
+// La primera versión enseñaba SOLO los discos, confiando en que el número de
+// filas se leyera como marcador. No se lee: una partida resuelta a la primera
+// es una única fila de tres discos y en un chat parece unos puntos suspensivos.
+// Lo comprobó en carne propia el autor del juego, que al ver su propia tarjeta
+// dijo «no se ve el resultado dinámico» — si no lo descifra quien lo programó,
+// no lo descifra nadie.
+//
+// Así que el "1/5" va con tipografía de verdad y en grande, que además es lo
+// único legible cuando la tarjeta se ve del tamaño de un sello en el móvil, y
+// la rejilla queda debajo como detalle para quien se acerque.
+//
+// El marcador son SEIS variantes fijas (1/5…5/5 y X/5), pre-renderizadas junto
+// a la capa base por la misma razón que ella: en el servidor no hay fuentes.
+// Seis PNG diminutos pesan nada y evitan volver a dibujar texto en producción.
+// Métrica del bloque, ajustada para que quepa ENTERO entre el folio (y≈150) y
+// el filete rojo del lema (y=432) incluso con cinco intentos, y para que el
+// marcador no pise la primera fila de discos — que es lo que pasaba con la
+// primera métrica: el "1/5" bajaba hasta y=322 y los discos empezaban en 321.
+// Con cinco filas, el último centro cae en 412 y el borde inferior en 420.
+//
+// Marcador y rejilla comparten EJE VERTICAL (x=640) para que el bloque se lea
+// como una sola pieza. El marcador va centrado por text-anchor y no por
+// posición calculada, así "X/5" y "1/5" quedan alineados aunque midan distinto.
+const EJE_X = 640;
+const CELDA = 28;
+const RADIO = 8;
+const REJILLA_X = EJE_X - CELDA; // centro de la primera columna
+const REJILLA_Y0 = 300; // centro de la primera fila
+const MARCADOR_W = 220;
+const MARCADOR_X = EJE_X - MARCADOR_W / 2;
+const MARCADOR_Y = 208;
 
 function dibujarRejilla(intentos) {
   if (!intentos?.length) return null;
-  const y0 = REJILLA_CENTRO_Y - ((intentos.length - 1) * CELDA) / 2;
   const marcas = intentos
     .map((fila, f) =>
       [fila.marca, fila.modelo, fila.anio]
         .map((ok, c) => {
           const cx = REJILLA_X + c * CELDA;
-          const cy = y0 + f * CELDA;
+          const cy = REJILLA_Y0 + f * CELDA;
           return ok
             ? `<circle cx="${cx}" cy="${cy}" r="${RADIO}" fill="${TINTA}"/>`
             : `<circle cx="${cx}" cy="${cy}" r="${RADIO - 1}" fill="none" stroke="${TINTA}" stroke-opacity="0.28" stroke-width="2"/>`;
@@ -196,6 +228,30 @@ function dibujarRejilla(intentos) {
     `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">${marcas}</svg>`
   );
 }
+
+/**
+ * Clave del marcador para una partida: "1".."5" si se resolvió, "X" si no.
+ * Ganar = el último intento con las tres celdas acertadas, misma definición que
+ * usa buildShareText para su "N/5".
+ */
+export function claveMarcador(intentos) {
+  if (!intentos?.length) return null;
+  const ultimo = intentos[intentos.length - 1];
+  const gano = ultimo.marca && ultimo.modelo && ultimo.anio;
+  return gano ? String(intentos.length) : "X";
+}
+
+/** El SVG de UN marcador, para pre-renderizar. Solo lo usa el generador. */
+export function construirMarcadorSvg(clave) {
+  return `<svg width="${MARCADOR_W}" height="76" xmlns="http://www.w3.org/2000/svg">
+  <text x="${MARCADOR_W / 2}" y="58" text-anchor="middle"
+        font-family="${SERIF}" font-size="56" font-weight="700"
+        fill="${TINTA}" letter-spacing="-1">${clave}/5</text>
+</svg>`;
+}
+
+/** Las seis claves posibles. El generador itera sobre esto. */
+export const CLAVES_MARCADOR = ["1", "2", "3", "4", "5", "X"];
 
 /**
  * Compone la tarjeta completa: foto del día debajo, capa fija encima y —si se
@@ -226,13 +282,24 @@ export async function componerTarjetaOG(foto, { intentos = null } = {}) {
   const grabado = await procesarFoto(foto);
   const capaFija = Buffer.from(OVERLAY_PNG_BASE64, "base64");
   const rejilla = dibujarRejilla(intentos);
+  // El marcador puede faltar si la capa se generó con una versión anterior del
+  // script: en ese caso sale la rejilla sola, que es la degradación buena.
+  const clave = claveMarcador(intentos);
+  const marcador = clave && MARCADORES_BASE64?.[clave];
 
   // 2) Foto primero, capa fija después (su filete vertical remata el borde del
-  //    grabado) y la rejilla al final, sobre el papel ya pintado.
+  //    grabado) y el resultado al final, sobre el papel ya pintado.
   const capas = [
     { input: grabado, top: 0, left: FOTO_X },
     { input: capaFija, top: 0, left: 0 },
   ];
+  if (marcador) {
+    capas.push({
+      input: Buffer.from(marcador, "base64"),
+      top: MARCADOR_Y,
+      left: MARCADOR_X,
+    });
+  }
   if (rejilla) capas.push({ input: rejilla, top: 0, left: 0 });
 
   return sharp(papel)

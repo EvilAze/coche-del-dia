@@ -72,7 +72,23 @@ async function sesionAnonimaVigente() {
   }
 }
 
-export async function signInWithGoogle() {
+/**
+ * Entrar con Google.
+ *
+ * @param {object} [opciones]
+ * @param {boolean} [opciones.vincular=true]  Si hay sesión anónima, intentar
+ *   conservarla vinculando la identidad. Con `false` se entra directamente a la
+ *   cuenta de Google, descartando el progreso anónimo de este dispositivo — es
+ *   lo que necesita el botón de recuperación cuando la vinculación ya falló.
+ *
+ * OJO CON EL ERROR DE linkIdentity: redirige igual que signInWithOAuth, así que
+ * un rechazo del SERVIDOR (el caso normal: esa cuenta de Google ya pertenece a
+ * otro usuario) no puede volver en el valor de esta llamada — para cuando el
+ * servidor decide, el navegador ya se fue a Google. Vuelve en la URL de retorno
+ * y lo recoge lib/authCallback.js. El `res.error` de aquí abajo solo caza los
+ * fallos PREVIOS al redirect, que son los menos.
+ */
+export async function signInWithGoogle({ vincular = true } = {}) {
   if (Capacitor.isNativePlatform()) {
     return nativeGoogleSignIn();
   }
@@ -81,15 +97,10 @@ export async function signInWithGoogle() {
   // conserva el mismo user id, y con él la racha, las estadísticas y el
   // Archivo que el jugador acumuló como anónimo. Es la diferencia entre
   // «regístrate» y «no pierdas lo que llevas».
-  if (await sesionAnonimaVigente()) {
+  if (vincular && (await sesionAnonimaVigente())) {
     const res = await supabase.auth.linkIdentity({ provider: "google" });
-    // linkIdentity exige «Manual linking» habilitado en el dashboard. Si no lo
-    // está, caemos al login normal: el jugador pierde el progreso anónimo, sí,
-    // pero ENTRA — y perderlo es exactamente lo que pasaba antes de que las
-    // sesiones anónimas existieran, así que el fallback nunca deja al usuario
-    // peor que el statu quo. Quedarnos sin login sí lo dejaría.
     if (!res?.error) return res;
-    console.warn("[auth] linkIdentity no disponible, entrando normal:", res.error.message);
+    console.warn("[auth] linkIdentity rechazado antes de redirigir:", res.error.message);
   }
 
   return supabase.auth.signInWithOAuth({ provider: "google" });

@@ -35,7 +35,11 @@ function GoogleGlyph() {
   );
 }
 
-export default function LoginModal({ open, onClose }) {
+// `aviso`: null en el caso normal; "identidad-ocupada" cuando la vinculación
+// falló porque esa cuenta de Google ya es de otro usuario; cualquier otra
+// cadena para un fallo genérico de OAuth. Lo decide App.jsx leyendo la URL de
+// retorno (lib/authCallback.js).
+export default function LoginModal({ open, onClose, aviso = null }) {
   const { t } = useT();
   const toast = useToast();
   const conEmail = emailLoginDisponible();
@@ -47,12 +51,15 @@ export default function LoginModal({ open, onClose }) {
   // es justo lo que no queremos.
   const [enviadoA, setEnviadoA] = useState(null);
 
-  async function entrarConGoogle() {
+  // `vincular=false` cuando venimos de un intento de vinculación fallido: ya
+  // sabemos que esa cuenta de Google es de otro usuario, así que reintentar
+  // vinculando mandaría al jugador a Google para volver con el mismo error.
+  async function entrarConGoogle(vincular = true) {
     // En nativo (app) el login va por plugin; si falla (p.ej. falta
     // VITE_GOOGLE_WEB_CLIENT_ID o el usuario cancela con error), damos
-    // feedback visible en vez de "no pasa nada". En web, signInWithOAuth
-    // redirige y el error path no se alcanza normalmente.
-    const { error } = (await signInWithGoogle()) || {};
+    // feedback visible en vez de "no pasa nada". En web redirige, y el error
+    // que importa vuelve en la URL — lo recoge lib/authCallback.js.
+    const { error } = (await signInWithGoogle({ vincular })) || {};
     if (error) toast.push(t("app.loginError"), { type: "error" });
   }
 
@@ -111,10 +118,28 @@ export default function LoginModal({ open, onClose }) {
           <h2 className="mb-4 font-display text-2xl tracking-widest text-accent">
             {t("app.loginModalTitle")}
           </h2>
-          <p className="mb-8 text-sm text-muted">{t("app.loginModalDescription")}</p>
+
+          {/* Vuelta de un intento fallido. Antes de esto, ese caso era una
+              pantalla idéntica a la normal: el jugador volvía de Google sin
+              sesión y sin ninguna explicación, y solo podía volver a pulsar el
+              mismo botón para repetir el mismo fallo. */}
+          {aviso === "identidad-ocupada" ? (
+            <p className="mb-6 border border-dashed border-tinta px-3 py-2 text-left text-sm text-muted">
+              {t("app.loginLinkTakenBody")}
+            </p>
+          ) : aviso ? (
+            <p className="mb-6 border border-dashed border-tinta px-3 py-2 text-left text-sm text-muted">
+              {t("app.loginFailedBody")}
+            </p>
+          ) : (
+            <p className="mb-8 text-sm text-muted">{t("app.loginModalDescription")}</p>
+          )}
 
           <button
-            onClick={entrarConGoogle}
+            // Tras un fallo de vinculación entramos SIN vincular: ya sabemos
+            // que esa cuenta es de otro usuario, y reintentar vinculando sería
+            // mandarle a Google para volver con el mismo error.
+            onClick={() => entrarConGoogle(aviso !== "identidad-ocupada")}
             className="flex w-full items-center justify-center gap-3 rounded-lg bg-white px-4 py-3 font-semibold text-black transition-transform hover:scale-105 active:scale-95"
           >
             <GoogleGlyph />

@@ -4,18 +4,34 @@
 // de la rejilla (antes EndScreen.jsx mantenía un espejo manual y el comentario
 // advertía "si cambias un mapeo, cambia el otro"; ahora EndScreen importa de aquí).
 //
-// Formato "Wordle canon" (decidido viendo shares reales en chats):
+// ─── POR QUÉ EL MENSAJE ES TAN CORTO ────────────────────────────────────────
+// Este texto se pega sobre todo en un CANAL de Telegram con cientos de
+// personas, y ahí el alto del mensaje es espacio robado a la conversación de
+// los demás. Al jugador al que le llaman la atención por spam no vuelve a
+// compartir — y compartir es el único canal de captación que tiene el juego.
+//
+// LA REJILLA ✅/❌ SE RETIRÓ (jul-2026), y no por capricho de brevedad:
+//   · Su información ya estaba en la cabecera. "3/5" dice cuántos intentos
+//     costó; la rejilla lo repetía en cinco líneas, con el detalle de qué campo
+//     falló en cada uno — un matiz que solo entiende quien ya jugó hoy, y que
+//     por tanto no recluta a nadie.
+//   · Desde que el enlace trae tarjeta con el COCHE del día (api/og-image.js),
+//     el mensaje ya tiene su gancho visual. Foto + rejilla era pedirle a un
+//     canal ajeno ocho líneas y una imagen por partida.
+//   · Y en un canal DE CARDLE —de donde queremos que venga la gente— una
+//     rejilla de cuadritos es indistinguible del ruido que ya hay. Lo que llama
+//     la atención de un aficionado al motor es el coche.
+// `shareGrid` NO se borra: el EndScreen la sigue pintando en pantalla como
+// registro de tu partida. Es el trofeo; el mensaje es otra cosa.
+//
+// Formato resultante — tres líneas como mucho:
 //   1. CABECERA  → "Coche del Día · DD/MM · N/5 · 🔥7"
 //      • Nombre sin artículo y fecha sin año: más compacto, el resultado solo
 //        tiene sentido el mismo día (puzzle diario).
 //      • Score "N/5" ("X/5" en derrota), como Wordle: lo primero que comunica.
 //      • Racha solo si > 0 (un "🔥0" sería contraproducente).
-//   2. REJILLA   → una línea ✅/❌ por intento, sin líneas en blanco (en un
-//      grupo concurrido, el alto del mensaje es espacio robado a la charla).
-//      BINARIO a propósito: el "mismo país" (marca partial) cae a ❌ — la marca
-//      ES incorrecta; el matiz con bandera vive en el juego, no en el share.
-//      ✅/❌ y no cuadrados de color → forma + color (legible para daltónicos
-//      y en scroll rápido) y semántica universal sin leyenda.
+//   2. PERCENTIL → lo inserta EndScreen, y solo si es un flex de verdad
+//      (top 30%). Opcional por definición.
 //   3. DOMINIO   → SIEMPRE la última línea, sin texto alrededor. Activa el OG
 //      card preview en WhatsApp/Telegram (marketing gratis) y hace de firma.
 //      EndScreen inserta el percentil ("Mejor que el N%…") JUSTO ANTES de esta
@@ -70,7 +86,6 @@ export function buildShareText(
   todayStr = getMadridDateStr()
 ) {
   const list = Array.isArray(guesses) ? guesses : [];
-  const grid = shareGrid(list);
 
   // Victoria = última fila con las tres celdas correctas (no hay otra forma de
   // ganar; la partida se cierra ahí). Derrota → "X/5" estilo Wordle.
@@ -88,5 +103,5 @@ export function buildShareText(
   // habría que escaparla y `%2F` en mitad de un enlace de chat es feo).
   const fechaUrl = getShareDate(todayStr).replace("/", "-");
 
-  return `Coche del Día · ${getShareDate(todayStr)} · ${score}${streakChunk}\n${grid}\ncochedeldia.com/?d=${fechaUrl}`;
+  return `Coche del Día · ${getShareDate(todayStr)} · ${score}${streakChunk}\ncochedeldia.com/?d=${fechaUrl}`;
 }

@@ -42,12 +42,33 @@ describe("getShareDate", () => {
 });
 
 describe("buildShareText", () => {
-  it("cabecera de victoria: N/max y rejilla, dominio como última línea", () => {
+  it("victoria: cabecera y enlace, DOS líneas y ninguna más", () => {
     const guesses = [row(C, W, C), row(C, C, C)];
     const text = buildShareText(guesses, 0, 5, WIN_DATE);
-    expect(text).toBe(
-      "Coche del Día · 24/05 · 2/5\n✅❌✅\n✅✅✅\ncochedeldia.com/?d=24-05"
+    expect(text).toBe("Coche del Día · 24/05 · 2/5\ncochedeldia.com/?d=24-05");
+  });
+
+  // El mensaje se pega en un canal de Telegram con cientos de personas: cada
+  // línea de más es espacio robado a la conversación ajena, y a quien le llaman
+  // la atención por spam no vuelve a compartir. La rejilla ✅/❌ se retiró
+  // porque su información ya estaba en el "N/5" de la cabecera y porque el
+  // enlace ya trae gancho visual propio (la tarjeta con el coche del día).
+  it("el mensaje NO lleva la rejilla, por largo que sea el resultado", () => {
+    const largo = buildShareText(
+      [row(W, W, W), row(W, W, W), row(W, W, W), row(W, W, W), row(C, C, C)],
+      9,
+      5,
+      WIN_DATE
     );
+    expect(largo.split("\n")).toHaveLength(2);
+    expect(largo).not.toContain("✅");
+    expect(largo).not.toContain("❌");
+  });
+
+  // Pero la rejilla sigue existiendo: el EndScreen la pinta en pantalla como
+  // registro de la partida. Es el trofeo; el mensaje es otra cosa.
+  it("shareGrid se conserva para la pantalla de resultado", () => {
+    expect(shareGrid([row(C, W, C)])).toBe("✅❌✅");
   });
 
   // La fecha del enlace NO es decoración: es lo que hace que cada día sea una

@@ -127,19 +127,33 @@
 
     <!--
       Open Graph + Twitter Card.
-      og:image se genera con scripts/generate-og-image.mjs (1200×630). Si
-      cambias el diseño o el texto, regenera con:
+
+      og:image apunta a /api/og-image: la tarjeta VIVA, que monta el recorte del
+      INTENTO 1 del coche de hoy sobre esta misma portada (api/og-image.js). En
+      un juego de fotos diarias, la tarjeta del enlace es el único escaparate
+      gratis que tenemos: lo que detiene el scroll en un grupo de aficionados al
+      motor es un coche, no un wordmark. No filtra nada — el intento 1 es el
+      encuadre MÁS cerrado, y es exactamente lo que ese visitante verá al abrir
+      la web un segundo después.
+
+      La URL del endpoint es ESTABLE a propósito (sin bust query): lo que hace
+      que las plataformas pidan un preview nuevo cada día es que el enlace
+      COMPARTIDO lleve la fecha (ver buildShareText en src/lib/shareText.js).
+      Un bust aquí no serviría de nada: estas etiquetas son estáticas y no
+      pueden saber qué día es.
+
+      public/og-image.jpg sigue existiendo como RESPALDO: /api/og-image cae ahí
+      con un 302 ante cualquier fallo (regla 9). Se regenera con
         node scripts/generate-og-image.mjs
-      y commitea el resultado. El CDN cachea por URL — si quieres invalidar
-      un preview ya pegado en redes sociales, sube el bust query (?v=3).
+      y la composición de ambos vive en api/_lib/og-card.js.
     -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="El Coche del Día" />
     <meta property="og:url" content="https://cochedeldia.com/" />
     <meta property="og:title" content="El Coche del Día · El reto diario para entusiastas del motor" />
     <meta property="og:description" content="¿Eres un experto en motor? Adivina marca, modelo y año del coche del día en 5 intentos. Nuevo coche cada 24h." />
-    <meta property="og:image" content="https://cochedeldia.com/og-image.jpg?v=3" />
-    <meta property="og:image:secure_url" content="https://cochedeldia.com/og-image.jpg?v=3" />
+    <meta property="og:image" content="https://cochedeldia.com/api/og-image" />
+    <meta property="og:image:secure_url" content="https://cochedeldia.com/api/og-image" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -151,7 +165,7 @@
     <meta name="twitter:url" content="https://cochedeldia.com/" />
     <meta name="twitter:title" content="El Coche del Día · El reto diario de coches" />
     <meta name="twitter:description" content="Adivina marca, modelo y año del coche del día en 5 intentos. ¿Te atreves?" />
-    <meta name="twitter:image" content="https://cochedeldia.com/og-image.jpg?v=3" />
+    <meta name="twitter:image" content="https://cochedeldia.com/api/og-image" />
     <meta name="twitter:image:alt" content="El Coche del Día — El reto diario de coches" />
 
     <!--

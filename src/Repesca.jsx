@@ -440,7 +440,7 @@ export default function Repesca() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-tinta">
         <div className="w-full max-w-sm rounded-2xl border border-rojo/40 bg-papel-2 p-6 text-center shadow-2xl">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-red-400">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-rojo">
             {t("repesca.errorUnavailable")}
           </p>
           <h1 className="mt-2 font-display text-2xl tracking-widest text-tinta">

@@ -53,8 +53,15 @@ const GLIFOS_TIPOGRAFICOS = /[✓✔✕✖✗★☆✶]/gu;
 
 // Paleta cruda de Tailwind. `gray-` y `slate-` entran también: son grises que
 // no se enteran del cambio día/noche.
+//
+// La lista es la paleta COMPLETA de Tailwind a propósito. Antes enumeraba solo
+// los colores que se habían visto en el repo, y por el hueco se coló un
+// `text-red-400` en el modal de ranking que sobrevivió a todo el rediseño: el
+// guardarraíl solo protege de los colores que alguien se acordó de escribir.
+// Los tokens del tema (rojo, gold, plata, bronce, tinta, papel, muted…) no
+// llevan sufijo numérico, así que no colisionan con este patrón.
 const PALETA_CRUDA =
-  /\b(?:amber|zinc|neutral|slate|gray|emerald|sky|indigo|violet|lime|teal|cyan|rose|fuchsia)-(?:50|[1-9]00|950)\b/;
+  /\b(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-(?:50|[1-9]00|950)\b/;
 
 // Glow: sombra que empieza en 0 0 (sin desplazamiento) = halo.
 const GLOW = /shadow-\[0_0_/;

@@ -192,7 +192,18 @@
     "fajaAyer": "desde ayer",
     "fajaHold": "Sin cambios",
     "fajaNueva": "Estreno",
-    "fajaInvita": "Gana hoy y entras en la tabla"
+    "fajaInvita": "Gana hoy y entras en la tabla",
+    "fajaDistancia": {
+      "one": "A {count} punto del {pos}",
+      "other": "A {count} puntos del {pos}"
+    },
+    "fajaEmpate": "Empatado con el {pos}",
+    "fajaLider": "Lideras la clasificación",
+    "fajaCierra": {
+      "one": "Cierra en {count} día",
+      "other": "Cierra en {count} días"
+    },
+    "fajaCierraHoy": "Cierra hoy"
   },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",
@@ -368,7 +379,7 @@
     "tabSeason": "Temporada",
     "tabChampions": "Campeones",
     "championsEmpty": "Aún no hay temporadas cerradas con podio.",
-    "colRank": "#",
+    "colRank": "Puesto",
     "colPlayer": "Lector",
     "colPoints": "Pts",
     "bestStreak": "Mejor racha: {value}",
@@ -383,7 +394,8 @@
     "streakAria": "Racha de {count} días, bonus {bonus}",
     "streakTitle": "Racha de {count} días",
     "legends": "Leyendas",
-    "legendsSubtitle": "Clasificación histórica"
+    "legendsSubtitle": "Clasificación histórica",
+    "yourStanding": "Tu puesto"
   },
   "podium": {
     "title": "Podios del mes",

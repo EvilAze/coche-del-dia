@@ -16,6 +16,7 @@ import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { rankMovement } from "../../lib/rankMovement";
 import { getCurrentSeason } from "../../lib/statsService";
+import PuestoCifra, { ordinal } from "../PuestoCifra";
 import { Icon, I } from "./icons";
 
 export default function RankParte({ rank, user, onOpenRanking }) {
@@ -81,14 +82,30 @@ export default function RankParte({ rank, user, onOpenRanking }) {
     : mv.kind === "hold" ? t("parte.hold")
     : t("parte.new");
 
+  // La distancia al de arriba: el movimiento cuenta lo que YA pasó, esto cuenta
+  // lo que falta. Es el gancho de vuelta — «a 3 puntos del 6º» son dos partidas.
+  // Llega null contra una base de datos sin la migración de la distancia, y
+  // entonces el parte se queda como estaba.
+  const arriba = ordinal(mv.pos - 1, locale);
+  const distancia =
+    mv.pos === 1
+      ? t("prensa.fajaLider")
+      : rank?.gap === 0
+      ? t("prensa.fajaEmpate", { pos: arriba })
+      : rank?.gap > 0
+      ? tn("prensa.fajaDistancia", rank.gap, { pos: arriba })
+      : null;
+
   return (
     <div className="cdd-parte">
       <div className="cdd-parte-lad">{lad}</div>
       <div className="cdd-parte-row">
-        <span className="cdd-parte-pos">{mv.pos}º</span>
-        <span className="cdd-parte-of">{t("parte.of", { total: mv.total })}</span>
+        {/* El mismo marcador que la faja de portada: al cerrar el periódico se
+            ve exactamente el objeto que se vio al abrirlo. */}
+        <PuestoCifra pos={mv.pos} total={mv.total} size="xl" />
       </div>
       <p className={"cdd-parte-mov cdd-parte-mov--" + mv.kind}>{movText}</p>
+      {distancia && <p className="cdd-parte-dist">{distancia}</p>}
       {Cta}
     </div>
   );

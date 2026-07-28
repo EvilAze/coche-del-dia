@@ -93,7 +93,7 @@ export default function Achievements({ stats, onProgress }) {
     );
   }
   if (error) {
-    return <p className="py-8 text-center text-sm text-red-400">{error}</p>;
+    return <p className="py-8 text-center text-sm text-rojo">{error}</p>;
   }
   if (totals.total === 0) {
     return (

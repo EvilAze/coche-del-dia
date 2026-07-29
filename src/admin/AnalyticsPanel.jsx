@@ -179,8 +179,22 @@ export default function AnalyticsPanel() {
         <>
           {/* ROW 1 · KPIs principales */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <KpiCard label="Usuarios totales" value={data.users.total} />
-            <KpiCard label="Nuevos en periodo" value={`+${data.users.newInPeriod}`} positive={data.users.newInPeriod > 0} />
+            {/* Registrados y anónimos son DOS poblaciones de auth.users, no una
+                (ver fetchUsers en lib/admin-handlers/analytics.js). Antes se
+                sumaban en un único "Usuarios totales" que crecía cada vez que
+                un visitante jugaba una partida. Los "nuevos en periodo" de cada
+                una bajan al hint para no gastar dos tarjetas más. */}
+            <KpiCard
+              label="Usuarios registrados"
+              value={data.users.total}
+              hint={`+${data.users.newInPeriod} en periodo`}
+              positive={data.users.newInPeriod > 0}
+            />
+            <KpiCard
+              label="Sesiones anónimas"
+              value={data.users.anonTotal}
+              hint={`+${data.users.anonNewInPeriod} en periodo · 1 por navegador`}
+            />
             <KpiCard label="DAU promedio" value={data.engagement.dauAvg.toFixed(1)} hint="registrados que jugaron" />
             <KpiCard label="Jugadores/día" value={totalAvg.toFixed(1)} hint="total, incl. anónimos" />
             <KpiCard label="% anónimos" value={pct(anonPct)} hint={`≈ ${anonAvg.toFixed(1)}/día`} />

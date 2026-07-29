@@ -654,19 +654,19 @@ body,
    separador: así el "·" respira por igual a ambos lados (antes, con margen
    negativo horizontal, se pegaba a las secciones). */
 .prensa-topbar > span { display: inline-flex; align-items: center; }
-/* Área táctil vertical sin sumar altura (margen negativo SOLO en vertical);
-   el padding horizontal es el que separa cada enlace de su "·" vecino. */
+/* Los estilos base aplican a todos los botones (incluido el desplegable) */
 .prensa-topbar button, .prensa-topbar a {
   background: none; border: 0; cursor: pointer; color: var(--cdd-text);
   font: inherit; letter-spacing: inherit; text-transform: inherit;
   display: inline-flex; align-items: center; gap: 0;
-  padding: 8px 7px; margin: -8px 0; text-decoration: none;
+  text-decoration: none;
 }
-/* Los enlaces de los extremos van a ras del pliego (alineados con folio y
-   ladillos); el aire interno queda solo alrededor del separador. */
-.prensa-topbar > span:first-child > :first-child { padding-left: 0; }
-.prensa-topbar > span:last-child > :last-child { padding-right: 0; }
-.prensa-topbar button:hover, .prensa-topbar a:hover { color: var(--rojo); }
+/* Área táctil extra grande sin sumar altura (compensada con margen negativo);
+   SOLO para los botones principales de la barra, no para los del desplegable. */
+.prensa-topbar > span > button, .prensa-topbar > span > a {
+  padding: 16px 12px; margin: -16px -12px;
+}
+.prensa-topbar > span > button:hover, .prensa-topbar > span > a:hover { color: var(--rojo); }
 .prensa-topbar .sep { color: var(--cdd-muted); }
 /* Aviso de repesca pegado a GARAJE (corrección al margen, no a media palabra):
    sin letter-spacing heredado y con un aire fino, no los ~9px de antes. */

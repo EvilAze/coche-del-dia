@@ -84,7 +84,11 @@ export default function Header({
             type="button"
             aria-expanded={menuOpen}
             onClick={() => { haptic.impactLight(); setMenuOpen(!menuOpen); }}
+            className="flex items-center group"
           >
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="mr-2 opacity-70 group-hover:opacity-100 transition-opacity" aria-hidden="true">
+              <path d="M1 1h14M1 6h14M1 11h14" />
+            </svg>
             {t("header.menuTitle").toUpperCase()}
             {repescaAlert && <span className="aviso" aria-hidden="true">(1)</span>}
           </button>

@@ -291,8 +291,12 @@ export default function Configurator({
             ))}
         </div>
 
-        {/* Pie de página: cierre de edición sutil, enlaces centrados. */}
-        <footer className="prensa-area-pie prensa-cierre flex flex-col items-center justify-center text-center gap-3 py-6">
+        {/* Pie de página: el reloj de cierre y, debajo, los enlaces de servicio.
+            La columna centrada la pone `.prensa-cierre` en CSS —no utilidades
+            aquí—: las reglas propias van después de @tailwind utilities y a
+            igual especificidad ganaban ellas, así que el `items-center` escrito
+            en el JSX no llegaba a aplicarse nunca. */}
+        <footer className="prensa-area-pie prensa-cierre py-6">
           <div className="text-xs font-bold uppercase text-tinta tabular-nums tracking-wider">
             <span className="text-rojo mr-2">{t("prensa.cierre")}</span>
             {countdown.formatted}

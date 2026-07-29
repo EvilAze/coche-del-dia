@@ -672,33 +672,83 @@ body,
    sin letter-spacing heredado y con un aire fino, no los ~9px de antes. */
 .prensa-topbar .aviso { color: var(--rojo); font-weight: 800; margin-left: 2px; letter-spacing: 0; }
 
-/* El SUMARIO desplegable (garaje, perfil, tema, reglas). Lenguaje de papel:
-   filete alrededor, DOBLE filete arriba —cuelga de la barra como una sección
-   que se abre— y sombra de imprenta (desplazada y sin difuminar, la misma
-   física que el hover de ADIVINAR). Nada de halos de cristal ni redondeos.
-   Los estilos base de .prensa-topbar button ya le dan la versalita heredada;
+/* ── EL SUMARIO (el desplegable de la barra) ──────────────────────────────
+   Es un recuadro de sumario de periódico, no un menú de app: ladillo rojo con
+   su filete, entradas en versalitas y doble filete separando las SECCIONES
+   (archivo, perfil) de los SERVICIOS del ejemplar (cómo se lee, en qué tinta).
+   Antes eran cuatro renglones iguales dentro de una caja con sombra de
+   cristal: la caja no decía qué era y el texto de 10px nadaba en 20px de
+   margen. Aquí el aire se reparte al revés — margen justo, jerarquía dentro.
+
+   Sombra DURA (desplazada, sin difuminar): es la física del papel apilado y la
+   misma que usa el hover de ADIVINAR. Ni halos ni redondeos.
+
+   Los estilos base de `.prensa-topbar button` ya le dan la versalita heredada;
    estas reglas van DESPUÉS para ganarles el `display` a igual especificidad. */
 .prensa-menu {
-  position: absolute; top: 100%; left: 0; z-index: 50;
-  margin-top: 8px; min-width: max-content;
+  position: absolute; top: calc(100% + 9px); left: 0; z-index: 50;
+  min-width: 234px;
   display: flex; flex-direction: column; align-items: stretch;
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-top: 3px double var(--line-strong);
-  box-shadow: 3px 3px 0 rgb(var(--tinta-rgb) / .1);
+  box-shadow: 4px 4px 0 rgb(var(--tinta-rgb) / .09);
+  /* Se despliega desde su esquina de anclaje, como una hoja que se abre. */
+  transform-origin: top left;
+  animation: menuAbre .16s cubic-bezier(.2, 1, .3, 1) both;
 }
-/* Área táctil de 47px de alto (14+14+~19 de línea): la barra de arriba es
-   estrecha por diseño de portada, pero dentro del sumario hay sitio y el
-   pulgar lo agradece. */
+@keyframes menuAbre { from { opacity: 0; transform: translateY(-4px) scale(.985); } }
+
+/* Ladillo del sumario: la etiqueta que le dice al recuadro qué es. Rojo y
+   pequeño, como los kickers del sistema (.pm-kicker), sobre filete fino. */
+.prensa-menu-lad {
+  margin: 0; padding: 9px 18px 8px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-body); font-weight: 800; font-size: 8.5px;
+  letter-spacing: .26em; text-transform: uppercase; color: var(--rojo);
+}
+/* Grupos: el doble filete entre ellos es el que separa secciones de servicios.
+   Dentro de cada grupo, filete fino entre entradas. */
+.prensa-menu-grupo + .prensa-menu-grupo { border-top: 3px double var(--line); }
+.prensa-menu-grupo button + button { border-top: 1px solid var(--line); }
+
+/* Entradas: 45px de alto (13+13+~19 de línea) — la barra de arriba es estrecha
+   por diseño de portada, pero aquí hay sitio y el pulgar lo agradece. El
+   `padding-left` deja hueco a la marca de corrector del hover, para que la
+   entrada NO se mueva al señalarla. */
 .prensa-menu button {
+  position: relative; min-height: 46px;
   display: flex; width: 100%; align-items: center; justify-content: space-between;
-  gap: 24px; padding: 14px 20px; text-align: left;
-  transition: color .15s, background .15s;
+  gap: 26px; padding: 13px 18px 13px 30px; text-align: left;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .16em; color: var(--cdd-text);
+  transition: color .14s, background .14s;
 }
-.prensa-menu button + button { border-top: 1px solid var(--line); }
-.prensa-menu button:hover { color: var(--rojo); background: var(--surface2); }
-/* Glifo del toggle de tema (mismo trazo que los iconos del juego). */
-.prensa-menu button svg { display: block; width: 15px; height: 15px; }
+/* La marca de corrector: cuadradito de tinta que aparece señalando la entrada
+   activa (el mismo objeto que .pm-dot, aquí en rojo y a media altura). */
+.prensa-menu button::before {
+  content: ""; position: absolute; left: 17px; top: 50%;
+  width: 5px; height: 5px; margin-top: -2.5px; background: var(--rojo);
+  opacity: 0; transform: translateX(-3px);
+  transition: opacity .14s, transform .14s;
+}
+.prensa-menu button:hover, .prensa-menu button:focus-visible {
+  color: var(--rojo); background: var(--surface2);
+}
+.prensa-menu button:hover::before, .prensa-menu button:focus-visible::before {
+  opacity: 1; transform: translateX(0);
+}
+/* Glifo del toggle de tema: tinta apagada, y acompaña al rojo del hover. */
+.prensa-menu button svg { display: block; width: 15px; height: 15px; color: var(--cdd-muted); }
+.prensa-menu button:hover svg { color: var(--rojo); }
+/* El botón que lo abre se queda en rojo mientras el sumario está desplegado:
+   la barra dice de dónde ha salido la caja. */
+.prensa-topbar .prensa-menu-boton.abierto { color: var(--rojo); }
+.prensa-topbar .prensa-menu-boton.abierto svg { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .prensa-menu { animation: none; }
+  .prensa-menu button::before { transition: none; }
+}
 
 /* La clasificación, al otro extremo de la barra: ladillo en versalitas + tu
    ordinal en oro. El oro está reservado a lo premium (CLAUDE.md) y el puesto lo
@@ -982,9 +1032,17 @@ body,
 }
 
 /* ── Pie de página del juego ── */
+/* Pie centrado en columna: el reloj de cierre arriba y los enlaces de servicio
+   debajo, los dos al eje del pliego. Fue `space-between` con `align-items:
+   baseline` mientras el pie era una fila de dos extremos; cuando el JSX pasó a
+   columna centrada, esas dos declaraciones seguían ganándole a las utilidades
+   `items-center justify-center` (reglas propias después de @tailwind
+   utilities, misma especificidad) y el pie se veía alineado a la izquierda.
+   El layout vive AQUÍ y el JSX ya no lo repite. */
 .prensa-cierre {
   border-top: 1px solid var(--line-strong); padding-top: 12px; margin-top: 8px;
-  display: flex; justify-content: space-between; align-items: baseline; gap: 8px 14px; flex-wrap: wrap;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; text-align: center;
   font-family: var(--font-body); font-weight: 600; font-size: 10px;
   letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-muted);
 }

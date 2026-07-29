@@ -19,12 +19,9 @@ import YearField from "./YearField";
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
 
-// Cuánto dura el veredicto de FALLO sobre el campo antes de que se limpie solo.
-// Se probaron las dos alternativas: dejarlo fijo hasta que el jugador tocara el
-// campo obliga a un gesto extra por intento (y en móvil, a seleccionar y borrar);
-// no enseñarlo deja el intento sin acuse de recibo. 1,2s es lo que tarda en
-// leerse una palabra tachada — el feedback dura exactamente lo que sirve.
-
+// (Aquí vivía VEREDICTO_MS, el tiempo que el valor fallado se quedaba tachado
+// sobre el campo. El flash se retiró al simplificar el cupón: el acuse de recibo
+// lo da ahora el historial, que desde entonces también se pinta en móvil.)
 
 export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5 }) {
   const { t } = useT();
@@ -38,14 +35,6 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
 
-  // ── Veredicto estampado sobre los propios campos ──────────────────────────
-  // Sustituye a la fila «último intento», que repetía bajo la foto lo que el
-  // jugador acababa de escribir tres renglones más abajo. Shape:
-  //   { marca: {val, estado}, modelo: {...}, anio: {...} } | null
-  // con estado ∈ "resuelto" | "descartado" | "cerca". Los campos ACERTADOS no
-  // dependen de este estado —se derivan de `solved`, que viene del servidor y
-  // sobrevive a recargas—; esto es solo para el flash de los fallados.
-
   // Cadena de foco (QoL móvil) para no abrir/cerrar el teclado 4 veces por
   // intento: elegir marca → enfoca modelo; elegir modelo → enfoca año. El foco
   // se mueve SOLO en selecciones reales del usuario (onCommit del Combo),
@@ -53,8 +42,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const marcaRef = useRef(null);
   const modeloRef = useRef(null);
   const anioRef = useRef(null);
-  // Destino del scroll post-envío en móvil (antes era la fila «último intento»,
-  // que ya no existe: el veredicto vive en estos campos).
+  // Destino del scroll post-envío en móvil: el cupón entero (antes era la fila
+  // «último intento», que ya no existe).
   const cuponRef = useRef(null);
 
   // El campo siguiente puede acabar de habilitarse en ESTE mismo render (modelo
@@ -274,10 +263,9 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     setModelo(result.modelo.status === "correct" ? modeloFinal : "");
     setAnio(result.anio.status === "correct" ? anioNum : "");
 
-
     // QoL móvil (columna única): cerrar el teclado y devolver el cupón entero a
-    // la vista. Antes se centraba la fila «último intento»; ahora el veredicto
-    // está EN los campos, así que el destino del scroll es el propio cupón.
+    // la vista. Antes se centraba la fila «último intento»; sin ella el destino
+    // del scroll es el propio cupón.
     if (window.matchMedia("(max-width: 1099px)").matches) {
       document.activeElement?.blur?.();
       requestAnimationFrame(() => {
@@ -299,12 +287,18 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     >
 
 
-      <form className="prensa-cupon p-5 mb-6 border-[3px] border-dashed border-tinta/50 bg-papel-mat flex flex-col gap-3 relative shadow-sm" onSubmit={handleSubmit} autoComplete="off">
+      {/* Sin clases de marco aquí: el cupón lo dibuja (o no) `.prensa-cupon` del
+          div de arriba. Hubo un intento de enmarcarlo con utilidades de Tailwind
+          —borde discontinuo, padding, fondo— que NUNCA llegó a verse: en
+          index.css las reglas propias van después de `@tailwind utilities`, así
+          que `.prensa-cupon { border:0; padding:0; background:transparent }` las
+          pisaba a igual especificidad. Si algún día vuelve el marco, va al CSS. */}
+      <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
         {/* Tres renglones apilados a ancho completo: marca, modelo y año. Cada
             campo ocupa toda la fila (target grande, nombres largos legibles) en
-            vez del par marca|modelo comprimido de antes. Cada uno lleva ahora su
-            propio veredicto: el resuelto se queda con ✓ y bloqueado, el fallado
-            se tacha 1,2s y se limpia. */}
+            vez del par marca|modelo comprimido de antes. El campo ACERTADO se
+            queda con ✓ y bloqueado; el fallado se limpia y su marca sale del
+            combo, así que no hace falta tacharlo. */}
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
@@ -345,20 +339,13 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         />
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
             Con campos incompletos el botón queda tocable con aspecto apagado
-            (.is-incomplete): el tap dispara el shake + toast de arriba. La
-            transición CSS apagado→accent al completarse el formulario es el
-            micro-feedback de "listo para disparar". Le sumamos un leve pulso
-            para invitar al clic cuando ya están los tres. */}
+            (.is-incomplete): el tap dispara el shake + toast de arriba. El
+            micro-feedback de "listo para disparar" lo da la transición CSS
+            tinta→rojo al completarse los tres campos; el halo que se probó aquí
+            no pinta sobre papel (regla 16) y encima lo tumbaba `test:estetica`. */}
         <button
           type="submit"
-          className={
-            "prensa-submit mt-2 transition-all duration-300 " +
-            (!canSubmit && !formDisabled
-              ? " is-incomplete"
-              : canSubmit
-              ? " shadow-[0_0_15px_rgba(var(--rojo-rgb),0.35)] scale-[1.01]"
-              : "")
-          }
+          className={"prensa-submit mt-2" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
           disabled={formDisabled}
           aria-busy={isSubmitting}
         >

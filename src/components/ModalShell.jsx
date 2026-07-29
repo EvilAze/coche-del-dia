@@ -26,10 +26,15 @@ import { useScrollLock } from "../hooks/useScrollLock";
 // `duration-200` de abajo.
 const EXIT_MS = 220;
 
-// Estado global para gestionar la pila de modales y evitar que un history.back()
-// programático cierre el modal equivocado.
-const activeModals = [];
-let ignorePopState = false;
+// La «atrás» de Android/navegador NO se gestiona aquí. Hubo un intento de
+// hacerlo (pila propia de modales + pushState por apertura) y duplicaba lo que
+// ya hay: App.jsx monta un `useHistoryClose` para todo el slot `activeModal`, y
+// el Garaje su propia cadena `useHistoryChain`. Con las dos capas vivas se
+// empujaban DOS entradas fantasma por modal: cerrando con la X, la limpieza del
+// hijo corre antes que la del padre, así que quedaba una entrada huérfana y la
+// siguiente pulsación de atrás se la tragaba sin hacer nada. En el Archivo era
+// peor: sus sub-modales metían en la cadena una entrada que historyTrap no
+// contabiliza. Una sola capa, y es la de App.jsx.
 
 export default function ModalShell({
   open,
@@ -106,45 +111,6 @@ export default function ModalShell({
       cancelAnimationFrame(id);
       const prev = lastFocusedRef.current;
       if (prev && typeof prev.focus === "function") prev.focus();
-    };
-  }, [open]);
-
-  // Gestión del botón "Atrás" del móvil/navegador vía History API.
-  // Al abrir el modal inyectamos un estado simulado. Si el usuario navega atrás,
-  // el navegador dispara `popstate` y lo interceptamos para cerrar el modal.
-  const onCloseRef = useRef(onClose);
-  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const modalId = Math.random().toString(36).slice(2);
-    activeModals.push(modalId);
-    window.history.pushState({ modalId }, "");
-
-    const handlePopState = () => {
-      if (ignorePopState) return;
-      // Solo el último modal de la pila responde al botón Atrás.
-      if (activeModals[activeModals.length - 1] === modalId) {
-        onCloseRef.current();
-      }
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      const idx = activeModals.indexOf(modalId);
-      if (idx !== -1) activeModals.splice(idx, 1);
-
-      // Si el modal se cerró por botón/click, el estado falso sigue en el historial.
-      // Lo sacamos con un back() programático y silenciamos temporalmente el
-      // listener global para que este pop no cierre modales subyacentes.
-      if (window.history.state?.modalId === modalId) {
-        ignorePopState = true;
-        window.history.back();
-        setTimeout(() => { ignorePopState = false; }, 50);
-      }
     };
   }, [open]);
 

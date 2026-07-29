@@ -48,7 +48,11 @@ export default function ZoomStage({
         </span>
       </div>
 
-      <div className={"cdd-stage p-2 md:p-3 bg-papel-mat border border-line shadow-sm" + (revealed ? " revealed" : "")}>
+      {/* `border-border` y no `border-line`: `line` NO es un color del tema, así
+          que la utilidad no existía y el filete caía al `#e5e7eb` del preflight
+          de Tailwind — un gris que no se entera del cambio día/noche y que en la
+          edición de noche dibujaba un marco claro alrededor de la foto. */}
+      <div className={"cdd-stage p-2 md:p-3 bg-papel-mat border border-border shadow-sm" + (revealed ? " revealed" : "")}>
         <CarImage
           configurator
           src={car?.img ?? null}

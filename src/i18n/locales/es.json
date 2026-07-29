@@ -106,7 +106,6 @@
     "wordMarca": "marca",
     "wordModelo": "modelo",
     "wordAnio": "año",
-    "introSub": "En {max} intentos. El zoom se aleja con cada fallo.",
     "submit": "ADIVINAR",
     "submitting": "COMPROBANDO",
     "comboPlaceholder": "Escribe o elige…",
@@ -145,7 +144,6 @@
     "statAttempts": "Intentos",
     "statResult": "Resultado",
     "revealUnavailable": "No hemos podido recuperar la ficha de hoy.",
-    "profileAria": "Perfil",
     "themeToNight": "Cambiar a edición de noche",
     "themeToDay": "Volver a edición de día",
     "statsAria": "Ranking",
@@ -155,55 +153,25 @@
     "competeLabel": "Compite",
     "competeAria": "Únete al ranking",
     "garageAria": "Mi archivo",
-    "garageRepescaAria": "Mi archivo · repesca disponible",
     "helpAria": "Cómo se juega",
     "peekAria": "Volver a la foto",
     "unlockKicker": "Nueva portada",
     "carImageAlt": "Coche del día"
   },
   "prensa": {
-    "lema": "El diario de los que reconocen un coche por el faro.",
-    "folioEdicion": "Edición gratuita",
-    "temporada": "Temporada {tema}",
     "ladilloFoto": "La fotografía del día",
     "pista": "Pista {n} de {max}",
     "edicionCerrada": "Edición cerrada",
     "pieFotoFin": "El ejemplar de hoy, por fin a plena página.",
-    "primerLadillo": "El juego",
-    "primerQue": "Marca, modelo y año del coche del día.",
-    "primerClave": "Las marcas del corrector",
-    "claveBien": "acierto exacto",
-    "claveCerca": "mismo país",
-    "claveMal": "descartado",
-    "cupon": "Cupón de respuesta",
-    "cuponIntento": "Intento {n} de {max}",
     "estadistica": "La estadística del día",
     "cierre": "Cierre de edición en",
     "selloWin": "Resuelto",
     "selloLose": "Sin resolver",
     "garaje": "Archivo",
-    "ranking": "Ranking",
     "perfil": "Perfil",
     "entrar": "Entrar",
     "navAria": "Secciones",
-    "fajaLadillo": "La clasificación",
-    "fajaLadilloCorto": "Clasificación",
-    "fajaVer": "Ver",
-    "fajaAyer": "desde ayer",
-    "fajaHold": "Sin cambios",
-    "fajaNueva": "Estreno",
-    "fajaInvita": "Gana hoy y entras en la tabla",
-    "fajaDistancia": {
-      "one": "A {count} punto del {pos}",
-      "other": "A {count} puntos del {pos}"
-    },
-    "fajaEmpate": "Empatado con el {pos}",
-    "fajaLider": "Lideras la clasificación",
-    "fajaCierra": {
-      "one": "Cierra en {count} día",
-      "other": "Cierra en {count} días"
-    },
-    "fajaCierraHoy": "Cierra hoy"
+    "clasificacion": "Clasificación"
   },
   "guessRow": {
     "yearHigherTitle": "El año correcto es mayor",
@@ -383,10 +351,6 @@
     "colPlayer": "Lector",
     "colPoints": "Pts",
     "bestStreak": "Mejor racha: {value}",
-    "seasonWins": {
-      "one": "{count} acierto esta temporada",
-      "other": "{count} aciertos esta temporada"
-    },
     "points": "puntos",
     "you": "Tú",
     "yourPosition": "Tu posición",
@@ -397,8 +361,7 @@
     "streakAria": "Racha de {count} días, bonus {bonus}",
     "streakTitle": "Racha de {count} días",
     "legends": "Leyendas",
-    "legendsSubtitle": "Clasificación histórica",
-    "yourStanding": "Tu puesto"
+    "legendsSubtitle": "Clasificación histórica"
   },
   "podium": {
     "title": "Podios del mes",

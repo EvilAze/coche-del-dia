@@ -13,15 +13,14 @@
 // el mismo marcador de puesto (PuestoCifra) que la faja, la faja fina y el
 // parte del final de partida.
 //
-// LA CONTINUIDAD: lo primero bajo el ladillo es TU puesto, en el mismo glifo
-// que acabas de tocar. Se pinta antes de que llegue la tabla (el dato ya lo
-// tiene App.jsx), así que el modal abre enseñando lo que el jugador venía a
-// ver, no un «Cargando ranking...».
+// LA CONTINUIDAD la da el propio glifo: el ordinal que el jugador toca en la
+// barra (Header) es el mismo que le señala su fila aquí. La cabecera «Tu puesto»
+// que hubo bajo el ladillo se retiró al simplificar el modal — repetía en grande
+// lo que la fila destacada ya dice, y empujaba la tabla fuera de pantalla.
 
 import { useEffect, useState } from "react";
 import { getSeasonLeaderboard, getCurrentSeason, getChampions } from "../lib/statsService";
 import { daysUntilClose } from "../lib/season";
-import { rankMovement } from "../lib/rankMovement";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
@@ -29,7 +28,7 @@ import ModalShell from "./ModalShell";
 import AchievementIcon from "./AchievementIcons";
 import ScoringHelpModal from "./ScoringHelpModal";
 import PublicProfile from "./PublicProfile";
-import PuestoCifra, { tonoPorPuesto, ordinal } from "./PuestoCifra";
+import PuestoCifra, { tonoPorPuesto } from "./PuestoCifra";
 import { track } from "../lib/analytics";
 
 function getStreakDisplay(streak) {
@@ -132,10 +131,6 @@ export default function Ranking({
   open,
   onClose,
   user,
-  // Mi puesto de temporada, el MISMO objeto que alimenta la faja de portada.
-  // Llega ya resuelto desde App.jsx: por eso la cabecera puede pintarlo sin
-  // esperar a que baje la tabla.
-  rank = null,
   onOpenLogin,
   // Logueado sin display_name: no aparece en la tabla. Se le ofrece elegir firma
   // AQUÍ, que es donde eso se nota (ver NicknameModal.jsx).

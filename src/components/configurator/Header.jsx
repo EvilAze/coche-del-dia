@@ -94,10 +94,10 @@ export default function Header({
           </button>
           
           {menuOpen && (
-            <div className="absolute top-full left-0 mt-2 min-w-max bg-papel-mat border border-border-strong shadow-glass-lg z-50 py-2 flex flex-col items-start prensa-menu-dropdown">
+            <div className="absolute top-full left-0 mt-2 min-w-max bg-papel-mat border border-border shadow-glass-lg z-50 flex flex-col items-start prensa-menu-dropdown divide-y divide-border">
               <button
                 type="button"
-                className="w-full text-left px-5 py-4 text-[11px] hover:text-rojo hover:bg-papel-2 transition-colors flex items-center justify-between gap-4"
+                className="w-full text-left px-5 py-3.5 hover:text-rojo hover:bg-papel-2 transition-colors flex items-center justify-between gap-6"
                 onClick={() => { haptic.impactLight(); setMenuOpen(false); onOpenGarage?.(); }}
               >
                 <span>{t("prensa.garaje")}</span>
@@ -106,15 +106,15 @@ export default function Header({
               
               <button
                 type="button"
-                className="w-full text-left px-5 py-4 text-[11px] hover:text-rojo hover:bg-papel-2 transition-colors"
+                className="w-full text-left px-5 py-3.5 hover:text-rojo hover:bg-papel-2 transition-colors flex items-center justify-between gap-6"
                 onClick={() => { haptic.impactLight(); setMenuOpen(false); (user ? onOpenProfile : onOpenLogin)?.(); }}
               >
-                {user ? t("prensa.perfil") : t("prensa.entrar")}
+                <span>{user ? t("prensa.perfil") : t("prensa.entrar")}</span>
               </button>
               
               <button
                 type="button"
-                className="w-full text-left px-5 py-4 text-[11px] hover:text-rojo hover:bg-papel-2 transition-colors flex items-center justify-between gap-4"
+                className="w-full text-left px-5 py-3.5 hover:text-rojo hover:bg-papel-2 transition-colors flex items-center justify-between gap-6"
                 onClick={() => { haptic.impactLight(); setMenuOpen(false); toggle(); }}
               >
                 <span>{tema === "noche" ? t("cdd.themeToDay") : t("cdd.themeToNight")}</span>
@@ -123,10 +123,10 @@ export default function Header({
 
               <button
                 type="button"
-                className="w-full text-left px-5 py-4 text-[11px] hover:text-rojo hover:bg-papel-2 transition-colors"
+                className="w-full text-left px-5 py-3.5 hover:text-rojo hover:bg-papel-2 transition-colors flex items-center justify-between gap-6"
                 onClick={() => { haptic.impactLight(); setMenuOpen(false); onOpenHowTo?.(); }}
               >
-                {t("cdd.helpAria", "CÓMO SE JUEGA")}
+                <span>{t("cdd.helpAria", "CÓMO SE JUEGA")}</span>
               </button>
             </div>
           )}

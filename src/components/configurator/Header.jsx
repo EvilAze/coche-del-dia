@@ -109,7 +109,7 @@ export default function Header({
             aria-expanded={menuOpen}
             aria-label={repescaAlert ? t("header.menuOpenWithRepesca") : t("header.menuOpen")}
             onClick={() => { haptic.impactLight(); setMenuOpen(!menuOpen); }}
-            className="flex items-center group"
+            className={"prensa-menu-boton flex items-center group" + (menuOpen ? " abierto" : "")}
           >
             <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="mr-2 opacity-70 group-hover:opacity-100 transition-opacity" aria-hidden="true">
               <path d="M1 1h14M1 6h14M1 11h14" />
@@ -122,37 +122,51 @@ export default function Header({
           </button>
 
           {menuOpen && (
+            // El SUMARIO, con la anatomía de un sumario de periódico: ladillo,
+            // filete y entradas. Va en DOS grupos separados por doble filete
+            // porque no son lo mismo — arriba las SECCIONES a las que se
+            // navega (archivo, perfil), abajo los SERVICIOS del ejemplar (cómo
+            // se lee, en qué tinta se imprime). Cuatro renglones idénticos en
+            // fila era justo lo que hacía que la caja no dijera nada.
             <div className="prensa-menu">
-              <button
-                type="button"
-                onClick={() => { haptic.impactLight(); setMenuOpen(false); onOpenGarage?.(); }}
-              >
-                <span>{t("prensa.garaje")}</span>
-                {repescaAlert && <span className="aviso" aria-hidden="true">(1)</span>}
-              </button>
+              {/* Ladillo decorativo: el <nav> ya se llama «Secciones» para el
+                  lector de pantalla, así que aquí sobra repetirlo en voz. */}
+              <p className="prensa-menu-lad" aria-hidden="true">{t("prensa.navAria")}</p>
 
-              <button
-                type="button"
-                onClick={() => { haptic.impactLight(); setMenuOpen(false); (user ? onOpenProfile : onOpenLogin)?.(); }}
-              >
-                <span>{user ? t("prensa.perfil") : t("prensa.entrar")}</span>
-              </button>
+              <div className="prensa-menu-grupo">
+                <button
+                  type="button"
+                  onClick={() => { haptic.impactLight(); setMenuOpen(false); onOpenGarage?.(); }}
+                >
+                  <span>{t("prensa.garaje")}</span>
+                  {repescaAlert && <span className="aviso" aria-hidden="true">(1)</span>}
+                </button>
 
-              <button
-                type="button"
-                aria-pressed={tema === "noche"}
-                onClick={() => { haptic.impactLight(); setMenuOpen(false); toggle(); }}
-              >
-                <span>{tema === "noche" ? t("cdd.themeToDay") : t("cdd.themeToNight")}</span>
-                {tema === "noche" ? <SunGlyph /> : <MoonGlyph />}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => { haptic.impactLight(); setMenuOpen(false); (user ? onOpenProfile : onOpenLogin)?.(); }}
+                >
+                  <span>{user ? t("prensa.perfil") : t("prensa.entrar")}</span>
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => { haptic.impactLight(); setMenuOpen(false); onOpenHowTo?.(); }}
-              >
-                <span>{t("cdd.helpAria")}</span>
-              </button>
+              <div className="prensa-menu-grupo">
+                <button
+                  type="button"
+                  onClick={() => { haptic.impactLight(); setMenuOpen(false); onOpenHowTo?.(); }}
+                >
+                  <span>{t("cdd.helpAria")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  aria-pressed={tema === "noche"}
+                  onClick={() => { haptic.impactLight(); setMenuOpen(false); toggle(); }}
+                >
+                  <span>{tema === "noche" ? t("cdd.themeToDay") : t("cdd.themeToNight")}</span>
+                  {tema === "noche" ? <SunGlyph /> : <MoonGlyph />}
+                </button>
+              </div>
             </div>
           )}
         </span>

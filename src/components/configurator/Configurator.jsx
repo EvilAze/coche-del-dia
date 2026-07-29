@@ -201,7 +201,6 @@ export default function Configurator({
         <Header
           rank={rank}
           rankCargando={rankCargando}
-          partidaCerrada={ended}
           user={user}
           repescaAlert={repescaAlert}
           onOpenProfile={onOpenProfile}
@@ -248,15 +247,12 @@ export default function Configurator({
             debajo); en el broadsheet es la columna izquierda real. */}
         <div className="prensa-area-clas">
           {/* El historial completo. Ya no se le quita el último intento (no hay
-              fila viva que lo muestre aparte), y mientras se juega solo se pinta
-              en el PLIEGO ANCHO: allí ocupa la columna izquierda, que si no nace
-              vacía, y no le quita sitio a nada.
-
-              En móvil, durante la partida, se oculta (.prensa-historial--ancho).
-              Sus tres trabajos se reparten mejor: «no repetir marca/modelo» ya lo
-              hace el combo eliminando de la lista lo fallado, y «acotar el año»
-              lo hace la horquilla del propio campo en un renglón. Lo que queda
-              —recapitular— importa al terminar, y al terminar sí se pinta. */}
+              fila viva que lo muestre aparte) y TAMPOCO se oculta en móvil
+              durante la partida, como hizo un tiempo: al retirarse el veredicto
+              estampado sobre los campos —el valor tachado, la bandera del «mismo
+              país», la flecha del año— el historial volvió a ser el único sitio
+              donde vive el acuse de recibo de cada intento. Se pinta siempre que
+              haya algo que recapitular. */}
           {guesses.length > 0 && (
             <div className="prensa-historial">
               <AttemptList
@@ -267,8 +263,6 @@ export default function Configurator({
               />
             </div>
           )}
-
-
 
           {/* La estadística del día: SOLO con la edición cerrada (spec §3). */}
           {ended && daily.ready && (
@@ -296,7 +290,7 @@ export default function Configurator({
               </button>
             ))}
         </div>
-        
+
         {/* Pie de página: cierre de edición sutil, enlaces centrados. */}
         <footer className="prensa-area-pie prensa-cierre flex flex-col items-center justify-center text-center gap-3 py-6">
           <div className="text-xs font-bold uppercase text-tinta tabular-nums tracking-wider">
@@ -304,7 +298,18 @@ export default function Configurator({
             {countdown.formatted}
           </div>
           <div className="flex justify-center items-center gap-x-3 text-xs text-muted font-bold uppercase">
-            <button type="button" onClick={onOpenHowTo} className="hover:text-rojo transition-colors">{t("cdd.helpAria")}</button>
+            {/* Primera visita (`howtoPulse`): las reglas se pintan en rojo, que
+                es el color de "atención" del sistema. Es el único empujón que le
+                queda al recién llegado desde que el pliego dejó de abrir con la
+                sección de «qué adivinar»; en cuanto abre el modal una vez, el
+                enlace vuelve a tinta apagada y no molesta más. */}
+            <button
+              type="button"
+              onClick={onOpenHowTo}
+              className={"transition-colors " + (howtoPulse ? "text-rojo" : "hover:text-rojo")}
+            >
+              {t("cdd.helpAria")}
+            </button>
             <span>·</span>
             <a href="/privacidad" className="hover:text-rojo transition-colors">{t("app.footerPrivacy")}</a>
           </div>

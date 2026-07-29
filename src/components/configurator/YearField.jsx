@@ -8,15 +8,14 @@
 // 1968–1972). El teclado numérico teclea el año en 4 toques —más rápido y
 // directo— y el campo queda en la misma cadencia visual que los otros dos.
 //
-// Además de los estados de veredicto que comparte con Combo (resuelto/
-// descartado), este campo lleva LA HORQUILLA: el rango que sigue vivo según las
-// flechas ↑/↓ acumuladas. Es la pieza que sustituye al historial durante la
-// partida — marca y modelo no lo necesitan porque el combo elimina de la lista
-// lo ya fallado, pero el año no se elimina de ningún sitio.
+// Además del estado "resuelto" que comparte con Combo, este campo lleva LA
+// HORQUILLA: el rango que sigue vivo según las flechas ↑/↓ acumuladas. Marca y
+// modelo no la necesitan porque el combo elimina de la lista lo ya fallado, pero
+// el año no se elimina de ningún sitio: sin la horquilla habría que releer el
+// historial entero para saber por dónde va la búsqueda.
 
 import { useId, useRef } from "react";
 import { useT } from "../../i18n";
-import { Icon, I } from "./icons";
 
 const MIN_YEAR = 1886;
 const MAX_YEAR = new Date().getFullYear();
@@ -28,12 +27,11 @@ export default function YearField({
   onChange,
   tolerance,
   inputRef = null,
-  // Veredicto en el propio campo (ver el bloque largo de Combo.jsx).
+  // Estado del campo (ver el bloque de Combo.jsx). La flecha del último fallo
+  // que hubo aquí se retiró con el resto del veredicto: la horquilla de abajo
+  // dice lo mismo con más precisión («entre 1974 y 1989» en vez de «más arriba»).
   estado = null,
   bloqueado = false,
-  valorVeredicto = null,
-  // Dirección del último fallo ("up" | "down"): hacia dónde está el año real.
-  direccion = null,
   // Horquilla viva: { min, max, acotada } de lib/yearRange.
   horquilla = null,
 }) {
@@ -81,8 +79,7 @@ export default function YearField({
           className={
             "prensa-input" +
             (isInvalid ? " invalida" : "") +
-            (resuelto ? " veredicto-resuelto" : "") +
-            (valorVeredicto ? " con-veredicto" : "")
+            (resuelto ? " veredicto-resuelto" : "")
           }
           inputMode="numeric"
           // "go" y no "done": Enter aquí ENVÍA el intento (submit del form).
@@ -110,25 +107,8 @@ export default function YearField({
           }}
           onWheel={(e) => e.currentTarget.blur()}
         />
-        {/* Capa del veredicto de fallo: la cifra intentada, tachada, sobre el
-            campo ya vacío (ver el porqué en Combo.jsx). */}
-        {valorVeredicto && (
-          <span className="prensa-veredicto veredicto-descartado" aria-hidden="true">
-            {valorVeredicto}
-          </span>
-        )}
-        {resuelto ? (
+        {resuelto && (
           <span className="prensa-campo-marca bien" aria-hidden="true">✓</span>
-        ) : (
-          // La flecha del último fallo se queda con el campo (no es efímera como
-          // el valor tachado): dice hacia dónde seguir buscando y se usa en el
-          // intento siguiente. El sentido va al lector de pantalla por la
-          // horquilla de abajo, así que aquí es decorativa.
-          direccion && (
-            <span className="prensa-campo-marca dir" aria-hidden="true">
-              <Icon d={direccion === "up" ? I.arrowU : I.arrowD} size={13} />
-            </span>
-          )
         )}
       </div>
       {horquillaTexto && (

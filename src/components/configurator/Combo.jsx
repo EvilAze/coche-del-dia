@@ -35,23 +35,13 @@ export default function Combo({
   //   · "resuelto"   → acertado. Valor + ✓ y campo BLOQUEADO: no se vuelve a
   //                    teclear en toda la partida. El formulario encoge de 3
   //                    campos a 2 a 1 según aciertas.
-  //   · "descartado" → fallado. EFÍMERO: el valor se tacha a pluma roja ~1,2s y
-  //                    el campo se limpia solo. El acuse de recibo sin heredar
-  //                    el trabajo de borrarlo (y sin chocar con `invalida`, que
-  //                    es otra cosa: «lo escrito no vale»).
-  //   · "cerca"      → mismo país. PERSISTE mientras dure el veredicto y lleva
-  //                    bandera de apostilla: es información que se sigue usando.
+  //
+  // Hubo dos estados más ("descartado" y "cerca") con su capa de veredicto
+  // encima del input —el valor tachado a pluma y la bandera del «mismo país»—.
+  // Se retiraron al simplificar el cupón: ese acuse de recibo vive ahora en el
+  // historial, que por eso volvió a pintarse también en móvil.
   estado = null,
   bloqueado = false,
-  // Valor a pintar mientras dura el veredicto de FALLO. Va en una capa ENCIMA
-  // del input, no dentro: el input ya se vació al recibir el resultado y debe
-  // seguir siendo tecleable durante el flash. Metido en el `value` (que fue el
-  // primer intento) teclear en ese 1,2s concatenaba sobre la palabra tachada
-  // —"Volvov"— y obligaba a poner el campo readOnly, que a su vez se comía la
-  // primera tecla. La capa no captura el puntero, así que el campo de debajo
-  // funciona como si no estuviera.
-  valorVeredicto = null,
-  apostilla = null,
 }) {
   const { t } = useT();
   // id estable para asociar <label> ↔ <input> (a11y: el lector de pantalla
@@ -163,8 +153,7 @@ export default function Combo({
           className={
             "prensa-input" +
             (invalid && !open ? " invalida" : "") +
-            (resuelto ? " veredicto-resuelto" : "") +
-            (valorVeredicto ? " con-veredicto" : "")
+            (resuelto ? " veredicto-resuelto" : "")
           }
           type="search"
           enterKeyHint={enterKeyHint}
@@ -183,24 +172,12 @@ export default function Combo({
           onFocus={onFocus}
           onKeyDown={onKey}
         />
-        {/* Capa del veredicto de fallo: la palabra intentada, tachada a pluma,
-            flotando sobre el campo ya vacío. */}
-        {valorVeredicto && (
-          <span
-            className={"prensa-veredicto veredicto-" + (estado || "descartado")}
-            aria-hidden="true"
-          >
-            {valorVeredicto}
-          </span>
-        )}
-        {/* El ✓ del campo resuelto y la bandera del «mismo país» viven FUERA del
-            input (un <input> no admite hijos) pero dentro de su renglón, a la
-            derecha y sin capturar el toque: el objetivo táctil sigue siendo el
-            campo entero. */}
+        {/* El ✓ del campo resuelto vive FUERA del input (un <input> no admite
+            hijos) pero dentro de su renglón, a la derecha y sin capturar el
+            toque: el objetivo táctil sigue siendo el campo entero. */}
         {resuelto && (
           <span className="prensa-campo-marca bien" aria-hidden="true">✓</span>
         )}
-        {!resuelto && apostilla}
       </div>
       {open && !disabled && !resuelto && (
         <ul className="prensa-listbox" role="listbox" ref={listRef}>

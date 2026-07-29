@@ -198,9 +198,11 @@ export default function App() {
     // navegado a /repesca, jugado, y vuelto. activeModal === null tras eso.
   }, [user, activeModal]);
 
-  // `source` = desde dónde se abrió (faja de la portada, faja pegada, final de
-  // partida…). Sin él no hay forma de saber si ascender el ranking a sección
-  // propia funcionó: el evento contaba aperturas, pero no de dónde venían.
+  // `source` = desde dónde se abrió ("cabecera" = la barra del pliego,
+  // "end_screen" = el parte del final de partida). Sin él no hay forma de saber
+  // qué puerta usa la gente: el evento contaba aperturas, pero no de dónde
+  // venían. Si aparece "unknown" en el panel es que alguien añadió una entrada
+  // nueva y se dejó el argumento.
   const openRanking = (source = "unknown") => {
     // Medir cuánto se usa la "palanca" del ranking. Dos sumideros:
     //   1) Umami (track): visible en el dashboard de Umami (free tier).
@@ -496,10 +498,8 @@ export default function App() {
             open={activeModal === "ranking"}
             onClose={closeModal}
             user={user}
-            // El mismo objeto que alimenta la faja de portada: el modal abre
-            // enseñando TU puesto en el glifo que el jugador acaba de tocar, sin
-            // esperar a que baje la tabla.
-            rank={rank}
+            // Sin `rank`: la cabecera «Tu puesto» del modal se retiró y el dato
+            // se lee ya de la propia tabla (la fila del jugador va destacada).
             onOpenLogin={openLogin}
             // Aquí es donde el nick significa algo: sin firma no se sale en la
             // tabla. Se ofrece dentro del ranking, no como puerta para entrar.

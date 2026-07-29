@@ -106,7 +106,6 @@
     "wordMarca": "make",
     "wordModelo": "model",
     "wordAnio": "year",
-    "introSub": "In {max} tries. The zoom pulls back with every miss.",
     "submit": "GUESS",
     "submitting": "CHECKING",
     "comboPlaceholder": "Type or pick…",
@@ -145,7 +144,6 @@
     "statAttempts": "Attempts",
     "statResult": "Result",
     "revealUnavailable": "We couldn't load today's car details.",
-    "profileAria": "Profile",
     "themeToNight": "Switch to night edition",
     "themeToDay": "Back to day edition",
     "statsAria": "Ranking",
@@ -155,55 +153,25 @@
     "competeLabel": "Compete",
     "competeAria": "Join the ranking",
     "garageAria": "My archive",
-    "garageRepescaAria": "My archive · rescue available",
     "helpAria": "How to play",
     "peekAria": "Back to the photo",
     "unlockKicker": "New cover",
     "carImageAlt": "Car of the day"
   },
   "prensa": {
-    "lema": "The daily for those who know a car by its headlight.",
-    "folioEdicion": "Free edition",
-    "temporada": "{tema} season",
     "ladilloFoto": "Today's photograph",
     "pista": "Clue {n} of {max}",
     "edicionCerrada": "Edition closed",
     "pieFotoFin": "Today's specimen, at full page at last.",
-    "primerLadillo": "How to play",
-    "primerQue": "The make, model and year of today's car.",
-    "primerClave": "Proofreader's marks",
-    "claveBien": "exact hit",
-    "claveCerca": "same country",
-    "claveMal": "ruled out",
-    "cupon": "Answer coupon",
-    "cuponIntento": "Attempt {n} of {max}",
     "estadistica": "Today's numbers",
     "cierre": "Final edition in",
     "selloWin": "Solved",
     "selloLose": "Unsolved",
     "garaje": "Archive",
-    "ranking": "Standings",
     "perfil": "Profile",
     "entrar": "Sign in",
     "navAria": "Sections",
-    "fajaLadillo": "The standings",
-    "fajaLadilloCorto": "Standings",
-    "fajaVer": "See",
-    "fajaAyer": "since yesterday",
-    "fajaHold": "No change",
-    "fajaNueva": "New entry",
-    "fajaInvita": "Win today and you're on the board",
-    "fajaDistancia": {
-      "one": "{count} point behind {pos}",
-      "other": "{count} points behind {pos}"
-    },
-    "fajaEmpate": "Tied with {pos}",
-    "fajaLider": "You lead the table",
-    "fajaCierra": {
-      "one": "Closes in {count} day",
-      "other": "Closes in {count} days"
-    },
-    "fajaCierraHoy": "Closes today"
+    "clasificacion": "Standings"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",
@@ -383,10 +351,6 @@
     "colPlayer": "Reader",
     "colPoints": "Pts",
     "bestStreak": "Best streak: {value}",
-    "seasonWins": {
-      "one": "{count} win this season",
-      "other": "{count} wins this season"
-    },
     "points": "points",
     "you": "You",
     "yourPosition": "Your position",
@@ -397,8 +361,7 @@
     "streakAria": "Streak of {count} days, bonus {bonus}",
     "streakTitle": "Streak of {count} days",
     "legends": "Legends",
-    "legendsSubtitle": "All-time ranking",
-    "yourStanding": "Your standing"
+    "legendsSubtitle": "All-time ranking"
   },
   "podium": {
     "title": "Monthly podiums",

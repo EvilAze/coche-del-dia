@@ -672,229 +672,83 @@ body,
    sin letter-spacing heredado y con un aire fino, no los ~9px de antes. */
 .prensa-topbar .aviso { color: var(--rojo); font-weight: 800; margin-left: 2px; letter-spacing: 0; }
 
-/* (El bloque .rk —RANKING con su puesto dentro de esta barra— se retiró: el
-   ranking dejó de ser un enlace de la fila y pasó a ser sección propia, la
-   .prensa-faja de más abajo. Se intentó dos veces darle presencia AQUÍ, con más
-   cuerpo y con la cifra en oro, y las dos se quedó corto por lo mismo: en una
-   fila de versalitas todos los elementos pesan lo mismo por construcción.) */
-/* Toggle de tema: glifo de línea (mismo peso que los iconos del juego),
-   tinta apagada → rojo al pulsar, como el resto de enlaces de la barra. */
-.prensa-topbar .prensa-tema { color: var(--cdd-muted); }
-.prensa-topbar .prensa-tema:hover { color: var(--rojo); }
-.prensa-topbar .prensa-tema svg { display: block; width: 15px; height: 15px; }
+/* El SUMARIO desplegable (garaje, perfil, tema, reglas). Lenguaje de papel:
+   filete alrededor, DOBLE filete arriba —cuelga de la barra como una sección
+   que se abre— y sombra de imprenta (desplazada y sin difuminar, la misma
+   física que el hover de ADIVINAR). Nada de halos de cristal ni redondeos.
+   Los estilos base de .prensa-topbar button ya le dan la versalita heredada;
+   estas reglas van DESPUÉS para ganarles el `display` a igual especificidad. */
+.prensa-menu {
+  position: absolute; top: 100%; left: 0; z-index: 50;
+  margin-top: 8px; min-width: max-content;
+  display: flex; flex-direction: column; align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-top: 3px double var(--line-strong);
+  box-shadow: 3px 3px 0 rgb(var(--tinta-rgb) / .1);
+}
+/* Área táctil de 47px de alto (14+14+~19 de línea): la barra de arriba es
+   estrecha por diseño de portada, pero dentro del sumario hay sitio y el
+   pulgar lo agradece. */
+.prensa-menu button {
+  display: flex; width: 100%; align-items: center; justify-content: space-between;
+  gap: 24px; padding: 14px 20px; text-align: left;
+  transition: color .15s, background .15s;
+}
+.prensa-menu button + button { border-top: 1px solid var(--line); }
+.prensa-menu button:hover { color: var(--rojo); background: var(--surface2); }
+/* Glifo del toggle de tema (mismo trazo que los iconos del juego). */
+.prensa-menu button svg { display: block; width: 15px; height: 15px; }
+
+/* La clasificación, al otro extremo de la barra: ladillo en versalitas + tu
+   ordinal en oro. El oro está reservado a lo premium (CLAUDE.md) y el puesto lo
+   es; el ladillo se queda en tinta para que la cifra sea lo que destaque. */
+.prensa-topbar .prensa-clasif { gap: 7px; color: var(--cdd-text); }
+.prensa-topbar .prensa-clasif .pos {
+  font-family: var(--font-display); font-weight: 700; font-size: 13px;
+  letter-spacing: 0; text-transform: none; color: var(--gold);
+}
+.prensa-topbar .prensa-clasif .pos--pendiente { color: var(--faint); }
+.prensa-topbar .prensa-clasif:hover .pos { color: var(--rojo); }
 
 .prensa-masthead { text-align: center; padding: 14px 0 12px; }
 .prensa-masthead .titulo {
   font-family: var(--font-display); font-weight: 900; letter-spacing: -.015em;
   font-size: clamp(34px, 7vw, 52px); line-height: .95; color: var(--cdd-text);
 }
-.prensa-masthead .lema {
-  font-family: var(--font-display); font-style: italic; font-weight: 400;
-  color: var(--cdd-muted); font-size: 14px; margin-top: 9px;
-}
-/* Temporada temática en curso: sello dorado bajo el lema. El oro es el token de
-   "esto es valioso" (racha/victoria/podio); aquí marca el campeonato activo. */
-.prensa-masthead .temporada {
-  font-family: var(--font-display); font-weight: 700;
-  font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--gold); margin-top: 8px;
-}
-/* Masthead compacto (visitante recurrente): sin lema y un título algo menor, para
-   que la foto y el cupón suban sobre la línea de flotación en móvil — el jugador
-   diario no debería hacer scroll para poder ENVIAR su respuesta (ese era el peaje
-   de la portada completa, repetido cada día). El ahorro sale de RETIRAR el lema, NO
-   de pegar el título al filete de la barra: conservamos el respiro superior de la
-   portada (14px, el mismo que la versión completa) para que el wordmark no roce la
-   línea de encima; solo apretamos el aire INFERIOR. La portada íntegra (lema
-   incluido) se reserva a la PRIMERA visita: Header.jsx la gatea por localStorage
-   con fail-open a la versión completa (regla 9: no degradar la home). */
+/* Masthead compacto: título algo menor y menos aire inferior, para que la foto y
+   el cupón suban sobre la línea de flotación en móvil — el jugador diario no
+   debería hacer scroll para poder ENVIAR su respuesta (ese era el peaje de la
+   portada completa, repetido cada día). Conservamos el respiro superior (14px)
+   para que el wordmark no roce el filete de la barra; solo apretamos abajo.
+
+   Ya no hay variante «portada íntegra»: el lema y el sello de temporada que
+   llevaba el masthead se retiraron al simplificar la cabecera, y con ellos su
+   CSS y el gateo por localStorage (`ccd_masthead_seen`). La temporada activa se
+   sigue anunciando donde se juega algo con ella: el modal de clasificación y el
+   parte del final de partida. */
 .prensa-masthead--compacto { padding: 14px 0 8px; }
 .prensa-masthead--compacto .titulo { font-size: clamp(26px, 6vw, 46px); }
-.prensa-masthead--compacto .temporada { margin-top: 6px; }
-/* COLUMNA ÚNICA (<1100px): masthead compacto SIEMPRE, también en la primera
-   visita. Antes esto solo aplicaba a viewports bajos (≤700px de alto), así que
-   en un móvil normal el recién llegado se comía la portada íntegra — 43px más
-   de cabecera justo en la visita que decide si vuelve.
-
-   Lo que costaba: con lema, la cabecera medía 234px en un 375×812 (29% de la
-   pantalla) y useEncajeEscenario tenía que CAPAR el ancho de la foto para que
-   ADIVINAR siguiera entrando (338px en vez de 375). Es decir, el visitante
-   nuevo —y solo él— veía el coche más pequeño que el recurrente, en un juego
-   cuya única habilidad es mirar el coche. Se sacrificaba el contenido para
-   salvar el botón; lo correcto es recortar el periódico, no la fotografía.
-
-   El lema es voz de marca de PORTADA y sigue intacto en el pliego ancho
-   (≥1100px), donde sobra alto y la cabecera es identidad, no peaje. */
 @media (max-width: 1099px) {
   .prensa-masthead { padding: 14px 0 8px; }
   .prensa-masthead .titulo { font-size: clamp(26px, 6vw, 46px); }
-  .prensa-masthead .lema { display: none; }
-  .prensa-masthead .temporada { margin-top: 6px; }
 }
 .prensa-folio {
   display: flex; justify-content: center; align-items: baseline; gap: 8px;
   flex-wrap: nowrap; white-space: nowrap;
   border-top: 3px double var(--line-strong); border-bottom: 3px double var(--line-strong);
   padding: 5px 0; font-family: var(--font-body); font-weight: 600;
-  /* La línea de folio (fecha COMPLETA + edición) debe caber en UN renglón,
-     también en móviles estrechos: escala fluida y letter-spacing contenido
-     evitan el salto de línea que partía "· EDICIÓN GRATUITA" abajo. */
+  /* La fecha COMPLETA debe caber en UN renglón, también en móviles estrechos:
+     escala fluida y letter-spacing contenido evitan el salto de línea. */
   font-size: clamp(8px, 2.4vw, 10px); letter-spacing: .1em; text-transform: uppercase;
 }
-.prensa-folio .rojo { color: var(--rojo); }
 
-/* ── LA CLASIFICACIÓN — la faja de ranking ──────────────────────────────
-   El ranking es la mayor palanca de retención y estaba resuelto como una
-   palabra en la fila de navegación, donde por definición pesa lo mismo que sus
-   vecinas. Aquí deja de ser un enlace y pasa a ser una SECCIÓN del periódico:
-   ladillo, filete y cifra. Dos consecuencias buscadas — presencia (38px de oro
-   frente a 10px de versalita) y alcance (el objetivo táctil pasa de ~50px de
-   ancho a la caja entera).
-
-   Sin borde superior: hereda el doble filete inferior del folio, justo encima.
-   El suyo cierra la portada por abajo. La caja NO se dibuja con recuadro: en
-   este sistema un dato destaca por tipografía y filetes, nunca por una tarjeta.
-
-   La cifra usa exactamente la escala del «parte» del final de partida
-   (.cdd-parte-pos): son el mismo objeto —tu puesto— al abrir y al cerrar el
-   periódico, así que tienen que reconocerse entre sí. */
-.prensa-faja {
-  display: flex; flex-direction: column; gap: 3px;
-  width: 100%; padding: 9px 0 10px; margin: 0;
-  border: 0; border-bottom: 3px double var(--line-strong); border-radius: 0;
-  background: transparent; text-align: left; cursor: pointer;
-  font-family: var(--font-body); color: var(--cdd-text);
-  transition: background .16s;
-}
-/* Fuera de la cabecera (visitante sin sesión, tras el cupón) no tiene encima el
-   doble filete del folio del que heredaba su cierre superior, así que se lo pone
-   ella: la sección debe seguir leyéndose como un recuadro de resultados y no
-   como un botón suelto al final de la página. */
-.prensa-area-clasif .prensa-faja { border-top: 3px double var(--line-strong); }
-/* Realimentación de pulsación en toda la faja: un lavado de tinta al 4%, que
-   sobre papel es lo que hace un dedo. Nada de elevación ni de halo. */
-.prensa-faja:hover { background: rgb(var(--tinta-rgb) / .04); }
-.prensa-faja:active { background: rgb(var(--tinta-rgb) / .07); }
-
-.prensa-faja .faja-cab { display: flex; align-items: center; gap: 10px; }
-.prensa-faja .faja-cab .lad {
-  font-weight: 800; font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
-  white-space: nowrap;
-}
-.prensa-faja .faja-cab .filete { flex: 1; border-top: 1px solid var(--line-strong); }
-.prensa-faja .faja-cab .ver {
-  flex: none; font-weight: 800; font-size: 10px; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--rojo); white-space: nowrap;
-}
-
-/* La cifra y el «de N lectores» ya no se estilan aquí: los pone PuestoCifra
-   (.pm-puesto), que es el mismo marcador que usan el parte, la faja fina y el
-   modal. Aquí queda solo lo que es PROPIO de la faja — el layout de la línea,
-   la raya de carga y la anotación de movimiento. */
-/* `flex-wrap` por la misma razón que en .pm-puesto: con un total de cuatro
-   cifras o un idioma más largo, el «▲2 desde ayer» del margen derecho se
-   quedaba sin sitio. Que baje de línea, nunca que se monte. */
-.prensa-faja .faja-dato { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 9px; }
-/* Puesto aún desconocido: la raya ocupa el mismo alto que la cifra (misma
-   familia y cuerpo) y se pinta en tinta apagada. Reserva el sitio sin fingir
-   un dato ni montar un esqueleto animado por medio segundo. */
-.prensa-faja .faja-dato .pos--pendiente {
-  font-family: var(--font-display); font-weight: 900; font-size: 38px; line-height: .95;
-  color: var(--line);
-}
-/* El movimiento se va al margen derecho: es una anotación al dato, no parte de
-   él. Subir = verde del veredicto (acierto); bajar = tinta apagada y NO rojo —
-   la pérdida informa, no alarma (el rojo es del fallo y de las llamadas). */
-.prensa-faja .faja-dato .mov {
-  margin-left: auto; flex: none; font-weight: 700; font-size: 11px; letter-spacing: .02em;
-}
-.prensa-faja .faja-dato .mov--up { color: var(--verde); }
-.prensa-faja .faja-dato .mov--down { color: var(--cdd-muted); }
-.prensa-faja .faja-dato .mov--hold,
-.prensa-faja .faja-dato .mov--new { color: var(--cdd-muted); font-style: italic; font-weight: 600; }
-
-/* Variante sin puesto: una línea de invitación en cursiva, sin bloque de
-   cifras vacío. Ocupa la mitad de alto que la versión con puesto — el que aún
-   no compite no merece que le quiten fold por una tabla que no le habla. */
-.prensa-faja .faja-invita {
-  font-family: var(--font-display); font-style: italic; font-size: 14px;
-  line-height: 1.35; color: var(--cdd-text);
-}
-
-/* El pie de la faja: «A 3 puntos del 6º · Cierra en 2 días». Es la línea que
-   convierte el puesto en objetivo, así que va en la voz del periódico
-   (Fraunces cursiva, como los pies de foto) y no en versalitas de etiqueta.
-   Tinta apagada: acompaña al dato, no compite con la cifra. */
-.prensa-faja .faja-pie {
-  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
-  line-height: 1.3; color: var(--cdd-muted);
-}
-
-/* ── La faja fina (pegada) ──
-   Cuando la portada se va con el scroll, el acceso al ranking se queda pegado
-   arriba a la izquierda. Comparte chasis con el «recorte» de la foto
-   (.cdd-peek): papel, filete de tinta, misma sombra, misma entrada y mismo
-   offset superior — se leen como una pareja, "lo que miras" a la derecha y
-   "dónde vas" a la izquierda.
-
-   `left` se ancla al borde del pliego (max-width 560px → 280px a cada lado del
-   centro) en pantallas anchas, y a 12px del borde en móvil. El `max-width`
-   reserva los 104px del recorte + su margen para que jamás se solapen.
-
-   ALTO MÍNIMO 44px: era una tira de 30px con texto a 9.5px en el borde
-   superior de la pantalla — el peor sitio para el pulgar y por debajo del
-   objetivo táctil mínimo (44pt Apple / 48dp Material). El chasis no cambia,
-   solo respira. */
-.prensa-faja-mini {
-  position: fixed; z-index: 50;
-  top: calc(10px + env(safe-area-inset-top, 0px));
-  left: max(12px, calc(50vw - 280px));
-  max-width: calc(100% - 140px);
-  min-height: 44px;
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 0;
-  background: var(--surface); color: var(--cdd-text); cursor: pointer;
-  box-shadow: 0 12px 24px var(--line-2);
-  font-family: var(--font-body); font-weight: 700; font-size: 10px;
-  letter-spacing: .16em; text-transform: uppercase; white-space: nowrap;
-  animation: cddPeekIn .22s cubic-bezier(.16, 1, .3, 1);
-}
-/* Acabada la partida la faja fina baja al PIE: ya no hay cupón que rellenar ni
-   teclado que esquivar, y el pulgar vive abajo. Arriba se queda solo mientras
-   se juega, donde hace pareja con el recorte de la foto. */
-.prensa-faja-mini--pie {
-  top: auto;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-}
-.prensa-faja-mini .lad { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-/* El marcador compartido dentro de la faja fina: hereda su cuerpo de
-   .pm-puesto--s, pero aquí hay que devolverle la caja normal (el contenedor
-   está en versalitas con interletraje ancho). */
-.prensa-faja-mini .pm-puesto { flex: none; letter-spacing: 0; text-transform: none; }
-.prensa-faja-mini .mov { flex: none; letter-spacing: 0; text-transform: none; }
-.prensa-faja-mini .mov--up { color: var(--verde); }
-.prensa-faja-mini .mov--down { color: var(--cdd-muted); }
-.prensa-faja-mini .ver { flex: none; color: var(--rojo); }
-.prensa-faja-mini .chev { flex: none; color: var(--cdd-muted); font-size: 13px; letter-spacing: 0; }
-.prensa-faja-mini:hover { border-color: var(--rojo); }
-.prensa-faja-mini:active { transform: scale(.97); }
-/* En el pliego ancho el recorte se oculta (la foto es la columna central y no
-   se pierde de vista), así que aquí la faja fina recupera todo su ancho. */
-/* En el pliego el ancho útil sube a 1260px, así que la faja fina se reancla a
-   ESE borde: con el cálculo de móvil (280 = medio pliego estrecho) acababa
-   flotando sobre la columna central en vez de en el margen. */
-@media (min-width: 1100px) {
-  .prensa-faja-mini { max-width: none; left: max(12px, calc(50vw - 630px)); }
-  /* En el pliego la cabecera ocupa las tres columnas: empujar el movimiento al
-     margen derecho abriría un vacío de casi un metro entre "de 128 lectores" y
-     "▲2 desde ayer", y dejarían de leerse como una sola frase. Aquí se queda
-     pegado al dato. */
-  .prensa-faja .faja-dato .mov { margin-left: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .prensa-faja-mini { animation: none; }
-  .prensa-faja-mini:active { transform: none; }
-}
+/* (Aquí vivía LA CLASIFICACIÓN como faja: un bloque bajo el folio con ladillo y
+   cifra a 38px, más su versión fina pegada al hacer scroll. Se retiró al
+   simplificar la portada — el acceso al ranking está ahora en la barra
+   (.prensa-clasif), que lo mantiene a la vista sin gastar 60px por delante de
+   la fotografía. El marcador compartido (PuestoCifra/.pm-puesto) sigue vivo: lo
+   usan el modal y el parte del final de partida.) */
 
 /* ── Ladillos de sección: versalitas + filete que llena la línea ── */
 .prensa-ladillo {
@@ -1046,12 +900,8 @@ body,
   align-items: baseline;
 }
 .prensa-fila .num { font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--cdd-muted); }
-/* Cabecera de columnas: misma rejilla que las filas, labels Franklin caps. */
-.prensa-fila.cabecera {
-  padding: 0 2px 6px; border-bottom: 1px solid var(--line-strong);
-  font-family: var(--font-body); font-weight: 600; font-size: 10px;
-  letter-spacing: .2em; color: var(--cdd-muted);
-}
+/* (La cabecera de columnas —MARCA · MODELO · AÑO sobre la rejilla— se retiró:
+   el propio dato ya se lee sin etiqueta y gastaba un renglón en cada pliego.) */
 /* Wrapper de nombre: da a useFitText el ancho de la celda; la .palabra inline
    conserva el subrayado/tachado AL ANCHO DE LA PALABRA. */
 .prensa-dato .linea-nombre { display: block; width: 100%; white-space: nowrap; overflow: hidden; }
@@ -1144,17 +994,8 @@ body,
   text-transform: inherit; text-decoration: none;
 }
 .prensa-cierre button:hover, .prensa-cierre a:hover { color: var(--rojo); }
-/* La clasificación en el pie: en tinta plena y no en gris, porque no es un
-   enlace de servicio como los otros dos (ayuda, privacidad) sino la sección
-   que el jugador puede querer abrir justo al terminar la partida. El filete
-   inferior la señala sin sacarla de la fila. */
-.prensa-cierre .pie-clasif {
-  color: var(--cdd-text); font-weight: 800;
-  border-bottom: 2px solid var(--rojo); padding-bottom: 3px;
-}
-/* Reloj de cierre: MISMA familia que el pie (lección del prototipo — la
-   Courier aquí desentonaba) + tabular-nums para que no baile cada segundo. */
-.prensa-cierre .reloj { color: var(--cdd-text); font-weight: 800; font-variant-numeric: tabular-nums; }
+/* (Se fueron de aquí `.pie-clasif` —la clasificación en el pie, que ahora vive
+   en la barra— y `.reloj`, cuyo tabular-nums lo pone hoy el propio JSX.) */
 
 /* ── Pliego responsivo ──
    Móvil: columna única (orden foto → última jugada → cupón → historial, el
@@ -1188,29 +1029,21 @@ body,
 .prensa-area-cab { order: 1; }
 .prensa-area-foto { order: 2; }
 .prensa-area-jugar { order: 4; }
+/* El historial se pinta SIEMPRE que haya intentos, también en móvil durante la
+   partida: hubo una variante `--ancho` que lo reservaba al pliego ancho, y dejó
+   de tener sentido cuando el cupón se quedó sin veredicto estampado (ver
+   Configurator.jsx). */
 .prensa-historial { order: 5; }
-/* Historial DURANTE la partida: solo en el pliego ancho, donde llena la columna
-   izquierda sin quitarle sitio a nada. En columna única se oculta — el combo ya
-   elimina de la lista lo fallado y la horquilla del año acota el rango en un
-   renglón, así que la lista de filas era, sobre todo, altura. Al terminar la
-   partida el componente pierde esta clase y aparece también en móvil. */
-@media (max-width: 1099px) {
-  .prensa-historial--ancho { display: none; }
-}
 .prensa-estadistica { order: 6; }
-/* La faja de clasificación cuando NO va en cabecera (visitante sin sesión):
-   entre la estadística y el pie. Ver el porqué en Configurator.jsx. */
-.prensa-area-clasif { order: 7; }
 .prensa-area-pie { order: 8; }
 @media (min-width: 1100px) {
   .prensa-hoja { max-width: 1260px; }
   .prensa-pliego {
     display: grid; grid-template-columns: 27fr 46fr 27fr; column-gap: 0; row-gap: 26px;
     align-content: start;
-    grid-template-areas: "cab cab cab" "clas foto jugar" "clasif clasif clasif" "pie pie pie";
+    grid-template-areas: "cab cab cab" "clas foto jugar" "pie pie pie";
   }
   .prensa-area-cab { grid-area: cab; }
-  .prensa-area-clasif { grid-area: clasif; }
   /* En el pliego, la columna vuelve a ser un bloque real y apila sus piezas. */
   .prensa-area-clas {
     display: flex; flex-direction: column; gap: 24px;
@@ -1220,43 +1053,6 @@ body,
   .prensa-area-foto { grid-area: foto; min-width: 0; }
   .prensa-area-jugar { grid-area: jugar; border-left: 1px solid var(--line-strong); padding-left: 30px; margin-left: 30px; min-width: 0; }
   .prensa-area-pie { grid-area: pie; }
-}
-
-/* ── "Primer" del pliego: siembra la columna izquierda en el TURNO 1 ──
-   Hasta el primer intento, la columna "clas" (fila viva + historial +
-   estadística) está vacía y el broadsheet de 3 columnas nace descuadrado (el
-   tercio izquierdo en blanco). Este primer la ocupa con materia editorial: qué
-   adivinar, intentos + zoom, y la CLAVE DE COLOR de las marcas de corrector
-   (reusa verde/ámbar/rojo del feedback real → enseña a leer los intentos). Al
-   llegar el primer intento, la condición en Configurator lo desmonta y el
-   historial toma el relevo. SOLO en el pliego ancho (≥1100): en columna única un
-   bloque más empujaría el cupón bajo el fold, lo contrario de la foto a sangre. */
-.prensa-primer { display: none; }
-@media (min-width: 1100px) {
-  .prensa-primer { display: flex; flex-direction: column; gap: 12px; }
-}
-.prensa-primer .primer-que {
-  margin: 0; font-family: var(--font-display); font-weight: 600;
-  font-size: 17px; line-height: 1.35; color: var(--cdd-text);
-}
-.prensa-primer .primer-sub {
-  margin: 0; font-family: var(--font-body); font-size: 12.5px;
-  line-height: 1.5; color: var(--cdd-muted);
-}
-.prensa-primer .primer-clave {
-  list-style: none; margin: 0; padding: 12px 0 0;
-  border-top: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 8px;
-  font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted);
-}
-/* La clave replica EXACTAMENTE las marcas de AttemptList (mismo trazo/color) para
-   que el jugador reconozca el veredicto en cuanto lo vea en sus intentos. */
-.prensa-primer .clave-ej { font-style: normal; color: var(--cdd-text); }
-.prensa-primer .clave-ej.bien { border-bottom: 2px solid var(--verde); }
-.prensa-primer .clave-ej.cerca { border-bottom: 2px dashed var(--ambar); }
-.prensa-primer .clave-ej.mal {
-  text-decoration: line-through; text-decoration-color: var(--rojo);
-  text-decoration-thickness: 2px; color: var(--cdd-muted);
 }
 
 /* Foco de teclado del sistema prensa: anillo rojo uniforme (sustituye al
@@ -1329,9 +1125,9 @@ body,
   letter-spacing: .1em; text-transform: uppercase;
 }
 .prensa-campo-marca.bien { color: var(--verde); font-size: 15px; letter-spacing: 0; }
-.prensa-campo-marca.cerca { color: var(--ambar); }
-.prensa-campo-marca.cerca .bandera { width: 16px; height: 11px; object-fit: cover; }
-.prensa-campo-marca.dir { color: var(--rojo); }
+/* (`.cerca` —la bandera del mismo país— y `.dir` —la flecha ↑/↓ del año— se
+   fueron con el veredicto estampado: esa información vive hoy en el historial
+   y en la horquilla del propio campo.) */
 
 /* Resuelto: el campo deja de ser un renglón por rellenar y pasa a ser un dato
    cerrado. Filete verde firme y texto en tinta plena (no apagado: es un acierto,
@@ -1343,32 +1139,10 @@ body,
 .prensa-input.veredicto-resuelto:focus { border-bottom-color: var(--verde); }
 .prensa-label .pista-label.resuelta { color: var(--verde); font-weight: 700; }
 
-/* El veredicto de FALLO va en una capa ENCIMA del campo, no dentro (ver el
-   comentario largo de Combo.jsx): el input de debajo ya está vacío y sigue
-   siendo tecleable, así que el jugador puede empezar el intento siguiente sin
-   esperar a que el flash termine. `pointer-events: none` para que el toque
-   atraviese la capa y caiga en el campo. Alineada con el texto del input
-   (mismas métricas y padding) para que ocupe exactamente su sitio. */
-.prensa-veredicto {
-  position: absolute; left: 2px; top: 0; bottom: 0;
-  display: flex; align-items: center; pointer-events: none;
-  font-family: var(--font-mono); font-size: 16px;
-  color: var(--rojo); text-decoration: line-through;
-  text-decoration-color: var(--rojo); text-decoration-thickness: 2px;
-  animation: veredictoEstampa .22s cubic-bezier(.16, 1, .3, 1) both;
-}
-/* Mismo país: ámbar y sin tachar — no está descartada, está cerca. */
-.prensa-veredicto.veredicto-cerca {
-  color: var(--ambar); text-decoration: none;
-}
-/* Con la capa puesta, el placeholder del campo vacío asomaría por debajo. */
-.prensa-input.con-veredicto::placeholder { color: transparent; }
-@keyframes veredictoEstampa {
-  from { opacity: .35; transform: scale(1.04); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .prensa-veredicto { animation: none; }
-}
+/* (Aquí vivía `.prensa-veredicto`: la capa que estampaba el valor fallado,
+   tachado a pluma, sobre el campo ya vacío durante 1,2s. Se retiró al
+   simplificar el cupón — con ella se van `.con-veredicto`, la variante ámbar
+   del «mismo país» y su keyframe.) */
 
 /* La horquilla del año: el rango que sigue vivo según las flechas acumuladas.
    Nota al pie del campo, en la cursiva de las apostillas — es una acotación del
@@ -1620,36 +1394,23 @@ body,
 
 /* ── El modal de la clasificación (Ranking.jsx) ───────────────────────────
    Recuadro de resultados de periódico. Todo lo de aquí existe para que el
-   destino se parezca a la puerta: quien toca la faja de portada tiene que
-   reconocer al instante que ha llegado al mismo sitio, no a otra pantalla.
+   destino se parezca a la puerta: quien toca la clasificación en la barra tiene
+   que reconocer al instante que ha llegado al mismo sitio, no a otra pantalla —
+   y por eso el ordinal es el mismo glifo (.pm-puesto) en las dos superficies.
 
-   TU PUESTO, arriba del todo y en el mismo glifo que se acaba de tocar. Doble
-   filete inferior porque cierra un bloque, igual que el folio de la portada. */
-.rank-tuyo { padding: 10px 0 9px; border-bottom: 3px double var(--line-strong); }
-.rank-tuyo-lad {
-  font-family: var(--font-body); font-weight: 800; font-size: 9px;
-  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
-}
-.rank-tuyo-row { display: flex; align-items: baseline; gap: 10px; margin-top: 5px; }
-/* El movimiento, en su propia línea bajo la cifra (ver el porqué en el JSX). */
-.rank-tuyo-mov { font-family: var(--font-display); font-size: 12.5px; margin-top: 4px; }
-/* Solo up/down: aquí no se pintan «mantienes» ni «estrenas» (ver Ranking.jsx). */
-.rank-tuyo-mov--up   { color: var(--verde); font-weight: 600; }
-.rank-tuyo-mov--down { color: var(--cdd-muted); font-weight: 600; }
-.rank-tuyo-dist {
-  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
-  color: var(--cdd-muted); margin-top: 4px;
-}
+   (La cabecera «Tu puesto» —.rank-tuyo y familia— se retiró al simplificar el
+   modal: repetía en grande el dato que la fila destacada del jugador ya da, y
+   empujaba la tabla fuera de la primera pantalla.) */
 
 /* Pestañas: versalitas con filete rojo bajo la activa. El segmentado con fondo
-   gris y esquinas redondeadas era vocabulario de app. «Cómo se puntúa» viaja
-   en la misma fila, al margen derecho y en texto — un interrogante dentro de un
-   círculo es justo el tipo de glifo que nadie toca. */
-/* `flex-wrap` como red de seguridad: en Español la fila llega JUSTO al borde
-   derecho en un móvil de 412px, así que en uno de 360 se saldría. Si no cabe,
-   «cómo se puntúa» baja de línea en vez de desbordar el panel (regla: nunca
-   scroll horizontal). Y los tres son objetivos táctiles de 44px: eran de 26,
-   el mismo defecto que se corrigió en la faja fina. */
+   gris y esquinas redondeadas era vocabulario de app. «Cómo se puntúa» viaja en
+   la misma fila, al margen derecho, hoy como interrogante en un filete redondo
+   (el rótulo entero apretaba demasiado la fila en móvil); su texto sigue vivo
+   en `aria-label`/`title`, que es lo que necesitan lector de pantalla y ratón.
+
+   `flex-wrap` como red de seguridad: en español la fila llega JUSTO al borde en
+   un móvil de 412px. Si no cabe, la ayuda baja de línea en vez de desbordar el
+   panel (regla: nunca scroll horizontal). Objetivos táctiles de 44px. */
 .rank-tabs {
   display: flex; align-items: stretch; flex-wrap: wrap; gap: 0 16px;
   margin: 12px 0; border-bottom: 1px solid var(--line);

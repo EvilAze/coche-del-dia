@@ -68,7 +68,6 @@ function SelloYo() {
 
 // El bloque de puntos de una fila: cifra en Fraunces tabular + su etiqueta.
 function Puntos({ value, destacado = false }) {
-  const { t } = useT();
   return (
     <div className="text-right">
       <div
@@ -78,9 +77,6 @@ function Puntos({ value, destacado = false }) {
         }
       >
         {value}
-      </div>
-      <div className="font-body text-[9px] uppercase tracking-[0.18em] text-tinta-2">
-        {t("ranking.points")}
       </div>
     </div>
   );
@@ -227,36 +223,6 @@ export default function Ranking({
     }
   }
 
-  // ── La cabecera de continuidad: tu puesto, en el glifo de la faja ──
-  const mv = rankMovement(rank);
-  // El movimiento SOLO cuando lo hay. Las otras dos variantes del parte no se
-  // pintan aquí:
-  //   · «Mantienes tu puesto» gasta una línea entera en decir que no ha pasado
-  //     nada, justo encima de la única línea accionable («a 2 puntos del 12º»).
-  //   · «Estrenas puesto esta temporada» es peor que relleno: es `kind: "new"`,
-  //     que no significa "eres nuevo" sino "no hay snapshot de hoy en
-  //     rank_snapshots" (rankMovement lo deriva de `prev_rank == null`). A un
-  //     jugador de siempre al que le falte la fila del día le estaríamos
-  //     afirmando algo falso.
-  // El parte del final de partida sí las conserva: allí el bloque existe para
-  // contarte cómo ha ido el día, y "no te has movido" es una respuesta legítima
-  // a esa pregunta. Aquí la pregunta es "dónde estoy y qué me falta".
-  const movText =
-    mv.kind === "up" ? tn("parte.up", mv.n)
-    : mv.kind === "down" ? tn("parte.down", mv.n)
-    : null;
-  const arriba = mv.kind === "unranked" ? "" : ordinal(mv.pos - 1, locale);
-  const distancia =
-    mv.kind === "unranked"
-      ? null
-      : mv.pos === 1
-      ? t("prensa.fajaLider")
-      : rank?.gap === 0
-      ? t("prensa.fajaEmpate", { pos: arriba })
-      : rank?.gap > 0
-      ? tn("prensa.fajaDistancia", rank.gap, { pos: arriba })
-      : null;
-
   // Props comunes a todas las filas de la tabla.
   const filaBase = {
     currentUserId,
@@ -281,29 +247,6 @@ export default function Ranking({
         {/* Ladillo de sección: la MISMA palabra que la faja de portada
             («La clasificación»), no un título distinto para el mismo sitio. */}
         <div className="prensa-ladillo pr-10">{t("ranking.tag")}</div>
-
-        {/* Tu puesto, en el glifo que se acaba de tocar. Es la pieza de
-            continuidad: sin ella el modal empezaba por una tabla ajena. */}
-        {mv.kind !== "unranked" && (
-          <div className="rank-tuyo">
-            {/* «Tu puesto» y no «Tu posición»: esa segunda etiqueta ya marca tu
-                FILA cuando quedas fuera del top visible, y con las dos iguales
-                el modal parecía decir lo mismo dos veces. */}
-            <span className="rank-tuyo-lad">{t("ranking.yourStanding")}</span>
-            <div className="rank-tuyo-row">
-              <PuestoCifra pos={mv.pos} total={mv.total} size="l" />
-            </div>
-            {/* El movimiento va en su PROPIA línea, no al margen derecho de la
-                cifra. Aquí el texto es la frase larga del parte («Estrenas
-                puesto esta temporada»), no el telegrama de la faja («▲2 desde
-                ayer»): empujado a la derecha de «13º de 13 lectores» no cabía
-                en un móvil y se montaba encima. */}
-            {movText && (
-              <p className={"rank-tuyo-mov rank-tuyo-mov--" + mv.kind}>{movText}</p>
-            )}
-            {distancia && <p className="rank-tuyo-dist">{distancia}</p>}
-          </div>
-        )}
 
         {/* Conmutador de pestañas: la clasificación de la temporada en curso vs
             el SALÓN DE CAMPEONES (palmarés de temporadas cerradas). Versalitas
@@ -419,7 +362,6 @@ export default function Ranking({
                     userId={player.userId}
                     nombre={player.displayName}
                     puntos={player.totalPoints}
-                    sub={tn("ranking.seasonWins", player.totalWins)}
                     streak={player.currentStreak}
                   />
                 </div>
@@ -442,7 +384,6 @@ export default function Ranking({
                   userId={selfRow.userId}
                   nombre={selfRow.displayName}
                   puntos={selfRow.totalPoints}
-                  sub={tn("ranking.seasonWins", selfRow.totalWins)}
                   streak={selfRow.currentStreak}
                 />
               </div>

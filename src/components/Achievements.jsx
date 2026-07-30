@@ -192,7 +192,10 @@ function RouteNode({ achievement, locale, isNext, first, last }) {
     ? "border border-transparent bg-gold text-gold-ink" // moneda de oro maciza
     : isNext
       ? "border-2 border-gold bg-transparent text-gold" // diana
-      : "border border-border bg-papel/[0.02] text-tinta-2/70"; // apagado
+      // `bg-papel` al 2% era un relleno del color DEL PROPIO FONDO: no pintaba
+      // nada ni de día ni de noche. Si el nodo apagado es solo filete, que lo
+      // diga el código.
+      : "border border-border bg-transparent text-tinta-2/70"; // apagado
 
   return (
     <div className="flex items-stretch gap-3.5">
@@ -210,8 +213,12 @@ function RouteNode({ achievement, locale, isNext, first, last }) {
             style={{ height: "calc(50% - 18px)" }}
           />
         )}
+        {/* Nodo de hito: cuadrado, como los pips de negativo del pie de foto y
+            el cuadradito de tinta de las listas. Era un disco (`rounded-full`),
+            la forma del tema anterior — sobre un raíl de filetes, en un sistema
+            sin redondeos, el círculo era la única curva de la pantalla. */}
         <span
-          className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full font-bold tabular-nums ${
+          className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-none font-bold tabular-nums ${
             String(goal).length >= 3 ? "text-[11px]" : "text-sm"
           } ${nodeCls}`}
         >
@@ -233,13 +240,17 @@ function RouteNode({ achievement, locale, isNext, first, last }) {
           <>
             <div className="flex items-center gap-2">
               <p className="text-[15px] font-bold text-tinta">{title}</p>
-              <span className="rounded-full border border-gold/40 px-2 py-px font-mono text-[8.5px] uppercase tracking-wider text-gold">
+              <span className="rounded-none border border-gold/40 px-2 py-px font-mono text-[8.5px] uppercase tracking-wider text-gold">
                 {t("achievements.next")}
               </span>
             </div>
-            <div className="mt-1.5 h-[5px] max-w-[170px] overflow-hidden rounded-full bg-papel/[0.08]">
+            {/* Regla de progreso, no píldora. La pista iba en `bg-papel/[0.08]`:
+                papel al 8% SOBRE papel, o sea invisible en los dos temas — la
+                barra de «te faltan X» solo se veía cuando ya estaba llena. Con
+                tinta al 15% se lee sobre el crema y sobre el grafito. */}
+            <div className="mt-1.5 h-[5px] max-w-[170px] overflow-hidden rounded-none bg-tinta/15">
               <div
-                className="h-full rounded-full bg-gold"
+                className="h-full rounded-none bg-gold"
                 style={{ width: `${pct}%` }}
               />
             </div>

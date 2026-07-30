@@ -4,9 +4,6 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        // Sistema único "menta": Archivo manda en display y cuerpo (antes
-        // Bebas Neue / DM Sans), Space Mono para etiquetas técnicas. Coincide
-        // con la pantalla de juego para que toda la web sea coherente.
         // Sistema «Prensa del motor» (reasignados en F5): display = Fraunces,
         // body = Libre Franklin, mono = Courier Prime. Archivo/Space Mono
         // retirados del bundle de fuentes (index.html).
@@ -55,22 +52,23 @@ module.exports = {
           DEFAULT: "rgb(var(--tinta-rgb) / 0.22)",
           strong: "rgb(var(--line-strong-rgb) / <alpha-value>)",
         },
+        // (`accent.glow` y `gold.glow` valían `transparent`: eran el hueco que
+        // dejó el halo del tema menta, y nadie los usaba ya. Un token que pinta
+        // nada solo sirve para que alguien lo reutilice creyendo que pinta algo.)
         accent: {
           DEFAULT: "rgb(var(--rojo-rgb) / <alpha-value>)",
           dark: "rgb(var(--rojo-dark-rgb) / <alpha-value>)",
-          glow: "transparent",
         },
         gold: {
           DEFAULT: "rgb(var(--gold-rgb) / <alpha-value>)",
           dark: "rgb(var(--gold-dark-rgb) / <alpha-value>)",
           ink: "rgb(var(--bg-rgb) / <alpha-value>)",
-          glow: "transparent",
         },
         muted: "rgb(var(--tinta2-rgb) / <alpha-value>)",
-        mint: {
-          DEFAULT: "rgb(var(--rojo-rgb) / <alpha-value>)",
-          foreground: "rgb(var(--bg-rgb) / <alpha-value>)",
-        },
+        // (Fuera el alias `mint`. Apuntaba a la terna del ROJO, así que pintaba
+        // bien y mentía: quedaban cinco `text-mint` y un `hover:bg-mint` en el
+        // perfil propio y el público pintando de rojo bajo el nombre del tema de
+        // hace dos rediseños. Ya están todos escritos como lo que son.)
         card: {
           DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
           foreground: "rgb(var(--tinta-rgb) / <alpha-value>)",
@@ -79,18 +77,13 @@ module.exports = {
         "muted-foreground": "rgb(var(--tinta2-rgb) / <alpha-value>)",
         destructive: "rgb(var(--rojo-rgb) / <alpha-value>)",
       },
-      // Sombras del sistema Liquid Glass: elevación flotante + halo interior de
-      // luz (inset top) que da el "canto" del cristal. Centralizadas para que
-      // todas las tarjetas premium compartan la misma física de luz.
-      boxShadow: {
-        glass: "0 16px 40px -16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
-        "glass-lg": "0 30px 60px -28px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.07)",
-        "glow-accent": "0 0 28px -8px rgba(122,240,200,0.45)",
-        "glow-gold": "0 0 28px -8px rgba(232,200,122,0.45)",
-      },
-      backdropBlur: {
-        glass: "18px",
-      },
+      // (Aquí vivían las sombras y el blur del sistema «Liquid Glass»: `glass`,
+      // `glass-lg`, `glow-accent`, `glow-gold` y `backdropBlur.glass`. El material
+      // de cristal se retiró en el rediseño plano y de él no quedaba ni un
+      // consumidor, pero los tokens seguían en el tema — `glow-accent` todavía
+      // guardaba el rgba(122,240,200) del acento MENTA, dos pieles atrás. En el
+      // sistema actual lo que flota lleva `--sombra-flota` (index.css, una receta
+      // por tema) y los halos están prohibidos: sobre papel no existen.)
       animation: {
         // Entradas (fade/slide): curva ease-out FUERTE en vez del `ease`
         // nativo de CSS, que es demasiado flojo y no tiene "punch". Arrancar

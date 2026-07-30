@@ -81,7 +81,7 @@ export default function Legends({ open, onClose }) {
       ) : state.players.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("ranking.empty")}</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border">
+        <div className="overflow-hidden rounded-none border border-border">
           <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_5rem] bg-bg-tertiary px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">
             <span>{t("ranking.colRank")}</span>
             <span>{t("ranking.colPlayer")}</span>

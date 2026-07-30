@@ -439,7 +439,9 @@ export default function Repesca() {
     // las fuentes (Fraunces/Franklin) ya son globales.
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-tinta">
-        <div className="w-full max-w-sm rounded-2xl border border-rojo/40 bg-papel-2 p-6 text-center shadow-2xl">
+        {/* Esquina viva y filete de rojo, sin `shadow-2xl`: es un recuadro de
+            errata impreso en el papel, no una tarjeta flotante. */}
+        <div className="w-full max-w-sm rounded-none border border-rojo/40 bg-papel-2 p-6 text-center">
           <p className="text-[10px] uppercase tracking-[0.28em] text-rojo">
             {t("repesca.errorUnavailable")}
           </p>
@@ -452,10 +454,13 @@ export default function Repesca() {
             onClick={() => {
               window.location.href = "/";
             }}
+            // Mismo botón de tinta que el resto del sistema: esquina viva, vuelco
+            // a rojo al pasar (no `brightness-110`, que aclara el color en vez de
+            // cambiarlo) y hundido de 1px al pulsar.
             className="
-              mt-5 h-11 w-full rounded-xl bg-accent
-              font-display tracking-widest text-bg-primary
-              transition hover:brightness-110 active:scale-[0.98]
+              mt-5 h-11 w-full rounded-none bg-tinta
+              font-display tracking-widest text-papel
+              transition-colors hover:bg-rojo active:translate-y-px
             "
           >
             {t("repesca.buttonBackToGame")}
@@ -479,12 +484,15 @@ export default function Repesca() {
             onClick={() => {
               window.location.href = "/?garage=true";
             }}
+            // El chip del sistema, escrito en utilidades porque esta barra no es
+            // la del juego. Esquina viva y hundido de 1px; el `active:scale-95`
+            // encogía el botón como una pastilla.
             className="
-              inline-flex items-center gap-1.5 rounded-md
+              inline-flex items-center gap-1.5 rounded-none
               border border-tinta/15 bg-papel-2/60
               px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta-2
-              transition hover:border-accent/60 hover:bg-accent/10 hover:text-accent
-              active:scale-95
+              transition hover:border-rojo/60 hover:bg-rojo/10 hover:text-rojo
+              active:translate-y-px
             "
           >
             <svg

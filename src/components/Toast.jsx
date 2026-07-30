@@ -33,6 +33,11 @@ const TYPE_STYLES = {
 function ToastItem({ toast, onDismiss }) {
   const { t } = useT();
   const style = TYPE_STYLES[toast.type] || TYPE_STYLES.info;
+  // La sombra va por token (`--sombra-flota`, index.css) y no con el rgba que
+  // tenía escrito a mano: era la tinta del DÍA incrustada, aplicada también en la
+  // edición de noche. Ahora el aviso, el desplegable del cupón, el recorte de la
+  // foto, el sumario y las portadas del Archivo despegan del papel con la MISMA
+  // sombra, y cada tema pone la suya.
   return (
     <div
       role="status"
@@ -40,7 +45,7 @@ function ToastItem({ toast, onDismiss }) {
         pointer-events-auto flex w-full max-w-sm items-center gap-3
         rounded-none border border-tinta bg-papel
         px-4 py-3 font-serif text-sm text-tinta
-        shadow-[0_10px_22px_rgba(27,23,18,0.18)]
+        shadow-[shadow:var(--sombra-flota)]
         animate-toast-in
       `}
     >

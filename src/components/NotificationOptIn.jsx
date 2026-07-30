@@ -99,18 +99,20 @@ export default function NotificationOptIn() {
   // iOS no instalado: solo informamos (no hay botón que funcione).
   if (mode === "ios-hint") {
     return (
-      <div className="mb-4 rounded-xl border border-accent/30 bg-accent/[0.07] p-4 text-left">
-        <p className="font-display text-sm uppercase tracking-[0.14em] text-accent">
-          {t("notif.iosHintTitle")}
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-white/90">
-          {t("notif.iosHintBody")}
-        </p>
+      // Mismo recuadro de «suscripción al boletín» que el caso general de abajo
+      // (filete de tinta, kicker rojo, cuerpo en Fraunces, fantasma de tinta).
+      // Era la única rama del componente sin migrar: seguía con el tinte de
+      // acento y las esquinas redondeadas del rediseño plano, y su cuerpo iba en
+      // `text-white/90` — blanco sobre papel crema, ilegible en el modo día. Un
+      // aviso que no se puede leer no es un aviso.
+      <div className="mb-4 border border-tinta p-4 text-left">
+        <p className="pm-kicker">{t("notif.iosHintTitle")}</p>
+        <p className="pm-body mt-2 text-sm">{t("notif.iosHintBody")}</p>
         <div className="mt-4">
           <button
             type="button"
             onClick={dismissHint}
-            className="rounded-lg border border-border px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted transition hover:text-white active:scale-[0.98]"
+            className="pm-btn pm-btn--ghost !w-auto !py-2.5 !text-xs"
           >
             {t("notif.webOptInDecline")}
           </button>

@@ -33,7 +33,19 @@ export default function ZoomStage({
   const revealed = status !== "playing";
 
   return (
-    <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-3 px-4 md:px-8 pb-4">
+    // Sin sangría horizontal propia. La tenía (`px-4 md:px-8`) y era justo lo que
+    // impedía la decisión de portada que index.css lleva documentada desde el
+    // rediseño: en columna única el escenario rompe el margen del pliego con
+    // `margin-inline: -18px` para TOCAR los dos bordes de la pantalla («la foto
+    // ES el juego → gana el escenario»). Los 18px negativos se comían el margen
+    // del pliego y estos 16px lo volvían a poner, así que la foto quedaba metida
+    // 16px y la sangría no se veía nunca. De paso, el ladillo y el pie vuelven a
+    // alinear con el margen del pliego —lo que promete el comentario del pie— en
+    // vez de ir 16px por dentro de él.
+    // El recorte 4:3 no se toca (reglas 5 y 7) y `sizes` es por viewport, no por
+    // ancho del elemento: el navegador elige el MISMO recurso, así que el preload
+    // del middleware sigue coincidiendo byte a byte (regla 6).
+    <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-3 pb-4">
       <div className="prensa-ladillo">
         {t("prensa.ladilloFoto")}
         <span className="aparte">
@@ -48,11 +60,17 @@ export default function ZoomStage({
         </span>
       </div>
 
-      {/* `border-border` y no `border-line`: `line` NO es un color del tema, así
-          que la utilidad no existía y el filete caía al `#e5e7eb` del preflight
-          de Tailwind — un gris que no se entera del cambio día/noche y que en la
-          edición de noche dibujaba un marco claro alrededor de la foto. */}
-      <div className={"cdd-stage p-2 md:p-3 bg-papel-mat border border-border shadow-sm" + (revealed ? " revealed" : "")}>
+      {/* UN solo marco. Aquí había un segundo paspartú en utilidades (padding,
+          `bg-papel-mat`, `border-border` y `shadow-sm`) montado ALREDEDOR del
+          marco real, que lo pinta `.prensa .cdd-stage-frame` en index.css con su
+          papel, su filete de tinta plena y sus 8px de paspartú. Dos marcos
+          concéntricos, y encima al revés de como se lee un cuadro: el filete de
+          fuera (tinta al 22%) más flojo que el de dentro (tinta plena). La
+          `shadow-sm` era además la última sombra blanda de Tailwind en la
+          pantalla de juego, donde el sistema separa con filetes.
+          El marco vivo sigue siendo `.cdd-stage-frame`: es la pieza que fija el
+          4:3 y la que busca useEncajeEscenario. */}
+      <div className={"cdd-stage" + (revealed ? " revealed" : "")}>
         <CarImage
           configurator
           src={car?.img ?? null}

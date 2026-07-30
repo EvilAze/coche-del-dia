@@ -39,6 +39,24 @@
   input[list]::-webkit-calendar-picker-indicator {
     display: none;
   }
+  /* Los campos del cupón son `type="search"` (marca y modelo autocompletan), y
+     con eso WebKit/Blink dibujan su propia ✕ de borrar DENTRO del renglón: un
+     glifo gris de sistema, a su tamaño y con su forma, justo donde el cupón pone
+     el ✓ verde del campo resuelto. Es el único adorno de la pantalla de juego que
+     no dibujamos nosotros — el mismo motivo por el que el sistema no usa emoji.
+     Se quita en los tres motores; el borrado sigue disponible con el teclado. */
+  input[type="search"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
   /* Remove number input arrows */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
@@ -83,6 +101,18 @@
      en 1.4:1 — una medalla de plata invisible en modo día. Estas ternas son las
      del día (AA sobre crema: plata 5.0:1, bronce 5.6:1). */
   --plata-rgb: 95 99 106; --bronce-rgb: 140 82 45;
+  /* EL VELO y LA SOMBRA. Las dos únicas piezas del sistema que NO pueden
+     derivarse de la tinta, porque un velo y una sombra son siempre OSCUROS y la
+     tinta de la edición de noche es beige. La sombra del desplegable se derivaba
+     de --line-2 (o sea de --tinta-rgb) y en noche se invertía en un HALO CLARO
+     bajo la caja — exactamente el glow que el sistema prohíbe. Y los scrims
+     llevaban el rgba del día incrustado, así que el velo de noche era el mismo
+     marrón cálido pensado para tapar papel crema. Terna propia por tema y una
+     sola receta de sombra para todo lo que flota (desplegable, recorte, aviso,
+     panel de modal, portada al pasar): si algo despega del papel, despega igual.
+     El alfa va aparte porque sobre papel basta un roce y sobre grafito hace
+     falta peso. */
+  --velo-rgb: 20 16 11; --sombra-alfa: .18;
 
   /* Colores completos derivados (día y noche comparten estas fórmulas). */
   --bg: rgb(var(--bg-rgb)); --bg2: rgb(var(--bg2-rgb));
@@ -102,6 +132,29 @@
   --gold: rgb(var(--gold-rgb)); --gold-dark: rgb(var(--gold-dark-rgb));
   --verde: rgb(var(--verde-rgb)); --ambar: rgb(var(--ambar-rgb));
   --plata: rgb(var(--plata-rgb)); --bronce: rgb(var(--bronce-rgb));
+  --sombra-flota: 0 12px 24px rgb(var(--velo-rgb) / var(--sombra-alfa));
+
+  /* LAS TRES VOCES DEL PERIÓDICO, aquí y no solo dentro de `.prensa`.
+     Estaban declaradas ÚNICAMENTE en `.prensa` (la raíz del juego) y en
+     `.theme-platino` (las previews del admin). Pero los modales, el Archivo y la
+     clasificación se renderizan FUERA de `.prensa` —ModalShell no portalea y
+     App.jsx los monta como HERMANOS del juego, no dentro—, así que sus ~30
+     `font-family: var(--font-display|body|mono)` eran declaraciones inválidas:
+     var() sin valor invalida la propiedad y la tipografía caía a la heredada del
+     `body`. Resultado, en todas las pantallas detrás de la portada: el ordinal
+     «7º» de la clasificación —del que su propio comentario dice que «cambia de
+     cuerpo según el sitio, nunca de familia»— salía en Franklin y no en Fraunces;
+     el sello de caucho, que existe para sustituir a los iconos, perdía su Courier;
+     y los titulares de las portadas del Archivo, las cifras de la ficha y los
+     kickers de temporada se componían todos en la MISMA sans. Tres voces
+     colapsadas en una: el sistema tipográfico solo se veía en la pantalla de
+     juego. Las familias se autoalojan en fonts.css, así que ya estaban cargadas —
+     solo faltaba poder nombrarlas desde aquí. `.prensa` las repite (inofensivo) y
+     `.theme-platino` las sigue pisando para sus previews. */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Libre Franklin', Arial, sans-serif;
+  --font-mono: 'Courier Prime', monospace;
+
   --gold-ink: rgb(var(--bg-rgb)); --gold-glow: transparent;
   --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
   --warn: rgb(var(--rojo-rgb));
@@ -121,6 +174,10 @@
   --verde-rgb: 107 191 136; --ambar-rgb: 224 160 74;
   /* Plata y bronce del podio, subidos igual (AA sobre el grafito: 9.7:1 y 6.1:1). */
   --plata-rgb: 186 190 199; --bronce-rgb: 205 133 90;
+  /* El velo se va casi al negro y la sombra gana peso: sobre grafito un roce
+     del 18% no separa nada. Todo lo que flota lo hereda solo (--sombra-flota
+     se declara una vez arriba y resuelve estas ternas en el punto de uso). */
+  --velo-rgb: 8 6 4; --sombra-alfa: .55;
 }
 
 @layer utilities {
@@ -178,24 +235,16 @@
      juego) y las heredan los modales/páginas en fases posteriores. */
   /* (Purga F5: .surface-flat, .btn--mint, .btn--icon e .input-flat eran las
      primitivas del rediseño plano v0 — ya no las usa ningún componente vivo:
-     las pantallas migraron a las clases prensa y pm. Solo sobrevive la pareja
-     .btn/.btn--ghost, que consumen EdicionNoDisponible, ErrorFallback,
-     NotificationOptIn y el Garaje. OJO: jamás cites un glob tipo «.prensa-» +
-     asterisco + barra dentro de un comentario CSS — esa secuencia lo CIERRA y
-     el resto queda como selector crudo; así se rompió un build de Vercel.) */
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    border: 0; cursor: pointer; font-family: var(--font-body);
-    font-weight: 600; font-size: 14px; letter-spacing: 0;
-    border-radius: 12px; transition: background-color .18s, transform .1s, color .18s;
-  }
-  .btn:active:not(:disabled) { transform: scale(.99); }
-  .btn:disabled { cursor: not-allowed; }
-  .btn--ghost {
-    background: transparent; color: var(--accent);
-    border: 1px solid color-mix(in oklab, var(--accent) 55%, var(--line));
-  }
-  .btn--ghost:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 10%, transparent); }
+     las pantallas migraron a las clases prensa y pm. La pareja .btn/.btn--ghost
+     se fue con ellas en esta pasada: el comentario decía que la consumían
+     EdicionNoDisponible, ErrorFallback, NotificationOptIn y el Garaje, pero los
+     cuatro habían migrado a .pm-btn/.pm-btn--ghost y nadie montaba ya un .btn.
+     Encima era código roto: pintaba con var(--accent), que solo existe dentro
+     del root del juego —lo inyecta Configurator— y estas cuatro pantallas viven
+     fuera, así que el `border` con color-mix quedaba inválido y el fantasma
+     salía SIN borde. OJO: jamás cites un glob tipo «.prensa-» + asterisco +
+     barra dentro de un comentario CSS — esa secuencia lo CIERRA y el resto queda
+     como selector crudo; así se rompió un build de Vercel.) */
   /* Chasis plano de modal. Colores CONCRETOS (no var()): los modales se
      renderizan FUERA del root del juego (overlay a nivel de documento). El
      bloque de PAPEL definitivo (F3) vive más abajo y sobreescribe estas
@@ -225,7 +274,10 @@
   }
   .scrollbar-premium::-webkit-scrollbar-thumb {
     background-color: rgb(var(--tinta-rgb) / 0.35);
-    border-radius: 9999px;
+    /* Esquina viva, como todo lo demás: el pulgar era la última píldora del
+       sistema. A 6px de ancho el redondeo no se veía, pero era una regla del
+       tema anterior que seguía escrita. */
+    border-radius: 0;
   }
   .scrollbar-premium::-webkit-scrollbar-thumb:hover {
     background-color: rgb(var(--tinta-rgb) / 0.6);
@@ -692,7 +744,7 @@ body,
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-top: 3px double var(--line-strong);
-  box-shadow: 4px 4px 0 rgb(var(--tinta-rgb) / .09);
+  box-shadow: 4px 4px 0 rgb(var(--velo-rgb) / .12);
   /* Se despliega desde su esquina de anclaje, como una hoja que se abre. */
   transform-origin: top left;
   animation: menuAbre .16s cubic-bezier(.2, 1, .3, 1) both;
@@ -779,10 +831,10 @@ body,
    parte del final de partida. */
 .prensa-masthead--compacto { padding: 14px 0 8px; }
 .prensa-masthead--compacto .titulo { font-size: clamp(26px, 6vw, 46px); }
-@media (max-width: 1099px) {
-  .prensa-masthead { padding: 14px 0 8px; }
-  .prensa-masthead .titulo { font-size: clamp(26px, 6vw, 46px); }
-}
+/* (Aquí había una media query ≤1099px que repetía EXACTAMENTE estos dos valores
+   sobre `.prensa-masthead`. Sobraba desde que Header dejó de tener variante: el
+   masthead se monta siempre con `--compacto`, así que la query no cambiaba nada
+   y el clamp(34…52) de la regla base no llega a pintarse nunca.) */
 .prensa-folio {
   display: flex; justify-content: center; align-items: baseline; gap: 8px;
   flex-wrap: nowrap; white-space: nowrap;
@@ -920,7 +972,7 @@ body,
 .cdd-peek { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 50;
   width: 104px; height: 78px; padding: 0; overflow: hidden; cursor: pointer;
   border-radius: 0; border: 1px solid var(--line-strong); background: var(--surface);
-  box-shadow: 0 12px 24px var(--line-2);
+  box-shadow: var(--sombra-flota);
   animation: cddPeekIn .22s cubic-bezier(.16,1,.3,1); }
 /* picture { display: contents }: fuera la caja intermedia; el img se ancla
    directamente al botón, sin depender de cómo cada motor posicione <picture>.
@@ -1030,6 +1082,28 @@ body,
   background: transparent; color: var(--cdd-muted);
   box-shadow: inset 0 0 0 1px var(--line-strong);
 }
+/* La variante SECUNDARIA, vestida de prensa. Existe porque la regla de arriba
+   —`.prensa .cdd-submit`, dos clases— le ganaba en especificidad a
+   `.cdd-submit--ghost`, de una sola: el fantasma perdía su fondo transparente y
+   se pintaba como un BLOQUE DE TINTA idéntico al CTA primario. En el fin de
+   partida eso dejaba dos bloques iguales uno debajo del otro (COMPARTIR y
+   «guarda tu progreso» / «elige tu firma») y la jerarquía que los propios
+   comentarios del EndScreen prometen —«compartir sigue siendo el único CTA de
+   tinta»— no se veía en pantalla.
+   Mismo dialecto que .pm-btn--ghost, el fantasma de los modales: papel, aro de
+   tinta de 1px y vuelco a rojo al pasar. Un solo fantasma en toda la app. */
+.prensa .cdd-submit--ghost {
+  background: transparent; color: var(--cdd-text);
+  border: 0; box-shadow: inset 0 0 0 1px var(--cdd-text);
+}
+.prensa .cdd-submit--ghost:hover:not(:disabled) {
+  background: transparent; color: var(--rojo);
+  box-shadow: inset 0 0 0 1px var(--rojo);
+}
+/* Un solo gesto de pulsación en el sistema: el papel se hunde 1px (lo mismo que
+   .pm-btn). El `scale(.98)` que traía de serie era del rediseño plano y hacía
+   que el botón se encogiera como una pastilla de app. */
+.prensa .cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(1px); }
 
 /* ── Pie de página del juego ── */
 /* Pie centrado en columna: el reloj de cierre arriba y los enlaces de servicio
@@ -1215,15 +1289,21 @@ body,
   -webkit-overflow-scrolling: touch; margin: 0; padding: 4px; list-style: none;
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 0;
   /* Única sombra funcional del sistema: sin ella el desplegable no se
-     despega del papel (documentada en el spec §4). */
-  box-shadow: 0 12px 24px var(--line-2);
+     despega del papel (documentada en el spec §4). Va por token porque estaba
+     escrita con --line-2, que es TINTA: en la edición de noche la tinta es
+     beige y la sombra se pintaba como un halo claro bajo la caja. */
+  box-shadow: var(--sombra-flota);
 }
 .prensa-opt {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 10px 12px; cursor: pointer; border-radius: 0;
   font-family: var(--font-body); font-size: 14px; color: var(--cdd-text);
 }
-.prensa-opt.hi { background: rgba(179, 39, 27, .08); box-shadow: inset 2px 0 0 0 var(--rojo); }
+/* Opción señalada: lavado de rojo + filete de tinta al margen izquierdo (la
+   marca del corrector). El rojo va por terna, no a pelo: el 179 39 27 escrito
+   aquí era el rojo del DÍA, así que en la edición de noche el lavado no era el
+   rojo de la noche (más claro) sino el de papel, apagado sobre el grafito. */
+.prensa-opt.hi { background: rgb(var(--rojo-rgb) / .08); box-shadow: inset 2px 0 0 0 var(--rojo); }
 .prensa-opt.vacia { cursor: default; color: var(--faint); font-style: italic; }
 .prensa-opt .bandera { width: 18px; height: 12px; object-fit: cover; flex: none; }
 /* El campo Año ya no tiene steppers ni caja propia: usa .prensa-input, gemelo
@@ -1266,7 +1346,7 @@ body,
   outline: 1px solid var(--line-strong); outline-offset: 4px;
   box-shadow: none;
 }
-.prensa .cdd-end-scrim { background: rgba(27, 23, 18, .45); }
+.prensa .cdd-end-scrim { background: rgb(var(--velo-rgb) / .45); }
 /* X de cerrar en piel editorial: cuadrada, tinta plena sobre papel, sin blur.
    Al hover vira a rojo (acción), como el resto de controles prensa. */
 .prensa .cdd-end-close {
@@ -1302,7 +1382,9 @@ body,
 .prensa-sello.tinta { color: var(--cdd-text); border-color: var(--cdd-text); }
 @keyframes prensaSellar { from { opacity: 0; transform: rotate(-7deg) scale(1.7); } }
 .prensa .cdd-unlock { border-radius: 0; background: transparent; border: 1px solid var(--gold); color: var(--gold); }
-.prensa .cdd-unlock:hover { background: rgba(122, 92, 16, .08); border-color: var(--gold); }
+/* El oro por terna, por lo mismo que el rojo del desplegable: el 122 92 16 es
+   el oro viejo del papel y de noche el oro sube a 217 184 119. */
+.prensa .cdd-unlock:hover { background: rgb(var(--gold-rgb) / .08); border-color: var(--gold); }
 .prensa .cdd-end-tabs { gap: 18px; border-bottom: 1px solid var(--line-strong); }
 .prensa .cdd-tab { flex: none; background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
   padding: 8px 2px; font-family: var(--font-body); font-weight: 800; letter-spacing: .2em; color: var(--cdd-muted); }
@@ -1358,12 +1440,14 @@ body,
   box-shadow:
     inset 0 0 0 4px var(--surface),
     inset 0 0 0 5px rgb(var(--tinta-rgb) / .30),
-    0 26px 55px -22px rgba(0, 0, 0, .55);
+    0 26px 55px -22px rgb(var(--velo-rgb) / .55);
 }
 /* Scrim ÚNICO (antes había un duplicado muerto en @layer utilities). Subido del
    45% al 72% de tinta cálida: sobre tema claro un panel de papel necesita MÁS
-   velo, no menos, para separarse del juego de fondo. */
-.modal-scrim, .scrim-flat { background: rgba(20, 16, 11, .72); }
+   velo, no menos, para separarse del juego de fondo. El color sale del token
+   --velo-rgb: escrito a pelo era el marrón cálido del DÍA, aplicado también de
+   noche sobre un fondo que ya es grafito. */
+.modal-scrim, .scrim-flat { background: rgb(var(--velo-rgb) / .72); }
 
 /* Utilidades de contenido de modal (concretas, reutilizables en F3-F4) */
 .pm-kicker { font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 800; font-size: 10px;
@@ -1559,7 +1643,14 @@ body,
 .arch-tira { scrollbar-width: none; -ms-overflow-style: none; }
 .arch-tira::-webkit-scrollbar { display: none; }
 
-.arch-chip {
+/* ── EL CHIP del sistema ──────────────────────────────────────────────────
+   Nació aquí como `.arch-chip`, el filtro de país del Archivo, y se renombró a
+   `.pm-` al ser el ÚNICO chip de la app: el selector de idioma tenía el suyo
+   propio en utilidades (filete blanco al 10%, fondo blanco al 2% y `rounded-md`
+   — invisible sobre el papel del modo día y con esquina de otro tema). Un solo
+   chip: filete de tinta, esquina viva y, al seleccionar, se INVIERTE. Vive en el
+   bloque del Archivo por historia, no por pertenencia. */
+.pm-chip {
   flex: none; display: inline-flex; align-items: center; gap: 7px;
   border: 1px solid var(--line); border-radius: 0; background: transparent;
   color: var(--cdd-muted); cursor: pointer; white-space: nowrap;
@@ -1568,11 +1659,11 @@ body,
   letter-spacing: .12em; text-transform: uppercase;
   transition: color .15s, border-color .15s, background .15s;
 }
-.arch-chip:hover { color: var(--cdd-text); border-color: var(--cdd-text); }
+.pm-chip:hover { color: var(--cdd-text); border-color: var(--cdd-text); }
 /* Activo = tinta plena. En papel, "seleccionado" se dice invirtiendo. */
-.arch-chip.on { background: var(--cdd-text); border-color: var(--cdd-text); color: var(--bg); }
-.arch-chip .cifra { font-family: var(--font-mono); letter-spacing: 0; opacity: .8; }
-.arch-chip .bandera { width: 16px; height: 11px; object-fit: cover; flex: none; }
+.pm-chip.on { background: var(--cdd-text); border-color: var(--cdd-text); color: var(--bg); }
+.pm-chip .cifra { font-family: var(--font-mono); letter-spacing: 0; opacity: .8; }
+.pm-chip .bandera { width: 16px; height: 11px; object-fit: cover; flex: none; }
 
 /* ── La portada (el cromo) ──────────────────────────────────────────── */
 .arch-portada {
@@ -1581,7 +1672,7 @@ body,
   background: var(--surface); text-align: left; cursor: pointer;
   overflow: hidden; transition: box-shadow .18s, transform .12s;
 }
-.arch-portada:hover { box-shadow: 0 8px 20px -12px rgba(0, 0, 0, .55); }
+.arch-portada:hover { box-shadow: var(--sombra-flota); }
 .arch-portada:active { transform: translateY(1px); }
 /* Cabecera de kiosco: cabecera de la revista a la izquierda, nº de edición
    en rojo a la derecha. Es lo que convierte la foto en un objeto seriado. */

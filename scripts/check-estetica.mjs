@@ -24,10 +24,29 @@
  *      desaparecer sobre el papel crema de la de día. Todo color va por token.
  *   3. GLOWS (`shadow-[0_0_…]`). Sobre papel un halo no existe; ensucia.
  *   4. HEX SUELTOS en className. Son siempre un color de un tema anterior.
+ *   5. REDONDEOS (`rounded-sm` … `rounded-3xl`). La forma es la mitad de la
+ *      identidad: el sistema es de filetes, doble filete y esquinas VIVAS. Cada
+ *      piel anterior tenía su radio (12px en el plano, 16-24px en el de cristal)
+ *      y sobrevivían mezclados: el mismo marco de foto redondeado en el lightbox
+ *      y a escuadra en el escenario, tarjetas de 16px al lado de filetes rectos.
+ *      `rounded-none` sí se permite —es la forma de decirlo en voz alta— y
+ *      `rounded-full` también, porque un CÍRCULO no es una esquina blanda: es un
+ *      objeto (el avatar, el «?» de la ayuda), y esos sí existen en el sistema.
+ *   6. SOMBRAS BLANDAS de Tailwind (`shadow-sm/md/lg/xl/2xl/inner`). La
+ *      jerarquía se dice con filetes. Lo que de verdad flota (el desplegable del
+ *      cupón, el aviso, el recorte de la foto, el sumario) lleva la sombra del
+ *      sistema, `--sombra-flota`, que tiene una receta por tema. Un preset de
+ *      Tailwind no se entera de si debajo hay papel crema o grafito.
+ *   7. BLANCO y NEGRO crudos (`text-white`, `bg-black/40`, `border-white/10`…).
+ *      Es el resto más traicionero de la piel oscura, porque no desentona: DESAPARECE.
+ *      El modo día es papel crema, así que un `hover:text-white` deja el texto
+ *      invisible y un filete `border-white/10` no llega a dibujarse. Así estuvo
+ *      el selector de idioma y así estuvo el cuerpo del aviso de iOS.
  *
  * Excepciones deliberadas (ver ALLOW): el share de texto plano, la notificación
- * push y el mapa de banderas. Los tres salen de nuestro lienzo — el emoji ahí
- * lo pinta WhatsApp o la barra de estado del sistema, no nosotros.
+ * push y el mapa de banderas (el emoji ahí lo pinta WhatsApp o la barra de estado
+ * del sistema, no nosotros), el cromo que va SOBRE una fotografía —donde el papel
+ * no es una opción— y la chapa de marca de Google.
  *
  * Uso:  npm run test:estetica
  */
@@ -69,6 +88,20 @@ const GLOW = /shadow-\[0_0_/;
 // Hex de 3 o 6 dígitos dentro de un className/clase Tailwind arbitraria.
 const HEX_EN_CLASE = /(?:\[|:)#[0-9a-fA-F]{3,8}\b/;
 
+// Esquina blanda. Deja pasar `rounded-none` (declarar la esquina viva) y
+// `rounded-full` (un círculo es un objeto, no un radio). El `\b` final evita que
+// `rounded-full` entre por la puerta de `rounded-f…`.
+const REDONDEO = /\brounded(?:-[a-z]+)?-(?:sm|md|lg|xl|2xl|3xl)\b|\brounded-(?:sm|md|lg|xl|2xl|3xl)\b/;
+
+// Sombras de catálogo de Tailwind. `shadow-[…]` (arbitraria) queda fuera a
+// propósito: ahí es donde se escribe la del sistema, `shadow-[var(--sombra-flota)]`.
+// Y `shadow-none` también se permite.
+const SOMBRA_BLANDA = /\bshadow-(?:sm|md|lg|xl|2xl|inner)\b/;
+
+// Blanco/negro crudos en cualquier utilidad de color, con o sin alfa.
+const BLANCO_NEGRO =
+  /\b(?:text|bg|border|divide|ring|outline|from|via|to|fill|stroke|decoration|placeholder|shadow)-(?:white|black)\b/;
+
 const REGLAS = [
   {
     id: "emoji",
@@ -89,6 +122,21 @@ const REGLAS = [
     id: "hex",
     re: HEX_EN_CLASE,
     msg: "hex suelto en una clase — es siempre un color de un tema anterior; usa un token",
+  },
+  {
+    id: "redondeo",
+    re: REDONDEO,
+    msg: "esquina blanda — el sistema es de filetes y esquinas vivas; usa rounded-none (rounded-full solo para un círculo de verdad: avatar, glifo de ayuda)",
+  },
+  {
+    id: "sombra-blanda",
+    re: SOMBRA_BLANDA,
+    msg: "sombra de catálogo de Tailwind — no sabe si debajo hay papel o grafito; separa con filete (border) o, si de verdad flota, usa shadow-[var(--sombra-flota)]",
+  },
+  {
+    id: "blanco-negro",
+    re: BLANCO_NEGRO,
+    msg: "blanco/negro crudo — el modo día es papel crema, así que no desentona: desaparece; usa un token (tinta, papel, muted). Excepción solo para el cromo que va SOBRE una fotografía",
   },
 ];
 
@@ -111,6 +159,18 @@ const ALLOW = [
     reglas: ["emoji"],
     porque:
       "COUNTRY_FLAGS queda para usos NO visuales; la UI ya pinta las banderas con flagImagePath() precisamente porque Windows no tiene glifo de bandera",
+  },
+  {
+    path: "src/components/CarImage.jsx",
+    reglas: ["blanco-negro"],
+    porque:
+      "todo el cromo de este componente (etiqueta de pista, filete y ✕ del lightbox, icono de ampliar) se pinta ENCIMA de una fotografía cualquiera: ahí el papel no es una opción y el blanco/negro es lo único que se lee sobre una carrocería blanca o negra. El resto del archivo sí sigue vigilado",
+  },
+  {
+    path: "src/components/LoginModal.jsx",
+    reglas: ["blanco-negro"],
+    porque:
+      "el botón de Google es una chapa de MARCA: su logo va sobre fondo blanco por las directrices de Google, así que ese par de colores no lo elegimos nosotros (la forma sí: esquina viva, como el resto)",
   },
 ];
 

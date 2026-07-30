@@ -149,7 +149,7 @@ export default function RepescaDrawAnimation({ veteran = false, onDismiss }) {
                   className="
                     absolute inset-0 rounded-none border border-tinta
                     bg-papel-2
-                    shadow-[0_8px_20px_-12px_rgba(0,0,0,0.55)]
+                    shadow-[shadow:var(--sombra-flota)]
                     flex items-center justify-center
                     overflow-hidden
                   "

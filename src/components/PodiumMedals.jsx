@@ -67,7 +67,7 @@ function MedalChip({ rank, place, subtitle, title }) {
   const style = RANK_STYLE[rank] || RANK_STYLE[3];
   return (
     <div
-      className={`flex items-center gap-1.5 rounded-lg border ${style.border} bg-bg-tertiary px-2.5 py-1.5`}
+      className={`flex items-center gap-1.5 rounded-none border ${style.border} bg-bg-tertiary px-2.5 py-1.5`}
       title={title}
     >
       <span className={style.text}>

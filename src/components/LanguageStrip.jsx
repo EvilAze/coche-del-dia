@@ -23,14 +23,16 @@ export default function LanguageStrip() {
               key={opt.code}
               type="button"
               onClick={() => { haptic.selection(); setLocale(opt.code); }}
-              className={`
-                focus-ring
-                rounded-md border px-2 py-0.5 text-[11px] font-medium
-                transition-colors duration-150
-                ${active
-                  ? "border-accent/60 bg-accent/15 text-accent"
-                  : "border-white/10 bg-white/[0.02] text-muted hover:text-white"}
-              `}
+              // El chip del sistema (`pm-chip`), el mismo que filtra países en el
+              // Archivo: filete de tinta, esquina viva y, al seleccionar, se
+              // INVIERTE a tinta plena. Antes tenía su propio chip en utilidades
+              // —`rounded-md`, filete blanco al 10%, fondo blanco al 2% y
+              // `hover:text-white`—, heredado de cuando el fondo de la app era
+              // oscuro: sobre el papel crema del modo día el filete no se veía y
+              // el hover dejaba el idioma en BLANCO SOBRE PAPEL, o sea ilegible
+              // justo al señalarlo. `aria-pressed` porque es un conmutador.
+              className={`focus-ring pm-chip ${active ? "on" : ""}`}
+              aria-pressed={active}
             >
               {opt.name}
             </button>

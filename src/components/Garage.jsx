@@ -856,7 +856,7 @@ function FilterStrip({ countries, total, active, onSelect }) {
           type="button"
           onClick={() => onSelect(null)}
           aria-pressed={!active}
-          className={`arch-chip ${!active ? "on" : ""}`}
+          className={`pm-chip ${!active ? "on" : ""}`}
         >
           {t("garage.filterAll")}
           <span className="cifra">{total}</span>
@@ -871,7 +871,7 @@ function FilterStrip({ countries, total, active, onSelect }) {
               type="button"
               onClick={() => onSelect(c.pais)}
               aria-pressed={on}
-              className={`arch-chip ${on ? "on" : ""}`}
+              className={`pm-chip ${on ? "on" : ""}`}
             >
               <img
                 src={flagImagePath(c.pais)}

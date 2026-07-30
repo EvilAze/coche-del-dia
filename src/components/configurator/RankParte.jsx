@@ -86,14 +86,20 @@ export default function RankParte({ rank, user, onOpenRanking }) {
   // lo que falta. Es el gancho de vuelta — «a 3 puntos del 6º» son dos partidas.
   // Llega null contra una base de datos sin la migración de la distancia, y
   // entonces el parte se queda como estaba.
+  // OJO: estas tres claves vivían como `prensa.faja*` y NO EXISTÍAN. Se borraron
+  // de los locales al retirar la faja de clasificación de la portada, pero este
+  // componente siguió llamándolas, y `t()` devuelve la clave cuando falta: todo
+  // jugador logueado con puesto veía un literal «prensa.fajaDistancia.one» en su
+  // pantalla de resultado. Ahora viven en `parte.*`, que es donde vive el bloque,
+  // y `locales.test.js` comprueba que toda clave usada en código exista.
   const arriba = ordinal(mv.pos - 1, locale);
   const distancia =
     mv.pos === 1
-      ? t("prensa.fajaLider")
+      ? t("parte.lider")
       : rank?.gap === 0
-      ? t("prensa.fajaEmpate", { pos: arriba })
+      ? t("parte.empate", { pos: arriba })
       : rank?.gap > 0
-      ? tn("prensa.fajaDistancia", rank.gap, { pos: arriba })
+      ? tn("parte.distancia", rank.gap, { pos: arriba })
       : null;
 
   return (

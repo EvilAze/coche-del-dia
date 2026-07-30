@@ -38,10 +38,13 @@ import GuessForm from "./components/configurator/GuessForm";
 // EndScreen habla de racha/percentil). En la repesca los puntos van a la mitad
 // y no afectan a la racha, así que este bloque es la recompensa visible.
 import ScoreBreakdown from "./components/ScoreBreakdown";
+// El pie de la partida es un componente compartido con el fin de partida del
+// daily: los dos paneles resumen lo mismo y antes cada uno lo dibujaba a su
+// manera (aquí, una píldora de texto sobre la foto y una rejilla de emoji).
+import { PiePartida } from "./components/configurator/EndScreen";
 import { useToast } from "./components/Toast";
 import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
 import { flagImagePath } from "./data/countries";
-import { shareGrid } from "./lib/shareText";
 import { notifyAchievementsAfterWin } from "./lib/achievementsNotifier";
 import { track } from "./lib/analytics";
 import { haptic } from "./lib/haptics";
@@ -631,13 +634,14 @@ export default function Repesca() {
                   style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
                 />
               )}
+              {/* El sello del veredicto, igual que en el fin de partida del daily:
+                  los dos paneles son el mismo objeto y hasta ahora la repesca no
+                  tenía celebración — solo una píldora de texto sobre la foto. */}
+              <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true">
+                {won ? t("prensa.selloWin") : t("prensa.selloLose")}
+              </div>
               <div className="cdd-reveal-grad" />
               <div className="cdd-reveal-head">
-                <div className={"cdd-verdict cdd-mono " + (won ? "win" : "lose")}>
-                  {won
-                    ? t("cdd.endWin", { n: attempts, max: effectiveMaxAttempts })
-                    : t("cdd.endLose", { max: effectiveMaxAttempts })}
-                </div>
                 {hasReveal ? (
                   <>
                     <div className="cdd-reveal-name">
@@ -655,16 +659,23 @@ export default function Repesca() {
               </div>
             </div>
 
+            {/* El pie de la partida, el mismo componente que el fin de partida del
+                daily. Sin percentil: la repesca no tiene estadística del día. */}
+            <PiePartida won={won} attempts={attempts} max={effectiveMaxAttempts} />
+
             <div className="cdd-end-body">
               {/* Desglose de puntos (propio de la repesca: la mitad, sin racha).
                   Devuelve null si el server no mandó score (p.ej. al recargar
                   una partida ya cerrada). */}
               <ScoreBreakdown score={score} won={won} />
 
-              {/* Recap de la partida: rejilla ✅/❌ (misma que el share del daily,
-                  aquí solo como resumen visual — la repesca no se comparte). */}
-              <div className="cdd-mono cdd-grid-k">{t("cdd.yourGame")}</div>
-              <pre className="cdd-grid">{shareGrid(guesses)}</pre>
+              {/* (Aquí se pintaba la rejilla ✅/❌ con `shareGrid`, y era el caso
+                  más flagrante de los dos paneles: su propio comentario decía «la
+                  repesca no se comparte», así que esos cuadros de emoji dibujados
+                  por el sistema operativo no tenían ni la excusa del portapapeles
+                  — eran decoración pura, y la más ruidosa de la pantalla. El
+                  recuento vive en el pie de arriba y los intentos, uno a uno, en
+                  el historial que queda detrás del panel.) */}
 
               {description && <p className="cdd-note">{description}</p>}
 

@@ -120,15 +120,10 @@
     "sameCountry": "SAME COUNTRY",
     "srCorrect": "correct",
     "srWrong": "wrong",
-    "endWin": "SOLVED · {n}/{max}",
-    "endLose": "MISSED · {max}/{max}",
-    "tabFicha": "SPECS",
-    "tabShare": "SHARE",
     "copyResult": "COPY RESULT",
     "copied": "COPIED!",
     "nextCar": "NEXT CAR IN",
     "seeGame": "SEE MY GAME",
-    "yourGame": "YOUR GAME",
     "viewResult": "VIEW RESULT",
     "labelOrigin": "ORIGIN",
     "revealUnavailable": "We couldn't load today's car details.",
@@ -140,7 +135,10 @@
     "helpAria": "How to play",
     "peekAria": "Back to the photo",
     "unlockKicker": "New cover",
-    "carImageAlt": "Car of the day"
+    "carImageAlt": "Car of the day",
+    "pieSolved": "Solved in {n} of {max}",
+    "pieUnsolved": "Unsolved in {max} tries",
+    "ladilloCronica": "The story of the car"
   },
   "prensa": {
     "ladilloFoto": "Today's photograph",
@@ -312,7 +310,13 @@
     "hold": "You held your spot",
     "new": "You're on the board this season",
     "unranked": "No spot this season yet · win to join",
-    "cta": "See the standings"
+    "cta": "See the standings",
+    "lider": "You lead the standings",
+    "empate": "Tied with {pos}",
+    "distancia": {
+      "one": "{count} point behind {pos}",
+      "other": "{count} points behind {pos}"
+    }
   },
   "ranking": {
     "tag": "The standings",
@@ -375,7 +379,6 @@
     "title": "Today worldwide",
     "gamesPlayed": "{count} games played",
     "winRate": "{pct}% win rate",
-    "betterThan": "Better than {pct}% of players",
     "betterThanShare": "Better than {pct}% of players"
   },
   "toast": {

@@ -1,9 +1,8 @@
 // src/components/configurator/dailyStats.jsx
-// Estadísticas del día (datos REALES de /api/daily-stats) re-vestidas al sistema
-// menta del panel. Misma lógica que el DailyStats de producción: distribución de
-// intentos + percentil "mejor que el X% de hoy" (solo ganadores). Un único fetch
-// (hook) alimenta las dos piezas: la distribución (pestaña FICHA) y el percentil
-// (zona COMPARTIR, como remate del momento de presumir).
+// Estadísticas del día (datos REALES de /api/daily-stats). Un único fetch (hook)
+// alimenta las dos lecturas: la distribución de intentos, que se pinta como
+// sección «Hoy en el mundo», y el percentil «mejor que el X%», que ya no tiene
+// componente propio — viaja en el pie de la partida del EndScreen.
 
 import { useEffect, useState } from "react";
 import { useT } from "../../i18n";
@@ -59,13 +58,16 @@ export function useDailyStats(attempts, won, enabled = true) {
 }
 
 // Barras de distribución de intentos (1–5) con la fila del jugador resaltada.
+// SIN TÍTULO PROPIO: lo pone el llamante con un `.prensa-ladillo`. Lo traía
+// dentro («Hoy en el mundo») y en el Configurator caía justo debajo de otro
+// encabezado —«La estadística del día»—, así que la sección se anunciaba dos
+// veces seguidas con dos frases distintas para el mismo bloque.
 export function Distribution({ data, attempts, won }) {
   const { t } = useT();
   if (!data.ready) return null;
   const { distribution, totalGames, winRate, maxCount, revealed } = data;
   return (
     <div className="cdd-dist-card">
-      <p className="cdd-mono cdd-dist-title">{t("dailyStats.title")}</p>
       <div className="cdd-dist">
         {distribution.map((count, i) => {
           const n = i + 1;
@@ -94,9 +96,7 @@ export function Distribution({ data, attempts, won }) {
   );
 }
 
-// Remate share-bait: "MEJOR QUE EL X% DE HOY" (solo ganadores con ventaja real).
-export function Percentile({ data, won }) {
-  const { t } = useT();
-  if (!data.ready || !won || data.betterThanPct <= 0) return null;
-  return <div className="cdd-percentile">{t("dailyStats.betterThan", { pct: data.betterThanPct })}</div>;
-}
+// (Aquí vivía `Percentile`, el remate «mejor que el X% de hoy» como bloque
+// propio. El dato sigue vivo —`betterThanPct` del hook— pero lo pinta el pie de
+// la partida del EndScreen, en la misma línea que el recuento de intentos: es la
+// segunda mitad de la misma frase, no un párrafo aparte.)

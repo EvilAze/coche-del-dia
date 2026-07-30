@@ -497,54 +497,81 @@ body,
 .cdd-reveal { position: relative; height: clamp(150px, 24svh, 230px); overflow: hidden; border-radius: 18px 18px 0 0; background: var(--surface); }
 .cdd-reveal .cdd-reveal-grad { position: absolute; inset: 0; background: linear-gradient(to top, var(--surface) 4%, transparent 60%); z-index: 2; }
 .cdd-reveal-head { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
-.cdd-verdict { font-size: 10px; align-self: flex-start; padding: 5px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; letter-spacing: .08em; }
-/* Victoria = oro premium (el pico celebratorio del juego). El resto del modal
-   conserva la menta (compartir, reloj) para no saturar; el oro marca el logro. */
-.cdd-verdict.win { color: var(--gold-ink); background: var(--gold); box-shadow: 0 0 24px -8px var(--gold-glow); }
-.cdd-verdict.lose { color: var(--cdd-text); background: color-mix(in oklab, #d9604e 30%, var(--surface)); border: 1px solid #d9604e; }
+/* (Purga: `.cdd-verdict` era la píldora «ACERTADO · 1/5» estampada sobre la
+   fotografía. La retiró el rediseño del panel: el sello RESUELTO de la esquina ya
+   dice el veredicto y el recuento vive en el pie de la partida, donde además se le
+   puede pegar el percentil. Con ella se va el último `#d9604e` suelto del
+   archivo, un rojo del tema plano que no seguía al tema.) */
 .cdd-reveal-name { display: flex; flex-direction: column; line-height: 1; }
 .cdd-reveal-brand { font-family: var(--font-mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
 .cdd-reveal-model { font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: -.02em; }
 .cdd-reveal-meta { font-size: 10px; color: var(--cdd-muted); margin-top: 3px; display: inline-flex; align-items: center; gap: 6px; }
 .cdd-reveal-meta .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
 
-/* Tira de desbloqueo de cromo (victoria): cierra el bucle juego→colección sin
-   eclipsar COMPARTIR. Tintada y fina (~40px), NO rellena: es una nota
-   celebratoria tappable, no un CTA primario. El botón de compartir (relleno
-   accent, 50px) sigue siendo el único elemento dominante de la pantalla. */
-/* Desbloqueo de cromo (victoria) = oro: "has ganado una pieza de colección".
-   Tintado en oro premium, no en menta, para diferenciarlo del flujo de acción. */
-.cdd-unlock { display: flex; align-items: center; gap: 10px; width: calc(100% - 36px); margin: 14px 18px 0;
-  padding: 9px 12px; border-radius: 11px; cursor: pointer; text-align: left;
-  background: color-mix(in oklab, var(--gold) 9%, var(--surface));
-  border: 1px solid color-mix(in oklab, var(--gold) 30%, var(--line));
-  color: var(--gold); transition: .18s; }
-.cdd-unlock:hover { background: color-mix(in oklab, var(--gold) 15%, var(--surface));
-  border-color: color-mix(in oklab, var(--gold) 55%, var(--line)); }
-.cdd-unlock:active { transform: scale(.99); }
-.cdd-unlock-text { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
-.cdd-unlock-kicker { flex: none; font-size: 9px; color: var(--gold); }
-.cdd-unlock-name { min-width: 0; font-size: 13px; font-weight: 700; color: var(--cdd-text);
+/* Desbloqueo de cromo (victoria): UN RENGLÓN, no una caja. Cierra el bucle
+   juego→colección, pero es la acción menos importante de la pantalla y era la que
+   más gritaba: una caja tintada de oro con su filete, colocada ENCIMA del botón de
+   compartir, o sea el primer objeto que veía el ojo al salir de la fotografía.
+   Ahora es una línea con su chevrón por debajo del CTA. El oro se queda (es la
+   ley de marca: oro = «esto vale algo»), pero como tinta, sin relleno ni marco. */
+.cdd-unlock { display: flex; align-items: baseline; gap: 7px; width: 100%;
+  padding: 4px 0; cursor: pointer; text-align: left;
+  background: transparent; border: 0; color: var(--gold); transition: color .16s; }
+.cdd-unlock-kicker { flex: none; font-family: var(--font-body); font-weight: 800;
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); }
+.cdd-unlock-name { min-width: 0; flex: 1; font-family: var(--font-display); font-weight: 700;
+  font-size: 13px; color: var(--cdd-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cdd-unlock-chev { flex: none; opacity: .75; }
-@media (prefers-reduced-motion: reduce) { .cdd-unlock:active { transform: none; } }
+.cdd-unlock-chev { flex: none; align-self: center; }
+.cdd-unlock:hover .cdd-unlock-name { color: var(--gold); }
 
-.cdd-end-tabs { display: flex; gap: 8px; padding: 16px 18px 0; }
-.cdd-tab { flex: 1; padding: 10px; font-size: 10px; border-radius: 9px; cursor: pointer;
-  background: var(--surface2); border: 1px solid var(--line); color: var(--cdd-muted); }
-.cdd-tab.on { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+/* EL PIE DE TU PARTIDA: el renglón que resume el resultado, en la voz de los pies
+   de foto (Fraunces cursiva). Sustituye a la etiqueta «TU PARTIDA» + la caja con
+   la rejilla de emoji + la frase del percentil: tres bloques apilados para una
+   sola idea. `flex-wrap` porque en inglés y con percentil de tres cifras la línea
+   llega justa en un móvil estrecho — antes que desbordar, baja el percentil. */
+.cdd-partida {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px;
+  padding: 9px 18px; border-bottom: 1px solid var(--line);
+  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
+  color: color-mix(in oklab, var(--cdd-text) 78%, var(--bg));
+}
+.cdd-partida-pct { color: var(--cdd-muted); }
+/* El pip del intento que acertó, en el verde del veredicto: el mismo verde que
+   subraya los aciertos en el historial. Los demás quedan en tinta gastada. */
+.prensa-pips .pip.acierto { border-color: var(--verde); background: var(--verde); }
+
+/* Secciones de debajo del pliegue (la crónica, el mundo): ladillo + contenido,
+   separadas por filete. Son las que antes vivían en la pestaña FICHA. */
+.cdd-end-sec {
+  padding: 12px 18px 2px; border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 8px;
+}
+/* Origen y año en UN renglón de datos, con sus etiquetas en versalitas. */
+.cdd-ficha-datos {
+  margin: 0; font-family: var(--font-mono); font-size: 11.5px; color: var(--cdd-text);
+}
+.cdd-ficha-datos .k {
+  font-family: var(--font-body); font-weight: 600; font-size: 9px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
+}
+
+/* (Purga: `.cdd-end-tabs`, `.cdd-tab` y `.cdd-tab.on` eran la barra de pestañas
+   COMPARTIR/FICHA del panel de fin de partida. Se retiró entera: el contenido de
+   las dos pestañas no era paralelo —una era tu resultado y la acción, la otra la
+   historia del coche— así que el segmentado escondía media recompensa detrás de
+   una elección en el pico de la partida. Hoy es una columna en orden de lectura y
+   el pliegue hace de jerarquía. Con ellas se van `.cdd-sheet` y `.cdd-stat*`, las
+   dos fichas en rejilla de ORIGEN y AÑO: eran dos palabras ocupando media
+   pantalla en cajas, y ahora son un renglón, `.cdd-ficha-datos`.) */
 .cdd-end-body { padding: 14px 18px 4px; display: flex; flex-direction: column; gap: 14px; }
-
-.cdd-sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.cdd-stat { background: var(--surface2); border: 1px solid var(--line); border-radius: 11px; padding: 11px 12px; }
-.cdd-stat-k { font-size: 9px; color: var(--faint); margin-bottom: 4px; }
-.cdd-stat-v { font-size: 15px; font-weight: 700; }
-.cdd-stat-v.accent { color: var(--accent); }
 .cdd-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--cdd-muted); }
 
-/* Distribución de intentos (datos reales) — FICHA */
+/* Distribución de intentos (datos reales). El título ya no vive dentro
+   (`.cdd-dist-title` se fue con él): lo pone el llamante como ladillo, porque en
+   el Configurator caía justo debajo de otro encabezado y la sección se anunciaba
+   dos veces. */
 .cdd-dist-card { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; }
-.cdd-dist-title { font-size: 9px; color: var(--faint); letter-spacing: .2em; margin: 0 0 9px; text-align: center; }
 .cdd-dist { display: flex; flex-direction: column; gap: 6px; }
 .cdd-dist-row { display: flex; align-items: center; gap: 8px; }
 .cdd-dist-n { width: 12px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
@@ -556,33 +583,33 @@ body,
 .cdd-dist-pct.me { color: var(--accent); }
 .cdd-dist-foot { margin-top: 9px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .14em; color: var(--faint); }
 
-/* Percentil "mejor que el X% de hoy" — COMPARTIR (share-bait) */
-.cdd-percentile { padding: 10px 14px; border-radius: 12px; text-align: center; line-height: 1.4;
-  background: color-mix(in oklab, var(--accent) 9%, var(--surface));
-  border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--line));
-  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
-
-/* Micro-encabezado de la cuadrícula de compartir. */
-.cdd-grid-k { font-size: 9px; color: var(--faint); text-align: center; margin-bottom: -4px; }
-/* Cuadritos un punto más grandes y con menos padding vertical: la caja se ve
-   menos vacía en victorias rápidas (pocas filas) sin agrandarla de más. */
-.cdd-grid { font-family: var(--font-mono); font-size: 22px; line-height: 1.4; margin: 0; padding: 12px 14px;
-  background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; white-space: pre; text-align: center; }
-.cdd-share-btn { height: 50px; }
+/* (Purga: `.cdd-percentile` era la caja del «mejor que el X%» y `.cdd-grid` /
+   `.cdd-grid-k` pintaban la rejilla de emoji en pantalla con su micro-encabezado.
+   Los tres se retiraron al unificar el panel: el percentil es hoy la segunda mitad
+   del pie de la partida y la rejilla se quedó donde le corresponde, en el texto
+   que se copia — en pantalla eran cuadros dibujados por el sistema operativo, lo
+   más saturado de la web, justo al lado del botón que tenía que llevarse el ojo.) */
+.cdd-share-btn { height: 56px; }
 
 /* ── «El parte de la clasificación» (RankParte, final de partida) ──
    Bloque editorial de doble filete: puesto en oro viejo (momento «valioso»),
    movimiento vs ayer y acceso al ranking. Secundario a Compartir. Tokenizado,
    así que sigue el tema día/noche como el resto del sistema prensa. */
+/* El parte es una SECCIÓN del pliego, no una caja. Tenía filete + outline a 3px
+   (doble marco) y era el único objeto enmarcado del panel: en un sistema plano el
+   marco es el recurso más ruidoso que hay, así que el bloque secundario acababa
+   pesando más que el CTA. Ahora comparte la anatomía de la crónica y del mundo:
+   ladillo con su filete, contenido debajo, separador arriba. */
 .cdd-parte {
-  border: 1px solid var(--line-strong); outline: 1px solid var(--line-strong);
-  outline-offset: 3px; border-radius: 0; padding: 13px 14px 12px; margin: 2px 4px;
+  border: 0; outline: 0; border-radius: 0;
+  padding: 12px 18px 2px; margin: 0;
+  border-top: 1px solid var(--line);
   background: transparent;
 }
 .cdd-parte-lad {
   display: flex; align-items: baseline; gap: 10px;
-  font-family: var(--font-body); font-weight: 800; font-size: 9px;
-  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 800; font-size: 11px;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--cdd-text);
 }
 .cdd-parte-lad::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-2px); }
 /* La cifra la pone PuestoCifra (.pm-puesto), compartida con la faja de portada
@@ -1067,12 +1094,22 @@ body,
    input/listbox/opt/decades/steppers— se fueron con sus clases base: el cupón
    vivo usa directamente .prensa-label/.prensa-input/.prensa-listbox/
    .prensa-opt, definidos más abajo en F1-T8.) */
-/* ADIVINAR: bloque de tinta → rojo al pasar. Sin estados "neón". */
+/* EL BOTÓN DE ACCIÓN del panel (COMPARTIR en el fin de partida, REVELAR en la
+   repesca): bloque de ROJO DE ROTATIVA, el mismo color de acción que ADIVINAR.
+   Un juego, un color de acción.
+   Era un bloque de TINTA que viraba a rojo al pasar, y en el fin de partida eso lo
+   dejaba en el quinto puesto de la jerarquía visual: por delante iban tres ✅ emoji
+   dibujados por el sistema operativo, el sello del veredicto, la caja tintada de
+   oro del desbloqueo y el marco de doble filete del parte. Un CTA no puede ser el
+   quinto objeto más llamativo de una pantalla que solo tiene un trabajo. Ahora es
+   el ÚNICO relleno saturado del panel; el resto es tipografía y filete.
+   El hover no coge el gesto de ADIVINAR (levantarse con sombra dura): esa es la
+   firma del botón del cupón y repetirla la diluiría. Aquí solo baja de tono. */
 .prensa .cdd-submit {
-  border-radius: 0; background: var(--line-strong); color: var(--bg);
+  border-radius: 0; background: var(--rojo); color: var(--bg);
   font-family: var(--font-body); font-weight: 800; font-size: 13px; letter-spacing: .26em;
 }
-.prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: var(--rojo); }
+.prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: var(--rojo-dark); }
 .prensa .cdd-submit:disabled {
   background: transparent; color: var(--faint);
   box-shadow: inset 0 0 0 1px var(--line);
@@ -1359,10 +1396,6 @@ body,
 .prensa .cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
 .prensa .cdd-reveal { border-radius: 0; background: var(--surface); border-bottom: 1px solid var(--line-strong); }
 .prensa .cdd-reveal-grad { background: linear-gradient(to top, var(--bg) 4%, transparent 55%); }
-.prensa .cdd-verdict { border-radius: 0; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none;
-  font-family: var(--font-body); font-weight: 800; letter-spacing: .22em; }
-.prensa .cdd-verdict.win { color: var(--gold); }
-.prensa .cdd-verdict.lose { color: var(--rojo); }
 .prensa .cdd-reveal-brand { font-family: var(--font-body); font-weight: 600; letter-spacing: .2em; color: var(--rojo); }
 .prensa .cdd-reveal-model { font-family: var(--font-display); font-weight: 900; letter-spacing: -.01em; font-size: 30px; }
 .prensa .cdd-reveal-meta { font-family: var(--font-body); letter-spacing: .12em; }
@@ -1380,32 +1413,19 @@ body,
 }
 .prensa-sello.tinta { color: var(--cdd-text); border-color: var(--cdd-text); }
 @keyframes prensaSellar { from { opacity: 0; transform: rotate(-7deg) scale(1.7); } }
-.prensa .cdd-unlock { border-radius: 0; background: transparent; border: 1px solid var(--gold); color: var(--gold); }
-/* El oro por terna, por lo mismo que el rojo del desplegable: el 122 92 16 es
-   el oro viejo del papel y de noche el oro sube a 217 184 119. */
-.prensa .cdd-unlock:hover { background: rgb(var(--gold-rgb) / .08); border-color: var(--gold); }
-.prensa .cdd-end-tabs { gap: 18px; border-bottom: 1px solid var(--line-strong); }
-.prensa .cdd-tab { flex: none; background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
-  padding: 8px 2px; font-family: var(--font-body); font-weight: 800; letter-spacing: .2em; color: var(--cdd-muted); }
-.prensa .cdd-tab.on { color: var(--cdd-text); border-bottom-color: var(--rojo); }
-.prensa .cdd-stat { border-radius: 0; background: transparent; border: 0; border-bottom: 1px dotted var(--cdd-muted); padding: 8px 2px; }
-.prensa .cdd-stat-k { font-family: var(--font-body); letter-spacing: .18em; }
-.prensa .cdd-stat-v { font-family: var(--font-mono); }
-.prensa .cdd-stat-v.accent { color: var(--rojo); }
+/* (Los overrides de `.cdd-unlock` viven ahora en la regla base: al dejar de ser
+   una caja no hay nada que "aplanar". Y `.cdd-end-tabs`, `.cdd-tab`, `.cdd-stat*`
+   se fueron con las pestañas y las fichas en rejilla.) */
 /* La crónica se lee como artículo: serif, cuerpo de texto, tinta plena. */
 .prensa .cdd-note { font-family: var(--font-display); font-size: 14px; line-height: 1.55; color: var(--cdd-text); }
-.prensa .cdd-dist-card { border-radius: 0; background: transparent; border: 1px solid var(--line); }
-.prensa .cdd-dist-title, .prensa .cdd-grid-k { font-family: var(--font-body); letter-spacing: .2em; }
+/* La distribución, sin marco: es una sección bajo su ladillo, no una tarjeta. */
+.prensa .cdd-dist-card { border-radius: 0; background: transparent; border: 0; padding: 0; }
 .prensa .cdd-dist-track { border-radius: 0; background: var(--surface2); }
 .prensa .cdd-dist-bar { border-radius: 0; background: var(--line-strong); box-shadow: none !important; }
 .prensa .cdd-dist-bar.me { background: var(--rojo); }
 .prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--rojo); }
-/* Percentil: una LÍNEA sobria en cursiva, no una caja roja (era el marco más
-   ruidoso para la info menos importante). */
-.prensa .cdd-percentile { border: 0; background: transparent; padding: 2px 14px 0;
-  color: var(--cdd-muted); font-family: var(--font-display); font-style: italic;
-  font-size: 13px; letter-spacing: 0; text-transform: none; }
-.prensa .cdd-grid { border-radius: 0; background: var(--surface); border: 1px solid var(--line); }
+/* (`.cdd-percentile` y `.cdd-grid` se retiraron con la caja del percentil y la
+   rejilla de emoji en pantalla.) */
 /* Cuenta atrás: una LÍNEA centrada (etiqueta + reloj), no una caja. */
 .prensa .cdd-next { border: 0; background: transparent; justify-content: center; gap: 10px; padding: 4px 0; }
 .prensa .cdd-next-k { font-family: var(--font-body); letter-spacing: .18em; }

@@ -200,9 +200,15 @@ export default function CarImage({
       className={
         configurator
           ? `cdd-stage-frame${isRevealed && loaded ? " revealed" : ""}`
-          : `
-        relative mb-3 mt-4 mx-auto w-full overflow-hidden rounded-xl
-        border border-border bg-bg-tertiary shadow-md shadow-black/40
+          : // Marco de la variante NO-configurador (repesca, detalle del archivo):
+            // esquina viva y filete, como el marco de la pantalla de juego. Traía
+            // `rounded-xl` y una `shadow-md shadow-black/40` del tema oscuro: sobre
+            // el papel del modo día esa sombra negra al 40% era una mancha, y el
+            // redondeo hacía que la MISMA foto tuviera una forma en el juego y otra
+            // aquí.
+            `
+        relative mb-3 mt-4 mx-auto w-full overflow-hidden rounded-none
+        border border-border bg-bg-tertiary
         ${!isRevealed ? "max-w-[22rem]" : "max-w-full"}
         sm:max-w-full
       `
@@ -393,7 +399,7 @@ export default function CarImage({
             {Array.from({ length: totalHints }).map((_, i) => (
               <span
                 key={i}
-                className={`h-1 w-1.5 rounded-sm transition-colors ${
+                className={`h-1 w-1.5 rounded-none transition-colors ${
                   i <= hintIndex ? "bg-accent" : "bg-white/15"
                 }`}
               />
@@ -441,8 +447,9 @@ export default function CarImage({
 
       {/* Barra de progreso de intentos: anclada al borde inferior del marco, por
           ENCIMA de la viñeta ::after (z5) y del HUD (z7). pointer-events:none para
-          no robar el tap-para-ampliar. El inset (left/right/bottom-2) la mantiene
-          fuera de la curva de las esquinas redondeadas, que el marco recorta. */}
+          no robar el tap-para-ampliar. El inset (left/right/bottom-2) es aire de
+          margen; ya no hay curva de la que escapar (el marco es de esquina viva
+          desde el rediseño «Prensa del motor»). */}
       {configurator && bottomBar && (
         <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-[8]">
           {bottomBar}
@@ -471,12 +478,20 @@ export default function CarImage({
           aria-label={t("app.enlargeImage")}
         >
           <div
+            // Esquina viva y filete, sin `shadow-2xl`: la foto ampliada es la
+            // MISMA foto del escenario, y el escenario no tiene ni redondeo ni
+            // sombra blanda. Con `rounded-2xl` el marco cambiaba de forma al
+            // tocarlo (16px de radio que aparecían de la nada) — el mismo motivo
+            // por el que la etiqueta de pista de este archivo ya se pasó a
+            // `rounded-none`. El filete se queda en blanco al 20%, como el resto
+            // del cromo que va SOBRE una fotografía: ahí el papel no es opción, y
+            // se alinea con el alfa que usan la etiqueta y la ✕ de cerrar.
             className={
               configurator
                 ? // MISMA proporción que el escenario → mismo recorte, sin revelar
                   // más coche (coherencia de dificultad). Tamaño en la clase CSS.
-                  "cdd-lightbox-frame relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
-                : "relative aspect-[4/3] w-full max-w-[min(92vw,calc(92vh*4/3))] overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+                  "cdd-lightbox-frame relative overflow-hidden rounded-none border border-white/20"
+                : "relative aspect-[4/3] w-full max-w-[min(92vw,calc(92vh*4/3))] overflow-hidden rounded-none border border-white/20"
             }
             onClick={(e) => e.stopPropagation()}
           >

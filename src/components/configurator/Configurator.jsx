@@ -176,10 +176,11 @@ export default function Configurator({
           inset del sistema estaba resuelto. Ahora lo aplica .prensa-hoja. */}
       <main
         ref={hojaRef}
-        // `escenario-encajado` es lo que ACTIVA el cap: la regla de la foto a
-        // sangre declara `max-width: none` con la misma especificidad, así que
-        // hace falta una clase para ganarle sin depender del orden del fichero.
-        // Sin ella el cap se declaraba y no se aplicaba nunca.
+        // `escenario-encajado` es lo que ACTIVA el cap del escenario: sin clase
+        // que lo marque, el cap se declararía siempre y no habría forma de
+        // distinguir "hay que encoger la foto" de "cabe entera". (Nació además
+        // para ganarle en especificidad a la regla de la foto a sangre, que
+        // declaraba `max-width: none`; esa regla ya no existe.)
         className={
           "prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3" +
           (anchoEscenario && !ended ? " escenario-encajado" : "")

@@ -11,9 +11,13 @@
 import { describe, it, expect } from "vitest";
 import { calcularEncaje } from "./useEncajeEscenario";
 
-const SANGRIA = 18; // padding lateral del pliego, que el escenario rompe
+const SANGRIA = 18; // padding lateral del pliego, que el escenario RESPETA
 
-// 412×877 CSS px. La foto va A SANGRE: 412 de ancho, 309 de alto en 4:3.
+// 412×877 CSS px. La foto va ENMARCADA, dentro del margen del pliego: 412 − 36 =
+// 376 de ancho, 282 de alto en 4:3. Fue 412×309 mientras el escenario iba a
+// sangre; la decisión de enmarcarlo está razonada en index.css («LA FOTO VA
+// ENMARCADA, NO A SANGRE») y esta cifra tiene que seguirla, porque es justo el
+// número que el hook usa para decidir si el botón cabe.
 const MOVIL = {
   altoVentana: 877,
   franja: 24, // barra de gestos del sistema
@@ -21,7 +25,7 @@ const MOVIL = {
   extras: 32, // ladillo de la sección + su gap
   hueco: 12, // gap del pliego
   altoJugar: 283, // cupón (3 campos) + botón ADIVINAR
-  altoNatural: 309, // 412 a sangre, en 4:3
+  altoNatural: ((412 - SANGRIA * 2) * 3) / 4, // 282: la columna, en 4:3
 };
 
 // Lo que ocupa todo menos el marco: sirve para comprobar que el resultado cabe.
@@ -69,22 +73,35 @@ describe("calcularEncaje", () => {
   // Los dos fallos que dejaron el botón cortado en el móvil de prueba pese a
   // que el encaje "estaba puesto". Los dos eran de aritmética, no de CSS.
 
-  it("REGRESIÓN: cuenta la sangría — la foto es más alta de lo que mide la columna", () => {
-    // La primera versión calculaba el alto natural desde el ancho de la COLUMNA
-    // (412 − 36 = 376 → 282 de alto) ignorando que el escenario sangra hasta los
-    // bordes. Con ese número creía que cabía y no capaba nada, mientras en
-    // pantalla la foto medía 309: 27px que se salían.
-    const anchoColumna = 412 - SANGRIA * 2;
-    const conError = calcularEncaje({
+  it("REGRESIÓN: el alto natural sale del ancho REAL, no de una suposición", () => {
+    // El fallo original: el hook calculaba el alto natural desde la columna
+    // mientras el CSS sangraba la foto hasta los bordes, así que la creía 27px
+    // más baja de lo que era, decidía que cabía y no capaba — el botón se salía.
+    // Al enmarcar la foto la geometría se invirtió, y con ella el riesgo: si el
+    // hook siguiera SUMANDO la sangría que el CSS ya no rompe, se pasaría de
+    // conservador y recortaría foto que sí cabe.
+    //
+    // Este test fija las dos direcciones. Suponer una foto MÁS ALTA que la real
+    // nunca puede dejar más foto en pantalla (eso sacaría el botón), y suponerla
+    // más baja nunca puede dejar menos (eso malgasta ancho).
+    const real = calcularEncaje(MOVIL);
+    const suponiendoMasAlta = calcularEncaje({
       ...MOVIL,
-      altoNatural: (anchoColumna * 3) / 4,
+      altoNatural: ((412 + SANGRIA * 2) * 3) / 4, // como si aún sangrara
     });
-    const correcto = calcularEncaje(MOVIL);
-    // Da igual si el caso equivocado capaba o no: lo que NO puede es dejar más
-    // foto que el cálculo bueno, porque entonces el botón se sale.
-    expect(correcto).toBeLessThanOrEqual(conError ?? Infinity);
-    // Y el bueno tiene que caber de verdad.
-    expect(fondoCon(MOVIL, (correcto * 3) / 4)).toBeLessThanOrEqual(
+    // −100 cruza el umbral a propósito: con esa suposición el hook decide que
+    // cabe y devuelve null ("no la toques"), que es el caso extremo de "más
+    // foto". Un −40 se quedaba del mismo lado del umbral y el test no probaba
+    // nada que el primero no probara ya.
+    const suponiendoMasBaja = calcularEncaje({
+      ...MOVIL,
+      altoNatural: MOVIL.altoNatural - 100,
+    });
+    expect(suponiendoMasBaja).toBeNull();
+    expect(suponiendoMasAlta ?? Infinity).toBeLessThanOrEqual(real ?? Infinity);
+    expect(suponiendoMasBaja ?? Infinity).toBeGreaterThanOrEqual(real ?? 0);
+    // Y la medida real tiene que caber de verdad, que es de lo que va el hook.
+    expect(fondoCon(MOVIL, (real * 3) / 4)).toBeLessThanOrEqual(
       MOVIL.altoVentana - MOVIL.franja
     );
   });

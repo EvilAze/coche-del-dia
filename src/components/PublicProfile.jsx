@@ -250,7 +250,7 @@ export default function PublicProfile({ open, onClose, userId }) {
         <>
           {/* Carnet: identidad + ficha de specs en un solo objeto premium,
               gemelo del carnet del Perfil propio. */}
-          <div className="relative overflow-hidden rounded-2xl border border-gold/20 bg-bg-tertiary p-4">
+          <div className="relative overflow-hidden rounded-none border border-gold/20 bg-bg-tertiary p-4">
             {/* Hairline de oro: detalle premium discreto. */}
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-oro-viejo/60 to-transparent" />
 
@@ -263,7 +263,7 @@ export default function PublicProfile({ open, onClose, userId }) {
                 </p>
               </div>
               {tierLabel && (
-                <span className="shrink-0 rounded-full border border-gold/35 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-gold">
+                <span className="shrink-0 rounded-none border border-gold/35 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-gold">
                   {tierLabel}
                 </span>
               )}
@@ -293,13 +293,13 @@ export default function PublicProfile({ open, onClose, userId }) {
               />
               <FichaRow
                 icon={
-                  <span className="text-mint">
+                  <span className="text-rojo">
                     <CarIcon />
                   </span>
                 }
                 label={t("myStats.statWins")}
                 value={stats?.total_wins ?? 0}
-                valueClass="text-mint"
+                valueClass="text-rojo"
               />
               <FichaRow
                 last
@@ -416,7 +416,7 @@ function PublicBadge({ achievement, locale }) {
         alt={group ? getLocalizedCountry(group) : ""}
         draggable={false}
         loading="lazy"
-        className="h-8 w-8 rounded-sm object-cover"
+        className="h-8 w-8 rounded-none object-cover"
         onError={(e) => {
           e.currentTarget.style.display = "none";
         }}
@@ -438,7 +438,7 @@ function PublicBadge({ achievement, locale }) {
 
   return (
     <div
-      className={`group relative aspect-square overflow-hidden rounded-lg border ${borderClass} bg-bg-tertiary p-2`}
+      className={`group relative aspect-square overflow-hidden rounded-none border ${borderClass} bg-bg-tertiary p-2`}
       title={`${title} — ${description}`}
     >
       <div className="flex h-full w-full flex-col items-center justify-center gap-1">

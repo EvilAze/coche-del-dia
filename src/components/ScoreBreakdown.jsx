@@ -45,7 +45,7 @@ export default function ScoreBreakdown({ score, won }) {
   }
 
   return (
-    <div className="my-4 rounded-xl border border-accent/25 bg-accent/[0.05] p-4 text-left">
+    <div className="my-4 rounded-none border border-accent/25 bg-accent/[0.05] p-4 text-left">
       {/* Solo mostramos el desglose si hay 2+ líneas — con una sola entrada
           (típicamente "Base"), el total ya comunica todo y el desglose es
           redundancia visual. Con bonuses (streak, etc.) sí aporta valor ver

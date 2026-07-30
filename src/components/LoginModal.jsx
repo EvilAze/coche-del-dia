@@ -140,7 +140,14 @@ export default function LoginModal({ open, onClose, aviso = null }) {
             // que esa cuenta es de otro usuario, y reintentar vinculando sería
             // mandarle a Google para volver con el mismo error.
             onClick={() => entrarConGoogle(aviso !== "identidad-ocupada")}
-            className="flex w-full items-center justify-center gap-3 rounded-lg bg-white px-4 py-3 font-semibold text-black transition-transform hover:scale-105 active:scale-95"
+            // Blanco sobre negro es la CHAPA DE MARCA de Google (su logo va sobre
+            // fondo blanco por sus propias directrices), así que ese par se queda
+            // aunque no sea del tema; es el único sitio de la web donde el color
+            // no lo elegimos nosotros. Lo que se va es la forma: esquina viva como
+            // el resto de botones, y el papel se hunde 1px al pulsar en vez del
+            // `hover:scale-105 active:scale-95` del rediseño plano — un botón que
+            // crece al pasar por encima es vocabulario de app, no de imprenta.
+            className="flex w-full items-center justify-center gap-3 rounded-none bg-white px-4 py-3 font-semibold text-black transition-transform active:translate-y-px"
           >
             <GoogleGlyph />
             {t("common.continueWithGoogle")}

@@ -127,7 +127,7 @@ function ShieldPips({ count }) {
       aria-label={t("myStats.streakFreezesCount", { count: freezes, max: FREEZE_CAP })}
     >
       {Array.from({ length: FREEZE_CAP }).map((_, i) => (
-        <span key={i} className={i < freezes ? "text-mint" : "text-border-strong"}>
+        <span key={i} className={i < freezes ? "text-rojo" : "text-border-strong"}>
           <ShieldIcon className="h-[15px] w-[15px]" />
         </span>
       ))}
@@ -161,12 +161,12 @@ function DoorRow({ icon, label, value, onClick, last = false }) {
     <button
       type="button"
       onClick={onClick}
-      className={`focus-ring flex w-full items-center justify-between px-3.5 py-3 text-left transition hover:bg-mint/[0.06] ${
+      className={`focus-ring flex w-full items-center justify-between px-3.5 py-3 text-left transition hover:bg-rojo/[0.06] ${
         last ? "" : "border-b border-border-strong/60"
       }`}
     >
       <span className="flex items-center gap-2.5">
-        <span className="text-mint">{icon}</span>
+        <span className="text-rojo">{icon}</span>
         <span className="text-sm font-medium text-foreground">{label}</span>
       </span>
       <span className="flex items-center gap-2.5">
@@ -299,7 +299,7 @@ export default function MyStats({
       ) : (
         <>
           {/* Carnet: identidad + ficha de racha en un solo objeto premium. */}
-          <div className="relative overflow-hidden rounded-2xl border border-gold/20 bg-bg-tertiary p-4">
+          <div className="relative overflow-hidden rounded-none border border-gold/20 bg-bg-tertiary p-4">
             {/* Hairline de oro: detalle premium discreto. */}
             <div className="absolute inset-x-0 top-0 h-px bg-oro-viejo/50" />
 
@@ -325,7 +325,7 @@ export default function MyStats({
                 <p className="truncate text-xs text-muted-foreground">{email}</p>
               </div>
               {tierLabel && (
-                <span className="shrink-0 rounded-full border border-gold/35 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-gold">
+                <span className="shrink-0 rounded-none border border-gold/35 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-gold">
                   {tierLabel}
                 </span>
               )}
@@ -366,7 +366,7 @@ export default function MyStats({
               <FichaRow
                 last
                 icon={
-                  <span className="text-mint">
+                  <span className="text-rojo">
                     <ShieldIcon className="h-[18px] w-[18px]" />
                   </span>
                 }
@@ -386,7 +386,7 @@ export default function MyStats({
           <p className="mb-2 mt-5 px-1 text-xs text-muted-foreground">
             {t("myStats.destinations")}
           </p>
-          <div className="overflow-hidden rounded-xl border border-border bg-bg-tertiary">
+          <div className="overflow-hidden rounded-none border border-border bg-bg-tertiary">
             <DoorRow
               icon={<CarIcon />}
               label={t("garage.headerTitle")}

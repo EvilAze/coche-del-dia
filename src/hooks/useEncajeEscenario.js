@@ -70,7 +70,7 @@ const PLIEGO = "(min-width: 1100px)";
 //   extras       lo que ocupa la sección aparte del marco (ladillo, pie)
 //   hueco        separación entre bloques del pliego
 //   altoJugar    el cupón entero, botón ADIVINAR incluido
-//   altoNatural  lo que mediría el marco sin capar, SANGRÍA INCLUIDA
+//   altoNatural  lo que mediría el marco sin capar, medido del DOM real
 //   franja       barra de gestos del sistema, que innerHeight cuenta pero no
 //                se puede usar
 export function calcularEncaje({
@@ -162,18 +162,19 @@ export function useEncajeEscenario({ fotoRef, jugarRef, hojaRef, activo }) {
     // 12: si algún día cambia el `gap-3`, esto sigue cuadrando.
     const hueco = parseFloat(getComputedStyle(hoja).rowGap) || 0;
 
-    // El alto que el marco tendría sin capar. OJO: en columna única el
-    // escenario va A SANGRE — rompe la sangría del pliego con un margen
-    // negativo y toca ambos bordes—, así que su ancho natural es el de la
-    // columna MÁS esa sangría a cada lado. Calcularlo solo desde la columna
-    // (como hacía la primera versión) subestimaba el alto real justo en
-    // `sangría * 2 * 3/4` ≈ 27px, que era exactamente lo que se salía de
-    // pantalla: el hook creía que cabía y no capaba nada.
+    // El alto que el marco tendría sin capar. Sale del ancho de la SECCIÓN y no
+    // del marco porque el marco puede venir ya capado de una medición anterior y
+    // nos haría oscilar.
     //
-    // Se parte del ancho de la SECCIÓN y no del marco porque el marco puede
-    // venir ya capado de una medición anterior y nos haría oscilar.
-    const sangria = parseFloat(getComputedStyle(hoja).paddingLeft) || 0;
-    const altoNatural = ((foto.clientWidth + sangria * 2) * 3) / 4;
+    // Aquí se sumaba la sangría del pliego a cada lado, porque el escenario iba
+    // A SANGRE: rompía el margen con un `margin-inline: -18px` y tocaba los dos
+    // bordes. Esa suma se retiró con la sangría (ver la nota larga en index.css,
+    // «LA FOTO VA ENMARCADA, NO A SANGRE»). Importa mantenerlas en sync en los
+    // dos sentidos: con sangría y sin sumarla, el hook creía que cabía y no
+    // capaba nada, y el botón se salía 27px; sin sangría y sumándola, el hook se
+    // pasa de conservador y recorta 27px de foto que sí caben. La medida tiene
+    // que salir de lo que el escenario mide DE VERDAD, nunca de una constante.
+    const altoNatural = (foto.clientWidth * 3) / 4;
 
     const siguiente = calcularEncaje({
       altoVentana: altoVentanaRef.current,

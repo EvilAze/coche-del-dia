@@ -881,54 +881,53 @@ body,
    nada — allí el cupón vive en su propia columna, al lado de la foto. */
 .prensa .cdd-stage-frame::after { display: none; } /* viñeta: innecesaria sobre papel */
 .prensa .cdd-hud, .prensa .cdd-grain { display: none; } /* atrezzo cámara: fuera */
-/* Foto A SANGRE en columna única (≤1099): el marco 4:3 rompe la sangría de 18px
-   del pliego (.prensa-hoja padding-inline) con margin negativo y TOCA ambos
-   bordes. La foto ES el juego → gana el escenario, y cumple la promesa que ya
-   hacía el pie ("por fin a plena página"). MISMO recorte 4:3 —Regla 6, misma
-   dificultad—: crece el ANCHO de render, nunca el crop. Clave de la Regla 6: el
-   `sizes` de CarImage ya pide imágenes grandes (200vw en móvil), así que el
-   recurso elegido por el navegador NO cambia y el preload del middleware sigue
-   coherente byte-a-byte —no hay que tocar srcset ni middleware.js—.
-   El coste que tenía documentado —"la foto mayor empuja el cupón ~50px; en
-   móviles pequeños el botón queda justo bajo el fold"— ya no se paga: lo
-   resuelve el encaje de abajo, que renuncia a la sangría antes que al botón. */
+/* LA FOTO VA ENMARCADA, NO A SANGRE — y la decisión merece quedar escrita,
+   porque aquí hubo una regla de sangría (`margin-inline: -18px`) durante meses.
+   Nunca llegó a verse: la sección de ZoomStage traía un `px-4` que devolvía
+   exactamente el margen que el negativo se comía. Al quitar ese padding la
+   sangría por fin se aplicó, y con ella a la vista se ve por qué no vale:
+
+   1. NO SE PODÍA COMPLETAR. En imprenta una foto a sangre no lleva filete: se
+      imprime hasta el corte. El marco sí lo lleva (1px de tinta), así que
+      sangrando queda una raya de tinta clavada en x=0 — y en un móvil con
+      pantalla de esquinas redondeadas el propio display la recorta. Una sangría
+      a medias no se lee como decisión, se lee como error de márgenes.
+   2. EL FILETE ES EL CONTRATO DEL JUEGO. El 4:3 NO es la proporción natural de
+      la foto: es un recorte. El filete es lo que le dice al jugador «estás
+      viendo una ventana, no la fotografía entera», que es justo la mecánica de
+      revelación progresiva. Una foto a sangre insinúa «esto es la foto».
+   3. LA PÁGINA TIENE UN MARGEN. Ladillo, cupón, historial, folio y pie alinean
+      a los 18px del pliego. El escenario era el único que lo rompía, y no
+      rompía nada PARA DECIR algo (a diferencia del doble filete o del sello).
+
+   Lo que sí se recupera es el `px-4`: la foto pasa de ~276px a los 324px de la
+   columna en un móvil de 360 (+17% de ancho, +36px de alto). Ese era el ancho
+   robado de verdad; la sangría solo añadía 36px más a cambio de 27px de presión
+   vertical sobre el botón ADIVINAR, en el elemento cuya geometría gobierna las
+   reglas 5, 6 y 7. Mal cambio. El recorte 4:3 y el `sizes` siguen intactos. */
 @media (max-width: 1099px) {
-  .prensa .cdd-stage { width: auto; max-width: none; margin-inline: -18px; align-self: stretch; }
-  /* El pie de foto NO sangra: es voz de pie, alineado al margen del pliego. */
-  .prensa .prensa-pie { width: 100%; max-width: none; align-self: stretch; }
-
   /* ENCAJE: cuando useEncajeEscenario decide que el botón ADIVINAR no cabe,
-     marca el pliego y aquí capamos el escenario. Va DENTRO de esta media query
-     y con un selector más específico a propósito: la regla de la sangría de
-     arriba declara `max-width: none` con la misma especificidad y gana por
-     orden, así que un cap declarado fuera —como estaba— no llegaba a aplicarse
-     justo en el único breakpoint donde hace falta.
-
-     Al capar, la foto deja de sangrar y se centra. Ese es el orden de
-     sacrificios correcto — el primer tramo de reducción es exactamente
-     renunciar a la sangría (36px de ancho, 27 de alto), y solo si aún no basta
-     se entra en la columna. Entre "la foto toca los bordes" y "se ve el botón
-     de jugar", gana el botón.
+     marca el pliego y aquí capamos el escenario. Sigue viviendo DENTRO de esta
+     media query porque es el único tramo donde el cupón va debajo de la foto (en
+     el pliego ancho vive en su propia columna y no hay nada que encajar).
 
      OJO CON EL ANCHO — aquí se colapsó el escenario a una miniatura:
-     el cap NO puede hacerse con `max-width` + `margin-inline: auto` sobre la
-     regla de arriba. Un ítem flex solo se ESTIRA si su tamaño en el eje cruzado
-     es `auto` y NINGUNO de sus dos márgenes de ese eje es `auto`; en cuanto se
-     pide centrado con márgenes automáticos, el `align-self: stretch` deja de
-     aplicar y el ancho pasa a ser el intrínseco del contenido. Y el contenido
-     del marco es una imagen posicionada en absoluto, o sea intrínsecamente
-     CERO: la foto se quedaba en un sello de correos y el `max-width` ni
-     intervenía. Por eso el ancho va EXPLÍCITO y el centrado por `align-self`,
-     que no depende del estirado. El fallback de la variable es el ancho de la
-     columna: sin sangría, pero nunca colapsado. */
+     el cap NO puede hacerse con `max-width` + `margin-inline: auto`. Un ítem
+     flex solo se ESTIRA si su tamaño en el eje cruzado es `auto` y NINGUNO de
+     sus dos márgenes de ese eje es `auto`; en cuanto se pide centrado con
+     márgenes automáticos, el `align-self: stretch` deja de aplicar y el ancho
+     pasa a ser el intrínseco del contenido. Y el contenido del marco es una
+     imagen posicionada en absoluto, o sea intrínsecamente CERO: la foto se
+     quedaba en un sello de correos y el `max-width` ni intervenía. Por eso el
+     ancho va EXPLÍCITO y el centrado por `align-self`, que no depende del
+     estirado. El fallback de la variable es el ancho de la columna: nunca
+     colapsado. */
   .prensa .escenario-encajado .cdd-stage {
-    /* El tope es el ancho natural CON sangría (la columna más los 18px de
-       cada lado que rompe la regla de arriba), no el de la columna: si el
-       recorte necesario es pequeño, hay que poder quedarse entre medias en vez
-       de renunciar a la sangría entera de golpe. */
+    /* El tope es la columna. Fue `calc(100% + 36px)` mientras el escenario
+       sangraba, para poder quedarse a medio camino en vez de renunciar a la
+       sangría entera de golpe; sin sangría, el ancho natural YA es el 100%. */
     width: var(--cdd-marco-max, 100%);
-    max-width: calc(100% + 36px);
-    margin-inline: 0;
+    max-width: 100%;
     align-self: center;
   }
 }

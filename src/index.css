@@ -958,21 +958,17 @@ body,
     align-self: center;
   }
 }
-/* Pie de foto: cuerpo pequeño de PIE DE PERIÓDICO (9.5px). A ese tamaño el texto
-   completo entra en UNA sola línea dentro del ancho de la foto (300px en móvil);
-   en el pliego ancho de escritorio, de sobra. Cursiva Fraunces = la voz de los
-   pies. Sigue siendo flex: en la repesca comparte fila con sus pips. */
+/* La fila del pie de foto. Ya solo lleva los pips de intentos (la Repesca es la
+   única que los pasa), así que es una tira alineada a la derecha bajo la
+   fotografía. Llevaba también un pie en cursiva al revelar; se retiró con su clase
+   `.pie-cap` y su cadena — el motivo, largo, está en ZoomStage.jsx. Conserva la
+   familia y el cuerpo por si algún día vuelve a haber texto de pie de verdad, uno
+   que hable de LA foto y no de la maqueta. */
 .prensa-pie {
-  /* El pie ahora solo aparece al revelar (lo gatea ZoomStage): remate editorial,
-     no un adorno que se repite en cada intento. Legible de verdad (12px, no los
-     9,5 de antes) y a contraste AA vía .pie-cap. `flex-end` + margin-right:auto
-     en la cursiva deja los pips a la derecha aunque no haya texto (juego de
-     Repesca, que sí pasa `progress`). */
   display: flex; justify-content: flex-end; align-items: center; gap: 14px;
   color: var(--cdd-muted); font-family: var(--font-display);
   font-style: italic; font-size: 12px;
 }
-.prensa-pie .pie-cap { margin-right: auto; color: color-mix(in oklab, var(--cdd-text) 72%, var(--bg)); }
 /* Pips "fotogramas": cuadraditos de negativo. Urgencia = SOLO rojo. */
 .prensa-pips { display: flex; gap: 5px; flex: none; }
 .prensa-pips .pip { width: 9px; height: 9px; border: 1px solid var(--line-strong); border-radius: 0; }

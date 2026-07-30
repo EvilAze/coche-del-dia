@@ -85,16 +85,23 @@ export default function ZoomStage({
         />
       </div>
 
-      {/* Pie de foto: SOLO al revelar (remate editorial del momento pico). Durante
-          el juego era una cursiva de 9,5px que se repetía idéntica cada día y
-          competía con el contador de intentos — se retira. Los pips (cuando el
-          flujo los pasa, p.ej. Repesca) siguen a la derecha en ambos estados. */}
-      {(revealed || progress) && (
-        <div className="prensa-pie">
-          {revealed && <span className="pie-cap">{t("prensa.pieFotoFin")}</span>}
-          {progress}
-        </div>
-      )}
+      {/* La fila del pie ya SOLO existe para los pips, y por eso se gatea con
+          `progress` (los pasa la Repesca; el daily, no).
+          Aquí iba además un pie de foto al revelar: «El ejemplar de hoy, por fin a
+          plena página». Se retira por tres motivos que se acumularon:
+            · Era MENTIRA desde que la foto va enmarcada. Ese «a plena página»
+              describía literalmente la sangría —el index.css llegó a decir que la
+              sangría «cumple la promesa que ya hacía el pie»—, y la sangría se
+              retiró: la foto vive dentro del margen del pliego.
+            · Lo repetía. En el mismo instante en que aparecía, el ladillo de esta
+              misma sección ya decía «La fotografía del día · Edición cerrada».
+              Dos renglones anunciando lo mismo, uno encima y otro debajo de la
+              foto.
+            · Un pie de periódico describe ESA fotografía; este describía la
+              maquetación, y con las mismas palabras cada día. Era decoración
+              disfrazada de contenido. Lo que dice —«ya puedes verlo entero»— ya lo
+              cuenta el zoom al abrirse, que es enseñarlo en vez de decirlo. */}
+      {progress && <div className="prensa-pie">{progress}</div>}
     </section>
   );
 }

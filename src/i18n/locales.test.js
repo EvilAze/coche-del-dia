@@ -12,6 +12,8 @@
 // la misma forma.
 
 import { describe, it, expect } from "vitest";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import es from "./locales/es.json";
 import en from "./locales/en.json";
 
@@ -77,5 +79,53 @@ describe("locales", () => {
       visitar(dict);
     }
     expect(incompletos).toEqual([]);
+  });
+
+  // ── La otra mitad del problema ─────────────────────────────────────────────
+  // Los tests de arriba comprueban que los dos locales digan LO MISMO. Ninguno
+  // comprobaba que el CÓDIGO pida cosas que existan, y por ese hueco se colaron
+  // `prensa.fajaLider`, `prensa.fajaEmpate` y `prensa.fajaDistancia`: se borraron
+  // de los locales al retirar la faja de clasificación de la portada, pero
+  // RankParte siguió llamándolas. Como `t()` devuelve la clave cuando falta, todo
+  // jugador logueado con puesto tenía un literal «prensa.fajaDistancia.one»
+  // impreso en su pantalla de fin de partida. Pasaba build, lint y estos tests.
+  //
+  // Solo se miran las llamadas con clave LITERAL, `t("a.b")` / `tn("a.b", …)`.
+  // Las claves construidas (`t(algo ? "x" : "y")`, plantillas) quedan fuera: no
+  // se pueden resolver sin ejecutar, y preferimos un gate que no dé falsos
+  // positivos a uno que la gente aprenda a ignorar.
+  it("toda clave usada en el código existe en los dos idiomas", () => {
+    const SRC = join(process.cwd(), "src");
+    const ficheros = [];
+    const recorrer = (dir) => {
+      for (const entrada of readdirSync(dir)) {
+        const full = join(dir, entrada);
+        if (statSync(full).isDirectory()) recorrer(full);
+        else if (/\.(jsx|js)$/.test(full) && !/\.test\.js$/.test(full)) ficheros.push(full);
+      }
+    };
+    recorrer(SRC);
+
+    const existe = (dict, ruta) => {
+      const valor = ruta.split(".").reduce((o, k) => (o == null ? undefined : o[k]), dict);
+      // Un plural es un objeto { one, other }: cuenta como existente.
+      return typeof valor === "string" || (valor && typeof valor === "object");
+    };
+
+    const ausentes = [];
+    for (const fichero of ficheros) {
+      const src = readFileSync(fichero, "utf8");
+      for (const m of src.matchAll(/\bt(?:n)?\(\s*"([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)+)"/g)) {
+        const clave = m[1];
+        const faltaEn = [];
+        if (!existe(es, clave)) faltaEn.push("es");
+        if (!existe(en, clave)) faltaEn.push("en");
+        if (faltaEn.length) {
+          const rel = fichero.slice(fichero.indexOf("src")).split("\\").join("/");
+          ausentes.push(`${clave} (${faltaEn.join("+")}) ← ${rel}`);
+        }
+      }
+    }
+    expect([...new Set(ausentes)]).toEqual([]);
   });
 });

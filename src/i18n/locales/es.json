@@ -120,15 +120,10 @@
     "sameCountry": "MISMO PAÍS",
     "srCorrect": "correcto",
     "srWrong": "incorrecto",
-    "endWin": "ACERTADO · {n}/{max}",
-    "endLose": "FALLADO · {max}/{max}",
-    "tabFicha": "FICHA",
-    "tabShare": "COMPARTIR",
     "copyResult": "COMPARTIR RESULTADO",
     "copied": "¡COPIADO!",
     "nextCar": "PRÓXIMO COCHE EN",
     "seeGame": "VER MI PARTIDA",
-    "yourGame": "TU PARTIDA",
     "viewResult": "VER RESULTADO",
     "labelOrigin": "ORIGEN",
     "revealUnavailable": "No hemos podido recuperar la ficha de hoy.",
@@ -140,7 +135,10 @@
     "helpAria": "Cómo se juega",
     "peekAria": "Volver a la foto",
     "unlockKicker": "Nueva portada",
-    "carImageAlt": "Coche del día"
+    "carImageAlt": "Coche del día",
+    "pieSolved": "Acertado en {n} de {max}",
+    "pieUnsolved": "Sin resolver en {max} intentos",
+    "ladilloCronica": "La crónica del coche"
   },
   "prensa": {
     "ladilloFoto": "La fotografía del día",
@@ -312,7 +310,13 @@
     "hold": "Mantienes tu puesto",
     "new": "Estrenas puesto esta temporada",
     "unranked": "Aún sin puesto esta temporada · gana para entrar",
-    "cta": "Ver la clasificación"
+    "cta": "Ver la clasificación",
+    "lider": "Lideras la clasificación",
+    "empate": "Empatado con el {pos}",
+    "distancia": {
+      "one": "A {count} punto del {pos}",
+      "other": "A {count} puntos del {pos}"
+    }
   },
   "ranking": {
     "tag": "La clasificación",
@@ -375,7 +379,6 @@
     "title": "Hoy en el mundo",
     "gamesPlayed": "{count} partidas",
     "winRate": "{pct}% acierto",
-    "betterThan": "Lo has hecho mejor que el {pct}% de jugadores",
     "betterThanShare": "Mejor que el {pct}% de jugadores"
   },
   "toast": {

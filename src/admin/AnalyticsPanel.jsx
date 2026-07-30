@@ -195,13 +195,26 @@ export default function AnalyticsPanel() {
               value={data.users.anonTotal}
               hint={`+${data.users.anonNewInPeriod} en periodo · 1 por navegador`}
             />
-            <KpiCard label="DAU promedio" value={data.engagement.dauAvg.toFixed(1)} hint="registrados que jugaron" />
+            {/* «Registrados» vuelve a ser cierto: la serie se filtra ya por
+                auth.users.is_anonymous. Antes user_guesses mezclaba las dos
+                poblaciones (el anónimo recibe JWT en su primer intento) y esta
+                cifra las sumaba en silencio. El hint saca además la actividad
+                anónima, que hasta ahora no se veía en ninguna parte. */}
+            <KpiCard
+              label="DAU promedio"
+              value={data.engagement.dauAvg.toFixed(1)}
+              hint={`registrados · ${(data.engagement.dauAnonAvg || 0).toFixed(1)} anónimos`}
+            />
             <KpiCard label="Jugadores/día" value={totalAvg.toFixed(1)} hint="total, incl. anónimos" />
             <KpiCard label="% anónimos" value={pct(anonPct)} hint={`≈ ${anonAvg.toFixed(1)}/día`} />
+            {/* El hint dice ahora contra QUÉ se mide: jugadores activos del
+                rango, no el histórico entero. Y añade las repescas jugadas,
+                que antes eran invisibles porque stats.last_repesca_at solo
+                guarda la última (5 personas podían ser 5 partidas o 35). */}
             <KpiCard
               label="Repesca usage"
               value={pct(data.engagement.repescaUsage.rate)}
-              hint={`${data.engagement.repescaUsage.usersUsed}/${data.engagement.repescaUsage.totalUsers}`}
+              hint={`${data.engagement.repescaUsage.usersUsed}/${data.engagement.repescaUsage.totalUsers} activos · ${data.engagement.repescaUsage.plays} partidas`}
             />
           </div>
 
@@ -211,8 +224,10 @@ export default function AnalyticsPanel() {
           {/* ROW 2 · DAU chart (SOLO registrados) */}
           <Card title="Registrados activos por día (DAU)">
             <p className="mb-2 text-[10px] leading-relaxed text-muted">
-              Solo usuarios con cuenta (tabla user_guesses). Los anónimos no
-              cuentan aquí — para el total mira la gráfica de abajo.
+              Solo usuarios con cuenta. La tabla user_guesses mezcla las dos
+              poblaciones desde jul-2026 (el anónimo recibe sesión en su primer
+              intento), así que esta serie se filtra por is_anonymous — para el
+              total mira la gráfica de abajo.
             </p>
             <DauLineChart series={data.engagement.dauSeries} />
           </Card>

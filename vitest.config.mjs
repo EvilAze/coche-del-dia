@@ -14,6 +14,14 @@ export default defineConfig({
     environment: "node",
     // api/**: los helpers puros de _lib (compare-guess, zoom…) también se
     // testean aquí — son JS plano sin runtime de Vercel, vitest los traga.
-    include: ["src/**/*.test.{js,jsx}", "api/**/*.test.js"],
+    // lib/**: la lógica de los handlers admin vive fuera de api/ (ver la
+    // estructura en CLAUDE.md) y hasta ahora no la cubría NINGÚN test — por eso
+    // el KPI de repesca pudo estar mal calculado desde el día uno sin que
+    // saltara nada.
+    include: [
+      "src/**/*.test.{js,jsx}",
+      "api/**/*.test.js",
+      "lib/**/*.test.js",
+    ],
   },
 });

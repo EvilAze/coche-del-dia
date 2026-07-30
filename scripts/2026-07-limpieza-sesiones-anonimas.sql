@@ -17,14 +17,11 @@
 -- sesión y su racha vive ahí. Miramos `last_sign_in_at` (y caemos a created_at
 -- si nunca se refrescó), y además protegemos a quien tenga partidas recientes.
 --
--- CÓMO PROGRAMARLO: en el dashboard de Supabase, Database → Cron (pg_cron),
--- una vez al día. O a mano de vez en cuando; no es urgente.
---
---   SELECT cron.schedule(
---     'limpieza-anonimos',
---     '0 4 * * *',
---     $$ SELECT public.limpiar_sesiones_anonimas(30); $$
---   );
+-- CÓMO PROGRAMARLO: ya no es un ejercicio para el lector. Este script SOLO
+-- define la función; quien la programa es
+-- scripts/2026-07-cron-limpieza-anonimas.sql (pg_cron, 04:00 UTC diario).
+-- Aplícalo después de este. El «no es urgente» que decía aquí antes salió caro:
+-- se quedó sin programar y las filas anónimas estuvieron acumulándose sin tope.
 -- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.limpiar_sesiones_anonimas(p_dias int DEFAULT 30)

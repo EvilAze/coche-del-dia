@@ -198,10 +198,14 @@ export default function AnalyticsPanel() {
             <KpiCard label="DAU promedio" value={data.engagement.dauAvg.toFixed(1)} hint="registrados que jugaron" />
             <KpiCard label="Jugadores/día" value={totalAvg.toFixed(1)} hint="total, incl. anónimos" />
             <KpiCard label="% anónimos" value={pct(anonPct)} hint={`≈ ${anonAvg.toFixed(1)}/día`} />
+            {/* El hint dice ahora contra QUÉ se mide: jugadores activos del
+                rango, no el histórico entero. Y añade las repescas jugadas,
+                que antes eran invisibles porque stats.last_repesca_at solo
+                guarda la última (5 personas podían ser 5 partidas o 35). */}
             <KpiCard
               label="Repesca usage"
               value={pct(data.engagement.repescaUsage.rate)}
-              hint={`${data.engagement.repescaUsage.usersUsed}/${data.engagement.repescaUsage.totalUsers}`}
+              hint={`${data.engagement.repescaUsage.usersUsed}/${data.engagement.repescaUsage.totalUsers} activos · ${data.engagement.repescaUsage.plays} partidas`}
             />
           </div>
 

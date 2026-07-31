@@ -33,6 +33,7 @@ import schedule from "../../lib/admin-handlers/schedule.js";
 import seasons from "../../lib/admin-handlers/seasons.js";
 import translate from "../../lib/admin-handlers/translate.js";
 import analyzeImage from "../../lib/admin-handlers/analyze-image.js";
+import describeCar from "../../lib/admin-handlers/describe-car.js";
 
 const ROUTES = {
   "analytics":     analytics,
@@ -42,6 +43,7 @@ const ROUTES = {
   "seasons":       seasons,
   "translate":     translate,
   "analyze-image": analyzeImage,
+  "describe-car":  describeCar,
 };
 
 export default async function handler(req, res) {

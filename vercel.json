@@ -7,6 +7,9 @@
   "regions": ["fra1"],
 
   "functions": {
+    "api/admin/[...slug].js": {
+      "maxDuration": 60
+    },
     "api/daily-image.js": {
       "memory": 1769,
       "maxDuration": 15

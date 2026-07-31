@@ -24,12 +24,15 @@ import { supabase } from "../supabaseClient";
 const MAX_LEN = 600;
 
 export default function DescriptionEsField({
-  value,
+  value = "",
   onChange,
-  marca,
-  modelo,
-  anio,
-  pais,
+  // Defaults a cadena vacía: un null llegado de la fila de la BD reventaría el
+  // .trim() de abajo y con él el panel entero. Un botón deshabilitado es un
+  // fallo mucho más barato.
+  marca = "",
+  modelo = "",
+  anio = "",
+  pais = "",
   disabled = false,
   inputClass = "",
 }) {

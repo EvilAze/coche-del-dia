@@ -90,6 +90,8 @@
     "rule4": "Cuenta como acierto con ±2 años de diferencia.",
     "rule5Title": "Cada día, un coche",
     "rule5": "Vuelve cada 24 h por un coche nuevo y mantén tu racha.",
+    "rule6Title": "Escudo de racha",
+    "rule6": "Empiezas con un escudo: si faltas un día, se gasta solo y tu racha continúa. Ganas otro cada 10 días de racha, hasta 2. No cubre los fallos: si juegas y no aciertas, la racha vuelve a cero.",
     "cta": "¡A jugar!"
   },
   "guessLog": {
@@ -225,7 +227,8 @@
     "streakBroken": "Racha rota",
     "points": "pts",
     "streakLabel": "Racha:",
-    "totalLabel": "Total:"
+    "totalLabel": "Total:",
+    "freezeUsed": "Escudo de racha usado: tu racha de {count} días sigue viva."
   },
   "myStats": {
     "title": "Mi Perfil",
@@ -244,7 +247,6 @@
     "statWins": "Aciertos",
     "streakFreezes": "Escudo de racha",
     "streakFreezesHelp": "Protege tu racha si faltas un día",
-    "streakFreezesEarn": "Ganas 1 cada 10 días de racha",
     "streakFreezesCount": "{count} de {max} escudos",
     "streakCurrent": "En racha",
     "streakBest": "Mejor racha",

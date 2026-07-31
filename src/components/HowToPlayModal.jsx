@@ -49,6 +49,12 @@ export default function HowToPlayModal({ open, onClose }) {
         <Rule title={t("howto.rule3Title")}>{t("howto.rule3")}</Rule>
         <Rule title={t("howto.rule4Title")}>{t("howto.rule4")}</Rule>
         <Rule title={t("howto.rule5Title")}>{t("howto.rule5")}</Rule>
+        {/* El escudo va PEGADO a la regla de la racha: solo se entiende como
+            excepción de ella. Es la única mecánica del juego que actuaba en
+            silencio —se reparte de oficio, se gasta solo y solo se veía como
+            dos siluetas sin texto en el perfil—, así que su regla completa
+            (cuántos, cómo se ganan, qué NO cubren) vive aquí. */}
+        <Rule title={t("howto.rule6Title")}>{t("howto.rule6")}</Rule>
       </ul>
 
       <button type="button" onClick={onClose} className="pm-btn mt-6">

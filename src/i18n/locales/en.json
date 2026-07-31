@@ -229,6 +229,11 @@
   },
   "myStats": {
     "title": "My Profile",
+    "carnetKicker": "Reader card",
+    "points": "Points",
+    "tierLabel": "Collector",
+    "settings": "Settings",
+    "firstDay": "You haven't won a cover yet. Guess today's car and your streak begins.",
     "errorLoad": "Couldn't load your stats.",
     "errorSignOut": "Couldn't sign out.",
     "noNickname": "No nickname",

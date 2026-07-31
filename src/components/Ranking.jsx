@@ -19,7 +19,12 @@
 // lo que la fila destacada ya dice, y empujaba la tabla fuera de pantalla.
 
 import { useEffect, useState } from "react";
-import { getSeasonLeaderboard, getCurrentSeason, getChampions } from "../lib/statsService";
+import {
+  getSeasonLeaderboard,
+  getCurrentSeason,
+  getChampions,
+  getLeaderboard,
+} from "../lib/statsService";
 import { daysUntilClose } from "../lib/season";
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
@@ -146,12 +151,21 @@ export default function Ranking({
   // Temporada activa, para el banner (número + tema) y el countdown de cierre.
   // null = sin temporada activa (hueco o aún no configurada) → no se pinta banner.
   const [season, setSeason] = useState(null);
-  // Pestaña activa: la clasificación de la temporada en curso ("temporada") o el
-  // SALÓN DE CAMPEONES histórico ("campeones"). El palmarés se carga PEREZOSO al
-  // abrir su pestaña por primera vez (no lastramos la apertura del ranking con
-  // un fetch que la mayoría no mira).
+  // Pestaña activa: la clasificación de la temporada en curso ("temporada"), el
+  // SALÓN DE CAMPEONES histórico ("campeones") o LEYENDAS, el acumulado all-time
+  // ("leyendas"). Las dos históricas se cargan PEREZOSAS al abrir su pestaña por
+  // primera vez (no lastramos la apertura del ranking con fetches que la mayoría
+  // no mira).
+  //
+  // Leyendas vivía como modal aparte colgando de una "puerta" del perfil, encima
+  // de él y con su propio listener de Escape: una pulsación cerraba los dos. Es
+  // una clasificación, no una sección del perfil, así que su sitio es esta tira
+  // de pestañas, junto a las otras dos. De paso se lleva por delante la última
+  // superficie con el chasis anterior (puesto en Franklin gris, tarjetas con
+  // filete propio): aquí reusa la MISMA fila que la temporada y el palmarés.
   const [view, setView] = useState("temporada");
   const [champions, setChampions] = useState({ loading: false, seasons: [], error: "", loaded: false });
+  const [legends, setLegends] = useState({ loading: false, players: [], error: "", loaded: false });
   const [helpOpen, setHelpOpen] = useState(false);
   // Modal de perfil público al clicar una fila del ranking. Guardamos el userId
   // del jugador objetivo; null = cerrado.
@@ -174,6 +188,7 @@ export default function Ranking({
     // cacheado (por si se cerró una temporada entre visitas).
     setView("temporada");
     setChampions({ loading: false, seasons: [], error: "", loaded: false });
+    setLegends({ loading: false, players: [], error: "", loaded: false });
 
     // El leaderboard de la temporada y la temporada activa (para el banner) son
     // independientes: los pedimos en paralelo.
@@ -198,7 +213,11 @@ export default function Ranking({
     };
   }, [open]);
 
-  useEscape(open && !helpOpen, onClose);
+  // El perfil público entra en la condición junto a la ayuda: es otro sub-modal
+  // que se monta ENCIMA con su propio listener de Escape, así que sin esto una
+  // sola pulsación cerraba el perfil ajeno Y el ranking de debajo. Es el mismo
+  // defecto que tenía el perfil con «Leyendas», que ahora es una pestaña.
+  useEscape(open && !helpOpen && !openProfileId, onClose);
 
   // Cambio de pestaña. La primera vez que se abre "Campeones" dispara el fetch
   // del palmarés (perezoso, una sola vez por apertura del modal).
@@ -214,6 +233,16 @@ export default function Ranking({
           // un mensaje genérico. Típico si aún no se aplicó la migración SQL.
           console.error("[Ranking] fallo cargando el salón de campeones", err);
           setChampions({ loading: false, seasons: [], error: t("ranking.errorLoad"), loaded: true });
+        });
+    }
+    if (next === "leyendas" && !legends.loaded && !legends.loading) {
+      track("legends_view", { source: "ranking" });
+      setLegends({ loading: true, players: [], error: "", loaded: false });
+      getLeaderboard()
+        .then((players) => setLegends({ loading: false, players, error: "", loaded: true }))
+        .catch((err) => {
+          console.error("[Ranking] fallo cargando el histórico", err);
+          setLegends({ loading: false, players: [], error: t("ranking.errorLoad"), loaded: true });
         });
     }
   }
@@ -252,7 +281,14 @@ export default function Ranking({
               paneles con aria-controls y navegación por flechas, y aquí son dos
               botones que reemplazan el contenido. Un patrón ARIA a medias
               confunde más al lector de pantalla que no ponerlo. */}
-          {[["temporada", t("ranking.tabSeason")], ["campeones", t("ranking.tabChampions")]].map(
+          {[
+            ["temporada", t("ranking.tabSeason")],
+            ["campeones", t("ranking.tabChampions")],
+            // Leyendas solo para logueados: es donde vivía antes (colgando del
+            // perfil) y donde tiene sentido — al anónimo le velamos la propia
+            // tabla de la temporada, no vamos a regalarle el acumulado de años.
+            ...(user ? [["leyendas", t("ranking.legends")]] : []),
+          ].map(
             ([id, lbl]) => (
               <button
                 key={id}
@@ -456,6 +492,63 @@ export default function Ranking({
               })}
             </div>
           ))}
+
+        {/* LEYENDAS: la clasificación histórica all-time (acumulado de
+            total_points, que SÍ incluye el bonus de racha). Cabecera de sección
+            como la de temporada y la MISMA fila que las otras dos vistas: el
+            jugador reconoce su puesto porque es el mismo glifo en las tres. */}
+        {view === "leyendas" && (
+          <>
+            <div className="rank-temporada">
+              <div className="min-w-0">
+                <p className="rank-temporada-kicker">{t("ranking.legends")}</p>
+                <p className="rank-temporada-tema">{t("ranking.legendsSubtitle")}</p>
+              </div>
+            </div>
+
+            {legends.loading ? (
+              <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
+            ) : legends.error ? (
+              <p className="py-3 font-display text-sm text-rojo">{legends.error}</p>
+            ) : legends.players.length === 0 ? (
+              <p className="pm-body py-3 text-sm">{t("ranking.empty")}</p>
+            ) : (
+              <div className="rank-tabla">
+                <div
+                  className={
+                    "rank-cabecera grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] gap-2 px-3 py-2 " +
+                    (legends.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : "")
+                  }
+                >
+                  <span>{t("ranking.colRank")}</span>
+                  <span>{t("ranking.colPlayer")}</span>
+                  <span className="text-right">{t("ranking.colPoints")}</span>
+                </div>
+
+                <div
+                  className={
+                    "divide-y divide-border " +
+                    (legends.players.length > 5 ? "scrollbar-premium max-h-[22rem] overflow-y-auto" : "")
+                  }
+                >
+                  {legends.players.map((player) => (
+                    <Fila
+                      {...filaBase}
+                      key={player.userId}
+                      source="legends"
+                      pos={player.rank}
+                      userId={player.userId}
+                      nombre={player.displayName}
+                      puntos={player.totalPoints}
+                      sub={t("ranking.bestStreak", { value: player.maxStreak })}
+                      streak={player.currentStreak}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
     </ModalShell>
 
     {/* Sub-modal hermano (no anidado): cada uno gestiona su propio backdrop y su

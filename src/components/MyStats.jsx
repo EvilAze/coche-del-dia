@@ -1,3 +1,32 @@
+// src/components/MyStats.jsx
+// TU CARNET — identidad, tus cifras y las puertas a tus secciones.
+//
+// El modal hacía cuatro trabajos (identidad, ficha de racha, navegación,
+// ajustes) y los presentaba como cuatro cajas con filete apiladas, todas con el
+// mismo peso: nada decía qué mirar primero. El rediseño los ordena en tres
+// planos con una jerarquía explícita:
+//
+//   1. EL CARNET (fijo arriba, hace de cabecera del modal). El `<h2>Mi Perfil</h2>`
+//      que había encima decía lo mismo que el carnet de debajo, así que se fue y
+//      con él ~60px de alto — que es justo lo que le faltaba a este modal para
+//      caber en un móvil (ver punto 3).
+//   2. LO QUE HAS GANADO (scrollable): podios y puertas a Archivo, Clasificación
+//      y Logros. Cada cifra vive en su sección; el perfil es solo la puerta.
+//   3. AJUSTES (fijo abajo): idioma, sesión y salir, tras doble filete.
+//
+// Tres arreglos que venían de regalo con el rediseño:
+//   · El panel no llevaba `max-h` ni zona con scroll (PublicProfile sí): con
+//     medallas de podio, el contenido pasaba de 600px y en pantallas cortas se
+//     cortaba SIN forma de llegar al pie — useScrollLock bloquea el body, así
+//     que «Cerrar sesión» quedaba literalmente inalcanzable.
+//   · La puerta «Leyendas» abría un sub-modal ENCIMA de este, y ambos escuchaban
+//     Escape: una pulsación cerraba los dos. El histórico se mudó a su sitio
+//     natural, la tercera pestaña de la Clasificación (Ranking.jsx), y el
+//     conflicto desaparece de raíz.
+//   · El escudo de racha se mostraba como dos siluetas sin una palabra, mientras
+//     `myStats.streakFreezesHelp` llevaba meses en los locales sin que nadie lo
+//     pintara. La explicación existía; se había caído.
+
 import { useEffect, useState } from "react";
 import { getProfileSummary } from "../lib/statsService";
 import { signOut } from "../lib/auth";
@@ -7,112 +36,20 @@ import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import LanguageStrip from "./LanguageStrip";
 import PodiumMedals from "./PodiumMedals";
-import { ordinal } from "./PuestoCifra";
-import Legends from "./Legends";
+import Carnet, { CarnetHead, CarnetCifra, FichaRow, FichaCifra } from "./carnet/Carnet";
+import {
+  FlameIcon,
+  CrownIcon,
+  ShieldIcon,
+  CarIcon,
+  MedalIcon,
+  TrophyIcon,
+  ChevronRightIcon,
+} from "./carnet/icons";
 
 // Tope de congelados — sincronizado con v_freeze_cap en
 // scripts/supabase-streak-freeze.sql. Si cambias uno, cambia el otro.
 const FREEZE_CAP = 2;
-
-// ── Iconos line-art (stroke currentColor) ────────────────────────────────
-// Coherentes con el sistema de iconos de la app (NO emoji, cross-platform).
-// Heredan el color del padre vía currentColor; el tamaño vía className.
-const ICO = {
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.6,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-};
-
-function FlameIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M12 3c-1 4.5-6 7-6 12a6 6 0 0 0 12 0c0-5-5-7.5-6-12z" />
-      <path d="M12 10.5c-.5 2.5-3 4-3 7a3 3 0 0 0 6 0c0-3-2.5-4.5-3-7z" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-function CrownIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M4 8l4 3.5 4-6.5 4 6.5 4-3.5v9.5H4z" />
-      <path d="M4 17.5h16" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-function ShieldIcon({ className = "h-5 w-5" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z" />
-      <path d="M9 12l2 2 4-4.2" />
-    </svg>
-  );
-}
-
-// (LockIcon se retiró: acompañaba al nick para explicar que era permanente.
-// Ahora se puede cambiar y en su sitio va el lápiz.)
-function PencilIcon({ className = "h-3.5 w-3.5" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z" />
-      <path d="M13.5 6.5l4 4" />
-    </svg>
-  );
-}
-
-function CarIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M5 11l1.6-4A2 2 0 0 1 8.5 5.7h7a2 2 0 0 1 1.9 1.3L19 11" />
-      <path d="M4 11h16v5H4z" />
-      <circle cx="7.5" cy="16.5" r="1.6" />
-      <circle cx="16.5" cy="16.5" r="1.6" />
-    </svg>
-  );
-}
-
-function MedalIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <circle cx="12" cy="14" r="6" />
-      <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
-    </svg>
-  );
-}
-
-function TrophyIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M7 4h10v4.5a5 5 0 0 1-10 0z" />
-      <path d="M7 6H5a2.4 2.4 0 0 0 0 4.8h2M17 6h2a2.4 2.4 0 0 1 0 4.8h-2" />
-      <path d="M12 13.5v3.5M9.5 20h5M10 17h4v3h-4z" />
-    </svg>
-  );
-}
-
-function ChevronRightIcon({ className = "h-4 w-4" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} strokeWidth="2" aria-hidden="true">
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
-}
-
-// Avatar: inicial sobre disco de papel con filete de tinta. Este es el avatar
-// CANÓNICO — PublicProfile monta el mismo para que el perfil propio y el ajeno
-// no parezcan de dos apps distintas (el público se quedó con un degradado
-// menta del tema anterior). `text-rojo` en vez del alias `text-mint`: el alias
-// apunta a la misma terna roja, pero el nombre miente sobre lo que pinta.
-function Avatar({ initial }) {
-  return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-tinta bg-papel-2">
-      <span className="font-bold text-xl text-rojo">{initial}</span>
-    </div>
-  );
-}
 
 // Pips de escudos como inventario (lleno = disponible). Dos escudos en vez de
 // un número suelto: se lee como "tengo estos", no como interruptor on/off
@@ -122,7 +59,7 @@ function ShieldPips({ count }) {
   const freezes = Math.max(0, Math.min(FREEZE_CAP, count ?? 0));
   return (
     <span
-      className="flex items-center gap-1.5"
+      className="flex shrink-0 items-center gap-1.5"
       role="img"
       aria-label={t("myStats.streakFreezesCount", { count: freezes, max: FREEZE_CAP })}
     >
@@ -135,41 +72,26 @@ function ShieldPips({ count }) {
   );
 }
 
-// Fila de la ficha de racha del carnet: icono + etiqueta a la izquierda,
-// valor a la derecha. Lee como hoja de specs, no como KPI suelto.
-function FichaRow({ icon, label, children, last = false }) {
-  return (
-    <div
-      className={`flex items-center justify-between py-2.5 ${
-        last ? "" : "border-b border-border-strong/60"
-      }`}
-    >
-      <span className="flex items-center gap-2.5 text-sm text-foreground/85">
-        {icon}
-        {label}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-// Puerta a un destino (Garaje / Ranking / Logros): icono menta + nombre +
-// dato clave + chevron. Es un botón: cierra el perfil y abre el destino real
-// (cada número vive en su sitio, el perfil solo es la puerta).
+// Puerta a un destino (Archivo / Clasificación / Logros): icono rojo + nombre +
+// dato clave + chevron. Es un botón: cierra el perfil y abre el destino real.
+//
+// La Clasificación es la única sin dato a la derecha, y a propósito: su cifra
+// (puntos y puesto) es la CABECERA del carnet, dos bloques más arriba. Repetirla
+// aquí sería decir dos veces lo mismo en la misma pantalla.
 function DoorRow({ icon, label, value, onClick, last = false }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`focus-ring flex w-full items-center justify-between px-3.5 py-3 text-left transition hover:bg-rojo/[0.06] ${
+      className={`focus-ring flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-rojo/[0.06] ${
         last ? "" : "border-b border-border-strong/60"
       }`}
     >
-      <span className="flex items-center gap-2.5">
-        <span className="text-rojo">{icon}</span>
-        <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="flex min-w-0 items-center gap-2.5">
+        <span className="shrink-0 text-rojo">{icon}</span>
+        <span className="truncate text-sm font-medium text-foreground">{label}</span>
       </span>
-      <span className="flex items-center gap-2.5">
+      <span className="flex shrink-0 items-center gap-2.5">
         {value && (
           <span className="text-xs tabular-nums text-muted-foreground">{value}</span>
         )}
@@ -203,9 +125,6 @@ export default function MyStats({
     tier: null,
     error: "",
   });
-  // Modal «Leyendas» (histórico all-time), gestionado localmente: se abre ENCIMA
-  // del perfil (no lo cierra), como vista secundaria.
-  const [legendsOpen, setLegendsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -237,10 +156,10 @@ export default function MyStats({
 
   useEscape(open, onClose);
 
+  const cargando = state.loading;
   const stats = state.stats;
   const nickname = state.profile?.display_name || t("myStats.noNickname");
   const email = state.user?.email || "";
-  const initial = ((state.profile?.display_name || email || "?").trim()[0] || "?").toUpperCase();
 
   // Etiqueta del tier (Bronce/Plata/Oro) localizada; null hasta el primer coche.
   const tierLabel = state.tier?.tier
@@ -248,6 +167,11 @@ export default function MyStats({
     : null;
 
   const onStreak = (stats?.current_streak ?? 0) > 0;
+  const maxStreak = stats?.max_streak ?? 0;
+  // Primer día: cero partidas ganadas y cero racha histórica. Sin esta línea, un
+  // recién llegado abre su perfil y solo ve ceros y «Sin clasificar», sin una
+  // sola pista de qué hacer.
+  const primerDia = !cargando && !stats?.total_wins && !maxStreak;
 
   // Cierra el perfil y abre el destino de la puerta.
   // `source` viaja al opener (openRanking lo usa para saber de dónde nacen las
@@ -263,75 +187,69 @@ export default function MyStats({
       ? `${state.collection.unlocked} / ${state.collection.total}`
       : `${state.collection.unlocked}`
     : null;
-  // Ordinal «7º» y no «#7»: es la firma de la clasificación (ver PuestoCifra) y
-  // aquí es texto dentro de una fila, así que se escribe igual que se dibuja.
-  const rankValue = state.rank?.rank
-    ? `${ordinal(state.rank.rank, locale)} · ${state.points} ${t("myStats.ptsShort")}`
-    : state.points > 0
-      ? `${state.points} ${t("myStats.ptsShort")}`
-      : t("myStats.rankNone");
   const logrosValue = state.achievements
     ? `${state.achievements.unlocked} / ${state.achievements.total}`
     : null;
 
   return (
-    <>
     <ModalShell
       open={open}
       onClose={onClose}
       label={t("myStats.title")}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat flex w-full max-w-sm flex-col p-5"
+      panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden p-5"
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-          {t("myStats.title")}
-        </h2>
-        <CloseButton onClick={onClose} />
-      </div>
-
-      {state.loading ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : state.error && !state.user ? (
-        <p className="text-sm text-rojo">{state.error}</p>
-      ) : !state.user ? (
-        <p className="text-sm text-muted-foreground">{t("myStats.promoLogin")}</p>
+      {state.error && !state.user ? (
+        <>
+          <div className="mb-3 flex items-start justify-between gap-2">
+            <p className="pm-kicker">{t("myStats.carnetKicker")}</p>
+            <CloseButton onClick={onClose} className="-mr-2 -mt-2" />
+          </div>
+          <p className="text-sm text-rojo">{state.error}</p>
+        </>
+      ) : !cargando && !state.user ? (
+        <>
+          <div className="mb-3 flex items-start justify-between gap-2">
+            <p className="pm-kicker">{t("myStats.carnetKicker")}</p>
+            <CloseButton onClick={onClose} className="-mr-2 -mt-2" />
+          </div>
+          <p className="text-sm text-muted-foreground">{t("myStats.promoLogin")}</p>
+        </>
       ) : (
         <>
-          {/* Carnet: identidad + ficha de racha en un solo objeto premium. */}
-          <div className="relative overflow-hidden rounded-none border border-gold/20 bg-bg-tertiary p-4">
-            {/* Hairline de oro: detalle premium discreto. */}
-            <div className="absolute inset-x-0 top-0 h-px bg-oro-viejo/50" />
+          {/* ── 1. El carnet: cabecera del modal e identidad, fijo ───────── */}
+          <Carnet className="shrink-0" aria-busy={cargando}>
+            <CarnetHead
+              kicker={t("myStats.carnetKicker")}
+              nombre={nickname}
+              cargando={cargando}
+              onEdit={() => go(onOpenNickname)}
+              editLabel={t("myStats.changeNick")}
+              // La X vive DENTRO de la cabecera, no flotando sobre ella: así el
+              // nombre trunca antes de llegar al botón en vez de pasarle por
+              // debajo, y el carnet puede ser de verdad la primera fila.
+              trailing={<CloseButton onClick={onClose} className="-mr-2 -mt-2" />}
+            />
 
-            <div className="flex items-center gap-3">
-              <Avatar initial={initial} />
-              <div className="min-w-0 flex-1">
-                {/* El candado se fue con el «permanente»: el nick ya se puede
-                    cambiar (ver saveDisplayName en lib/statsService.js), así que
-                    lo que había aquí para explicar por qué NO se podía tocar es
-                    ahora el botón para tocarlo. */}
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <p className="truncate text-lg font-bold text-foreground">{nickname}</p>
-                  <button
-                    type="button"
-                    onClick={() => go(onOpenNickname)}
-                    className="shrink-0 text-muted-foreground/60 transition hover:text-rojo"
-                    title={t("myStats.changeNick")}
-                    aria-label={t("myStats.changeNick")}
-                  >
-                    <PencilIcon />
-                  </button>
-                </div>
-                <p className="truncate text-xs text-muted-foreground">{email}</p>
-              </div>
-              {tierLabel && (
-                <span className="shrink-0 rounded-none border border-gold/35 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-gold">
-                  {tierLabel}
-                </span>
-              )}
-            </div>
+            <CarnetCifra
+              puntos={cargando ? "—" : state.points}
+              puntosLabel={t("myStats.points")}
+              puesto={state.rank?.rank || null}
+              puestoTotal={state.rank?.total || null}
+              // Mientras carga, una raya en el sitio del puesto: sin ella la
+              // línea nace vacía y el carnet crece de golpe al llegar el dato.
+              sinPuesto={cargando ? "—" : state.rank?.rank ? null : t("myStats.rankNone")}
+              sello={
+                tierLabel && (
+                  <span className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span className="pm-label">{t("myStats.tierLabel")}</span>
+                    <span className="pm-sello pm-sello--oro">{tierLabel}</span>
+                  </span>
+                )
+              }
+            />
 
-            {/* Ficha de racha (en racha · mejor racha · escudo). */}
+            {/* Ficha de racha: en racha · mejor racha · escudos. */}
             <div className="mt-3 border-t border-border pt-1">
               <FichaRow
                 icon={
@@ -341,100 +259,109 @@ export default function MyStats({
                 }
                 label={t("myStats.streakCurrent")}
               >
-                <span
-                  className={`text-base font-bold tabular-nums ${
-                    onStreak ? "text-gold" : "text-muted-foreground"
-                  }`}
-                >
-                  {stats?.current_streak ?? 0}
-                </span>
+                <FichaCifra
+                  value={cargando ? "—" : (stats?.current_streak ?? 0)}
+                  premium={onStreak}
+                />
               </FichaRow>
 
               <FichaRow
                 icon={
-                  <span className="text-gold">
+                  <span className={maxStreak > 0 ? "text-gold" : "text-muted-foreground"}>
                     <CrownIcon />
                   </span>
                 }
                 label={t("myStats.streakBest")}
               >
-                <span className="text-base font-bold tabular-nums text-gold">
-                  {stats?.max_streak ?? 0}
-                </span>
+                <FichaCifra value={cargando ? "—" : maxStreak} premium={maxStreak > 0} />
               </FichaRow>
 
               <FichaRow
                 last
                 icon={
                   <span className="text-rojo">
-                    <ShieldIcon className="h-[18px] w-[18px]" />
+                    <ShieldIcon />
                   </span>
                 }
                 label={t("myStats.streakFreezes")}
+                hint={t("myStats.streakFreezesHelp")}
               >
                 <ShieldPips count={stats?.streak_freezes} />
               </FichaRow>
             </div>
+
+            {primerDia && (
+              <p className="mt-3 border-t border-border pt-3 font-display text-[13px] italic leading-snug text-muted-foreground">
+                {t("myStats.firstDay")}
+              </p>
+            )}
+          </Carnet>
+
+          {/* ── 2. Lo que has ganado: podios y puertas (con scroll) ──────── */}
+          <div className="scrollbar-premium -mx-5 min-h-0 flex-1 overflow-y-auto px-5">
+            {/* Podios de temporada y de mes (solo si tiene alguno). */}
+            <div className="mt-4 empty:hidden">
+              <PodiumMedals userId={state.user?.id} />
+            </div>
+
+            {/* Los dos ladillos del modal (secciones y ajustes) hablan el mismo
+                idioma: versalitas del sistema (pm-label). Antes uno era un
+                párrafo gris de 12px y el otro no existía. */}
+            <h3 className="pm-label mb-2 mt-4">{t("myStats.destinations")}</h3>
+            <div className="overflow-hidden border border-border bg-bg-tertiary">
+              <DoorRow
+                icon={<CarIcon />}
+                label={t("garage.headerTitle")}
+                value={garageValue}
+                onClick={() => go(onOpenGarage)}
+              />
+              <DoorRow
+                icon={<MedalIcon />}
+                label={t("ranking.title")}
+                onClick={() => go(onOpenRanking, "perfil")}
+              />
+              <DoorRow
+                last
+                icon={<TrophyIcon />}
+                label={t("header.achievements")}
+                value={logrosValue}
+                onClick={() => go(onOpenAchievements)}
+              />
+            </div>
           </div>
 
-          {/* Podios: temporada + mes de legado (solo si tiene alguno). */}
-          <div className="mt-4 empty:hidden">
-            <PodiumMedals userId={state.user?.id} />
-          </div>
+          {/* ── 3. Ajustes: idioma, sesión y salir, tras doble filete ────── */}
+          <div className="arch-filete mt-4 shrink-0 pt-4">
+            <h3 className="pm-label mb-2.5">{t("myStats.settings")}</h3>
 
-          {/* Tus destinos: una puerta por sección, con su número clave. */}
-          <p className="mb-2 mt-5 px-1 text-xs text-muted-foreground">
-            {t("myStats.destinations")}
-          </p>
-          <div className="overflow-hidden rounded-none border border-border bg-bg-tertiary">
-            <DoorRow
-              icon={<CarIcon />}
-              label={t("garage.headerTitle")}
-              value={garageValue}
-              onClick={() => go(onOpenGarage)}
-            />
-            <DoorRow
-              icon={<MedalIcon />}
-              label={t("ranking.title")}
-              value={rankValue}
-              onClick={() => go(onOpenRanking, "perfil")}
-            />
-            <DoorRow
-              icon={<TrophyIcon />}
-              label={t("header.achievements")}
-              value={logrosValue}
-              onClick={() => go(onOpenAchievements)}
-            />
-            <DoorRow
-              last
-              icon={<CrownIcon />}
-              label={t("ranking.legends")}
-              onClick={() => setLegendsOpen(true)}
-            />
-          </div>
-
-          {/* Ajustes: idioma + cerrar sesión, en un pie discreto. */}
-          <div className="mt-5 border-t border-border pt-4">
             <LanguageStrip />
-          </div>
 
-          <div className="mt-4 flex justify-center">
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="text-xs uppercase tracking-wide text-muted-foreground transition hover:text-rojo"
-            >
-              {t("common.signOut")}
-            </button>
-          </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              {/* El email SALE de debajo del nick y aterriza aquí: nadie abre su
+                  perfil para descubrir su propio correo, pero al cerrar sesión sí
+                  importa saber cuál se cierra. De paso deja de estar en la línea
+                  más visible del carnet, que es la que acaba en las capturas. */}
+              <p className="min-w-0 truncate text-[11px] text-muted-foreground" title={email}>
+                {email}
+              </p>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                // Geometría del chip del sistema (filete + versalitas), no un
+                // caption gris de 12px que parecía deshabilitado. Rojo al pasar:
+                // es la única acción con consecuencia de todo el modal.
+                className="focus-ring shrink-0 border border-border-strong px-3 py-1.5 font-body text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-rojo hover:text-rojo"
+              >
+                {t("common.signOut")}
+              </button>
+            </div>
 
-          {state.error && (
-            <p className="mt-3 text-center text-sm text-rojo">{state.error}</p>
-          )}
+            {state.error && (
+              <p className="mt-3 text-center text-sm text-rojo">{state.error}</p>
+            )}
+          </div>
         </>
       )}
     </ModalShell>
-    <Legends open={legendsOpen} onClose={() => setLegendsOpen(false)} />
-    </>
   );
 }

@@ -31,7 +31,10 @@
  *      y a escuadra en el escenario, tarjetas de 16px al lado de filetes rectos.
  *      `rounded-none` sí se permite —es la forma de decirlo en voz alta— y
  *      `rounded-full` también, porque un CÍRCULO no es una esquina blanda: es un
- *      objeto (el avatar, el «?» de la ayuda), y esos sí existen en el sistema.
+ *      objeto (el «?» de la ayuda del ranking), y esos sí existen en el sistema.
+ *      El avatar del perfil era el otro ejemplo canónico y ya no está: un disco
+ *      con la inicial del nick impresa a 12px del nick entero no daba ningún dato
+ *      y era el único radio del carnet (ver components/carnet/Carnet.jsx).
  *   6. SOMBRAS BLANDAS de Tailwind (`shadow-sm/md/lg/xl/2xl/inner`). La
  *      jerarquía se dice con filetes. Lo que de verdad flota (el desplegable del
  *      cupón, el aviso, el recorte de la foto, el sumario) lleva la sombra del
@@ -126,7 +129,7 @@ const REGLAS = [
   {
     id: "redondeo",
     re: REDONDEO,
-    msg: "esquina blanda — el sistema es de filetes y esquinas vivas; usa rounded-none (rounded-full solo para un círculo de verdad: avatar, glifo de ayuda)",
+    msg: "esquina blanda — el sistema es de filetes y esquinas vivas; usa rounded-none (rounded-full solo para un círculo de verdad, como el glifo de ayuda)",
   },
   {
     id: "sombra-blanda",

@@ -229,6 +229,11 @@
   },
   "myStats": {
     "title": "Mi Perfil",
+    "carnetKicker": "Carnet de lector",
+    "points": "Puntos",
+    "tierLabel": "Coleccionista",
+    "settings": "Ajustes",
+    "firstDay": "Aún no has ganado ninguna portada. Acierta el coche de hoy y empiezas racha.",
     "errorLoad": "No se pudieron cargar tus estadísticas.",
     "errorSignOut": "No se pudo cerrar sesión.",
     "noNickname": "Sin nickname",

@@ -1,13 +1,18 @@
 // src/components/PublicProfile.jsx
 // Modal read-only con el perfil de OTRO usuario (no el actual).
-// Es el GEMELO de MyStats: comparte el mismo carnet premium (avatar + nick +
-// tier + hairline de oro + ficha de specs), pero adaptado a "ver a otro":
+// Es el GEMELO de MyStats: mismo carnet (cabecera + cifra + ficha de specs),
+// pero adaptado a "ver a otro":
 //   - Sin email (privado, no se expone).
-//   - Sin botón Sign out, sin idioma, sin "puertas" a Garaje/Ranking/Logros
+//   - Sin botón Sign out, sin idioma, sin "puertas" a Archivo/Ranking/Logros
 //     (esas navegan a TUS secciones; en un perfil ajeno no aplican).
 //   - Las medallas se muestran INLINE (no hay adónde navegar): SOLO las
 //     conseguidas, sin progreso pendiente (eso es info personal). Si no
 //     tiene ninguna, mensaje amable.
+//
+// El carnet ya NO se dibuja aquí: vive en components/carnet/, compartido con
+// MyStats. Los dos perfiles se despegaron una vez (este se quedó con el avatar
+// de degradado menta del tema anterior mientras el propio migraba a papel) y la
+// causa era tener dos copias del mismo objeto. Ahora es una.
 //
 // Datos vienen de la RPC `get_public_profile` (ver scripts/supabase-
 // public-profile-rpc.sql). Solo expone campos que ya son públicos en
@@ -24,88 +29,8 @@ import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import AchievementIcon from "./AchievementIcons";
 import PodiumMedals from "./PodiumMedals";
-
-// ── Iconos line-art (stroke currentColor) ────────────────────────────────
-// Réplica del set de MyStats: el carnet público habla el mismo idioma de
-// iconos que el Perfil propio (NO emoji, cross-platform). Heredan el color
-// del padre vía currentColor; el tamaño vía className.
-const ICO = {
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.6,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-};
-
-function FlameIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M12 3c-1 4.5-6 7-6 12a6 6 0 0 0 12 0c0-5-5-7.5-6-12z" />
-      <path d="M12 10.5c-.5 2.5-3 4-3 7a3 3 0 0 0 6 0c0-3-2.5-4.5-3-7z" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-function CrownIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M4 8l4 3.5 4-6.5 4 6.5 4-3.5v9.5H4z" />
-      <path d="M4 17.5h16" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-function CarIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M5 11l1.6-4A2 2 0 0 1 8.5 5.7h7a2 2 0 0 1 1.9 1.3L19 11" />
-      <path d="M4 11h16v5H4z" />
-      <circle cx="7.5" cy="16.5" r="1.6" />
-      <circle cx="16.5" cy="16.5" r="1.6" />
-    </svg>
-  );
-}
-
-function MedalIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <circle cx="12" cy="14" r="6" />
-      <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
-    </svg>
-  );
-}
-
-// Avatar: réplica EXACTA del de MyStats (hilo visual entre el perfil propio y
-// el público). El comentario ya decía "idéntico a MyStats", pero no lo era: se
-// quedó con el degradado menta del tema anterior mientras MyStats migraba a
-// papel + filete de tinta, así que los dos perfiles parecían de apps distintas.
-function Avatar({ initial }) {
-  return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-tinta bg-papel-2">
-      <span className="text-xl font-bold text-rojo">{initial}</span>
-    </div>
-  );
-}
-
-// Fila de la ficha de specs: icono + etiqueta a la izquierda, valor a la
-// derecha. Mismo patrón que MyStats — lee como hoja de specs del carnet, no
-// como KPI suelto. El color del valor codifica semántica de marca: oro para
-// lo premium (racha/máxima/puntos), menta para el "acierto" (victorias).
-function FichaRow({ icon, label, value, valueClass = "text-foreground", last = false }) {
-  return (
-    <div
-      className={`flex items-center justify-between py-2.5 ${
-        last ? "" : "border-b border-border-strong/60"
-      }`}
-    >
-      <span className="flex items-center gap-2.5 text-sm text-foreground/85">
-        {icon}
-        {label}
-      </span>
-      <span className={`text-base font-bold tabular-nums ${valueClass}`}>{value}</span>
-    </div>
-  );
-}
+import Carnet, { CarnetHead, CarnetCifra, FichaRow, FichaCifra } from "./carnet/Carnet";
+import { FlameIcon, CrownIcon, CarIcon } from "./carnet/icons";
 
 // Slugs idénticos a Garage.jsx y Achievements.jsx — claves para que los
 // logos de marca y banderas resuelvan correctamente.
@@ -215,14 +140,15 @@ export default function PublicProfile({ open, onClose, userId }) {
       .map((c) => ({ category: c, items: map.get(c) }));
   }, [visibleAchievements]);
 
+  const cargando = state.loading;
   const stats = state.data?.stats;
   const nickname =
     state.data?.profile?.display_name || t("publicProfile.noNickname");
-  const initial = (nickname.trim()[0] || "?").toUpperCase();
   const onStreak = (stats?.current_streak ?? 0) > 0;
+  const maxStreak = stats?.max_streak ?? 0;
 
   // Tier global de coleccionista derivado del nº de coches ganados (mismo
-  // hilo de nivel que el Garaje y el Perfil propio). No viene de la RPC: lo
+  // hilo de nivel que el Archivo y el Perfil propio). No viene de la RPC: lo
   // calculamos de wonCarIds, que sí es público, con el helper compartido.
   const tier = collectorTier(state.data?.wonCarIds?.length || 0);
   const tierLabel = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
@@ -233,43 +159,45 @@ export default function PublicProfile({ open, onClose, userId }) {
       onClose={onClose}
       label={t("publicProfile.title")}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col p-5 overflow-hidden"
+      panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden p-5"
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-          {t("publicProfile.title")}
-        </h2>
-        <CloseButton onClick={onClose} />
-      </div>
-
-      {state.loading ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : state.error ? (
-        <p className="text-sm text-rojo">{state.error}</p>
+      {state.error ? (
+        <>
+          <div className="mb-3 flex items-start justify-between gap-2">
+            <p className="pm-kicker">{t("publicProfile.publicLabel")}</p>
+            <CloseButton onClick={onClose} className="-mr-2 -mt-2" />
+          </div>
+          <p className="text-sm text-rojo">{state.error}</p>
+        </>
       ) : (
         <>
-          {/* Carnet: identidad + ficha de specs en un solo objeto premium,
-              gemelo del carnet del Perfil propio. */}
-          <div className="relative overflow-hidden rounded-none border border-gold/20 bg-bg-tertiary p-4">
-            {/* Hairline de oro: detalle premium discreto. */}
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-oro-viejo/60 to-transparent" />
+          {/* El carnet hace de cabecera del modal, igual que en MyStats: el
+              título «Perfil» que había encima repetía lo que dice el propio
+              carnet y se comía 60px de alto. */}
+          <Carnet className="shrink-0">
+            <CarnetHead
+              kicker={t("publicProfile.publicLabel")}
+              nombre={nickname}
+              cargando={cargando}
+              trailing={<CloseButton onClick={onClose} className="-mr-2 -mt-2" />}
+            />
 
-            <div className="flex items-center gap-3">
-              <Avatar initial={initial} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-lg font-bold text-foreground">{nickname}</p>
-                <p className="mt-0.5 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                  {t("publicProfile.publicLabel")}
-                </p>
-              </div>
-              {tierLabel && (
-                <span className="shrink-0 rounded-none border border-gold/35 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-gold">
-                  {tierLabel}
-                </span>
-              )}
-            </div>
+            {/* Los puntos son la cifra del carnet (aquí no hay puesto: la RPC
+                pública no expone la posición en la clasificación). */}
+            <CarnetCifra
+              puntos={cargando ? "—" : (stats?.total_points ?? 0)}
+              puntosLabel={t("publicProfile.statPoints")}
+              sello={
+                tierLabel && (
+                  <span className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span className="pm-label">{t("myStats.tierLabel")}</span>
+                    <span className="pm-sello pm-sello--oro">{tierLabel}</span>
+                  </span>
+                )
+              }
+            />
 
-            {/* Ficha de specs: racha · máxima · aciertos · puntos. */}
+            {/* Ficha de specs: racha · máxima · aciertos. */}
             <div className="mt-3 border-t border-border pt-1">
               <FichaRow
                 icon={
@@ -278,80 +206,79 @@ export default function PublicProfile({ open, onClose, userId }) {
                   </span>
                 }
                 label={t("myStats.statStreak")}
-                value={stats?.current_streak ?? 0}
-                valueClass={onStreak ? "text-gold" : "text-muted-foreground"}
-              />
+              >
+                <FichaCifra
+                  value={cargando ? "—" : (stats?.current_streak ?? 0)}
+                  premium={onStreak}
+                />
+              </FichaRow>
+
               <FichaRow
                 icon={
-                  <span className="text-gold">
+                  <span className={maxStreak > 0 ? "text-gold" : "text-muted-foreground"}>
                     <CrownIcon />
                   </span>
                 }
                 label={t("myStats.statMaxStreak")}
-                value={stats?.max_streak ?? 0}
-                valueClass="text-gold"
-              />
+              >
+                <FichaCifra value={cargando ? "—" : maxStreak} premium={maxStreak > 0} />
+              </FichaRow>
+
               <FichaRow
+                last
                 icon={
                   <span className="text-rojo">
                     <CarIcon />
                   </span>
                 }
                 label={t("myStats.statWins")}
-                value={stats?.total_wins ?? 0}
-                valueClass="text-rojo"
-              />
-              <FichaRow
-                last
-                icon={
-                  <span className="text-gold">
-                    <MedalIcon />
-                  </span>
-                }
-                label={t("publicProfile.statPoints")}
-                value={stats?.total_points ?? 0}
-                valueClass="text-gold"
-              />
+              >
+                <span className="text-base font-bold tabular-nums text-rojo">
+                  {cargando ? "—" : (stats?.total_wins ?? 0)}
+                </span>
+              </FichaRow>
             </div>
-          </div>
+          </Carnet>
 
-          <div className="-mx-5 mt-5 flex-1 overflow-y-auto border-t border-border px-5 pt-4">
-            {/* Podios mensuales (oro/plata/bronce). Solo se renderiza si tiene
-                alguno; el wrapper se colapsa con empty:hidden. */}
-            <div className="mb-4 empty:hidden">
-              <PodiumMedals userId={userId} />
-            </div>
-
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-foreground">
-                {t("publicProfile.medalsTitle")}
-              </h3>
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {visibleAchievements.length}
-              </span>
-            </div>
-
-            {visibleAchievements.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                {t("publicProfile.noMedalsYet")}
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {groups.map(({ category, items }) => (
-                  <section key={category}>
-                    <h4 className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
-                      {t(`achievements.category.${category}`)}
-                    </h4>
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-                      {items.map((a) => (
-                        <PublicBadge key={a.id} achievement={a} locale={locale} />
-                      ))}
-                    </div>
-                  </section>
-                ))}
+          {cargando ? (
+            <p className="mt-4 text-sm text-muted-foreground">{t("common.loading")}</p>
+          ) : (
+            <div className="scrollbar-premium -mx-5 min-h-0 flex-1 overflow-y-auto px-5 pt-4">
+              {/* Podios de temporada y de mes. Solo se renderiza si tiene
+                  alguno; el wrapper se colapsa con empty:hidden. */}
+              <div className="mb-4 empty:hidden">
+                <PodiumMedals userId={userId} />
               </div>
-            )}
-          </div>
+
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="pm-label">{t("publicProfile.medalsTitle")}</h3>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {visibleAchievements.length}
+                </span>
+              </div>
+
+              {visibleAchievements.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  {t("publicProfile.noMedalsYet")}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {groups.map(({ category, items }) => (
+                    <section key={category}>
+                      <h4 className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
+                        {t(`achievements.category.${category}`)}
+                      </h4>
+                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+                        {items.map((a) => (
+                          <PublicBadge key={a.id} achievement={a} locale={locale} />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </ModalShell>

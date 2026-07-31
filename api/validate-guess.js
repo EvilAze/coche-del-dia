@@ -250,13 +250,11 @@ export default async function handler(req, res) {
             maxStreak: persisted.maxStreak,
             totalScore: persisted.totalScore,
             alreadyRecorded: persisted.alreadyRecorded === true,
-            // Streak freeze: el RPC indica si se gastó un congelado para salvar
-            // la racha hoy, y cuántos quedan.
-            freezeUsed: persisted.freezeUsed === true,
-            streakFreezes:
-              typeof persisted.streakFreezes === "number"
-                ? persisted.streakFreezes
-                : null,
+            // (Aquí viajaban `freezeUsed` y `streakFreezes`, del escudo de racha.
+            // La mecánica se retiró en agosto de 2026 —ver
+            // scripts/2026-08-retirar-escudo-racha.sql— y el RPC ya no las
+            // devuelve. Nadie las pintaba: el fin de partida del daily no tiene
+            // panel de puntuación, así que el escudo se gastaba en silencio.)
             persisted: true,
           };
         }

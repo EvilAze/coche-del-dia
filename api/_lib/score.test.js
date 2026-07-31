@@ -26,7 +26,7 @@ describe("basePointsFor", () => {
   });
 
   it("la tabla replica el CASE de los .sql (incluye el 6 vestigial)", () => {
-    // Réplica de scripts/supabase-streak-freeze.sql y supabase-monthly-ranking.sql.
+    // Réplica de scripts/2026-08-retirar-escudo-racha.sql y supabase-monthly-ranking.sql.
     expect(BASE_POINTS_BY_ATTEMPT).toEqual({ 1: 10, 2: 6, 3: 4, 4: 3, 5: 2, 6: 1 });
   });
 });

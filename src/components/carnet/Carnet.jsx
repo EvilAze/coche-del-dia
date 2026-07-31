@@ -113,9 +113,12 @@ export function CarnetCifra({ puntos, puntosLabel, puesto, puestoTotal, sinPuest
 }
 
 // Fila de la ficha: icono + etiqueta a la izquierda, valor a la derecha. Lee
-// como hoja de specs, no como KPI suelto. `hint` es la línea de ayuda bajo la
-// etiqueta (la del escudo de racha, que llevaba meses sin explicarse).
-export function FichaRow({ icon, label, hint, children, last = false }) {
+// como hoja de specs, no como KPI suelto.
+//
+// Sin línea de ayuda bajo la etiqueta, y es deliberado: la hubo para explicar
+// el escudo de racha, y que una fila de la ficha necesitara subtítulo era la
+// prueba de que ese dato no se explicaba solo. Los tres que quedan sí.
+export function FichaRow({ icon, label, children, last = false }) {
   return (
     <div
       className={`flex items-center justify-between gap-3 py-2.5 ${
@@ -123,17 +126,10 @@ export function FichaRow({ icon, label, hint, children, last = false }) {
       }`}
     >
       <span className="flex min-w-0 items-center gap-2.5 text-sm text-foreground/85">
-        {/* `shrink-0`: con la línea de ayuda debajo, la etiqueta puede pasar a
-            dos líneas y el flex intentaba encoger también el icono. */}
+        {/* `shrink-0`: si la etiqueta pasa a dos líneas (alemán, inglés largo),
+            el flex intentaría encoger también el icono. */}
         <span className="shrink-0">{icon}</span>
-        <span className="min-w-0">
-          {label}
-          {hint && (
-            <span className="mt-0.5 block font-display text-[11px] italic leading-tight text-muted-foreground">
-              {hint}
-            </span>
-          )}
-        </span>
+        <span className="min-w-0">{label}</span>
       </span>
       {children}
     </div>

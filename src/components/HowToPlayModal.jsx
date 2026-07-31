@@ -48,6 +48,12 @@ export default function HowToPlayModal({ open, onClose }) {
         <Rule title={t("howto.rule2Title")}>{t("howto.rule2")}</Rule>
         <Rule title={t("howto.rule3Title")}>{t("howto.rule3")}</Rule>
         <Rule title={t("howto.rule4Title")}>{t("howto.rule4")}</Rule>
+        {/* Cinco reglas y ni una más. Hubo una sexta, la del escudo de racha:
+            era la más larga de todas (tres cláusulas: cuántos tienes, cómo se
+            ganan, qué no cubren) para explicar una excepción de la regla 5. Que
+            la letra pequeña de una mecánica ocupe el triple que la regla del
+            juego es la señal de que la mecánica sobra; se retiró entera (ver
+            scripts/2026-08-retirar-escudo-racha.sql). */}
         <Rule title={t("howto.rule5Title")}>{t("howto.rule5")}</Rule>
       </ul>
 

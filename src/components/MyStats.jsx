@@ -23,9 +23,11 @@
 //     Escape: una pulsación cerraba los dos. El histórico se mudó a su sitio
 //     natural, la tercera pestaña de la Clasificación (Ranking.jsx), y el
 //     conflicto desaparece de raíz.
-//   · El escudo de racha se mostraba como dos siluetas sin una palabra, mientras
-//     `myStats.streakFreezesHelp` llevaba meses en los locales sin que nadie lo
-//     pintara. La explicación existía; se había caído.
+//   · La ficha tenía una tercera fila, el inventario de escudos de racha: dos
+//     siluetas sin una sola palabra al lado. Intentar explicarlas fue lo que
+//     destapó que la mecánica entera sobraba (un seguro que el jugador no sabe
+//     que tiene no le evita abandonar, y una racha que a veces perdona deja de
+//     ser un contrato). Se retiró: scripts/2026-08-retirar-escudo-racha.sql.
 
 import { useEffect, useState } from "react";
 import { getProfileSummary } from "../lib/statsService";
@@ -40,37 +42,11 @@ import Carnet, { CarnetHead, CarnetCifra, FichaRow, FichaCifra } from "./carnet/
 import {
   FlameIcon,
   CrownIcon,
-  ShieldIcon,
   CarIcon,
   MedalIcon,
   TrophyIcon,
   ChevronRightIcon,
 } from "./carnet/icons";
-
-// Tope de congelados — sincronizado con v_freeze_cap en
-// scripts/supabase-streak-freeze.sql. Si cambias uno, cambia el otro.
-const FREEZE_CAP = 2;
-
-// Pips de escudos como inventario (lleno = disponible). Dos escudos en vez de
-// un número suelto: se lee como "tengo estos", no como interruptor on/off
-// (que era la confusión del control anterior).
-function ShieldPips({ count }) {
-  const { t } = useT();
-  const freezes = Math.max(0, Math.min(FREEZE_CAP, count ?? 0));
-  return (
-    <span
-      className="flex shrink-0 items-center gap-1.5"
-      role="img"
-      aria-label={t("myStats.streakFreezesCount", { count: freezes, max: FREEZE_CAP })}
-    >
-      {Array.from({ length: FREEZE_CAP }).map((_, i) => (
-        <span key={i} className={i < freezes ? "text-rojo" : "text-border-strong"}>
-          <ShieldIcon className="h-[15px] w-[15px]" />
-        </span>
-      ))}
-    </span>
-  );
-}
 
 // Puerta a un destino (Archivo / Clasificación / Logros): icono rojo + nombre +
 // dato clave + chevron. Es un botón: cierra el perfil y abre el destino real.
@@ -249,7 +225,9 @@ export default function MyStats({
               }
             />
 
-            {/* Ficha de racha: en racha · mejor racha · escudos. */}
+            {/* Ficha de racha: en racha · mejor racha. Había una tercera fila,
+                el inventario de escudos, con la mecánica retirada en agosto de
+                2026 (ver scripts/2026-08-retirar-escudo-racha.sql). */}
             <div className="mt-3 border-t border-border pt-1">
               <FichaRow
                 icon={
@@ -266,6 +244,7 @@ export default function MyStats({
               </FichaRow>
 
               <FichaRow
+                last
                 icon={
                   <span className={maxStreak > 0 ? "text-gold" : "text-muted-foreground"}>
                     <CrownIcon />
@@ -274,19 +253,6 @@ export default function MyStats({
                 label={t("myStats.streakBest")}
               >
                 <FichaCifra value={cargando ? "—" : maxStreak} premium={maxStreak > 0} />
-              </FichaRow>
-
-              <FichaRow
-                last
-                icon={
-                  <span className="text-rojo">
-                    <ShieldIcon />
-                  </span>
-                }
-                label={t("myStats.streakFreezes")}
-                hint={t("myStats.streakFreezesHelp")}
-              >
-                <ShieldPips count={stats?.streak_freezes} />
               </FichaRow>
             </div>
 

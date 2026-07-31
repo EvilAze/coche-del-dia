@@ -162,8 +162,6 @@
   "result": {
     "wonTitle": "YOU GOT IT!",
     "lostTitle": "NO LUCK",
-    "streakSavedTitle": "Streak saved!",
-    "streakSavedBody": "You missed a day, but a shield protected your streak.",
     "wasThe": "It was the",
     "achievedIn": {
       "one": "Solved in {count} attempt",
@@ -242,10 +240,6 @@
     "statStreak": "Streak",
     "statMaxStreak": "Best",
     "statWins": "Wins",
-    "streakFreezes": "Streak shield",
-    "streakFreezesHelp": "Protects your streak if you miss a day",
-    "streakFreezesEarn": "Earn 1 every 10-day streak",
-    "streakFreezesCount": "{count} of {max} shields",
     "streakCurrent": "On a streak",
     "streakBest": "Best streak",
     "destinations": "Your sections",

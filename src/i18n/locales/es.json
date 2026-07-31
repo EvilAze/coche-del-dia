@@ -162,8 +162,6 @@
   "result": {
     "wonTitle": "¡ACERTASTE!",
     "lostTitle": "SIN SUERTE",
-    "streakSavedTitle": "¡Racha salvada!",
-    "streakSavedBody": "Faltaste un día, pero un escudo protegió tu racha.",
     "wasThe": "Era el",
     "achievedIn": {
       "one": "Conseguido en {count} intento",
@@ -242,10 +240,6 @@
     "statStreak": "Racha",
     "statMaxStreak": "Máxima",
     "statWins": "Aciertos",
-    "streakFreezes": "Escudo de racha",
-    "streakFreezesHelp": "Protege tu racha si faltas un día",
-    "streakFreezesEarn": "Ganas 1 cada 10 días de racha",
-    "streakFreezesCount": "{count} de {max} escudos",
     "streakCurrent": "En racha",
     "streakBest": "Mejor racha",
     "destinations": "Tus secciones",

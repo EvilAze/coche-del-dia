@@ -1,5 +1,11 @@
 -- scripts/supabase-streak-freeze.sql
 --
+-- ⚠ HISTÓRICO — RETIRADO EN AGOSTO DE 2026. NO EJECUTAR.
+-- Lo sustituye scripts/2026-08-retirar-escudo-racha.sql, que devuelve
+-- record_daily_result a la regla simple (consecutivo o reset). Allí está
+-- explicado por qué se retiró la mecánica; este archivo se conserva solo para
+-- entender qué había antes. Re-ejecutarlo la resucitaría.
+--
 -- STREAK FREEZE (congelado de racha): protege la racha cuando el jugador falta
 -- EXACTAMENTE un día. Estilo Duolingo. Reduce el abandono "ya rompí la racha,
 -- para qué vuelvo", que es el disparador #1 de churn en juegos diarios.

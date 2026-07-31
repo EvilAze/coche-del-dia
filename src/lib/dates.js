@@ -25,17 +25,18 @@ function shiftMadridDay(todayStr, days) {
 // calculado pero NO lo resetea hasta que el jugador vuelve a jugar. La racha
 // está viva si el último día jugado es HOY u AYER en zona Madrid.
 //
-// Con streak freeze: si faltó EXACTAMENTE un día (jugó anteayer) pero tiene
-// congelados disponibles, la racha sigue viva — se salvará al volver a jugar.
+// Réplica de la regla de record_daily_result (ver
+// scripts/2026-08-retirar-escudo-racha.sql): consecutivo o vuelta a empezar,
+// sin excepciones. Hubo una tercera rama —el escudo de racha daba por viva la
+// racha con un hueco de un día si quedaba inventario—, retirada con la mecánica:
+// una racha que a veces perdona sin que el jugador sepa por qué deja de ser un
+// contrato, y era justo lo que sostenía el "no pierdas tu racha de N días".
 //
-// `now` es inyectable para tests deterministas. `streakFreezes` por defecto 0
-// (los callers sin inventario se comportan como antes).
-export function isStreakAlive(lastPlayedDate, now = new Date(), streakFreezes = 0) {
+// `now` es inyectable para tests deterministas.
+export function isStreakAlive(lastPlayedDate, now = new Date()) {
   if (!lastPlayedDate) return false;
   const today = getMadridDateStr(now);
   if (lastPlayedDate === today) return true;
   if (lastPlayedDate === shiftMadridDay(today, 1)) return true; // ayer
-  // Hueco de un día cubierto por un congelado disponible.
-  if (streakFreezes > 0 && lastPlayedDate === shiftMadridDay(today, 2)) return true;
   return false;
 }

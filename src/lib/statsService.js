@@ -9,7 +9,6 @@ const EMPTY_STATS = {
   total_wins: 0,
   total_points: 0,
   last_played_date: null,
-  streak_freezes: 1, // default de la BD (todos arrancan con 1)
 };
 
 // La comprobación de frescura de la racha (isStreakAlive) vive ahora en
@@ -73,7 +72,7 @@ export async function getMyStreak(userId) {
 
   const { data, error } = await supabase
     .from("stats")
-    .select("current_streak, last_played_date, streak_freezes")
+    .select("current_streak, last_played_date")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -85,11 +84,8 @@ export async function getMyStreak(userId) {
   const streak = data?.current_streak ?? 0;
   if (streak === 0) return 0;
 
-  // Si last_played_date no es hoy ni ayer (Madrid), la racha está rota —
-  // salvo que un congelado cubra el hueco de un día (entonces sigue viva).
-  return isStreakAlive(data?.last_played_date, new Date(), data?.streak_freezes ?? 0)
-    ? streak
-    : 0;
+  // Si last_played_date no es hoy ni ayer (Madrid), la racha está rota.
+  return isStreakAlive(data?.last_played_date) ? streak : 0;
 }
 
 // Mi puesto en la TEMPORADA en curso, para la píldora de estado del header y el
@@ -208,7 +204,7 @@ export async function getMyStats() {
     supabase
       .from("stats")
       .select(
-        "current_streak, max_streak, total_wins, total_points, last_played_date, achievements_unlocked, streak_freezes"
+        "current_streak, max_streak, total_wins, total_points, last_played_date, achievements_unlocked"
       )
       .eq("user_id", user.id)
       .maybeSingle(),
@@ -218,12 +214,11 @@ export async function getMyStats() {
   if (statsError) throw statsError;
 
   // Aplicamos la misma comprobación de frescura que en getMyStreak: si la
-  // racha lleva más de un día sin actividad la mostramos como 0 — salvo que un
-  // congelado cubra el hueco de un día.
+  // racha lleva más de un día sin actividad la mostramos como 0.
   const cleanStats = stats ? { ...stats } : { ...EMPTY_STATS };
   if (
     cleanStats.current_streak > 0 &&
-    !isStreakAlive(cleanStats.last_played_date, new Date(), cleanStats.streak_freezes ?? 0)
+    !isStreakAlive(cleanStats.last_played_date)
   ) {
     cleanStats.current_streak = 0;
   }
@@ -256,7 +251,7 @@ export async function getCatalogCount() {
 }
 
 // Resumen consolidado para el modal Mi Perfil (carnet + puertas). Parte de
-// getMyStats (identidad + racha + escudos) y le añade EN PARALELO los datos
+// getMyStats (identidad + racha) y le añade EN PARALELO los datos
 // que las "puertas" necesitan, cada uno barato y derivado de fuentes que ya
 // existían — sin traer el Garaje entero ni el leaderboard completo:
 //   - rank:       getMySeasonRank (RPC que solo devuelve mi fila).

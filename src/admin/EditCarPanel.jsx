@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useFreshCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
+import DescriptionEsField from "./DescriptionEsField";
 import FocusPicker from "./FocusPicker";
 import ZoomBaseField from "./ZoomBaseField";
 import { DEFAULT_ZOOM_BASE } from "../lib/zoom.js";
@@ -677,24 +678,16 @@ export default function EditCarPanel({
               </span>
             </Field>
 
-            <Field
-              label={
-                <>
-                  Descripción (ES)
-                  <span className="ml-2 normal-case tracking-normal text-muted">
-                    · {form.description.length} / 600
-                  </span>
-                </>
-              }
-            >
-              <textarea
+            <Field label="Descripción (ES)">
+              <DescriptionEsField
                 value={form.description}
-                onChange={(e) => updateField("description", e.target.value)}
-                placeholder="Un párrafo corto sobre el coche..."
-                maxLength={600}
-                rows={4}
+                onChange={(v) => updateField("description", v)}
+                marca={form.marca}
+                modelo={form.modelo}
+                anio={form.anio}
+                pais={form.pais}
                 disabled={isSubmitting}
-                className={`${inputClass} h-auto resize-y py-3 leading-relaxed`}
+                inputClass={inputClass}
               />
             </Field>
 

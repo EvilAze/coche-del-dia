@@ -38,14 +38,8 @@ export function CrownIcon({ className = "h-[18px] w-[18px]" }) {
   );
 }
 
-export function ShieldIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z" />
-      <path d="M9 12l2 2 4-4.2" />
-    </svg>
-  );
-}
+// (Aquí vivía ShieldIcon, el escudo de racha. La mecánica se retiró en agosto
+// de 2026 —ver scripts/2026-08-retirar-escudo-racha.sql— y con ella su icono.)
 
 export function CarIcon({ className = "h-[18px] w-[18px]" }) {
   return (

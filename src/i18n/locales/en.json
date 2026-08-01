@@ -90,8 +90,6 @@
     "rule4": "It counts as correct within ±2 years.",
     "rule5Title": "A car every day",
     "rule5": "Come back every 24h for a new car and keep your streak.",
-    "rule6Title": "Streak shield",
-    "rule6": "You start with one shield: miss a day and it's spent automatically, so your streak carries on. You earn another every 10-day streak, up to 2. It doesn't cover losses: play and get it wrong and the streak resets to zero.",
     "cta": "Let's play!"
   },
   "guessLog": {
@@ -164,8 +162,6 @@
   "result": {
     "wonTitle": "YOU GOT IT!",
     "lostTitle": "NO LUCK",
-    "streakSavedTitle": "Streak saved!",
-    "streakSavedBody": "You missed a day, but a shield protected your streak.",
     "wasThe": "It was the",
     "achievedIn": {
       "one": "Solved in {count} attempt",
@@ -227,8 +223,7 @@
     "streakBroken": "Streak broken",
     "points": "pts",
     "streakLabel": "Streak:",
-    "totalLabel": "Total:",
-    "freezeUsed": "Streak shield used: your {count}-day streak lives on."
+    "totalLabel": "Total:"
   },
   "myStats": {
     "title": "My Profile",
@@ -245,9 +240,6 @@
     "statStreak": "Streak",
     "statMaxStreak": "Best",
     "statWins": "Wins",
-    "streakFreezes": "Streak shield",
-    "streakFreezesHelp": "Protects your streak if you miss a day",
-    "streakFreezesCount": "{count} of {max} shields",
     "streakCurrent": "On a streak",
     "streakBest": "Best streak",
     "destinations": "Your sections",

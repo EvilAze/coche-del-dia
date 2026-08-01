@@ -4,7 +4,8 @@
 //
 // RÉPLICA (CLAUDE.md, mismo criterio que zoom.js): la persistencia "oficial"
 // de puntos la calcula record_daily_result_v2 en SQL, y la tabla CASE está
-// duplicada en scripts/supabase-streak-freeze.sql y supabase-monthly-ranking.sql.
+// duplicada en scripts/2026-08-retirar-escudo-racha.sql (la versión vigente de
+// record_daily_result) y en supabase-monthly-ranking.sql.
 // Esta copia JS gobierna el score que se muestra al cliente y el de los
 // anónimos (que no persisten). Si cambias la curva aquí, cámbiala en esos
 // dos .sql o el ranking divergirá del número que ve el jugador.

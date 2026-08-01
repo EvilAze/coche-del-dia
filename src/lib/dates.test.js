@@ -50,22 +50,10 @@ describe("isStreakAlive", () => {
     expect(isStreakAlive("2026-06-29", firstOfMonth)).toBe(false);
   });
 
-  describe("con streak freeze", () => {
-    it("anteayer + congelado disponible → sigue viva", () => {
-      expect(isStreakAlive("2026-06-01", now, 1)).toBe(true);
-    });
-
-    it("anteayer SIN congelados → rota", () => {
-      expect(isStreakAlive("2026-06-01", now, 0)).toBe(false);
-    });
-
-    it("el congelado NO cubre un hueco de 2+ días", () => {
-      expect(isStreakAlive("2026-05-31", now, 2)).toBe(false);
-    });
-
-    it("hoy/ayer siguen vivos independientemente de congelados", () => {
-      expect(isStreakAlive("2026-06-03", now, 0)).toBe(true);
-      expect(isStreakAlive("2026-06-02", now, 0)).toBe(true);
-    });
+  // Retirado el escudo de racha (agosto 2026), la regla no tiene excepciones:
+  // hoy o ayer, y punto. Este test defiende justo eso — que un tercer argumento
+  // olvidado en algún caller no reviva la indulgencia por la puerta de atrás.
+  it("ignora argumentos de más: un hueco de un día rompe la racha igual", () => {
+    expect(isStreakAlive("2026-06-01", now, 2)).toBe(false);
   });
 });

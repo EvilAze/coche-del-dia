@@ -503,23 +503,6 @@ export function useGame() {
 
       if (scoreBreakdown && newStatus !== "playing") setScore(scoreBreakdown);
 
-      // ESCUDO DE RACHA: el único momento en que la mecánica hace su trabajo es
-      // este —vuelves tras faltar un día, ganas y la racha continúa—, y hasta
-      // ahora pasaba en silencio: `freezeUsed` viajaba del RPC a la respuesta de
-      // /api/validate-guess y moría ahí. El fin de partida del daily no tiene
-      // panel de puntuación (es deliberado: la pantalla es foto + compartir), así
-      // que lo contamos por el canal que ya usan los logros. Sin `user` en la
-      // condición: la sesión anónima también acumula racha y también gasta
-      // escudo, y `freezeUsed` solo puede ser true si el servidor persistió.
-      // `type: "success"` y no "logro": el oro está reservado a los logros; esto
-      // es una confirmación, no una medalla.
-      if (scoreBreakdown?.freezeUsed) {
-        toast.push(
-          t("score.freezeUsed", { count: scoreBreakdown.currentStreak ?? 0 }),
-          { type: "success", duration: 4200 }
-        );
-      }
-
       // Analytics: registramos el resultado de la partida diaria.
       // attempts incluye el intento ganador/perdedor que acaba de pasar.
       if (newStatus === "won") {

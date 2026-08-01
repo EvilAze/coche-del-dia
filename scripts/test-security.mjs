@@ -27,7 +27,7 @@ const { signRevealToken, verifyRevealToken } = await import(
   "../api/_lib/reveal-token.js"
 );
 
-const { getClientIp } = await import("../api/_lib/rate-limit.js");
+const { getClientIp } = await import("../api/_lib/ratelimit.js");
 
 // ---------- harness mínimo de assertions --------------------------------
 let passed = 0;

@@ -21,7 +21,7 @@ const enc = new TextEncoder();
 // ArrayBuffer; el atob/btoa nativo solo habla con strings ASCII, así que
 // hacemos el round-trip a string binario antes de codificar.
 
-export function b64urlEncodeBytes(bytes) {
+function b64urlEncodeBytes(bytes) {
   let bin = "";
   const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);

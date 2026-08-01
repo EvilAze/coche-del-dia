@@ -1,31 +1,14 @@
 // src/data/countries.js
-// Centraliza la info de país (emoji bandera + código ISO) para que cualquier
-// vista la consuma sin duplicar el mapa.
+// Centraliza el código ISO de cada país para que cualquier vista lo consuma
+// sin duplicar el mapa. De ahí salen dos cosas: el nombre traducido del país
+// (i18n, vía Intl.DisplayNames) y la ruta de su bandera en /public/flags.
 //
-// Nota sobre emojis: en Windows desktop NO existen glifos para banderas,
-// el sistema los renderiza como su código ISO en texto ("🇬🇧" → "GB").
-// Por eso para mostrar banderas en UI usamos `flagImagePath()` (JPGs reales
-// en /public/flags), que funciona en TODOS los dispositivos. `COUNTRY_FLAGS`
-// y `codeFor()` quedan disponibles para usos no visuales (share text,
-// metadata, casos donde se ha verificado que el emoji sí renderiza).
-
-export const COUNTRY_FLAGS = {
-  Japón: "🇯🇵",
-  Alemania: "🇩🇪",
-  Italia: "🇮🇹",
-  "EE.UU.": "🇺🇸",
-  Francia: "🇫🇷",
-  "Reino Unido": "🇬🇧",
-  "Corea del Sur": "🇰🇷",
-  Suecia: "🇸🇪",
-  España: "🇪🇸",
-  Austria: "🇦🇹",
-  Croacia: "🇭🇷",
-  Rumanía: "🇷🇴",
-  Rusia: "🇷🇺",
-  "República Checa": "🇨🇿",
-  "Países Bajos": "🇳🇱",
-};
+// Aquí hubo también un `COUNTRY_FLAGS` con los emoji de bandera, guardado
+// "por si hacía falta para usos no visuales". Nunca hizo falta: la UI pinta
+// JPGs reales con flagImagePath() precisamente porque Windows desktop no tiene
+// glifo de bandera y degrada el emoji a su código ISO en texto plano. Un mapa
+// que nadie lee y que además no se puede enseñar no es una reserva, es lastre
+// (y lo único que obligaba a exceptuar este fichero en test:estetica).
 
 export const COUNTRY_CODES = {
   Japón: "JP",
@@ -45,14 +28,6 @@ export const COUNTRY_CODES = {
   "Países Bajos": "NL",
 };
 
-export function flagFor(pais) {
-  return COUNTRY_FLAGS[pais] || "🏳️";
-}
-
-export function codeFor(pais) {
-  return COUNTRY_CODES[pais] || "??";
-}
-
 // Helpers para usar las JPGs reales de /public/flags/ — única fuente fiable
 // de banderas en CROSS-PLATFORM (Windows desktop NO renderiza los emojis de
 // bandera; los muestra como código ISO en texto plano). Cualquier UI que
@@ -64,7 +39,7 @@ export function codeFor(pais) {
 //   "EE.UU."       → "eeuu"
 //   "Reino Unido"  → "reino-unido"
 //   "Países Bajos" → "paises-bajos"
-export function slugifyCountry(pais) {
+function slugifyCountry(pais) {
   return String(pais || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

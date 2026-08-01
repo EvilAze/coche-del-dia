@@ -31,10 +31,10 @@
 // crear otro par de ficheros que haya que mantener en sync.
 
 // Claves de lista (varios valores en OR). El orden importa para los mensajes.
-export const THEME_LIST_KEYS = ["tags", "pais", "make"];
+const THEME_LIST_KEYS = ["tags", "pais", "make"];
 // Claves de rango de año.
-export const THEME_RANGE_KEYS = ["year_from", "year_to"];
-export const THEME_KEYS = [...THEME_LIST_KEYS, ...THEME_RANGE_KEYS];
+const THEME_RANGE_KEYS = ["year_from", "year_to"];
+const THEME_KEYS = [...THEME_LIST_KEYS, ...THEME_RANGE_KEYS];
 
 // Tope de valores por lista. No es una restricción de producto: es un límite
 // de cordura para que un body malformado no acabe en un jsonb enorme que

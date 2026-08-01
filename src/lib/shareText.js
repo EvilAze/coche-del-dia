@@ -60,7 +60,7 @@ import { encodeResult } from "./resultCode";
 // Fallback de intentos máximos para el score del share. La fuente de verdad es
 // el servidor (get-daily-car), que el caller pasa explícitamente; este default
 // solo cubre llamadas sin el dato.
-export const SHARE_MAX_ATTEMPTS = 5;
+const SHARE_MAX_ATTEMPTS = 5;
 
 // Rejilla compartible: una línea por intento. Espejo EXACTO que consume también
 // EndScreen.jsx. Optional chaining + guard de array → nunca lanza con estado

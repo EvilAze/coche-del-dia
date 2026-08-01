@@ -30,7 +30,7 @@ import { verifyRevealToken } from "./_lib/reveal-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { methodGuard } from "./_lib/http.js";
-import { getClientIp } from "./_lib/rate-limit.js";
+import { getClientIp } from "./_lib/ratelimit.js";
 import { logCanary } from "./_lib/audit.js";
 import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
 

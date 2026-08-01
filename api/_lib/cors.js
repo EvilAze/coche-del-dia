@@ -4,7 +4,7 @@
 // X-Anon-Session (no por cookie), NO usamos credenciales → nunca "*" pero
 // tampoco Allow-Credentials. Módulo puro (edge-safe, sin APIs de Node).
 
-export const ALLOWED_APP_ORIGINS = ["https://localhost"];
+const ALLOWED_APP_ORIGINS = ["https://localhost"];
 
 export function isAllowedOrigin(origin) {
   return typeof origin === "string" && ALLOWED_APP_ORIGINS.includes(origin);

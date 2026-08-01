@@ -57,7 +57,7 @@ export function useCatalog() {
 
 // Fetch que bypassea CDN (query param distinto = cache miss en Vercel)
 // y caché del navegador (cache: 'no-store').
-export async function loadFreshCatalog() {
+async function loadFreshCatalog() {
   const url = `/api/list-cars?fresh=${Date.now()}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`/api/list-cars devolvió ${res.status}`);

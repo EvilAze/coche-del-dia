@@ -25,6 +25,19 @@ describe("sincronía src/lib/zoom.js ↔ api/_lib/zoom.js", () => {
     }
   });
 
+  // "Sin dato" (null de la columna, "" de un input vacío) tiene que caer al
+  // DEFAULT, no al MIN. Number(null) es 0 y 0 es finito, así que sin el guard
+  // explícito ambos lados coincidían… en el valor equivocado (3.2).
+  it("un zoom_base ausente cae al default, no al mínimo", () => {
+    for (const mod of [client, server]) {
+      expect(mod.clampZoomBase(null)).toBe(mod.DEFAULT_ZOOM_BASE);
+      expect(mod.clampZoomBase("")).toBe(mod.DEFAULT_ZOOM_BASE);
+      expect(mod.clampZoomBase(undefined)).toBe(mod.DEFAULT_ZOOM_BASE);
+      // Un 0 explícito SÍ es un número fuera de rango: se acota al mínimo.
+      expect(mod.clampZoomBase(0)).toBe(mod.ZOOM_BASE_MIN);
+    }
+  });
+
   it("zoomForAttempt y cropPctForAttempt coinciden para todo intento y base", () => {
     const bases = [undefined, 3.2, 3.7, 4.4, 6.0];
     for (const base of bases) {

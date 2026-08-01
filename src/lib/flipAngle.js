@@ -10,7 +10,7 @@
 // Fracción del ancho que hay que arrastrar para que el volteo se complete al
 // soltar. 28 % es el punto donde el gesto ya se lee como intención y no como
 // titubeo; por debajo, la carta vuelve a su sitio.
-export const FLIP_COMMIT_RATIO = 0.28;
+const FLIP_COMMIT_RATIO = 0.28;
 // Tope en píxeles para pantallas grandes: en un panel ancho, el 28 % serían
 // varios centímetros de arrastre y el gesto se haría cansino.
 export const FLIP_COMMIT_MAX_PX = 90;

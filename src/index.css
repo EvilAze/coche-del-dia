@@ -300,9 +300,7 @@ body,
   .animate-reveal-win,
   .animate-toast-in,
   .animate-slide-up,
-  .animate-fade-in,
-  .animate-pop,
-  .animate-shake {
+  .animate-fade-in {
     animation: none !important;
   }
 }
@@ -663,7 +661,6 @@ body,
    aprieta su ritmo vertical para no necesitar scroll interno. */
 @media (max-height: 720px) {
   .cdd-reveal { height: clamp(120px, 20svh, 170px); }
-  .cdd-end-tabs { padding-top: 12px; }
   .cdd-end-body { padding-top: 10px; gap: 10px; }
   .cdd-next { margin-top: 6px; }
 }
@@ -1075,14 +1072,9 @@ body,
   border: 0; outline: 0;
   padding: 0; margin: 0;
 }
-/* Cabecera genérica "título entre filetes": la conserva la Nota de la Redacción
-   (NotaRedaccion.jsx). El cupón usa su propia cabecera enriquecida de abajo. */
-.prensa-cupon-cab {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
-  font-family: var(--font-body); font-weight: 800; font-size: 11px;
-  letter-spacing: .24em; text-transform: uppercase; white-space: nowrap; color: var(--cdd-text);
-}
-.prensa-cupon-cab::before, .prensa-cupon-cab::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); }
+/* (Purga: `.prensa-cupon-cab`, la cabecera genérica "título entre filetes".
+   Se guardaba "para la Nota de la Redacción", pero ese componente
+   —NotaRedaccion.jsx— ya no existe: era la última referencia y se fue con él.) */
 
 /* El cupón ya no tiene cabecera: ni título "Cupón de respuesta", ni folio de
    intento, ni filete. Arranca directo en el primer campo (marca). */

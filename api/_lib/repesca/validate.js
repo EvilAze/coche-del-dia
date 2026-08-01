@@ -16,20 +16,20 @@ import { requireUser } from "../auth.js";
 import { todayInMadrid } from "../date.js";
 import { parseBody, methodGuard } from "../http.js";
 import { captureServerError } from "../sentry.js";
-import { getClientIp } from "../rate-limit.js";
+import { getClientIp } from "../ratelimit.js";
 import { logGuessAttempt } from "../audit.js";
+// Misma comparación que el modo daily, importada en vez de recopiada. La copia
+// local que había aquí ya se había quedado atrás: le faltaba el guard del año
+// no numérico, así que un año basura pintaba flecha "sube" o "baja" como si el
+// jugador hubiera dado alguno. El margen de ±2 años también vive allí.
+import { compareGuess } from "../compare-guess.js";
 
-const ANIO_CORRECT_MARGIN = 2;
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
 const BASE_POINTS_BY_ATTEMPT = { 1: 10, 2: 6, 3: 4, 4: 3, 5: 2, 6: 1 };
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function normalize(value) {
-  return String(value || "").trim().toLowerCase();
-}
 
 // Puntos base de la repesca = mitad de los daily, redondeo hacia arriba
 // (para que el intento 5 = 1 punto y no 0). Sigue siendo significativamente
@@ -192,37 +192,9 @@ export default async function handler(req, res) {
     }
     const attemptNumber = existingGuesses.length + 1;
 
-    // 4) Comparación (idéntica a /api/validate-guess).
-    const anioNum = parseInt(guessAnio, 10);
-    const anioCorrect =
-      Number.isFinite(anioNum) &&
-      Math.abs(anioNum - realCar.anio) <= ANIO_CORRECT_MARGIN;
-
-    const marcaOk = normalize(guessRow.make) === normalize(realCar.marca);
-    const modeloOk = normalize(guessRow.model) === normalize(realCar.modelo);
-    const paisOk =
-      !marcaOk &&
-      guessRow.pais &&
-      realCar.pais &&
-      guessRow.pais === realCar.pais;
-
-    const result = {
-      marca: {
-        val: guessRow.make,
-        status: marcaOk ? "correct" : paisOk ? "partial" : "wrong",
-        pais: guessRow.pais,
-      },
-      modelo: {
-        val: guessRow.model,
-        status: modeloOk ? "correct" : "wrong",
-      },
-      anio: {
-        val: String(guessAnio),
-        status: anioCorrect ? "correct" : "wrong",
-        direction: anioCorrect ? null : anioNum < realCar.anio ? "up" : "down",
-      },
-      win: marcaOk && modeloOk && anioCorrect,
-    };
+    // 4) Comparación: el MISMO módulo puro que usa /api/validate-guess, para
+    //    que repesca y daily no puedan volver a juzgar distinto.
+    const result = compareGuess({ realCar, guessRow, guessAnio });
 
     const isGameOver = result.win || attemptNumber >= effectiveMaxAttempts;
     const newStatus = result.win

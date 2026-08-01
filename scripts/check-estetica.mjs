@@ -158,12 +158,6 @@ const ALLOW = [
     porque: "verifica esa misma rejilla de texto plano",
   },
   {
-    path: "src/data/countries.js",
-    reglas: ["emoji"],
-    porque:
-      "COUNTRY_FLAGS queda para usos NO visuales; la UI ya pinta las banderas con flagImagePath() precisamente porque Windows no tiene glifo de bandera",
-  },
-  {
     path: "src/components/CarImage.jsx",
     reglas: ["blanco-negro"],
     porque:

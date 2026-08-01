@@ -13,7 +13,7 @@
 
 import { readAnonToken, signAnonSession } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
-import { getClientIp } from "./_lib/rate-limit.js";
+import { getClientIp } from "./_lib/ratelimit.js";
 import { checkRateLimit } from "./_lib/ratelimit.js";
 import { captureServerError } from "./_lib/sentry.js";
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
@@ -58,9 +58,10 @@ export default async function handler(req, res) {
   //   El script que itera el catálogo (200 coches) reventará la ventana
   //   a las pocas iteraciones.
   //
-  //   Best-effort in-memory: ver api/_lib/rate-limit.js. No cuesta nada
-  //   pero un cheater con instancias warmadas distintas podría rotar entre
-  //   ellas — para una web pequeña como esta es aceptable.
+  //   Distribuido (Upstash) y por tanto compartido entre instancias: rotar
+  //   entre lambdas warm ya no lo esquiva. Es FAIL-OPEN a propósito — si
+  //   Upstash cae, se juega sin limiter antes que romper la partida. Detalle
+  //   completo en api/_lib/ratelimit.js.
   const ip = getClientIp(req);
   const limit = await checkRateLimit(ip, { max: 30, windowSec: 60, prefix: "vg" });
   if (!limit.ok) {

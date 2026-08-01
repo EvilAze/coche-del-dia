@@ -32,11 +32,12 @@ function readServiceKey() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || null;
 }
 
-// Getters. Llaman a process.env en cada invocación (live binding), nunca
-// se cachea el snapshot — eso evita el bug original.
-export function getSupabaseUrl() { return readUrl(); }
-export function getSupabaseAnonKey() { return readAnonKey(); }
-export function getSupabaseServiceRoleKey() { return readServiceKey(); }
+// (Sobre estas tres lecturas había otros tres getters públicos —
+// getSupabaseUrl / getSupabaseAnonKey / getSupabaseServiceRoleKey— que se
+// limitaban a reenviar la llamada. Nadie los usaba: los clientes de abajo
+// llaman a readX() directamente. Lo que importaba de ellos, y sigue vigente,
+// es que readX() lee process.env en CADA invocación (live binding) en vez de
+// cachear un snapshot al importar — ese era el bug original.)
 
 let _adminCached;
 let _adminCachedFor; // recordamos para qué URL+key se cacheó

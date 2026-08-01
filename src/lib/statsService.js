@@ -18,7 +18,7 @@ function cleanDisplayName(value) {
   return String(value || "").trim();
 }
 
-export async function getCurrentUser() {
+async function getCurrentUser() {
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data?.user) {
@@ -42,26 +42,9 @@ export async function getMyProfile(userId) {
   return data;
 }
 
-// Lectura ligera del récord personal (max_streak) para el popover de la
-// racha. Devuelve 0 si la fila no existe o si la query falla — el popover
-// debe seguir mostrándose aunque esta query reviente.
-export async function getMyMaxStreak() {
-  const user = await getCurrentUser();
-  if (!user) return 0;
-
-  const { data, error } = await supabase
-    .from("stats")
-    .select("max_streak")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[getMyMaxStreak]", error);
-    return 0;
-  }
-
-  return data?.max_streak ?? 0;
-}
+// (Aquí había un `getMyMaxStreak()` para el popover de la racha. El récord
+// llega ya dentro de getMyStats, así que era un viaje a `stats` para un dato
+// que el llamante tenía delante.)
 
 // Lectura ligera del streak actual para el badge del header. Traemos
 // también last_played_date para comprobar si la racha sigue viva — si el
@@ -230,14 +213,11 @@ export async function getMyStats() {
   };
 }
 
-// Devuelve los car_ids únicos que el usuario actual ha ganado. Usa la
-// sesión del propio cliente (RLS auth.uid()=user_id en user_guesses).
-// Si no hay sesión, devuelve [].
 // Total de coches del catálogo (para el "/403" de la puerta del Garaje en el
 // Perfil). count exact + head:true → no trae filas, solo el número. Cae a null
 // si falla: la UI muestra entonces el nº de coches ganados sin denominador, sin
 // romper el modal (mismo criterio defensivo que el resto de lecturas ligeras).
-export async function getCatalogCount() {
+async function getCatalogCount() {
   const { count, error } = await supabase
     .from("cars")
     .select("id", { count: "exact", head: true });

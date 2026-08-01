@@ -1,5 +1,5 @@
 // src/App.jsx
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 
 import Configurator from "./components/configurator/Configurator";
@@ -109,6 +109,21 @@ export default function App() {
   // hoy y al menos un coche "missed" (ya fue coche del día y no se ganó).
   // Lo calculamos con una llamada ligera a /api/garage tras login.
   const [repescaAlert, setRepescaAlert] = useState(false);
+  // El radar de abajo quería re-consultar «al cerrar El Archivo», pero dependía
+  // de `activeModal` entero: abrir o cerrar CUALQUIER overlay (clasificación,
+  // perfil, logros, cómo se juega, la firma…) disparaba otra llamada a
+  // /api/garage, que devuelve el catálogo COMPLETO con sus tokens de imagen —
+  // el endpoint más caro que tenemos— para acabar quedándose con un booleano.
+  // Este contador solo avanza en la transición que de verdad importa.
+  const [repescaNonce, setRepescaNonce] = useState(0);
+  const modalPrevioRef = useRef(activeModal);
+  useEffect(() => {
+    const previo = modalPrevioRef.current;
+    modalPrevioRef.current = activeModal;
+    if (previo === "garage" && activeModal !== "garage") {
+      setRepescaNonce((n) => n + 1);
+    }
+  }, [activeModal]);
   // `revealReady` = la imagen completa (sin crop) del coche del día ya ha
   // cargado tras terminar la partida. Lo enciende CarImage vía onRevealLoad.
   // ResultPanel lo usa para temporizar su scroll automático: espera a que
@@ -194,9 +209,9 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-    // Re-check cuando se cierra el modal del Garaje: el usuario puede haber
-    // navegado a /repesca, jugado, y vuelto. activeModal === null tras eso.
-  }, [user, activeModal]);
+    // Re-check al CERRAR El Archivo (repescaNonce): el usuario puede haber
+    // navegado a /repesca, jugado, y vuelto.
+  }, [user, repescaNonce]);
 
   // `source` = desde dónde se abrió ("cabecera" = la barra del pliego,
   // "end_screen" = el parte del final de partida). Sin él no hay forma de saber

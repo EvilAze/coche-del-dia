@@ -18,7 +18,7 @@ import { getSupabaseAdmin } from "./supabase.js";
 const SECRET = process.env.REPESCA_TOKEN_SECRET || "";
 
 // HMAC de la IP. Si no hay secreto o IP, devolvemos null (no rompemos).
-export function hashIp(ip) {
+function hashIp(ip) {
   if (!SECRET || !ip) return null;
   try {
     return crypto.createHmac("sha256", SECRET).update(String(ip)).digest("hex").slice(0, 32);

@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { getMyProfile, getMyStreak, getMySeasonRank } from "../lib/statsService";
-import { esCuentaReal, marcarCuentaReal } from "../lib/auth";
+import { esCuentaReal } from "../lib/auth";
 
 export function useAuthSession() {
   const [user, setUser] = useState(null);
@@ -56,9 +56,6 @@ export function useAuthSession() {
       // sesiones anónimas sin repasar los ~59 sitios que preguntan `if (user)`.
       const cuentaReal = esCuentaReal(sessionUser);
       setUser(cuentaReal ? sessionUser : null);
-      // Marca síncrona para el primer render del siguiente arranque (la usa
-      // Configurator para colocar la faja sin salto de altura).
-      marcarCuentaReal(cuentaReal);
 
       if (!sessionUser) {
         setProfile(null);
@@ -126,7 +123,6 @@ export function useAuthSession() {
   // listener de arriba hará después su pasada idempotente (gate por id).
   function resetAuth() {
     lastUserIdRef.current = null;
-    marcarCuentaReal(false);
     setUser(null);
     setProfile(null);
     setStreak(0);

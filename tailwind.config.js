@@ -84,6 +84,12 @@ module.exports = {
       // guardaba el rgba(122,240,200) del acento MENTA, dos pieles atrás. En el
       // sistema actual lo que flota lleva `--sombra-flota` (index.css, una receta
       // por tema) y los halos están prohibidos: sobre papel no existen.)
+      // Solo las que algún componente monta hoy. Con la piel «prensa» cayeron
+      // `zoom-out`, `shake`, `pop`, `shimmer` y `flip-reveal` (celdas y
+      // escenario se re-hicieron sin ellas) y `estampar`, que además duplicaba
+      // el `estamparFila` de index.css — el que sí se usa. Una animación que no
+      // monta nadie no engorda el CSS (Tailwind purga por contenido), pero sí
+      // se ofrece a quien busque en el tema y crea que es la vigente.
       animation: {
         // Entradas (fade/slide): curva ease-out FUERTE en vez del `ease`
         // nativo de CSS, que es demasiado flojo y no tiene "punch". Arrancar
@@ -92,31 +98,18 @@ module.exports = {
         // cubic-bezier(0.23,1,0.32,1) es el "strong ease-out" de referencia.
         "fade-in": "fadeIn 0.4s cubic-bezier(0.23,1,0.32,1) forwards",
         "slide-up": "slideUp 0.35s cubic-bezier(0.23,1,0.32,1) forwards",
-        "zoom-out": "zoomOut 0.7s cubic-bezier(0.4,0,0.2,1) forwards",
-        "shake": "shake 0.4s ease",
-        "pop": "pop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",
         "hint-flash": "hintFlash 0.55s ease-out forwards",
         "reveal-win": "revealWin 1s cubic-bezier(0.34,1.56,0.64,1) forwards",
         "toast-in": "toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards",
-        "shimmer": "shimmer 1.4s linear infinite",
-        "flip-reveal": "flipReveal 0.7s cubic-bezier(0.23,1,0.32,1) forwards",
-        // ── Prensa del motor: el movimiento es "de imprenta" — estampar
-        //    (aparece asentándose), sellar (el sello cae con overshoot) y
-        //    temblor (errata en el cupón). Sin glows ni rebotes largos.
-        "estampar": "estampar 0.28s cubic-bezier(0.2,1,0.3,1) both",
+        // ── Prensa del motor: el movimiento es "de imprenta" — sellar (el
+        //    sello cae con overshoot) y temblor (errata en el cupón). Sin
+        //    glows ni rebotes largos.
         "sellar": "sellar 0.45s cubic-bezier(0.2,1.4,0.4,1) both",
         "temblor": "temblor 0.4s ease",
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
         slideUp: { from: { opacity: 0, transform: "translateY(12px)" }, to: { opacity: 1, transform: "translateY(0)" } },
-        zoomOut: { from: { transform: "var(--zoom-from)" }, to: { transform: "var(--zoom-to)" } },
-        shake: {
-          "0%,100%": { transform: "translateX(0)" },
-          "20%,60%": { transform: "translateX(-5px)" },
-          "40%,80%": { transform: "translateX(5px)" },
-        },
-        pop: { from: { opacity: 0, transform: "scale(0.85)" }, to: { opacity: 1, transform: "scale(1)" } },
         hintFlash: {
           "0%":   { opacity: 0 },
           "25%":  { opacity: 1 },
@@ -135,24 +128,6 @@ module.exports = {
           from: { opacity: 0, transform: "translateY(20px) scale(0.95)" },
           to:   { opacity: 1, transform: "translateY(0) scale(1)" },
         },
-        // Barrido diagonal sobre el fondo neutro de la celda pending. Recorre
-        // -150% → 150% para que el brillo entre y salga limpio sin "saltar".
-        shimmer: {
-          "0%":   { backgroundPosition: "-150% 0" },
-          "100%": { backgroundPosition: "150% 0" },
-        },
-        // Flip X al revelar cada celda tras la respuesta del servidor: la carta
-        // se voltea de canto (90deg) a plano. UN SOLO movimiento que decelera
-        // limpio — antes el keyframe sobrepasaba a -15deg Y el easing era
-        // bouncy (cubic-bezier con 1.4): dos overshoots apilados producían un
-        // wobble "torpe" y, al ir el easing tan cargado al inicio, la carta
-        // llegaba de golpe ("demasiado rápida"). Aquí el rebote desaparece; el
-        // ease-out fuerte del token hace todo el trabajo de asentar la carta.
-        flipReveal: {
-          from: { opacity: 0, transform: "rotateX(90deg)" },
-          to:   { opacity: 1, transform: "rotateX(0deg)" },
-        },
-        estampar: { from: { opacity: 0, transform: "scale(1.02)" } },
         sellar: { from: { opacity: 0, transform: "rotate(-7deg) scale(1.7)" } },
         temblor: {
           "20%,60%": { transform: "translateX(-4px)" },

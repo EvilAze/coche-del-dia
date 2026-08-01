@@ -179,9 +179,27 @@ Escribe `ic_stat_cdd.png` en las 5 densidades (~4,5 KB en total). Android usa
 **solo el canal alfa** del icono y lo tiñe él: un PNG a color sale como un
 cuadrado blanco sólido, que es el fallo clásico.
 
+## Toolchain: AGP 9 / Gradle 9
+
+El proyecto compila con **AGP 9.2.1** sobre **Gradle 9.4.1** y **JDK 21**. Las
+tres piezas van juntas: AGP 9 no arranca con Gradle 8, y Gradle 9 pide JDK 17+.
+
+La versión de JDK no depende ya de la máquina: `gradle/gradle-daemon-jvm.properties`
+fija el criterio del daemon (JetBrains JDK 21) y el plugin
+`foojay-resolver-convention` de `settings.gradle` lo **descarga** si no está.
+Es la razón de que el primer build tras clonar tarde más y necesite red.
+
+AGP 9 cambia muchos defaults a la vez, así que `android/gradle.properties` los
+deja clavados al comportamiento de AGP 8 con una tanda de flags
+`android.*`. **Están documentados uno a uno en ese fichero** — léelos antes de
+quitar ninguno; los dos de R8 tocan justo lo que mantiene el AAB en ~5 MB. La
+idea es ir retirándolos de uno en uno, comprobando peso y arranque real tras
+cada uno, no todos de golpe.
+
 ## Requisitos (una vez)
 - Android Studio (Linux/Fedora nativo; no hace falta Mac).
-- JDK 17 (lo trae Android Studio) y Android SDK + plataforma reciente.
+- JDK 21 — lo trae Android Studio (JBR) y, si no, lo baja Gradle solo (ver
+  arriba). Android SDK + plataforma reciente.
 - Cuenta **Google Play Developer** (25 $, pago único).
 - `.env` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en el dir de build
   (ver el aviso de arriba; sin ellas la app sale en negro).

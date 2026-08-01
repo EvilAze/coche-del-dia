@@ -10,7 +10,7 @@ import { Capacitor } from "@capacitor/core";
 
 export const REMINDER_ID = 1;     // id fijo → reprogramar reemplaza, no duplica
 export const REMINDER_HOUR = 10;  // 10:00 hora local del dispositivo
-export const REMINDER_MINUTE = 0;
+const REMINDER_MINUTE = 0;
 const ASKED_KEY = "cd_notif_asked";
 
 // Canal propio del recordatorio (Android 8+). Sin esto el plugin manda todo por
@@ -52,7 +52,7 @@ function loadLN() {
   return import("@capacitor/local-notifications");
 }
 
-export async function isPermissionGranted() {
+async function isPermissionGranted() {
   if (!isNative()) return false;
   const { LocalNotifications: LN } = await loadLN();
   const res = await LN.checkPermissions();
@@ -149,11 +149,11 @@ export async function scheduleDailyReminder({ title, body, channelName, channelD
   });
 }
 
-export async function cancelDailyReminder() {
-  if (!isNative()) return;
-  const { LocalNotifications: LN } = await loadLN();
-  await LN.cancel({ notifications: [{ id: REMINDER_ID }] });
-}
+// (Había también un `cancelDailyReminder()` público. Nadie lo llamaba: apagar
+// el recordatorio se hace desde los ajustes de notificaciones de Android, y
+// rearmIfEnabled ya respeta esa decisión al no reprogramar sin permiso. El
+// cancel que sí hace falta —el de "no acumules duplicados"— lo hace
+// scheduleDailyReminder justo antes de programar.)
 
 // Re-arma en cada arranque SI el permiso ya está concedido. Si el usuario lo
 // revocó en los ajustes de Android, no reprogramamos (el SO "manda").

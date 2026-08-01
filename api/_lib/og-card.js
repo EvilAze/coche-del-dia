@@ -234,7 +234,7 @@ function dibujarRejilla(intentos) {
  * Ganar = el último intento con las tres celdas acertadas, misma definición que
  * usa buildShareText para su "N/5".
  */
-export function claveMarcador(intentos) {
+function claveMarcador(intentos) {
   if (!intentos?.length) return null;
   const ultimo = intentos[intentos.length - 1];
   const gano = ultimo.marca && ultimo.modelo && ultimo.anio;

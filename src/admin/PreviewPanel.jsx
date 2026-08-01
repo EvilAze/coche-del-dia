@@ -14,6 +14,15 @@
 //   FocusPicker.ZoomThumb pero a tamaño grande. Resultado: lo que ves aquí es
 //   PIXEL-FOR-PIXEL lo que verá el jugador en su intento N con el focus y el
 //   zoom_base que elijas.
+//
+//   Ese "pixel-for-pixel" es una equivalencia ALGEBRAICA, no una coincidencia:
+//   este panel recorta directo al intento N (1/zN), mientras que el juego recibe
+//   el crop del intento 5 y cierra el resto con un scale CSS ((1/z5)/(zN/z5)).
+//   Se cancelan — pero solo si ambos parten del MISMO zoom_base. Ese "mismo"
+//   estuvo roto: useGame perdía el zoomBase del coche por el camino y escalaba
+//   con el default, así que este panel enseñaba una dificultad y el jugador
+//   jugaba otra (los extremos del rango, hasta 5 puntos de imagen visible). Hay
+//   un test que ata las dos rutas: src/lib/zoom.sync.test.js.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import ZoomStage from "../components/configurator/ZoomStage";

@@ -16,7 +16,7 @@ import { getSupabaseAdmin } from "../supabase.js";
 
 const SECRET = (typeof process !== "undefined" ? process.env.REPESCA_TOKEN_SECRET : "") || "";
 
-// Dedup en memoria de la instancia warm — mismo patrón que rate-limit.js.
+// Dedup en memoria de la instancia warm — mismo patrón que ratelimit.js.
 // Best-effort: instancias warm distintas pueden duplicar (toleramos: el
 // query del admin coge MIN(ts) por usuario/día). Evita que cada F5 del
 // jugador legítimo dispare otra fila.

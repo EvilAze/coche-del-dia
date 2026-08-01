@@ -1,8 +1,13 @@
 // api/_lib/ratelimit.js
-// Rate limit DISTRIBUIDO con Upstash Redis (REST, edge-safe): a diferencia
-// del Map en memoria de rate-limit.js, este se comparte entre todas las
-// instancias y runtimes (Node y Edge), así que un bot no puede saltárselo
-// rotando entre instancias warm.
+// Rate limit DISTRIBUIDO con Upstash Redis (REST, edge-safe) + los dos
+// extractores de IP del cliente (Node y Edge), que es lo que se usa como key.
+//
+// Antes esto vivía en DOS ficheros con el mismo nombre a un guion de distancia
+// (`rate-limit.js` y `ratelimit.js`). El primero llegó a tener un Map en
+// memoria por instancia; cuando el limiter pasó a Upstash se quedó con un solo
+// helper —getClientIp— y el par de nombres solo servía para importar el que no
+// era. Un limiter compartido entre todas las instancias y runtimes es lo que
+// impide que un bot se lo salte rotando entre instancias warm.
 //
 // FAIL-OPEN: si faltan las envs de Upstash, o Upstash cae/tarda/sin cuota,
 // dejamos pasar la petición. El juego nunca se rompe por el limiter (regla
@@ -84,6 +89,25 @@ export async function checkRateLimit(key, { max, windowSec, prefix }) {
     return globalThis.__mockRateLimit(key, { max, windowSec, prefix });
   }
   return evaluateLimit(getLimiter({ max, windowSec, prefix }), key);
+}
+
+/**
+ * IP del cliente en un handler Node (Vercel Functions). La usan daily-image y
+ * repesca como key del limiter y para la auditoría.
+ * @param {import('http').IncomingMessage} req
+ * @returns {string}
+ */
+export function getClientIp(req) {
+  const xff = req.headers?.["x-forwarded-for"];
+  if (typeof xff === "string" && xff) {
+    return xff.split(",")[0].trim();
+  }
+  if (Array.isArray(xff) && xff.length) {
+    return String(xff[0]).split(",")[0].trim();
+  }
+  const real = req.headers?.["x-real-ip"];
+  if (typeof real === "string" && real) return real;
+  return req.socket?.remoteAddress || "unknown";
 }
 
 /**

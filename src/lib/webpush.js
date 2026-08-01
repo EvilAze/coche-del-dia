@@ -69,18 +69,9 @@ async function getRegistration() {
   return navigator.serviceWorker.register("/sw.js");
 }
 
-// ¿Está el navegador suscrito ahora mismo? Para pintar el toggle on/off.
-export async function isSubscribed() {
-  if (!isPushSupported()) return false;
-  try {
-    const reg = await navigator.serviceWorker.getRegistration();
-    if (!reg) return false;
-    const sub = await reg.pushManager.getSubscription();
-    return Boolean(sub);
-  } catch {
-    return false;
-  }
-}
+// (Hubo un `isSubscribed()` «para pintar el toggle on/off». Ese toggle nunca
+// llegó a existir: el opt-in es de una sola dirección — NotificationOptIn
+// pregunta una vez y marca hasAskedOptIn — así que la lectura no la pedía nadie.)
 
 // Pide permiso, suscribe con VAPID y manda la suscripción al servidor.
 // Devuelve true si quedó suscrito, false en cualquier otro caso (silencioso).

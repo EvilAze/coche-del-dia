@@ -74,7 +74,7 @@ export function collectCovers(countries) {
 // enterrarlo bajo un orden alfabético que nunca cambia.
 // Desempates: nº de edición desc (más nuevo = número mayor) y luego modelo,
 // para que el orden sea TOTAL y estable (sin saltos entre renders).
-export function compareByRecency(a, b) {
+function compareByRecency(a, b) {
   const aw = a?.wonAt || "";
   const bw = b?.wonAt || "";
   if (aw !== bw) return aw < bw ? 1 : -1;
@@ -86,7 +86,7 @@ export function compareByRecency(a, b) {
 
 // Orden alternativo: por antigüedad del coche (año de fabricación asc). Es el
 // orden "de álbum" clásico, el que pide quien colecciona por época.
-export function compareByYear(a, b) {
+function compareByYear(a, b) {
   const ay = a?.anio ?? 0;
   const by = b?.anio ?? 0;
   if (ay !== by) return ay - by;
@@ -96,7 +96,7 @@ export function compareByYear(a, b) {
 // Orden por escasez: lo más raro arriba. Es el orden que un coleccionista pide
 // en cuanto sabe que la rareza existe («enséñame mis joyas»). Las portadas sin
 // dato de rareza van al final: no son comunes, es que no lo sabemos.
-export function compareByRarity(a, b) {
+function compareByRarity(a, b) {
   const ar = Number.isFinite(a?.rarity?.pct) ? a.rarity.pct : Infinity;
   const br = Number.isFinite(b?.rarity?.pct) ? b.rarity.pct : Infinity;
   if (ar !== br) return ar - br;
@@ -174,7 +174,7 @@ export function readSeen(storage) {
   }
 }
 
-export function writeSeen(ids, storage) {
+function writeSeen(ids, storage) {
   const ls = safeStorage(storage);
   if (!ls) return;
   try {

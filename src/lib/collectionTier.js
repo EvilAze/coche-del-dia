@@ -37,7 +37,7 @@ export const TIER_HEX = {
   gold: "#8a6a12",
 };
 
-export const TIER_LABEL = {
+const TIER_LABEL = {
   bronze: { es: "Bronce", en: "Bronze" },
   silver: { es: "Plata", en: "Silver" },
   gold: { es: "Oro", en: "Gold" },

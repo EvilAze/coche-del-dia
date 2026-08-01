@@ -178,44 +178,18 @@ export async function signInWithEmail(email) {
  * `useAuthSession`; esto solo sirve para elegir dónde colocar una pieza y
  * acertar en el 99% de los casos sin parpadeo.
  */
-// Marca propia de «la última sesión conocida era una CUENTA REAL». La escribe
-// useAuthSession en cada sync.
+// Aquí vivía una marca propia en localStorage (`ccd_cuenta_real`) con
+// `marcarCuentaReal()` / `hayCuentaRealLocal()`: una lectura SÍNCRONA de «la
+// última sesión conocida era una cuenta registrada», para que Configurator
+// colocara la faja de clasificación en el primer render sin esperar a Supabase.
+// Esa faja ya no decide nada por su cuenta —recibe `rank` y `rankCargando`
+// desde App, que salen del servidor—, así que el lector desapareció y quedó
+// solo el escritor: useAuthSession sellaba una clave que no leía nadie.
 //
-// Existe porque hay dos preguntas distintas que antes eran la misma:
-//   · haySesionLocal()      → ¿hay CUALQUIER sesión? (también anónima). La usa
-//                             useGame para saber si puede fiarse del snapshot
-//                             de localStorage: con sesión anónima ya manda el
-//                             servidor, porque los intentos se persisten.
-//   · hayCuentaRealLocal()  → ¿hay sesión REGISTRADA? La usa Configurator para
-//                             colocar la faja de clasificación, que solo tiene
-//                             sentido en cabecera para quien puede tener puesto.
-//
-// Es una marca nuestra y no una lectura del blob de Supabase a propósito: el
-// formato de ese valor es interno (supabase-js lo guarda con prefijo `base64-`
-// en versiones recientes) y parsearlo para sacar `is_anonymous` sería atarnos a
-// un detalle que puede cambiar en cualquier minor.
-const CLAVE_CUENTA_REAL = "ccd_cuenta_real";
-
-export function marcarCuentaReal(esReal) {
-  try {
-    if (esReal) localStorage.setItem(CLAVE_CUENTA_REAL, "1");
-    else localStorage.removeItem(CLAVE_CUENTA_REAL);
-  } catch {
-    // Modo privado / sandbox: sin marca. La faja caerá al sitio del anónimo,
-    // que es el lado prudente.
-  }
-}
-
-/** ¿La última sesión conocida era de una cuenta registrada? Lectura síncrona. */
-export function hayCuentaRealLocal() {
-  if (typeof window === "undefined") return false;
-  try {
-    return localStorage.getItem(CLAVE_CUENTA_REAL) === "1";
-  } catch {
-    return false;
-  }
-}
-
+// Lo que sí sigue vivo es haySesionLocal(): ¿hay CUALQUIER sesión, también
+// anónima? La usa useGame para saber si puede fiarse del snapshot de
+// localStorage — con sesión anónima ya manda el servidor, porque los intentos
+// se persisten.
 export function haySesionLocal() {
   if (typeof window === "undefined") return false;
   try {

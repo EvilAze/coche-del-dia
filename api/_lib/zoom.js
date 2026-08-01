@@ -30,6 +30,11 @@ export const ZOOM_BASE_MAX = 6.0; // intento 5 = 4.0× → muestra ~25% (más di
 // de rango. null/NaN → default, para compatibilidad con coches anteriores a la
 // columna (se comportan como antes: base 3.7).
 export function clampZoomBase(value) {
+  // `null` (columna vacía en Postgres) y `""` no son "un número fuera de
+  // rango", son "no hay dato": Number() los convierte a 0, que SÍ es finito, y
+  // por eso caían al MIN (3.2) en vez de al default (3.7) que promete la línea
+  // de arriba. Un coche sin zoom_base se jugaba más fácil de lo previsto.
+  if (value === null || value === "") return DEFAULT_ZOOM_BASE;
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return DEFAULT_ZOOM_BASE;
   if (n < ZOOM_BASE_MIN) return ZOOM_BASE_MIN;

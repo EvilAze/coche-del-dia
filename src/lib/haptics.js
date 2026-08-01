@@ -29,12 +29,14 @@
 //     Algunas personas tienen sensibilidad vestibular o trastornos
 //     neurológicos que hacen que la vibración les resulte incómoda; la
 //     misma media query que evita las animaciones se aplica aquí.
-//   - Toggle manual en localStorage (`cocheDia_haptics` = "off") por si
-//     el usuario simplemente prefiere silencio aunque su sistema no lo
-//     indique. Se expone `setHapticsEnabled(bool)` para que un futuro
-//     panel de ajustes lo pueda controlar.
-
-const STORAGE_KEY = "cocheDia_haptics";
+//
+// Aquí hubo además un interruptor propio en localStorage (`cocheDia_haptics`)
+// con `setHapticsEnabled()` / `areHapticsEnabled()` "para un futuro panel de
+// ajustes". Ese panel no llegó, así que el trío era un ajuste que nadie podía
+// tocar: nada escribía la clave y por tanto la lectura siempre decía lo mismo.
+// La preferencia que SÍ existe de verdad —reduced-motion— ya se respeta, y es
+// además la que el usuario configura una vez para todo el sistema. Si algún día
+// hay ajustes en la app, el sitio de ese toggle es el ajuste, no este módulo.
 
 // Patrones (ms). Single number = pulso simple. Array = pulso/pausa/pulso/...
 //
@@ -69,15 +71,6 @@ function isReducedMotion() {
   }
 }
 
-function isOptedOut() {
-  if (typeof localStorage === "undefined") return false;
-  try {
-    return localStorage.getItem(STORAGE_KEY) === "off";
-  } catch {
-    return false;
-  }
-}
-
 function canVibrate() {
   return (
     typeof navigator !== "undefined" && typeof navigator.vibrate === "function"
@@ -98,7 +91,6 @@ function shouldFire() {
 function fire(pattern) {
   if (!canVibrate()) return;
   if (isReducedMotion()) return;
-  if (isOptedOut()) return;
   if (!shouldFire()) return;
   try {
     navigator.vibrate(pattern);
@@ -118,18 +110,3 @@ export const haptic = {
   warning: () => fire(PATTERNS.warning),
   error: () => fire(PATTERNS.error),
 };
-
-// Helpers de configuración. Útiles si más adelante añadimos toggle en UI.
-export function setHapticsEnabled(enabled) {
-  if (typeof localStorage === "undefined") return;
-  try {
-    if (enabled) localStorage.removeItem(STORAGE_KEY);
-    else localStorage.setItem(STORAGE_KEY, "off");
-  } catch {
-    // Si localStorage falla (modo privado raro), no podemos persistir; ok.
-  }
-}
-
-export function areHapticsEnabled() {
-  return canVibrate() && !isReducedMotion() && !isOptedOut();
-}

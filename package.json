@@ -46,7 +46,7 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:estetica": "node scripts/check-estetica.mjs",
-    "test": "npm run test:estetica && npm run test:security && npm run test:attacks",
+    "test": "npm run test:estetica && npm run test:unit && npm run test:security && npm run test:attacks",
     "check:size": "node scripts/check-bundle-size.mjs",
     "cap:sync": "vite build && node scripts/check-bundle-size.mjs && cap sync android",
     "cap:open": "cap open android",

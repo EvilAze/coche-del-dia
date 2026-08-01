@@ -80,10 +80,16 @@ function readInitialAnonState() {
 // imagen (siempre vía proxy), el LQIP base64 (placeholder borroso que
 // elimina el flash gris del skeleton) y, opcionalmente, marca/modelo/año
 // cuando el servidor decide revelarlos (solo en victoria).
-function buildCarState({ img, blurData, reveal }) {
+function buildCarState({ img, blurData, zoomBase, reveal }) {
   return {
     img,
     blurData: blurData ?? null,
+    // Zoom base del coche de hoy (cars.zoom_base), tal cual lo manda
+    // get-daily-car. De aquí sale la escalera de scales CSS por intento; si se
+    // pierde por el camino, cssZoomLevels cae al default y TODOS los coches se
+    // juegan con la misma dificultad de encuadre — que es justo lo que pasaba
+    // mientras este campo no se copiaba (regla 7: el zoom es POR coche).
+    zoomBase: typeof zoomBase === "number" ? zoomBase : null,
     marca: reveal?.marca ?? null,
     modelo: reveal?.modelo ?? null,
     anio: reveal?.anio ?? null,
@@ -150,6 +156,16 @@ export function useGame() {
   // Intentos máximos según el servidor (ver DEFAULT_MAX_ATTEMPTS arriba).
   const [maxAttempts, setMaxAttempts] = useState(DEFAULT_MAX_ATTEMPTS);
   const [user, setUser] = useState(null);
+  // ¿Ya sabemos SI hay sesión? Arranca en false y solo pasa a true cuando el
+  // primer getSession() ha contestado. initGame espera a esa señal.
+  //
+  // Sin ella, el efecto de abajo corría dos veces en cada carga de un usuario
+  // logueado: una con user=null (el estado inicial) y otra en cuanto
+  // applySession entregaba el usuario real. Dos /api/get-daily-car idénticos
+  // por visita, con su lectura de Supabase detrás. Y no adelantaba nada:
+  // initGame ya empieza esperando ese mismo getSession() para armar los
+  // headers, así que gatearlo aquí no añade ni un ms de espera.
+  const [authResuelta, setAuthResuelta] = useState(false);
   const [score, setScore] = useState(null);
   const { t, locale } = useT();
   // Token firmado por el servidor que autoriza ver la imagen completa
@@ -182,9 +198,20 @@ export function useGame() {
       setUser((prev) => (prev?.id === nextUser?.id ? prev : nextUser));
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      applySession(session);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        applySession(session);
+      })
+      // Si getSession revienta (storage bloqueado, token corrupto), seguimos
+      // como anónimos: destrabar el gate importa más que saber quién eres, o
+      // el juego no llegaría a pedir el coche del día nunca (regla 9).
+      .catch((err) => {
+        console.error("[useGame] getSession inicial:", err);
+      })
+      .finally(() => {
+        setAuthResuelta(true);
+      });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       applySession(session);
@@ -211,6 +238,9 @@ export function useGame() {
   const skipFirstLoadingFlipRef = useRef(Boolean(initialAnon));
 
   useEffect(() => {
+    // Hasta que la sesión no está resuelta no arrancamos: ver `authResuelta`.
+    if (!authResuelta) return;
+
     async function initGame() {
       if (skipFirstLoadingFlipRef.current) {
         skipFirstLoadingFlipRef.current = false;
@@ -269,6 +299,7 @@ export function useGame() {
           buildCarState({
             img: daily.img,
             blurData: daily.blurData,
+            zoomBase: daily.zoomBase,
             reveal: initialReveal,
           })
         );
@@ -287,7 +318,7 @@ export function useGame() {
     }
 
     initGame();
-  }, [user, reloadNonce]);
+  }, [authResuelta, user, reloadNonce]);
 
   // Reintento manual, para el botón de la pantalla de error.
   const retryInit = useCallback(() => {

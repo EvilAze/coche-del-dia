@@ -48,10 +48,6 @@ let current =
     ? document.documentElement.dataset.tema
     : resolveTheme(readStored(), systemPrefersDark());
 
-export function getTheme() {
-  return current;
-}
-
 // Arranque: el inline de index.html ya dejó el <html> pintado, pero la barra de
 // estado nativa no la toca nadie (arrancaría con el color estático del
 // capacitor.config.json). La sincronizamos una vez con el tema ya resuelto.
@@ -103,7 +99,7 @@ function syncNativeStatusBar(tema) {
     });
 }
 
-export function applyTheme(tema) {
+function applyTheme(tema) {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
   el.dataset.tema = tema;
@@ -113,7 +109,7 @@ export function applyTheme(tema) {
   syncNativeStatusBar(tema);
 }
 
-export function setTheme(tema) {
+function setTheme(tema) {
   if (tema !== "dia" && tema !== "noche") return;
   current = tema;
   try {
@@ -125,7 +121,7 @@ export function setTheme(tema) {
   listeners.forEach((fn) => fn());
 }
 
-export function toggleTheme() {
+function toggleTheme() {
   setTheme(nextTheme(current));
 }
 

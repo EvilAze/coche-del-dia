@@ -15,7 +15,7 @@
 //
 // Solo el futuro estricto es liberable, porque nadie lo ha jugado todavía.
 
-export const FREE_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const FREE_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Cuántos días de margen exigimos para asignar un coche SIN FOTO. Con 2, el
 // primer día que puede recibir un borrador es pasado mañana.

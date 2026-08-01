@@ -47,4 +47,33 @@ describe("sincronía src/lib/zoom.js ↔ api/_lib/zoom.js", () => {
       }
     }
   });
+
+  // ── EL PREVIO DEL ADMIN TIENE QUE SER LO QUE VE EL JUGADOR ────────────────
+  // Son dos caminos distintos hacia la misma imagen y por eso pueden divergir
+  // sin que nadie se entere:
+  //
+  //   · admin (FocusPicker / PreviewPanel) recorta DIRECTO al intento N:
+  //       cropPctForAttempt(N, base)
+  //   · el juego recibe SIEMPRE el crop del intento 5 y cierra el resto con un
+  //     scale CSS:
+  //       cropPctForAttempt(5, base) / cssZoomLevels(base)[N-1]
+  //
+  // Álgebra: (1/z5) / (zN/z5) = 1/zN. Se cancelan… pero SOLO si los dos usan el
+  // MISMO base. Cuando useGame perdía el zoomBase del coche, el servidor
+  // recortaba con el base real y el cliente escalaba con el default: un coche a
+  // 6.0 enseñaba un 11,5% en el intento 1 donde el admin previsualizaba 16,7%
+  // (más difícil de lo balanceado), y uno a 3.2 enseñaba 38,3% frente a 31,3%
+  // (más fácil). Solo cuadraba en el intento 5, donde el scale es 1, y en el
+  // propio 3.7 — por eso pasó desapercibido. Este test es el que lo caza.
+  it("el previo del admin muestra lo mismo que el juego, intento a intento", () => {
+    for (const base of [3.2, 3.7, 4.5, 6.0]) {
+      const cropServido = client.cropPctForAttempt(client.ZOOM_ATTEMPTS, base);
+      const escalas = client.cssZoomLevels(base);
+      for (let n = 1; n <= client.ZOOM_ATTEMPTS; n++) {
+        const loQuePintaElAdmin = client.cropPctForAttempt(n, base);
+        const loQueVeElJugador = cropServido / escalas[n - 1];
+        expect(loQueVeElJugador).toBeCloseTo(loQuePintaElAdmin, 12);
+      }
+    }
+  });
 });

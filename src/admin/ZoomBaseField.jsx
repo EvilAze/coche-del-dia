@@ -1,9 +1,17 @@
 // src/admin/ZoomBaseField.jsx
 // Slider de "zoom inicial" por coche (dificultad). Lo usan AddCarPanel y
-// EditCarPanel. El valor es el zoom lógico del intento 1; los 5 intentos bajan
-// en saltos fijos de 0.5 (fórmula en src/lib/zoom.js). Subirlo = empezar más
+// EditCarPanel. El valor es el zoom lógico del intento 1. Subirlo = empezar más
 // cerca y revelar menos en todos los intentos. La tira de miniaturas del
 // FocusPicker (que recibe el mismo zoomBase) muestra el efecto en vivo.
+//
+// OJO al balancear: los 5 intentos NO bajan "en saltos fijos de 0.5", como
+// decía aquí. La curva es LOGARÍTMICA CON EASING (ZOOM_EASE, src/lib/zoom.js):
+// ZOOM_STEP fija el SPAN —el intento 5 sigue siendo base − 2— pero los
+// intermedios se reparten en proporción, no en resta, y adelantados hacia el
+// intento 3-4. Por eso mover el slider no desplaza los cinco pasos por igual:
+// mueve el intento 1 mucho y el 5 exactamente lo mismo que el span. Los dos
+// porcentajes de abajo (intento 1 → intento 5) son los extremos reales y salen
+// de la misma fórmula que usa el juego.
 
 import {
   DEFAULT_ZOOM_BASE,

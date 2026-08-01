@@ -1,3 +1,12 @@
+// Resolutor de toolchains de Gradle: deja que el build descargue el JDK que
+// pide gradle/gradle-daemon-jvm.properties (21) si la máquina no lo tiene, en
+// vez de fallar con "no matching toolchain". Lo añadió el asistente de AGP 9
+// junto al wrapper de Gradle 9.4.1; sin él, el criterio de JVM del daemon solo
+// sirve para comprobar, no para aprovisionar.
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')

@@ -7,7 +7,13 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0'
+        // AGP 9.x. El salto desde 8.13.0 lo hizo el asistente de actualización
+        // de Android Studio, y arrastra el wrapper a Gradle 9.4.1 (AGP 9 no
+        // arranca con Gradle 8) y los flags de compatibilidad de
+        // gradle.properties. Va aquí y no en variables.gradle porque este
+        // fichero NO lo regenera `cap sync`: variables.gradle sí es territorio
+        // de Capacitor.
+        classpath 'com.android.tools.build:gradle:9.2.1'
         classpath 'com.google.gms:google-services:4.4.4'
 
         // NOTE: Do not place your application dependencies here; they belong

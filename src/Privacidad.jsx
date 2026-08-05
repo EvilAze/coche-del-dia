@@ -26,7 +26,7 @@ const ADMIN_CONTACT_EMAIL = "soporte@cochedeldia.com";
 // IMPORTANTE: actualizar esta fecha CADA VEZ que cambies el contenido
 // del documento. GDPR Art. 13 exige que el usuario sepa cuándo ha sido
 // la última revisión de los términos que está aceptando implícitamente.
-const LAST_UPDATED = "24 de mayo de 2026";
+const LAST_UPDATED = "6 de agosto de 2026";
 
 export default function Privacidad() {
   // Título de pestaña y meta-tag descriptivo. SÍ queremos que sea
@@ -213,15 +213,31 @@ export default function Privacidad() {
 
           <Section title="7. Derecho de supresión (borrado de datos)">
             <p>
-              Puedes solicitar la eliminación íntegra de tu cuenta y de
-              todos los datos asociados (estadísticas, garaje, historial de
-              partidas) en cualquier momento.
+              Puedes eliminar tu cuenta TÚ MISMO y en cualquier momento, sin
+              pedírselo a nadie: en tu perfil, dentro de{" "}
+              <span className="pm-strong">Ajustes</span> →{" "}
+              <span className="pm-strong">Eliminar cuenta</span>. El borrado es
+              inmediato e irreversible.
+            </p>
+            <p className="mt-3">
+              Se elimina tu identidad (nombre, correo y la conexión con tu cuenta
+              de Google), tu nombre de jugador y tus suscripciones a avisos. El
+              registro de partidas se conserva{" "}
+              <span className="pm-strong">anonimizado</span>, sin ninguna
+              referencia a ti, porque de él dependen las clasificaciones ya
+              cerradas de otros jugadores.
             </p>
             <p className="mt-3 text-muted">
-              Para ejercer este derecho, envía un correo electrónico a la
-              dirección indicada en la sección de contacto, identificando
-              la cuenta que deseas suprimir. La solicitud se atenderá en un
-              plazo máximo de 30 días naturales.
+              El detalle completo del proceso está en{" "}
+              <a
+                href="/eliminar-cuenta"
+                className="font-medium text-rojo underline decoration-rojo/40 underline-offset-4 transition hover:decoration-rojo"
+              >
+                cochedeldia.com/eliminar-cuenta
+              </a>
+              . Si no puedes acceder a tu cuenta, escribe a la dirección de la
+              sección de contacto desde el correo con el que te registraste: la
+              solicitud se atenderá en un plazo máximo de 30 días naturales.
             </p>
           </Section>
 

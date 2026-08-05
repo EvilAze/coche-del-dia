@@ -50,7 +50,9 @@
     "dayRolloverStamp": "Back issue",
     "dayRolloverTitle": "New car of the day!",
     "dayRolloverBody": "Today's challenge is ready. Reload the page to play it.",
-    "dayRolloverButton": "Reload"
+    "dayRolloverButton": "Reload",
+    "dayRolloverBodyApp": "Today's challenge is ready. Tap to open the new edition.",
+    "dayRolloverButtonApp": "Open today's"
   },
   "guess": {
     "labelMarca": "Make",
@@ -173,6 +175,7 @@
     "shareCopied": "Result copied to clipboard",
     "shareCopiedShort": "Copied",
     "shareUnsupported": "Couldn't share from this browser",
+    "shareUnsupportedApp": "Couldn't share",
     "shareError": "Couldn't share",
     "saveProgressTitle": "What a streak",
     "saveProgressBody": "Don't lose your stats. Sign up to save your wins and compete on the leaderboard.",
@@ -245,6 +248,23 @@
     "destinations": "Your sections",
     "rankNone": "Unranked",
     "ptsShort": "pts"
+  },
+  "deleteAccount": {
+    "entry": "Delete account",
+    "tag": "Cancel subscription",
+    "title": "Delete your account",
+    "intro": "Your account closes and everything that identifies you is erased. There's no going back.",
+    "goneLabel": "Erased",
+    "goneBody": "Your name, your email and the Google sign-in. Your player name, so you leave the leaderboard, the Hall of Champions and public profiles. And the daily reminders.",
+    "staysLabel": "Kept, without your name",
+    "staysBody": "The record of your games, now anonymous. Closed months and seasons are ranked from it: if it vanished, other players' podiums would change.",
+    "irreversible": "This can't be undone and the account can't be recovered.",
+    "continue": "I understand, continue",
+    "confirmBody": "Last stop. Confirm and your account is deleted right now, and you're signed out on this device.",
+    "confirmCta": "Delete my account",
+    "deleting": "Deleting…",
+    "errorRateLimited": "Too many tries in a row. Wait a few minutes and try again.",
+    "errorGeneric": "Couldn't delete the account. Please try again in a moment."
   },
   "achievements": {
     "sectionTitle": "Achievements",

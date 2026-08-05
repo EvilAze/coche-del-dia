@@ -291,6 +291,43 @@ identificador de cuenta, nombre, email y progreso) — el enlace que pide Play e
 Jugar **sin** iniciar sesión sigue siendo posible y no recoge nada
 identificable: la sesión anónima es un token local.
 
+### Borrado de cuenta: los DOS caminos que exige Play
+
+Toda app que permita **crear cuenta** tiene que ofrecer un camino para
+eliminarla, y son dos cosas distintas que Play pide por separado:
+
+1. **Dentro de la app.** Perfil → *Ajustes* → **Eliminar cuenta**
+   (`src/components/DeleteAccountModal.jsx`). Borra de verdad y al instante; no
+   es un "escríbenos".
+2. **Una URL pública**, que funcione sin instalar nada. Es
+   `https://cochedeldia.com/eliminar-cuenta` (`src/EliminarCuenta.jsx`) y va en
+   el formulario de Data safety, en el campo de *URL de eliminación de cuenta*.
+
+**Qué declarar exactamente en el formulario**, que es donde se falla: la app
+ofrece borrar la cuenta **y parte de los datos**, NO "todos los datos". Play
+tiene esa opción concreta y hay que marcarla, porque el registro de partidas se
+conserva anonimizado. Declarar "se borra todo" sería una declaración falsa sobre
+el comportamiento real, que es motivo de suspensión.
+
+| Qué | Qué le pasa |
+|---|---|
+| Email, nombre, credenciales, identidad de Google | Se borran (borrado blando de GoTrue: la fila queda sin PII y no puede iniciar sesión) |
+| Nickname (`profiles`) | Se borra → sale de ranking, Salón de Campeones y perfiles públicos |
+| Suscripciones de push | Se borran |
+| Auditoría antifraude (`guess_audit`) | Se desliga: `user_id` a NULL y fuera user-agent e idioma |
+| Partidas, stats, snapshots y podios | **Se conservan, ya anónimos** |
+
+El motivo de conservarlos está razonado en la cabecera de
+`api/delete-account.js`: todas las tablas cuelgan de `auth.users` con
+`ON DELETE CASCADE`, y los podios de meses y temporadas cerrados se
+**recalculan** desde `user_guesses`. Un borrado en cascada le cambiaría el
+campeón a un mes de hace medio año y afectaría a jugadores que no han pedido
+nada. Por eso el borrado es blando y no `deleteUser()` a secas.
+
+Si algún día cambia ese reparto, hay **tres** sitios que dicen lo mismo y tienen
+que cambiar a la vez: el endpoint, `/eliminar-cuenta`, la sección 7 de
+`/privacidad` — y el formulario de Data safety en Play Console.
+
 ### Antes de subir
 
 1. `versionCode` **estrictamente mayor** que el último subido a Play (cualquier

@@ -31,6 +31,14 @@ installApiFetchShim();
 // Solo nativo (Capacitor): re-armar el recordatorio si el permiso ya está
 // concedido, y enganchar el botón físico "atrás" de Android.
 if (Capacitor.isNativePlatform()) {
+  // Marca de plataforma en <html>. La lee el CSS (ver el bloque «EL TACTO DE LA
+  // APP» en index.css) para apagar los gestos que delatan el WebView: la
+  // selección de texto con su menú de Chrome y el rebote elástico al arrastrar.
+  // Va aquí y no en index.html —donde sí se sella el tema— porque
+  // `Capacitor.isNativePlatform()` necesita el bundle cargado; se ejecuta antes
+  // del primer render, así que nadie llega a ver el estado web.
+  document.documentElement.dataset.plataforma = "app";
+
   // Inicializa el plugin de login nativo (idempotente; no-op sin WEB_CLIENT_ID).
   initNativeAuth().catch(() => {});
 
@@ -75,6 +83,7 @@ reportWebVitals();
 // el bundle inicial.
 const Repesca = lazy(() => import("./Repesca"));
 const Privacidad = lazy(() => import("./Privacidad"));
+const EliminarCuenta = lazy(() => import("./EliminarCuenta"));
 const AdminTools = lazy(() => import("./admin/AdminTools"));
 
 const { pathname, search } = window.location;
@@ -116,6 +125,14 @@ const isPrivacy =
   pathname.startsWith("/privacy") ||
   pathname.startsWith("/politica-de-privacidad");
 
+// Página pública de borrado de cuenta. Es la URL que se declara en el
+// formulario de Data safety de Google Play, así que tiene que resolver SIEMPRE
+// y sin sesión (ver src/EliminarCuenta.jsx). Aceptamos también /delete-account
+// por si el enlace acaba escrito en inglés en alguna ficha.
+const isDeleteAccount =
+  pathname.startsWith("/eliminar-cuenta") ||
+  pathname.startsWith("/delete-account");
+
 const isAnyAdminTools =
   isAdminTools || isLegacyEditCar || isLegacyAddCar || isLegacyPreview;
 
@@ -125,13 +142,15 @@ function pickRoute() {
   if (isAnyAdminTools) return <AdminTools defaultTab={legacyTab()} />;
   if (isRepesca) return <Repesca />;
   if (isPrivacy) return <Privacidad />;
+  if (isDeleteAccount) return <EliminarCuenta />;
   return <App />;
 }
 
 const isMainApp = !(
   isAnyAdminTools ||
   isRepesca ||
-  isPrivacy
+  isPrivacy ||
+  isDeleteAccount
 );
 
 const root = ReactDOM.createRoot(document.getElementById("root"));

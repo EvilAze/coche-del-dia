@@ -20,6 +20,7 @@ import { useHistoryClose } from "./hooks/useHistoryClose";
 import { useDayRollover } from "./hooks/useDayRollover";
 import { useT } from "./i18n";
 import { apiUrl } from "./lib/apiUrl";
+import { esApp } from "./lib/plataforma";
 import { isNative, rearmIfEnabled } from "./lib/notifications";
 import { reminderCopy } from "./lib/reminderCopy";
 
@@ -614,13 +615,18 @@ export default function App() {
 
         <p className="pm-kicker">{t("app.dayRolloverKicker")}</p>
         <h2 className="pm-title mt-1.5">{t("app.dayRolloverTitle")}</h2>
-        <p className="pm-body mt-2.5">{t("app.dayRolloverBody")}</p>
+        {/* «Recarga la página» no existe dentro del APK: ahí no hay página que
+            recargar, hay una app abierta. El gesto es el mismo (el WebView se
+            recarga igual) pero el nombre tiene que ser el de la app. */}
+        <p className="pm-body mt-2.5">
+          {esApp() ? t("app.dayRolloverBodyApp") : t("app.dayRolloverBody")}
+        </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
           className="pm-btn mt-6"
         >
-          {t("app.dayRolloverButton")}
+          {esApp() ? t("app.dayRolloverButtonApp") : t("app.dayRolloverButton")}
         </button>
       </ModalShell>
     </div>

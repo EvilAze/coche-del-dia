@@ -50,7 +50,9 @@
     "dayRolloverStamp": "Edición caducada",
     "dayRolloverTitle": "¡Nuevo coche del día!",
     "dayRolloverBody": "El reto de hoy ya está disponible. Recarga la página para jugarlo.",
-    "dayRolloverButton": "Recargar"
+    "dayRolloverButton": "Recargar",
+    "dayRolloverBodyApp": "El reto de hoy ya está disponible. Toca para abrir la nueva edición.",
+    "dayRolloverButtonApp": "Abrir la de hoy"
   },
   "guess": {
     "labelMarca": "Marca",
@@ -173,6 +175,7 @@
     "shareCopied": "Resultado copiado al portapapeles",
     "shareCopiedShort": "Copiado",
     "shareUnsupported": "No se pudo compartir desde este navegador",
+    "shareUnsupportedApp": "No se pudo compartir",
     "shareError": "No se pudo compartir",
     "saveProgressTitle": "Menuda racha",
     "saveProgressBody": "No pierdas tus estadísticas. Regístrate para guardar tus victorias y competir en el ranking.",
@@ -245,6 +248,23 @@
     "destinations": "Tus secciones",
     "rankNone": "Sin clasificar",
     "ptsShort": "pts"
+  },
+  "deleteAccount": {
+    "entry": "Eliminar cuenta",
+    "tag": "Baja de suscripción",
+    "title": "Eliminar tu cuenta",
+    "intro": "Se cierra tu cuenta y se borra todo lo que te identifica. No hay vuelta atrás.",
+    "goneLabel": "Se borra",
+    "goneBody": "Tu nombre, tu correo y el acceso con Google. Tu nombre de jugador, con lo que sales de la clasificación, del Salón de Campeones y de los perfiles públicos. Y los avisos diarios.",
+    "staysLabel": "Se queda, sin tu nombre",
+    "staysBody": "El registro de tus partidas, ya anónimo. De él salen las clasificaciones de meses y temporadas ya cerrados: si desapareciera, cambiarían podios de otros jugadores.",
+    "irreversible": "No se puede deshacer ni recuperar la cuenta después.",
+    "continue": "Entiendo, continuar",
+    "confirmBody": "Última parada. Al confirmar, tu cuenta se borra ahora mismo y se cierra la sesión en este dispositivo.",
+    "confirmCta": "Eliminar mi cuenta",
+    "deleting": "Eliminando…",
+    "errorRateLimited": "Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.",
+    "errorGeneric": "No se pudo eliminar la cuenta. Vuelve a intentarlo en un momento."
   },
   "achievements": {
     "sectionTitle": "Logros",

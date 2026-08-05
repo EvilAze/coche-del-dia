@@ -18,6 +18,38 @@
   padding-bottom: calc(1rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
+/* ── EL TACTO DE LA APP ────────────────────────────────────────────────────
+   Lo que sigue solo aplica dentro del APK (`data-plataforma="app"`, lo pone
+   src/index.jsx). En web no cambia absolutamente nada.
+
+   Un WebView se comporta como un navegador porque ES un navegador, y eso se
+   nota justo en los gestos que nadie hace a propósito:
+
+     · MANTENER PULSADO sobre el pliego abre el menú de Chrome —«Copiar»,
+       «Buscar en Google», «Traducir»— encima del juego. En una web es lo
+       esperado; en una app es una ventana de otra aplicación asomando por una
+       costura. Y en un juego de adivinar el coche, «Buscar en Google» sobre el
+       texto que el propio juego acaba de revelar es además un atajo raro.
+     · ARRASTRAR la página estira el contenido con el rebote elástico de
+       Android aunque no haya nada más que ver, y deja al descubierto que
+       debajo hay un documento con scroll y no una pantalla.
+
+   Los campos del cupón se quedan FUERA de la regla: ahí escribir, seleccionar y
+   corregir es el juego, y un `user-select: none` los volvería intocables. */
+:root[data-plataforma="app"] {
+  -webkit-user-select: none;
+  user-select: none;
+  /* Menú de "guardar imagen / copiar enlace" al mantener pulsado. */
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+:root[data-plataforma="app"] input,
+:root[data-plataforma="app"] textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;

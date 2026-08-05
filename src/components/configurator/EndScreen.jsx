@@ -31,6 +31,7 @@ import { useScrollLock } from "../../hooks/useScrollLock";
 import { useHistoryClose } from "../../hooks/useHistoryClose";
 import { useT, getCarDescription, getLocalizedCountry } from "../../i18n";
 import { haptic } from "../../lib/haptics";
+import { esApp } from "../../lib/plataforma";
 import { track } from "../../lib/analytics";
 import { flagImagePath } from "../../data/countries";
 import { useToast } from "../Toast";
@@ -183,7 +184,12 @@ export default function EndScreen({
         toast.push(t("result.shareCopied"), { type: "success" });
         track("share", { method, where: "end_screen", result: won ? "win" : "lose" });
       } else {
-        toast.push(t("result.shareUnsupported"), { type: "error" });
+        // En la app no hay «navegador» al que echarle la culpa: el mensaje web
+        // señala al Chrome del usuario, y dentro del APK eso solo confunde.
+        toast.push(
+          esApp() ? t("result.shareUnsupportedApp") : t("result.shareUnsupported"),
+          { type: "error" }
+        );
       }
     } catch (err) {
       if (err?.name === "AbortError") return;

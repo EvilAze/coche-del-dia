@@ -36,6 +36,7 @@ import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
+import DeleteAccountModal from "./DeleteAccountModal";
 import LanguageStrip from "./LanguageStrip";
 import PodiumMedals from "./PodiumMedals";
 import Carnet, { CarnetHead, CarnetCifra, FichaRow, FichaCifra } from "./carnet/Carnet";
@@ -89,6 +90,11 @@ export default function MyStats({
   onOpenNickname,
 }) {
   const { t, locale } = useT();
+  // El modal de borrado se monta DENTRO de este (z-index por encima) en vez de
+  // subir al slot `activeModal` de App: es un sub-paso de los ajustes, y sacarlo
+  // al slot obligaría a cerrar el carnet para abrirlo — el jugador perdería el
+  // contexto justo en la pantalla donde más falta le hace.
+  const [borrarAbierto, setBorrarAbierto] = useState(false);
   const [state, setState] = useState({
     loading: true,
     user: null,
@@ -130,7 +136,20 @@ export default function MyStats({
     onClose?.();
   }
 
-  useEscape(open, onClose);
+  // Con el borrado abierto, este modal SUELTA la escucha de Escape. Es
+  // exactamente el fallo que documenta la cabecera («una pulsación cerraba los
+  // dos») y que se llevó por delante a «Leyendas»: dos diálogos suscritos a la
+  // misma tecla se cierran a la vez, y aquí eso significaría sacar al jugador de
+  // los ajustes por intentar cancelar un borrado.
+  useEscape(open && !borrarAbierto, onClose);
+
+  // Si el carnet se cierra por cualquier otra vía (la X, el scrim, la «atrás»
+  // de Android, que cierra el slot entero de App), el sub-modal se va con él:
+  // es hermano en el DOM, así que sin esto se quedaría flotando SOLO sobre el
+  // juego, pidiendo confirmar un borrado desde una pantalla que ya no existe.
+  useEffect(() => {
+    if (!open) setBorrarAbierto(false);
+  }, [open]);
 
   const cargando = state.loading;
   const stats = state.stats;
@@ -168,6 +187,7 @@ export default function MyStats({
     : null;
 
   return (
+    <>
     <ModalShell
       open={open}
       onClose={onClose}
@@ -322,6 +342,26 @@ export default function MyStats({
               </button>
             </div>
 
+            {/* Borrado de cuenta. Solo con cuenta de verdad (`email` vacío =
+                sesión anónima, que no tiene nada que borrar en servidor).
+
+                DELIBERADAMENTE en el último renglón y en tinta apagada, no como
+                un chip al lado de «Cerrar sesión»: son dos acciones que empiezan
+                igual («salir de aquí») y acaban en sitios opuestos, y la
+                distancia visual es lo que evita el clic equivocado. Play exige
+                que exista y que se encuentre; no exige que compita. */}
+            {email && (
+              <div className="mt-3 text-right">
+                <button
+                  type="button"
+                  onClick={() => setBorrarAbierto(true)}
+                  className="focus-ring font-body text-[11px] uppercase tracking-[0.12em] text-muted-foreground underline decoration-border-strong underline-offset-4 transition-colors hover:text-rojo hover:decoration-rojo"
+                >
+                  {t("deleteAccount.entry")}
+                </button>
+              </div>
+            )}
+
             {state.error && (
               <p className="mt-3 text-center text-sm text-rojo">{state.error}</p>
             )}
@@ -329,5 +369,13 @@ export default function MyStats({
         </>
       )}
     </ModalShell>
+
+    {/* HERMANO del carnet, no hijo: el panel de ModalShell lleva `transform`
+        (la animación de entrada), y un `position: fixed` dentro de un ancestro
+        con transform se posiciona contra ESE ancestro, no contra la ventana —
+        anidarlo lo dejaría recortado dentro del carnet en vez de centrado en la
+        pantalla. */}
+    <DeleteAccountModal open={borrarAbierto} onClose={() => setBorrarAbierto(false)} />
+    </>
   );
 }

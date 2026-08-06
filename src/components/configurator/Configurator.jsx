@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
+import { esApp } from "../../lib/plataforma";
 import Header from "./Header";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
@@ -133,11 +134,20 @@ export default function Configurator({
   // botón de vista. Detalle completo en el hook.
   const hojaRef = useRef(null);
   const jugarRef = useRef(null);
+  // EN LA APP NO SE ENCAJA POR JS. El pliego monta un shell fijo (ver «EL PLIEGO
+  // SIN SCROLL» en index.css) donde la foto ya se dimensiona por ALTO con flex +
+  // aspect-ratio, de forma continua y sin medir nada. Dejar además este hook
+  // activo sería poner dos mecanismos a discutir por la geometría del MISMO
+  // elemento —el que gobierna las reglas 5 y 7—, que es exactamente el escenario
+  // del que salió la foto servida como miniatura de 24px que documenta el hook.
+  // Un solo dueño del ancho del marco por plataforma: CSS en la app, este hook
+  // en la web.
+  const enApp = esApp();
   const anchoEscenario = useEncajeEscenario({
     fotoRef,
     jugarRef,
     hojaRef,
-    activo: dataReady && !ended && guesses.length === 0 && !pendingGuess,
+    activo: !enApp && dataReady && !ended && guesses.length === 0 && !pendingGuess,
   });
 
   // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
@@ -181,9 +191,16 @@ export default function Configurator({
         // distinguir "hay que encoger la foto" de "cabe entera". (Nació además
         // para ganarle en especificidad a la regla de la foto a sangre, que
         // declaraba `max-width: none`; esa regla ya no existe.)
+        // `app-pantalla` enciende el shell fijo de la app (una pantalla, sin
+        // scroll). Solo DURANTE la partida: al terminar, el revelado recupera
+        // su proporción natural y entran la estadística y la distribución, así
+        // que ahí el pliego vuelve a ser un documento que se lee bajando —
+        // igual que en web. La clase se pinta siempre; quien la activa es el
+        // `data-plataforma="app"` de <html>, así que en web es inerte.
         className={
           "prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3" +
-          (anchoEscenario && !ended ? " escenario-encajado" : "")
+          (anchoEscenario && !ended ? " escenario-encajado" : "") +
+          (!ended ? " app-pantalla" : "")
         }
         // El cap que calcula useEncajeEscenario. Va como variable en el pliego
         // (no como estilo del marco) para que la consuma el CSS del sistema y
@@ -302,7 +319,12 @@ export default function Configurator({
             <span className="text-rojo mr-2">{t("prensa.cierre")}</span>
             {countdown.formatted}
           </div>
-          <div className="flex justify-center items-center gap-x-3 text-xs text-muted font-bold uppercase">
+          {/* Los enlaces de servicio. En la app se ocultan (CSS): con el shell
+              fijo el pie no se alcanza, y sus dos entradas viven en el sumario
+              de la cabecera — «Cómo se juega» ya estaba allí y la privacidad se
+              añadió por esto. El reloj de cierre sí se queda: es una línea y es
+              información del día, no navegación. */}
+          <div className="prensa-cierre-enlaces flex justify-center items-center gap-x-3 text-xs text-muted font-bold uppercase">
             {/* Primera visita (`howtoPulse`): las reglas se pintan en rojo, que
                 es el color de "atención" del sistema. Es el único empujón que le
                 queda al recién llegado desde que el pliego dejó de abrir con la

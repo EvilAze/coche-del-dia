@@ -15,6 +15,7 @@ import { Capacitor } from "@capacitor/core";
 import { rearmIfEnabled } from "./lib/notifications";
 import { initNativeAuth } from "./lib/nativeAuth";
 import { hideSplashWhenReady } from "./lib/splash";
+import { installKeyboardWatcher } from "./lib/teclado";
 import { rutaDesdeEnlace, debeNavegar } from "./lib/deepLink";
 import { reminderCopy } from "./lib/reminderCopy";
 import { t, tn } from "./i18n";
@@ -41,6 +42,11 @@ if (Capacitor.isNativePlatform()) {
 
   // Inicializa el plugin de login nativo (idempotente; no-op sin WEB_CLIENT_ID).
   initNativeAuth().catch(() => {});
+
+  // Sella `data-teclado` en <html> mientras el teclado está abierto. Lo lee el
+  // CSS para SOLTAR el pliego sin scroll: con el WebView redimensionado, un
+  // shell fijo aplastaría la fotografía mientras se teclea el intento.
+  installKeyboardWatcher();
 
   // Racha 0 a propósito: aquí todavía no sabemos la del usuario (la trae App
   // tras hablar con el servidor), así que va el copy genérico. App vuelve a

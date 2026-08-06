@@ -816,15 +816,22 @@ body,
   letter-spacing: .26em; text-transform: uppercase; color: var(--rojo);
 }
 /* Grupos: el doble filete entre ellos es el que separa secciones de servicios.
-   Dentro de cada grupo, filete fino entre entradas. */
+   Dentro de cada grupo, filete fino entre entradas.
+   Las entradas son `button` Y `a`: la privacidad es una NAVEGACIÓN de verdad
+   (carga /privacidad), no una acción, y forzarla a <button> con un
+   `location.href` le habría quitado al usuario el «abrir en pestaña nueva» y al
+   lector de pantalla el anuncio de enlace. Por eso los selectores de esta
+   sección nombran los dos, y el filete entre entradas va por hermanos (`* + *`)
+   en vez de por `button + button`. */
 .prensa-menu-grupo + .prensa-menu-grupo { border-top: 3px double var(--line); }
-.prensa-menu-grupo button + button { border-top: 1px solid var(--line); }
+.prensa-menu-grupo > * + * { border-top: 1px solid var(--line); }
 
 /* Entradas: 45px de alto (13+13+~19 de línea) — la barra de arriba es estrecha
    por diseño de portada, pero aquí hay sitio y el pulgar lo agradece. El
    `padding-left` deja hueco a la marca de corrector del hover, para que la
    entrada NO se mueva al señalarla. */
-.prensa-menu button {
+.prensa-menu button,
+.prensa-menu-grupo a {
   position: relative; min-height: 46px;
   display: flex; width: 100%; align-items: center; justify-content: space-between;
   gap: 26px; padding: 13px 18px 13px 30px; text-align: left;
@@ -833,16 +840,19 @@ body,
 }
 /* La marca de corrector: cuadradito de tinta que aparece señalando la entrada
    activa (el mismo objeto que .pm-dot, aquí en rojo y a media altura). */
-.prensa-menu button::before {
+.prensa-menu button::before,
+.prensa-menu-grupo a::before {
   content: ""; position: absolute; left: 17px; top: 50%;
   width: 5px; height: 5px; margin-top: -2.5px; background: var(--rojo);
   opacity: 0; transform: translateX(-3px);
   transition: opacity .14s, transform .14s;
 }
-.prensa-menu button:hover, .prensa-menu button:focus-visible {
+.prensa-menu button:hover, .prensa-menu button:focus-visible,
+.prensa-menu-grupo a:hover, .prensa-menu-grupo a:focus-visible {
   color: var(--rojo); background: var(--surface2);
 }
-.prensa-menu button:hover::before, .prensa-menu button:focus-visible::before {
+.prensa-menu button:hover::before, .prensa-menu button:focus-visible::before,
+.prensa-menu-grupo a:hover::before, .prensa-menu-grupo a:focus-visible::before {
   opacity: 1; transform: translateX(0);
 }
 /* Glifo del toggle de tema: tinta apagada, y acompaña al rojo del hover. */
@@ -1241,6 +1251,171 @@ body,
   .prensa-area-foto { grid-area: foto; min-width: 0; }
   .prensa-area-jugar { grid-area: jugar; border-left: 1px solid var(--line-strong); padding-left: 30px; margin-left: 30px; min-width: 0; }
   .prensa-area-pie { grid-area: pie; }
+}
+
+/* ── EL PLIEGO SIN SCROLL — solo dentro de la app ──────────────────────────
+   En web el scroll es correcto: hay móviles donde el pliego no cabe, y debajo
+   viven el pie con el reloj de cierre y los enlaces de servicio. Una web se lee
+   bajando. Una app, no: una app es UNA pantalla, y todo lo que hace falta para
+   jugar —cabecera, fotografía y cupón— tiene que estar a la vista sin mover un
+   dedo. Esto convierte el pliego en ese shell, y SOLO ahí: la regla entera
+   cuelga de `data-plataforma="app"` (lo sella src/index.jsx), así que en web no
+   cambia ni un píxel.
+
+   TRES CONDICIONES, y las tres importan:
+
+   · `.app-pantalla` la pone Configurator solo DURANTE la partida. Al terminar,
+     el revelado recupera la proporción natural de la foto y aparecen la
+     estadística y la distribución: ahí el pliego vuelve a ser un documento que
+     se lee bajando, como en web. Fijar también esa pantalla habría obligado a
+     recortar el premio.
+   · `:not([data-teclado="abierto"])` SUELTA el shell mientras se escribe. Con
+     el teclado abierto Android redimensiona el WebView y `100svh` deja de ser
+     la pantalla; un shell fijo aplastaría la fotografía contra el suelo
+     mientras el jugador teclea. Soltándolo, la app vuelve al comportamiento de
+     siempre (scroll) y de paso reaparece el «recorte» flotante de PhotoPeek,
+     que existe justo para ese momento. Ver src/lib/teclado.js.
+   · La media query de columna única: en el pliego ancho (≥1100px, tablet en
+     horizontal) el cupón ya vive en su propia columna al lado de la foto y no
+     hay nada que encajar — igual que con el encaje por JS.
+
+   NADA DE `overflow: hidden` A SECAS EN LA RAÍZ. El alto se fija en el pliego y
+   lo único que puede desbordar —el historial— se resuelve con su propio scroll
+   interno. Recortar por arriba habría escondido el botón ADIVINAR, que es
+   exactamente el problema que veníamos a resolver. */
+@media (max-width: 1099px) {
+  :root[data-plataforma="app"] {
+    /* Alto mínimo JUGABLE del marco. Es el mismo 168px que useEncajeEscenario
+       usa en web por el mismo motivo (su ALTO_MINIMO): por debajo, el zoom del
+       primer intento enseña un detalle diminuto de una foto diminuta. Vive en
+       una variable porque lo consumen DOS reglas que tienen que moverse juntas
+       —el escenario y la sección que lo contiene—, y separarlas es exactamente
+       lo que produce o la foto encima del cupón o el shell que no encoge. */
+    --cdd-foto-suelo: 168px;
+  }
+
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla {
+    /* `svh` y no `dvh`: es la misma unidad que ya usa .cdd-app (min-height:
+       100svh), así que padre e hijo miden lo mismo por construcción y el
+       documento no se queda con un hilo de scroll. En un WebView a pantalla
+       completa las tres unidades coinciden; la que se movería con el teclado es
+       `dvh`, y con el teclado abierto esta regla ni siquiera aplica. */
+    height: 100svh;
+    min-height: 0;
+    /* LA VÁLVULA. Cuando el presupuesto vertical no da NI con los suelos —un
+       teléfono de 480px con cinco intentos, o el cupón crecido por el tamaño de
+       fuente del sistema—, el pliego se desliza dentro de sí mismo. Sin esta
+       línea el alto fijo no tenía por dónde ceder: la foto respetaba su suelo
+       pero se salía de su sección y se pintaba ENCIMA del cupón, y el pie
+       quedaba a 500px con la ventana en 480, cortado y sin scroll con el que
+       alcanzarlo. Verificado en el banco de pruebas antes de escribir esto.
+       `contain` para que el gesto no se propague al WebView al llegar al final. */
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    /* Los 44px de aire para el scroll sobran cuando no hay scroll: aquí el pie
+       ES el suelo, y por debajo solo va la barra de gestos del sistema. */
+    padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Las bandas que NO se mueven: cabecera, cupón y pie miden lo que miden. */
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla > .prensa-area-cab,
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-area-jugar,
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-area-pie {
+    flex: 0 0 auto;
+  }
+
+  /* LA BANDA ELÁSTICA: la fotografía se queda con lo que sobre. */
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-area-foto {
+    flex: 1 1 auto;
+    /* EL SUELO VA AQUÍ, EN EL ÍTEM FLEX, y las dos alternativas obvias fallan —
+       las dos comprobadas en el banco antes de escribir esto:
+         · `min-height: 0` deja que la sección se aplaste hasta h=0 mientras la
+           fotografía de dentro sigue respetando SU suelo: el marco se sale de su
+           sección y se pinta ENCIMA del cupón.
+         · sin declarar nada, el mínimo automático de un ítem flex es su
+           min-content, y con `aspect-ratio` eso ya es el alto natural (ancho ×
+           3/4): la sección no encoge NUNCA y el pliego scrollea en cualquier
+           móvil, o sea que no hay shell.
+       Así que el mínimo es explícito: el marco jugable más el ladillo con su
+       hueco (medidos: 45px). Encoge hasta ahí y ni un píxel más; a partir de ahí
+       cede el scroll del pliego, que es la válvula de arriba. */
+    min-height: calc(var(--cdd-foto-suelo) + 2.8rem);
+    padding-bottom: 0;
+  }
+
+  /* EL MARCO, DIMENSIONADO POR ALTO — y el 4:3 intacto (reglas 5 y 7).
+     El `aspect-ratio` del escenario es un TECHO: su alto natural es el ancho de
+     la columna × 3/4, y `flex: 0 1 auto` solo le deja encoger, nunca crecer. De
+     ahí sale la garantía que hace segura toda esta regla: el alto del marco
+     nunca supera ancho×3/4, así que su ancho derivado (alto×4/3) nunca supera
+     la columna y el `max-width` JAMÁS llega a morder. Si mordiera, con el alto
+     fijado al 100% la proporción se rompería y el `object-fit: cover` enseñaría
+     un recorte distinto del que sirvió el servidor.
+     `margin-block: auto` centra el marco en el hueco sobrante (márgenes
+     automáticos en el eje PRINCIPAL de un flex en columna: absorben el espacio
+     libre). Ojo: eso es seguro aquí y no lo era en el encaje por JS, donde el
+     `margin-inline: auto` iba en el eje CRUZADO y desactivaba el estirado —
+     de ahí la foto colapsada a 24px que documenta useEncajeEscenario. */
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .cdd-stage {
+    flex: 0 1 auto;
+    /* EL SUELO, y es el mismo 168px que ya usaba useEncajeEscenario por la misma
+       razón: por debajo de eso el escenario deja de ser jugable (en el primer
+       intento el zoom enseña un detalle diminuto de una foto diminuta). Sin él
+       esto medía 122x91 en un 320x568 con cinco intentos, y 75x56 en un 360x480:
+       un sello de correos. La regla es la del hook — antes perder el pliegue que
+       servir una miniatura.
+       Y si ni con el suelo cabe todo, el pliego NO recorta: aquí no hay
+       `overflow: hidden`, así que la pantalla degrada sola a un scroll corto.
+       Un móvil de 480px de alto con cinco intentos es un caso patológico (o un
+       teléfono en horizontal) y ahí el scroll es la respuesta honesta.
+       El valor vive en `--cdd-foto-suelo` porque la sección de arriba tiene que
+       derivar SU mínimo de este mismo número: si se separan, o la foto se sale
+       de su sección o la sección deja de encoger. */
+    min-height: var(--cdd-foto-suelo);
+    aspect-ratio: 4 / 3;
+    margin-block: auto;
+    display: flex;
+    justify-content: center;
+  }
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .cdd-stage-frame {
+    flex: 0 0 auto;
+    height: 100%;
+    width: auto; /* lo deriva el aspect-ratio desde el alto */
+    max-width: 100%;
+    aspect-ratio: 4 / 3; /* se reafirma: la proporción no se negocia */
+  }
+
+  /* EL HISTORIAL: lo ÚNICO con scroll propio en toda la pantalla, y es una
+     lista, que es la única cosa que un usuario espera poder deslizar dentro de
+     una app. El tope al 26% del alto reparte el presupuesto vertical a favor de
+     lo que se juega: con cinco intentos la lista se desliza, la foto no se
+     convierte en un sello. `overscroll-behavior: contain` evita que al llegar
+     al final el gesto se propague y arrastre la pantalla entera. */
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-historial {
+    flex: 0 1 auto;
+    /* Suelo de dos filas: encogiendo a la par que la foto, el reparto flex podía
+       dejar la lista en una rendija de píxeles — visible, inútil y peor que no
+       pintarla. Con dos filas y su scroll, siempre se lee el último intento, que
+       es el que importa. (Con cero intentos no se monta el bloque, así que este
+       mínimo nunca dibuja una caja vacía.) */
+    min-height: 3.5rem;
+    max-height: 26%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* EL PIE, reducido al reloj. Los enlaces de servicio se van al sumario de la
+     cabecera: con el pliego fijo, un enlace que solo viviera aquí abajo sería
+     inalcanzable — y la política de privacidad tiene que ser accesible desde
+     dentro de la app (requisito de Play). El reloj se queda porque es una línea
+     y es información del ejemplar, no navegación. */
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-cierre-enlaces {
+    display: none;
+  }
+  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-area-pie {
+    padding-top: 6px;
+    padding-bottom: 0;
+  }
 }
 
 /* Foco de teclado del sistema prensa: anillo rojo uniforme (sustituye al

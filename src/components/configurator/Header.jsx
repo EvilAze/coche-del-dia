@@ -166,6 +166,17 @@ export default function Header({
                   <span>{tema === "noche" ? t("cdd.themeToDay") : t("cdd.themeToNight")}</span>
                   {tema === "noche" ? <SunGlyph /> : <MoonGlyph />}
                 </button>
+
+                {/* La privacidad vive AQUÍ y no solo en el pie por lo que pasa
+                    en la app: allí el pliego no scrollea (shell fijo) y el pie
+                    queda fuera de la pantalla, así que un enlace que solo
+                    existiera abajo sería inalcanzable — y Play exige que la
+                    política sea accesible desde dentro de la app. En web se
+                    queda en los dos sitios, igual que «Cómo se juega», que ya
+                    estaba duplicado entre este sumario y el pie. */}
+                <a href="/privacidad" onClick={() => haptic.impactLight()}>
+                  <span>{t("app.footerPrivacy")}</span>
+                </a>
               </div>
             </div>
           )}

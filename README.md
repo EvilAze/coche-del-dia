@@ -89,6 +89,7 @@ en silencio. Todo está documentado en [`.env.example`](.env.example).
 | `npm test` | Suite completa: estética + unit + seguridad + ataques |
 | `npm run test:unit` | Vitest (`src/**`, `api/**`, `lib/**`) |
 | `npm run test:estetica` | Falla si aparece emoji en UI, paleta cruda de Tailwind, glows o hex sueltos |
+| `npm run test:layout` | Mide el pliego sin scroll de la app en Chromium sobre 5 pantallas × 3 estados × 2 temas. **Fuera de `npm test`**: necesita un build fresco (lo hace solo si hace falta) y un Chromium instalado |
 | `npm run test:security` | Comprobaciones de superficie de los endpoints |
 | `npm run test:attacks` | Reproduce ataques conocidos (reveal token forjado, brute-force, spoof de sesión anónima) |
 | `npm run test:rls` | Verifica las policies de Supabase — **necesita credenciales reales**, por eso no entra en `npm test` |
@@ -99,6 +100,10 @@ en silencio. Todo está documentado en [`.env.example`](.env.example).
 
 `vercel.json` fija `buildCommand: vitest run && vite build`, así que un test
 unitario roto tumba el deploy.
+
+`test:layout` usa `playwright-core`, que **no descarga navegadores**: reutiliza
+el Chromium o el Chrome que ya tengas. Si no lo encuentra, apúntale a él con
+`CDD_CHROMIUM=/ruta/al/binario`.
 
 ## Cómo funciona el juego
 

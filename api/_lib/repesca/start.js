@@ -28,7 +28,7 @@ import { pseudoIdFor } from "../repesca-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
 import { requireUser } from "../auth.js";
 import { todayInMadrid } from "../date.js";
-import { parseBody, methodGuard } from "../http.js";
+import { parseBody, methodGuard, applyCors } from "../http.js";
 import { captureServerError } from "../sentry.js";
 import { clampZoomBase } from "../zoom.js";
 
@@ -146,6 +146,11 @@ function pickRandomCryptoSafe(arr) {
 }
 
 export default async function handler(req, res) {
+  // CORS ANTES que methodGuard: la app Android (origen https://localhost) manda
+  // Authorization, y eso obliga al navegador a un preflight OPTIONS. Sin esto,
+  // methodGuard contestaba 405 al preflight y el fetch moría antes de salir —
+  // la repesca entera quedaba inaccesible desde el APK.
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
   if (methodGuard(req, res, "POST")) return;
 
   try {

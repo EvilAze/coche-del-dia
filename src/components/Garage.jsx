@@ -38,6 +38,7 @@ import AchievementIcon from "./AchievementIcons";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
 import { track } from "../lib/analytics";
 import { flagImagePath } from "../data/countries";
+import { apiUrl } from "../lib/apiUrl";
 import { countryTier, brandTier, collectorTier, TIER_HEX } from "../lib/collectionTier";
 import {
   collectCovers,
@@ -1121,7 +1122,10 @@ function Cover({ car, isNew, onClick }) {
 
       <div className="foto">
         <img
-          src={car.img}
+          // apiUrl(): las portadas vienen como /api/car-image?t=… (ruta
+          // relativa). En la app hay que absolutizarlas o el archivo entero
+          // se ve sin fotos — el <img> no pasa por el shim de fetch.
+          src={apiUrl(car.img)}
           alt={`${car.marca} ${car.modelo}`}
           draggable={false}
           loading="lazy"
@@ -1290,7 +1294,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                 <div className="arch-paspartu relative aspect-[4/3] w-full overflow-hidden">
                   {displayCar.img && (
                     <img
-                      src={displayCar.img}
+                      src={apiUrl(displayCar.img)}
                       alt=""
                       aria-hidden="true"
                       className="h-full w-full object-contain"
@@ -1362,7 +1366,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                         de un álbum. */}
                     <div className="arch-paspartu relative aspect-[4/3] w-full overflow-hidden">
                       <img
-                        src={displayCar.img}
+                        src={apiUrl(displayCar.img)}
                         alt={`${displayCar.marca} ${displayCar.modelo}`}
                         // Sin esto, arrastrar la foto con el ratón inicia el
                         // drag nativo de imagen y se come el gesto de volteo.

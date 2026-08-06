@@ -14,7 +14,7 @@ import { resolveRealCarId } from "../repesca-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
 import { requireUser } from "../auth.js";
 import { todayInMadrid } from "../date.js";
-import { parseBody, methodGuard } from "../http.js";
+import { parseBody, methodGuard, applyCors } from "../http.js";
 import { captureServerError } from "../sentry.js";
 import { getClientIp } from "../ratelimit.js";
 import { logGuessAttempt } from "../audit.js";
@@ -51,6 +51,9 @@ async function fetchCarById(id) {
 }
 
 export default async function handler(req, res) {
+  // Mismo motivo que en start.js: el Bearer de la app dispara preflight y sin
+  // CORS el OPTIONS se comía un 405, así que el intento nunca llegaba a validarse.
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
   if (methodGuard(req, res, "POST")) return;
 
   try {

@@ -34,6 +34,7 @@ import { haptic } from "../../lib/haptics";
 import { esApp } from "../../lib/plataforma";
 import { track } from "../../lib/analytics";
 import { flagImagePath } from "../../data/countries";
+import { apiUrl } from "../../lib/apiUrl";
 import { useToast } from "../Toast";
 import { Icon, I } from "./icons";
 // `Percentile` se retiró de dailyStats: era una caja con el porcentaje y ahora ese
@@ -229,7 +230,13 @@ export default function EndScreen({
           </div>
           {car?.img && (
             <img
-              src={car.img}
+              // apiUrl(): `car.img` es la ruta RELATIVA del proxy
+              // (/api/daily-image?…). En la app el WebView sirve desde
+              // https://localhost, donde esa ruta no existe → la foto del
+              // revelado salía rota justo en el momento del premio. El <img>
+              // no pasa por el shim de fetch, así que hay que absolutizar a
+              // mano, igual que hacen CarImage y PhotoPeek.
+              src={apiUrl(car.img)}
               alt=""
               draggable={false}
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}

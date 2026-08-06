@@ -12,7 +12,7 @@ import { resolveRealCarId } from "../repesca-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
 import { requireUser } from "../auth.js";
 import { todayInMadrid } from "../date.js";
-import { methodGuard } from "../http.js";
+import { methodGuard, applyCors } from "../http.js";
 import { captureServerError } from "../sentry.js";
 import { clampZoomBase, cropPctForAttempt, ZOOM_ATTEMPTS } from "../zoom.js";
 
@@ -27,6 +27,12 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function handler(req, res) {
+  // Esta foto NO se pide con <img src>, se baja con fetch + Authorization para
+  // convertirla en blob (el gate mira user_guesses, y una etiqueta img no puede
+  // mandar el Bearer). Al ser fetch, sí aplica CORS: desde la app el origen es
+  // https://localhost y hay preflight. Sin esto el OPTIONS moría en 405 y la
+  // repesca se quedaba con el skeleton para siempre.
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
   if (methodGuard(req, res, ["GET", "HEAD"])) return;
 
   try {

@@ -26,6 +26,7 @@
 //   3. Llamar desde el front a /api/admin/mi-nuevo.
 // ---------------------------------------------------------------------
 
+import { applyCors } from "../_lib/http.js";
 import analytics from "../../lib/admin-handlers/analytics.js";
 import audit from "../../lib/admin-handlers/audit.js";
 import saveCar from "../../lib/admin-handlers/save-car.js";
@@ -47,6 +48,21 @@ const ROUTES = {
 };
 
 export default async function handler(req, res) {
+  // CORS AQUÍ, EN EL DISPATCHER, y no en cada handler. Los ocho llevan
+  // Authorization (requireAdmin), así que desde la app —origen
+  // https://localhost, cross-origin contra producción— el navegador manda
+  // primero un preflight OPTIONS. Sin responderlo, TODA llamada del panel
+  // moría con «Failed to fetch» antes de salir del móvil: el panel entero
+  // era inservible dentro del APK.
+  //
+  // En el dispatcher porque es la única puerta: los handlers viven fuera de
+  // api/ (lib/admin-handlers/) y son ocho; ponerlo en cada uno sería repetir
+  // la misma línea ocho veces y olvidarla en el noveno. Aquí, un endpoint
+  // admin nuevo nace con CORS resuelto. Antes del routing y de cualquier
+  // auth: un preflight no lleva credenciales por definición, así que
+  // gatearlo detrás de requireAdmin lo rechazaría siempre.
+  if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
+
   // Vercel puede pasar req.query.slug como:
   //   • Array de strings  → e.g., ["analytics"] o ["nested", "deep"]
   //   • String suelta     → e.g., "analytics" (algunos runtimes lo simplifican

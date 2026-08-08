@@ -1,32 +1,50 @@
 // src/lib/teclado.js
 // Sella en <html> si el teclado del sistema está abierto (`data-teclado`).
-// Solo nativo; en web es no-op (allí el teclado ni siquiera redimensiona el
-// viewport de la misma forma, y además la web SÍ scrollea, que es lo normal).
+// Solo nativo; en web es no-op (allí la página SÍ scrollea, que es lo normal).
 //
-// POR QUÉ EXISTE. La app monta un shell fijo: `.app-pantalla` ocupa exactamente
-// el alto de la pantalla y NO scrollea (ver «EL PLIEGO SIN SCROLL» en
-// index.css). Eso funciona mientras el alto de la ventana sea el de la pantalla
-// — y deja de ser cierto en cuanto se abre el teclado, porque Android
-// redimensiona el WebView (adjustResize) y `100dvh` encoge con él. Con el shell
-// fijo y el cupón anclado abajo, escribir el intento aplastaría la fotografía
-// contra el suelo.
+// POR QUÉ EXISTE. La app monta un shell fijo: `.app-pantalla` ocupa el alto de
+// la pantalla y no scrollea (ver «EL PLIEGO SIN SCROLL» en index.css). Eso vale
+// mientras el alto de la ventana sea el de la pantalla, y deja de serlo al abrir
+// el teclado, porque Android redimensiona el WebView. Con `data-teclado="abierto"`
+// el pliego vuelve al flujo normal mientras se escribe, y de paso reaparece el
+// «recorte» flotante de PhotoPeek, que existe justo para ese momento.
 //
-// La salida no es pelearse con el alto: es SOLTAR el shell mientras se escribe.
-// Con `data-teclado="abierto"` el pliego vuelve al flujo normal con scroll —
-// exactamente el comportamiento que la app ya tenía— y de paso vuelve a
-// funcionar el «recorte» flotante (PhotoPeek), que existe precisamente para
-// este caso: el escenario sale del viewport y una miniatura mantiene la
-// referencia visual del coche mientras el jugador teclea. Al cerrarse el
-// teclado el shell se recompone solo.
+// LA SEÑAL ES EL FOCO, NO LA GEOMETRÍA NI UN PLUGIN. Esto empezó usando
+// @capacitor/keyboard y la dependencia se retiró por dos motivos:
 //
-// El plugin se importa DINÁMICAMENTE por el mismo motivo que en notifications /
-// splash: en web no debe entrar en el bundle inicial, y si el plugin faltase
-// (build viejo sin `cap sync`) la app tiene que seguir arrancando — sin shell
-// que soltar, pero arrancando.
+//   1. Era superficie nativa nueva —la única de esa release— y tenía que
+//      quedar registrada por `cap sync` para funcionar. Un arranque de app que
+//      depende de que un plugin esté bien registrado es un arranque más frágil,
+//      y aquí no hacía falta ninguno: enfocar un campo de texto en un móvil ES
+//      lo que abre el teclado. El foco es la CAUSA, no un síntoma que haya que
+//      medir, así que llega antes que cualquier resize y no puede fallar por
+//      config.
+//   2. Medir el viewport tampoco servía como alternativa: con `adjustResize`
+//      (el modo por defecto de Android) `innerHeight` y `visualViewport.height`
+//      encogen A LA PAR, así que no hay proporción que comparar sin recordar un
+//      alto base — y ese base caduca al girar el móvil. Es justo el enredo que
+//      useEncajeEscenario ya documenta al congelar su alto de ventana.
+//
+// Un teclado físico (Bluetooth) daría un falso positivo: se enfoca el campo sin
+// que suba teclado. El coste es nulo — el pliego permite scroll durante un rato
+// y no se ve distinto.
 
 import { Capacitor } from "@capacitor/core";
 
 const ABIERTO = "abierto";
+
+// Tipos de <input> que NO abren teclado: si el foco cae en uno, no hay por qué
+// soltar el shell.
+const SIN_TECLADO = new Set([
+  "checkbox", "radio", "button", "submit", "reset", "file", "range", "color", "image",
+]);
+
+// Margen antes de recomponer el shell. El combo de marca/modelo mueve el foco
+// entre el campo y su listbox, y sin esta espera el pliego se recompondría y se
+// volvería a soltar en el mismo gesto — un salto de maqueta mientras el jugador
+// escribe. Si el foco aterriza en otro campo, el sellado sigue puesto.
+const MARGEN_MS = 120;
+let pendiente = 0;
 
 function sellar(abierto) {
   if (typeof document === "undefined") return;
@@ -35,25 +53,39 @@ function sellar(abierto) {
   else delete el.dataset.teclado;
 }
 
+function esCampoDeTexto(el) {
+  if (!el || !el.tagName) return false;
+  if (el.isContentEditable) return true;
+  const etiqueta = el.tagName.toUpperCase();
+  if (etiqueta === "TEXTAREA") return true;
+  if (etiqueta !== "INPUT") return false;
+  return !SIN_TECLADO.has((el.type || "text").toLowerCase());
+}
+
 /**
- * Engancha los listeners del teclado. Llamar UNA vez al arrancar, dentro del
- * bloque nativo de index.jsx. No devuelve nada: los listeners viven lo que vive
- * la app (no hay desmontaje posible de la raíz en Capacitor).
+ * Engancha los listeners. Llamar UNA vez al arrancar, dentro del bloque nativo
+ * de index.jsx. Síncrona y sin dependencias nativas: no puede fallar de una
+ * forma que impida el arranque de la app.
  */
-export async function installKeyboardWatcher() {
+export function installKeyboardWatcher() {
   if (!Capacitor.isNativePlatform()) return;
-  try {
-    const { Keyboard } = await import("@capacitor/keyboard");
-    // `Will` y no `Did` a propósito: queremos soltar el shell ANTES de que el
-    // WebView cambie de alto, para que el usuario no llegue a ver el frame
-    // aplastado. Al cerrar es al revés — esperamos a `Did` para recomponer el
-    // shell cuando el alto ya ha vuelto a su sitio, o mediríamos el de en medio.
-    await Keyboard.addListener("keyboardWillShow", () => sellar(true));
-    await Keyboard.addListener("keyboardDidHide", () => sellar(false));
-  } catch (err) {
-    // Plugin ausente (assets sin `cap sync`) o WebView sin soporte: la app
-    // funciona igual, solo que el shell no se suelta al escribir. Regla 9: si
-    // la optimización falta, la pantalla carga igual.
-    console.error("[teclado] watcher no instalado:", err?.message || err);
-  }
+  if (typeof document === "undefined") return;
+
+  // `focusin`/`focusout` y no `focus`/`blur`: estos dos no burbujean, así que
+  // no se pueden escuchar en el documento y habría que engancharlos campo a
+  // campo — incluidos los que monta el combo sobre la marcha.
+  document.addEventListener("focusin", (evento) => {
+    if (!esCampoDeTexto(evento.target)) return;
+    clearTimeout(pendiente);
+    sellar(true);
+  });
+
+  document.addEventListener("focusout", (evento) => {
+    if (!esCampoDeTexto(evento.target)) return;
+    clearTimeout(pendiente);
+    pendiente = setTimeout(() => {
+      // Solo recomponemos si el foco NO ha ido a otro campo de texto.
+      if (!esCampoDeTexto(document.activeElement)) sellar(false);
+    }, MARGEN_MS);
+  });
 }

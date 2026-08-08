@@ -21,10 +21,24 @@
 // La red de seguridad (importante):
 //   Con `launchAutoHide: false`, si este módulo no llega a llamar a hide() el
 //   splash se queda ETERNO y la app parece colgada. Puede pasar si el bundle
-//   revienta antes de este punto. Por eso el temporizador de abajo se arma en
-//   cuanto se importa el módulo y dispara pase lo que pase: en el peor caso
-//   volvemos al comportamiento anterior (splash que se va sin esperar a nadie),
-//   nunca a una pantalla muerta.
+//   revienta antes de este punto. Por eso el temporizador se arma AL EVALUARSE
+//   EL MÓDULO —no dentro de hideSplashWhenReady()— y dispara pase lo que pase:
+//   en el peor caso volvemos al comportamiento anterior (splash que se va sin
+//   esperar a nadie), nunca a una pantalla muerta.
+//
+//   ESTO ESTUVO ROTO, y de la peor manera: el comentario prometía justo lo de
+//   arriba pero el `setTimeout` vivía DENTRO de hideSplashWhenReady(), que
+//   index.jsx llama DESPUÉS de todos los imports y del render. O sea que la red
+//   se armaba después del peligro que dice cubrir. Cualquier excepción a nivel
+//   de módulo —el caso real: `.env` sin las variables de Supabase, que hace
+//   lanzar a supabaseClient.js— dejaba el splash puesto para siempre: la app
+//   parecía tostada y no había forma de ver el error desde el móvil.
+//
+//   Y no basta con mover el temporizador: para que este módulo llegue a
+//   EVALUARSE, su import tiene que ir ANTES que el de App en index.jsx (los
+//   imports ES se evalúan en orden, y si el de App lanza, lo que viene detrás
+//   no existe). Está anotado allí; si alguien reordena los imports, esto vuelve
+//   a romperse en silencio. Lo cubre splash.test.js.
 
 import { Capacitor } from "@capacitor/core";
 
@@ -54,12 +68,17 @@ async function cerrar() {
   }
 }
 
+// LA RED DE SEGURIDAD, armada al evaluarse el módulo. Es un efecto de import a
+// propósito: es la única forma de cubrir el caso «el bundle revienta antes de
+// que nadie llame a hideSplashWhenReady()», que es precisamente cuando el
+// usuario se queda mirando un splash que no se va.
+if (Capacitor.isNativePlatform()) {
+  setTimeout(cerrar, TOPE_MS);
+}
+
 // Llamar UNA vez, justo después de root.render(). Idempotente.
 export function hideSplashWhenReady() {
   if (!Capacitor.isNativePlatform()) return;
-
-  // Red de seguridad primero: si lo de abajo no llega a ejecutarse, esto sí.
-  setTimeout(cerrar, TOPE_MS);
 
   // Doble rAF: el primer callback corre ANTES del paint del frame en curso, el
   // segundo ya con ese frame pintado. Es la señal más temprana y fiable de "hay

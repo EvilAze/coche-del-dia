@@ -10,10 +10,20 @@ login Google) con **recordatorio diario local**. `appId`: `com.cochedeldia`.
 > IMPORTANTE (variables de entorno): `vite build` necesita un **`.env`** con
 > `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en el directorio desde el que
 > compilas. `.env` está **gitignorado** y **NO se hereda en los git worktrees**
-> (`.claude/worktrees/…`). Si falta, la app arranca en **pantalla negra** y la
-> consola (`chrome://inspect`) muestra `Uncaught Error: Faltan las variables de
-> entorno de Supabase` (lo lanza `src/supabaseClient.js`). Desde el repo
-> principal ya está; desde un worktree, copia el `.env` antes de `cap:sync`.
+> (`.claude/worktrees/…`). Si falta, `src/supabaseClient.js` lanza durante la
+> evaluación de módulos y la app **se queda en el splash** (antes de que el
+> splash pasara a cerrarse desde JS, el síntoma era una pantalla negra; este
+> documento decía eso y llevaba un tiempo desactualizado). La consola
+> (`chrome://inspect`) muestra `Uncaught Error: Faltan las variables de entorno
+> de Supabase`. Desde el repo principal ya está; desde un worktree, copia el
+> `.env` antes de `cap:sync`.
+>
+> El splash ya no se queda ETERNO en ese caso: `src/lib/splash.js` arma un tope
+> de 4 s al evaluarse el módulo, y su import va antes que el de `App` justo para
+> que se arme aunque `App` reviente (lo ata `src/lib/splash.test.js`). Así el
+> fallo se ve —pantalla en blanco con el error en consola— en vez de disfrazarse
+> de app colgada. Si la app se queda en el splash MÁS de 4 s, el problema no es
+> el bundle: mira `adb logcat`, porque entonces es nativo.
 
 > IMPORTANTE (worktrees): **compila el AAB que subes a Play desde el repo
 > principal**, no desde un worktree de `.claude/worktrees/…`. Un worktree no

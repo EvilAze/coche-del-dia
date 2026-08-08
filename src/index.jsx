@@ -5,6 +5,16 @@ import ReactDOM from "react-dom/client";
 // cualquier regla los use. Sustituye al <link> a fonts.googleapis.com.
 import "./fonts.css";
 import "./index.css";
+// ORDEN CRÍTICO — `./lib/splash` va ANTES que `./App`, y no es estética.
+// Con `launchAutoHide: false`, el splash nativo solo se cierra desde JS, y su
+// red de seguridad (un temporizador) se arma al EVALUARSE ese módulo. Los
+// imports ES se evalúan en orden: si `./App` lanza durante su evaluación —el
+// caso real es un `.env` sin las variables de Supabase, que hace lanzar a
+// supabaseClient.js— todo lo que venga DETRÁS no llega a existir. Con el import
+// aquí abajo, la red nunca se armaba y la app se quedaba en el splash para
+// siempre: parecía tostada, sin forma de ver el error desde el móvil.
+// Arriba, el peor caso es «el splash se va y se ve el error». Ver splash.js.
+import { hideSplashWhenReady } from "./lib/splash";
 import App from "./App";
 import ErrorFallback from "./components/ErrorFallback";
 import { ToastProvider } from "./components/Toast";
@@ -14,7 +24,6 @@ import { installApiFetchShim } from "./lib/apiUrl";
 import { Capacitor } from "@capacitor/core";
 import { rearmIfEnabled } from "./lib/notifications";
 import { initNativeAuth } from "./lib/nativeAuth";
-import { hideSplashWhenReady } from "./lib/splash";
 import { installKeyboardWatcher } from "./lib/teclado";
 import { rutaDesdeEnlace, debeNavegar } from "./lib/deepLink";
 import { reminderCopy } from "./lib/reminderCopy";
@@ -31,7 +40,16 @@ installApiFetchShim();
 
 // Solo nativo (Capacitor): re-armar el recordatorio si el permiso ya está
 // concedido, y enganchar el botón físico "atrás" de Android.
-if (Capacitor.isNativePlatform()) {
+if (Capacitor.isNativePlatform()) try {
+  // TODO EL BLOQUE VA EN try/catch, y es por lo que cuesta un fallo aquí: esto
+  // corre ANTES de root.render(), así que una excepción se lleva por delante el
+  // render Y la llamada a hideSplashWhenReady() de más abajo. Con
+  // `launchAutoHide: false` eso no es «una función nativa que no va»: es la app
+  // entera clavada en el splash. Ninguna inicialización nativa —ninguna— vale
+  // más que arrancar, así que si algo de aquí falla se registra y se sigue.
+  // (El temporizador de splash.js cubre el caso extremo, pero la red no es
+  // excusa para dejar que esto tumbe el arranque.)
+
   // Marca de plataforma en <html>. La lee el CSS (ver el bloque «EL TACTO DE LA
   // APP» en index.css) para apagar los gestos que delatan el WebView: la
   // selección de texto con su menú de Chrome y el rebote elástico al arrastrar.
@@ -76,7 +94,18 @@ if (Capacitor.isNativePlatform()) {
         window.location.replace(destino);
       }
     });
+  }).catch((err) => {
+    // Faltaba el .catch(): sin él, un plugin @capacitor/app no disponible
+    // dejaba una promesa rechazada sin manejar. No tumba el arranque (el
+    // rechazo es asíncrono), pero ensucia Sentry con ruido que no es un
+    // error nuestro y esconde los que sí lo son. El precio de no tenerlo es
+    // solo el botón físico "atrás" y los App Links.
+    console.error("[index] @capacitor/app no disponible:", err?.message || err);
   });
+} catch (err) {
+  // Ver la nota del try de arriba: arrancar manda sobre cualquier
+  // inicialización nativa.
+  console.error("[index] init nativo falló, seguimos arrancando:", err?.message || err);
 }
 
 // Empezar a recolectar Core Web Vitals (LCP/CLS/INP/FCP/TTFB) y mandarlos

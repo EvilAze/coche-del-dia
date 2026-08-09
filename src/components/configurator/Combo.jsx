@@ -7,10 +7,13 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { haptic } from "../../lib/haptics";
 import { acercarCampoAlTeclado } from "../../lib/teclado";
+import { normalizar } from "../../lib/texto";
 import { useT } from "../../i18n";
 
-const DIACRITICS = new RegExp("[\\u0300-\\u036f]", "g");
-const norm = (s) => (s || "").toLowerCase().normalize("NFD").replace(DIACRITICS, "");
+// La normalización vive en lib/texto: la comparten este combo (web) y la hoja
+// de selección (app), y dos copias acabarían divergiendo en el caso raro — la
+// marca con diéresis que se escribe sin ella.
+const norm = normalizar;
 
 export default function Combo({
   label,

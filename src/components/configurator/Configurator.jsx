@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
-import { useTecladoAbierto } from "../../hooks/useTecladoAbierto";
 import { esApp } from "../../lib/plataforma";
 import Header from "./Header";
 import EdicionNoDisponible from "./EdicionNoDisponible";
@@ -108,14 +107,12 @@ export default function Configurator({
   // con un IntersectionObserver de umbral 0.25: con menos de un cuarto de la
   // foto a la vista, la referencia ya no sirve y entra el recorte.
   //
-  // EN LA APP HAY ADEMÁS UNA SEGUNDA CAUSA, y no la puede ver el observador: el
-  // modo escritura retira la sección de la foto del pliego entera (index.css),
-  // así que el recorte deja de ser un apaño para pasar a ser LA foto. Se pide
-  // por el estado del teclado y no esperando a que el IntersectionObserver
-  // acuse el `display: none`, porque ese acuse llega un frame tarde — y ese
-  // frame es exactamente la pantalla sin ninguna foto, que es lo que veníamos
-  // a evitar.
-  const escribiendo = useTecladoAbierto();
+  // (Hubo una segunda causa mientras existió el «modo escritura»: la app
+  // retiraba la sección de la foto para hacerle sitio al teclado y el recorte
+  // pasaba a ser LA foto. Con el cupón de selectores el teclado no aparece
+  // sobre la partida, así que en la app la fotografía ya no se pierde de vista
+  // nunca y aquí vuelve a mandar solo el observador — que es lo que sigue
+  // haciendo falta en la web, donde la página sí se desplaza.)
   const fotoRef = useRef(null);
   const [fotoVisible, setFotoVisible] = useState(true);
   useEffect(() => {
@@ -163,10 +160,7 @@ export default function Configurator({
   // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
   function volverALaFoto() {
     document.activeElement?.blur?.();
-    // Escribiendo NO hay a dónde desplazarse: el escenario no está en el pliego
-    // y el blur de arriba ya devuelve la pantalla completa por sí solo. Pedir
-    // scroll aquí sería pedírselo a un shell que por diseño no se mueve.
-    if (!escribiendo) fotoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    fotoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   // (Aquí se calculaba `olderGuesses`, que le quitaba al historial el intento
@@ -265,12 +259,10 @@ export default function Configurator({
           />
         )}
 
-        {/* El recorte flotante: solo en partida, y cuando la foto no está a la
-            vista — porque quedó fuera del viewport o porque el modo escritura
-            la ha retirado del pliego. El CSS lo oculta en el pliego ancho
-            (≥1100px): allí la foto es la columna central y no se pierde. z-50,
-            bajo EndScreen y modales. */}
-        {dataReady && !ended && (!fotoVisible || escribiendo) && (
+        {/* El recorte flotante: solo en partida y con la foto fuera de vista.
+            El CSS lo oculta en el pliego ancho (≥1100px): allí la foto es la
+            columna central y no se pierde. z-50, bajo EndScreen y modales. */}
+        {dataReady && !ended && !fotoVisible && (
           <PhotoPeek src={car?.img ?? null} zoom={zoom} onClick={volverALaFoto} />
         )}
 

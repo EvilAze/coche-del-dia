@@ -21,6 +21,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 // Catálogo mínimo pero con la forma real de /api/list-cars.
+// Tres marcas de verdad y un relleno hasta pasar de 12, que es el umbral a
+// partir del cual la hoja levanta el teclado sola. Sin el relleno no se podría
+// probar el autofoco, que es media promesa del diseño.
+const MARCAS_RELLENO = Array.from({ length: 12 }, (_, i) => `Marca${i}`);
 const CATALOGO = {
   cars: [
     { id: 1, marca: "Seat", modelo: "Ibiza", pais: "es" },
@@ -28,7 +32,7 @@ const CATALOGO = {
     { id: 3, marca: "Citroën", modelo: "2CV", pais: "fr" },
     { id: 4, marca: "Volkswagen", modelo: "Golf", pais: "de" },
   ],
-  marcas: ["Citroën", "Seat", "Volkswagen"],
+  marcas: ["Citroën", "Seat", "Volkswagen", ...MARCAS_RELLENO],
 };
 
 async function montar({ guesses = [] } = {}) {
@@ -94,46 +98,84 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     expect(screen.getByRole("option", { name: /Volkswagen/ })).toBeTruthy();
   });
 
-  it("elegir una marca la escribe en el renglón y cierra la hoja", async () => {
+  it("elegir marca NO cierra la hoja: la lleva al modelo, con sus modelos", async () => {
     await montar();
     fireEvent.click(renglon("cdd.labelMarca"));
     fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
 
+    // La marca queda escrita en su renglón...
     expect(renglon("cdd.labelMarca").textContent).toContain("Seat");
-    // ModalShell desmonta con RETARDO (deja correr su animación de salida), así
-    // que la hoja sigue en el árbol un instante: se espera a que se vaya en vez
-    // de comprobarlo en el mismo tick. Esta aserción estaba mal escrita y fue
-    // el único fallo de la suite — conviene dejar dicho por qué.
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).toBeNull();
-    });
-  });
-
-  it("MODELO está bloqueado hasta que hay marca, y luego trae solo los suyos", async () => {
-    await montar();
-    expect(renglon("cdd.labelModelo").disabled).toBe(true);
-
-    fireEvent.click(renglon("cdd.labelMarca"));
-    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
-
-    expect(renglon("cdd.labelModelo").disabled).toBe(false);
-    fireEvent.click(renglon("cdd.labelModelo"));
+    // ...y la MISMA hoja sigue abierta, ya en el paso del modelo. Es lo que
+    // evita que el teclado baje y vuelva a subir entre los dos campos.
+    expect(screen.getByRole("dialog")).toBeTruthy();
     expect(screen.getByRole("option", { name: /Ibiza/ })).toBeTruthy();
     // Anti-cheat: los modelos de OTRA marca no pueden asomar aquí.
     expect(screen.queryByRole("option", { name: /Golf/ })).toBeNull();
   });
 
-  it("el buscador de la hoja filtra sin tildes y NO se autoenfoca", async () => {
+  it("la cadena sigue hasta el año y ahí se cierra", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
+    fireEvent.click(screen.getByRole("option", { name: /Ibiza/ }));
+
+    // Tercer paso sin haber tocado nada más: el año.
+    expect(screen.getAllByRole("tab").length).toBeGreaterThan(1);
+
+    const anio = screen.getAllByRole("button").find((b) => /^\d{4}$/.test(b.textContent));
+    fireEvent.click(anio);
+
+    // Con los tres campos puestos ya no queda paso: la hoja se va.
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(renglon("cdd.labelAnio").textContent).toContain(anio.textContent);
+  });
+
+  it("la cadena NO se mete en campos ya rellenos: corregir la marca cierra", async () => {
+    await montar();
+    // Rellena los tres de una pasada.
+    fireEvent.click(renglon("cdd.labelMarca"));
+    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
+    fireEvent.click(screen.getByRole("option", { name: /Ibiza/ }));
+    fireEvent.click(screen.getAllByRole("button").find((b) => /^\d{4}$/.test(b.textContent)));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    // Ahora vuelve a MARCA solo para corregirla: al elegir, la hoja debe
+    // cerrarse en vez de arrastrarte otra vez por modelo y año.
+    fireEvent.click(renglon("cdd.labelMarca"));
+    fireEvent.click(screen.getByRole("option", { name: /Volkswagen/ }));
+    // Cambiar de marca sí vacía el modelo, así que el siguiente paso es modelo.
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Golf/ })).toBeTruthy();
+  });
+
+  it("MODELO está bloqueado hasta que hay marca", async () => {
+    await montar();
+    expect(renglon("cdd.labelModelo").disabled).toBe(true);
+  });
+
+  it("con lista larga el buscador se autoenfoca; filtra sin tildes", async () => {
     await montar();
     fireEvent.click(renglon("cdd.labelMarca"));
 
     const buscador = screen.getByPlaceholderText("cdd.selectorSearch");
-    // Si esto se autoenfocara, subiría el teclado y volveríamos al principio.
-    expect(document.activeElement).not.toBe(buscador);
+    // 15 marcas: teclear es la vía rápida, así que el teclado sube solo.
+    expect(document.activeElement).toBe(buscador);
 
     fireEvent.change(buscador, { target: { value: "citroen" } });
     expect(screen.getByRole("option", { name: /Citroën/ })).toBeTruthy();
     expect(screen.queryByRole("option", { name: /Seat/ })).toBeNull();
+  });
+
+  it("con lista corta NO se autoenfoca: el teclado taparía lo que se viene a ver", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
+
+    // Dos modelos: la lista entera cabe, levantar el teclado sería un estorbo.
+    const buscador = screen.getByPlaceholderText("cdd.selectorSearch");
+    expect(document.activeElement).not.toBe(buscador);
   });
 
   it("el AÑO se elige por décadas, sin teclear", async () => {
@@ -149,5 +191,7 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     expect(anio).toBeTruthy();
     fireEvent.click(anio);
     expect(renglon("cdd.labelAnio").textContent).toContain(anio.textContent);
+    // El año no abre teclado NUNCA: es el campo que lo justificaba menos.
+    expect(document.querySelectorAll("input").length).toBe(0);
   });
 });

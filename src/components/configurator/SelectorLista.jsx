@@ -9,12 +9,24 @@
 //     pantallas de lista; con él son dos toques. Es el índice de la agenda del
 //     teléfono, que es donde todo el mundo lo ha aprendido.
 //
-// EL BUSCADOR NO SE AUTOENFOCA, y esa es la decisión que hace que todo esto
-// funcione. Si se autoenfocara, el teclado subiría solo y habríamos vuelto al
-// punto de partida: media pantalla comida sin que nadie la haya pedido. Está
-// ahí para quien prefiera teclear —que en 80 marcas es una vía legítima y más
-// rápida— y solo entonces sube el teclado, contra la hoja, que es la única
-// superficie preparada para él.
+// EL BUSCADOR SE AUTOENFOCA CUANDO LA LISTA ES LARGA, y esto es la corrección
+// de una regla mía anterior que estaba mal aplicada.
+//
+// La primera versión NO lo enfocaba nunca, razonando que el teclado se comería
+// media pantalla. Ese razonamiento era correcto para la PANTALLA DE JUEGO —ahí
+// el teclado destrozaba la maqueta y tapaba la fotografía— y no vale aquí:
+// dentro de la hoja el teclado no cuesta nada. No hay pliego que recomponer, la
+// foto ya está detrás y la hoja mide en `dvh`, así que encoge sola y se apoya
+// en el teclado.
+//
+// Con el campo enfocado al abrir, la hoja es un SUPERCONJUNTO de teclear:
+//   · Si sabes lo que buscas: tres letras y tocas. Menos gestos que en la web,
+//     porque no hay que apuntar primero al campo.
+//   · Si no lo sabes: bajas el teclado y tienes la lista entera con su índice.
+// Es el patrón del buscador de contactos, del conmutador de canales de Slack y
+// del «¿a dónde vamos?» de un mapa: campo enfocado ARRIBA y lista debajo, no
+// una cosa o la otra. Obligar a elegir entre las dos castiga siempre a alguien:
+// a quien sabe lo que quiere, o a quien viene a mirar qué hay.
 //
 // Filtrado sin tildes ni mayúsculas (lib/texto), el mismo criterio que el combo
 // de la web: "citroen" tiene que encontrar "Citroën".
@@ -23,7 +35,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { haptic } from "../../lib/haptics";
 import { normalizar } from "../../lib/texto";
 import { useT } from "../../i18n";
-import SelectorHoja from "./SelectorHoja";
 
 // A partir de aquí la lista deja de leerse de un vistazo y entra el índice.
 // Medido a ojo sobre una pantalla de móvil: ~10 opciones visibles, así que 25
@@ -31,14 +42,19 @@ import SelectorHoja from "./SelectorHoja";
 // cuánto queda.
 const UMBRAL_INDICE = 25;
 
+// Y a partir de aquí compensa levantar el teclado solo. Por debajo —los cinco
+// modelos de una marca— la lista entera cabe en pantalla: enfocar el buscador
+// taparía con el teclado justo lo que se venía a mirar.
+const UMBRAL_AUTOFOCO = 12;
+
+// Es el CONTENIDO de la hoja, no la hoja: el marco (título, tirador, cerrar) lo
+// pone SelectorHoja, y hay UNA sola para los tres pasos — así el teclado no baja
+// y sube entre marca y modelo. Ver GuessForm.
 export default function SelectorLista({
-  open,
-  onClose,
-  titulo,
-  apunte = null,
   opciones,
   valor,
   onElegir,
+  titulo,
   // Bandera del país de la marca, si el consumidor la sabe. Mismo dato que ya
   // enseñaba el combo de la web.
   optionFlag = null,
@@ -46,12 +62,18 @@ export default function SelectorLista({
   const { t } = useT();
   const [q, setQ] = useState("");
   const listaRef = useRef(null);
+  const buscarRef = useRef(null);
 
-  // Cada apertura empieza en limpio. Sin esto, volver a abrir MARCA tras haber
-  // buscado "vol" enseñaría la lista ya filtrada y parecería que faltan marcas.
+  const autoFoco = opciones.length > UMBRAL_AUTOFOCO;
+
+  // El foco va SÍNCRONO en el efecto, no diferido a un rAF ni a un setTimeout.
+  // En Android, un `focus()` programático solo levanta el teclado si sigue
+  // dentro de la tarea que nació del toque del usuario; aplazarlo un frame deja
+  // el campo enfocado y el teclado abajo. Es de esos fallos que en escritorio no
+  // existen y en un móvil se ven siempre.
   useEffect(() => {
-    if (open) setQ("");
-  }, [open]);
+    if (autoFoco) buscarRef.current?.focus();
+  }, [autoFoco]);
 
   const filtradas = useMemo(() => {
     const aguja = normalizar(q).trim();
@@ -76,10 +98,11 @@ export default function SelectorLista({
     return [...mapa.entries()];
   }, [filtradas, q, opciones.length]);
 
+  // Elegir NO cierra la hoja: quien decide si queda algún paso por delante es
+  // GuessForm, que es el único que sabe qué campos están vacíos.
   function elegir(o) {
     haptic.selection();
     onElegir(o);
-    onClose();
   }
 
   function irALetra(letra) {
@@ -116,9 +139,10 @@ export default function SelectorLista({
   );
 
   return (
-    <SelectorHoja open={open} onClose={onClose} titulo={titulo} apunte={apunte}>
+    <>
       <div className="pm-buscar">
         <input
+          ref={buscarRef}
           className="pm-buscar-campo"
           type="search"
           value={q}
@@ -164,6 +188,6 @@ export default function SelectorLista({
           </nav>
         )}
       </div>
-    </SelectorHoja>
+    </>
   );
 }

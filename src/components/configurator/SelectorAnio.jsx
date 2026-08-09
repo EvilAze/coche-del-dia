@@ -22,7 +22,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { haptic } from "../../lib/haptics";
 import { useT } from "../../i18n";
-import SelectorHoja from "./SelectorHoja";
 
 const MIN_YEAR = 1886;
 const MAX_YEAR = new Date().getFullYear();
@@ -45,9 +44,8 @@ export function textoHorquilla(t, horquilla, tolerance) {
   return t("cdd.yearRangeTo", { max });
 }
 
+// Contenido de la hoja, no la hoja (ver SelectorLista y GuessForm).
 export default function SelectorAnio({
-  open,
-  onClose,
   valor,
   onElegir,
   // Horquilla viva: { min, max, acotada } de lib/yearRange, la misma que recibe
@@ -80,15 +78,17 @@ export default function SelectorAnio({
 
   const [decada, setDecada] = useState(null);
 
-  // Al abrir, la década que más probablemente busca el jugador: la del valor ya
+  // Al montar, la década que más probablemente busca el jugador: la del valor ya
   // elegido si lo hay, y si no la del CENTRO de lo que queda vivo. Abrir
   // siempre en 1880 obligaría a arrastrar la tira entera cada vez.
   useEffect(() => {
-    if (!open) return;
     const centro = valor ? Number(valor) : Math.round((suelo + techo) / 2);
     const d = decadaDe(Math.min(Math.max(centro, suelo), techo));
     setDecada(decadas.includes(d) ? d : decadas[0]);
-  }, [open, valor, suelo, techo, decadas]);
+    // Solo al montar: este componente nace y muere con su paso de la hoja, así
+    // que "montar" es exactamente "abrir el año".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const anios = useMemo(() => {
     if (decada == null) return [];
@@ -100,16 +100,13 @@ export default function SelectorAnio({
     return out;
   }, [decada, suelo, techo]);
 
-  const apunte = textoHorquilla(t, horquilla, tolerance);
-
   function elegir(anio) {
     haptic.selection();
     onElegir(anio);
-    onClose();
   }
 
   return (
-    <SelectorHoja open={open} onClose={onClose} titulo={t("cdd.labelAnio")} apunte={apunte}>
+    <>
       {/* La tira de décadas. Se desplaza en horizontal cuando están todas; en
           cuanto la horquilla aprieta, cabe entera. */}
       <div className="pm-decadas" role="tablist" aria-label={t("cdd.selectorDecade")}>
@@ -147,6 +144,6 @@ export default function SelectorAnio({
           </button>
         ))}
       </div>
-    </SelectorHoja>
+    </>
   );
 }

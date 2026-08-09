@@ -18,6 +18,7 @@ import { useHistoryClose } from "../../hooks/useHistoryClose";
 import Combo from "./Combo";
 import YearField from "./YearField";
 import CampoBoton from "./CampoBoton";
+import SelectorHoja from "./SelectorHoja";
 import SelectorLista from "./SelectorLista";
 import SelectorAnio, { textoHorquilla } from "./SelectorAnio";
 
@@ -56,6 +57,13 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const enApp = esApp();
   const [hoja, setHoja] = useState(null);
   const cerrarHoja = () => setHoja(null);
+
+  // El último paso que se enseñó. La hoja tarda en irse (ModalShell deja correr
+  // su animación de salida), así que si el contenido colgara de `hoja` a secas
+  // se vaciaría en el mismo frame del cierre y se vería colapsar por dentro.
+  const ultimoPaso = useRef("marca");
+  if (hoja) ultimoPaso.current = hoja;
+  const paso = hoja ?? ultimoPaso.current;
 
   // El «atrás» de Android CIERRA la hoja, no se lleva al jugador fuera de la
   // partida. Es de las cosas que más delatan a una web disfrazada de app: en
@@ -316,6 +324,36 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     }
   }
 
+  // ── LA CADENA DE LA HOJA (app) ─────────────────────────────────────────────
+  // Elegir un valor NO cierra la hoja: la lleva al siguiente campo que esté
+  // vacío. Un solo gesto rellena marca → modelo → año, y entre pasos el teclado
+  // no baja y vuelve a subir, que es lo que se sentía torpe.
+  //
+  // Solo hacia campos VACÍOS, y esto es lo que lo salva de ser un asistente
+  // pesado: si abres MARCA para corregirla y el resto ya está puesto, la hoja
+  // se cierra al elegir y te devuelve al cupón. Es la misma regla que la cadena
+  // de foco de la web, que solo avanza en selecciones reales del usuario.
+  function siguientePaso(modeloAhora, anioAhora) {
+    if (!modeloAhora && !bloqueo.modelo) return "modelo";
+    if (!anioAhora && !bloqueo.anio) return "anio";
+    return null;
+  }
+
+  function elegirMarca(v) {
+    // Cambiar de marca invalida el modelo elegido: es de otra casa. Se calcula
+    // el valor RESULTANTE en vez de leer el estado, que en este mismo tick
+    // todavía tiene el anterior.
+    const modeloTrasCambio = v === marca ? modelo : "";
+    if (v !== marca) setModelo("");
+    setMarca(v);
+    setHoja(siguientePaso(modeloTrasCambio, anio));
+  }
+
+  function elegirModelo(v) {
+    setModelo(v);
+    setHoja(siguientePaso(v, anio));
+  }
+
   return (
     // Cupón de respuesta SIMPLIFICADO: fuera el marco recortable, el título
     // "Cupón de respuesta" y el folio de intento. Queda un formulario limpio de
@@ -431,46 +469,53 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         </button>
       </form>
 
-      {/* Las hojas, FUERA del <form>: dentro serían un diálogo anidado en un
-          formulario, y cualquier despiste con el `type` de un botón acabaría
-          enviando el intento desde dentro de una lista.
-          No se encadenan solas (elegir marca NO abre modelo): en la web el
-          encadenado existía para no abrir y cerrar el teclado cuatro veces por
-          intento, y aquí no hay teclado que abrir. Una hoja que se abre sola se
-          lee como que no se ha cerrado la anterior. */}
+      {/* LA HOJA, y es UNA SOLA para los tres pasos. Va fuera del <form>:
+          dentro sería un diálogo anidado en un formulario, y cualquier despiste
+          con el `type` de un botón acabaría enviando el intento desde dentro de
+          una lista.
+          El contenido se pinta por `paso` y no por `hoja` para que, al cerrar,
+          la hoja conserve lo que enseñaba mientras dura su animación de salida:
+          con `hoja` a secas se vaciaría de golpe y se vería colapsar. */}
       {enApp && (
-        <>
-          <SelectorLista
-            open={hoja === "marca"}
-            onClose={cerrarHoja}
-            titulo={t("cdd.labelMarca")}
-            opciones={availableMarcas}
-            valor={marca}
-            optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
-            onElegir={(v) => {
-              // Cambiar de marca invalida el modelo elegido: son de otra casa.
-              if (v !== marca) setModelo("");
-              setMarca(v);
-            }}
-          />
-          <SelectorLista
-            open={hoja === "modelo"}
-            onClose={cerrarHoja}
-            titulo={t("cdd.labelModelo")}
-            apunte={marca}
-            opciones={modelOptions}
-            valor={modelo}
-            onElegir={setModelo}
-          />
-          <SelectorAnio
-            open={hoja === "anio"}
-            onClose={cerrarHoja}
-            valor={anio}
-            horquilla={horquilla}
-            tolerance={tolerance}
-            onElegir={setAnio}
-          />
-        </>
+        <SelectorHoja
+          open={hoja !== null}
+          onClose={cerrarHoja}
+          titulo={t(`cdd.label${paso === "anio" ? "Anio" : paso === "modelo" ? "Modelo" : "Marca"}`)}
+          apunte={
+            paso === "anio" ? textoHorquilla(t, horquilla, tolerance)
+            : paso === "modelo" ? marca
+            : null
+          }
+        >
+          {paso === "marca" && (
+            <SelectorLista
+              key="marca"
+              titulo={t("cdd.labelMarca")}
+              opciones={availableMarcas}
+              valor={marca}
+              optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
+              onElegir={elegirMarca}
+            />
+          )}
+          {paso === "modelo" && (
+            <SelectorLista
+              key="modelo"
+              titulo={t("cdd.labelModelo")}
+              opciones={modelOptions}
+              valor={modelo}
+              onElegir={elegirModelo}
+            />
+          )}
+          {paso === "anio" && (
+            <SelectorAnio
+              key="anio"
+              valor={anio}
+              horquilla={horquilla}
+              tolerance={tolerance}
+              onElegir={(v) => { setAnio(v); cerrarHoja(); }}
+            />
+          )}
+        </SelectorHoja>
       )}
     </div>
   );

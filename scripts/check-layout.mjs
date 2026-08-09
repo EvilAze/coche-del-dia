@@ -140,9 +140,9 @@ const SELECTORES = [
   ".app-pantalla", ".prensa-area-cab", ".prensa-area-foto", ".cdd-stage",
   ".cdd-stage-frame", ".prensa-area-jugar", ".prensa-historial",
   ".prensa-area-pie", ".prensa-cierre-enlaces",
-  // El modo escritura: el cupón que se ancla al teclado, el desplegable que se
-  // abre hacia arriba y el recorte que hace de fotografía.
-  ".prensa-cupon", ".prensa-listbox", ".cdd-peek",
+  // El cupón de la app: tres renglones que abren una hoja de selección en vez
+  // de levantar el teclado.
+  ".prensa-cupon", ".prensa-renglon",
 ];
 
 // ── La maqueta ─────────────────────────────────────────────────────────────
@@ -169,18 +169,24 @@ function paginaHtml(hrefCss) {
     <div class="prensa-area-jugar" id="jugar">
       <div class="prensa-cupon" id="cupon">
         <form class="flex flex-col gap-3">
-          <div class="relative flex flex-col gap-0.5" id="campo-marca">
-            <label class="prensa-label">Marca</label>
-            <div class="prensa-campo"><input class="prensa-input" placeholder="Escribe o elige"></div>
-            <ul class="prensa-listbox" id="listbox" role="listbox" hidden></ul>
+          <div>
+            <button type="button" class="prensa-renglon" id="renglon-marca">
+              <span class="etiqueta">Marca</span><span class="guia"></span>
+              <span class="vacio">Elegir…</span>
+            </button>
           </div>
-          <div class="relative flex flex-col gap-0.5">
-            <label class="prensa-label">Modelo</label>
-            <div class="prensa-campo"><input class="prensa-input" placeholder="Escribe o elige"></div>
+          <div>
+            <button type="button" class="prensa-renglon">
+              <span class="etiqueta">Modelo</span><span class="guia"></span>
+              <span class="vacio">Elegir…</span>
+            </button>
           </div>
-          <div class="relative flex flex-col gap-0.5">
-            <label class="prensa-label">Año<span class="pista-label">±2</span></label>
-            <div class="prensa-campo"><input class="prensa-input" placeholder="1998"></div>
+          <div>
+            <button type="button" class="prensa-renglon">
+              <span class="etiqueta">Año</span><span class="guia"></span>
+              <span class="vacio">Elegir…</span>
+            </button>
+            <p class="prensa-horquilla">Entre 1974 y 1989</p>
           </div>
           <button class="prensa-submit mt-2" id="adivinar">ADIVINAR</button>
         </form>
@@ -194,33 +200,8 @@ function paginaHtml(hrefCss) {
         <button type="button">Cómo se juega</button><span>·</span><a href="/privacidad">Privacidad</a>
       </div>
     </footer>
-  </main>
-  <!-- El «recorte» de la foto. Fuera del <main> a propósito, igual que en
-       Configurator: es fixed y no participa del reparto del pliego. -->
-  <button class="cdd-peek" id="peek" hidden></button>
-  </div>
+  </main></div>
 <script>
-  // El modo escritura: lo que en la app hacen lib/teclado.js (sellar el estado
-  // cuando la ventana encoge de verdad) y Configurator (pedir el recorte). Aquí
-  // se hacen a mano para poder medir la composición resultante; el banco ya
-  // abre la página con la ventana encogida, que es la parte que importa.
-  window.setTeclado = function (abierto) {
-    if (abierto) document.documentElement.dataset.teclado = "abierto";
-    else delete document.documentElement.dataset.teclado;
-    document.getElementById("peek").hidden = !abierto;
-  };
-  window.setListbox = function (n) {
-    const ul = document.getElementById("listbox");
-    ul.innerHTML = "";
-    for (let i = 0; i < n; i++) {
-      const li = document.createElement("li");
-      li.className = "prensa-opt";
-      li.setAttribute("role", "option");
-      li.textContent = "Marca " + (i + 1);
-      ul.appendChild(li);
-    }
-    ul.hidden = n === 0;
-  };
   window.setIntentos = function (n) {
     const h = document.getElementById("historial");
     h.innerHTML = "";
@@ -242,10 +223,10 @@ function paginaHtml(hrefCss) {
 const PANTALLAS = [
   { nombre: "iPhone SE / gama baja", w: 320, h: 568, corriente: false },
   // 360x640 estuvo marcado `corriente` mientras la maqueta del cupón eran DOS
-  // inputs sueltos. El cupón de verdad son tres renglones con su etiqueta más
-  // ADIVINAR —~276px, unos 90 más— y con esa medida un 640 no da para el shell:
-  // se desliza ~89px. No es una regresión de nadie, es la maqueta poniéndose al
-  // día. Aquí entra la degradación diseñada (la válvula), igual que en el 320.
+  // inputs sueltos, ~90px más optimista que el cupón de verdad. Con la medida
+  // buena un 640 no da para el shell y se desliza. Los renglones de una línea
+  // recortaron unos 40px de esos, pero no llegan: aquí sigue entrando la
+  // degradación diseñada (la válvula), igual que en el 320.
   { nombre: "Android medio        ", w: 360, h: 640, corriente: false },
   { nombre: "Galaxy S23 Ultra     ", w: 384, h: 854, corriente: true },
   { nombre: "Pixel 7              ", w: 412, h: 915, corriente: true },
@@ -373,130 +354,21 @@ async function main() {
     `enlaces del pie: ${web.enlaces} (deben verse)`
   );
 
+  // La RED DE SEGURIDAD del teclado. En la app ya no hay campos de texto en la
+  // pantalla de juego —los renglones abren una hoja de selección— así que esto
+  // no debería dispararse nunca jugando. Se mide igual, y es a propósito: si
+  // algún día vuelve a colarse un <input> en el pliego, el shell fijo dejaría
+  // el campo detrás del teclado y sin scroll con el que llegar. El sello lo
+  // suelta (src/lib/teclado.js) y esta línea es quien lo garantiza.
+  await page.evaluate(() => {
+    document.documentElement.dataset.plataforma = "app";
+    document.documentElement.dataset.teclado = "abierto";
+  });
+  await page.waitForTimeout(50);
+  const tec = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+  linea(tec > 1, `APP con data-teclado · scroll ${tec}px (el shell se suelta: nada queda inalcanzable)`);
+
   await page.close();
-
-  // ── EL MODO ESCRITURA ──────────────────────────────────────────────────────
-  // El teclado se simula EXACTAMENTE como lo hace Android con `adjustResize`:
-  // encogiendo la ventana. No hay nada más que simular, y ese es justo el
-  // motivo por el que el modo no mide teclados (ver src/lib/teclado.js).
-  //
-  // Lo que se ata aquí es la promesa entera: sigue siendo UNA pantalla (cero
-  // scroll), ADIVINAR está a la vista sobre el teclado, el desplegable se abre
-  // HACIA ARRIBA y —lo que más duele si se rompe, porque el scroll no llega a
-  // rescatarlo— no se sale por el techo.
-  console.log("");
-  for (const p of PANTALLAS) {
-    // 260px = teclado normal; 340px = con barra de sugerencias o teclado de
-    // fabricante, que es lo que se lleva puesto media gama Android.
-    for (const teclado of [260, 340]) {
-      const alto = p.h - teclado;
-      // Por debajo de esto no queda pantalla ni para el cupón: no es un caso
-      // real (sería un móvil en horizontal, donde el teclado ocupa casi todo).
-      if (alto < 180) continue;
-      // RÉPLICA del suelo que declara index.css (`min-height: 360px`). Por
-      // debajo no hay modo escritura y el contrato es el contrario: el pliego
-      // vuelve al flujo normal y se alcanza todo bajando. Si cambia allí,
-      // cambia aquí — y este banco es justo quien avisa.
-      const enModo = alto >= 360;
-
-      const pg = await navegador.newPage({ viewport: { width: p.w, height: alto } });
-      await pg.goto(url, { waitUntil: "networkidle" });
-      await pg.evaluate(() => {
-        window.setIntentos(3);
-        window.setTeclado(true);
-        window.setListbox(30);
-      });
-      // 300ms y no los 50 de arriba: el recorte y el desplegable ENTRAN con una
-      // animación de transform, y un getBoundingClientRect a mitad de camino
-      // mide la caja transformada — no la que verá el jugador.
-      await pg.waitForTimeout(300);
-
-      const m = await pg.evaluate(() => {
-        const q = (s) => document.querySelector(s);
-        const oculto = (s) => {
-          const el = q(s);
-          return !el || getComputedStyle(el).display === "none";
-        };
-        const hoja = q(".app-pantalla");
-        const cupon = q(".prensa-cupon").getBoundingClientRect();
-        const boton = q("#adivinar").getBoundingClientRect();
-        const campo = q("#campo-marca").getBoundingClientRect();
-        const lista = q(".prensa-listbox").getBoundingClientRect();
-        const peek = q(".cdd-peek").getBoundingClientRect();
-        return {
-          scrollDoc: document.documentElement.scrollHeight - window.innerHeight,
-          scrollPliego: hoja.scrollHeight - hoja.clientHeight,
-          // Lo que se retira mientras se escribe.
-          seVan:
-            oculto(".prensa-area-cab") && oculto(".prensa-area-foto") &&
-            oculto(".prensa-historial") && oculto(".prensa-area-pie"),
-          // El cupón arriba, y el recorte SIN pisarlo: el recorte es fixed y no
-          // participa del reparto, así que si la reserva falla se pinta encima
-          // del renglón de MARCA.
-          cuponLibre: cupon.top >= peek.bottom - 1,
-          botonDentro: boton.bottom <= window.innerHeight + 1 && boton.top >= -1,
-          // El desplegable, PEGADO al campo y cayendo hacia el teclado.
-          haciaAbajo: lista.top >= campo.bottom - 1,
-          pegadoAlCampo: lista.top - campo.bottom <= 8,
-          dentroDeLaVentana: lista.bottom <= window.innerHeight + 1,
-          listaTop: Math.round(lista.top),
-          listaAlto: Math.round(lista.height),
-          // Alcanzable = se llega bajando. Sin modo el que se desplaza es el
-          // DOCUMENTO (el pliego vuelve al flujo normal), así que se mide en
-          // coordenadas de documento y contra su alto, no contra la válvula del
-          // pliego — que ahí vale cero justamente porque no hace falta.
-          botonAlcanzable:
-            boton.bottom + window.scrollY <=
-            Math.max(document.documentElement.scrollHeight, hoja.scrollHeight) + 1,
-          // El recorte hace de fotografía: 4:3 exacto (reglas 5 y 7).
-          peekRatio: peek.width / peek.height,
-        };
-      });
-      await pg.close();
-
-      const fallo = [];
-      // El recorte hace de fotografía en las dos ramas: su proporción es
-      // seguridad (reglas 5 y 7), no maquetación.
-      if (Math.abs(m.peekRatio - RATIO) > 0.01) fallo.push(`recorte ${m.peekRatio.toFixed(3)}≠1.333`);
-
-      if (!enModo) {
-        // SIN modo: el contrato es el de siempre. No se recompone nada y todo
-        // sigue siendo alcanzable — que es lo único que se le puede pedir a una
-        // ventana en la que no cabe ni el cupón.
-        if (m.seVan) fallo.push("recompone una ventana en la que no cabe");
-        if (m.scrollDoc <= 1) fallo.push("el pliego no se ha soltado (no hay scroll con el que llegar)");
-        if (!m.botonAlcanzable) fallo.push("ADIVINAR no se alcanza ni con scroll");
-      } else {
-        if (m.scrollDoc > 1) fallo.push(`el documento scrollea ${m.scrollDoc}px`);
-        if (!m.seVan) fallo.push("algo que sobra sigue pintándose");
-        // El recorte no puede pisar el primer renglón del cupón.
-        if (!m.cuponLibre) fallo.push("el recorte se pinta encima del cupón");
-        // La lista, donde la busca el dedo: colgando del campo que la ha
-        // abierto y hacia el teclado. Lo contrario —despegarse e irse arriba—
-        // es el fallo que se vio en el S25 y por el que existe esta prueba.
-        if (!m.haciaAbajo) fallo.push("el desplegable NO cae hacia el teclado");
-        if (!m.pegadoAlCampo) fallo.push(`el desplegable se despega ${m.listaTop}px del campo`);
-        if (!m.dentroDeLaVentana) fallo.push("el desplegable se mete debajo del teclado");
-        if (m.scrollPliego <= 1) {
-          // Cabe todo: ADIVINAR entra entero en la ventana. Se mide con la
-          // lista abierta y da igual —es `position: absolute`, no mueve la
-          // maqueta—: lo que se comprueba es que el botón tiene su sitio, no
-          // que se vea. Que la lista lo tape mientras está desplegada es
-          // deliberado: se elige una opción y desaparece.
-          if (!m.botonDentro) fallo.push("ADIVINAR no se ve entero");
-        } else if (p.corriente) {
-          fallo.push(`scroll ${m.scrollPliego}px en móvil corriente`);
-        }
-      }
-
-      linea(
-        fallo.length === 0,
-        `${enModo ? "ESCRITURA" : "sin modo "}  ${p.nombre}  ${String(p.w).padStart(3)}x${p.h} −${teclado}kb → ${String(alto).padStart(3)}px · ` +
-        `lista ${m.listaAlto}px (top ${m.listaTop}) · pliego ${m.scrollPliego}px` +
-        (fallo.length ? `   ← ${fallo.join(" · ")}` : "")
-      );
-    }
-  }
 
   await navegador.close();
   server.close();

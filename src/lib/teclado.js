@@ -1,102 +1,50 @@
 // src/lib/teclado.js
-// Todo lo que la app hace cuando sube el teclado del sistema: sellar el estado
-// en <html> (`data-teclado`), dejar que React se entere (useTecladoAbierto) y el
-// gesto de cerrarlo tocando el papel.
-// Solo nativo; en web es no-op (allí la página SÍ scrollea, que es lo normal).
+// Lo que la app hace cuando sube el teclado del sistema. Hoy son dos cosas
+// pequeñas, y que sean pequeñas es la noticia.
 //
-// POR QUÉ EXISTE. La app monta un shell fijo: `.app-pantalla` ocupa el alto de
-// la pantalla y no scrollea (ver «EL PLIEGO SIN SCROLL» en index.css). Eso vale
-// mientras el alto de la ventana sea el de la pantalla, y deja de serlo al abrir
-// el teclado, porque Android redimensiona el WebView. Entonces el pliego cambia
-// de composición (ver «EL MODO ESCRITURA»): no se suelta, se recompone.
+// LO QUE HABÍA AQUÍ. Este módulo llegó a tener tres estados, un umbral de
+// píxeles, un temporizador de espera y un detector de resize, todo para que la
+// pantalla de juego sobreviviera a un teclado abierto encima: se recomponía
+// entera, retiraba la fotografía, anclaba el cupón y recolocaba el desplegable.
+// Nada de eso existe ya. En la app el cupón no se teclea —los renglones abren
+// una hoja de selección (ver SelectorHoja)— así que sobre la pantalla de juego
+// el teclado NO APARECE, y todo el aparato que lo gestionaba sobra.
 //
-// TRES ESTADOS, y el del medio es el que hace que no dé un salto:
+// QUEDA EL SELLO, como red de seguridad y por una razón concreta: el pliego
+// monta un shell FIJO que no scrollea (ver «EL PLIEGO SIN SCROLL» en
+// index.css). Si algún día vuelve a haber un campo de texto ahí dentro —o lo
+// trae una pantalla que hoy no lo tiene— un teclado encima del shell fijo
+// dejaría ese campo detrás del teclado y sin scroll con el que llegar: la app
+// se quedaría muda. Con `data-teclado="abierto"` el pliego vuelve al flujo
+// normal, con su scroll, que es el comportamiento de siempre y siempre es
+// alcanzable.
 //
-//   · sin atributo → pantalla completa, shell fijo.
-//   · `data-teclado="abierto"` → modo escritura. Se sella cuando la ventana ha
-//     encogido DE VERDAD.
-//   · `data-teclado="suelto"` → red de seguridad: hay un campo enfocado pero la
-//     ventana no ha encogido. Ningún selector cuelga de él a propósito: el
-//     pliego vuelve al flujo normal, con su scroll, que es el comportamiento de
-//     siempre. Cubre el WebView que no redimensiona (teclado en overlay) y el
-//     teclado físico Bluetooth. Sin este estado, un shell fijo con el teclado
-//     encima dejaría el cupón detrás del teclado y sin scroll con el que
-//     llegar: la app se quedaría muda.
-//
-// LA SEÑAL ES LA GEOMETRÍA, Y ANTES ERA EL FOCO. Merece explicación porque es
-// un cambio de opinión con motivo:
-//
-//   · El foco llega ~200ms ANTES de que Android redimensione. Recomponer ahí
-//     significa DOS cambios visuales seguidos: primero la pantalla se recompone
-//     contra la ventana entera, después la ventana encoge y todo vuelve a
-//     moverse. Eso es exactamente lo que se ve como «pega un salto» en un móvil
-//     de verdad (reportado en el S25 Ultra, 2026-08-09).
-//   · Esperando al `resize`, la recomposición ocurre EN EL MISMO FRAME en que
-//     la ventana encoge: un solo cambio, y encima sincronizado con el teclado
-//     que está subiendo. Que es como se comporta cualquier app nativa.
-//
-// Y la objeción que en su día descartó medir —«innerHeight y visualViewport
-// encogen a la par, no hay proporción que comparar sin un alto base que caduca
-// al girar»— se resuelve sola aquí: el alto base se toma EN EL FOCO, que es el
-// instante en el que sabemos con certeza que el teclado todavía no está. No hay
-// que recordarlo entre sesiones ni corregirlo al rotar.
-//
-// Lo que sigue sin hacer falta es un plugin: `@capacitor/keyboard` se retiró
-// porque era superficie nativa nueva que había que registrar con `cap sync`
-// para que la app arrancara bien, y `window.resize` no necesita nada.
+// LOS CAMPOS DENTRO DE UN MODAL NO CUENTAN, y ahora es la vía normal, no el
+// caso raro: el buscador de la hoja de selección vive en un `role="dialog"`.
+// La hoja ya se ajusta sola al hueco que deja el teclado (su alto va en `dvh`),
+// así que el pliego de detrás no tiene que enterarse de nada — y si se
+// enterara, se recompondría por debajo de la hoja para nada y se vería el salto
+// al cerrarla.
 
 import { Capacitor } from "@capacitor/core";
 
 const ABIERTO = "abierto";
-const SUELTO = "suelto";
 
-// Tipos de <input> que NO abren teclado: si el foco cae en uno, no hay por qué
-// recomponer nada.
+// Tipos de <input> que NO abren teclado.
 const SIN_TECLADO = new Set([
   "checkbox", "radio", "button", "submit", "reset", "file", "range", "color", "image",
 ]);
 
-// Cuánto tiene que encoger la ventana para que eso sea un teclado. El más bajo
-// que se ve en un móvil ronda los 200px; 120 deja margen de sobra sin que lo
-// dispare un cambio de barras del sistema.
-const UMBRAL_PX = 120;
-
-// Si en medio segundo desde el foco no ha llegado ningún resize, este WebView
-// no redimensiona: soltamos el pliego y que scrollee. Medio segundo es más que
-// la animación del teclado (~250ms) y no se nota, porque hasta que vence no ha
-// cambiado nada en pantalla.
-const ESPERA_GEOMETRIA_MS = 500;
-
-// Margen antes de deshacer. El combo de marca/modelo mueve el foco entre el
-// campo y su listbox, y sin esta espera el pliego se recompondría dos veces en
-// el mismo gesto. Si el foco aterriza en otro campo, el sellado sigue puesto.
+// Margen antes de deshacer: mover el foco entre dos campos pasa por un instante
+// sin foco, y sin esta espera el pliego se recompondría dos veces en el gesto.
 const MARGEN_MS = 120;
+let pendiente = 0;
 
-let estado = null;
-let campoEnfocado = false;
-let alturaSinTeclado = 0;
-let pendienteCierre = 0;
-let esperandoGeometria = 0;
-const oyentes = new Set();
-
-/** ¿Está la app en modo escritura? (snapshot para useSyncExternalStore) */
-export function tecladoAbierto() {
-  return estado === ABIERTO;
-}
-
-/** Suscripción al cambio de estado. Devuelve la baja. */
-export function suscribirTeclado(cb) {
-  oyentes.add(cb);
-  return () => oyentes.delete(cb);
-}
-
-function sellar(valor) {
-  if (typeof document === "undefined" || valor === estado) return;
-  estado = valor;
+function sellar(abierto) {
+  if (typeof document === "undefined") return;
   const el = document.documentElement;
-  if (valor) el.dataset.teclado = valor;
+  if (abierto) el.dataset.teclado = ABIERTO;
   else delete el.dataset.teclado;
-  oyentes.forEach((cb) => cb());
 }
 
 function esCampoDeTexto(el) {
@@ -108,21 +56,9 @@ function esCampoDeTexto(el) {
   return !SIN_TECLADO.has((el.type || "text").toLowerCase());
 }
 
-// Un campo DENTRO de un modal no recompone el pliego. El modal tapa la pantalla
-// de juego entera (nick, borrar cuenta, login), así que recomponer lo que hay
-// detrás no se ve mientras se escribe y sí se ve al cerrar, como un salto sin
-// causa aparente. Todos los modales de la app declaran role="dialog".
-function enUnModal(el) {
+function enUnDialogo(el) {
   return !!el?.closest?.('[role="dialog"]');
 }
-
-// Elementos que NO deben cerrar el teclado al tocarlos: los que ya hacen algo.
-// Ojo con `[role="option"]`: el listbox del combo elige AL SOLTAR, y un blur en
-// el pointerdown recompondría la pantalla por debajo del dedo — la opción se
-// movería antes de recibir el toque y el jugador elegiría otra cosa.
-const INTERACTIVO =
-  'input, textarea, select, button, a, label, summary, [contenteditable], ' +
-  '[role="option"], [role="listbox"], [role="dialog"]';
 
 /**
  * Engancha los listeners. Llamar UNA vez al arrancar, dentro del bloque nativo
@@ -135,77 +71,37 @@ export function installKeyboardWatcher() {
 
   // `focusin`/`focusout` y no `focus`/`blur`: estos dos no burbujean, así que
   // no se pueden escuchar en el documento y habría que engancharlos campo a
-  // campo — incluidos los que monta el combo sobre la marcha.
+  // campo — incluidos los que se montan sobre la marcha.
   document.addEventListener("focusin", (evento) => {
-    if (!esCampoDeTexto(evento.target) || enUnModal(evento.target)) return;
-    clearTimeout(pendienteCierre);
-    // El alto base se toma SOLO al entrar de fuera. Saltar de MARCA a MODELO
-    // con el teclado ya arriba lo tomaría con la ventana encogida, y entonces
-    // ninguna ventana volvería a parecer «encogida» nunca más.
-    if (!campoEnfocado) alturaSinTeclado = window.innerHeight;
-    campoEnfocado = true;
-    if (estado === null) {
-      clearTimeout(esperandoGeometria);
-      esperandoGeometria = setTimeout(() => sellar(SUELTO), ESPERA_GEOMETRIA_MS);
-    }
+    if (!esCampoDeTexto(evento.target) || enUnDialogo(evento.target)) return;
+    clearTimeout(pendiente);
+    sellar(true);
   });
 
   document.addEventListener("focusout", (evento) => {
-    if (!esCampoDeTexto(evento.target) || enUnModal(evento.target)) return;
-    clearTimeout(pendienteCierre);
-    pendienteCierre = setTimeout(() => {
+    if (!esCampoDeTexto(evento.target) || enUnDialogo(evento.target)) return;
+    clearTimeout(pendiente);
+    pendiente = setTimeout(() => {
       const activo = document.activeElement;
-      if (esCampoDeTexto(activo) && !enUnModal(activo)) return;
-      campoEnfocado = false;
-      clearTimeout(esperandoGeometria);
-      sellar(null);
+      if (!esCampoDeTexto(activo) || enUnDialogo(activo)) sellar(false);
     }, MARGEN_MS);
-  });
-
-  // AQUÍ ESTÁ EL SINCRONISMO. El handler sella dentro del propio evento de
-  // resize, así que el navegador hace UN layout y UN pintado con la ventana ya
-  // encogida y la composición ya cambiada.
-  window.addEventListener("resize", () => {
-    if (!campoEnfocado) return;
-    if (window.innerHeight <= alturaSinTeclado - UMBRAL_PX) {
-      clearTimeout(esperandoGeometria);
-      sellar(ABIERTO);
-    } else if (estado === ABIERTO) {
-      // La ventana ha vuelto a crecer con el campo aún enfocado: o se ha
-      // cerrado el teclado a mano, o el móvil ha girado. En los dos casos la
-      // referencia vieja ya no vale.
-      alturaSinTeclado = window.innerHeight;
-      sellar(null);
-    }
-  });
-
-  // Tocar el papel cierra el teclado. Es el gesto que espera cualquiera que
-  // haya usado un móvil, y en el modo escritura es además la salida natural:
-  // alrededor del cupón solo queda papel en blanco y el recorte de la foto. Sin
-  // esto la única salida es el gesto atrás del sistema, que en un juego se
-  // parece demasiado a «salir de la partida».
-  document.addEventListener("pointerdown", (evento) => {
-    if (!estado) return;
-    if (evento.target?.closest?.(INTERACTIVO)) return;
-    document.activeElement?.blur?.();
   });
 }
 
 /**
  * Sube el campo recién enfocado por encima del teclado, en táctil.
  *
- * Se calla en UN solo caso: un campo dentro del shell fijo de la app. Ahí no
- * hace falta —el modo escritura ya deja el cupón arriba, con la lista cayendo
- * hacia el teclado— y encima hace daño: desplazar un shell que por diseño no se
- * mueve se ve como un salto al enfocar (un contenedor sigue siendo desplazable
- * por programa aunque su overflow esté recortado).
+ * Se calla en UN solo caso: un campo dentro del shell fijo de la app, donde
+ * desplazar movería algo que por diseño no se mueve y se ve como un salto (un
+ * contenedor sigue siendo desplazable por programa aunque su overflow esté
+ * recortado). Tras el cambio a selectores ahí ya no hay campos, pero la guarda
+ * se queda: es la que hace que la regla sea «el shell fijo no se desplaza»
+ * y no «esto ya no pasa».
  *
  * La condición son LAS DOS COSAS, y ninguna sobra: `.app-pantalla` se pinta
  * también en web —la clase está siempre, quien la enciende es
  * `data-plataforma="app"`—, así que sin el `isNativePlatform` esto dejaría sin
- * auto-scroll a la web móvil; y sin el `closest`, la repesca dentro de la app
- * —que monta este mismo formulario y NO tiene shell fijo, sino una página que
- * se lee bajando— se quedaría escribiendo detrás del teclado.
+ * auto-scroll a la web móvil, que es donde SÍ se teclea.
  */
 export function acercarCampoAlTeclado(el) {
   if (!el) return;

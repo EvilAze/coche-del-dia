@@ -13,8 +13,13 @@ import { haptic } from "../../lib/haptics";
 import { flagImagePath } from "../../data/countries";
 import { resolver } from "../../lib/resolver";
 import { yearRange } from "../../lib/yearRange";
+import { esApp } from "../../lib/plataforma";
+import { useHistoryClose } from "../../hooks/useHistoryClose";
 import Combo from "./Combo";
 import YearField from "./YearField";
+import CampoBoton from "./CampoBoton";
+import SelectorLista from "./SelectorLista";
+import SelectorAnio, { textoHorquilla } from "./SelectorAnio";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
@@ -34,6 +39,36 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
+
+  // ── DOS FORMAS DE RELLENAR EL CUPÓN, UNA POR PLATAFORMA ────────────────────
+  // En WEB se teclea, como siempre: hay teclado físico o el móvil está en un
+  // navegador donde la página scrollea y el desplegable es lo natural. Esa rama
+  // no se toca en este cambio, ni una línea.
+  //
+  // En la APP los tres renglones son botones que abren una hoja de selección
+  // (ver SelectorHoja). Motivo: el teclado del sistema se comía media pantalla,
+  // tapaba la fotografía —que es el juego— y obligaba a inventar un modo de
+  // maqueta entero para sobrevivirle. Y no había nada que teclear: el catálogo
+  // es cerrado, así que esto no es un buscador, es una elección.
+  //
+  // `hoja` es cuál está abierta, o null. Una sola variable en vez de tres
+  // booleanos: así es imposible que dos hojas se abran a la vez.
+  const enApp = esApp();
+  const [hoja, setHoja] = useState(null);
+  const cerrarHoja = () => setHoja(null);
+
+  // El «atrás» de Android CIERRA la hoja, no se lleva al jugador fuera de la
+  // partida. Es de las cosas que más delatan a una web disfrazada de app: en
+  // Android, atrás es el gesto de «deshaz lo último», y lo último ha sido abrir
+  // una lista.
+  //
+  // Va aquí y no en el slot `activeModal` de App.jsx a propósito: esa capa no
+  // sabe de estas hojas, y meter dos capas a empujar entradas de historial por
+  // la misma pulsación es exactamente el enredo que documenta ModalShell (una
+  // entrada huérfana y la siguiente pulsación de atrás que no hace nada). Una
+  // sola capa por overlay, y esta es la suya. En web `hoja` es siempre null,
+  // así que el hook queda inerte.
+  useHistoryClose(hoja !== null, cerrarHoja);
 
   // Cadena de foco (QoL móvil) para no abrir/cerrar el teclado 4 veces por
   // intento: elegir marca → enfoca modelo; elegir modelo → enfoca año. El foco
@@ -306,6 +341,40 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             vez del par marca|modelo comprimido de antes. El campo ACERTADO se
             queda con ✓ y bloqueado; el fallado se limpia y su marca sale del
             combo, así que no hace falta tacharlo. */}
+        {enApp ? (
+          <>
+            <CampoBoton
+              label={t("cdd.labelMarca")}
+              valor={marca}
+              placeholder={t("cdd.selectorPick")}
+              onClick={() => setHoja("marca")}
+              disabled={formDisabled}
+              resuelto={bloqueo.marca}
+            />
+            <CampoBoton
+              label={t("cdd.labelModelo")}
+              valor={modelo}
+              // Sin marca no hay lista que abrir (anti-cheat: los modelos
+              // acotan el coche). El renglón lo dice en vez de quedarse mudo.
+              placeholder={marcaValida ? t("cdd.selectorPick") : t("cdd.comboModeloDisabled")}
+              onClick={() => setHoja("modelo")}
+              disabled={formDisabled || !marcaValida}
+              resuelto={bloqueo.modelo}
+            />
+            <CampoBoton
+              label={t("cdd.labelAnio")}
+              valor={anio ? String(anio) : ""}
+              placeholder={t("cdd.selectorPick")}
+              onClick={() => setHoja("anio")}
+              disabled={formDisabled}
+              resuelto={bloqueo.anio}
+              // La horquilla sigue a la vista sin abrir nada: es la pista que
+              // dice por dónde va la búsqueda del año.
+              apunte={bloqueo.anio ? null : textoHorquilla(t, horquilla, tolerance)}
+            />
+          </>
+        ) : (
+        <>
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
@@ -344,6 +413,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           estado={bloqueo.anio ? "resuelto" : null}
           horquilla={horquilla}
         />
+        </>
+        )}
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
             Con campos incompletos el botón queda tocable con aspecto apagado
             (.is-incomplete): el tap dispara el shake + toast de arriba. El
@@ -359,6 +430,48 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           {isSubmitting ? t("cdd.submitting") : t("cdd.submit")}
         </button>
       </form>
+
+      {/* Las hojas, FUERA del <form>: dentro serían un diálogo anidado en un
+          formulario, y cualquier despiste con el `type` de un botón acabaría
+          enviando el intento desde dentro de una lista.
+          No se encadenan solas (elegir marca NO abre modelo): en la web el
+          encadenado existía para no abrir y cerrar el teclado cuatro veces por
+          intento, y aquí no hay teclado que abrir. Una hoja que se abre sola se
+          lee como que no se ha cerrado la anterior. */}
+      {enApp && (
+        <>
+          <SelectorLista
+            open={hoja === "marca"}
+            onClose={cerrarHoja}
+            titulo={t("cdd.labelMarca")}
+            opciones={availableMarcas}
+            valor={marca}
+            optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
+            onElegir={(v) => {
+              // Cambiar de marca invalida el modelo elegido: son de otra casa.
+              if (v !== marca) setModelo("");
+              setMarca(v);
+            }}
+          />
+          <SelectorLista
+            open={hoja === "modelo"}
+            onClose={cerrarHoja}
+            titulo={t("cdd.labelModelo")}
+            apunte={marca}
+            opciones={modelOptions}
+            valor={modelo}
+            onElegir={setModelo}
+          />
+          <SelectorAnio
+            open={hoja === "anio"}
+            onClose={cerrarHoja}
+            valor={anio}
+            horquilla={horquilla}
+            tolerance={tolerance}
+            onElegir={setAnio}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -200,21 +200,14 @@ function paginaHtml(hrefCss) {
   <button class="cdd-peek" id="peek" hidden></button>
   </div>
 <script>
-  // El modo escritura: lo que en la app hacen lib/teclado.js (el sello), el
-  // ResizeObserver de GuessForm (la medida del cupón) y Configurator (pedir el
-  // recorte). Aquí se hacen a mano para poder medir la composición resultante.
+  // El modo escritura: lo que en la app hacen lib/teclado.js (sellar el estado
+  // cuando la ventana encoge de verdad) y Configurator (pedir el recorte). Aquí
+  // se hacen a mano para poder medir la composición resultante; el banco ya
+  // abre la página con la ventana encogida, que es la parte que importa.
   window.setTeclado = function (abierto) {
     if (abierto) document.documentElement.dataset.teclado = "abierto";
     else delete document.documentElement.dataset.teclado;
     document.getElementById("peek").hidden = !abierto;
-  };
-  // EL MISMO CONTRATO QUE GuessForm: el alto del cupón se publica en el propio
-  // cupón, que es de donde lo hereda el desplegable. Se mide DESPUÉS de sellar
-  // el teclado (la composición cambia el alto del cupón: se le quita el aire
-  // del pliego).
-  window.medirCupon = function () {
-    const c = document.getElementById("cupon");
-    c.style.setProperty("--cdd-cupon-alto", Math.round(c.getBoundingClientRect().height) + "px");
   };
   window.setListbox = function (n) {
     const ul = document.getElementById("listbox");
@@ -411,7 +404,6 @@ async function main() {
       await pg.evaluate(() => {
         window.setIntentos(3);
         window.setTeclado(true);
-        window.medirCupon();   // el orden importa: medir YA en la composición nueva
         window.setListbox(30);
       });
       // 300ms y no los 50 de arriba: el recorte y el desplegable ENTRAN con una
@@ -438,18 +430,17 @@ async function main() {
           seVan:
             oculto(".prensa-area-cab") && oculto(".prensa-area-foto") &&
             oculto(".prensa-historial") && oculto(".prensa-area-pie"),
-          // El cupón pegado al borde del teclado (= al borde de la ventana).
-          pegado: Math.abs(cupon.bottom - window.innerHeight) <= 2,
+          // El cupón arriba, y el recorte SIN pisarlo: el recorte es fixed y no
+          // participa del reparto, así que si la reserva falla se pinta encima
+          // del renglón de MARCA.
+          cuponLibre: cupon.top >= peek.bottom - 1,
           botonDentro: boton.bottom <= window.innerHeight + 1 && boton.top >= -1,
-          // El desplegable, hacia arriba y dentro de la pantalla.
-          haciaArriba: lista.bottom <= campo.top + 1,
+          // El desplegable, PEGADO al campo y cayendo hacia el teclado.
+          haciaAbajo: lista.top >= campo.bottom - 1,
+          pegadoAlCampo: lista.top - campo.bottom <= 8,
+          dentroDeLaVentana: lista.bottom <= window.innerHeight + 1,
           listaTop: Math.round(lista.top),
           listaAlto: Math.round(lista.height),
-          bajoRecorte: lista.top >= peek.bottom - 1,
-          // La lista se ha comido TODO el sitio que había: si además queda por
-          // detrás del recorte, no es un fallo de cálculo, es que no había más
-          // pantalla. La alternativa sería enseñar media opción.
-          usaTodo: lista.top <= 6,
           // Alcanzable = se llega bajando. Sin modo el que se desplaza es el
           // DOCUMENTO (el pliego vuelve al flujo normal), así que se mide en
           // coordenadas de documento y contra su alto, no contra la válvula del
@@ -478,20 +469,24 @@ async function main() {
       } else {
         if (m.scrollDoc > 1) fallo.push(`el documento scrollea ${m.scrollDoc}px`);
         if (!m.seVan) fallo.push("algo que sobra sigue pintándose");
-        if (!m.haciaArriba) fallo.push("el desplegable NO se abre hacia arriba");
-        // El techo: lo que se va por arriba es irrecuperable (un contenedor no
-        // baja de scrollTop 0), así que esto no admite grados.
-        if (m.listaTop < -1) fallo.push(`el desplegable se sale ${-m.listaTop}px por el techo`);
+        // El recorte no puede pisar el primer renglón del cupón.
+        if (!m.cuponLibre) fallo.push("el recorte se pinta encima del cupón");
+        // La lista, donde la busca el dedo: colgando del campo que la ha
+        // abierto y hacia el teclado. Lo contrario —despegarse e irse arriba—
+        // es el fallo que se vio en el S25 y por el que existe esta prueba.
+        if (!m.haciaAbajo) fallo.push("el desplegable NO cae hacia el teclado");
+        if (!m.pegadoAlCampo) fallo.push(`el desplegable se despega ${m.listaTop}px del campo`);
+        if (!m.dentroDeLaVentana) fallo.push("el desplegable se mete debajo del teclado");
         if (m.scrollPliego <= 1) {
-          // Cabe todo: entonces exigimos la composición completa.
-          if (!m.pegado) fallo.push("el cupón no queda pegado al teclado");
+          // Cabe todo: ADIVINAR entra entero en la ventana. Se mide con la
+          // lista abierta y da igual —es `position: absolute`, no mueve la
+          // maqueta—: lo que se comprueba es que el botón tiene su sitio, no
+          // que se vea. Que la lista lo tape mientras está desplegada es
+          // deliberado: se elige una opción y desaparece.
           if (!m.botonDentro) fallo.push("ADIVINAR no se ve entero");
         } else if (p.corriente) {
           fallo.push(`scroll ${m.scrollPliego}px en móvil corriente`);
         }
-        // Pasar por detrás del recorte solo se tolera cuando la lista ya se ha
-        // quedado con todo el hueco: ahí manda que la lista exista.
-        if (!m.bajoRecorte && !m.usaTodo) fallo.push("el desplegable pasa por detrás del recorte");
       }
 
       linea(

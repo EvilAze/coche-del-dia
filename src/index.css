@@ -1297,14 +1297,14 @@ body,
     /* El recorte de la foto en modo escritura: 4:3 EXACTO (128×96, reglas 5 y
        7) y el hueco que reserva arriba del todo — su posición (10px), su alto y
        el aire de debajo. Lo consumen DOS reglas que tienen que moverse juntas:
-       el propio `.cdd-peek` y el techo del desplegable, que se para justo antes
-       de meterse debajo de él. Cambiar el tamaño del recorte sin cambiar el
-       hueco deja la lista pasando por detrás de la foto. */
+       el propio `.cdd-peek` y el `padding-top` del cupón, que es lo que impide
+       que la foto se pinte encima del renglón de MARCA. Separarlas es una foto
+       tapando un campo, así que salen del mismo número. */
     --cdd-recorte-alto: 96px;
     --cdd-recorte-hueco: calc(10px + var(--cdd-recorte-alto) + 14px);
   }
 
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla {
     /* `svh` y no `dvh`: es la misma unidad que ya usa .cdd-app (min-height:
        100svh), así que padre e hijo miden lo mismo por construcción y el
        documento no se queda con un hilo de scroll. En un WebView a pantalla
@@ -1328,14 +1328,14 @@ body,
   }
 
   /* Las bandas que NO se mueven: cabecera, cupón y pie miden lo que miden. */
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla > .prensa-area-cab,
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-area-jugar,
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-area-pie {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla > .prensa-area-cab,
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-area-jugar,
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-area-pie {
     flex: 0 0 auto;
   }
 
   /* LA BANDA ELÁSTICA: la fotografía se queda con lo que sobre. */
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-area-foto {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-area-foto {
     flex: 1 1 auto;
     /* EL SUELO VA AQUÍ, EN EL ÍTEM FLEX, y las dos alternativas obvias fallan —
        las dos comprobadas en el banco antes de escribir esto:
@@ -1366,7 +1366,7 @@ body,
      libre). Ojo: eso es seguro aquí y no lo era en el encaje por JS, donde el
      `margin-inline: auto` iba en el eje CRUZADO y desactivaba el estirado —
      de ahí la foto colapsada a 24px que documenta useEncajeEscenario. */
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .cdd-stage {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .cdd-stage {
     flex: 0 1 auto;
     /* EL SUELO, y es el mismo 168px que ya usaba useEncajeEscenario por la misma
        razón: por debajo de eso el escenario deja de ser jugable (en el primer
@@ -1387,7 +1387,7 @@ body,
     display: flex;
     justify-content: center;
   }
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .cdd-stage-frame {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .cdd-stage-frame {
     flex: 0 0 auto;
     height: 100%;
     width: auto; /* lo deriva el aspect-ratio desde el alto */
@@ -1401,7 +1401,7 @@ body,
      lo que se juega: con cinco intentos la lista se desliza, la foto no se
      convierte en un sello. `overscroll-behavior: contain` evita que al llegar
      al final el gesto se propague y arrastre la pantalla entera. */
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-historial {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-historial {
     flex: 0 1 auto;
     /* Suelo de dos filas: encogiendo a la par que la foto, el reparto flex podía
        dejar la lista en una rendija de píxeles — visible, inútil y peor que no
@@ -1419,10 +1419,10 @@ body,
      inalcanzable — y la política de privacidad tiene que ser accesible desde
      dentro de la app (requisito de Play). El reloj se queda porque es una línea
      y es información del ejemplar, no navegación. */
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-cierre-enlaces {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-cierre-enlaces {
     display: none;
   }
-  :root[data-plataforma="app"]:not([data-teclado="abierto"]) .app-pantalla .prensa-area-pie {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-area-pie {
     padding-top: 6px;
     padding-bottom: 0;
   }
@@ -1455,21 +1455,29 @@ body,
          «recorte» flotante (.cdd-peek), que hasta ahora aparecía de rebote y
          aquí es su papel principal. Mismo recorte 4:3 servido por el servidor —
          ni un píxel más que en el escenario (reglas 5 y 7).
-       · El cupón se ancla al borde del teclado, donde está el pulgar y donde
-         aparece lo que se teclea: cero recorrido entre la tecla y el renglón.
-         Y ADIVINAR queda A LA VISTA sobre el teclado, que antes era justo lo
-         que el teclado tapaba.
-       · El desplegable se abre HACIA ARRIBA y se queda con todo el hueco que
-         acaban de dejar los demás. Con el teclado abierto se ven MÁS coches que
-         antes, no menos: el tope de 260px de la web sobraba aquí.
+       · El cupón sube al principio del pliego, justo debajo del recorte, y el
+         desplegable cae de cada campo HACIA EL TECLADO — que es donde se abre
+         una lista desde que existen los formularios. Se probó al revés (cupón
+         anclado abajo, lista hacia arriba) para no tapar nunca ADIVINAR, y en
+         un móvil de verdad quedaba fatal: la lista se despegaba del campo y se
+         iba a la parte de arriba de la pantalla. Que la lista tape ADIVINAR
+         mientras está abierta no molesta a nadie — se elige una opción y
+         desaparece— y se recupera algo que sí importa: la lista sale PEGADA al
+         renglón que la ha abierto.
 
      NO HAY QUE MEDIR EL TECLADO. Con `adjustResize` —el modo por defecto de
      Android, el que ya usa la app— el WebView se redimensiona al subir el
      teclado, así que la ventana ES el hueco que queda y `100dvh` ya vale
      exactamente eso. Ni plugin nativo, ni visualViewport, ni un alto base que
-     caduque al girar el móvil (ver src/lib/teclado.js). Y la señal sigue siendo
-     el FOCO, que llega antes que el resize: la recomposición ya está hecha
-     cuando el teclado termina de subir, así que no se ve el salto.
+     caduque al girar el móvil.
+
+     Y LA SEÑAL ES ESE MISMO RESIZE, no el foco. El foco llega ~200ms antes, y
+     recomponer ahí producía dos cambios visuales seguidos: la pantalla se
+     recomponía contra la ventana entera y después la ventana encogía y todo se
+     movía otra vez. Eso es lo que en un S25 se ve como un salto. Sellando en el
+     resize, la recomposición ocurre en el MISMO frame en que encoge la ventana:
+     un solo cambio, y sincronizado con el teclado que sube. Detalle y estados
+     en src/lib/teclado.js.
 
      `dvh` y no `svh`: son lo mismo en un WebView a pantalla completa, pero aquí
      lo que se mide es una ventana que acaba de encoger, y `dvh` es por
@@ -1498,58 +1506,33 @@ body,
     display: none;
   }
 
-  /* El cupón, pegado al teclado. */
+  /* EL CUPÓN, ARRIBA — y el hueco del recorte reservado. El `padding-top` no
+     es aire decorativo: el recorte es `position: fixed` y no participa del
+     reparto, así que sin esta reserva se pintaría ENCIMA del renglón de MARCA.
+     Sale de la misma variable que dimensiona el recorte, para que no puedan
+     desincronizarse. */
   :root[data-plataforma="app"][data-teclado="abierto"] .app-pantalla .prensa-area-jugar {
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  :root[data-plataforma="app"][data-teclado="abierto"] .app-pantalla .prensa-cupon {
-    /* `margin-top: auto` y NO `justify-content: flex-end`, que es la forma
-       obvia y la equivocada: con flex-end, en cuanto el contenido no cabe el
-       desbordamiento se va por ARRIBA y el navegador no deja alcanzarlo ni
-       scrolleando — el clásico «no llego a la primera fila». El margen
-       automático hace lo mismo cuando sobra sitio y se rinde a 0 cuando no
-       sobra, que es justo lo que queremos de una válvula. (Es el mismo truco
-       que usa `.cdd-stage` para centrar el marco en su hueco.) */
-    margin-top: auto;
+    flex: 0 0 auto;
+    padding-top: var(--cdd-recorte-hueco);
+    /* La composición ENTRA, no aparece de golpe. 180ms y 8px: lo justo para que
+       el ojo lea un movimiento en vez de un corte, y lo bastante corto para que
+       termine antes que la animación del teclado del sistema. Solo opacidad y
+       transform — nada que obligue a recalcular la maqueta. */
+    animation: cddCuponEntra .18s cubic-bezier(.16, 1, .3, 1);
   }
 
-  /* EL DESPLEGABLE, HACIA ARRIBA. Con el cupón abajo, abrirlo hacia abajo lo
-     metería debajo del teclado: el sitio libre está arriba.
-     El techo se calcula, no se adivina. `--cdd-hueco` es el sitio que hay de
-     verdad encima del cupón: la ventana menos el inset de la barra de estado y
-     menos el propio cupón — que NO es una constante (encoge al resolverse un
-     campo, crece con la horquilla del año, se mueve entero con el tamaño de
-     fuente del sistema), así que lo mide GuessForm con un ResizeObserver y lo
-     publica en `--cdd-cupon-alto`.
-
-     Y el techo es el MENOR de dos: lo que hay, y lo que hay respetando el
-     recorte. En un móvil normal manda el segundo y la lista se para justo antes
-     de pasar por detrás de la foto; en uno diminuto manda el primero y la lista
-     se mete debajo del recorte, que es la degradación correcta — antes eso que
-     una lista que se sale por el techo, donde el scroll no llega (un contenedor
-     no se desplaza a scrollTop negativo: lo que se va por arriba no vuelve).
-     El `max(120px, …)` solo protege el caso intermedio de quedarse en un hilo
-     de píxeles — y son 120 y no más porque el suelo también hace daño: con 140
-     se comía los 14px de aire del recorte en las ventanas de tamaño medio (un
-     Galaxy con teclado de fabricante), justo el caso que la reserva existe para
-     proteger. Medido en el banco, no razonado. */
+  /* EL DESPLEGABLE cae del campo hacia el teclado (`top` de siempre, sin
+     invertir nada). Lo único que cambia es el techo: la lista no puede pasarse
+     del borde del teclado, y el campo más bajo que abre lista es MODELO, que
+     con la reserva del recorte arranca a unos 240px del techo de la ventana. De
+     ahí el `100dvh - 240px`, acotado a los 260px de siempre para que en una
+     pantalla grande la lista no se convierta en una columna interminable, y con
+     un suelo de 120px (tres opciones) para que en una pequeña siga sirviendo de
+     algo. Lo que sobre lo resuelve su propio scroll, que es lo que una lista
+     sabe hacer. */
   :root[data-plataforma="app"][data-teclado="abierto"] .app-pantalla .prensa-listbox {
-    --cdd-hueco: calc(
-      100dvh
-      - var(--safe-area-inset-top, env(safe-area-inset-top, 0px))
-      - var(--cdd-cupon-alto, 260px)
-      - 8px
-    );
-    top: auto;
-    bottom: calc(100% + 4px);
-    max-height: min(
-      var(--cdd-hueco),
-      max(120px, calc(var(--cdd-hueco) - var(--cdd-recorte-hueco)))
-    );
-    animation: cddListboxSube .16s cubic-bezier(.16, 1, .3, 1);
+    max-height: min(260px, max(120px, calc(100dvh - 240px)));
+    animation: cddListboxCae .16s cubic-bezier(.16, 1, .3, 1);
   }
 
   /* El recorte crece: ya no es un recordatorio al margen de la foto, ES la
@@ -1562,15 +1545,23 @@ body,
   }
 }
 
-/* La lista sube desde el renglón, no aparece de golpe: 160ms es lo que tarda el
+/* La lista baja desde el renglón, no aparece de golpe: 160ms es lo que tarda el
    ojo en aceptar que la caja viene DEL campo y no de ninguna otra parte. Sin
    `opacity` de salida —no hay salida: el listbox se desmonta— y sin tocar el
    layout, solo transform. */
-@keyframes cddListboxSube {
+@keyframes cddListboxCae {
+  from { opacity: 0; transform: translateY(-8px); }
+}
+/* El cupón al entrar en modo escritura. Va con la ventana encogiendo y el
+   teclado subiendo, así que es deliberadamente corto: si dura más, compite. */
+@keyframes cddCuponEntra {
   from { opacity: 0; transform: translateY(8px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  :root[data-plataforma="app"][data-teclado="abierto"] .prensa-listbox { animation: none; }
+  :root[data-plataforma="app"][data-teclado="abierto"] .prensa-listbox,
+  :root[data-plataforma="app"][data-teclado="abierto"] .app-pantalla .prensa-area-jugar {
+    animation: none;
+  }
 }
 
 /* Foco de teclado del sistema prensa: anillo rojo uniforme (sustituye al

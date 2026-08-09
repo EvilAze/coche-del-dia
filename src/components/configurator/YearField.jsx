@@ -15,6 +15,7 @@
 // historial entero para saber por dónde va la búsqueda.
 
 import { useId, useRef } from "react";
+import { acercarCampoAlTeclado } from "../../lib/teclado";
 import { useT } from "../../i18n";
 
 const MIN_YEAR = 1886;
@@ -93,13 +94,9 @@ export default function YearField({
           aria-readonly={resuelto || undefined}
           onFocus={() => {
             if (resuelto) return;
-            // En táctil, sube el campo por encima del teclado recién abierto.
-            const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
-            if (coarse) {
-              window.setTimeout(() => {
-                innerRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-              }, 280);
-            }
+            // En táctil-web sube el campo sobre el teclado; en la app no hace
+            // nada, que es lo correcto (ver lib/teclado.js y el modo escritura).
+            acercarCampoAlTeclado(innerRef.current);
           }}
           onChange={(e) => {
             const d = e.target.value.replace(/\D/g, "").slice(0, 4);

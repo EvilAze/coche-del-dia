@@ -45,7 +45,7 @@
 import { createServer } from "node:http";
 import { readFile, readdir, stat, access } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
-import { extname, join, dirname } from "node:path";
+import { extname, join, dirname, basename, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 
@@ -140,6 +140,9 @@ const SELECTORES = [
   ".app-pantalla", ".prensa-area-cab", ".prensa-area-foto", ".cdd-stage",
   ".cdd-stage-frame", ".prensa-area-jugar", ".prensa-historial",
   ".prensa-area-pie", ".prensa-cierre-enlaces",
+  // El modo escritura: el cupón que se ancla al teclado, el desplegable que se
+  // abre hacia arriba y el recorte que hace de fotografía.
+  ".prensa-cupon", ".prensa-listbox", ".cdd-peek",
 ];
 
 // ── La maqueta ─────────────────────────────────────────────────────────────
@@ -164,10 +167,23 @@ function paginaHtml(hrefCss) {
       </div></div>
     </section>
     <div class="prensa-area-jugar" id="jugar">
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <input class="prensa-input" placeholder="Marca y modelo" style="width:100%">
-        <input class="prensa-input" placeholder="Año" style="width:100%">
-        <button class="prensa-submit" id="adivinar" style="width:100%">ADIVINAR</button>
+      <div class="prensa-cupon" id="cupon">
+        <form class="flex flex-col gap-3">
+          <div class="relative flex flex-col gap-0.5" id="campo-marca">
+            <label class="prensa-label">Marca</label>
+            <div class="prensa-campo"><input class="prensa-input" placeholder="Escribe o elige"></div>
+            <ul class="prensa-listbox" id="listbox" role="listbox" hidden></ul>
+          </div>
+          <div class="relative flex flex-col gap-0.5">
+            <label class="prensa-label">Modelo</label>
+            <div class="prensa-campo"><input class="prensa-input" placeholder="Escribe o elige"></div>
+          </div>
+          <div class="relative flex flex-col gap-0.5">
+            <label class="prensa-label">Año<span class="pista-label">±2</span></label>
+            <div class="prensa-campo"><input class="prensa-input" placeholder="1998"></div>
+          </div>
+          <button class="prensa-submit mt-2" id="adivinar">ADIVINAR</button>
+        </form>
       </div>
     </div>
     <div class="prensa-historial" id="historial"></div>
@@ -178,8 +194,40 @@ function paginaHtml(hrefCss) {
         <button type="button">Cómo se juega</button><span>·</span><a href="/privacidad">Privacidad</a>
       </div>
     </footer>
-  </main></div>
+  </main>
+  <!-- El «recorte» de la foto. Fuera del <main> a propósito, igual que en
+       Configurator: es fixed y no participa del reparto del pliego. -->
+  <button class="cdd-peek" id="peek" hidden></button>
+  </div>
 <script>
+  // El modo escritura: lo que en la app hacen lib/teclado.js (el sello), el
+  // ResizeObserver de GuessForm (la medida del cupón) y Configurator (pedir el
+  // recorte). Aquí se hacen a mano para poder medir la composición resultante.
+  window.setTeclado = function (abierto) {
+    if (abierto) document.documentElement.dataset.teclado = "abierto";
+    else delete document.documentElement.dataset.teclado;
+    document.getElementById("peek").hidden = !abierto;
+  };
+  // EL MISMO CONTRATO QUE GuessForm: el alto del cupón se publica en el propio
+  // cupón, que es de donde lo hereda el desplegable. Se mide DESPUÉS de sellar
+  // el teclado (la composición cambia el alto del cupón: se le quita el aire
+  // del pliego).
+  window.medirCupon = function () {
+    const c = document.getElementById("cupon");
+    c.style.setProperty("--cdd-cupon-alto", Math.round(c.getBoundingClientRect().height) + "px");
+  };
+  window.setListbox = function (n) {
+    const ul = document.getElementById("listbox");
+    ul.innerHTML = "";
+    for (let i = 0; i < n; i++) {
+      const li = document.createElement("li");
+      li.className = "prensa-opt";
+      li.setAttribute("role", "option");
+      li.textContent = "Marca " + (i + 1);
+      ul.appendChild(li);
+    }
+    ul.hidden = n === 0;
+  };
   window.setIntentos = function (n) {
     const h = document.getElementById("historial");
     h.innerHTML = "";
@@ -200,7 +248,12 @@ function paginaHtml(hrefCss) {
 // eso que servir una foto por debajo del mínimo jugable).
 const PANTALLAS = [
   { nombre: "iPhone SE / gama baja", w: 320, h: 568, corriente: false },
-  { nombre: "Android medio        ", w: 360, h: 640, corriente: true },
+  // 360x640 estuvo marcado `corriente` mientras la maqueta del cupón eran DOS
+  // inputs sueltos. El cupón de verdad son tres renglones con su etiqueta más
+  // ADIVINAR —~276px, unos 90 más— y con esa medida un 640 no da para el shell:
+  // se desliza ~89px. No es una regresión de nadie, es la maqueta poniéndose al
+  // día. Aquí entra la degradación diseñada (la válvula), igual que en el 320.
+  { nombre: "Android medio        ", w: 360, h: 640, corriente: false },
   { nombre: "Galaxy S23 Ultra     ", w: 384, h: 854, corriente: true },
   { nombre: "Pixel 7              ", w: 412, h: 915, corriente: true },
   { nombre: "Muy corto (patológico)", w: 360, h: 480, corriente: false },
@@ -228,7 +281,12 @@ async function main() {
   }
 
   // Servidor estático sobre build/: los @font-face llevan rutas absolutas.
-  const hrefCss = "/assets/" + rutaCss.split("/").pop();
+  // `basename` y no `split("/")`: en Windows `join` devuelve barras INVERTIDAS,
+  // así que el split no partía nada y el href salía como
+  // "/assets/C:\...\index-abc.css" → 404 → el banco medía una página SIN CSS y
+  // daba 40 fallos que no existían. Un banco que no puede correr en la máquina
+  // desde la que se compila la app no es un banco.
+  const hrefCss = "/assets/" + basename(rutaCss);
   const MIME = { ".css": "text/css", ".woff2": "font/woff2", ".js": "text/javascript",
                  ".html": "text/html; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png" };
   const server = createServer(async (req, res) => {
@@ -249,7 +307,7 @@ async function main() {
   const url = `http://127.0.0.1:${server.address().port}/__layout.html`;
 
   const { navegador, executablePath } = await abrirNavegador();
-  console.log(`· CSS: ${rutaCss.replace(RAIZ + "/", "")}`);
+  console.log(`· CSS: ${relative(RAIZ, rutaCss)}`);
   console.log(`· Navegador: ${executablePath}\n`);
 
   let fallos = 0;
@@ -322,16 +380,128 @@ async function main() {
     `enlaces del pie: ${web.enlaces} (deben verse)`
   );
 
-  // Control del teclado: con el WebView redimensionado el shell se SUELTA, o la
-  // foto se aplastaría contra el suelo mientras se teclea (src/lib/teclado.js).
-  await page.evaluate(() => {
-    document.documentElement.dataset.plataforma = "app";
-    document.documentElement.dataset.teclado = "abierto";
-  });
-  await page.waitForTimeout(50);
-  const tec = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
-  linea(tec > 1, `APP con el teclado abierto · scroll ${tec}px (el shell se suelta)`);
   await page.close();
+
+  // ── EL MODO ESCRITURA ──────────────────────────────────────────────────────
+  // El teclado se simula EXACTAMENTE como lo hace Android con `adjustResize`:
+  // encogiendo la ventana. No hay nada más que simular, y ese es justo el
+  // motivo por el que el modo no mide teclados (ver src/lib/teclado.js).
+  //
+  // Lo que se ata aquí es la promesa entera: sigue siendo UNA pantalla (cero
+  // scroll), ADIVINAR está a la vista sobre el teclado, el desplegable se abre
+  // HACIA ARRIBA y —lo que más duele si se rompe, porque el scroll no llega a
+  // rescatarlo— no se sale por el techo.
+  console.log("");
+  for (const p of PANTALLAS) {
+    // 260px = teclado normal; 340px = con barra de sugerencias o teclado de
+    // fabricante, que es lo que se lleva puesto media gama Android.
+    for (const teclado of [260, 340]) {
+      const alto = p.h - teclado;
+      // Por debajo de esto no queda pantalla ni para el cupón: no es un caso
+      // real (sería un móvil en horizontal, donde el teclado ocupa casi todo).
+      if (alto < 180) continue;
+      // RÉPLICA del suelo que declara index.css (`min-height: 360px`). Por
+      // debajo no hay modo escritura y el contrato es el contrario: el pliego
+      // vuelve al flujo normal y se alcanza todo bajando. Si cambia allí,
+      // cambia aquí — y este banco es justo quien avisa.
+      const enModo = alto >= 360;
+
+      const pg = await navegador.newPage({ viewport: { width: p.w, height: alto } });
+      await pg.goto(url, { waitUntil: "networkidle" });
+      await pg.evaluate(() => {
+        window.setIntentos(3);
+        window.setTeclado(true);
+        window.medirCupon();   // el orden importa: medir YA en la composición nueva
+        window.setListbox(30);
+      });
+      // 300ms y no los 50 de arriba: el recorte y el desplegable ENTRAN con una
+      // animación de transform, y un getBoundingClientRect a mitad de camino
+      // mide la caja transformada — no la que verá el jugador.
+      await pg.waitForTimeout(300);
+
+      const m = await pg.evaluate(() => {
+        const q = (s) => document.querySelector(s);
+        const oculto = (s) => {
+          const el = q(s);
+          return !el || getComputedStyle(el).display === "none";
+        };
+        const hoja = q(".app-pantalla");
+        const cupon = q(".prensa-cupon").getBoundingClientRect();
+        const boton = q("#adivinar").getBoundingClientRect();
+        const campo = q("#campo-marca").getBoundingClientRect();
+        const lista = q(".prensa-listbox").getBoundingClientRect();
+        const peek = q(".cdd-peek").getBoundingClientRect();
+        return {
+          scrollDoc: document.documentElement.scrollHeight - window.innerHeight,
+          scrollPliego: hoja.scrollHeight - hoja.clientHeight,
+          // Lo que se retira mientras se escribe.
+          seVan:
+            oculto(".prensa-area-cab") && oculto(".prensa-area-foto") &&
+            oculto(".prensa-historial") && oculto(".prensa-area-pie"),
+          // El cupón pegado al borde del teclado (= al borde de la ventana).
+          pegado: Math.abs(cupon.bottom - window.innerHeight) <= 2,
+          botonDentro: boton.bottom <= window.innerHeight + 1 && boton.top >= -1,
+          // El desplegable, hacia arriba y dentro de la pantalla.
+          haciaArriba: lista.bottom <= campo.top + 1,
+          listaTop: Math.round(lista.top),
+          listaAlto: Math.round(lista.height),
+          bajoRecorte: lista.top >= peek.bottom - 1,
+          // La lista se ha comido TODO el sitio que había: si además queda por
+          // detrás del recorte, no es un fallo de cálculo, es que no había más
+          // pantalla. La alternativa sería enseñar media opción.
+          usaTodo: lista.top <= 6,
+          // Alcanzable = se llega bajando. Sin modo el que se desplaza es el
+          // DOCUMENTO (el pliego vuelve al flujo normal), así que se mide en
+          // coordenadas de documento y contra su alto, no contra la válvula del
+          // pliego — que ahí vale cero justamente porque no hace falta.
+          botonAlcanzable:
+            boton.bottom + window.scrollY <=
+            Math.max(document.documentElement.scrollHeight, hoja.scrollHeight) + 1,
+          // El recorte hace de fotografía: 4:3 exacto (reglas 5 y 7).
+          peekRatio: peek.width / peek.height,
+        };
+      });
+      await pg.close();
+
+      const fallo = [];
+      // El recorte hace de fotografía en las dos ramas: su proporción es
+      // seguridad (reglas 5 y 7), no maquetación.
+      if (Math.abs(m.peekRatio - RATIO) > 0.01) fallo.push(`recorte ${m.peekRatio.toFixed(3)}≠1.333`);
+
+      if (!enModo) {
+        // SIN modo: el contrato es el de siempre. No se recompone nada y todo
+        // sigue siendo alcanzable — que es lo único que se le puede pedir a una
+        // ventana en la que no cabe ni el cupón.
+        if (m.seVan) fallo.push("recompone una ventana en la que no cabe");
+        if (m.scrollDoc <= 1) fallo.push("el pliego no se ha soltado (no hay scroll con el que llegar)");
+        if (!m.botonAlcanzable) fallo.push("ADIVINAR no se alcanza ni con scroll");
+      } else {
+        if (m.scrollDoc > 1) fallo.push(`el documento scrollea ${m.scrollDoc}px`);
+        if (!m.seVan) fallo.push("algo que sobra sigue pintándose");
+        if (!m.haciaArriba) fallo.push("el desplegable NO se abre hacia arriba");
+        // El techo: lo que se va por arriba es irrecuperable (un contenedor no
+        // baja de scrollTop 0), así que esto no admite grados.
+        if (m.listaTop < -1) fallo.push(`el desplegable se sale ${-m.listaTop}px por el techo`);
+        if (m.scrollPliego <= 1) {
+          // Cabe todo: entonces exigimos la composición completa.
+          if (!m.pegado) fallo.push("el cupón no queda pegado al teclado");
+          if (!m.botonDentro) fallo.push("ADIVINAR no se ve entero");
+        } else if (p.corriente) {
+          fallo.push(`scroll ${m.scrollPliego}px en móvil corriente`);
+        }
+        // Pasar por detrás del recorte solo se tolera cuando la lista ya se ha
+        // quedado con todo el hueco: ahí manda que la lista exista.
+        if (!m.bajoRecorte && !m.usaTodo) fallo.push("el desplegable pasa por detrás del recorte");
+      }
+
+      linea(
+        fallo.length === 0,
+        `${enModo ? "ESCRITURA" : "sin modo "}  ${p.nombre}  ${String(p.w).padStart(3)}x${p.h} −${teclado}kb → ${String(alto).padStart(3)}px · ` +
+        `lista ${m.listaAlto}px (top ${m.listaTop}) · pliego ${m.scrollPliego}px` +
+        (fallo.length ? `   ← ${fallo.join(" · ")}` : "")
+      );
+    }
+  }
 
   await navegador.close();
   server.close();

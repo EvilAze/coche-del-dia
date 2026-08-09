@@ -89,7 +89,7 @@ en silencio. Todo está documentado en [`.env.example`](.env.example).
 | `npm test` | Suite completa: estética + unit + seguridad + ataques |
 | `npm run test:unit` | Vitest (`src/**`, `api/**`, `lib/**`) |
 | `npm run test:estetica` | Falla si aparece emoji en UI, paleta cruda de Tailwind, glows o hex sueltos |
-| `npm run test:layout` | Mide el pliego sin scroll de la app en Chromium sobre 5 pantallas × 3 estados × 2 temas. **Fuera de `npm test`**: necesita un build fresco (lo hace solo si hace falta) y un Chromium instalado |
+| `npm run test:layout` | Mide en Chromium las dos composiciones de la app: el pliego sin scroll (5 pantallas × 3 estados × 2 temas) y el **modo escritura** con el teclado abierto (5 pantallas × 2 alturas de teclado). **Fuera de `npm test`**: necesita un build fresco (lo hace solo si hace falta) y un Chromium instalado |
 | `npm run test:security` | Comprobaciones de superficie de los endpoints |
 | `npm run test:attacks` | Reproduce ataques conocidos (reveal token forjado, brute-force, spoof de sesión anónima) |
 | `npm run test:rls` | Verifica las policies de Supabase — **necesita credenciales reales**, por eso no entra en `npm test` |

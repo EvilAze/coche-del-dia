@@ -80,6 +80,18 @@ export function PencilIcon({ className = "h-4 w-4" }) {
   );
 }
 
+// Teléfono: la puerta a la edición Android en los ajustes del carnet. Silueta
+// sola, sin flecha de descarga ni logo de tienda — en esta lista el gesto lo
+// dice el chevron de la derecha, igual que en el resto de puertas.
+export function PhoneIcon({ className = "h-[18px] w-[18px]" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
+      <path d="M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M10.5 17.5h3" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
 export function ChevronRightIcon({ className = "h-4 w-4" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...ICO} strokeWidth="2" aria-hidden="true">

@@ -52,7 +52,12 @@
     "dayRolloverBody": "El reto de hoy ya está disponible. Recarga la página para jugarlo.",
     "dayRolloverButton": "Recargar",
     "dayRolloverBodyApp": "El reto de hoy ya está disponible. Toca para abrir la nueva edición.",
-    "dayRolloverButtonApp": "Abrir la de hoy"
+    "dayRolloverButtonApp": "Abrir la de hoy",
+    "promoTitle": "Edición Android",
+    "promoBody": "La edición de mañana, a un toque desde tu pantalla de inicio. Sin escribir la dirección y con el aviso diario al margen del navegador.",
+    "promoCta": "Ver en Google Play",
+    "promoDecline": "Ahora no",
+    "promoDoor": "Edición Android"
   },
   "guess": {
     "labelMarca": "Marca",

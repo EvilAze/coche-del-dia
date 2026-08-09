@@ -46,8 +46,11 @@ import {
   CarIcon,
   MedalIcon,
   TrophyIcon,
+  PhoneIcon,
   ChevronRightIcon,
 } from "./carnet/icons";
+import { esAndroidWeb, urlPlay } from "../lib/edicionApp";
+import { track } from "../lib/analytics";
 
 // Puerta a un destino (Archivo / Clasificación / Logros): icono rojo + nombre +
 // dato clave + chevron. Es un botón: cierra el perfil y abre el destino real.
@@ -186,6 +189,12 @@ export default function MyStats({
     ? `${state.achievements.unlocked} / ${state.achievements.total}`
     : null;
 
+  // La puerta a Play solo existe donde el enlace instala algo: Android en
+  // navegador. Dentro del APK y en iOS/escritorio, ni se monta. Sin días
+  // mínimos, al revés que el faldón: quien abre su perfil y baja hasta aquí ya
+  // está buscando, y a ese no hay que ponerle una cuota de partidas.
+  const ofreceApp = esAndroidWeb();
+
   return (
     <>
     <ModalShell
@@ -307,12 +316,30 @@ export default function MyStats({
                 onClick={() => go(onOpenRanking, "perfil")}
               />
               <DoorRow
-                last
+                last={!ofreceApp}
                 icon={<TrophyIcon />}
                 label={t("header.achievements")}
                 value={logrosValue}
                 onClick={() => go(onOpenAchievements)}
               />
+              {/* La edición Android como una puerta más, permanente y sin
+                  caducidad: aquí no molesta a nadie (hay que abrir el perfil
+                  para verla) y recoge al que la busca a propósito, que es el
+                  caso que el faldón del resultado no cubre — ese solo aparece
+                  una vez y se puede rechazar. Última de la lista a propósito:
+                  las tres de arriba llevan a secciones del juego, esta se sale
+                  de la web. */}
+              {ofreceApp && (
+                <DoorRow
+                  last
+                  icon={<PhoneIcon />}
+                  label={t("app.promoDoor")}
+                  onClick={() => {
+                    track("app_promo_click", { surface: "perfil" });
+                    window.open(urlPlay("perfil"), "_blank", "noopener,noreferrer");
+                  }}
+                />
+              )}
             </div>
           </div>
 

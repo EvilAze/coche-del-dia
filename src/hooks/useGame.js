@@ -4,6 +4,7 @@ import { useToast } from "../components/Toast";
 import { notifyAchievementsAfterWin } from "../lib/achievementsNotifier";
 import { track } from "../lib/analytics";
 import { markSeenToday } from "../lib/webpush";
+import { registrarDiaJugado } from "../lib/edicionApp";
 import { haptic } from "../lib/haptics";
 import { useT } from "../i18n";
 // Niveles de zoom CSS aplicados sobre la imagen `?z=5` que sirve el servidor
@@ -541,6 +542,14 @@ export function useGame() {
       } else if (newStatus === "lost") {
         track("daily_lose", {});
       }
+
+      // Días DISTINTOS terminados por este navegador: es la puerta del faldón de
+      // la edición Android (lib/edicionApp.js). Se cuenta aquí, al cerrarse la
+      // partida, y no al montar el EndScreen, porque el resultado se reabre a
+      // voluntad y eso no son días nuevos. Vale para anónimos y logueados: la
+      // medida es del hábito en ESTE dispositivo, que es a quien se le ofrece
+      // la app, no del historial de la cuenta.
+      if (newStatus !== "playing") registrarDiaJugado(getMadridDateStr());
 
       // Logros: solo aplican a usuarios logueados (los anónimos no tienen
       // persistencia en Supabase). Tras ganar, detectamos desbloqueos

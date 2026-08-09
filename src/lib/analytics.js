@@ -34,6 +34,14 @@
 //        Embudo de retención Web Push: shown → optin(accept) → subscribed. El
 //        RETORNO desde una notificación se mide por UTM (?utm_source=push), que
 //        Umami atribuye solo (no hace falta evento).
+//   - app_promo_shown        { surface }   — se pinta la oferta de la app Android
+//   - app_promo_click        { surface }   — clic hacia la ficha de Play
+//   - app_promo_dismiss      { surface }   — "ahora no" (cierra el faldón para siempre)
+//        surface: faldon_final (final de partida, una vez) | perfil (puerta fija).
+//        Embudo web→app: shown → click. La otra mitad (click → instalación real)
+//        NO la ve Umami: la da Play Console → Adquisición, gracias al referrer
+//        que monta lib/edicionApp.js. Son dos números de dos paneles distintos y
+//        no van a cuadrar exactamente — Play solo cuenta instalaciones.
 
 // Plataforma de origen, añadida a TODOS los eventos como `plataforma`.
 //

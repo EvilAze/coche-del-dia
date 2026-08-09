@@ -44,6 +44,7 @@ import { useDailyStats, Distribution } from "./dailyStats";
 // COMPARTIR (la de por defecto al ganar), que es el pico de engagement tras la
 // partida diaria — su pantalla viva es ESTA.
 import NotificationOptIn from "../NotificationOptIn";
+import FaldonApp from "../FaldonApp";
 import RankParte from "./RankParte";
 // (Aquí se importaba `shareGrid` para pintar la rejilla ✅/❌ EN PANTALLA. Esa
 // función existe para el TEXTO que se copia a WhatsApp, donde el emoji es el
@@ -390,6 +391,12 @@ export default function EndScreen({
           <div className="cdd-mono cdd-next-k">{t("cdd.nextCar")}</div>
           <div className="cdd-next-clock cdd-mono">{countdown.formatted}</div>
         </div>
+
+        {/* La edición Android, JUSTO después de la cuenta atrás: el renglón de
+            arriba acaba de decir "vuelve mañana", y esta es la respuesta a eso.
+            Se pinta solo para Android-en-navegador con tres días jugados; en
+            todo lo demás devuelve null y aquí no hay nada. */}
+        <FaldonApp />
 
         {/* Cerrar el revelado y volver a la partida: enlace discreto (Compartir
             sigue siendo el único CTA primario de la pantalla). */}

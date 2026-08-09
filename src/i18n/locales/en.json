@@ -52,7 +52,12 @@
     "dayRolloverBody": "Today's challenge is ready. Reload the page to play it.",
     "dayRolloverButton": "Reload",
     "dayRolloverBodyApp": "Today's challenge is ready. Tap to open the new edition.",
-    "dayRolloverButtonApp": "Open today's"
+    "dayRolloverButtonApp": "Open today's",
+    "promoTitle": "Android edition",
+    "promoBody": "Tomorrow's edition, one tap from your home screen. No address to type, and a daily reminder that doesn't depend on your browser.",
+    "promoCta": "View on Google Play",
+    "promoDecline": "Not now",
+    "promoDoor": "Android edition"
   },
   "guess": {
     "labelMarca": "Make",

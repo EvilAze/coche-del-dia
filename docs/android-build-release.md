@@ -372,10 +372,35 @@ Recuerda que la SHA-256 que va en `public/.well-known/assetlinks.json` es la de
 Google re-firma el AAB antes de distribuirlo.
 
 ## Actualizar la app
-Para cambios de UI hay que **resubir** (es bundled): `npm run cap:sync`, sube
-`versionCode`/`versionName` en `android/app/build.gradle`, `./gradlew
-bundleRelease`, nueva release en Play. (La API/contenido del coche del día sí se
-actualiza solo, viene de Vercel.)
+
+Para cambios de UI hay que **resubir**: los assets web son bundled. (La
+API/contenido del coche del día sí se actualiza solo, viene de Vercel.)
+
+**El reparto de trabajo**, para que publicar sea pulsar un botón:
+
+| Quién | Qué |
+|-------|-----|
+| Claude, dentro del PR | El cambio + `versionCode` +1 y `versionName` en `android/app/build.gradle`, en un commit `chore(android): vN/x.y.z` (regla 17 de CLAUDE.md) |
+| Tú, tras mergear | `git pull && npm run cap:sync` en el checkout principal |
+| Tú, en Android Studio | *Generate Signed Bundle* → release → Create |
+
+El `cap:sync` no es opcional ni ceremonial: `android/app/src/main/assets/public`
+está gitignorado, así que un `git pull` **no** actualiza los assets del APK. Sin
+él compilas código nuevo con la pantalla de la compilación anterior, y el
+síntoma es desesperante — la app se instala, arranca y no tiene tu cambio.
+
+Dos comprobaciones de diez segundos antes de firmar, las dos aprendidas por las
+malas (ver «Antes de subir»):
+
+1. En el diálogo de firma, **Destination Folder** tiene que apuntar a
+   `…\coche-del-dia\android\app`. Si pone `.claude\worktrees\…`, Android Studio
+   tiene abierto otro proyecto y estás compilando otra rama —posiblemente sin
+   `.env`, o sea una app que no arranca—.
+2. El `versionCode` que sale en Play Console es el que esperabas. Si sale el
+   anterior, no se ha mergeado o no se ha hecho `pull`.
+
+Si prefieres no acordarte de nada de esto: al terminar el merge dilo, y Claude
+deja el checkout principal sincronizado y te confirma la versión que va a salir.
 
 ## Login Google nativo (v2) — setup de OAuth
 

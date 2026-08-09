@@ -46,6 +46,33 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   // «último intento», que ya no existe).
   const cuponRef = useRef(null);
 
+  // ── LO QUE MIDE EL CUPÓN ───────────────────────────────────────────────────
+  // El modo escritura de la app (index.css) ancla el cupón al borde del teclado
+  // y abre el desplegable HACIA ARRIBA. Para que la lista no se salga por el
+  // techo hay que saber cuánto ocupa el cupón, y no es una constante: encoge
+  // cuando un campo se resuelve, crece cuando aparece la horquilla del año, y
+  // se mueve entero con el tamaño de fuente del sistema. Un número escrito a
+  // mano en el CSS acertaría en el móvil en el que se escribió y en ningún
+  // otro; así que se mide.
+  //
+  // La variable se publica en el PROPIO cupón —no en :root— porque su único
+  // consumidor, el listbox, cuelga de él: las custom properties heredan, y
+  // dejarla aquí evita que un segundo cupón en pantalla (la repesca) pise la
+  // medida del primero.
+  useEffect(() => {
+    const el = cuponRef.current;
+    // Sin ResizeObserver (WebView antiguo) el CSS se queda con su valor por
+    // defecto: la lista sale algo más corta de lo que podría, y nada más
+    // (mejora progresiva, regla 9).
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entrada]) => {
+      const alto = entrada.borderBoxSize?.[0]?.blockSize ?? entrada.contentRect.height;
+      el.style.setProperty("--cdd-cupon-alto", `${Math.round(alto)}px`);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // El campo siguiente puede acabar de habilitarse en ESTE mismo render (modelo
   // se activa al elegir una marca válida), así que esperamos al frame siguiente
   // para enfocarlo ya habilitado. Enfocar dentro del gesto de selección hace

@@ -6,6 +6,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { haptic } from "../../lib/haptics";
+import { acercarCampoAlTeclado } from "../../lib/teclado";
 import { useT } from "../../i18n";
 
 const DIACRITICS = new RegExp("[\\u0300-\\u036f]", "g");
@@ -115,12 +116,11 @@ export default function Combo({
     // puede enfocar, el render ya lo ha inicializado.)
     if (disabled || resuelto) return;
     setOpen(true);
-    const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
-    if (coarse) {
-      window.setTimeout(() => {
-        innerRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-      }, 280);
-    }
+    // Subir el campo sobre el teclado es cosa de la WEB. En la app lo resuelve
+    // la composición (el cupón ya nace pegado al teclado), y desplazar aquí
+    // movería un shell que por diseño no se mueve. La decisión vive en
+    // lib/teclado.js para que haya un solo sitio que sepa de teclados.
+    acercarCampoAlTeclado(innerRef.current);
   }
 
   function onKey(e) {

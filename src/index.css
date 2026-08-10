@@ -18,6 +18,36 @@
   padding-bottom: calc(1rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
+/* Las dos mitades de lo mismo, para cuando el inset NO va donde va el 1rem.
+   Pasa en toda pantalla que ocupa el alto entero con una cabecera propia: el
+   hueco de la barra de estado lo tiene que pedir la CABECERA (es la que empieza
+   en y=0) y el de la barra de gestos el CUERPO que scrollea, que suele ser otro
+   elemento. `.safe-area-pad`, que mete los dos en el mismo sitio, no sirve ahí:
+   o el titular se cruza con el reloj del sistema, o el aire aparece en mitad de
+   la página.
+
+   OJO CON EL PADDING PROPIO DEL ELEMENTO, que es el tropiezo de siempre: estas
+   reglas viven DESPUÉS de `@tailwind utilities` y con la misma especificidad
+   (una clase), así que ganan y borran cualquier `pt-3`/`pb-10` del JSX sin
+   avisar. Es el mismo mordisco que documenta `.prensa-hoja` (línea ~1217) y que
+   dejó en su día el header del juego bajo la barra de estado. Por eso el aire
+   propio del elemento NO se pone en Tailwind sino aquí, por variable:
+
+     <header className="safe-area-top" style={{ "--safe-area-extra-top": "0.75rem" }}>
+
+   En web las dos variables del sistema valen 0, así que el padding se queda
+   exactamente en ese extra y no cambia un píxel fuera de la app.
+
+   Las usan El Archivo (Garage.jsx) y la Repesca, las dos pantallas a pantalla
+   completa con cabecera propia. El pliego del juego no las necesita: lleva el
+   inset incrustado en `.prensa-hoja`, con su propia historia. */
+.safe-area-top {
+  padding-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--safe-area-extra-top, 0px));
+}
+.safe-area-bottom {
+  padding-bottom: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + var(--safe-area-extra-bottom, 0px));
+}
+
 /* ── EL TACTO DE LA APP ────────────────────────────────────────────────────
    Lo que sigue solo aplica dentro del APK (`data-plataforma="app"`, lo pone
    src/index.jsx). En web no cambia absolutamente nada.
@@ -2077,30 +2107,11 @@ body,
    nos da las dos rayas con un solo borde. */
 .arch-filete { border-top: 3px double var(--line-strong); }
 
-/* ── EL ARCHIVO A PANTALLA COMPLETA, DEBAJO DE LAS BARRAS DEL SISTEMA ──────
-   El panel del Archivo no es un modal centrado: es `fixed inset-0` con
-   `items-stretch`, o sea que su primera franja empieza en y=0 y su última
-   termina en el borde inferior. En la app (edge-to-edge, regla impuesta por
-   targetSdk 36) eso significa DEBAJO de la barra de estado y de la barra de
-   gestos, y es exactamente el mismo fallo que ya se curó en .prensa-hoja
-   (línea ~1217): el titular «EL ARCHIVO» se cruzaba con el reloj del sistema y
-   el aspa de cerrar caía en la banda donde los taps se los queda Android.
-   El resto de modales no lo sufren porque van centrados con su padding.
-
-   El inset se SUMA al padding propio en vez de sustituirlo: en web las dos
-   variables valen 0, así que la cabecera y el cuerpo miden exactamente lo que
-   medían y no cambia un píxel. El fondo del panel sigue llegando al borde —lo
-   que se aparta es el contenido, no el papel—, que es justo lo que hace que
-   edge-to-edge se vea intencionado y no roto. */
-.arch-cabecera {
-  padding-top: calc(0.75rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
-}
-/* El cuerpo scrollea: el inset va de padding para que la última fila de
-   portadas se pueda subir por encima de la barra de gestos en vez de quedarse
-   permanentemente medio tapada. */
-.arch-cuerpo {
-  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-}
+/* (Aquí vivieron `.arch-cabecera` y `.arch-cuerpo`, que apartaban la cabecera y
+   el cuerpo del Archivo de las barras del sistema. El mismo fallo apareció en la
+   Repesca —otra pantalla completa con cabecera propia— y a la segunda vez tocaba
+   compartir: son `.safe-area-top` / `.safe-area-bottom`, arriba del todo junto a
+   `.safe-area-pad`. El porqué del problema está allí.) */
 
 /* Tira de filtros de país: scroll horizontal SIN barra visible (en móvil la
    barra tapa los chips; el desbordamiento ya se insinúa con el corte). */

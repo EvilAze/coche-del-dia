@@ -2156,6 +2156,23 @@ body,
    modal: repetía en grande el dato que la fila destacada del jugador ya da, y
    empujaba la tabla fuera de la primera pantalla.) */
 
+/* La CABECERA DEL MODAL: kicker a la izquierda, X a la derecha, doble filete
+   debajo. Es la misma banda que abre el carnet del perfil (.prensa-carnet-cab),
+   y existe por lo mismo: la X flotaba en posición absoluta sobre la esquina del
+   panel y el título de al lado necesitaba un `pr-10` a mano para no meterse
+   debajo. Un botón que flota sobre el contenido obliga a que TODO lo de esa
+   línea sepa que está ahí; una banda propia no le pide nada a nadie.
+
+   No sangra hasta el borde del panel a propósito: `.modal-panel-flat` dibuja su
+   segundo filete a 4px por dentro (dos capas `inset` del box-shadow), y una
+   banda a sangre lo cruzaría por la mitad. El alto lo pone la X (44px, mínimo
+   táctil), como en el carnet. */
+.prensa-modal-cab {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 42px; margin: -6px -8px 12px 0;
+  border-bottom: 3px double var(--line-strong);
+}
+
 /* Pestañas: versalitas con filete rojo bajo la activa. El segmentado con fondo
    gris y esquinas redondeadas era vocabulario de app. «Cómo se puntúa» viaja en
    la misma fila, al margen derecho, hoy como interrogante en un filete redondo
@@ -2187,17 +2204,26 @@ body,
 }
 .rank-ayuda:hover { opacity: 0.8; }
 
-/* Cabecera de temporada: kicker en oro, tema en Fraunces y el cierre al
-   margen. Sobre doble filete, como una cabecera de sección. */
+/* Cabecera de temporada: kicker, tema en Fraunces y el cierre al margen, sobre
+   doble filete — una cabecera de sección de periódico.
+
+   EL ORO SE FUE DE AQUÍ, y es la corrección que más se nota en el modal. Esta
+   banda lo llevaba por triplicado (doble filete dorado, kicker dorado y el
+   contador con filete dorado) y competía con los tres sitios donde el oro está
+   GANADO: el ordinal del podio, los puntos del primero y el bonus de racha. Con
+   cinco oros en una pantalla, el oro deja de decir «esto vale algo» y pasa a
+   decir «esto es la clasificación» — que es justo lo que CLAUDE.md reserva. La
+   temporada es CONTEXTO (en qué número y con qué tema se juega), así que habla
+   con la voz de contexto del sistema: kicker rojo y tinta. */
 .rank-temporada {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 9px 0 10px; margin-bottom: 10px;
-  border-top: 3px double var(--gold); border-bottom: 1px solid var(--line);
+  border-top: 3px double var(--line-strong); border-bottom: 1px solid var(--line);
 }
 .rank-temporada--palmares { margin: 0; padding: 8px 12px; border-top: 0; }
 .rank-temporada-kicker {
   font-family: var(--font-mono); font-weight: 700; font-size: 9.5px;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--gold);
+  letter-spacing: .18em; text-transform: uppercase; color: var(--rojo);
 }
 .rank-temporada-tema {
   font-family: var(--font-display); font-weight: 700; font-size: 16px;
@@ -2206,8 +2232,8 @@ body,
 }
 .rank-temporada-cierre {
   flex: none; font-family: var(--font-body); font-weight: 800; font-size: 9.5px;
-  letter-spacing: .14em; text-transform: uppercase; color: var(--gold);
-  border: 1px solid var(--gold); padding: 4px 8px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-muted);
+  border: 1px solid var(--line-strong); padding: 4px 8px;
 }
 .rank-temporada-fecha {
   flex: none; font-family: var(--font-display); font-style: italic; font-size: 11px;
@@ -2221,6 +2247,20 @@ body,
   font-family: var(--font-body); font-weight: 800; font-size: 9px;
   letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
 }
+/* TU FILA, señalada con la marca del corrector: el filete rojo al margen
+   izquierdo, el mismo objeto que señala la opción elegida en el cupón
+   (.pm-opcion.elegida) y la entrada activa del sumario. Antes era un fondo de
+   tinta al 5% — sobre papel crema, un gris que apenas se ve y que además no
+   quiere decir nada en este sistema: aquí lo que señala es un filete.
+   El fondo se queda, pero como refuerzo, no como única señal. */
+.rank-fila-yo {
+  background: var(--surface2);
+  box-shadow: inset 3px 0 0 0 var(--rojo);
+}
+/* El realce al señalar una fila clicable: el mismo papel de los demás hover del
+   sistema (portadillas, entradas del sumario). */
+.rank-fila-clic:hover { background: var(--surface2); }
+
 /* El aparte de «tu posición» cuando quedas fuera del top visible. */
 .rank-tuposicion {
   padding: 7px 12px 0; text-align: center;

@@ -12,7 +12,11 @@ export default function LanguageStrip() {
   const options = listLocales();
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-[9px] uppercase tracking-widest text-muted">
+      {/* `et` es la etiqueta de renglón de ajuste (index.css): la comparten la
+          tinta del sumario y la sesión del carnet, para que las tres filas
+          tengan el mismo cuerpo. Las utilidades se quedan porque esta tira vive
+          también fuera de `.prensa-ajustes` (el modal de login). */}
+      <span className="et text-[9px] uppercase tracking-widest text-muted">
         {t("header.language")}
       </span>
       <div className="flex gap-1">

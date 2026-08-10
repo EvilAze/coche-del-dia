@@ -261,6 +261,14 @@
     "totalLabel": "Total:"
   },
   "myStats": {
+    "readerSince": "Lector desde {date}",
+    "rankShort": "Puesto",
+    "session": "Sesión",
+    "sessionAnon": "Sesión anónima",
+    "archivoApunte": "{unlocked} de {total} portadas",
+    "logrosApunte": "{unlocked} de {total} conseguidos",
+    "logrosApunteVacio": "Tus hitos y tus rachas",
+    "appApunte": "El diario en tu móvil",
     "title": "Mi Perfil",
     "carnetKicker": "Carnet de lector",
     "points": "Puntos",
@@ -320,13 +328,17 @@
     }
   },
   "publicProfile": {
+    "portadas": {
+      "one": "{count} portada en su archivo",
+      "other": "{count} portadas en su archivo"
+    },
     "title": "Perfil",
     "publicLabel": "Perfil público",
     "noNickname": "Sin nickname",
     "errorLoad": "No se pudo cargar el perfil.",
     "errorRpcMissing": "Función del servidor no disponible. Si eres el admin, ejecuta el SQL de scripts/supabase-public-profile-rpc.sql en Supabase.",
     "statPoints": "Puntos",
-    "medalsTitle": "Medallas",
+    "medalsTitle": "El palmarés",
     "noMedalsYet": "Aún no ha conseguido medallas."
   },
   "nickname": {

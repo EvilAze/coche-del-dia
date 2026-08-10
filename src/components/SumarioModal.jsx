@@ -44,37 +44,9 @@ import { haptic } from "../lib/haptics";
 import ModalShell from "./ModalShell";
 import CloseButton from "./CloseButton";
 import LanguageStrip from "./LanguageStrip";
+import Portadilla from "./Portadilla";
 import { Icon, I } from "./configurator/icons";
 import { ordinal } from "./PuestoCifra";
-
-// Una portadilla del sumario: icono de línea, nombre de la sección en
-// versalitas y el apunte que dice qué hay dentro (o qué llevas tú dentro).
-// SIN `aria-label` propio a propósito: el nombre accesible del botón sale de lo
-// que se lee dentro («Clasificación, 12º de la temporada»), así que coincide con
-// lo que el jugador ve y con lo que diría en voz alta al pedirlo por voz. Un
-// aria-label a mano lo habría sustituido por otra frase.
-function Portadilla({ icono, nombre, apunte, aviso = false, onClick }) {
-  return (
-    <button
-      type="button"
-      className="prensa-portadilla focus-ring"
-      onClick={() => {
-        haptic.impactLight();
-        onClick?.();
-      }}
-    >
-      <span className="marca">
-        <Icon d={icono} size={20} />
-      </span>
-      <span className="nombre">
-        {nombre}
-        {/* La corrección al margen, igual que en la barra: "(1)" en rojo. */}
-        {aviso && <span className="aviso" aria-hidden="true">(1)</span>}
-      </span>
-      <span className="apunte">{apunte}</span>
-    </button>
-  );
-}
 
 export default function SumarioModal({
   open,
@@ -129,9 +101,9 @@ export default function SumarioModal({
           que se lean de un vistazo, y la quinta entrada obligaría a una fila
           coja. Los Logros se llegan desde el perfil y el Archivo, que es donde
           significan algo. */}
-      <div className="prensa-sumario-rejilla">
+      <div className="prensa-rejilla">
         <Portadilla
-          icono={I.garage}
+          icono={<Icon d={I.garage} size={20} />}
           nombre={t("prensa.garaje")}
           aviso={repescaAlert}
           apunte={repescaAlert ? t("sumario.garajeRepesca") : t("sumario.garajeApunte")}
@@ -139,7 +111,7 @@ export default function SumarioModal({
         />
 
         <Portadilla
-          icono={I.trophy}
+          icono={<Icon d={I.trophy} size={20} />}
           nombre={t("prensa.clasificacion")}
           apunte={
             puesto != null && !rankCargando ? (
@@ -157,7 +129,7 @@ export default function SumarioModal({
         />
 
         <Portadilla
-          icono={I.user}
+          icono={<Icon d={I.user} size={20} />}
           nombre={user ? t("prensa.perfil") : t("prensa.entrar")}
           apunte={
             user
@@ -170,7 +142,7 @@ export default function SumarioModal({
         />
 
         <Portadilla
-          icono={I.help}
+          icono={<Icon d={I.help} size={20} />}
           nombre={t("cdd.helpAria")}
           apunte={t("sumario.comoApunte")}
           onClick={onOpenHowTo}
@@ -181,11 +153,9 @@ export default function SumarioModal({
           dos controles cierra el sumario — se eligen viendo el efecto. */}
       <p className="prensa-ladillo mb-2.5 mt-5">{t("sumario.ejemplar")}</p>
 
-      <div className="prensa-sumario-ajustes">
+      <div className="prensa-ajustes">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[9px] uppercase tracking-widest text-muted">
-            {t("sumario.tinta")}
-          </span>
+          <span className="et">{t("sumario.tinta")}</span>
           {/* Conmutador de DOS estados explícitos en vez del botón «cambiar a
               edición de noche» de antes: con un solo botón, el jugador tenía que
               deducir en qué tinta estaba leyendo a partir del nombre de la otra.

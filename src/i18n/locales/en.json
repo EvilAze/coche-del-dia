@@ -261,6 +261,14 @@
     "totalLabel": "Total:"
   },
   "myStats": {
+    "readerSince": "Reader since {date}",
+    "rankShort": "Rank",
+    "session": "Session",
+    "sessionAnon": "Anonymous session",
+    "archivoApunte": "{unlocked} of {total} covers",
+    "logrosApunte": "{unlocked} of {total} unlocked",
+    "logrosApunteVacio": "Your milestones and streaks",
+    "appApunte": "The paper on your phone",
     "title": "My Profile",
     "carnetKicker": "Reader card",
     "points": "Points",
@@ -320,13 +328,17 @@
     }
   },
   "publicProfile": {
+    "portadas": {
+      "one": "{count} cover in their archive",
+      "other": "{count} covers in their archive"
+    },
     "title": "Profile",
     "publicLabel": "Public profile",
     "noNickname": "No nickname",
     "errorLoad": "Couldn't load this profile.",
     "errorRpcMissing": "Server function not available. If you're the admin, run the SQL at scripts/supabase-public-profile-rpc.sql in Supabase.",
     "statPoints": "Points",
-    "medalsTitle": "Medals",
+    "medalsTitle": "Honours",
     "noMedalsYet": "No medals earned yet."
   },
   "nickname": {

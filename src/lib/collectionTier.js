@@ -43,6 +43,15 @@ const TIER_LABEL = {
   gold: { es: "Oro", en: "Gold" },
 };
 
+// El nombre del metal, localizado. Existe porque el perfil ajeno imprimía la
+// CLAVE INTERNA bajo cada cromo («GOLD», «SILVER») también en español: el mapa
+// ya estaba escrito aquí, solo que privado.
+export function tierLabel(tier, locale) {
+  const label = TIER_LABEL[tier];
+  if (!label) return "";
+  return label[locale] || label.es;
+}
+
 // ── Tier GLOBAL de coleccionista ─────────────────────────────────────────
 // A diferencia de countryTier/brandTier (por colección concreta), este es el
 // RANGO del jugador en toda la colección, derivado del total de coches

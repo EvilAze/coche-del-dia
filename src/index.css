@@ -840,30 +840,30 @@ body,
   width: 6px; height: 6px; background: var(--rojo);
 }
 
-/* ── EL SUMARIO (el índice del ejemplar, dentro del modal) ────────────────
-   Dos bloques con dos formas distintas a propósito, porque no son lo mismo:
-   arriba las SECCIONES a las que se navega, en rejilla de portadillas; abajo
-   los AJUSTES del ejemplar, en renglones con su control a la derecha. Antes
-   eran cinco renglones idénticos en una caja de 234px y no había forma de
-   distinguir «ir al Archivo» de «cambiar la tinta».
+/* ── LA REJILLA DE PORTADILLAS ────────────────────────────────────────────
+   La forma común de «aquí se elige adónde ir»: la usan el sumario (secciones
+   del ejemplar) y el carnet del perfil (tus secciones). Una sola gramática
+   para el mismo gesto en dos pantallas — antes el perfil resolvía esto con
+   renglones de icono + texto + chevron, o sea con el menú de ajustes de
+   Android, que es justo el lenguaje que el resto del juego evita.
 
-   Rejilla de periódico: un filete exterior y filetes interiores que la parten
-   en cuatro. Sin gap — las cajas comparten línea, como en una portada. */
-.prensa-sumario-rejilla {
+   Los filetes interiores son el `gap` sobre fondo de línea, no bordes de cada
+   caja: así la cuadrícula se dibuja sola sea cual sea el número de entradas,
+   sin reglas de `nth-child` que rehacer cada vez que se añade una. Y cuando el
+   número es IMPAR, la última ocupa el ancho entero, así que nunca queda un
+   hueco enseñando el fondo. */
+.prensa-rejilla {
   display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--line);
   border: 1px solid var(--line-strong);
 }
+.prensa-rejilla > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .prensa-portadilla {
   position: relative; display: flex; flex-direction: column; align-items: flex-start;
   gap: 5px; min-height: 98px; padding: 13px 12px 14px; text-align: left;
-  background: transparent; border: 0; cursor: pointer; color: var(--cdd-text);
-  border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  background: var(--surface); border: 0; cursor: pointer; color: var(--cdd-text);
   transition: color .14s, background .14s;
 }
-/* Son exactamente cuatro (ver SumarioModal): la columna derecha y la fila de
-   abajo no llevan filete propio, el del marco ya está ahí. */
-.prensa-portadilla:nth-child(2n) { border-right: 0; }
-.prensa-portadilla:nth-last-child(-n + 2) { border-bottom: 0; }
 .prensa-portadilla:hover, .prensa-portadilla:focus-visible {
   background: var(--surface2); color: var(--rojo);
 }
@@ -893,10 +893,18 @@ body,
 /* Los ajustes: renglones dentro de un marco de filete, cada uno con su control
    a la derecha. El padding lo pone el contenedor a sus hijos directos, así el
    selector de idioma (LanguageStrip, compartido con el perfil y el login) entra
-   tal cual, sin una variante propia para este sitio. */
-.prensa-sumario-ajustes { border: 1px solid var(--line-strong); }
-.prensa-sumario-ajustes > * { padding: 11px 12px; }
-.prensa-sumario-ajustes > * + * { border-top: 1px solid var(--line); }
+   tal cual, sin una variante propia para este sitio. Compartido con el carnet:
+   idioma, sesión y borrado son ajustes con la misma forma que la tinta. */
+.prensa-ajustes { border: 1px solid var(--line-strong); }
+.prensa-ajustes > * { padding: 11px 12px; }
+.prensa-ajustes > * + * { border-top: 1px solid var(--line); }
+/* La etiqueta de la izquierda de cada renglón: las escribe cada consumidor
+   (LanguageStrip la trae puesta), así que se normalizan aquí para que la tinta
+   y la sesión no discutan con el idioma por un píxel de cuerpo. */
+.prensa-ajustes .et {
+  font-family: var(--font-body); font-weight: 600; font-size: 9px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
+}
 
 /* El pie del sumario: la letra pequeña, separada por doble filete. */
 .prensa-sumario-pie {
@@ -910,6 +918,123 @@ body,
   transition: color .14s;
 }
 .prensa-sumario-pie a:hover { color: var(--rojo); }
+
+/* ── EL CARNET DE LECTOR ──────────────────────────────────────────────────
+   El objeto de identidad que comparten el perfil propio y el ajeno. Antes era
+   una TARJETA: un rectángulo con filete de oro al 25% y un hairline dorado
+   encima, sobre el que se apilaban un nombre, una cifra grande y dos renglones
+   con iconos. Tres problemas de fondo:
+
+     · El oro al 25% sobre papel crema no es oro, es un beige lavado — y encima
+       competía con el sello del tier y con el ordinal, que sí se ganan. El oro
+       está reservado a lo premium (CLAUDE.md): cuando enmarca TODO, no premia
+       nada.
+     · No tenía anatomía de nada. Un carnet de prensa es un DOCUMENTO: cabecera
+       que dice qué es, titular con el nombre, sello de acreditación y una banda
+       de datos. Aquí había tres bloques sueltos con tres filetes distintos.
+     · Las cifras iban de dos en dos, en renglones con icono, así que comparar
+       «racha» con «máxima» pedía leer dos frases en vez de mirar una fila.
+
+   Ahora es el documento: cabecera con doble filete, nombre en Fraunces con el
+   sello del tier estampado al margen, y LA BANDA DE DATOS — cuatro casillas
+   separadas por filetes finos, que es como un carnet imprime lo que acredita.
+   Las mismas cuatro casillas sirven para el perfil ajeno cambiando qué se
+   pone en ellas (allí no hay puesto, hay aciertos). */
+.prensa-carnet {
+  position: relative; background: var(--surface);
+  border: 1px solid var(--line-strong);
+}
+/* La cabecera del documento. El alto lo pone la X (44px, el mínimo táctil), no
+   un padding: así el kicker queda centrado en una banda que ya tenía que medir
+   eso. La X vive DENTRO del carnet porque el carnet HACE de cabecera del modal
+   — flotando encima, el nombre le pasaba por debajo en vez de truncar. */
+.prensa-carnet-cab {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 42px; padding: 0 2px 0 12px;
+  border-bottom: 3px double var(--line-strong);
+}
+.prensa-carnet-cuerpo {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 12px 13px;
+}
+.prensa-carnet-nombre {
+  display: block; font-family: var(--font-display); font-weight: 900;
+  font-size: 26px; line-height: 1.06; letter-spacing: -.015em; color: var(--cdd-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* El renglón de acreditación: «Lector desde mayo de 2026». En cursiva del
+   sistema, la misma voz que los pies de foto. */
+.prensa-carnet-apunte {
+  margin: 3px 0 0; font-family: var(--font-display); font-style: italic;
+  font-size: 12.5px; line-height: 1.35; color: var(--cdd-muted);
+}
+/* La banda de datos. `flex` y no `grid`: las casillas se reparten el ancho a
+   partes iguales sea cual sea su número (cuatro en los dos perfiles hoy, pero
+   la banda no tiene por qué saberlo). */
+.prensa-carnet-cifras { display: flex; border-top: 1px solid var(--line-strong); }
+.prensa-carnet-cifras > * {
+  flex: 1 1 0; min-width: 0; padding: 9px 4px 10px; text-align: center;
+  background: var(--surface2);
+}
+.prensa-carnet-cifras > * + * { border-left: 1px solid var(--line); }
+.prensa-carnet-cifras .cifra {
+  display: block; font-family: var(--font-display); font-weight: 900;
+  font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums;
+  color: var(--cdd-text);
+}
+/* El oro, SOLO donde hay algo que celebrar: el puesto y la racha viva. Una
+   racha de 0 en oro devalúa el oro en todas las demás pantallas. */
+.prensa-carnet-cifras .cifra.oro { color: var(--gold); }
+.prensa-carnet-cifras .cifra.apagada { color: var(--faint); }
+.prensa-carnet-cifras .et {
+  display: block; margin-top: 5px; font-family: var(--font-body); font-weight: 700;
+  font-size: 8px; letter-spacing: .16em; text-transform: uppercase; color: var(--cdd-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── LA PLANCHA DE CROMOS (el palmarés del perfil ajeno) ──────────────────
+   Los logros conseguidos, como una hoja de sellos: misma rejilla de filetes
+   que las portadillas. Antes era una cuadrícula de cuadrados sueltos, cada uno
+   con un filete de SU metal (oro, plata, bronce) al 60% — doce marcos de tres
+   colores distintos flotando sobre el papel, que es el aspecto de «insignias
+   de aplicación» que el sistema evita en todo lo demás. El metal se dice donde
+   significa: en la palabra de debajo del cromo. La cuadrícula la dibujan los
+   filetes, y son los mismos de todo el juego. */
+.prensa-plancha {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--line); border: 1px solid var(--line-strong);
+}
+.prensa-cromo {
+  aspect-ratio: 1; background: var(--surface);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; padding: 6px; text-align: center; overflow: hidden;
+}
+.prensa-cromo .et {
+  font-family: var(--font-mono); font-weight: 700; font-size: 7.5px;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.prensa-cromo .et.oro { color: var(--gold); }
+.prensa-cromo .et.plata { color: var(--plata); }
+.prensa-cromo .et.bronce { color: var(--bronce); }
+
+/* La medalla de podio: filete de tinta y el metal SOLO en el disco y en el
+   puesto. Iba con el filete del metal al 60% y fondo propio, así que tres
+   medallas seguidas eran tres cajas de tres colores. */
+.prensa-medalla {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--line-strong); background: var(--surface);
+  padding: 5px 9px;
+}
+.prensa-medalla .puesto {
+  display: block; font-family: var(--font-body); font-weight: 800; font-size: 9.5px;
+  letter-spacing: .16em; text-transform: uppercase; line-height: 1.3;
+}
+.prensa-medalla .de {
+  display: block; font-family: var(--font-display); font-style: italic;
+  font-size: 11.5px; line-height: 1.25; color: var(--cdd-muted);
+}
+.prensa-medalla .oro { color: var(--gold); }
+.prensa-medalla .plata { color: var(--plata); }
+.prensa-medalla .bronce { color: var(--bronce); }
 
 /* La clasificación, al otro extremo de la barra: ladillo en versalitas + tu
    ordinal en oro. El oro está reservado a lo premium (CLAUDE.md) y el puesto lo
@@ -1978,6 +2103,11 @@ body,
    objeto, otra tinta. La regla de marca de siempre — rojo es "atención",
    oro es "esto vale algo". */
 .pm-sello--oro { border-color: var(--gold); color: var(--gold); }
+/* Los dos hermanos del oro, para cuando el sello dice QUÉ metal se tiene (el
+   tier de coleccionista del carnet). Faltaban, así que un carnet de Plata se
+   estampaba en oro: el sello decía una cosa y su color otra. */
+.pm-sello--plata { border-color: var(--plata); color: var(--plata); }
+.pm-sello--bronce { border-color: var(--bronce); color: var(--bronce); }
 
 /* ── El marcador de puesto (PuestoCifra.jsx) ──────────────────────────────
    El ordinal «7º» en Fraunces sobre oro viejo es la FIRMA de la
@@ -2150,6 +2280,10 @@ body,
 .pm-chip:hover { color: var(--cdd-text); border-color: var(--cdd-text); }
 /* Activo = tinta plena. En papel, "seleccionado" se dice invirtiendo. */
 .pm-chip.on { background: var(--cdd-text); border-color: var(--cdd-text); color: var(--bg); }
+/* Variante de CONSECUENCIA (cerrar sesión): mismo chip, pero al señalarlo se va
+   al rojo en vez de a la tinta. Va después de `.pm-chip:hover` a propósito —
+   misma especificidad, gana el último. */
+.pm-chip--rojo:hover { color: var(--rojo); border-color: var(--rojo); }
 .pm-chip .cifra { font-family: var(--font-mono); letter-spacing: 0; opacity: .8; }
 .pm-chip .bandera { width: 16px; height: 11px; object-fit: cover; flex: none; }
 

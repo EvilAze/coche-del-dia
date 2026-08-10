@@ -569,8 +569,12 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             />
 
             {/* Cabecera fija: la cabecera del periódico. No cambia al filtrar
-                —el archivo es el mismo— así el usuario nunca se pierde. */}
-            <div className="flex items-center justify-between gap-3 border-b border-tinta/25 px-4 py-3">
+                —el archivo es el mismo— así el usuario nunca se pierde.
+                `arch-cabecera` (index.css) le suma el inset de la barra de
+                estado: este panel va a pantalla completa y sin eso el titular
+                se dibuja bajo el reloj del sistema. El py-3 se queda como
+                padding-bottom; el superior lo pone la clase. */}
+            <div className="arch-cabecera flex items-center justify-between gap-3 border-b border-tinta/25 px-4 pb-3">
               <div className="min-w-0">
                 <p className="pm-kicker">{t("garage.headerCollection")}</p>
                 <h2 className="truncate font-display text-[26px] font-black leading-none tracking-tight text-tinta">
@@ -611,7 +615,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             ) : (
               <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto overscroll-contain"
+                className="arch-cuerpo flex-1 overflow-y-auto overscroll-contain"
               >
                 {/* El masthead y los números atrasados solo viven en la
                     vitrina: dentro de un país estorban, porque ahí la

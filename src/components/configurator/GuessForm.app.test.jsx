@@ -35,17 +35,17 @@ const CATALOGO = {
   marcas: ["Citroën", "Seat", "Volkswagen", ...MARCAS_RELLENO],
 };
 
-async function montar({ guesses = [] } = {}) {
+async function montar({ guesses = [], catalogo = CATALOGO, error = null, reload = vi.fn() } = {}) {
   vi.resetModules();
 
   // La plataforma: esta es LA condición que separa las dos ramas del cupón.
   vi.doMock("../../lib/plataforma", () => ({ esApp: () => true }));
   vi.doMock("../../data/catalog", () => ({
-    useCatalog: () => ({ data: CATALOGO, error: null, loading: false }),
+    useCatalog: () => ({ data: catalogo, error, loading: !catalogo && !error, reload }),
   }));
   vi.doMock("../Toast", () => ({ useToast: () => ({ push: vi.fn() }) }));
   vi.doMock("../../lib/haptics", () => ({
-    haptic: { selection: vi.fn(), impactMedium: vi.fn(), warning: vi.fn() },
+    haptic: { selection: vi.fn(), impactLight: vi.fn(), impactMedium: vi.fn(), warning: vi.fn() },
   }));
   // i18n plano: al test le da igual el copy, y así las aserciones no se rompen
   // el día que alguien afine una cadena.
@@ -148,6 +148,41 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     // Cambiar de marca sí vacía el modelo, así que el siguiente paso es modelo.
     expect(screen.getByRole("dialog")).toBeTruthy();
     expect(screen.getByRole("option", { name: /Golf/ })).toBeTruthy();
+  });
+
+  // ── EL CUPÓN SIN CATÁLOGO ──────────────────────────────────────────────────
+  // El fallo reportado el 2026-08-10: en una repesca, la fotografía había
+  // cargado y los renglones no se dejaban tocar. Eran correctos —sin catálogo no
+  // hay marcas que ofrecer— pero no lo decían: seguían con su «Elegir…», así que
+  // parecía la app rota y no un dato que falta. Y sin catálogo NUNCA se recupera
+  // solo si nadie reintenta.
+  it("catálogo caído: lo dice y ofrece reintentar, en vez de tres renglones muertos", async () => {
+    const reload = vi.fn();
+    await montar({ catalogo: null, error: new Error("boom"), reload });
+
+    // Los renglones no se pintan: lo que hay es el cartel.
+    expect(screen.queryByRole("button", { name: /^cdd\.labelMarca:/ })).toBeNull();
+    expect(screen.getByText("cdd.catalogDownTitle")).toBeTruthy();
+
+    // Y el único gesto que queda es útil: reintentar de verdad.
+    fireEvent.click(screen.getByRole("button", { name: "offline.retry" }));
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("catálogo caído: sin ADIVINAR, que ahí no adivina nada", async () => {
+    await montar({ catalogo: null, error: new Error("boom") });
+    expect(screen.queryByRole("button", { name: "cdd.submit" })).toBeNull();
+  });
+
+  it("catálogo cargando: los renglones lo DICEN («Cargando…», no «Elegir…»)", async () => {
+    await montar({ catalogo: null });
+    // Deshabilitados, como siempre: sin marcas no hay lista que abrir. La
+    // diferencia es que ahora el renglón explica por qué.
+    expect(renglon("cdd.labelMarca").disabled).toBe(true);
+    expect(renglon("cdd.labelMarca").textContent).toContain("cdd.catalogLoading");
+    // El modelo tampoco puede decir «elige marca primero»: es una instrucción
+    // imposible mientras el renglón de marca tampoco se abre.
+    expect(renglon("cdd.labelModelo").textContent).toContain("cdd.catalogLoading");
   });
 
   it("MODELO está bloqueado hasta que hay marca", async () => {

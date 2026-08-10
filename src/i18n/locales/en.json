@@ -210,7 +210,7 @@
   },
   "notif": {
     "optInTitle": "Want a heads-up for the new car?",
-    "optInBody": "I'll send one daily reminder at 10:00 when a new car is up. No spam.",
+    "optInBody": "I'll send one daily reminder at 20:00 when a new car is up. No spam.",
     "optInAccept": "Yes, remind me",
     "optInDecline": "Not now",
     "reminderTitle": "New car today 🚗",

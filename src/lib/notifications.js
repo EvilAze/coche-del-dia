@@ -9,7 +9,13 @@
 import { Capacitor } from "@capacitor/core";
 
 export const REMINDER_ID = 1;     // id fijo → reprogramar reemplaza, no duplica
-export const REMINDER_HOUR = 10;  // 10:00 hora local del dispositivo
+// 20:00 hora local del DISPOSITIVO (no de Madrid: `schedule.on` casa contra el
+// reloj del móvil, y un jugador de vacaciones prefiere que el aviso siga a su
+// día, no al del servidor). Se movió desde las 10:00 porque a media mañana el
+// aviso compite con el trabajo y se descarta sin abrirlo; por la tarde-noche
+// pilla al que aún no ha jugado y todavía le sobran cuatro horas de margen
+// antes de que la edición cierre a medianoche en Madrid.
+export const REMINDER_HOUR = 20;
 const REMINDER_MINUTE = 0;
 const ASKED_KEY = "cd_notif_asked";
 
@@ -89,7 +95,7 @@ async function ensureChannel({ name, description }) {
       description,
       // LOW (2), no DEFAULT (3): sale en la barra y en la persiana, pero NO
       // suena ni interrumpe con un heads-up. Es un juego casual de dos minutos
-      // y el opt-in promete literalmente "sin spam": un pitido a las 10:00 para
+      // y el opt-in promete literalmente "sin spam": un pitido a las 20:00 para
       // recordarte un pasatiempo es justo la clase de fricción que hace que la
       // gente desactive las notificaciones del todo, y entonces se pierde el
       // recordatorio entero, no solo el sonido.

@@ -235,7 +235,17 @@ npm run cap:open     # abre Android Studio
 En Android Studio: elige un emulador o un móvil con depuración USB y pulsa Run.
 Smoke test: jugar una partida anónima completa (5 intentos), terminar, aceptar
 el recordatorio, y comprobar que queda programado. Para ver disparar la
-notificación, ajusta la hora del dispositivo cerca de las 10:00.
+notificación, ajusta la hora del dispositivo cerca de las 20:00
+(`REMINDER_HOUR` en `src/lib/notifications.js`).
+
+**El icono de la notificación solo se puede validar en un build de RELEASE.**
+En debug no se poda nada y `ic_stat_cdd` siempre sale; en release lo mantiene
+vivo `android/app/src/main/res/raw/keep.xml`, porque su nombre solo viaja como
+cadena dentro de `capacitor.config.json` y el podador de recursos no lo ve. Si
+en la barra de estado aparece la "i" azul de Android en vez del coupé, es que
+ese recurso se ha vuelto a podar: revisa `keep.xml` antes que nada. Misma regla
+para cualquier recurso nuevo que se resuelva por nombre desde la config o desde
+JavaScript.
 
 ## Firma (release)
 Genera un keystore una sola vez y **guárdalo a buen recaudo** (sin él no puedes

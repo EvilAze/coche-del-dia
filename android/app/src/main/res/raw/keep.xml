@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  POR QUÉ EXISTE ESTE FICHERO
+  ==========================
+  El release lleva `shrinkResources true` (build.gradle): AAPT poda todo
+  recurso que no vea referenciado desde el código o desde otro XML. Y a
+  `ic_stat_cdd` NADIE lo referencia así: su nombre viaja como CADENA dentro de
+  `capacitor.config.json` (plugins.LocalNotifications.smallIcon), y el plugin lo
+  resuelve en tiempo de ejecución con `Resources.getIdentifier()`. Para el
+  podador eso es un recurso huérfano, así que se lo llevaba por delante.
+
+  Consecuencia exacta, y es silenciosa: en el APK de release el drawable no
+  existe, `getIdentifier()` devuelve 0 y LocalNotificationManager cae a su
+  respaldo, que es `android.R.drawable.ic_dialog_info` — la "i" azul genérica de
+  Android. Justo lo que se venía a arreglar cuando se generó el icono.
+
+  Y no daba la cara porque en DEBUG no se poda nada: pulsando Run en Android
+  Studio el coupé salía perfecto. Solo el build que va a Play perdía el icono.
+  (`shrinkResources` entró el 22 de julio de 2026 y el icono se generó el 23:
+  nunca llegó a sobrevivir a un release.)
+
+  `tools:keep` cubre las cinco densidades de una vez: se refiere al recurso, no
+  al fichero. Sin `tools:shrinkMode`: el modo por defecto (safe) es el
+  conservador, y cambiarlo a strict podaría MÁS, que es lo contrario de lo que
+  hace falta aquí.
+
+  REGLA PRÁCTICA: cualquier recurso cuyo nombre solo aparezca en
+  capacitor.config.json o en JavaScript tiene que anotarse aquí. Hoy es solo
+  este; `@drawable/splash` no hace falta porque styles.xml sí lo nombra.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_cdd" />

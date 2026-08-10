@@ -210,7 +210,7 @@
   },
   "notif": {
     "optInTitle": "¿Te aviso del coche nuevo?",
-    "optInBody": "Te mando un recordatorio diario a las 10:00 cuando haya coche nuevo. Sin spam.",
+    "optInBody": "Te mando un recordatorio diario a las 20:00 cuando haya coche nuevo. Sin spam.",
     "optInAccept": "Sí, avísame",
     "optInDecline": "Ahora no",
     "reminderTitle": "Hoy hay coche nuevo 🚗",

@@ -2077,6 +2077,31 @@ body,
    nos da las dos rayas con un solo borde. */
 .arch-filete { border-top: 3px double var(--line-strong); }
 
+/* ── EL ARCHIVO A PANTALLA COMPLETA, DEBAJO DE LAS BARRAS DEL SISTEMA ──────
+   El panel del Archivo no es un modal centrado: es `fixed inset-0` con
+   `items-stretch`, o sea que su primera franja empieza en y=0 y su última
+   termina en el borde inferior. En la app (edge-to-edge, regla impuesta por
+   targetSdk 36) eso significa DEBAJO de la barra de estado y de la barra de
+   gestos, y es exactamente el mismo fallo que ya se curó en .prensa-hoja
+   (línea ~1217): el titular «EL ARCHIVO» se cruzaba con el reloj del sistema y
+   el aspa de cerrar caía en la banda donde los taps se los queda Android.
+   El resto de modales no lo sufren porque van centrados con su padding.
+
+   El inset se SUMA al padding propio en vez de sustituirlo: en web las dos
+   variables valen 0, así que la cabecera y el cuerpo miden exactamente lo que
+   medían y no cambia un píxel. El fondo del panel sigue llegando al borde —lo
+   que se aparta es el contenido, no el papel—, que es justo lo que hace que
+   edge-to-edge se vea intencionado y no roto. */
+.arch-cabecera {
+  padding-top: calc(0.75rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
+}
+/* El cuerpo scrollea: el inset va de padding para que la última fila de
+   portadas se pueda subir por encima de la barra de gestos en vez de quedarse
+   permanentemente medio tapada. */
+.arch-cuerpo {
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+}
+
 /* Tira de filtros de país: scroll horizontal SIN barra visible (en móvil la
    barra tapa los chips; el desbordamiento ya se insinúa con el corte). */
 .arch-tira { scrollbar-width: none; -ms-overflow-style: none; }

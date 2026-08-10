@@ -12,12 +12,50 @@ import { useCallback, useEffect, useState } from "react";
 
 let catalogPromise = null;
 
-async function fetchCatalog() {
-  const res = await fetch("/api/list-cars");
-  if (!res.ok) {
-    throw new Error(`/api/list-cars devolvió ${res.status}`);
+// Tiempo máximo por intento. NO es paranoia: un `fetch` en una red móvil que se
+// queda a medias no rechaza nunca por su cuenta —la petición se queda colgada
+// indefinidamente— y aquí eso no es "tarda": es el cupón inerte para siempre,
+// porque GuessForm deshabilita los tres renglones mientras no haya catálogo.
+// Mejor cortar y reintentar que esperar a nada.
+const TIMEOUT_MS = 8000;
+// Reintentos automáticos y su espera. Dos bastan: el fallo típico es un
+// arranque en frío de la función o un bache de cobertura de un par de segundos,
+// no una caída larga. Si a la tercera sigue sin venir, el problema merece un
+// cartel y un botón, no seguir insistiendo en silencio.
+const REINTENTOS = 2;
+const ESPERA_MS = [400, 1200];
+
+function esperar(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function pedirUnaVez() {
+  // AbortController y no `Promise.race`: sin abortar, la petición colgada sigue
+  // viva consumiendo la conexión mientras ya estamos reintentando por otra.
+  const ac = new AbortController();
+  const corte = setTimeout(() => ac.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch("/api/list-cars", { signal: ac.signal });
+    if (!res.ok) {
+      throw new Error(`/api/list-cars devolvió ${res.status}`);
+    }
+    return await res.json();
+  } finally {
+    clearTimeout(corte);
   }
-  return res.json();
+}
+
+async function fetchCatalog() {
+  let ultimo;
+  for (let intento = 0; intento <= REINTENTOS; intento++) {
+    try {
+      return await pedirUnaVez();
+    } catch (err) {
+      ultimo = err;
+      if (intento < REINTENTOS) await esperar(ESPERA_MS[intento]);
+    }
+  }
+  throw ultimo;
 }
 
 export function loadCatalog() {
@@ -31,13 +69,35 @@ export function loadCatalog() {
   return catalogPromise;
 }
 
-// Hook React: devuelve { data, error, loading }.
+// Hook React: devuelve { data, error, loading, reload }.
 // `data` tiene la forma { cars, marcas, paises, marcaPais }.
+//
+// El `reload` y el reintento automático al volver la conexión son los mismos
+// que ya tiene useGame para la carga del coche del día, y por el mismo motivo:
+// sin catálogo el cupón no se puede rellenar, así que un fallo de red aquí deja
+// la partida tan muerta como un fallo al traer el coche. La diferencia es que
+// aquel SÍ tenía cartel y botón y este se quedaba mudo, con los tres renglones
+// deshabilitados y su «Elegir…» intacto: parecía que la app estaba rota, no que
+// faltara un dato. (Reportado el 2026-08-10 en una repesca: la foto había
+// cargado, el cupón no se dejaba tocar, y "al rato" —otra visita, otra
+// petición— funcionó solo.)
 export function useCatalog() {
   const [state, setState] = useState({ data: null, error: null, loading: true });
+  const [nonce, setNonce] = useState(0);
+
+  const reload = useCallback(() => {
+    // Tirar la promesa compartida es imprescindible: si el fallo la dejó en
+    // caché, reintentar devolvería el mismo error sin tocar la red. (Hoy
+    // loadCatalog ya la limpia al fallar; esto lo hace explícito y protege el
+    // caso de un reload pedido con datos viejos.)
+    catalogPromise = null;
+    setState({ data: null, error: null, loading: true });
+    setNonce((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
+    setState((s) => ({ ...s, loading: true }));
     loadCatalog()
       .then((data) => {
         if (mounted) setState({ data, error: null, loading: false });
@@ -48,9 +108,21 @@ export function useCatalog() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [nonce]);
 
-  return state;
+  // Reintento AUTOMÁTICO al recuperar la conexión, solo suscrito si hay un fallo
+  // pendiente (en el camino feliz no queda ningún listener colgado). Caso
+  // típico del móvil: abres en el metro, sales a la calle y quieres el cupón
+  // vivo sin tener que tocar nada.
+  useEffect(() => {
+    if (!state.error) return;
+    if (typeof window === "undefined") return;
+    const alVolver = () => reload();
+    window.addEventListener("online", alVolver);
+    return () => window.removeEventListener("online", alVolver);
+  }, [state.error, reload]);
+
+  return { ...state, reload };
 }
 
 // ---- Variante "siempre fresco" para herramientas de admin ----

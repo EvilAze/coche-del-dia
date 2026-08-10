@@ -60,6 +60,24 @@ problema es real**: sube el límite solo si el crecimiento es intencionado.
   entero (12,6 MB descomprimidos) con Play Services Auth, Credentials, OkHttp y
   coroutines sin podar. Las keep rules las aportan los plugins vía
   `consumerProguardFiles`; lo propio de la app está en `android/app/proguard-rules.pro`.
+- **Las reglas de escopeta del plugin de login, descartadas** (bloque `subprojects`
+  al final de `android/build.gradle`). Play Console avisaba de «tasa de
+  optimización / ofuscación / reducción bajas (45-46 %)» con R8 ya activado: el
+  motivo era que `@capgo/capacitor-social-login` mantiene bibliotecas ENTERAS de
+  terceros (`okhttp3.**`, `androidx.credentials.**`, `gms.auth.**`, y hasta
+  `com.facebook.**`, con Facebook desactivado). Son redundantes — cada librería
+  publica sus propias reglas, mínimas y correctas. Medido antes/después con un
+  `assembleRelease`: **APK 4.018 → 3.618 KB (-10 %), dex 2,43 → 1,42 MB (-43 %),
+  clases 3.218 → 1.956, ofuscación del 44 % al 88 %**. Lo que el plugin sí
+  necesita se re-declara a mano en `proguard-rules.pro`.
+  **Prueba de humo obligatoria tras cada actualización del plugin:** entrar con
+  Google desde un APK de *release* (no debug: en debug no corre R8). Si el
+  plugin llegara a depender de verdad de una de esas reglas, el fallo aparece
+  ahí, en runtime, no al compilar.
+- `android.r8.optimizedResourceShrinking=true`: la poda de recursos nueva de
+  AGP 9. Adoptada tras medir que se lleva 47 recursos MENOS que la vieja
+  (+32 KB, un 0,8 %) — y con el icono de la notificación intacto, que es el que
+  la poda anterior se comió una vez.
 - `capacitor.config.json` → `plugins.SocialLogin.providers` deja **solo Google**.
   Por defecto `@capgo/capacitor-social-login` empaqueta también el SDK de
   Facebook (~1,7 MB de AARs + 47 recursos `com_facebook_*`), más las rutas de
@@ -204,7 +222,9 @@ deja clavados al comportamiento de AGP 8 con una tanda de flags
 `android.*`. **Están documentados uno a uno en ese fichero** — léelos antes de
 quitar ninguno; los dos de R8 tocan justo lo que mantiene el AAB en ~5 MB. La
 idea es ir retirándolos de uno en uno, comprobando peso y arranque real tras
-cada uno, no todos de golpe.
+cada uno, no todos de golpe. De los dos de R8, `optimizedResourceShrinking` ya
+se adoptó (agosto de 2026, con la medición arriba); `strictFullModeForKeepRules`
+sigue apagado a propósito: lo que Play echaba en falta no venía de ahí.
 
 ## Requisitos (una vez)
 - Android Studio (Linux/Fedora nativo; no hace falta Mac).

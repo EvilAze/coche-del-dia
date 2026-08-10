@@ -30,6 +30,60 @@ allprojects {
     }
 }
 
+// ── LAS KEEP RULES DE ESCOPETA DEL PLUGIN DE LOGIN ──────────────────────────
+// Play Console avisaba de «tasa de optimización / ofuscación / reducción bajas
+// (45-46 %)» con R8 ya activado desde la v9. Medido sobre el mapping.txt de un
+// release real: de 3.218 clases del dex, 1.441 salían SIN ofuscar, y estaban
+// concentradas en com.google.android.*, androidx.credentials.*, okhttp3.*,
+// androidx.browser.customtabs.* y com.getcapacitor.*.
+//
+// Todas venían de UN fichero: el `consumer-proguard-rules.pro` de
+// @capgo/capacitor-social-login, que mantiene bibliotecas enteras de terceros:
+//
+//     -keep class okhttp3.** { *; }
+//     -keep class androidx.credentials.** { *; }
+//     -keep class com.google.android.gms.auth.** { *; }
+//     -keep class com.getcapacitor.** { *; }
+//     -keep class com.facebook.** { *; }        (¡y Facebook está desactivado!)
+//
+// Son REDUNDANTES. Cada una de esas bibliotecas publica sus propias reglas, que
+// son mínimas y quirúrgicas porque las escribe quien programó la reflexión —
+// comprobado en el `configuration.txt` del build: androidx.credentials mantiene
+// `CredentialProviderPlayServicesImpl`, GMS mantiene `RevocationBoundService`,
+// okhttp `-keepnames` sobre `PublicSuffixDatabase` y Capacitor mantiene todo lo
+// anotado con @CapacitorPlugin y lo que extiende Plugin. El puente y el login
+// siguen cubiertos por sus dueños; lo que se va es el código muerto.
+//
+// Efecto medido con un assembleRelease antes y después:
+//     APK   4.147 KB → 3.705 KB   (-442 KB)
+//     dex    2,49 MB → 1,42 MB    (-43 %)
+//     clases   3.218 → 1.956      · ofuscadas del 44 % al 88 %
+//
+// Lo que esta app SÍ necesita del plugin (sus clases, que instancia por
+// reflexión) se re-declara en app/proguard-rules.pro, que es donde vive lo
+// nuestro. R8 no sabe «desmantener»: la única forma de quitar una regla de un
+// tercero es que no llegue a mezclarse, y por eso se vacía aquí.
+//
+// OJO AL ACTUALIZAR EL PLUGIN: si un día empieza a necesitar de verdad una de
+// esas reglas, el fallo NO sale en compilación — sale en runtime al iniciar
+// sesión. La prueba de humo tras cada subida de versión del plugin es entrar
+// con Google desde un APK de release. Para revertir, basta con borrar este
+// bloque. Detalle completo en docs/android-build-release.md.
+subprojects { proyecto ->
+    if (proyecto.name == 'capgo-capacitor-social-login') {
+        proyecto.afterEvaluate {
+            if (proyecto.extensions.findByName('android') != null) {
+                proyecto.android.defaultConfig.consumerProguardFiles.clear()
+                proyecto.android.buildTypes.each { tipo -> tipo.consumerProguardFiles.clear() }
+                logger.lifecycle(
+                    "[R8] reglas de escopeta de ${proyecto.name} descartadas; " +
+                    "las suyas viven en app/proguard-rules.pro"
+                )
+            }
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }

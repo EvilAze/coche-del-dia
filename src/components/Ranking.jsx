@@ -17,6 +17,27 @@
 // barra (Header) es el mismo que le señala su fila aquí. La cabecera «Tu puesto»
 // que hubo bajo el ladillo se retiró al simplificar el modal — repetía en grande
 // lo que la fila destacada ya dice, y empujaba la tabla fuera de pantalla.
+//
+// LA PASADA DE COHERENCIA (rediseño de menú y perfiles). Cuatro cosas que se
+// habían quedado hablando otro idioma, cada una con su porqué:
+//
+//   · LA CABECERA. La X flotaba en absoluto sobre la esquina del panel y el
+//     ladillo llevaba un `pr-10` a mano para no meterse debajo. Ahora es la
+//     misma banda que abre el carnet del perfil (.prensa-modal-cab): kicker, X
+//     y doble filete. Un botón que flota obliga a que todo lo de su línea sepa
+//     que está ahí; una banda propia no le pide nada a nadie.
+//   · EL ORO DE LA TEMPORADA. La banda de temporada lo llevaba por triplicado
+//     (doble filete, kicker y contador) y competía con los tres sitios donde el
+//     oro está GANADO: el ordinal del podio, los puntos del primero y el bonus
+//     de racha. Con cinco oros en una pantalla el oro deja de significar. La
+//     temporada es contexto, así que habla en rojo y tinta.
+//   · TU FILA. Se señalaba con un fondo de tinta al 5%, que sobre papel crema
+//     casi no se ve y que además no dice nada en este sistema. Ahora lleva la
+//     marca del corrector —filete rojo al margen—, el mismo objeto que señala
+//     la opción elegida del cupón.
+//   · EL VELO DEL ANÓNIMO. Bajo las filas desenfocadas había un degradado de
+//     80px que las fundía con el papel: el último efecto blando del modal. Una
+//     lista aquí no se desvanece, se corta.
 
 import { useEffect, useState } from "react";
 import {
@@ -112,8 +133,8 @@ function Fila({
       }
       className={
         "grid w-full grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] items-center gap-2 px-3 py-2.5 text-left " +
-        (isSelf ? "bg-tinta/[0.05] " : "") +
-        (RowTag === "button" ? "transition-colors hover:bg-tinta/[0.04]" : "")
+        (isSelf ? "rank-fila-yo " : "") +
+        (RowTag === "button" ? "rank-fila-clic transition-colors" : "")
       }
     >
       <PuestoCifra pos={pos} size="s" tono={tonoPorPuesto(pos)} />
@@ -263,14 +284,18 @@ export default function Ranking({
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
       panelClassName="modal-panel-flat w-full max-w-md p-5"
     >
-        {/* X anclada a la esquina de la tarjeta plana (el panel es relative). */}
-        <div className="absolute right-2 top-2 z-10">
-          <CloseButton onClick={onClose} />
-        </div>
+        {/* Cabecera del modal: el MISMO objeto que abre el carnet del perfil —
+            kicker a la izquierda, X a la derecha, doble filete debajo. Antes la
+            X flotaba en absoluto sobre la esquina del panel y el ladillo de al
+            lado llevaba un `pr-10` a mano para no meterse por debajo: un botón
+            que flota obliga a que todo lo de su línea sepa que está ahí.
 
-        {/* Ladillo de sección: la MISMA palabra que la faja de portada
-            («La clasificación»), no un título distinto para el mismo sitio. */}
-        <div className="prensa-ladillo pr-10">{t("ranking.tag")}</div>
+            El texto es el MISMO que la faja de portada («La clasificación»), no
+            un título distinto para el mismo sitio. */}
+        <div className="prensa-modal-cab">
+          <p className="pm-kicker">{t("ranking.tag")}</p>
+          <CloseButton onClick={onClose} label={t("common.close")} />
+        </div>
 
         {/* Conmutador de pestañas: la clasificación de la temporada en curso vs
             el SALÓN DE CAMPEONES (palmarés de temporadas cerradas). Versalitas
@@ -369,8 +394,10 @@ export default function Ranking({
             </div>
 
             <div
+              // `relative` se fue con el degradado: era su ancla de posición y
+              // ya no hay nada absoluto aquí dentro.
               className={`
-                relative divide-y divide-border
+                divide-y divide-border
                 ${user && state.players.length > 5 ? "scrollbar-premium max-h-[22rem] overflow-y-auto" : ""}
                 ${!user && state.players.length > 3 ? "max-h-[17.9rem] overflow-hidden sm:max-h-[19rem]" : ""}
               `}
@@ -398,9 +425,12 @@ export default function Ranking({
                 </div>
               ))}
 
-              {!user && state.players.length > 3 && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent via-papel/80 to-papel" />
-              )}
+              {/* (Aquí había un DEGRADADO de 80px que fundía las últimas filas
+                  con el papel. Era el último efecto blando del modal: en este
+                  sistema una lista no se desvanece, se CORTA — y el corte lo
+                  cierra el filete del bloque de abajo, que además es donde está
+                  la explicación. El desenfoque de las filas se queda: eso sí es
+                  «impreso pero sin revelar», y es la razón de existir del CTA.) */}
             </div>
 
             {/* Fuera del top visible: tu fila se fija al pie de la tabla, con

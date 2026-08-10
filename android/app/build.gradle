@@ -25,8 +25,8 @@ android {
         applicationId "com.cochedeldia"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 25
-        versionName "1.5.0"
+        versionCode 26
+        versionName "1.5.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -59,11 +59,14 @@ android {
             // R8 activado: sin él, el dex del release iba SIN encoger (12,6 MB
             // descomprimidos) porque arrastraba entero Play Services Auth,
             // Credentials, OkHttp y coroutines aunque la app solo use una
-            // fracción. Las keep rules las aportan los propios plugins vía
-            // consumerProguardFiles (@capacitor/android mantiene las clases que
-            // Capacitor instancia por reflexión; @capgo/capacitor-social-login
-            // mantiene GMS Auth, Credentials y OkHttp), así que aquí solo
-            // añadimos lo específico de esta app en proguard-rules.pro.
+            // fracción. Las keep rules las aportan los propios plugins y
+            // librerías vía consumerProguardFiles: @capacitor/android mantiene
+            // las clases que Capacitor instancia por reflexión, y androidx/GMS
+            // mantienen cada uno SU punto de entrada. La excepción era
+            // @capgo/capacitor-social-login, que mantenía bibliotecas enteras
+            // de terceros y dejaba media app sin ofuscar; sus reglas se
+            // descartan en android/build.gradle (allí está la medición) y lo
+            // que de verdad necesita se declara en proguard-rules.pro.
             minifyEnabled true
             // Poda recursos no referenciados (drawables/layouts/strings que
             // llegan de las librerías androidx y no usamos).

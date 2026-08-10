@@ -12,7 +12,7 @@ describe("notifications", () => {
     expect(n.isNative()).toBe(false);
     await expect(n.scheduleDailyReminder({ title: "t", body: "b" })).resolves.toBeUndefined();
     await expect(n.rearmIfEnabled({ title: "t", body: "b" })).resolves.toBeUndefined();
-    expect(n.REMINDER_HOUR).toBe(10);
+    expect(n.REMINDER_HOUR).toBe(20);
   });
 
   it("nativo + permiso concedido: rearmIfEnabled programa con id fijo", async () => {
@@ -34,7 +34,7 @@ describe("notifications", () => {
     expect(schedule).toHaveBeenCalledTimes(1);
     const arg = schedule.mock.calls[0][0].notifications[0];
     expect(arg.id).toBe(n.REMINDER_ID);
-    expect(arg.schedule.on).toEqual({ hour: 10, minute: 0 });
+    expect(arg.schedule.on).toEqual({ hour: n.REMINDER_HOUR, minute: 0 });
   });
 
   it("nativo: crea el canal propio, borra el huérfano y etiqueta el aviso", async () => {

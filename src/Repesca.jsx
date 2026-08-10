@@ -480,7 +480,14 @@ export default function Repesca() {
       {/* Header simple: salir (a la izquierda) +
           título centrado. A la derecha, spacer para mantener REPESCA centrado
           (la repesca no lleva marcador). */}
-      <header className="border-b border-border bg-bg-primary">
+      {/* `safe-area-top`: la repesca ocupa la pantalla entera con cabecera
+          propia, así que esta barra empieza en y=0 y en la app —edge-to-edge—
+          se dibujaba BAJO la barra de estado: «REPESCA» se cruzaba con el reloj
+          y los taps de SALIR se los quedaba el sistema. El inset lo pide la
+          cabecera porque es la que está arriba; el `.safe-area-pad` que llevaba
+          el <main> metía ese mismo hueco 100 píxeles más abajo, donde no
+          resolvía nada. */}
+      <header className="safe-area-top border-b border-border bg-bg-primary">
         <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
           <button
             type="button"
@@ -523,7 +530,20 @@ export default function Repesca() {
       </header>
 
       {/* Columna única centrada, calcada del Configurator (max-w-md, gap). */}
-      <main className="mx-auto flex w-full max-w-md min-w-0 flex-col gap-5 px-4 pb-10 pt-4 safe-area-pad">
+      {/* El cuerpo solo se queda con el inset de ABAJO (la barra de gestos); el
+          de arriba se lo ha llevado la cabecera.
+          El 1rem de abajo va en la variable porque `.safe-area-bottom` pisaría
+          una utilidad de Tailwind. Y es 1rem, no los 2.5rem que pedía el `pb-10`
+          que había aquí: ese `pb-10` NUNCA llegó a aplicarse —`.safe-area-pad`
+          lo pisaba con su `1rem + inset`, el mismo mordisco que documenta
+          `.prensa-hoja`—, así que 1rem es lo que la página lleva viéndose desde
+          siempre. Cambiarlo ahora sería colar un ajuste de maqueta en un arreglo
+          de otra cosa; si algún día se quiere el aire que pedía el pb-10, se
+          sube esta variable a 2.5rem y se mira. */}
+      <main
+        className="safe-area-bottom mx-auto flex w-full max-w-md min-w-0 flex-col gap-5 px-4 pt-4"
+        style={{ "--safe-area-extra-bottom": "1rem" }}
+      >
         {/* Contexto del modo: kicker centrado sobre la imagen. */}
         <div>
           <p className="text-center text-[10px] uppercase tracking-[0.28em] text-accent">

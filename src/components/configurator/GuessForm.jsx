@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalog } from "../../data/catalog";
 import { useT } from "../../i18n";
 import { useToast } from "../Toast";
+import { useOnline } from "../../hooks/useOnline";
 import { haptic } from "../../lib/haptics";
 import { flagImagePath } from "../../data/countries";
 import { resolver } from "../../lib/resolver";
@@ -32,9 +33,23 @@ const MIN_YEAR = 1886;
 export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5 }) {
   const { t } = useT();
   const toast = useToast();
-  const { data: catalog } = useCatalog();
+  const { data: catalog, error: catalogError, reload: recargarCatalogo } = useCatalog();
   const CARS = catalog?.cars ?? [];
   const MARCAS = catalog?.marcas ?? [];
+
+  // EL CUPÓN SIN CATÁLOGO. Sin `/api/list-cars` no hay marcas que ofrecer, así
+  // que los tres renglones se deshabilitan (`formDisabled`, más abajo) — y hasta
+  // aquí es correcto. Lo que estaba mal es que no lo DIJERA: los renglones se
+  // quedaban con su «Elegir…» de siempre, indistinguibles de los tocables, y el
+  // jugador concluía, con razón, que la app estaba rota. Pasó el 2026-08-10 en
+  // una repesca: la fotografía había cargado (esa petición es otra) y el cupón
+  // no se dejaba tocar.
+  //
+  // Dos estados, dos mensajes distintos, porque piden cosas distintas al lector:
+  //   · cargando → "espera un momento"  (el renglón lo dice en su placeholder)
+  //   · fallido  → "no ha llegado, reintenta"  (cartel con botón, en su sitio)
+  const catalogCargando = !catalog && !catalogError;
+  const catalogFallido = !catalog && Boolean(catalogError);
 
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
@@ -379,12 +394,14 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             vez del par marca|modelo comprimido de antes. El campo ACERTADO se
             queda con ✓ y bloqueado; el fallado se limpia y su marca sale del
             combo, así que no hace falta tacharlo. */}
-        {enApp ? (
+        {catalogFallido ? (
+          <CatalogoCaido onRetry={recargarCatalogo} />
+        ) : enApp ? (
           <>
             <CampoBoton
               label={t("cdd.labelMarca")}
               valor={marca}
-              placeholder={t("cdd.selectorPick")}
+              placeholder={catalogCargando ? t("cdd.catalogLoading") : t("cdd.selectorPick")}
               onClick={() => setHoja("marca")}
               disabled={formDisabled}
               resuelto={bloqueo.marca}
@@ -394,7 +411,16 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               valor={modelo}
               // Sin marca no hay lista que abrir (anti-cheat: los modelos
               // acotan el coche). El renglón lo dice en vez de quedarse mudo.
-              placeholder={marcaValida ? t("cdd.selectorPick") : t("cdd.comboModeloDisabled")}
+              // Mientras carga el catálogo manda ESE mensaje: «elige marca
+              // primero» sería una instrucción imposible de cumplir, porque el
+              // renglón de marca tampoco se abre todavía.
+              placeholder={
+                catalogCargando
+                  ? t("cdd.catalogLoading")
+                  : marcaValida
+                  ? t("cdd.selectorPick")
+                  : t("cdd.comboModeloDisabled")
+              }
               onClick={() => setHoja("modelo")}
               disabled={formDisabled || !marcaValida}
               resuelto={bloqueo.modelo}
@@ -402,7 +428,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             <CampoBoton
               label={t("cdd.labelAnio")}
               valor={anio ? String(anio) : ""}
-              placeholder={t("cdd.selectorPick")}
+              placeholder={catalogCargando ? t("cdd.catalogLoading") : t("cdd.selectorPick")}
               onClick={() => setHoja("anio")}
               disabled={formDisabled}
               resuelto={bloqueo.anio}
@@ -420,7 +446,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           onCommit={() => focusSoon(modeloRef)}
           inputRef={marcaRef}
           options={availableMarcas}
-          placeholder={t("cdd.comboPlaceholder")}
+          placeholder={catalogCargando ? t("cdd.catalogLoading") : t("cdd.comboPlaceholder")}
           disabled={formDisabled}
           invalid={marcaInvalida}
           optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
@@ -435,7 +461,13 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           onCommit={() => focusSoon(anioRef)}
           inputRef={modeloRef}
           options={modelOptions}
-          placeholder={marcaValida ? t("cdd.comboPlaceholder") : t("cdd.comboModeloDisabled")}
+          placeholder={
+            catalogCargando
+              ? t("cdd.catalogLoading")
+              : marcaValida
+              ? t("cdd.comboPlaceholder")
+              : t("cdd.comboModeloDisabled")
+          }
           disabled={formDisabled || !marcaValida}
           invalid={modeloInvalido}
           enterKeyHint="next"
@@ -459,14 +491,19 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             micro-feedback de "listo para disparar" lo da la transición CSS
             tinta→rojo al completarse los tres campos; el halo que se probó aquí
             no pinta sobre papel (regla 16) y encima lo tumbaba `test:estetica`. */}
-        <button
-          type="submit"
-          className={"prensa-submit mt-2" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
-          disabled={formDisabled}
-          aria-busy={isSubmitting}
-        >
-          {isSubmitting ? t("cdd.submitting") : t("cdd.submit")}
-        </button>
+        {/* Con el catálogo caído el botón no se pinta: debajo del cartel de
+            «no ha llegado el listado» un ADIVINAR muerto no añade nada, y el
+            único gesto útil que queda ahí es Reintentar. */}
+        {!catalogFallido && (
+          <button
+            type="submit"
+            className={"prensa-submit mt-2" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
+            disabled={formDisabled}
+            aria-busy={isSubmitting}
+          >
+            {isSubmitting ? t("cdd.submitting") : t("cdd.submit")}
+          </button>
+        )}
       </form>
 
       {/* LA HOJA, y es UNA SOLA para los tres pasos. Va fuera del <form>:
@@ -516,6 +553,46 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             />
           )}
         </SelectorHoja>
+      )}
+    </div>
+  );
+}
+
+// ── EL CUPÓN SIN LISTADO ─────────────────────────────────────────────────────
+// Hermano pequeño de EdicionNoDisponible (el cartel de cuando no carga el coche
+// del día) y deliberadamente parecido: misma voz de quiosco, mismo botón, mismo
+// aviso de reintento automático al volver la red. Cambia el sujeto —allí falta
+// la edición, aquí falta el listado de marcas— y el tamaño: esto vive DENTRO del
+// cupón, entre la fotografía y el pie, así que va sin el aire de una pantalla
+// entera.
+//
+// Va en este fichero y no en uno propio porque no tiene más consumidor posible:
+// el único sitio donde la falta de catálogo se nota es el cupón.
+function CatalogoCaido({ onRetry }) {
+  const { t } = useT();
+  const online = useOnline();
+
+  return (
+    <div
+      className="border-l-2 border-rojo bg-papel-2 px-3 py-3"
+      // Igual que en EdicionNoDisponible: si el reintento automático cambia el
+      // estado, quien usa lector de pantalla se entera sin ir a buscarlo.
+      aria-live="polite"
+    >
+      <p className="pm-kicker m-0">{t("offline.kicker")}</p>
+      <p className="mt-1 font-display text-[15px] font-black leading-tight text-tinta">
+        {t("cdd.catalogDownTitle")}
+      </p>
+      <p className="pm-body m-0 mt-1 !text-[12px]">{t("cdd.catalogDownBody")}</p>
+      <button
+        type="button"
+        onClick={() => { haptic.impactLight(); onRetry?.(); }}
+        className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-[11px]"
+      >
+        {t("offline.retry")}
+      </button>
+      {!online && (
+        <p className="pm-body m-0 mt-2 !text-[11px] opacity-70">{t("offline.autoRetry")}</p>
       )}
     </div>
   );

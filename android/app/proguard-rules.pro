@@ -6,8 +6,24 @@
 #                                    com.getcapacitor.Plugin y los métodos
 #                                    anotados (@PluginMethod, @PermissionCallback…),
 #                                    que Capacitor instancia por reflexión.
-#   - @capgo/capacitor-social-login → mantiene GMS Auth, androidx.credentials,
-#                                    OkHttp y sus propias clases.
+#   - androidx.credentials / GMS   → cada uno mantiene SU punto de entrada por
+#     / okhttp                       reflexión y nada más (CredentialProvider-
+#                                    PlayServicesImpl, RevocationBoundService,
+#                                    PublicSuffixDatabase).
+#
+# LA EXCEPCIÓN: @capgo/capacitor-social-login. Sus reglas mantenían bibliotecas
+# ENTERAS de terceros (okhttp3.**, androidx.credentials.**, gms.auth.**,
+# com.facebook.** —con Facebook desactivado—), duplicando lo que esas librerías
+# ya declaran bien y dejando 1.441 clases sin ofuscar: es lo que Play Console
+# leía como «tasa de ofuscación baja». Su fichero se descarta en
+# android/build.gradle (allí está la medición completa) y lo que esta app sí
+# necesita de él se declara aquí abajo, a mano.
+-keep class ee.forgr.capacitor.social.login.** { *; }
+-keep class ee.forgr.capacitor.social.login.**$* { *; }
+-keep class com.auth0.android.jwt.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
 # Aquí solo va lo específico de esta app.
 
 # La app entera es una WebView que habla con el nativo por el puente de

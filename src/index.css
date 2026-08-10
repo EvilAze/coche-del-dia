@@ -806,97 +806,110 @@ body,
 }
 .prensa-topbar > span > button:hover, .prensa-topbar > span > a:hover { color: var(--rojo); }
 .prensa-topbar .sep { color: var(--cdd-muted); }
-/* Aviso de repesca pegado a GARAJE (corrección al margen, no a media palabra):
-   sin letter-spacing heredado y con un aire fino, no los ~9px de antes. */
-.prensa-topbar .aviso { color: var(--rojo); font-weight: 800; margin-left: 2px; letter-spacing: 0; }
 
-/* ── EL SUMARIO (el desplegable de la barra) ──────────────────────────────
-   Es un recuadro de sumario de periódico, no un menú de app: ladillo rojo con
-   su filete, entradas en versalitas y doble filete separando las SECCIONES
-   (archivo, perfil) de los SERVICIOS del ejemplar (cómo se lee, en qué tinta).
-   Antes eran cuatro renglones iguales dentro de una caja con sombra de
-   cristal: la caja no decía qué era y el texto de 10px nadaba en 20px de
-   margen. Aquí el aire se reparte al revés — margen justo, jerarquía dentro.
+/* ── LA MARCA DEL SUMARIO (el botón que abre el índice) ───────────────────
+   Un cuadro de filete con las tres reglas del índice dentro. Sustituye al
+   botón «≡ MENÚ» que abría un desplegable colgado de esta esquina: el panel es
+   hoy un diálogo centrado (SumarioModal) y aquí solo queda su marca.
 
-   Sombra DURA (desplazada, sin difuminar): es la física del papel apilado y la
-   misma que usa el hover de ADIVINAR. Ni halos ni redondeos.
+   34px de caja y 50 de área táctil, que se ganan con un pseudo-elemento
+   invisible en vez de con padding: la barra de portada mide lo que mide y
+   engordar el botón de verdad habría empujado el masthead hacia abajo. El
+   `padding`/`margin` van a cero para ganarle al área táctil genérica de
+   `.prensa-topbar > span > button`, que aquí sobra (la pone este ::after). */
+.prensa-topbar > span > .prensa-sumario-boton {
+  position: relative; padding: 0; margin: 0;
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-strong); color: var(--cdd-text);
+  transition: color .14s, border-color .14s, background .14s;
+}
+.prensa-sumario-boton::after {
+  content: ""; position: absolute; inset: -8px -10px;
+}
+.prensa-topbar > span > .prensa-sumario-boton:hover,
+.prensa-topbar > span > .prensa-sumario-boton:focus-visible {
+  color: var(--rojo); border-color: var(--rojo); background: var(--surface2);
+}
+.prensa-sumario-boton:active { transform: translateY(1px); }
+/* Repesca pendiente: cuadradito de tinta roja mordiendo la esquina del cuadro.
+   Es el mismo objeto que .pm-dot (esquina viva, sin halo), no una píldora de
+   notificación: aquí no hay número que contar, solo un «hay algo dentro». */
+.prensa-sumario-boton .aviso {
+  position: absolute; top: -3px; right: -3px;
+  width: 6px; height: 6px; background: var(--rojo);
+}
 
-   Los estilos base de `.prensa-topbar button` ya le dan la versalita heredada;
-   estas reglas van DESPUÉS para ganarles el `display` a igual especificidad. */
-.prensa-menu {
-  position: absolute; top: calc(100% + 9px); left: 0; z-index: 50;
-  min-width: 234px;
-  display: flex; flex-direction: column; align-items: stretch;
-  background: var(--surface);
+/* ── EL SUMARIO (el índice del ejemplar, dentro del modal) ────────────────
+   Dos bloques con dos formas distintas a propósito, porque no son lo mismo:
+   arriba las SECCIONES a las que se navega, en rejilla de portadillas; abajo
+   los AJUSTES del ejemplar, en renglones con su control a la derecha. Antes
+   eran cinco renglones idénticos en una caja de 234px y no había forma de
+   distinguir «ir al Archivo» de «cambiar la tinta».
+
+   Rejilla de periódico: un filete exterior y filetes interiores que la parten
+   en cuatro. Sin gap — las cajas comparten línea, como en una portada. */
+.prensa-sumario-rejilla {
+  display: grid; grid-template-columns: 1fr 1fr;
   border: 1px solid var(--line-strong);
-  border-top: 3px double var(--line-strong);
-  box-shadow: 4px 4px 0 rgb(var(--velo-rgb) / .12);
-  /* Se despliega desde su esquina de anclaje, como una hoja que se abre. */
-  transform-origin: top left;
-  animation: menuAbre .16s cubic-bezier(.2, 1, .3, 1) both;
 }
-@keyframes menuAbre { from { opacity: 0; transform: translateY(-4px) scale(.985); } }
-
-/* Ladillo del sumario: la etiqueta que le dice al recuadro qué es. Rojo y
-   pequeño, como los kickers del sistema (.pm-kicker), sobre filete fino. */
-.prensa-menu-lad {
-  margin: 0; padding: 9px 18px 8px;
-  border-bottom: 1px solid var(--line);
-  font-family: var(--font-body); font-weight: 800; font-size: 8.5px;
-  letter-spacing: .26em; text-transform: uppercase; color: var(--rojo);
-}
-/* Grupos: el doble filete entre ellos es el que separa secciones de servicios.
-   Dentro de cada grupo, filete fino entre entradas.
-   Las entradas son `button` Y `a`: la privacidad es una NAVEGACIÓN de verdad
-   (carga /privacidad), no una acción, y forzarla a <button> con un
-   `location.href` le habría quitado al usuario el «abrir en pestaña nueva» y al
-   lector de pantalla el anuncio de enlace. Por eso los selectores de esta
-   sección nombran los dos, y el filete entre entradas va por hermanos (`* + *`)
-   en vez de por `button + button`. */
-.prensa-menu-grupo + .prensa-menu-grupo { border-top: 3px double var(--line); }
-.prensa-menu-grupo > * + * { border-top: 1px solid var(--line); }
-
-/* Entradas: 45px de alto (13+13+~19 de línea) — la barra de arriba es estrecha
-   por diseño de portada, pero aquí hay sitio y el pulgar lo agradece. El
-   `padding-left` deja hueco a la marca de corrector del hover, para que la
-   entrada NO se mueva al señalarla. */
-.prensa-menu button,
-.prensa-menu-grupo a {
-  position: relative; min-height: 46px;
-  display: flex; width: 100%; align-items: center; justify-content: space-between;
-  gap: 26px; padding: 13px 18px 13px 30px; text-align: left;
-  font-size: 10.5px; font-weight: 700; letter-spacing: .16em; color: var(--cdd-text);
+.prensa-portadilla {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 5px; min-height: 98px; padding: 13px 12px 14px; text-align: left;
+  background: transparent; border: 0; cursor: pointer; color: var(--cdd-text);
+  border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
   transition: color .14s, background .14s;
 }
-/* La marca de corrector: cuadradito de tinta que aparece señalando la entrada
-   activa (el mismo objeto que .pm-dot, aquí en rojo y a media altura). */
-.prensa-menu button::before,
-.prensa-menu-grupo a::before {
-  content: ""; position: absolute; left: 17px; top: 50%;
-  width: 5px; height: 5px; margin-top: -2.5px; background: var(--rojo);
-  opacity: 0; transform: translateX(-3px);
-  transition: opacity .14s, transform .14s;
+/* Son exactamente cuatro (ver SumarioModal): la columna derecha y la fila de
+   abajo no llevan filete propio, el del marco ya está ahí. */
+.prensa-portadilla:nth-child(2n) { border-right: 0; }
+.prensa-portadilla:nth-last-child(-n + 2) { border-bottom: 0; }
+.prensa-portadilla:hover, .prensa-portadilla:focus-visible {
+  background: var(--surface2); color: var(--rojo);
 }
-.prensa-menu button:hover, .prensa-menu button:focus-visible,
-.prensa-menu-grupo a:hover, .prensa-menu-grupo a:focus-visible {
-  color: var(--rojo); background: var(--surface2);
+.prensa-portadilla:active { transform: translateY(1px); }
+.prensa-portadilla .marca { color: var(--cdd-muted); transition: color .14s; }
+.prensa-portadilla:hover .marca, .prensa-portadilla:focus-visible .marca { color: var(--rojo); }
+.prensa-portadilla .nombre {
+  font-family: var(--font-body); font-weight: 800; font-size: 10px;
+  letter-spacing: .18em; text-transform: uppercase; line-height: 1.2;
 }
-.prensa-menu button:hover::before, .prensa-menu button:focus-visible::before,
-.prensa-menu-grupo a:hover::before, .prensa-menu-grupo a:focus-visible::before {
-  opacity: 1; transform: translateX(0);
+/* La corrección al margen del nombre de la sección. */
+.prensa-portadilla .aviso { color: var(--rojo); font-weight: 800; margin-left: 3px; letter-spacing: 0; }
+/* El apunte: lo que hay dentro, o lo que llevas tú dentro. En Fraunces cursiva
+   (la voz del pie de foto del sistema) y SIEMPRE en tinta apagada, también al
+   señalar: si se pusiera rojo con el nombre, la portadilla entera gritaría. */
+.prensa-portadilla .apunte {
+  font-family: var(--font-display); font-style: italic; font-size: 12px;
+  line-height: 1.3; color: var(--cdd-muted);
 }
-/* Glifo del toggle de tema: tinta apagada, y acompaña al rojo del hover. */
-.prensa-menu button svg { display: block; width: 15px; height: 15px; color: var(--cdd-muted); }
-.prensa-menu button:hover svg { color: var(--rojo); }
-/* El botón que lo abre se queda en rojo mientras el sumario está desplegado:
-   la barra dice de dónde ha salido la caja. */
-.prensa-topbar .prensa-menu-boton.abierto { color: var(--rojo); }
-.prensa-topbar .prensa-menu-boton.abierto svg { opacity: 1; }
+.prensa-portadilla:hover .apunte, .prensa-portadilla:focus-visible .apunte { color: var(--cdd-muted); }
+/* Tu ordinal dentro del apunte: el oro de PuestoCifra, la firma de la sección
+   (CLAUDE.md reserva el oro a lo premium, y el puesto lo es). */
+.prensa-portadilla .apunte .oro {
+  font-style: normal; font-weight: 700; color: var(--gold);
+}
 
-@media (prefers-reduced-motion: reduce) {
-  .prensa-menu { animation: none; }
-  .prensa-menu button::before { transition: none; }
+/* Los ajustes: renglones dentro de un marco de filete, cada uno con su control
+   a la derecha. El padding lo pone el contenedor a sus hijos directos, así el
+   selector de idioma (LanguageStrip, compartido con el perfil y el login) entra
+   tal cual, sin una variante propia para este sitio. */
+.prensa-sumario-ajustes { border: 1px solid var(--line-strong); }
+.prensa-sumario-ajustes > * { padding: 11px 12px; }
+.prensa-sumario-ajustes > * + * { border-top: 1px solid var(--line); }
+
+/* El pie del sumario: la letra pequeña, separada por doble filete. */
+.prensa-sumario-pie {
+  display: flex; justify-content: center;
+  margin-top: 18px; padding-top: 12px; border-top: 3px double var(--line);
 }
+.prensa-sumario-pie a {
+  font-family: var(--font-body); font-weight: 700; font-size: 9.5px;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--cdd-muted); text-decoration: none;
+  transition: color .14s;
+}
+.prensa-sumario-pie a:hover { color: var(--rojo); }
 
 /* La clasificación, al otro extremo de la barra: ladillo en versalitas + tu
    ordinal en oro. El oro está reservado a lo premium (CLAUDE.md) y el puesto lo

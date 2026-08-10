@@ -16,7 +16,6 @@
   "header": {
     "menuOpen": "Abrir menú",
     "menuOpenWithRepesca": "Abrir menú · tienes una repesca disponible",
-    "menuTitle": "Menú",
     "achievements": "Logros",
     "language": "Idioma"
   },
@@ -155,6 +154,25 @@
     "pieSolved": "Acertado en {n} de {max}",
     "pieUnsolved": "Sin resolver en {max} intentos",
     "ladilloCronica": "La crónica del coche"
+  },
+  "sumario": {
+    "kicker": "Índice de la edición",
+    "titulo": "El sumario",
+    "garajeApunte": "Tu colección de portadas",
+    "garajeRepesca": "Tienes una repesca esperando",
+    "clasificacionApunte": "La tabla de la temporada",
+    "clasificacionPuesto": "de la temporada",
+    "perfilApunte": "Tus estadísticas y logros",
+    "perfilRacha": {
+      "one": "Racha de {count} día",
+      "other": "Racha de {count} días"
+    },
+    "entrarApunte": "Guarda tu progreso en la nube",
+    "comoApunte": "Las reglas, en un minuto",
+    "ejemplar": "El ejemplar",
+    "tinta": "Tinta",
+    "tintaDia": "Día",
+    "tintaNoche": "Noche"
   },
   "prensa": {
     "ladilloFoto": "La fotografía del día",

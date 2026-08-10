@@ -16,7 +16,6 @@
   "header": {
     "menuOpen": "Open menu",
     "menuOpenWithRepesca": "Open menu · you have a rescue available",
-    "menuTitle": "Menu",
     "achievements": "Achievements",
     "language": "Language"
   },
@@ -155,6 +154,25 @@
     "pieSolved": "Solved in {n} of {max}",
     "pieUnsolved": "Unsolved in {max} tries",
     "ladilloCronica": "The story of the car"
+  },
+  "sumario": {
+    "kicker": "In this edition",
+    "titulo": "Contents",
+    "garajeApunte": "Your collection of covers",
+    "garajeRepesca": "You have a rescue waiting",
+    "clasificacionApunte": "The season table",
+    "clasificacionPuesto": "this season",
+    "perfilApunte": "Your stats and achievements",
+    "perfilRacha": {
+      "one": "{count}-day streak",
+      "other": "{count}-day streak"
+    },
+    "entrarApunte": "Save your progress to the cloud",
+    "comoApunte": "The rules, in a minute",
+    "ejemplar": "This edition",
+    "tinta": "Ink",
+    "tintaDia": "Day",
+    "tintaNoche": "Night"
   },
   "prensa": {
     "ladilloFoto": "Today's photograph",

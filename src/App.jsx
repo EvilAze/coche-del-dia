@@ -34,6 +34,10 @@ const MyStats = lazy(() => import("./components/MyStats"));
 const AchievementsModal = lazy(() => import("./components/AchievementsModal"));
 const NicknameModal = lazy(() => import("./components/NicknameModal"));
 const HowToPlayModal = lazy(() => import("./components/HowToPlayModal"));
+// El sumario (el menú del juego): también lazy, y también prefetcheado en el
+// primer hueco de ocio — es el modal con más probabilidad de abrirse, así que
+// pagar su chunk en el primer toque sería justo el peor sitio para pagarlo.
+const SumarioModal = lazy(() => import("./components/SumarioModal"));
 
 export default function App() {
   const { t, tn } = useT();
@@ -238,6 +242,7 @@ export default function App() {
   const openGarage = () => openModal("garage");
   const openProfile = () => openModal("profile");
   const openAchievements = () => openModal("achievements");
+  const openMenu = () => openModal("menu");
 
   // LoginModal NO es lazy a propósito: es la puerta de entrada y un chunk que
   // descargar en ese momento se nota. No necesita mountModal.
@@ -293,6 +298,7 @@ export default function App() {
       import("./components/MyStats");
       import("./components/AchievementsModal");
       import("./components/NicknameModal");
+      import("./components/SumarioModal");
     };
     const ric = window.requestIdleCallback;
     if (ric) {
@@ -479,7 +485,7 @@ export default function App() {
         shareText={buildShareText(streak)}
         revealReady={revealReady}
         onRevealLoad={handleRevealLoad}
-        onOpenProfile={openProfile}
+        onOpenMenu={openMenu}
         onOpenLogin={openLogin}
         onOpenRanking={openRanking}
         onOpenGarage={openGarage}
@@ -587,6 +593,29 @@ export default function App() {
       {mounted.howto && (
         <Suspense fallback={null}>
           <HowToPlayModal open={activeModal === "howto"} onClose={closeModal} />
+        </Suspense>
+      )}
+
+      {/* EL SUMARIO. Las secciones que ofrece son los MISMOS modales de este
+          slot, así que abrir una desde dentro no necesita cerrarlo antes:
+          `activeModal` cambia y ModalShell se encarga de su animación de salida
+          mientras entra la siguiente. */}
+      {mounted.menu && (
+        <Suspense fallback={null}>
+          <SumarioModal
+            open={activeModal === "menu"}
+            onClose={closeModal}
+            user={user}
+            rank={rank}
+            rankCargando={checkingProfile}
+            streak={streak}
+            repescaAlert={repescaAlert}
+            onOpenGarage={openGarage}
+            onOpenRanking={openRanking}
+            onOpenProfile={openProfile}
+            onOpenLogin={openLogin}
+            onOpenHowTo={openHowTo}
+          />
         </Suspense>
       )}
 

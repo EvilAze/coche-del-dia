@@ -13,17 +13,12 @@ import { useEffect, useState } from "react";
 import { useT } from "../i18n";
 import { getSeasonMedals, getMonthlyMedals } from "../lib/statsService";
 
-// Estilo del borde + texto según el puesto, en sintonía con los tiers de logros
-// (oro/plata/bronce). El icono hereda este color vía currentColor.
-// Los tres van por token: el oro ya lo era, pero plata y bronce se pintaban
-// con paleta cruda de Tailwind (zinc-300 / amber-700), que no sigue al tema.
-// El zinc-300 sobre el papel crema del modo día daba 1.4:1 — una medalla de
-// plata prácticamente invisible justo para el jugador que la ganó.
-const RANK_STYLE = {
-  1: { border: "border-gold/60", text: "text-gold" },
-  2: { border: "border-plata/60", text: "text-plata" },
-  3: { border: "border-bronce/60", text: "text-bronce" },
-};
+// El metal de cada puesto. Es una CLASE del sistema (index.css, .prensa-medalla
+// .oro/.plata/.bronce) y no un filete de color: la medalla se dibuja con filete
+// de tinta como todo lo demás y el metal se reserva al disco y al puesto. Antes
+// cada una traía su propio borde en su color al 60%, así que tres medallas
+// seguidas eran tres cajas de tres colores distintos flotando sobre el papel.
+const RANK_METAL = { 1: "oro", 2: "plata", 3: "bronce" };
 
 // Medalla line-art (mismo trazo que el set de iconos del Perfil). NO usamos emoji
 // a propósito: renderizan distinto por plataforma y, mal codificados, se rompían
@@ -64,20 +59,15 @@ function formatMonth(monthStr, dateLocale) {
 // Chip de medalla compartido por ambos grupos: icono + puesto + subtítulo
 // (tema de temporada o mes).
 function MedalChip({ rank, place, subtitle, title }) {
-  const style = RANK_STYLE[rank] || RANK_STYLE[3];
+  const metal = RANK_METAL[rank] || RANK_METAL[3];
   return (
-    <div
-      className={`flex items-center gap-1.5 rounded-none border ${style.border} bg-bg-tertiary px-2.5 py-1.5`}
-      title={title}
-    >
-      <span className={style.text}>
+    <div className="prensa-medalla" title={title}>
+      <span className={metal}>
         <MedalIcon className="h-[18px] w-[18px]" />
       </span>
-      <span className="flex flex-col leading-tight">
-        <span className={`text-[10px] font-semibold uppercase tracking-wider ${style.text}`}>
-          {place}
-        </span>
-        <span className="text-[10px] capitalize text-muted-foreground">{subtitle}</span>
+      <span className="min-w-0">
+        <span className={`puesto ${metal}`}>{place}</span>
+        <span className="de capitalize">{subtitle}</span>
       </span>
     </div>
   );
@@ -119,9 +109,7 @@ export default function PodiumMedals({ userId }) {
     <div className="space-y-4">
       {season.length > 0 && (
         <section>
-          <h4 className="mb-2 text-[10px] uppercase tracking-[0.22em] text-accent">
-            {t("podium.titleSeason")}
-          </h4>
+          <h4 className="pm-label mb-2">{t("podium.titleSeason")}</h4>
           <div className="flex flex-wrap gap-2">
             {season.map((m) => {
               const place = t(`podium.rank${m.rank}`);
@@ -142,9 +130,7 @@ export default function PodiumMedals({ userId }) {
 
       {monthly.length > 0 && (
         <section>
-          <h4 className="mb-2 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-            {t("podium.titleLegacy")}
-          </h4>
+          <h4 className="pm-label mb-2">{t("podium.titleLegacy")}</h4>
           <div className="flex flex-wrap gap-2">
             {monthly.map((m) => {
               const place = t(`podium.rank${m.rank}`);

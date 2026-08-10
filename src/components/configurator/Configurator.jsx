@@ -60,7 +60,10 @@ export default function Configurator({
   shareText,
   revealReady, // eslint-disable-line no-unused-vars -- reservado
   onRevealLoad,
-  onOpenProfile,
+  // El sumario (el menú) es un modal del slot de App.jsx: la cabecera solo pide
+  // que se abra. Por eso aquí ya no viaja `onOpenProfile` — su única puerta era
+  // el desplegable de la cabecera y ahora vive dentro del sumario.
+  onOpenMenu,
   onOpenLogin,
   onOpenRanking,
   onOpenGarage,
@@ -228,11 +231,8 @@ export default function Configurator({
           rankCargando={rankCargando}
           user={user}
           repescaAlert={repescaAlert}
-          onOpenProfile={onOpenProfile}
-          onOpenLogin={onOpenLogin}
+          onOpenMenu={onOpenMenu}
           onOpenRanking={onOpenRanking}
-          onOpenGarage={onOpenGarage}
-          onOpenHowTo={onOpenHowTo}
         />
 
         {/* H1 real solo para lectores de pantalla/SEO (v0 no lo pinta). */}

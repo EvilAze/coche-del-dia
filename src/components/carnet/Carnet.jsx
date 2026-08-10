@@ -1,152 +1,136 @@
 // src/components/carnet/Carnet.jsx
-// EL CARNET — el objeto de identidad que comparten el perfil propio (MyStats)
-// y el ajeno (PublicProfile).
+// EL CARNET DE LECTOR — el objeto de identidad que comparten el perfil propio
+// (MyStats) y el ajeno (PublicProfile).
 //
-// QUÉ CAMBIÓ Y POR QUÉ:
+// DE TARJETA A DOCUMENTO. Lo que había era una tarjeta: un rectángulo con
+// filete de oro al 25% y un hairline dorado encima, y dentro tres bloques
+// sueltos (nombre, cifra grande, dos renglones con iconos) separados por tres
+// filetes distintos. Tres cosas fallaban a la vez:
 //
-//  · Fuera el avatar. Era un disco de 48px con la inicial del nick... impresa a
-//    12px del nick completo. No aportaba un dato que no estuviera ya escrito al
-//    lado, y era un CÍRCULO en un sistema que ha eliminado los redondeos a
-//    propósito. Un carnet de prensa no lleva foto cuando no hay foto: lleva
-//    cabecera. Lo que ocupaba el disco lo ocupa ahora el nombre, en Fraunces
-//    grande, que es lo que de verdad identifica al lector.
+//   · EL ORO ENMARCABA TODO. Al 25% sobre papel crema no es oro, es un beige
+//     lavado — y competía con las dos señales que sí se ganan: el sello del
+//     tier y el ordinal del puesto. El oro está reservado a lo premium
+//     (CLAUDE.md); cuando rodea el bloque entero no premia nada.
+//   · NO TENÍA ANATOMÍA DE NADA. Un carnet de prensa es un documento, y un
+//     documento tiene cabecera (qué es), titular (quién), sello (qué acredita)
+//     y banda de datos. Aquí eran tres cajas apiladas con el mismo peso.
+//   · LAS CIFRAS IBAN DE DOS EN DOS, en renglones con icono y valor al otro
+//     extremo: comparar «racha» con «máxima» obligaba a leer dos frases en vez
+//     de mirar una fila. Y la cifra grande —los puntos— colgaba sola arriba,
+//     sin nada al lado con lo que medirse.
 //
-//  · Una sola señal premium. El bloque llevaba TRES a la vez (filete de oro,
-//    hairline de oro y chip de oro del tier) para decir lo mismo, y entre las
-//    tres se anulaban. Queda el marco con su hairline; el tier baja a SELLO
-//    (pm-sello--oro), que es como este sistema dice "esto vale algo".
-//
-//  · La cifra del carnet son los PUNTOS. Estaban escondidos como acompañante
-//    dentro del subtítulo gris de la fila de Ranking («7º · 340 pts»), una
-//    cadena haciendo tres trabajos. El puesto va debajo con su glifo de siempre
-//    (PuestoCifra), el mismo que el jugador toca en la barra de portada.
+// Ahora las cuatro piezas son explícitas y las montan los dos perfiles con los
+// mismos componentes: CarnetCabecera (kicker + la X del modal), CarnetNombre
+// (titular, acreditación y sello del tier) y CarnetCifras (la banda). Qué se
+// pone en la banda lo decide cada perfil: el propio acredita puesto, el ajeno
+// —cuya RPC pública no expone posición— acredita aciertos.
 
-import PuestoCifra from "../PuestoCifra";
 import { PencilIcon } from "./icons";
 
-// El marco: filete de oro discreto + hairline superior. `overflow-hidden`
-// porque el hairline se pinta en posición absoluta al borde.
+// El sello del tier de coleccionista: la ÚNICA señal premium del documento, y
+// por eso va sola (antes competía con un filete dorado que rodeaba el bloque
+// entero, y entre las dos se anulaban).
+//
+// Cada metal con su color: hasta ahora se estampaba siempre en oro, así que un
+// carnet de Plata llevaba un sello dorado que decía «Plata» — el color y la
+// palabra en desacuerdo dentro del mismo objeto.
+const SELLO_METAL = {
+  gold: "pm-sello--oro",
+  silver: "pm-sello--plata",
+  bronze: "pm-sello--bronce",
+};
+
+export function SelloTier({ tier, label, title }) {
+  if (!tier || !label) return null;
+  return (
+    <span className={`pm-sello ${SELLO_METAL[tier] || "pm-sello--oro"}`} title={title}>
+      {label}
+    </span>
+  );
+}
+
+// El marco del documento.
 export default function Carnet({ children, className = "", ...rest }) {
   return (
-    <div
-      className={`relative overflow-hidden border border-gold/25 bg-bg-tertiary p-4 ${className}`}
-      {...rest}
-    >
-      <div className="absolute inset-x-0 top-0 h-px bg-oro-viejo/50" />
+    <div className={`prensa-carnet ${className}`} {...rest}>
       {children}
     </div>
   );
 }
 
-// Cabecera del carnet: kicker rojo + nombre en Fraunces. `onEdit` convierte
-// TODA la línea del nombre en el botón de editar — antes la afordancia era un
-// lápiz de 14px sin caja, imposible con el pulgar y por debajo del mínimo de
-// WCAG 2.5.5. `trailing` deja hueco a la X del modal cuando el carnet hace de
-// cabecera (ver MyStats).
-export function CarnetHead({ kicker, nombre, cargando = false, onEdit, editLabel, trailing }) {
-  const nombreClass =
-    "block truncate font-display text-[26px] font-black leading-tight tracking-tight text-tinta";
-
+// Cabecera: el kicker que dice qué documento es y, a la derecha, hueco para la
+// X del modal (el carnet HACE de cabecera del panel, así que la X vive aquí
+// dentro: el nombre trunca antes de llegar al botón en vez de pasarle por
+// debajo). Doble filete abajo, como el folio de la portada.
+export function CarnetCabecera({ kicker, trailing }) {
   return (
-    <div className="flex items-start gap-2">
-      <div className="min-w-0 flex-1">
-        <p className="pm-kicker">{kicker}</p>
+    <div className="prensa-carnet-cab">
+      <p className="pm-kicker">{kicker}</p>
+      {trailing}
+    </div>
+  );
+}
 
+// El titular del documento: nombre, renglón de acreditación y sello del tier.
+//
+// `onEdit` convierte TODA la línea del nombre en el botón de editar — la
+// afordancia era un lápiz de 14px sin caja, imposible con el pulgar y por
+// debajo del mínimo de WCAG 2.5.5.
+export function CarnetNombre({
+  nombre,
+  apunte = null,
+  cargando = false,
+  onEdit,
+  editLabel,
+  sello = null,
+}) {
+  return (
+    <div className="prensa-carnet-cuerpo">
+      <div className="min-w-0 flex-1">
         {cargando ? (
           // Barra de papel del ancho aproximado de un nick: reserva la altura
           // real para que el panel no salte de tamaño al llegar los datos.
-          <span className="mt-1 block h-[30px] w-32 max-w-full bg-tinta/10" aria-hidden="true" />
+          <span className="block h-[27px] w-32 max-w-full bg-tinta/10" aria-hidden="true" />
         ) : onEdit ? (
           <button
             type="button"
             onClick={onEdit}
             title={editLabel}
             aria-label={`${editLabel}: ${nombre}`}
-            // Caja negativa: el área táctil crece a ~40px de alto sin que el
-            // texto se desplace respecto al kicker.
-            className="focus-ring group -mx-1.5 mt-0.5 flex w-[calc(100%+0.75rem)] items-center gap-2 px-1.5 py-1 text-left"
+            // Caja negativa: el área táctil crece sin que el nombre se desplace
+            // respecto al filete de la cabecera.
+            className="focus-ring group -mx-1.5 -my-1 flex w-[calc(100%+0.75rem)] items-center gap-2 px-1.5 py-1 text-left"
           >
-            <span className={nombreClass}>{nombre}</span>
+            <span className="prensa-carnet-nombre">{nombre}</span>
             <PencilIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-rojo" />
           </button>
         ) : (
-          <p className={`mt-1 ${nombreClass}`}>{nombre}</p>
+          <p className="prensa-carnet-nombre">{nombre}</p>
         )}
+
+        {apunte && !cargando && <p className="prensa-carnet-apunte">{apunte}</p>}
       </div>
 
-      {trailing}
+      {/* El sello del tier, al margen derecho. Es la única señal premium del
+          documento y por eso va sola: antes compartía protagonismo con el
+          filete dorado del marco y los dos se anulaban. */}
+      {sello && <span className="shrink-0">{sello}</span>}
     </div>
   );
 }
 
-// La franja de cifras: puntos (la moneda del juego) y, debajo, el puesto con su
-// glifo. El sello del tier se alinea al pie de la franja.
-//
-// El número va en TINTA, no en oro: el oro está reservado a lo premium y aquí
-// ya lo lleva el ordinal, que es el dato que se gana. Dos oros pegados no
-// destacan el doble, se anulan.
-export function CarnetCifra({ puntos, puntosLabel, puesto, puestoTotal, sinPuesto, sello }) {
+// La banda de datos: `items` es [{ label, value, tono }] y se reparte el ancho
+// a partes iguales. `tono`: "oro" para lo que se gana (puesto, racha viva),
+// "apagada" mientras no hay dato, y nada = tinta normal.
+export function CarnetCifras({ items }) {
   return (
-    // `flex-wrap` + `ml-auto` en el sello: en español «COLECCIONISTA» mide casi
-    // 100px y en una pantalla de 320px se comía el sitio de la cifra. Si no cabe
-    // en la misma línea, el sello baja y se mantiene al margen derecho en vez de
-    // recortar los puntos (el carnet lleva overflow-hidden por el hairline).
-    <div className="mt-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-2 border-t border-border pt-3">
-      <div className="min-w-0">
-        <div className="flex items-baseline gap-2">
-          <span className="font-display text-[34px] font-black leading-none tabular-nums text-tinta">
-            {puntos}
-          </span>
-          <span className="pm-label">{puntosLabel}</span>
+    <div className="prensa-carnet-cifras">
+      {items.map((item) => (
+        <div key={item.label}>
+          <span className={`cifra ${item.tono || ""}`}>{item.value}</span>
+          <span className="et" title={item.label}>{item.label}</span>
         </div>
-
-        {puesto ? (
-          <PuestoCifra pos={puesto} total={puestoTotal} size="s" className="mt-1.5" />
-        ) : sinPuesto ? (
-          <p className="pm-label mt-2">{sinPuesto}</p>
-        ) : null}
-      </div>
-
-      {sello && <span className="ml-auto shrink-0">{sello}</span>}
+      ))}
     </div>
-  );
-}
-
-// Fila de la ficha: icono + etiqueta a la izquierda, valor a la derecha. Lee
-// como hoja de specs, no como KPI suelto.
-//
-// Sin línea de ayuda bajo la etiqueta, y es deliberado: la hubo para explicar
-// el escudo de racha, y que una fila de la ficha necesitara subtítulo era la
-// prueba de que ese dato no se explicaba solo. Los tres que quedan sí.
-export function FichaRow({ icon, label, children, last = false }) {
-  return (
-    <div
-      className={`flex items-center justify-between gap-3 py-2.5 ${
-        last ? "" : "border-b border-border-strong/60"
-      }`}
-    >
-      <span className="flex min-w-0 items-center gap-2.5 text-sm text-foreground/85">
-        {/* `shrink-0`: si la etiqueta pasa a dos líneas (alemán, inglés largo),
-            el flex intentaría encoger también el icono. */}
-        <span className="shrink-0">{icon}</span>
-        <span className="min-w-0">{label}</span>
-      </span>
-      {children}
-    </div>
-  );
-}
-
-// El valor numérico de una fila. `premium` enciende el oro SOLO cuando hay algo
-// que celebrar: la mejor racha se pintaba en oro incluso valiendo 0, y el oro
-// sobre un cero devalúa el oro en todas las demás pantallas donde sí significa.
-export function FichaCifra({ value, premium = false }) {
-  return (
-    <span
-      className={`text-base font-bold tabular-nums ${
-        premium ? "text-gold" : "text-muted-foreground"
-      }`}
-    >
-      {value}
-    </span>
   );
 }

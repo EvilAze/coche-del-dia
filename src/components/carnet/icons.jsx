@@ -20,53 +20,22 @@ const ICO = {
   strokeLinejoin: "round",
 };
 
-export function FlameIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M12 3c-1 4.5-6 7-6 12a6 6 0 0 0 12 0c0-5-5-7.5-6-12z" />
-      <path d="M12 10.5c-.5 2.5-3 4-3 7a3 3 0 0 0 6 0c0-3-2.5-4.5-3-7z" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-export function CrownIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M4 8l4 3.5 4-6.5 4 6.5 4-3.5v9.5H4z" />
-      <path d="M4 17.5h16" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-// (Aquí vivía ShieldIcon, el escudo de racha. La mecánica se retiró en agosto
-// de 2026 —ver scripts/2026-08-retirar-escudo-racha.sql— y con ella su icono.)
-
-export function CarIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M5 11l1.6-4A2 2 0 0 1 8.5 5.7h7a2 2 0 0 1 1.9 1.3L19 11" />
-      <path d="M4 11h16v5H4z" />
-      <circle cx="7.5" cy="16.5" r="1.6" />
-      <circle cx="16.5" cy="16.5" r="1.6" />
-    </svg>
-  );
-}
+// (Aquí vivían FlameIcon, CrownIcon y CarIcon —racha, mejor racha y aciertos—
+// más ShieldIcon y TrophyIcon/ChevronRightIcon. Los tres primeros acompañaban a
+// las filas de la ficha del carnet; los dos últimos, a las «puertas» con
+// chevron. El rediseño de los perfiles se llevó las dos estructuras por delante:
+// las cifras viven ahora en la banda del carnet, que compara cuatro números en
+// una fila sin necesitar un dibujo por número, y las puertas son portadillas con
+// los iconos del set del juego (configurator/icons.jsx), los mismos que estrena
+// el sumario. Un icono por dato era, además, la señal de que el dato no se
+// explicaba solo. ShieldIcon se fue antes, con la mecánica del escudo de racha
+// —ver scripts/2026-08-retirar-escudo-racha.sql.)
 
 export function MedalIcon({ className = "h-[18px] w-[18px]" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
       <circle cx="12" cy="14" r="6" />
       <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
-    </svg>
-  );
-}
-
-export function TrophyIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <path d="M7 4h10v4.5a5 5 0 0 1-10 0z" />
-      <path d="M7 6H5a2.4 2.4 0 0 0 0 4.8h2M17 6h2a2.4 2.4 0 0 1 0 4.8h-2" />
-      <path d="M12 13.5v3.5M9.5 20h5M10 17h4v3h-4z" />
     </svg>
   );
 }
@@ -80,22 +49,14 @@ export function PencilIcon({ className = "h-4 w-4" }) {
   );
 }
 
-// Teléfono: la puerta a la edición Android en los ajustes del carnet. Silueta
-// sola, sin flecha de descarga ni logo de tienda — en esta lista el gesto lo
-// dice el chevron de la derecha, igual que en el resto de puertas.
+// Teléfono: la portadilla de la edición Android en el carnet. Silueta sola, sin
+// flecha de descarga ni logo de tienda: en la rejilla lo que dice adónde lleva
+// es el nombre de la sección, no un adorno dentro del icono.
 export function PhoneIcon({ className = "h-[18px] w-[18px]" }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
       <path d="M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
       <path d="M10.5 17.5h3" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-export function ChevronRightIcon({ className = "h-4 w-4" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} strokeWidth="2" aria-hidden="true">
-      <path d="M9 6l6 6-6 6" />
     </svg>
   );
 }

@@ -1,7 +1,7 @@
 // src/components/PublicProfile.jsx
 // Modal read-only con el perfil de OTRO usuario (no el actual).
-// Es el GEMELO de MyStats: mismo carnet (cabecera + cifra + ficha de specs),
-// pero adaptado a "ver a otro":
+// Es el GEMELO de MyStats: el mismo carnet (cabecera, nombre con sello y banda
+// de datos), pero adaptado a "ver a otro":
 //   - Sin email (privado, no se expone).
 //   - Sin botón Sign out, sin idioma, sin "puertas" a Archivo/Ranking/Logros
 //     (esas navegan a TUS secciones; en un perfil ajeno no aplican).
@@ -12,7 +12,17 @@
 // El carnet ya NO se dibuja aquí: vive en components/carnet/, compartido con
 // MyStats. Los dos perfiles se despegaron una vez (este se quedó con el avatar
 // de degradado menta del tema anterior mientras el propio migraba a papel) y la
-// causa era tener dos copias del mismo objeto. Ahora es una.
+// causa era tener dos copias del mismo objeto. Ahora es una: el mismo documento
+// con otras cuatro casillas en la banda —aquí no hay puesto (la RPC pública no
+// expone posición), hay aciertos— y con el palmarés debajo.
+//
+// EL PALMARÉS ERA UNA PARED DE INSIGNIAS: una cuadrícula de cuadrados sueltos,
+// cada uno con filete de SU metal al 60%, o sea doce marcos de tres colores
+// flotando sobre el papel — el aspecto de «gamificación de aplicación» que el
+// resto del juego evita. Encima, la etiqueta del tier se imprimía SIN TRADUCIR
+// («GOLD», «SILVER») también en español, porque salía de la clave interna.
+// Ahora es una PLANCHA DE CROMOS: la misma rejilla de filetes que las
+// portadillas, el metal solo en la palabra de debajo del cromo, y localizado.
 //
 // Datos vienen de la RPC `get_public_profile` (ver scripts/supabase-
 // public-profile-rpc.sql). Solo expone campos que ya son públicos en
@@ -23,14 +33,18 @@ import { useT, getLocalizedCountry } from "../i18n";
 import { getPublicProfile } from "../lib/statsService";
 import { loadCatalog } from "../data/catalog";
 import { computeAchievements } from "../lib/achievements";
-import { collectorTier } from "../lib/collectionTier";
+import { collectorTier, tierLabel } from "../lib/collectionTier";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import AchievementIcon from "./AchievementIcons";
 import PodiumMedals from "./PodiumMedals";
-import Carnet, { CarnetHead, CarnetCifra, FichaRow, FichaCifra } from "./carnet/Carnet";
-import { FlameIcon, CrownIcon, CarIcon } from "./carnet/icons";
+import Carnet, {
+  CarnetCabecera,
+  CarnetNombre,
+  CarnetCifras,
+  SelloTier,
+} from "./carnet/Carnet";
 
 // Slugs idénticos a Garage.jsx y Achievements.jsx — claves para que los
 // logos de marca y banderas resuelvan correctamente.
@@ -48,7 +62,7 @@ function countrySlug(pais) {
 }
 
 export default function PublicProfile({ open, onClose, userId }) {
-  const { t, locale } = useT();
+  const { t, tn, locale } = useT();
   const [state, setState] = useState({ loading: true, data: null, error: "" });
 
   useEscape(open, onClose);
@@ -146,12 +160,13 @@ export default function PublicProfile({ open, onClose, userId }) {
     state.data?.profile?.display_name || t("publicProfile.noNickname");
   const onStreak = (stats?.current_streak ?? 0) > 0;
   const maxStreak = stats?.max_streak ?? 0;
+  const portadas = state.data?.wonCarIds?.length || 0;
 
   // Tier global de coleccionista derivado del nº de coches ganados (mismo
   // hilo de nivel que el Archivo y el Perfil propio). No viene de la RPC: lo
   // calculamos de wonCarIds, que sí es público, con el helper compartido.
-  const tier = collectorTier(state.data?.wonCarIds?.length || 0);
-  const tierLabel = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
+  const tier = collectorTier(portadas);
+  const selloTier = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
 
   return (
     <ModalShell
@@ -174,70 +189,52 @@ export default function PublicProfile({ open, onClose, userId }) {
           {/* El carnet hace de cabecera del modal, igual que en MyStats: el
               título «Perfil» que había encima repetía lo que dice el propio
               carnet y se comía 60px de alto. */}
-          <Carnet className="shrink-0">
-            <CarnetHead
+          <Carnet className="shrink-0" aria-busy={cargando}>
+            <CarnetCabecera
               kicker={t("publicProfile.publicLabel")}
-              nombre={nickname}
-              cargando={cargando}
-              trailing={<CloseButton onClick={onClose} className="-mr-2 -mt-2" />}
+              trailing={<CloseButton onClick={onClose} />}
             />
 
-            {/* Los puntos son la cifra del carnet (aquí no hay puesto: la RPC
-                pública no expone la posición en la clasificación). */}
-            <CarnetCifra
-              puntos={cargando ? "—" : (stats?.total_points ?? 0)}
-              puntosLabel={t("publicProfile.statPoints")}
+            <CarnetNombre
+              nombre={nickname}
+              cargando={cargando}
+              // La antigüedad («Lector desde…») es del carnet PROPIO: la RPC
+              // pública no expone la fecha de alta, y tampoco debería. Aquí el
+              // renglón de acreditación lo llena lo único público que dice algo
+              // de esta persona como lectora: su archivo.
+              apunte={tn("publicProfile.portadas", portadas, { count: portadas })}
               sello={
-                tierLabel && (
-                  <span className="flex shrink-0 flex-col items-end gap-1.5">
-                    <span className="pm-label">{t("myStats.tierLabel")}</span>
-                    <span className="pm-sello pm-sello--oro">{tierLabel}</span>
-                  </span>
-                )
+                <SelloTier
+                  tier={tier.tier}
+                  label={selloTier}
+                  title={t("myStats.tierLabel")}
+                />
               }
             />
 
-            {/* Ficha de specs: racha · máxima · aciertos. */}
-            <div className="mt-3 border-t border-border pt-1">
-              <FichaRow
-                icon={
-                  <span className={onStreak ? "text-gold" : "text-muted-foreground"}>
-                    <FlameIcon />
-                  </span>
-                }
-                label={t("myStats.statStreak")}
-              >
-                <FichaCifra
-                  value={cargando ? "—" : (stats?.current_streak ?? 0)}
-                  premium={onStreak}
-                />
-              </FichaRow>
-
-              <FichaRow
-                icon={
-                  <span className={maxStreak > 0 ? "text-gold" : "text-muted-foreground"}>
-                    <CrownIcon />
-                  </span>
-                }
-                label={t("myStats.statMaxStreak")}
-              >
-                <FichaCifra value={cargando ? "—" : maxStreak} premium={maxStreak > 0} />
-              </FichaRow>
-
-              <FichaRow
-                last
-                icon={
-                  <span className="text-rojo">
-                    <CarIcon />
-                  </span>
-                }
-                label={t("myStats.statWins")}
-              >
-                <span className="text-base font-bold tabular-nums text-rojo">
-                  {cargando ? "—" : (stats?.total_wins ?? 0)}
-                </span>
-              </FichaRow>
-            </div>
+            {/* La banda: puntos · aciertos · racha · máxima. Sin puesto — la RPC
+                pública no expone posición en la clasificación. */}
+            <CarnetCifras
+              items={[
+                {
+                  label: t("publicProfile.statPoints"),
+                  value: cargando ? "—" : (stats?.total_points ?? 0),
+                },
+                {
+                  label: t("myStats.statWins"),
+                  value: cargando ? "—" : (stats?.total_wins ?? 0),
+                },
+                {
+                  label: t("myStats.statStreak"),
+                  value: cargando ? "—" : (stats?.current_streak ?? 0),
+                  tono: onStreak ? "oro" : "",
+                },
+                {
+                  label: t("myStats.statMaxStreak"),
+                  value: cargando ? "—" : maxStreak,
+                },
+              ]}
+            />
           </Carnet>
 
           {cargando ? (
@@ -265,10 +262,14 @@ export default function PublicProfile({ open, onClose, userId }) {
                 <div className="space-y-4">
                   {groups.map(({ category, items }) => (
                     <section key={category}>
-                      <h4 className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
+                      {/* Ladillo de grupo en versalitas de tinta, no en mono
+                          rojo: el rojo es «acción/atención» del sistema y aquí
+                          no hay nada que atender — son cuatro encabezados
+                          seguidos. */}
+                      <h4 className="pm-label mb-2">
                         {t(`achievements.category.${category}`)}
                       </h4>
-                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+                      <div className="prensa-plancha">
                         {items.map((a) => (
                           <PublicBadge key={a.id} achievement={a} locale={locale} />
                         ))}
@@ -285,31 +286,19 @@ export default function PublicProfile({ open, onClose, userId }) {
   );
 }
 
-// Versión simplificada del Badge: solo estado conseguido, sin barra de
-// progreso (lo no conseguido no se muestra aquí), sin etiqueta "X/Y".
+// UN CROMO de la plancha: el icono del logro y, debajo, su metal cuando lo
+// tiene. Sin filete propio (los pone la plancha) y sin barra de progreso: aquí
+// solo se enseña lo conseguido, que lo pendiente de otra persona no es asunto
+// de nadie.
 function PublicBadge({ achievement, locale }) {
   const { icon, currentTier, tiers, group } = achievement;
   const isCollection = Array.isArray(tiers) && tiers.length > 0;
-  const tierForBorder = isCollection ? currentTier || "gold" : "gold";
-
-  // Tiers por token (ver PodiumMedals): plata y bronce iban con paleta cruda
-  // de Tailwind, que no sigue al tema y desaparecía sobre el papel del día.
-  const borderClass =
-    tierForBorder === "gold"
-      ? "border-gold/60"
-      : tierForBorder === "silver"
-      ? "border-plata/60"
-      : tierForBorder === "bronze"
-      ? "border-bronce/60"
-      : "border-rojo/50";
-  const labelClass =
-    tierForBorder === "gold"
-      ? "text-gold"
-      : tierForBorder === "silver"
-      ? "text-plata"
-      : tierForBorder === "bronze"
-      ? "text-bronce"
-      : "text-rojo";
+  // Solo las colecciones tienen metal; un hito o una racha se tiene o no se
+  // tiene. Antes TODO se dibujaba con un metal (los hitos, en oro) y el marco
+  // dorado acababa siendo el estado por defecto — o sea, ninguno.
+  const metal = isCollection ? currentTier || null : null;
+  const metalClase =
+    metal === "gold" ? "oro" : metal === "silver" ? "plata" : metal === "bronze" ? "bronce" : "";
 
   const title =
     achievement.title?.[locale] ||
@@ -364,18 +353,12 @@ function PublicBadge({ achievement, locale }) {
   }
 
   return (
-    <div
-      className={`group relative aspect-square overflow-hidden rounded-none border ${borderClass} bg-bg-tertiary p-2`}
-      title={`${title} — ${description}`}
-    >
-      <div className="flex h-full w-full flex-col items-center justify-center gap-1">
-        {iconNode}
-        {isCollection && currentTier && (
-          <span className={`text-[8px] uppercase tracking-[0.18em] font-semibold ${labelClass}`}>
-            {currentTier}
-          </span>
-        )}
-      </div>
+    <div className="prensa-cromo" title={`${title} — ${description}`}>
+      {iconNode}
+      {/* El metal, EN CASTELLANO. Aquí se imprimía `currentTier` a pelo, o sea
+          la clave interna en inglés: un jugador español leía «GOLD» y «SILVER»
+          debajo de sus cromos. */}
+      {metal && <span className={`et ${metalClase}`}>{tierLabel(metal, locale)}</span>}
     </div>
   );
 }

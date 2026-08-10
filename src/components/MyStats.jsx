@@ -1,33 +1,40 @@
 // src/components/MyStats.jsx
 // TU CARNET — identidad, tus cifras y las puertas a tus secciones.
 //
-// El modal hacía cuatro trabajos (identidad, ficha de racha, navegación,
-// ajustes) y los presentaba como cuatro cajas con filete apiladas, todas con el
-// mismo peso: nada decía qué mirar primero. El rediseño los ordena en tres
-// planos con una jerarquía explícita:
+// El modal hace cuatro trabajos (identidad, cifras, navegación, ajustes) y los
+// ordena en tres planos con una jerarquía explícita:
 //
-//   1. EL CARNET (fijo arriba, hace de cabecera del modal). El `<h2>Mi Perfil</h2>`
-//      que había encima decía lo mismo que el carnet de debajo, así que se fue y
-//      con él ~60px de alto — que es justo lo que le faltaba a este modal para
-//      caber en un móvil (ver punto 3).
-//   2. LO QUE HAS GANADO (scrollable): podios y puertas a Archivo, Clasificación
-//      y Logros. Cada cifra vive en su sección; el perfil es solo la puerta.
-//   3. AJUSTES (fijo abajo): idioma, sesión y salir, tras doble filete.
+//   1. EL CARNET (fijo arriba, hace de cabecera del modal): cabecera con doble
+//      filete, nombre con el sello del tier al margen, renglón de acreditación
+//      («Lector desde mayo de 2026») y la banda de cuatro datos.
+//   2. TUS SECCIONES (scrollable): podios y portadillas al Archivo, la
+//      Clasificación y los Logros.
+//   3. AJUSTES (fijo abajo): idioma, sesión y borrado de cuenta.
 //
-// Tres arreglos que venían de regalo con el rediseño:
-//   · El panel no llevaba `max-h` ni zona con scroll (PublicProfile sí): con
-//     medallas de podio, el contenido pasaba de 600px y en pantallas cortas se
-//     cortaba SIN forma de llegar al pie — useScrollLock bloquea el body, así
-//     que «Cerrar sesión» quedaba literalmente inalcanzable.
-//   · La puerta «Leyendas» abría un sub-modal ENCIMA de este, y ambos escuchaban
-//     Escape: una pulsación cerraba los dos. El histórico se mudó a su sitio
-//     natural, la tercera pestaña de la Clasificación (Ranking.jsx), y el
-//     conflicto desaparece de raíz.
-//   · La ficha tenía una tercera fila, el inventario de escudos de racha: dos
-//     siluetas sin una sola palabra al lado. Intentar explicarlas fue lo que
-//     destapó que la mecánica entera sobraba (un seguro que el jugador no sabe
-//     que tiene no le evita abandonar, y una racha que a veces perdona deja de
-//     ser un contrato). Se retiró: scripts/2026-08-retirar-escudo-racha.sql.
+// QUÉ CAMBIÓ EN EL REDISEÑO DE PERFILES (y por qué):
+//
+//   · LAS PUERTAS ERAN UN MENÚ DE AJUSTES DE ANDROID. Icono a la izquierda,
+//     texto, dato gris, chevron a la derecha, repetido cuatro veces dentro de
+//     una caja. Es el patrón de lista de sistema, el único lenguaje que el
+//     resto del juego evita a propósito, y convivía con el papel y los filetes
+//     como si vinieran de dos aplicaciones distintas. Ahora son PORTADILLAS —
+//     la misma rejilla que estrena el sumario (components/Portadilla.jsx)—, así
+//     que «elegir sección» se ve igual en las dos pantallas donde se hace.
+//   · LAS CIFRAS ESTABAN REPARTIDAS EN TRES SITIOS: los puntos como titular
+//     suelto, el puesto debajo en pequeño y racha/máxima como dos renglones con
+//     icono y valor al otro extremo. Comparar dos números pedía leer dos
+//     frases. Ahora las cuatro viven en la banda del carnet, en fila, que es
+//     como un documento imprime lo que acredita.
+//   · EL EMAIL SE QUEDA EN AJUSTES, junto a «cerrar sesión»: nadie abre su
+//     perfil para descubrir su propio correo, pero al cerrar sesión sí importa
+//     saber cuál se cierra.
+//
+// Dos cosas que NO cambian y conviene no romper:
+//   · El panel lleva `max-h` y una zona con scroll. Sin ella, con medallas de
+//     podio el contenido pasa de 600px y en pantallas cortas «Cerrar sesión»
+//     queda inalcanzable (useScrollLock bloquea el body).
+//   · El modal de borrado se monta como HERMANO de ModalShell, no como hijo
+//     (ver el comentario al final del archivo).
 
 import { useEffect, useState } from "react";
 import { getProfileSummary } from "../lib/statsService";
@@ -39,49 +46,18 @@ import ModalShell from "./ModalShell";
 import DeleteAccountModal from "./DeleteAccountModal";
 import LanguageStrip from "./LanguageStrip";
 import PodiumMedals from "./PodiumMedals";
-import Carnet, { CarnetHead, CarnetCifra, FichaRow, FichaCifra } from "./carnet/Carnet";
-import {
-  FlameIcon,
-  CrownIcon,
-  CarIcon,
-  MedalIcon,
-  TrophyIcon,
-  PhoneIcon,
-  ChevronRightIcon,
-} from "./carnet/icons";
+import Portadilla from "./Portadilla";
+import Carnet, {
+  CarnetCabecera,
+  CarnetNombre,
+  CarnetCifras,
+  SelloTier,
+} from "./carnet/Carnet";
+import { MedalIcon, PhoneIcon } from "./carnet/icons";
+import { Icon, I } from "./configurator/icons";
+import { ordinal } from "./PuestoCifra";
 import { esAndroidWeb, urlPlay } from "../lib/edicionApp";
 import { track } from "../lib/analytics";
-
-// Puerta a un destino (Archivo / Clasificación / Logros): icono rojo + nombre +
-// dato clave + chevron. Es un botón: cierra el perfil y abre el destino real.
-//
-// La Clasificación es la única sin dato a la derecha, y a propósito: su cifra
-// (puntos y puesto) es la CABECERA del carnet, dos bloques más arriba. Repetirla
-// aquí sería decir dos veces lo mismo en la misma pantalla.
-function DoorRow({ icon, label, value, onClick, last = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`focus-ring flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-rojo/[0.06] ${
-        last ? "" : "border-b border-border-strong/60"
-      }`}
-    >
-      <span className="flex min-w-0 items-center gap-2.5">
-        <span className="shrink-0 text-rojo">{icon}</span>
-        <span className="truncate text-sm font-medium text-foreground">{label}</span>
-      </span>
-      <span className="flex shrink-0 items-center gap-2.5">
-        {value && (
-          <span className="text-xs tabular-nums text-muted-foreground">{value}</span>
-        )}
-        <span className="text-muted-foreground">
-          <ChevronRightIcon />
-        </span>
-      </span>
-    </button>
-  );
-}
 
 export default function MyStats({
   open,
@@ -92,7 +68,7 @@ export default function MyStats({
   onOpenRanking,
   onOpenNickname,
 }) {
-  const { t, locale } = useT();
+  const { t, locale, dateLocale } = useT();
   // El modal de borrado se monta DENTRO de este (z-index por encima) en vez de
   // subir al slot `activeModal` de App: es un sub-paso de los ajustes, y sacarlo
   // al slot obligaría a cerrar el carnet para abrirlo — el jugador perdería el
@@ -139,11 +115,9 @@ export default function MyStats({
     onClose?.();
   }
 
-  // Con el borrado abierto, este modal SUELTA la escucha de Escape. Es
-  // exactamente el fallo que documenta la cabecera («una pulsación cerraba los
-  // dos») y que se llevó por delante a «Leyendas»: dos diálogos suscritos a la
-  // misma tecla se cierran a la vez, y aquí eso significaría sacar al jugador de
-  // los ajustes por intentar cancelar un borrado.
+  // Con el borrado abierto, este modal SUELTA la escucha de Escape: dos diálogos
+  // suscritos a la misma tecla se cierran a la vez, y aquí eso significaría
+  // sacar al jugador de los ajustes por intentar cancelar un borrado.
   useEscape(open && !borrarAbierto, onClose);
 
   // Si el carnet se cierra por cualquier otra vía (la X, el scrim, la «atrás»
@@ -164,12 +138,23 @@ export default function MyStats({
     ? state.tier.label?.[locale] || state.tier.label?.es
     : null;
 
-  const onStreak = (stats?.current_streak ?? 0) > 0;
+  const rachaViva = stats?.current_streak ?? 0;
   const maxStreak = stats?.max_streak ?? 0;
   // Primer día: cero partidas ganadas y cero racha histórica. Sin esta línea, un
   // recién llegado abre su perfil y solo ve ceros y «Sin clasificar», sin una
   // sola pista de qué hacer.
   const primerDia = !cargando && !stats?.total_wins && !maxStreak;
+
+  // El renglón de acreditación del carnet. `created_at` lo trae la sesión de
+  // Supabase, así que no cuesta una consulta: es la fecha de alta y da al
+  // documento lo único que le faltaba para leerse como tal — una antigüedad.
+  const alta = state.user?.created_at ? new Date(state.user.created_at) : null;
+  const desde =
+    alta && !Number.isNaN(alta.getTime())
+      ? t("myStats.readerSince", {
+          date: alta.toLocaleDateString(dateLocale, { month: "long", year: "numeric" }),
+        })
+      : null;
 
   // Cierra el perfil y abre el destino de la puerta.
   // `source` viaja al opener (openRanking lo usa para saber de dónde nacen las
@@ -179,15 +164,19 @@ export default function MyStats({
     opener?.(source);
   }
 
-  // Datos de las puertas (cada uno cae con elegancia si su fuente falló).
-  const garageValue = state.collection
-    ? state.collection.total
-      ? `${state.collection.unlocked} / ${state.collection.total}`
-      : `${state.collection.unlocked}`
-    : null;
-  const logrosValue = state.achievements
-    ? `${state.achievements.unlocked} / ${state.achievements.total}`
-    : null;
+  // Apuntes de las portadillas (cada uno cae con elegancia si su fuente falló).
+  const archivoApunte = state.collection
+    ? t("myStats.archivoApunte", {
+        unlocked: state.collection.unlocked,
+        total: state.collection.total || "—",
+      })
+    : t("sumario.garajeApunte");
+  const logrosApunte = state.achievements
+    ? t("myStats.logrosApunte", {
+        unlocked: state.achievements.unlocked,
+        total: state.achievements.total,
+      })
+    : t("myStats.logrosApunteVacio");
 
   // La puerta a Play solo existe donde el enlace instala algo: Android en
   // navegador. Dentro del APK y en iOS/escritorio, ni se monta. Sin días
@@ -224,116 +213,103 @@ export default function MyStats({
         <>
           {/* ── 1. El carnet: cabecera del modal e identidad, fijo ───────── */}
           <Carnet className="shrink-0" aria-busy={cargando}>
-            <CarnetHead
+            <CarnetCabecera
               kicker={t("myStats.carnetKicker")}
+              trailing={<CloseButton onClick={onClose} />}
+            />
+
+            <CarnetNombre
               nombre={nickname}
+              apunte={desde}
               cargando={cargando}
               onEdit={() => go(onOpenNickname)}
               editLabel={t("myStats.changeNick")}
-              // La X vive DENTRO de la cabecera, no flotando sobre ella: así el
-              // nombre trunca antes de llegar al botón en vez de pasarle por
-              // debajo, y el carnet puede ser de verdad la primera fila.
-              trailing={<CloseButton onClick={onClose} className="-mr-2 -mt-2" />}
-            />
-
-            <CarnetCifra
-              puntos={cargando ? "—" : state.points}
-              puntosLabel={t("myStats.points")}
-              puesto={state.rank?.rank || null}
-              puestoTotal={state.rank?.total || null}
-              // Mientras carga, una raya en el sitio del puesto: sin ella la
-              // línea nace vacía y el carnet crece de golpe al llegar el dato.
-              sinPuesto={cargando ? "—" : state.rank?.rank ? null : t("myStats.rankNone")}
               sello={
-                tierLabel && (
-                  <span className="flex shrink-0 flex-col items-end gap-1.5">
-                    <span className="pm-label">{t("myStats.tierLabel")}</span>
-                    <span className="pm-sello pm-sello--oro">{tierLabel}</span>
-                  </span>
-                )
+                <SelloTier
+                  tier={state.tier?.tier}
+                  label={tierLabel}
+                  title={t("myStats.tierLabel")}
+                />
               }
             />
 
-            {/* Ficha de racha: en racha · mejor racha. Había una tercera fila,
-                el inventario de escudos, con la mecánica retirada en agosto de
-                2026 (ver scripts/2026-08-retirar-escudo-racha.sql). */}
-            <div className="mt-3 border-t border-border pt-1">
-              <FichaRow
-                icon={
-                  <span className={onStreak ? "text-gold" : "text-muted-foreground"}>
-                    <FlameIcon />
-                  </span>
-                }
-                label={t("myStats.streakCurrent")}
-              >
-                <FichaCifra
-                  value={cargando ? "—" : (stats?.current_streak ?? 0)}
-                  premium={onStreak}
-                />
-              </FichaRow>
-
-              <FichaRow
-                last
-                icon={
-                  <span className={maxStreak > 0 ? "text-gold" : "text-muted-foreground"}>
-                    <CrownIcon />
-                  </span>
-                }
-                label={t("myStats.streakBest")}
-              >
-                <FichaCifra value={cargando ? "—" : maxStreak} premium={maxStreak > 0} />
-              </FichaRow>
-            </div>
-
-            {primerDia && (
-              <p className="mt-3 border-t border-border pt-3 font-display text-[13px] italic leading-snug text-muted-foreground">
-                {t("myStats.firstDay")}
-              </p>
-            )}
+            {/* La banda: puntos · puesto · racha · máxima. El oro solo donde se
+                gana — el puesto y la racha VIVA; una máxima de 0 en oro
+                devaluaría el oro en el resto del juego. */}
+            <CarnetCifras
+              items={[
+                {
+                  label: t("myStats.points"),
+                  value: cargando ? "—" : state.points,
+                },
+                {
+                  label: t("myStats.rankShort"),
+                  value: cargando
+                    ? "—"
+                    : state.rank?.rank
+                    ? ordinal(state.rank.rank, locale)
+                    : "—",
+                  tono: !cargando && state.rank?.rank ? "oro" : "apagada",
+                },
+                {
+                  label: t("myStats.statStreak"),
+                  value: cargando ? "—" : rachaViva,
+                  tono: rachaViva > 0 ? "oro" : "",
+                },
+                {
+                  label: t("myStats.statMaxStreak"),
+                  value: cargando ? "—" : maxStreak,
+                },
+              ]}
+            />
           </Carnet>
 
-          {/* ── 2. Lo que has ganado: podios y puertas (con scroll) ──────── */}
+          {/* ── 2. Tus secciones: podios y portadillas (con scroll) ──────── */}
           <div className="scrollbar-premium -mx-5 min-h-0 flex-1 overflow-y-auto px-5">
             {/* Podios de temporada y de mes (solo si tiene alguno). */}
             <div className="mt-4 empty:hidden">
               <PodiumMedals userId={state.user?.id} />
             </div>
 
-            {/* Los dos ladillos del modal (secciones y ajustes) hablan el mismo
-                idioma: versalitas del sistema (pm-label). Antes uno era un
-                párrafo gris de 12px y el otro no existía. */}
+            {primerDia && (
+              <p className="mt-4 border border-border-strong p-3 font-display text-[13px] italic leading-snug text-muted-foreground">
+                {t("myStats.firstDay")}
+              </p>
+            )}
+
             <h3 className="pm-label mb-2 mt-4">{t("myStats.destinations")}</h3>
-            <div className="overflow-hidden border border-border bg-bg-tertiary">
-              <DoorRow
-                icon={<CarIcon />}
-                label={t("garage.headerTitle")}
-                value={garageValue}
+            <div className="prensa-rejilla">
+              <Portadilla
+                icono={<Icon d={I.garage} size={20} />}
+                nombre={t("garage.headerTitle")}
+                apunte={archivoApunte}
                 onClick={() => go(onOpenGarage)}
               />
-              <DoorRow
-                icon={<MedalIcon />}
-                label={t("ranking.title")}
+              <Portadilla
+                icono={<Icon d={I.trophy} size={20} />}
+                nombre={t("ranking.title")}
+                apunte={t("sumario.clasificacionApunte")}
                 onClick={() => go(onOpenRanking, "perfil")}
               />
-              <DoorRow
-                last={!ofreceApp}
-                icon={<TrophyIcon />}
-                label={t("header.achievements")}
-                value={logrosValue}
+              <Portadilla
+                icono={<MedalIcon className="h-5 w-5" />}
+                nombre={t("header.achievements")}
+                apunte={logrosApunte}
                 onClick={() => go(onOpenAchievements)}
               />
-              {/* La edición Android como una puerta más, permanente y sin
+              {/* La edición Android como una portadilla más, permanente y sin
                   caducidad: aquí no molesta a nadie (hay que abrir el perfil
                   para verla) y recoge al que la busca a propósito, que es el
                   caso que el faldón del resultado no cubre — ese solo aparece
-                  una vez y se puede rechazar. Última de la lista a propósito:
-                  las tres de arriba llevan a secciones del juego, esta se sale
-                  de la web. */}
+                  una vez y se puede rechazar. Última a propósito: las tres de
+                  arriba llevan a secciones del juego, esta se sale de la web.
+                  Con ella son cuatro y la rejilla cierra en 2×2; sin ella son
+                  tres y la última ocupa el ancho entero (ver .prensa-rejilla). */}
               {ofreceApp && (
-                <DoorRow
-                  last
-                  icon={<PhoneIcon />}
-                  label={t("app.promoDoor")}
+                <Portadilla
+                  icono={<PhoneIcon className="h-5 w-5" />}
+                  nombre={t("app.promoDoor")}
+                  apunte={t("myStats.appApunte")}
                   onClick={() => {
                     track("app_promo_click", { surface: "perfil" });
                     window.open(urlPlay("perfil"), "_blank", "noopener,noreferrer");
@@ -343,27 +319,29 @@ export default function MyStats({
             </div>
           </div>
 
-          {/* ── 3. Ajustes: idioma, sesión y salir, tras doble filete ────── */}
-          <div className="arch-filete mt-4 shrink-0 pt-4">
-            <h3 className="pm-label mb-2.5">{t("myStats.settings")}</h3>
+          {/* ── 3. Ajustes: idioma, sesión y borrado ─────────────────────── */}
+          <h3 className="pm-label mb-2 mt-4 shrink-0">{t("myStats.settings")}</h3>
 
+          <div className="prensa-ajustes shrink-0">
             <LanguageStrip />
 
-            <div className="mt-3 flex items-center justify-between gap-3">
-              {/* El email SALE de debajo del nick y aterriza aquí: nadie abre su
-                  perfil para descubrir su propio correo, pero al cerrar sesión sí
-                  importa saber cuál se cierra. De paso deja de estar en la línea
-                  más visible del carnet, que es la que acaba en las capturas. */}
-              <p className="min-w-0 truncate text-[11px] text-muted-foreground" title={email}>
-                {email}
-              </p>
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0">
+                <span className="et block">{t("myStats.session")}</span>
+                <span
+                  className="mt-0.5 block truncate font-display text-[12px] italic text-muted-foreground"
+                  title={email}
+                >
+                  {email || t("myStats.sessionAnon")}
+                </span>
+              </span>
               <button
                 type="button"
                 onClick={handleSignOut}
-                // Geometría del chip del sistema (filete + versalitas), no un
-                // caption gris de 12px que parecía deshabilitado. Rojo al pasar:
-                // es la única acción con consecuencia de todo el modal.
-                className="focus-ring shrink-0 border border-border-strong px-3 py-1.5 font-body text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-rojo hover:text-rojo"
+                // Geometría del chip del sistema (pm-chip), el mismo del idioma
+                // y de la tinta: es una acción, no un caption gris. Rojo al
+                // pasar, que es la única acción con consecuencia del modal.
+                className="focus-ring pm-chip pm-chip--rojo shrink-0"
               >
                 {t("common.signOut")}
               </button>
@@ -372,27 +350,27 @@ export default function MyStats({
             {/* Borrado de cuenta. Solo con cuenta de verdad (`email` vacío =
                 sesión anónima, que no tiene nada que borrar en servidor).
 
-                DELIBERADAMENTE en el último renglón y en tinta apagada, no como
+                DELIBERADAMENTE en su propio renglón y en tinta apagada, no como
                 un chip al lado de «Cerrar sesión»: son dos acciones que empiezan
                 igual («salir de aquí») y acaban en sitios opuestos, y la
                 distancia visual es lo que evita el clic equivocado. Play exige
                 que exista y que se encuentre; no exige que compita. */}
             {email && (
-              <div className="mt-3 text-right">
+              <div className="text-right">
                 <button
                   type="button"
                   onClick={() => setBorrarAbierto(true)}
-                  className="focus-ring font-body text-[11px] uppercase tracking-[0.12em] text-muted-foreground underline decoration-border-strong underline-offset-4 transition-colors hover:text-rojo hover:decoration-rojo"
+                  className="focus-ring font-body text-[10px] uppercase tracking-[0.16em] text-muted-foreground underline decoration-border-strong underline-offset-4 transition-colors hover:text-rojo hover:decoration-rojo"
                 >
                   {t("deleteAccount.entry")}
                 </button>
               </div>
             )}
-
-            {state.error && (
-              <p className="mt-3 text-center text-sm text-rojo">{state.error}</p>
-            )}
           </div>
+
+          {state.error && (
+            <p className="mt-3 shrink-0 text-center text-sm text-rojo">{state.error}</p>
+          )}
         </>
       )}
     </ModalShell>

@@ -432,8 +432,26 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
                   ? t("cdd.selectorPick")
                   : t("cdd.comboModeloDisabled")
               }
-              onClick={() => setHoja("modelo")}
-              disabled={formDisabled || !marcaValida}
+              // SIN MARCA, ESTE RENGLÓN LLEVA A MARCA — no se queda muerto.
+              //
+              // Estaba `disabled` hasta que hubiera marca. Correcto de fondo (sin
+              // marca no hay lista que abrir: los modelos acotan el coche) y malo
+              // de forma: tocarlo no hacía absolutamente NADA. Ni háptico, ni
+              // movimiento, ni aviso. En una pantalla táctil, tocar algo y no
+              // recibir nada no se lee como «esto todavía no», se lee como «esto
+              // está roto» — que es literalmente el diagnóstico que este mismo
+              // fichero documenta para el cupón sin catálogo, y el mismo motivo
+              // por el que ADIVINAR se dejó tocable con los campos a medias
+              // («un botón muerto no explica nada»). Dos controles hermanos no
+              // pueden seguir criterios opuestos.
+              //
+              // Abrir la hoja de MARCA es mejor que un aviso, porque no se limita
+              // a explicar el orden: lo cumple. Y la cadena que ya existe encadena
+              // sola marca → modelo, así que el jugador acaba justo donde apuntaba
+              // el dedo, un toque antes. El anti-cheat no se toca: siguen sin
+              // servirse modelos sin marca.
+              onClick={() => setHoja(marcaValida ? "modelo" : "marca")}
+              disabled={formDisabled}
               resuelto={bloqueo.modelo}
             />
             <CampoBoton

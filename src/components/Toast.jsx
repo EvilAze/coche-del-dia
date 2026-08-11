@@ -30,6 +30,27 @@ const TYPE_STYLES = {
   logro: { glifo: "text-gold", icon: "★" },
 };
 
+// CUÁNTO VIVE CADA AVISO, y por qué no puede ser un solo número.
+//
+// Todos duraban 2400 ms —ni una sola llamada del proyecto pasa `duration`—, y
+// para los errores eso es poco tiempo del que no se recupera nadie: en este
+// juego el error NO es decorativo, es donde se explican las REGLAS. «Ese año ya
+// lo has intentado», «el año está fuera de la horquilla», «te falta la marca»
+// son frases de 30-60 caracteres, y la guía de siempre (leer una línea corta
+// pide del orden de 4-5 s) las deja fuera por bastante.
+//
+// Y hay un agravante de este cupón en concreto: el error llega ACOMPAÑADO del
+// temblor del formulario, que está arriba, mientras el aviso sale abajo. El
+// jugador mira primero lo que se ha movido; cuando baja la vista, el telegrama
+// ya se ha ido. Se pierde justo la frase que evita repetir el fallo — y en una
+// partida de cinco intentos, repetir el fallo es caro.
+//
+// El resto se queda como estaba: un «copiado» o un «guardado» se leen de un
+// vistazo y estorban si se quedan. El logro sube un poco porque celebra algo y
+// merece verse. `opts.duration` sigue mandando por encima de todo.
+const DURACION = { error: 5200, logro: 4000 };
+const DURACION_POR_DEFECTO = 2400;
+
 function ToastItem({ toast, onDismiss }) {
   const { t } = useT();
   const style = TYPE_STYLES[toast.type] || TYPE_STYLES.info;
@@ -40,7 +61,13 @@ function ToastItem({ toast, onDismiss }) {
   // sombra, y cada tema pone la suya.
   return (
     <div
-      role="status"
+      // El ERROR se anuncia como `alert` (asertivo) y el resto como `status`
+      // (cortés). No es un detalle de purista: `status` ESPERA a que el lector
+      // termine lo que esté diciendo, y lo que suele estar diciendo justo
+      // entonces es el propio formulario que acaba de cambiar — así que el aviso
+      // se anunciaba tarde, o se perdía por el camino cuando su turno llegaba
+      // después de que el telegrama ya se hubiera retirado solo.
+      role={toast.type === "error" ? "alert" : "status"}
       className={`
         pointer-events-auto flex w-full max-w-sm items-center gap-3
         rounded-none border border-tinta bg-papel
@@ -104,11 +131,12 @@ export function ToastProvider({ children }) {
   const push = useCallback(
     (msg, opts = {}) => {
       const id = genId();
+      const tipo = opts.type || "info";
       const toast = {
         id,
         msg,
-        type: opts.type || "info",
-        duration: opts.duration ?? 2400,
+        type: tipo,
+        duration: opts.duration ?? DURACION[tipo] ?? DURACION_POR_DEFECTO,
         action: opts.action,
       };
 
@@ -139,7 +167,12 @@ export function ToastProvider({ children }) {
       {portalTarget &&
         createPortal(
           <div
-            aria-live="polite"
+            // SIN `aria-live` aquí: cada telegrama trae ya el suyo (role
+            // status/alert, que son regiones vivas por definición), y una región
+            // viva dentro de otra hace que algunos lectores anuncien el mismo
+            // aviso dos veces. La politeness tiene que decidirse POR AVISO
+            // —el error es asertivo y el resto no—, y eso desde el contenedor,
+            // que es uno solo para todos, no se puede.
             className="
               pointer-events-none fixed inset-x-0 bottom-0 z-[200]
               flex flex-col items-center gap-2

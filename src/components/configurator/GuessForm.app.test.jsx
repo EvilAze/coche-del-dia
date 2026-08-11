@@ -268,9 +268,24 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     expect(renglon("cdd.labelModelo").textContent).toContain("cdd.catalogLoading");
   });
 
-  it("MODELO está bloqueado hasta que hay marca", async () => {
+  // Antes este test decía «MODELO está bloqueado hasta que hay marca» y
+  // comprobaba `disabled === true`. Seguía sin poder listar modelos —eso no ha
+  // cambiado, y no puede cambiar: los modelos acotan el coche— pero tocarlo no
+  // devolvía NADA, que en táctil no se lee como «todavía no» sino como «roto».
+  it("tocar MODELO sin marca no muere: abre la hoja de MARCA", async () => {
     await montar();
-    expect(renglon("cdd.labelModelo").disabled).toBe(true);
+    expect(renglon("cdd.labelModelo").disabled).toBe(false);
+
+    fireEvent.click(renglon("cdd.labelModelo"));
+
+    // Lo que se abre es MARCA, no una lista de modelos vacía.
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Volkswagen/ })).toBeTruthy();
+
+    // Y la cadena de siempre remata el gesto: elegir marca lleva a modelo, así
+    // que el dedo acaba donde apuntaba.
+    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
+    expect(screen.getByRole("option", { name: /Ibiza/ })).toBeTruthy();
   });
 
   it("con lista larga el buscador se autoenfoca; filtra sin tildes", async () => {

@@ -70,13 +70,22 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
       const profile = await saveDisplayName(clean);
       onSaved(profile);
     } catch (err) {
-      // Mapeamos códigos conocidos a strings traducidos; si no, mostramos el
-      // mensaje crudo del backend o un genérico de save.
-      const msg =
+      // El nick duplicado es el único caso que el jugador puede ARREGLAR, y por
+      // eso tiene su propia frase: le dice que elija otro.
+      //
+      // El resto va al genérico. Antes caía a `err.message`, o sea el mensaje
+      // crudo del backend o el del navegador si fallaba la red («Failed to
+      // fetch», en inglés pase lo que pase) — impreso bajo un campo de un
+      // formulario, donde se lee como si lo hubiera provocado lo que acabas de
+      // teclear. Y encima no se registraba en ningún sitio: el `catch` lo
+      // recibía y lo tiraba, así que un fallo al guardar la firma no dejaba
+      // rastro para depurar.
+      console.error("[NicknameModal] fallo guardando la firma", err);
+      setError(
         err?.code === "DUPLICATE_DISPLAY_NAME"
           ? t("nickname.errorDuplicate")
-          : err?.message || t("nickname.errorSave");
-      setError(msg);
+          : t("nickname.errorSave")
+      );
     } finally {
       setSaving(false);
     }
@@ -86,6 +95,7 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
     <ModalShell
       open={open}
       onClose={onClose}
+      label={editando ? t("nickname.titleChange") : t("nickname.title")}
       backdropClassName="modal-scrim fixed inset-0 z-[120] flex items-center justify-center px-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
     >
@@ -111,6 +121,12 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
             setError("");
           }}
           placeholder={t("nickname.placeholder")}
+          // El error queda ATADO al campo. Sin esto era un párrafo suelto
+          // debajo: quien va con lector de pantalla enviaba, no oía nada y se
+          // quedaba esperando, porque el foco sigue en el campo y el campo no
+          // decía que hubiera pasado nada.
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "nickname-error" : undefined}
           className="
             mt-5 h-12 w-full rounded-none border-b border-tinta
             bg-transparent px-2 text-center font-courier text-2xl
@@ -121,7 +137,13 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
 
         <div className="pm-label mt-2 !text-[10px]">{t("nickname.rules")}</div>
 
-        {error && <p className="pm-body mt-3 text-sm text-rojo">{error}</p>}
+        {/* `role="alert"` para que se anuncie al aparecer: es la respuesta al
+            envío, y llega cuando el foco ya no se mueve de sitio. */}
+        {error && (
+          <p id="nickname-error" role="alert" className="pm-body mt-3 text-sm text-rojo">
+            {error}
+          </p>
+        )}
 
         <button
           type="submit"

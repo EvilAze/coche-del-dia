@@ -54,13 +54,30 @@ export default function LoginModal({ open, onClose, aviso = null }) {
   // `vincular=false` cuando venimos de un intento de vinculación fallido: ya
   // sabemos que esa cuenta de Google es de otro usuario, así que reintentar
   // vinculando mandaría al jugador a Google para volver con el mismo error.
+  // Doble toque en el botón de Google. En web da igual (redirige y la página se
+  // va), pero en la app el plugin nativo tarda un instante en presentar la hoja
+  // de cuentas — y ahí cabe un segundo toque. `lib/nativeAuth` ya lo detecta y
+  // devuelve error, así que hoy el castigo por impacientarse es un aviso rojo
+  // por algo que no has hecho mal. Es más barato no dejar que ocurra: el botón
+  // se apaga mientras el intento está en vuelo, igual que ya hacía el de correo.
+  const [entrando, setEntrando] = useState(false);
+
   async function entrarConGoogle(vincular = true) {
+    if (entrando) return;
+    setEntrando(true);
     // En nativo (app) el login va por plugin; si falla (p.ej. falta
     // VITE_GOOGLE_WEB_CLIENT_ID o el usuario cancela con error), damos
     // feedback visible en vez de "no pasa nada". En web redirige, y el error
     // que importa vuelve en la URL — lo recoge lib/authCallback.js.
-    const { error } = (await signInWithGoogle({ vincular })) || {};
-    if (error) toast.push(t("app.loginError"), { type: "error" });
+    try {
+      const { error } = (await signInWithGoogle({ vincular })) || {};
+      if (error) toast.push(t("app.loginError"), { type: "error" });
+    } finally {
+      // En web esto corre mientras el navegador ya se está yendo a Google, y da
+      // igual; en la app es lo que devuelve el botón si el jugador cancela la
+      // hoja de cuentas y quiere volver a intentarlo.
+      setEntrando(false);
+    }
   }
 
   async function pedirEnlace(e) {
@@ -94,6 +111,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
     <ModalShell
       open={open}
       onClose={onClose}
+      label={t("app.loginModalTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[100] flex items-center justify-center p-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
     >
@@ -140,6 +158,8 @@ export default function LoginModal({ open, onClose, aviso = null }) {
             // que esa cuenta es de otro usuario, y reintentar vinculando sería
             // mandarle a Google para volver con el mismo error.
             onClick={() => entrarConGoogle(aviso !== "identidad-ocupada")}
+            disabled={entrando}
+            aria-busy={entrando}
             // Blanco sobre negro es la CHAPA DE MARCA de Google (su logo va sobre
             // fondo blanco por sus propias directrices), así que ese par se queda
             // aunque no sea del tema; es el único sitio de la web donde el color
@@ -147,7 +167,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
             // el resto de botones, y el papel se hunde 1px al pulsar en vez del
             // `hover:scale-105 active:scale-95` del rediseño plano — un botón que
             // crece al pasar por encima es vocabulario de app, no de imprenta.
-            className="flex w-full items-center justify-center gap-3 rounded-none bg-white px-4 py-3 font-semibold text-black transition-transform active:translate-y-px"
+            className="flex w-full items-center justify-center gap-3 rounded-none bg-white px-4 py-3 font-semibold text-black transition-transform active:translate-y-px disabled:opacity-60"
           >
             <GoogleGlyph />
             {t("common.continueWithGoogle")}

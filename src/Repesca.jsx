@@ -173,7 +173,13 @@ export default function Repesca() {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error("Sin sesión");
+        // Marcado, no identificado por su texto: el `catch` decide qué se le
+        // enseña al jugador y necesita distinguir el caso sin leer mensajes.
+        if (!session?.access_token) {
+          const e = new Error("sin sesión");
+          e.sinSesion = true;
+          throw e;
+        }
 
         // /api/repesca/start es idempotente: si la repesca ya está
         // activa para este carId, no consume otra — solo devuelve el
@@ -219,7 +225,13 @@ export default function Repesca() {
         if (cancelled) return;
         console.error("[Repesca] bootstrap:", err);
         setPhase("error");
-        setError(err?.message || t("repesca.errorStartFailed"));
+        // EL MENSAJE TÉCNICO SE QUEDA EN LA CONSOLA. Aquí se pintaba
+        // `err.message`, y ninguno de los tres que llegan está escrito para
+        // leerse: el `detail` crudo del backend, un `HTTP 500`, o el texto del
+        // navegador cuando cae la red («Failed to fetch», en inglés juegue quien
+        // juegue). Y esto no es una esquina: es la pantalla ENTERA de la
+        // repesca, con su titular y su botón. Quien depura ya lo tiene arriba.
+        setError(err?.sinSesion ? t("repesca.errorNeedLogin") : t("repesca.errorStartFailed"));
       }
     })();
 

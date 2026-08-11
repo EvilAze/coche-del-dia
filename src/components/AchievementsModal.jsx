@@ -49,26 +49,47 @@ export default function AchievementsModal({ open, onClose }) {
   const { t } = useT();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reintento, setReintento] = useState(0);
   const [progress, setProgress] = useState({ unlocked: 0, total: 0 });
 
   useEscape(open, onClose);
 
+  // UN FALLO AQUÍ SE VEÍA COMO «NO TIENES NADA», que es la peor forma de
+  // fallar en una pantalla de progreso.
+  //
+  // El `.catch` se limitaba a apagar el spinner: no registraba el error, no
+  // guardaba estado de error y dejaba `stats` en null. Con eso, el cuerpo
+  // montaba igualmente <Achievements stats={null}>, que calcula sin datos y
+  // pinta la escalera entera a cero. O sea que a quien lleva medio año jugando
+  // se le decía, con toda la seguridad del mundo, que no ha conseguido nada —
+  // y sin un solo indicio de que lo que ha fallado es la carga. Mentir en
+  // silencio es peor que dar un error.
   useEffect(() => {
     if (!open) return;
     setLoading(true);
+    setError("");
     setProgress({ unlocked: 0, total: 0 });
     getMyStats()
       .then(({ stats: s }) => {
         setStats(s);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, [open]);
+      .catch((err) => {
+        console.error("[AchievementsModal] fallo cargando las estadísticas", err);
+        setError(t("achievements.errorLoad"));
+        setLoading(false);
+      });
+  }, [open, reintento]);
 
   return (
     <ModalShell
       open={open}
       onClose={onClose}
+      // Sin esto el diálogo se anunciaba solo como «diálogo». Lo pasan ya casi
+      // todos los modales del proyecto; a este, al de identidad y al de acceso
+      // se les había quedado sin poner.
+      label={t("achievements.sectionTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
       panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden"
     >
@@ -86,6 +107,17 @@ export default function AchievementsModal({ open, onClose }) {
       <div className="scrollbar-premium flex-1 overflow-y-auto p-5">
         {loading ? (
           <p className="pm-body py-8 text-center text-sm">{t("common.loading")}</p>
+        ) : error ? (
+          <div className="py-8 text-center">
+            <p className="font-display text-sm text-rojo">{error}</p>
+            <button
+              type="button"
+              onClick={() => setReintento((n) => n + 1)}
+              className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-[11px]"
+            >
+              {t("offline.retry")}
+            </button>
+          </div>
         ) : (
           <Achievements stats={stats} onProgress={setProgress} />
         )}

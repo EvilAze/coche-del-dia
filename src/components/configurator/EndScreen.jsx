@@ -147,6 +147,20 @@ export default function EndScreen({
   useEscape(true, onClose);
   useHistoryClose(true, onClose);
 
+  // El foco entra al panel al abrirlo, que es la otra mitad de lo que promete
+  // `aria-modal` (ver el comentario del contenedor, abajo). Va en un rAF por el
+  // mismo motivo que en ModalShell: el panel tiene animación de entrada y el
+  // nodo aún se está montando cuando corre el efecto.
+  const cardRef = useRef(null);
+  useEffect(() => {
+    // `preventScroll`: el panel es el que scrollea, y enfocarlo no debe moverlo
+    // ni un píxel — el revelado del coche tiene que verse desde arriba.
+    const id = requestAnimationFrame(() =>
+      cardRef.current?.focus({ preventScroll: true })
+    );
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   const hasReveal = Boolean(car?.marca && car?.modelo && car?.anio);
   const attempts = guesses.length;
   const description = getCarDescription(car)?.trim();
@@ -201,9 +215,22 @@ export default function EndScreen({
   }
 
   return (
-    <div className="cdd-end" role="dialog" aria-modal="true">
+    // `aria-modal="true"` promete que lo de fuera NO existe para un lector de
+    // pantalla, y esa promesa hay que sostenerla con dos cosas que faltaban.
+    //
+    //   · UN NOMBRE. Sin `aria-label` esto se anunciaba solo como «diálogo»:
+    //     el jugador acaba de ganar o perder la partida del día y lo que oye no
+    //     dice de qué va la pantalla que le ha aparecido delante.
+    //   · EL FOCO DENTRO. Este panel no usa ModalShell (es un modal a medida),
+    //     así que nadie movía el foco al abrirlo: se quedaba en el botón del
+    //     cupón de debajo, o sea en un elemento que `aria-modal` acaba de
+    //     ESCONDER. Quien navega con lector o con teclado quedaba anclado a la
+    //     nada, sin forma de alcanzar ni Compartir ni la X.
+    <div className="cdd-end" role="dialog" aria-modal="true" aria-label={t("cdd.endScreenAria")}>
       <div className="cdd-end-scrim" onClick={onClose} />
-      <div className="cdd-end-card">
+      {/* `outline-none` como en ModalShell: el panel recibe el foco para abrir
+          la lectura, no para dibujarse un aro alrededor. */}
+      <div className="cdd-end-card outline-none" ref={cardRef} tabIndex={-1}>
         {/* Cerrar SIEMPRE a la vista: botón fijo (sticky) arriba a la IZQUIERDA
             —la derecha la ocupa el sello del veredicto— con área táctil de 44px.
             Antes el único cierre era un enlace diminuto al final del panel, que

@@ -38,3 +38,17 @@ export function repescaJugada(row) {
     return false;
   }
 }
+
+// ¿Hay partida de repesca EMPEZADA Y VIVA? Es lo que da derecho a «Continuar».
+//
+// «Jugada» y «en curso» no son lo mismo, y confundirlas tenía consecuencia:
+// El Archivo ofrecía «Continuar» durante todo el día a quien ya había cerrado
+// su repesca, y ese botón devolvía a una partida terminada — un callejón sin
+// salida en el sitio donde tocaba decir «mañana otra».
+//
+// @param {{guesses?: unknown, status?: string}|null} row Igual que arriba.
+// @returns {boolean} true si empezó y no ha terminado.
+export function repescaEnCurso(row) {
+  if (!repescaJugada(row)) return false;
+  return row.status !== "won" && row.status !== "lost";
+}

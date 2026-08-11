@@ -46,7 +46,8 @@ import { useToast } from "./components/Toast";
 import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
 import { flagImagePath } from "./data/countries";
 import { notifyAchievementsAfterWin } from "./lib/achievementsNotifier";
-import { track } from "./lib/analytics";
+import { track, plataforma } from "./lib/analytics";
+import { captureClientError } from "./lib/sentry";
 import { haptic } from "./lib/haptics";
 import { cssZoomLevels, ZOOM_ATTEMPTS, DEFAULT_ZOOM_BASE } from "./lib/zoom.js";
 
@@ -224,6 +225,14 @@ export default function Repesca() {
       } catch (err) {
         if (cancelled) return;
         console.error("[Repesca] bootstrap:", err);
+        // A Sentry TAMBIÉN. Este catch pinta la pantalla de error entera de la
+        // repesca, y hasta ahora solo dejaba rastro en una consola que nadie
+        // mira: el 12-ago un jugador se quedó sin repesca aquí y no hubo forma
+        // de saber qué vio. El caso "sin sesión" no viaja — es un estado
+        // esperado, no una avería, y llenaría la cuota del free tier.
+        if (!err?.sinSesion) {
+          captureClientError(err, { flujo: "repescaBootstrap", plataforma: plataforma() });
+        }
         setPhase("error");
         // EL MENSAJE TÉCNICO SE QUEDA EN LA CONSOLA. Aquí se pintaba
         // `err.message`, y ninguno de los tres que llegan está escrito para
@@ -284,6 +293,12 @@ export default function Repesca() {
         setImgBlobUrl(blobUrl);
       } catch (err) {
         console.error("[Repesca] image load:", err);
+        // Este fallo es el más traicionero de los tres: no pinta ningún error,
+        // deja el skeleton para siempre. En Modo Veterano —un intento y sin
+        // pistas— la pantalla se queda sin NADA que mirar, y desde fuera es
+        // indistinguible de "la repesca no funciona". Va a Sentry por eso.
+        // El volumen está acotado por diseño: una repesca por jugador y día.
+        captureClientError(err, { flujo: "repescaImagen", plataforma: plataforma() });
         // Dejamos imgBlobUrl en null: el skeleton de CarImage seguirá
         // visible. No es bloqueante — el usuario puede teclear su intento
         // aunque la foto no se vea (aunque sería loca).

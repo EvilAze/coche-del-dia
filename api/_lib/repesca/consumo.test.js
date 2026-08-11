@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { repescaJugada } from "./consumo.js";
+import { repescaJugada, repescaEnCurso } from "./consumo.js";
 
 describe("repescaJugada", () => {
   // El caso que motivó la regla: sorteo apuntado en stats, navegación rota,
@@ -29,5 +29,23 @@ describe("repescaJugada", () => {
   it("no revienta con basura", () => {
     expect(repescaJugada({ status: "playing", guesses: "{" })).toBe(false);
     expect(repescaJugada({ status: "playing", guesses: 42 })).toBe(false);
+  });
+});
+
+describe("repescaEnCurso", () => {
+  it("solo la partida empezada y viva da derecho a «Continuar»", () => {
+    expect(repescaEnCurso({ status: "playing", guesses: [{ win: false }] })).toBe(true);
+  });
+
+  // El callejón sin salida: ofrecer «Continuar» todo el día a quien ya cerró
+  // su repesca devolvía a una partida terminada.
+  it("una partida cerrada ya no ofrece continuar", () => {
+    expect(repescaEnCurso({ status: "won", guesses: [{ win: true }] })).toBe(false);
+    expect(repescaEnCurso({ status: "lost", guesses: [{ win: false }] })).toBe(false);
+  });
+
+  it("un sorteo sin jugar tampoco: ahí el CTA es volver a sortear", () => {
+    expect(repescaEnCurso(null)).toBe(false);
+    expect(repescaEnCurso({ status: "playing", guesses: [] })).toBe(false);
   });
 });

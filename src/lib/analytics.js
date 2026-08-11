@@ -53,8 +53,12 @@
 // ya establecidos.
 //
 // Se calcula UNA vez: Capacitor.isNativePlatform() no cambia en caliente.
+// Exportada además de usarse aquí: Sentry etiqueta con ella sus reportes de
+// repesca. "App o web" fue LA pregunta que separó al jugador que se quedó sin
+// repesca del que jugó sin problema (12-ago-2026), y no tenerla obligó a
+// deducirla del user-agent en la tabla de auditoría.
 let plataformaCache;
-function plataforma() {
+export function plataforma() {
   if (plataformaCache) return plataformaCache;
   try {
     // Import estático no: analytics.js lo usa también el bundle web, y no

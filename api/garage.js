@@ -17,7 +17,7 @@
 //     mitigado por el sistema de proxy + RPC).
 
 import { pseudoIdFor } from "./_lib/repesca-token.js";
-import { repescaJugada } from "./_lib/repesca/consumo.js";
+import { repescaJugada, repescaEnCurso } from "./_lib/repesca/consumo.js";
 import {
   signImageToken,
   IMAGE_MODE_CLEAR,
@@ -266,11 +266,14 @@ export default async function handler(req, res) {
     }
     const repescaConsumedToday = repescaJugada(drawnRow);
     const repescaAvailable = !repescaConsumedToday;
-    // Solo hay "Continuar" si hay partida empezada. Un sorteo que nunca se jugó
-    // no ofrece continuar nada: el CTA vuelve a ser "Jugar" y repite el flujo
-    // completo — y /api/repesca/start, que sigue viendo el sorteo de hoy,
-    // devuelve EL MISMO coche, así que reintentar no es re-sortear.
-    const repescaActiveCarId = repescaConsumedToday ? drawnCarId : null;
+    // "Continuar" solo si la partida está empezada Y VIVA. Los dos extremos
+    // tienen su propio estado y ninguno es continuar:
+    //   · sorteo que nunca se jugó → CTA "Jugar", que repite el flujo completo
+    //     (y /api/repesca/start, que sigue viendo el sorteo de hoy, devuelve EL
+    //     MISMO coche: reintentar no es re-sortear).
+    //   · partida ya cerrada       → CTA apagado y "vuelve mañana". Antes seguía
+    //     diciendo "Continuar" y devolvía a una partida terminada.
+    const repescaActiveCarId = repescaEnCurso(drawnRow) ? drawnCarId : null;
 
     // 3) Agrupar por país. Sin clase de coche → "Sin país" como cubo
     //    fallback (en la práctica no debería pasar porque pais es required

@@ -36,7 +36,8 @@ import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import AchievementIcon from "./AchievementIcons";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
-import { track } from "../lib/analytics";
+import { track, plataforma } from "../lib/analytics";
+import { captureClientError } from "../lib/sentry";
 import { flagImagePath } from "../data/countries";
 import { apiUrl } from "../lib/apiUrl";
 import { countryTier, brandTier, collectorTier, TIER_HEX } from "../lib/collectionTier";
@@ -515,6 +516,10 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
       window.location.href = `/repesca?id=${encodeURIComponent(serverPickedId)}`;
     } catch (err) {
       console.error("[Garage] random repesca:", err);
+      // El sorteo es el punto donde el jugador puede perder su repesca del día
+      // sin llegar a jugarla, así que su fallo no puede quedarse en la consola.
+      // Una por jugador y día: no hay riesgo de inundar el free tier.
+      captureClientError(err, { flujo: "repescaSorteo", plataforma: plataforma() });
       toast.push(err?.message || t("garage.errorRepescaFailed"), {
         type: "error",
       });
@@ -833,6 +838,10 @@ function BackIssuesBand({
     disabled = true;
   } else if (!available) {
     cta = t("garage.repescaNoneToday");
+    // Un botón apagado sin explicación se lee como avería. La línea dice qué
+    // ha pasado y cuándo vuelve a haber: es el estado en el que MÁS falta hace
+    // hablar, porque el jugador acaba de terminar su repesca del día.
+    body = t("garage.backIssuesTomorrow");
     disabled = true;
   }
 

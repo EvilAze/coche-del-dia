@@ -16,12 +16,33 @@
 //           sin pistas: hay que recordar marca+modelo+año exactos).
 // Orden estable y de mayor a menor "rareza percibida" para que el render no
 // dependa del orden en que lleguen los flags.
+//
+// «Pleno» exige que la portada venga del COCHE DEL DÍA. En repesca no
+// significa lo mismo: la veterana da un único intento, así que TODA victoria
+// llegaba con `attempts: 1` y se sellaba como pleno — el archivo presumía de
+// un acierto a la primera en una partida de cinco que nunca ocurrió. El
+// origen se cuenta aparte, en `stampsOf`.
 export function meritsOf(car) {
   if (!car || !car.unlocked) return [];
   const out = [];
   if (car.wonAsVeteran) out.push("vet");
-  if (car.attempts === 1) out.push("pleno");
+  if (car.attempts === 1 && !car.viaRepesca) out.push("pleno");
   return out;
+}
+
+// Lo que se ESTAMPA en el cromo: el mérito más, si toca, el origen. Es una
+// lista aparte porque el dorso separa las dos ideas — «Distintivo» habla de
+// cómo de bien lo hiciste; el origen, de dónde salió la portada.
+//   repesca → desbloqueada rescatando un número atrasado.
+// No se estampa junto a «Vet»: el Modo Veterano solo existe en la repesca, así
+// que ese sello ya dice de dónde viene y repetirlo sería ruido en un cromo de
+// 150 px.
+export function stampsOf(car) {
+  const merits = meritsOf(car);
+  if (car?.unlocked && car.viaRepesca && !car.wonAsVeteran) {
+    return ["repesca", ...merits];
+  }
+  return merits;
 }
 
 // ── Rareza ──────────────────────────────────────────────────────────────

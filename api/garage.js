@@ -141,20 +141,6 @@ export default async function handler(req, res) {
 
     const unlockedIds = new Set((wins || []).map((w) => w.car_id));
 
-    // Metadatos de la victoria por coche. Un mismo coche podría tener más de
-    // una fila ganada (la PK es user_id+car_id+date), así que nos quedamos con
-    // la PRIMERA vez que se ganó: es la fecha que el jugador recuerda como
-    // "cuándo lo conseguí".
-    const winMetaById = new Map();
-    for (const w of wins || []) {
-      const prev = winMetaById.get(w.car_id);
-      if (prev && prev.wonAt && w.date && prev.wonAt <= w.date) continue;
-      winMetaById.set(w.car_id, {
-        wonAt: w.date || null,
-        attempts: attemptsFromGuesses(w.guesses),
-      });
-    }
-
     // 2b) Coches que el usuario ha jugado y PERDIDO (status='lost') en
     //     algún momento. Sirve para detectar Modo Veterano:
     //       - Cromos bloqueados con lost previa → veteran:true (al
@@ -206,6 +192,34 @@ export default async function handler(req, res) {
     (dailies || []).forEach((d, i) => {
       if (!issueByCarId.has(d.car_id)) issueByCarId.set(d.car_id, i + 1);
     });
+    // Pares «fecha|coche» que SÍ fueron partida del día. Es lo único que
+    // distingue una victoria del día de una de repesca: ambas persisten igual
+    // en user_guesses (user_id, car_id, date=hoy), y en la repesca ese car_id
+    // es el de un número atrasado, así que NO coincide con el daily de su
+    // fecha. Sin este cruce no hay forma de saber de dónde salió la portada.
+    const dailyKeys = new Set(
+      (dailies || []).map((d) => `${d.date}|${d.car_id}`)
+    );
+
+    // Metadatos de la victoria por coche. Un mismo coche podría tener más de
+    // una fila ganada (la PK es user_id+car_id+date), así que nos quedamos con
+    // la PRIMERA vez que se ganó: es la fecha que el jugador recuerda como
+    // "cuándo lo conseguí".
+    const winMetaById = new Map();
+    for (const w of wins || []) {
+      const prev = winMetaById.get(w.car_id);
+      if (prev && prev.wonAt && w.date && prev.wonAt <= w.date) continue;
+      winMetaById.set(w.car_id, {
+        wonAt: w.date || null,
+        attempts: attemptsFromGuesses(w.guesses),
+        // viaRepesca: la ganó rescatando un número atrasado, no jugando el
+        // coche del día. Importa porque en repesca veterana solo hay UN
+        // intento, así que toda victoria salía con `attempts: 1` y el archivo
+        // la sellaba como «Pleno» — el mérito de acertar a la primera en una
+        // partida de cinco. El cromo mentía sobre cómo se consiguió.
+        viaRepesca: !(w.date && dailyKeys.has(`${w.date}|${w.car_id}`)),
+      });
+    }
 
     // 4) Estado de la repesca del usuario: si hay una activa hoy, no puede
     //    iniciar otra. Si la activa coincide con un coche concreto, podemos
@@ -283,10 +297,13 @@ export default async function handler(req, res) {
               //              nunca fue coche del día (no debería pasar: toda
               //              victoria viene de un daily o de su repesca).
               //   wonAt    → fecha (Madrid) de la primera vez que lo ganó.
-              //   attempts → intentos que le costó. 1 = pleno.
+              //   attempts → intentos que le costó. 1 = pleno, pero SOLO si la
+              //              portada vino del coche del día (ver viaRepesca).
+              //   viaRepesca → la desbloqueó rescatando un número atrasado.
               issue: issueByCarId.get(c.id) ?? null,
               wonAt: winMetaById.get(c.id)?.wonAt ?? null,
               attempts: winMetaById.get(c.id)?.attempts ?? null,
+              viaRepesca: winMetaById.get(c.id)?.viaRepesca ?? false,
               //   rarity → cuántos coleccionistas tienen esta portada. Es lo
               //            que hace que dos cromos del mismo coche no valgan
               //            igual. Solo en desbloqueados: en un bloqueado

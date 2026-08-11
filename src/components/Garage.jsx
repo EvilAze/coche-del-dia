@@ -45,6 +45,7 @@ import {
   sortCovers,
   groupByBrand,
   meritsOf,
+  stampsOf,
   pickNewCovers,
   issueLabel,
   formatWonAt,
@@ -1143,7 +1144,7 @@ function SpecialCard({ country }) {
 
 function Cover({ car, isNew, onClick }) {
   const { t } = useT();
-  const merits = meritsOf(car);
+  const merits = stampsOf(car);
 
   return (
     <button type="button" onClick={onClick} className="arch-portada focus-ring">
@@ -1234,6 +1235,11 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
   }, [open, car?.id]);
 
   const isLocked = displayCar?.locked;
+  // Dos listas, no una: en la portada se estampa también el origen (repesca),
+  // pero la línea «Distintivo» del dorso es solo para el mérito — el origen
+  // tiene ahí su propia fila y decir «Distintivo: Repesca» sería llamar
+  // mérito a haber rescatado un número atrasado.
+  const stamps = displayCar ? stampsOf(displayCar) : [];
   const merits = displayCar ? meritsOf(displayCar) : [];
   const wonAt = formatWonAt(displayCar?.wonAt, dateLocale);
   const rarity = displayCar?.rarity || null;
@@ -1407,9 +1413,9 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                         draggable={false}
                         className="h-full w-full object-contain"
                       />
-                      {merits.length > 0 && (
+                      {stamps.length > 0 && (
                         <span className="arch-sellos" style={{ top: 8 }}>
-                          {merits.map((m) => (
+                          {stamps.map((m) => (
                             <span key={m} className={`arch-sello arch-sello--${m}`}>
                               {t(`garage.merit_${m}`)}
                             </span>
@@ -1498,10 +1504,32 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                         <span className="v">{wonAt}</span>
                       </div>
                     )}
+                    {/* Origen: de dónde salió la portada. Un cromo rescatado
+                        de un número atrasado no se consiguió igual que uno
+                        del día, y el dorso es donde eso se cuenta. */}
+                    <div className="arch-dato">
+                      <span className="k">{t("garage.datoOrigin")}</span>
+                      <span className="v">
+                        {t(
+                          displayCar.viaRepesca
+                            ? "garage.originRepesca"
+                            : "garage.originDaily"
+                        )}
+                      </span>
+                    </div>
                     {Number.isFinite(displayCar.attempts) && (
                       <div className="arch-dato">
                         <span className="k">{t("garage.datoAttempts")}</span>
-                        <span className={`v ${displayCar.attempts === 1 ? "rojo" : ""}`}>
+                        {/* El realce rojo marca el pleno, no el número: en la
+                            repesca veterana solo hay un intento, así que
+                            pintarlo de rojo celebraría una hazaña que no es. */}
+                        <span
+                          className={`v ${
+                            displayCar.attempts === 1 && !displayCar.viaRepesca
+                              ? "rojo"
+                              : ""
+                          }`}
+                        >
                           {tn("garage.attemptsN", displayCar.attempts)}
                         </span>
                       </div>

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   meritsOf,
+  stampsOf,
   collectCovers,
   sortCovers,
   groupByBrand,
@@ -52,6 +53,39 @@ describe("meritsOf", () => {
   it("un cromo bloqueado nunca tiene sellos", () => {
     expect(meritsOf({ unlocked: false, wonAsVeteran: true })).toEqual([]);
     expect(meritsOf(null)).toEqual([]);
+  });
+
+  // La repesca veterana da UN solo intento: sin este filtro toda victoria
+  // rescatada se sellaba «Pleno», presumiendo de un acierto a la primera en
+  // una partida de cinco que nunca se jugó.
+  it("una victoria de repesca no es pleno aunque venga con un intento", () => {
+    expect(meritsOf(cover({ attempts: 1, viaRepesca: true }))).toEqual([]);
+    expect(
+      meritsOf(cover({ attempts: 1, viaRepesca: true, wonAsVeteran: true }))
+    ).toEqual(["vet"]);
+  });
+});
+
+describe("stampsOf", () => {
+  it("estampa el origen cuando la portada vino de la repesca", () => {
+    expect(stampsOf(cover({ attempts: 1, viaRepesca: true }))).toEqual([
+      "repesca",
+    ]);
+    expect(stampsOf(cover({ attempts: 3, viaRepesca: true }))).toEqual([
+      "repesca",
+    ]);
+  });
+
+  it("no repite el origen si ya hay sello de veterano", () => {
+    expect(
+      stampsOf(cover({ attempts: 1, viaRepesca: true, wonAsVeteran: true }))
+    ).toEqual(["vet"]);
+  });
+
+  it("una portada del día conserva sus méritos tal cual", () => {
+    expect(stampsOf(cover({ attempts: 1 }))).toEqual(["pleno"]);
+    expect(stampsOf(cover({ attempts: 4 }))).toEqual([]);
+    expect(stampsOf({ unlocked: false, viaRepesca: true })).toEqual([]);
   });
 });
 

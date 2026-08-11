@@ -2424,9 +2424,9 @@ body,
   color: var(--cdd-muted); font-variant-numeric: tabular-nums;
 }
 
-/* Sellos de mérito: caen estampados sobre la foto, con la misma física que
-   el sello de fin de partida (.prensa-sello). Apilados en columna para que
-   PLENO y VET puedan convivir sin solaparse. */
+/* Sellos: caen estampados sobre la foto, con la misma física que el sello de
+   fin de partida (.prensa-sello). Apilados en columna para que PLENO y VET
+   puedan convivir sin solaparse. */
 .arch-sellos {
   position: absolute; top: 26px; right: 6px; z-index: 3;
   display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
@@ -2435,12 +2435,16 @@ body,
   font-family: var(--font-body); font-weight: 800; font-size: 8px;
   letter-spacing: .18em; text-transform: uppercase;
   border: 1.5px solid currentColor; padding: 2px 4px;
-  transform: rotate(-7deg);
+  transform: rotate(-7deg); white-space: nowrap;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   animation: prensaSellar .45s cubic-bezier(.2, 1.4, .4, 1) both;
 }
 .arch-sello--pleno { color: var(--rojo); }
 .arch-sello--vet { color: var(--gold); }
+/* El origen no es un mérito: rescatar un número atrasado dice de DÓNDE salió
+   la portada, no lo bien que jugaste. Por eso va en tinta apagada y no en
+   rojo (acción) ni en oro (esto vale algo) — es una anotación de archivero. */
+.arch-sello--repesca { color: var(--cdd-muted); }
 
 /* Cinta «nuevo»: solo hasta la siguiente visita. Es el único elemento del
    archivo que grita, y por eso tiene que ser efímero. */

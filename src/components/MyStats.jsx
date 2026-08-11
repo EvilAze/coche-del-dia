@@ -40,6 +40,7 @@ import { useEffect, useState } from "react";
 import { getProfileSummary } from "../lib/statsService";
 import { signOut } from "../lib/auth";
 import { useEscape } from "../hooks/useEscape";
+import { useHistoryChain } from "../hooks/useHistoryClose";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
@@ -74,6 +75,10 @@ export default function MyStats({
   // al slot obligaría a cerrar el carnet para abrirlo — el jugador perdería el
   // contexto justo en la pantalla donde más falta le hace.
   const [borrarAbierto, setBorrarAbierto] = useState(false);
+  // Reintento manual de la carga. Contador y no callback: `t` cambia de
+  // identidad en cada render y meterlo en un `useCallback` refrescaría el efecto
+  // sin parar.
+  const [reintento, setReintento] = useState(0);
   const [state, setState] = useState({
     loading: true,
     user: null,
@@ -94,14 +99,22 @@ export default function MyStats({
 
     getProfileSummary()
       .then((data) => setState({ loading: false, error: "", ...data }))
-      .catch(() =>
+      .catch((err) => {
+        // El error se registraba en NINGÚN sitio: el `catch` lo recibía y lo
+        // tiraba. Cuando el carnet no cargaba no quedaba ni rastro de por qué,
+        // ni en la consola del que depura. El resto de superficies con datos
+        // (la clasificación, el Archivo, el perfil ajeno) sí lo escriben, y con
+        // el motivo puesto al lado: un fallo del propio perfil no lleva PII del
+        // coche ni tokens (CLAUDE.md #8), así que no había razón para el
+        // silencio.
+        console.error("[MyStats] fallo cargando el perfil", err);
         setState((current) => ({
           ...current,
           loading: false,
           error: t("myStats.errorLoad"),
-        }))
-      );
-  }, [open]);
+        }));
+      });
+  }, [open, reintento]);
 
   async function handleSignOut() {
     const { error } = await signOut();
@@ -119,6 +132,22 @@ export default function MyStats({
   // suscritos a la misma tecla se cierran a la vez, y aquí eso significaría
   // sacar al jugador de los ajustes por intentar cancelar un borrado.
   useEscape(open && !borrarAbierto, onClose);
+
+  // La «atrás» de Android, encadenada igual que el Escape de la línea de arriba.
+  // Antes la cubría el trap global de App.jsx, que cierra el slot de una
+  // pulsación: cancelar un borrado de cuenta con la atrás —el gesto natural para
+  // decir «no, déjalo»— echaba del carnet entero. La tecla hacía lo correcto y el
+  // gesto no, y en la app la tecla no existe.
+  // Por eso `profile` sale del trap global (ver App.jsx): una sola capa por
+  // overlay. true = retrocedido un nivel; false = cerrado del todo.
+  useHistoryChain(open, () => {
+    if (borrarAbierto) {
+      setBorrarAbierto(false);
+      return true;
+    }
+    onClose?.();
+    return false;
+  });
 
   // Si el carnet se cierra por cualquier otra vía (la X, el scrim, la «atrás»
   // de Android, que cierra el slot entero de App), el sub-modal se va con él:
@@ -199,7 +228,17 @@ export default function MyStats({
             <p className="pm-kicker">{t("myStats.carnetKicker")}</p>
             <CloseButton onClick={onClose} className="-mr-2 -mt-2" />
           </div>
+          {/* Con salida, como la edición no disponible y el cupón sin catálogo:
+              un fallo que solo se diagnostica y no se puede reintentar se lee
+              como una app rota. */}
           <p className="text-sm text-rojo">{state.error}</p>
+          <button
+            type="button"
+            onClick={() => setReintento((n) => n + 1)}
+            className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-[11px]"
+          >
+            {t("offline.retry")}
+          </button>
         </>
       ) : !cargando && !state.user ? (
         <>

@@ -315,17 +315,31 @@ export default function App() {
   // de sacar al usuario de la web. Como `activeModal` es un único slot, una
   // sola línea cubre login, ranking, perfil, logros, cómo-se-juega y el nick.
   //
-  // El Archivo queda FUERA a propósito: tiene niveles internos (detalle →
-  // filtro → cerrar) y gestiona su propia cadena con useHistoryChain. Si lo
-  // incluyéramos aquí habría dos entradas fantasma compitiendo por la misma
-  // pulsación.
+  // TRES quedan FUERA a propósito, y por el mismo motivo: tienen NIVELES
+  // INTERNOS, así que gestionan su propia cadena con useHistoryChain. Meterlos
+  // aquí pondría dos entradas fantasma a competir por la misma pulsación.
+  //
+  //   · el Archivo (detalle → filtro → cerrar),
+  //   · la Clasificación (ayuda → perfil ajeno → cerrar),
+  //   · el Carnet (confirmación de borrado → cerrar).
+  //
+  // Los dos últimos se sumaron al arreglar una incoherencia entre los dos gestos
+  // de descartar: el Escape SÍ estaba encadenado en los dos (cada sub-modal se
+  // cierra antes que su padre) y la «atrás» no, porque esta línea cerraba el slot
+  // entero. En la app eso es lo grave, porque ahí la «atrás» no es una
+  // alternativa al Escape: es EL gesto. Abrir el perfil de otro jugador desde la
+  // clasificación y pulsar atrás te sacaba de la clasificación entera en vez de
+  // devolverte a la tabla, y cancelar un borrado de cuenta te echaba del carnet.
   //
   // NicknameModal ya NO es la excepción que era: cuando era obligatorio (ni
   // scrim ni Escape lo cerraban) tampoco debía cerrarse con la atrás, y además
   // vivía fuera de `activeModal`. Ahora es un modal normal en el slot, así que
   // esta línea lo cubre — y por eso el componente NO monta su propio trap.
   useHistoryClose(
-    activeModal !== null && activeModal !== "garage",
+    activeModal !== null &&
+      activeModal !== "garage" &&
+      activeModal !== "ranking" &&
+      activeModal !== "profile",
     closeModal
   );
 

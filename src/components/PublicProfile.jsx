@@ -64,6 +64,9 @@ function countrySlug(pais) {
 export default function PublicProfile({ open, onClose, userId }) {
   const { t, tn, locale } = useT();
   const [state, setState] = useState({ loading: true, data: null, error: "" });
+  // Reintento manual. Contador y no callback: este efecto ya depende de `t`, y
+  // meter la carga en un `useCallback` la ataría igual a su identidad.
+  const [reintento, setReintento] = useState(0);
 
   useEscape(open, onClose);
 
@@ -111,7 +114,7 @@ export default function PublicProfile({ open, onClose, userId }) {
     return () => {
       cancelled = true;
     };
-  }, [open, userId, t]);
+  }, [open, userId, t, reintento]);
 
   // Filtramos los logros que vamos a mostrar:
   //   - Colecciones (marca/país): solo si tienen currentTier (al menos
@@ -183,6 +186,17 @@ export default function PublicProfile({ open, onClose, userId }) {
             <CloseButton onClick={onClose} className="-mr-2 -mt-2" />
           </div>
           <p className="text-sm text-rojo">{state.error}</p>
+          {/* Misma salida que el resto de superficies con datos. Aquí importa
+              incluso más: al perfil ajeno se llega desde la tabla, así que un
+              fallo sin reintento obliga a cerrar, volver a buscar la fila y
+              tocarla otra vez. */}
+          <button
+            type="button"
+            onClick={() => setReintento((n) => n + 1)}
+            className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-[11px]"
+          >
+            {t("offline.retry")}
+          </button>
         </>
       ) : (
         <>

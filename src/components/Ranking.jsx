@@ -48,6 +48,7 @@ import {
 } from "../lib/statsService";
 import { daysUntilClose } from "../lib/season";
 import { useEscape } from "../hooks/useEscape";
+import { useHistoryChain } from "../hooks/useHistoryClose";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
@@ -265,6 +266,29 @@ export default function Ranking({
   // sola pulsación cerraba el perfil ajeno Y el ranking de debajo. Es el mismo
   // defecto que tenía el perfil con «Leyendas», que ahora es una pestaña.
   useEscape(open && !helpOpen && !openProfileId, onClose);
+
+  // La «atrás» de Android, con la MISMA cadena que el Escape y en el mismo
+  // orden. Antes no la tenía: la cubría el trap global de App.jsx, que cierra el
+  // slot entero de una pulsación, así que abrir el perfil de otro jugador y
+  // pulsar atrás no te devolvía a la tabla — te sacaba de la clasificación. En
+  // la app la «atrás» no es una alternativa al Escape, es EL gesto, y tenerla
+  // encadenada peor que una tecla que allí no existe era justo al revés.
+  // Por eso `ranking` sale del trap global (ver App.jsx): dos capas empujando
+  // entradas fantasma por la misma pulsación es el enredo que documenta
+  // ModalShell. Una sola capa, y es esta.
+  // true = «he retrocedido un nivel, sigo abierto»; false = cerrado del todo.
+  useHistoryChain(open, () => {
+    if (helpOpen) {
+      setHelpOpen(false);
+      return true;
+    }
+    if (openProfileId) {
+      setOpenProfileId(null);
+      return true;
+    }
+    onClose();
+    return false;
+  });
 
   // Las dos cargas perezosas, con nombre propio: así el botón de reintento
   // puede volver a llamarlas sin pasar por `selectView`, que solo debe dispararlas

@@ -1812,13 +1812,26 @@ body,
 .pm-indice {
   flex: none; display: flex; flex-direction: column; align-items: center;
   justify-content: center; padding: 4px 6px; border-left: 1px solid var(--line);
+  /* LAS DOS LÍNEAS QUE HACEN POSIBLE EL ARRASTRE, y sin ellas el gesto no
+     existe por mucho JS que se le ponga:
+       · `touch-action: none` — si no, el navegador interpreta el deslizamiento
+         vertical como «esta persona quiere hacer scroll», se queda el gesto y
+         deja de mandar `pointermove`. Es seguro acapararlo aquí porque la tira
+         no tiene nada que desplazar: cabe entera por construcción.
+       · `user-select: none` — bajar el dedo sobre letras es, para el navegador,
+         seleccionar texto: sin esto salen las letras en azul y el manejador de
+         selección de Android encima del índice. */
+  touch-action: none; user-select: none; -webkit-user-select: none;
 }
 .pm-indice-letra {
   padding: 1px 4px; background: none; border: 0; cursor: pointer;
   font-family: var(--font-mono); font-weight: 700; font-size: 10px; line-height: 1.15;
   color: var(--cdd-muted);
 }
-.pm-indice-letra:active { color: var(--rojo); }
+/* La letra bajo el dedo mientras se recorre. Solo color: en esta tira no cabe
+   ni un filete, y el rojo ya es el acento de acción del sistema. */
+.pm-indice-letra:active,
+.pm-indice-letra.activa { color: var(--rojo); }
 
 /* ── EL AÑO: décadas y años, cero dígitos tecleados ── */
 .pm-decadas {

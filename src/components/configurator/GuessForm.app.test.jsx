@@ -186,6 +186,53 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     expect(renglon("cdd.labelMarca").textContent).toContain("Citroën");
   });
 
+  // ── EL ÍNDICE A-Z, QUE SE RECORRE CON EL DEDO ──────────────────────────────
+  // Tenía la forma del índice de la agenda pero no su gesto: solo toques
+  // sueltos sobre letras de 10px. Esto comprueba el arrastre, que es lo que
+  // convierte 80 marcas en un movimiento en vez de en una puntería.
+  it("arrastrar por el índice va cambiando de letra, y soltar lo apaga", async () => {
+    // El índice solo se pinta por encima de 25 opciones: una marca por letra.
+    const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => `${l}auto`);
+    await montar({ catalogo: { cars: CATALOGO.cars, marcas: ABC } });
+    fireEvent.click(renglon("cdd.labelMarca"));
+
+    const tira = screen.getByRole("navigation", { name: "cdd.selectorIndex" });
+    // jsdom no maqueta, así que la tira mide 0 y la cuenta por proporción no
+    // tendría de dónde salir. Le damos una altura: 26 letras en 260px = 10px
+    // cada una.
+    tira.getBoundingClientRect = () => ({
+      top: 0, bottom: 260, height: 260, left: 0, right: 20, width: 20, x: 0, y: 0,
+    });
+
+    fireEvent.pointerDown(tira, { clientY: 5 });
+    expect(screen.getByRole("button", { name: "A" }).className).toContain("activa");
+
+    // El dedo baja SIN levantarse: la letra señalada acompaña.
+    fireEvent.pointerMove(tira, { clientY: 125 });
+    expect(screen.getByRole("button", { name: "M" }).className).toContain("activa");
+    expect(screen.getByRole("button", { name: "A" }).className).not.toContain("activa");
+
+    // Al soltar no queda ninguna encendida: dejarla puesta mentiría en cuanto la
+    // lista se desplace por su cuenta.
+    fireEvent.pointerUp(tira);
+    expect(screen.getByRole("button", { name: "M" }).className).not.toContain("activa");
+  });
+
+  it("sin arrastre, mover el dedo por encima del índice no hace nada", async () => {
+    const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => `${l}auto`);
+    await montar({ catalogo: { cars: CATALOGO.cars, marcas: ABC } });
+    fireEvent.click(renglon("cdd.labelMarca"));
+
+    const tira = screen.getByRole("navigation", { name: "cdd.selectorIndex" });
+    tira.getBoundingClientRect = () => ({
+      top: 0, bottom: 260, height: 260, left: 0, right: 20, width: 20, x: 0, y: 0,
+    });
+
+    // Con el ratón paseando sin botón pulsado, la lista no debe irse sola.
+    fireEvent.pointerMove(tira, { clientY: 125 });
+    expect(screen.getByRole("button", { name: "M" }).className).not.toContain("activa");
+  });
+
   // ── EL CUPÓN SIN CATÁLOGO ──────────────────────────────────────────────────
   // El fallo reportado el 2026-08-10: en una repesca, la fotografía había
   // cargado y los renglones no se dejaban tocar. Eran correctos —sin catálogo no

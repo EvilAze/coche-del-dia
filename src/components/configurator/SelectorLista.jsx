@@ -152,8 +152,64 @@ export default function SelectorLista({
     onElegir(o);
   }
 
+  // ── EL ÍNDICE SE RECORRE CON EL DEDO, no a toquecitos ──────────────────────
+  // La tira A-Z tenía la forma del índice de la agenda pero no su gesto: había
+  // que acertarle a una letra de 10px, soltar, mirar, y volver a acertarle a
+  // otra. En la agenda del teléfono se apoya el dedo y se BAJA, y la lista va
+  // pasando debajo — que es lo que convierte 80 marcas en un movimiento en vez
+  // de en una puntería. Sin arrastre, un índice de letras diminutas es casi
+  // peor que no tenerlo: promete precisión y la cobra.
+  const indiceRef = useRef(null);
+  const arrastrando = useRef(false);
+  // La última letra a la que saltamos. Hace dos trabajos: no repetir el salto en
+  // cada `pointermove` (llegan a decenas por segundo) y que el háptico marque el
+  // CAMBIO de letra, que es la información que el dedo va buscando.
+  const ultimaLetra = useRef(null);
+  // Solo mientras el dedo está apoyado: un indicador que se quedara puesto
+  // mentiría en cuanto la lista se desplace por su cuenta.
+  const [letraActiva, setLetraActiva] = useState(null);
+
+  // Qué letra cae bajo una coordenada Y. Se calcula por PROPORCIÓN sobre el alto
+  // de la tira, no preguntando qué elemento hay en ese punto: al arrastrar, el
+  // dedo se sale de la tira hacia los lados constantemente, y con
+  // `elementFromPoint` el gesto se moriría en cuanto eso pasara. Con la
+  // proporción, lo único que importa es a qué ALTURA está.
+  function letraEnY(y) {
+    const nav = indiceRef.current;
+    if (!nav || !grupos?.length) return null;
+    const r = nav.getBoundingClientRect();
+    if (!r.height) return null;
+    const i = Math.floor(((y - r.top) / r.height) * grupos.length);
+    return grupos[Math.min(Math.max(i, 0), grupos.length - 1)][0];
+  }
+
+  function recorrer(y) {
+    const letra = letraEnY(y);
+    if (!letra || letra === ultimaLetra.current) return;
+    setLetraActiva(letra);
+    irALetra(letra);
+  }
+
+  function alPulsarIndice(e) {
+    // Capturar el puntero es lo que mantiene vivo el gesto cuando el dedo se va
+    // de la tira: sin esto, los `pointermove` dejan de llegar en cuanto sale.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    arrastrando.current = true;
+    ultimaLetra.current = null;
+    recorrer(e.clientY);
+  }
+
+  function alSoltarIndice() {
+    arrastrando.current = false;
+    ultimaLetra.current = null;
+    setLetraActiva(null);
+  }
+
   function irALetra(letra) {
-    haptic.selection();
+    // Un toque suelto dispara `pointerdown` Y `click` sobre la misma letra, así
+    // que sin esta guarda el mismo salto sonaría dos veces.
+    if (letra !== ultimaLetra.current) haptic.selection();
+    ultimaLetra.current = letra;
     // `scrollIntoView` se desplaza sobre el ancestro desplazable más cercano,
     // que es el cuerpo de la hoja: no hay que pasarse refs entre componentes.
     listaRef.current
@@ -254,13 +310,34 @@ export default function SelectorLista({
         </ul>
 
         {grupos && (
-          <nav className="pm-indice" aria-label={t("cdd.selectorIndex")}>
+          <nav
+            ref={indiceRef}
+            className="pm-indice"
+            aria-label={t("cdd.selectorIndex")}
+            // El gesto vive en la TIRA, no en cada letra: al arrastrar, el dedo
+            // pasa por los huecos entre botones y por fuera del borde, y ahí no
+            // hay ningún botón que escuche.
+            onPointerDown={alPulsarIndice}
+            onPointerMove={(e) => { if (arrastrando.current) recorrer(e.clientY); }}
+            onPointerUp={alSoltarIndice}
+            onPointerCancel={alSoltarIndice}
+          >
             {grupos.map(([letra]) => (
               <button
                 key={letra}
                 type="button"
-                className="pm-indice-letra"
+                className={"pm-indice-letra" + (letra === letraActiva ? " activa" : "")}
                 onClick={() => irALetra(letra)}
+                // FUERA DEL TABULADOR, y es una decisión, no un descuido: son
+                // ~26 paradas que hay que atravesar para llegar a la lista, y no
+                // llevan a ningún sitio nuevo —el índice solo DESPLAZA, no elige
+                // nada—. Quien va con teclado tiene el camino bueno y completo
+                // en el buscador: escribir y bajar con las flechas alcanza
+                // cualquier opción sin pasar por aquí.
+                // Sigue siendo un <button>: TalkBack no usa el orden de
+                // tabulación, así que con el cursor virtual se recorre y se
+                // activa igual que antes.
+                tabIndex={-1}
               >
                 {letra}
               </button>

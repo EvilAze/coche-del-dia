@@ -76,9 +76,20 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   // El último paso que se enseñó. La hoja tarda en irse (ModalShell deja correr
   // su animación de salida), así que si el contenido colgara de `hoja` a secas
   // se vaciaría en el mismo frame del cierre y se vería colapsar por dentro.
-  const ultimoPaso = useRef("marca");
-  if (hoja) ultimoPaso.current = hoja;
-  const paso = hoja ?? ultimoPaso.current;
+  //
+  // Va en ESTADO y no en un ref escrito durante el render. Era `ultimoPaso.current
+  // = hoja` a pelo en el cuerpo del componente: funcionaba, pero un render que
+  // muta algo de fuera es impuro, y React se reserva el derecho de renderizar de
+  // más y tirar el resultado (el doble render de StrictMode, un render concurrente
+  // descartado). El día que eso pase, el ref se queda con un paso que nunca llegó
+  // a verse y la hoja se despide enseñando la lista equivocada.
+  //
+  // El ajuste durante el render CON GUARDA sí es puro y es el patrón que React
+  // documenta para «adaptar estado cuando cambia una prop»: se reintenta el render
+  // al instante, sin commit intermedio, así que no hay parpadeo ni efecto de más.
+  const [ultimoPaso, setUltimoPaso] = useState("marca");
+  if (hoja && hoja !== ultimoPaso) setUltimoPaso(hoja);
+  const paso = hoja ?? ultimoPaso;
 
   // El «atrás» de Android CIERRA la hoja, no se lleva al jugador fuera de la
   // partida. Es de las cosas que más delatan a una web disfrazada de app: en

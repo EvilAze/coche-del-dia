@@ -150,6 +150,42 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     expect(screen.getByRole("option", { name: /Golf/ })).toBeTruthy();
   });
 
+  // ── LA VÍA DE TECLADO DE LA HOJA ───────────────────────────────────────────
+  // El buscador se autoenfoca por encima de 12 opciones, así que teclear tiene
+  // que ser un camino COMPLETO. Antes solo atendía a Enter y elegía siempre la
+  // primera coincidencia: quien veía que la suya era la tercera no tenía forma
+  // de llegar a ella sin levantar la mano y tocarla.
+  it("las flechas señalan y Enter elige la señalada, no siempre la primera", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+
+    // 15 marcas (>12) → el buscador manda, y se enfoca solo.
+    const buscador = screen.getByRole("combobox");
+    expect(document.activeElement).toBe(buscador);
+
+    // De la primera (Citroën) a la segunda (Seat).
+    fireEvent.keyDown(buscador, { key: "ArrowDown" });
+    const senalada = screen.getByRole("option", { name: /Seat/ });
+    // Sin esto un lector de pantalla no anunciaría el movimiento.
+    expect(buscador.getAttribute("aria-activedescendant")).toBe(senalada.id);
+
+    fireEvent.keyDown(buscador, { key: "Enter" });
+    expect(renglon("cdd.labelMarca").textContent).toContain("Seat");
+  });
+
+  it("teclear filtra y Enter elige la coincidencia, sin tocar la pantalla", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+
+    const buscador = screen.getByRole("combobox");
+    // Sin tilde: el filtro normaliza, «citroen» tiene que encontrar «Citroën».
+    fireEvent.change(buscador, { target: { value: "citroen" } });
+    expect(screen.queryByRole("option", { name: /Seat/ })).toBeNull();
+
+    fireEvent.keyDown(buscador, { key: "Enter" });
+    expect(renglon("cdd.labelMarca").textContent).toContain("Citroën");
+  });
+
   // ── EL CUPÓN SIN CATÁLOGO ──────────────────────────────────────────────────
   // El fallo reportado el 2026-08-10: en una repesca, la fotografía había
   // cargado y los renglones no se dejaban tocar. Eran correctos —sin catálogo no

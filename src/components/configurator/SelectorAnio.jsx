@@ -19,7 +19,7 @@
 // servidor ya le ha dado a ESTE jugador por sus propios intentos. Es la misma
 // información que ya pintaba `.prensa-horquilla` bajo el campo, con otra forma.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { haptic } from "../../lib/haptics";
 import { useT } from "../../i18n";
 
@@ -76,19 +76,25 @@ export default function SelectorAnio({
     return out;
   }, [suelo, techo]);
 
-  const [decada, setDecada] = useState(null);
-
-  // Al montar, la década que más probablemente busca el jugador: la del valor ya
-  // elegido si lo hay, y si no la del CENTRO de lo que queda vivo. Abrir
-  // siempre en 1880 obligaría a arrastrar la tira entera cada vez.
-  useEffect(() => {
+  // La década que más probablemente busca el jugador: la del valor ya elegido si
+  // lo hay, y si no la del CENTRO de lo que queda vivo. Abrir siempre en 1880
+  // obligaría a arrastrar la tira entera cada vez.
+  //
+  // Se calcula en el INICIALIZADOR PEREZOSO del estado, no en un efecto de
+  // montaje. Con el efecto, el primer render salía con `decada = null` y la
+  // rejilla de años vacía; el valor entraba en el commit siguiente, así que la
+  // hoja del año se abría con un hueco y los años aparecían de golpe un frame
+  // después. La cuenta no necesita el DOM ni depende de nada montado: es
+  // exactamente lo que un inicializador perezoso existe para hacer, y de paso
+  // ahorra el render extra.
+  //
+  // Sigue siendo "solo al abrir" sin lista de dependencias que mantener: este
+  // componente nace y muere con su paso de la hoja, así que montar ES abrir.
+  const [decada, setDecada] = useState(() => {
     const centro = valor ? Number(valor) : Math.round((suelo + techo) / 2);
     const d = decadaDe(Math.min(Math.max(centro, suelo), techo));
-    setDecada(decadas.includes(d) ? d : decadas[0]);
-    // Solo al montar: este componente nace y muere con su paso de la hoja, así
-    // que "montar" es exactamente "abrir el año".
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return decadas.includes(d) ? d : decadas[0];
+  });
 
   const anios = useMemo(() => {
     if (decada == null) return [];

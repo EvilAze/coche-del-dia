@@ -31,7 +31,7 @@
 // Filtrado sin tildes ni mayúsculas (lib/texto), el mismo criterio que el combo
 // de la web: "citroen" tiene que encontrar "Citroën".
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { haptic } from "../../lib/haptics";
 import { normalizar } from "../../lib/texto";
 import { useT } from "../../i18n";
@@ -61,17 +61,27 @@ export default function SelectorLista({
 }) {
   const { t } = useT();
   const [q, setQ] = useState("");
+  // Opción SEÑALADA por el teclado. Mismo mecanismo que el combo de la web (su
+  // `hi`): un índice, no un ref al nodo — así sobrevive al refiltrado.
+  const [hi, setHi] = useState(0);
   const listaRef = useRef(null);
   const buscarRef = useRef(null);
+  const idBase = useId();
 
   const autoFoco = opciones.length > UMBRAL_AUTOFOCO;
 
-  // El foco va SÍNCRONO en el efecto, no diferido a un rAF ni a un setTimeout.
-  // En Android, un `focus()` programático solo levanta el teclado si sigue
-  // dentro de la tarea que nació del toque del usuario; aplazarlo un frame deja
-  // el campo enfocado y el teclado abajo. Es de esos fallos que en escritorio no
-  // existen y en un móvil se ven siempre.
-  useEffect(() => {
+  // El foco tiene que caer DENTRO de la tarea que nació del toque del usuario:
+  // en Android un `focus()` programático solo levanta el teclado si sigue en
+  // ella, y si se aplaza queda el campo enfocado y el teclado abajo. Es de esos
+  // fallos que en escritorio no existen y en un móvil se ven siempre.
+  //
+  // Por eso `useLayoutEffect` y no `useEffect`: este comentario decía que el
+  // efecto era síncrono, y no lo era. `useEffect` se AGENDA tras el pintado, o
+  // sea justo el aplazamiento que el párrafo de arriba dice que no se puede
+  // hacer; el que corre síncrono dentro del commit —y por tanto dentro de la
+  // tarea del toque, porque React vacía las actualizaciones de un click de forma
+  // síncrona— es `useLayoutEffect`. Funcionaba de milagro y por dispositivo.
+  useLayoutEffect(() => {
     if (autoFoco) buscarRef.current?.focus();
   }, [autoFoco]);
 
@@ -98,6 +108,43 @@ export default function SelectorLista({
     return [...mapa.entries()];
   }, [filtradas, q, opciones.length]);
 
+  // Las opciones EN EL ORDEN EN QUE SE VEN. Agrupada, la lista se pinta por
+  // letras, así que recorrerla con las flechas siguiendo `filtradas` bajaría en
+  // un orden distinto del que se lee en pantalla si algún día la fuente deja de
+  // venir alfabética. Aplanando los grupos, el índice del teclado y el orden
+  // visual son el mismo por construcción.
+  const navegables = useMemo(
+    () => (grupos ? grupos.flatMap(([, items]) => items) : filtradas),
+    [grupos, filtradas]
+  );
+
+  // Índice de cada opción dentro de ese recorrido. Las marcas y los modelos son
+  // cadenas únicas, así que sirven de clave directamente.
+  const indiceDe = useMemo(() => {
+    const m = new Map();
+    navegables.forEach((o, i) => m.set(o, i));
+    return m;
+  }, [navegables]);
+
+  // Al refiltrar, la señalada vuelve arriba: si se queda donde estaba, apunta a
+  // una opción que ya no es la que se está mirando.
+  useEffect(() => { setHi(0); }, [q]);
+
+  // La señalada se trae a la vista sola. `nearest` para que no dé un salto
+  // cuando ya se veía. Se busca por rol en vez de guardar refs de cada fila:
+  // funciona igual con la lista plana y con la agrupada.
+  //
+  // La llamada va opcional (`?.()`, no solo `?.`) porque jsdom NO implementa
+  // `scrollIntoView`: sin el guarda, el efecto lanzaba y se llevaba por delante
+  // el componente entero en GuessForm.app.test.jsx — que es el único sitio donde
+  // esta rama se ejecuta de verdad antes de un APK. Desplazar es un adorno; que
+  // la lista se pinte, no.
+  useEffect(() => {
+    listaRef.current
+      ?.querySelectorAll('[role="option"]')[hi]
+      ?.scrollIntoView?.({ block: "nearest" });
+  }, [hi]);
+
   // Elegir NO cierra la hoja: quien decide si queda algún paso por delante es
   // GuessForm, que es el único que sabe qué campos están vacíos.
   function elegir(o) {
@@ -111,32 +158,56 @@ export default function SelectorLista({
     // que es el cuerpo de la hoja: no hay que pasarse refs entre componentes.
     listaRef.current
       ?.querySelector(`[data-letra="${letra}"]`)
-      ?.scrollIntoView({ block: "start" });
+      ?.scrollIntoView?.({ block: "start" });
   }
 
-  // Enter en el buscador elige la primera coincidencia. Es la vía de teclado
-  // completa —teclear y enviar sin tocar la pantalla— y de paso hace que el
-  // buscador se comporte como espera quien viene de la web.
+  // LA VÍA DE TECLADO COMPLETA: bajar, subir y elegir sin tocar la pantalla.
+  //
+  // Antes esto solo atendía a Enter, y elegía siempre la PRIMERA coincidencia.
+  // Con el buscador autoenfocándose por encima de 12 opciones, eso dejaba a
+  // quien escribe en un callejón: teclear «se», ver que la que quiere es la
+  // tercera y no tener ninguna forma de llegar a ella salvo levantar la mano y
+  // tocarla. Las flechas son lo que hace que teclear sea de verdad un camino, y
+  // no un atajo que se rinde a mitad. Es además exactamente lo que ya hacía el
+  // combo de la web (su `onKey`), así que la hoja deja de ser accesiblemente más
+  // pobre que aquello que vino a sustituir.
   function alTeclear(e) {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    if (filtradas.length > 0) elegir(filtradas[0]);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHi((h) => Math.min(h + 1, navegables.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHi((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (navegables[hi]) elegir(navegables[hi]);
+    }
+    // Escape no se toca: lo recoge SelectorHoja (useEscape) y cierra la hoja
+    // entera, que es lo que se espera de un diálogo.
   }
 
-  const opcion = (o) => (
-    <li
-      key={o}
-      role="option"
-      aria-selected={o === valor}
-      className={"pm-opcion" + (o === valor ? " elegida" : "")}
-      onClick={() => elegir(o)}
-    >
-      <span className="pm-opcion-texto">{o}</span>
-      {optionFlag?.(o) && (
-        <img className="bandera" src={optionFlag(o)} alt="" draggable={false} loading="lazy" />
-      )}
-    </li>
-  );
+  const opcion = (o) => {
+    const i = indiceDe.get(o);
+    return (
+      <li
+        key={o}
+        id={`${idBase}-o${i}`}
+        role="option"
+        aria-selected={o === valor}
+        className={"pm-opcion" + (o === valor ? " elegida" : "") + (i === hi ? " hi" : "")}
+        onClick={() => elegir(o)}
+        // Con el ratón, señalar lo que hay debajo del cursor mantiene una sola
+        // idea de "la que está a punto de elegirse" — si no, el teclado señala
+        // una y el clic cae en otra.
+        onMouseEnter={() => setHi(i)}
+      >
+        <span className="pm-opcion-texto">{o}</span>
+        {optionFlag?.(o) && (
+          <img className="bandera" src={optionFlag(o)} alt="" draggable={false} loading="lazy" />
+        )}
+      </li>
+    );
+  };
 
   return (
     <>
@@ -150,6 +221,15 @@ export default function SelectorLista({
           onKeyDown={alTeclear}
           placeholder={t("cdd.selectorSearch")}
           enterKeyHint="search"
+          // El buscador MANDA sobre la lista, y hay que decirlo: sin esto un
+          // lector de pantalla lee un campo de texto suelto y una lista aparte,
+          // así que las flechas mueven algo que no anuncia nada. Con el patrón
+          // combobox, cada ↑/↓ lee en voz alta la opción señalada.
+          role="combobox"
+          aria-expanded="true"
+          aria-autocomplete="list"
+          aria-controls={`${idBase}-lista`}
+          aria-activedescendant={navegables[hi] ? `${idBase}-o${hi}` : undefined}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -160,7 +240,7 @@ export default function SelectorLista({
       </div>
 
       <div className="pm-lista-caja">
-        <ul className="pm-lista" role="listbox" aria-label={titulo} ref={listaRef}>
+        <ul id={`${idBase}-lista`} className="pm-lista" role="listbox" aria-label={titulo} ref={listaRef}>
           {filtradas.length === 0 && <li className="pm-opcion vacia">{t("cdd.noMatches")}</li>}
 
           {grupos

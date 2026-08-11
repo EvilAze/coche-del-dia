@@ -1787,6 +1787,12 @@ body,
 /* La ya elegida, con el filete al margen del corrector — el mismo lenguaje que
    la opción señalada del combo de la web. */
 .pm-opcion.elegida { box-shadow: inset 3px 0 0 0 var(--rojo); font-weight: 700; }
+/* La SEÑALADA por las flechas del buscador. Solo el lavado de rojo —el mismo de
+   :active, que es su gemelo táctil—: el filete al margen ya lo gasta .elegida,
+   que es la que está puesta en el cupón, y las dos pueden caer en la misma fila
+   (abres MARCA con Seat elegida y bajas con el teclado). Separadas así, se
+   distingue «la que hay» de «la que estás a punto de poner». */
+.pm-opcion.hi { background: rgb(var(--rojo-rgb) / .08); }
 .pm-opcion.vacia { min-height: 44px; cursor: default; color: var(--faint); font-style: italic; }
 .pm-opcion .bandera { width: 20px; height: 14px; object-fit: cover; flex: none; }
 .pm-grupo { list-style: none; }

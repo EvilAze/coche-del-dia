@@ -18,11 +18,29 @@
 // `// @vitest-environment jsdom`. Así jsdom se levanta una vez y no en cada
 // fichero, que multiplicaría por tres el tiempo de la suite.
 
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
     environment: "node",
+
+    // LOS WORKTREES NO SON CÓDIGO DE ESTE PROYECTO, y sin esta línea Vitest los
+    // trataba como si lo fueran. Viven en `.claude/worktrees/`, que no está en
+    // el `exclude` por defecto (solo lo están node_modules, dist y compañía), así
+    // que ejecutar la suite desde el checkout principal recogía una copia de cada
+    // test por cada rama abierta: 268 ficheros y 2486 tests en vez de 46 y 428.
+    //
+    // Y no era solo lentitud. Dos ramas abandonadas dejaban su `locales.test.js`
+    // en rojo por cadenas que ya no existen en ningún sitio, así que `npm test`
+    // en el checkout principal FALLABA por código que no se publica. Eso es lo
+    // caro: desde que los cambios de app van directos a `main` sin PR (regla 13),
+    // esta suite es la única red antes de producción, y una red que da rojo por
+    // motivos ajenos se acaba mirando de reojo — que es como se cuela el rojo de
+    // verdad.
+    //
+    // `build/` va también: es salida generada, y sus copias del bundle no son
+    // tests pero sí ficheros que rastrear.
+    exclude: [...configDefaults.exclude, "**/.claude/worktrees/**", "**/build/**"],
   },
 });

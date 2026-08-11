@@ -1494,9 +1494,25 @@ body,
     flex: 0 0 auto;
   }
 
-  /* LA BANDA ELÁSTICA: la fotografía se queda con lo que sobre. */
+  /* LA BANDA FIJA: la fotografía mide SIEMPRE lo mismo, juegue el intento que
+     juegue. Aquí ponía `flex: 1 1 auto` —la foto era el RESIDUO del reparto— y
+     esa sola palabra es la que encogía la foto en cada intento: el historial es
+     un hermano que CRECE (una fila más por intento) dentro de un presupuesto
+     vertical cerrado (100svh), así que cada fila nueva salía del único ítem que
+     cedía. No era un bucle ni una pérdida de resolución: era el reparto del flex
+     haciendo exactamente lo que se le pidió, de forma acumulativa y monótona.
+     Medido en un 360×800 típico: 324×243 hasta el intento 2, 296×222 en el 3 y
+     260×195 del 4 en adelante — un 36% de área menos justo cuando el jugador
+     más mira la foto, y encima contra la mecánica (cada pista debe enseñar MÁS
+     coche, no el mismo coche en un sello más pequeño).
+
+     Con `0 1 auto` la sección vale su alto natural (el ancho de la columna ×3/4,
+     que es el 4:3 de las reglas 5 y 7) y NO absorbe la sobra. Conserva el
+     `shrink: 1` a propósito: en un móvil muy bajo sigue siendo lo último que
+     cede, hasta su suelo, y a partir de ahí cede la válvula de scroll. Quien
+     absorbe la sobra pasa a ser el historial, que para eso es una lista. */
   :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-area-foto {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     /* EL SUELO VA AQUÍ, EN EL ÍTEM FLEX, y las dos alternativas obvias fallan —
        las dos comprobadas en el banco antes de escribir esto:
          · `min-height: 0` deja que la sección se aplaste hasta h=0 mientras la
@@ -1555,21 +1571,40 @@ body,
     aspect-ratio: 4 / 3; /* se reafirma: la proporción no se negocia */
   }
 
-  /* EL HISTORIAL: lo ÚNICO con scroll propio en toda la pantalla, y es una
-     lista, que es la única cosa que un usuario espera poder deslizar dentro de
-     una app. El tope al 26% del alto reparte el presupuesto vertical a favor de
-     lo que se juega: con cinco intentos la lista se desliza, la foto no se
-     convierte en un sello. `overscroll-behavior: contain` evita que al llegar
-     al final el gesto se propague y arrastre la pantalla entera. */
+  /* EL HISTORIAL: LA BANDA ELÁSTICA, y lo ÚNICO con scroll propio en toda la
+     pantalla — que es justo lo que un usuario espera poder deslizar dentro de
+     una app. Antes era `flex: 0 1 auto` con un tope del 26%, y esa pareja es la
+     otra mitad del encogimiento de la foto: con `basis: auto` el ALTO DE SU
+     CONTENIDO entra en el presupuesto vertical, así que cada fila nueva movía
+     la cuenta y se la cobraba a la fotografía.
+
+     `flex: 1 1 0` invierte los papeles y corta la dependencia de raíz: con la
+     base en CERO el contenido de la lista NO cuenta para el reparto —da igual
+     que haya uno o cinco intentos—, y la banda se queda exactamente con la
+     sobra, que ahora es una constante (todas las demás bandas lo son). Lo que
+     no cabe se desliza dentro, como en cualquier lista.
+
+     El tope del 26% sobra y por eso se va: existía para que la lista no se
+     comiera la foto, y ya no puede comérsela. Quitarlo además le da a la lista
+     TODA la sobra en vez de dejar un hueco muerto en pantalla.
+
+     Efecto de orden que conviene tener escrito: el historial va con `order: 5`,
+     DETRÁS del cupón. Como la cabecera y la foto (lo único que hay por delante
+     del cupón) miden ahora lo mismo en todo momento, el botón ADIVINAR queda
+     clavado en la misma `y` de principio a fin de la partida. El shell deja de
+     recomponerse tras cada intento: es la misma promesa que perseguía el encaje
+     por JS de la web, aquí sin medir nada.
+
+     `overscroll-behavior: contain` evita que al llegar al final el gesto se
+     propague y arrastre la pantalla entera. */
   :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-historial {
-    flex: 0 1 auto;
-    /* Suelo de dos filas: encogiendo a la par que la foto, el reparto flex podía
-       dejar la lista en una rendija de píxeles — visible, inútil y peor que no
-       pintarla. Con dos filas y su scroll, siempre se lee el último intento, que
-       es el que importa. (Con cero intentos no se monta el bloque, así que este
-       mínimo nunca dibuja una caja vacía.) */
+    flex: 1 1 0;
+    /* Suelo de dos filas: en un móvil bajo la sobra puede ser de píxeles, y una
+       lista en una rendija es visible, inútil y peor que no pintarla. Con dos
+       filas y su scroll, siempre se lee el último intento, que es el que
+       importa. (Con cero intentos no se monta el bloque, así que este mínimo
+       nunca dibuja una caja vacía.) */
     min-height: 3.5rem;
-    max-height: 26%;
     overflow-y: auto;
     overscroll-behavior: contain;
   }

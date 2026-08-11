@@ -86,6 +86,28 @@ function StreakBadge({ streak }) {
 
 // El sello «TÚ» de una fila: doble filete y Courier, sin rotación (en una fila
 // de tabla el sello estampado a mano se comería la línea de al lado).
+// UN FALLO CON SALIDA. Las tres pestañas de este modal se quedaban en una línea
+// roja y nada más: para reintentar había que cerrar el ranking y volver a
+// abrirlo (que sí recarga, porque el efecto cuelga de `open`) y eso hay que
+// adivinarlo. El juego y el cupón ya tienen su botón de reintento con el motivo
+// escrito —un fallo sin salida se lee como una app rota—, y una clasificación
+// que no carga no merece peor trato que ellos.
+function ErrorConSalida({ texto, onReintentar }) {
+  const { t } = useT();
+  return (
+    <div className="py-3">
+      <p className="font-display text-sm text-rojo">{texto}</p>
+      <button
+        type="button"
+        onClick={onReintentar}
+        className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-[11px]"
+      >
+        {t("offline.retry")}
+      </button>
+    </div>
+  );
+}
+
 function SelloYo() {
   const { t } = useT();
   return <span className="pm-sello pm-sello--plano rank-yo">{t("ranking.you")}</span>;
@@ -188,6 +210,10 @@ export default function Ranking({
   const [champions, setChampions] = useState({ loading: false, seasons: [], error: "", loaded: false });
   const [legends, setLegends] = useState({ loading: false, players: [], error: "", loaded: false });
   const [helpOpen, setHelpOpen] = useState(false);
+  // Reintento manual de la tabla de la temporada. Contador y no callback: `t`
+  // cambia de identidad en cada render y meter la carga en un `useCallback`
+  // haría refrescar el efecto sin parar.
+  const [reintento, setReintento] = useState(0);
   // Modal de perfil público al clicar una fila del ranking. Guardamos el userId
   // del jugador objetivo; null = cerrado.
   const [openProfileId, setOpenProfileId] = useState(null);
@@ -232,7 +258,7 @@ export default function Ranking({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, reintento]);
 
   // El perfil público entra en la condición junto a la ayuda: es otro sub-modal
   // que se monta ENCIMA con su propio listener de Escape, así que sin esto una
@@ -240,32 +266,39 @@ export default function Ranking({
   // defecto que tenía el perfil con «Leyendas», que ahora es una pestaña.
   useEscape(open && !helpOpen && !openProfileId, onClose);
 
+  // Las dos cargas perezosas, con nombre propio: así el botón de reintento
+  // puede volver a llamarlas sin pasar por `selectView`, que solo debe dispararlas
+  // la PRIMERA vez que se entra en su pestaña.
+  function cargarCampeones() {
+    track("champions_view", { source: "ranking" });
+    setChampions({ loading: true, seasons: [], error: "", loaded: false });
+    getChampions()
+      .then((seasons) => setChampions({ loading: false, seasons, error: "", loaded: true }))
+      .catch((err) => {
+        // Mismo criterio que el leaderboard: logueamos (sin PII) y mostramos
+        // un mensaje genérico. Típico si aún no se aplicó la migración SQL.
+        console.error("[Ranking] fallo cargando el salón de campeones", err);
+        setChampions({ loading: false, seasons: [], error: t("ranking.errorLoad"), loaded: true });
+      });
+  }
+
+  function cargarLeyendas() {
+    track("legends_view", { source: "ranking" });
+    setLegends({ loading: true, players: [], error: "", loaded: false });
+    getLeaderboard()
+      .then((players) => setLegends({ loading: false, players, error: "", loaded: true }))
+      .catch((err) => {
+        console.error("[Ranking] fallo cargando el histórico", err);
+        setLegends({ loading: false, players: [], error: t("ranking.errorLoad"), loaded: true });
+      });
+  }
+
   // Cambio de pestaña. La primera vez que se abre "Campeones" dispara el fetch
   // del palmarés (perezoso, una sola vez por apertura del modal).
   function selectView(next) {
     setView(next);
-    if (next === "campeones" && !champions.loaded && !champions.loading) {
-      track("champions_view", { source: "ranking" });
-      setChampions({ loading: true, seasons: [], error: "", loaded: false });
-      getChampions()
-        .then((seasons) => setChampions({ loading: false, seasons, error: "", loaded: true }))
-        .catch((err) => {
-          // Mismo criterio que el leaderboard: logueamos (sin PII) y mostramos
-          // un mensaje genérico. Típico si aún no se aplicó la migración SQL.
-          console.error("[Ranking] fallo cargando el salón de campeones", err);
-          setChampions({ loading: false, seasons: [], error: t("ranking.errorLoad"), loaded: true });
-        });
-    }
-    if (next === "leyendas" && !legends.loaded && !legends.loading) {
-      track("legends_view", { source: "ranking" });
-      setLegends({ loading: true, players: [], error: "", loaded: false });
-      getLeaderboard()
-        .then((players) => setLegends({ loading: false, players, error: "", loaded: true }))
-        .catch((err) => {
-          console.error("[Ranking] fallo cargando el histórico", err);
-          setLegends({ loading: false, players: [], error: t("ranking.errorLoad"), loaded: true });
-        });
-    }
+    if (next === "campeones" && !champions.loaded && !champions.loading) cargarCampeones();
+    if (next === "leyendas" && !legends.loaded && !legends.loading) cargarLeyendas();
   }
 
   // Props comunes a todas las filas de la tabla.
@@ -374,7 +407,7 @@ export default function Ranking({
         {state.loading ? (
           <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
         ) : state.error ? (
-          <p className="py-3 font-display text-sm text-rojo">{state.error}</p>
+          <ErrorConSalida texto={state.error} onReintentar={() => setReintento((n) => n + 1)} />
         ) : state.players.length === 0 ? (
           <p className="pm-body py-3 text-sm">{t("ranking.emptySeason")}</p>
         ) : (
@@ -477,7 +510,7 @@ export default function Ranking({
           (champions.loading ? (
             <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
           ) : champions.error ? (
-            <p className="py-3 font-display text-sm text-rojo">{champions.error}</p>
+            <ErrorConSalida texto={champions.error} onReintentar={cargarCampeones} />
           ) : champions.seasons.length === 0 ? (
             <p className="pm-body py-3 text-sm">{t("ranking.championsEmpty")}</p>
           ) : (
@@ -539,7 +572,7 @@ export default function Ranking({
             {legends.loading ? (
               <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
             ) : legends.error ? (
-              <p className="py-3 font-display text-sm text-rojo">{legends.error}</p>
+              <ErrorConSalida texto={legends.error} onReintentar={cargarLeyendas} />
             ) : legends.players.length === 0 ? (
               <p className="pm-body py-3 text-sm">{t("ranking.empty")}</p>
             ) : (

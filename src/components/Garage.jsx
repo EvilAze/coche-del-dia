@@ -285,6 +285,12 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
     }
   }, [open, user]);
 
+  // Reintento manual del fetch. Es un contador y no una función suelta a
+  // propósito: `t` cambia de identidad en cada render, así que una `useCallback`
+  // con la carga dentro haría refrescar el efecto sin parar. Subir el número es
+  // inofensivo y dice exactamente lo que pasa.
+  const [reintento, setReintento] = useState(0);
+
   // Fetch al abrir, solo logueado.
   useEffect(() => {
     if (!open || !user) return;
@@ -296,7 +302,14 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error(t("garage.errorNoSession"));
+        if (!session?.access_token) {
+          // Marcado, no identificado por su texto: el `catch` de abajo decide
+          // qué se le enseña al jugador, y para eso necesita distinguir el caso
+          // sin leer mensajes.
+          const e = new Error("sin sesión");
+          e.sinSesion = true;
+          throw e;
+        }
 
         const res = await fetch("/api/garage", {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -311,14 +324,23 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
         setNewIds(pickNewCovers(collectCovers(body.countries).map((c) => c.id)));
       } catch (err) {
         console.error("[Garage] fetch:", err);
+        // EL MENSAJE TÉCNICO SE QUEDA EN LA CONSOLA. Aquí se pintaba
+        // `err.message` tal cual, y ese mensaje viene de tres sitios que NO
+        // están escritos para leerse: un `HTTP 500`, el `error` crudo que
+        // devuelva el backend, o el texto del navegador cuando la red falla
+        // («Failed to fetch»), que además llega en inglés pase lo que pase.
+        // Cualquiera de los tres aparecía en mitad del Archivo, compuesto en
+        // monoespaciada, con toda la pinta de una traza que se ha escapado.
+        // El jugador no puede hacer nada con eso; quien depura ya lo tiene
+        // arriba, en el console.error, y con el objeto entero.
         setState({
           loading: false,
           data: null,
-          error: err?.message || t("garage.errorLoad"),
+          error: err?.sinSesion ? t("garage.errorNoSession") : t("garage.errorLoad"),
         });
       }
     })();
-  }, [open, user]);
+  }, [open, user, reintento]);
 
   // País activo del filtro (null = vitrina completa).
   const currentCountry =
@@ -613,7 +635,11 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             ) : state.loading ? (
               <CenterMessage text={t("garage.loading")} pulse />
             ) : state.error ? (
-              <CenterMessage text={state.error} tone="error" />
+              <CenterMessage
+                text={state.error}
+                tone="error"
+                onRetry={() => setReintento((n) => n + 1)}
+              />
             ) : !state.data || state.data.countries.length === 0 ? (
               <CenterMessage text={t("garage.emptyCatalog")} />
             ) : (
@@ -1674,12 +1700,13 @@ function RuleRow({ icon, children, last = false }) {
   );
 }
 
-function CenterMessage({ text, pulse = false, tone = "default" }) {
+function CenterMessage({ text, pulse = false, tone = "default", onRetry = null }) {
+  const { t } = useT();
   // El error usa el rojo del sistema (`accent`), no un red-400 suelto fuera
   // de paleta: en una revista impresa solo hay una tinta roja.
   const toneClass = tone === "error" ? "text-accent" : "text-muted";
   return (
-    <div className="flex flex-1 items-center justify-center p-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
       <p
         className={`font-mono text-sm ${toneClass} ${
           pulse ? "animate-pulse uppercase tracking-widest" : ""
@@ -1687,6 +1714,17 @@ function CenterMessage({ text, pulse = false, tone = "default" }) {
       >
         {text}
       </p>
+      {/* UNA SALIDA, no solo un diagnóstico. Sin este botón, el Archivo caído
+          dejaba al jugador ante una línea roja y nada más: la única forma de
+          volver a intentarlo era cerrar el panel y abrirlo otra vez, y eso hay
+          que adivinarlo. Es el mismo remate que ya tienen la edición no
+          disponible y el cupón sin catálogo — dos sitios donde este proyecto ya
+          decidió que un fallo sin salida se lee como una app rota. */}
+      {onRetry && (
+        <button type="button" onClick={onRetry} className="pm-btn pm-btn--ghost !w-auto px-6 !py-2 !text-[11px]">
+          {t("offline.retry")}
+        </button>
+      )}
     </div>
   );
 }

@@ -17,6 +17,7 @@
 //     mitigado por el sistema de proxy + RPC).
 
 import { pseudoIdFor } from "./_lib/repesca-token.js";
+import { repescaJugada } from "./_lib/repesca/consumo.js";
 import {
   signImageToken,
   IMAGE_MODE_CLEAR,
@@ -236,11 +237,40 @@ export default async function handler(req, res) {
       // como degradación segura (la verificación real ocurre en /start).
     }
     const lastRepescaAt = statsRow?.last_repesca_at || null;
-    const repescaConsumedToday = lastRepescaAt === todayDate;
+    const drawnCarId =
+      lastRepescaAt === todayDate ? statsRow?.last_repesca_car_id || null : null;
+
+    // La repesca se gasta con el PRIMER INTENTO, no con el sorteo (ver
+    // _lib/repesca/consumo.js: el sorteo apunta el coche, pero entre ese apunte
+    // y la primera tecla hay una navegación entera que en la app reinicia el
+    // WebView; si se rompe ahí, el jugador se quedaba sin repesca sin haber
+    // visto una pista). Por eso preguntamos a user_guesses si la partida llegó
+    // a existir, en vez de fiarnos de la fecha del sorteo.
+    let drawnRow = null;
+    if (drawnCarId) {
+      const { data, error: drawErr } = await authClient
+        .from("user_guesses")
+        .select("guesses, status")
+        .eq("user_id", user.id)
+        .eq("car_id", drawnCarId)
+        .eq("date", todayDate)
+        .maybeSingle();
+      if (drawErr) {
+        console.error("[garage] read repesca draw:", drawErr);
+        // Degradación conservadora: si no sabemos si jugó, damos el sorteo por
+        // jugado. Es el comportamiento de siempre y no regala repescas.
+        drawnRow = { status: "playing", guesses: [null] };
+      } else {
+        drawnRow = data;
+      }
+    }
+    const repescaConsumedToday = repescaJugada(drawnRow);
     const repescaAvailable = !repescaConsumedToday;
-    const repescaActiveCarId = repescaConsumedToday
-      ? statsRow?.last_repesca_car_id || null
-      : null;
+    // Solo hay "Continuar" si hay partida empezada. Un sorteo que nunca se jugó
+    // no ofrece continuar nada: el CTA vuelve a ser "Jugar" y repite el flujo
+    // completo — y /api/repesca/start, que sigue viendo el sorteo de hoy,
+    // devuelve EL MISMO coche, así que reintentar no es re-sortear.
+    const repescaActiveCarId = repescaConsumedToday ? drawnCarId : null;
 
     // 3) Agrupar por país. Sin clase de coche → "Sin país" como cubo
     //    fallback (en la práctica no debería pasar porque pais es required
@@ -383,13 +413,13 @@ export default async function handler(req, res) {
       //                          antiguo `wasDaily` por-coche para no filtrar
       //                          qué cromos son candidatos a coche-del-día
       //                          (ver comentario arriba del loop).
-      //   repescaAvailable     → true si el usuario no ha consumido repesca
-      //                          hoy. El frontend usa este flag para decidir
-      //                          si las cards repescables son interactivas
-      //                          (Estado B) o solo decorativas (Estado C).
-      //   repescaActiveCarId   → si hay una repesca en curso (consumida hoy
-      //                          pero sin terminar), aquí va el car_id que
-      //                          el usuario eligió. Permite "Continuar".
+      //   repescaAvailable     → true si al usuario le queda repesca hoy. Se
+      //                          gasta con el primer intento, no con el sorteo
+      //                          (ver _lib/repesca/consumo.js): un sorteo que
+      //                          se quedó por el camino no cuenta, y el CTA
+      //                          reintenta el MISMO coche.
+      //   repescaActiveCarId   → si hay una partida de repesca empezada hoy,
+      //                          aquí va su car_id. Permite "Continuar".
       repescaPoolSize,
       repescaAvailable,
       // Convertimos también el carId de la repesca activa a pseudo para

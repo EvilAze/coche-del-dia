@@ -340,7 +340,8 @@ export default function App() {
   //
   // TRES quedan FUERA a propósito, y por el mismo motivo: tienen NIVELES
   // INTERNOS, así que gestionan su propia cadena con useHistoryChain. Meterlos
-  // aquí pondría dos entradas fantasma a competir por la misma pulsación.
+  // aquí apuntaría DOS manejadores por el mismo overlay, y como manda el de
+  // arriba, cerrar el panel costaría dos pulsaciones en vez de una.
   //
   //   · el Archivo (detalle → filtro → cerrar),
   //   · la Clasificación (ayuda → perfil ajeno → cerrar),

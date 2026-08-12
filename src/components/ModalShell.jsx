@@ -29,12 +29,12 @@ const EXIT_MS = 220;
 // La «atrás» de Android/navegador NO se gestiona aquí. Hubo un intento de
 // hacerlo (pila propia de modales + pushState por apertura) y duplicaba lo que
 // ya hay: App.jsx monta un `useHistoryClose` para todo el slot `activeModal`, y
-// el Garaje su propia cadena `useHistoryChain`. Con las dos capas vivas se
-// empujaban DOS entradas fantasma por modal: cerrando con la X, la limpieza del
-// hijo corre antes que la del padre, así que quedaba una entrada huérfana y la
-// siguiente pulsación de atrás se la tragaba sin hacer nada. En el Archivo era
-// peor: sus sub-modales metían en la cadena una entrada que historyTrap no
-// contabiliza. Una sola capa, y es la de App.jsx.
+// el Archivo su propia cadena `useHistoryChain`. La contabilidad de entradas es
+// hoy una sola para toda la app (lib/historyTrap.js), así que una capa de más
+// no descuadra el historial, pero sí cambia quién manda: apuntarse a la trampa
+// es ponerse ENCIMA en la pila, y entonces la pulsación que el jugador cree
+// dirigida al panel se la queda el chasis. Un overlay, un manejador: el que
+// sabe qué niveles internos tiene.
 
 export default function ModalShell({
   open,

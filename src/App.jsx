@@ -6,7 +6,8 @@ import Configurator from "./components/configurator/Configurator";
 import LoginModal from "./components/LoginModal";
 import ModalShell from "./components/ModalShell";
 import { getMySeasonRank } from "./lib/statsService";
-import { track } from "./lib/analytics";
+import { plataforma, track } from "./lib/analytics";
+import { registrarSesionDiaria } from "./lib/sesionDiaria";
 import {
   leerErrorAuth,
   limpiarErrorAuth,
@@ -151,6 +152,20 @@ export default function App() {
   // intro opcional (link "Ver intro" en footer) o como animación de
   // arranque de PWA — no como bloqueo del primer paint.
 
+  // Marca de "dispositivo activo hoy", partida por plataforma: es lo único que
+  // le dice al panel admin cuánto uso viene de la app de Play y cuánto del
+  // navegador (la plataforma no llega a Postgres por ninguna otra vía; ver
+  // src/lib/sesionDiaria.js).
+  //
+  // Espera a `!checkingProfile` A PROPÓSITO: `user` arranca en null y se
+  // resuelve de forma asíncrona, así que marcar en el primer render etiquetaría
+  // como "anon" a TODO el mundo, incluido yo. El módulo tiene su propio tope
+  // por día, así que da igual que el efecto se reevalúe.
+  useEffect(() => {
+    if (checkingProfile) return;
+    registrarSesionDiaria({ logueado: !!user });
+  }, [checkingProfile, user]);
+
   // Al perder la sesión (logout desde otra pestaña, token caducado…),
   // cerramos cualquier modal abierto: la mayoría muestran datos del usuario
   // que ya no existe. Antes esto vivía dentro del sync de auth; ahora la
@@ -235,7 +250,15 @@ export default function App() {
     track("ranking_open", { auth, source: typeof source === "string" ? source : "unknown" });
     // Fire-and-forget: jamás bloquear ni romper la apertura del ranking.
     supabase
-      .rpc("increment_feature_event", { p_event: "ranking_open", p_auth: auth })
+      .rpc("increment_feature_event", {
+        p_event: "ranking_open",
+        p_auth: auth,
+        // Desde 2026-08 el contador reparte por plataforma. Los APKs viejos
+        // llaman sin este argumento y caen en 'legacy' (la RPC lo tiene por
+        // defecto), así que sus pulsaciones se siguen contando sin ensuciar
+        // el reparto app/web.
+        p_plataforma: plataforma(),
+      })
       .then(undefined, () => {});
     openModal("ranking");
   };

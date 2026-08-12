@@ -261,6 +261,11 @@ export default function AnalyticsPanel() {
             <RankingUsageCard usage={data.engagement.rankingUsage} />
           </Card>
 
+          {/* ROW 3.6 · De dónde entran: app de Play vs navegador */}
+          <Card title="Accesos por plataforma (app vs web)">
+            <PlataformasCard p={data.engagement.plataformas} />
+          </Card>
+
           {/* ROW 4 · Win rate + Streak distribution */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <Card title="Distribución de resultados">
@@ -839,6 +844,159 @@ function RankingUsageCard({ usage }) {
         anónimos). Es un proxy de uso: cuenta aperturas, no usuarios únicos, así que puede
         superar el 100% si la gente abre el ranking varias veces. Útil para ver si la palanca
         se toca, no para % exacto de usuarios.
+      </p>
+    </div>
+  );
+}
+
+// Accesos por plataforma. La ÚNICA métrica del panel que sabe distinguir la app
+// del navegador: todas las demás mezclan las dos poblaciones sin remedio, porque
+// hasta 2026-08 la plataforma solo viajaba a Umami (cuya API es de pago) y a
+// Sentry. Ver lib/admin-handlers/analytics.js → fetchPlataformas.
+//
+// Barras apiladas y no dos líneas: la pregunta es "qué PARTE del uso viene de la
+// app", y una proporción se lee mejor apilada que cruzando dos series con
+// escalas parecidas.
+function PlataformasCard({ p }) {
+  if (!p) {
+    return (
+      <div className="rounded-lg border border-rose-400/30 bg-rose-500/[0.05] px-3 py-2 text-xs text-rose-200/90">
+        No se pudo leer el contador de plataformas. Revisa los logs del endpoint admin.
+      </div>
+    );
+  }
+  if (p.migrationPending) {
+    return (
+      <div className="rounded-lg border border-amber-400/30 bg-amber-500/[0.05] px-3 py-2 text-xs text-amber-200/90">
+        Falta la columna de plataforma en el contador. Aplica{" "}
+        <code className="text-amber-100">scripts/2026-08-feature-events-plataforma.sql</code>{" "}
+        en Supabase y los accesos empezarán a repartirse aquí.
+      </div>
+    );
+  }
+
+  const { series = [], totals, appShare } = p;
+  const maxY = Math.max(1, ...series.map((d) => d.app + d.web + d.legacy));
+  const hayDatos = totals.app + totals.web + totals.legacy > 0;
+
+  const W = 600;
+  const H = 160;
+  const PAD = { top: 10, right: 8, bottom: 22, left: 28 };
+  const alto = H - PAD.top - PAD.bottom;
+  const ancho = W - PAD.left - PAD.right;
+  // Barras con un canal de aire entre ellas, con un mínimo para que un rango de
+  // 90 días no las deje en nada.
+  const paso = ancho / Math.max(1, series.length);
+  const anchoBarra = Math.max(1.5, paso * 0.7);
+  const labelStep = Math.max(1, Math.ceil(series.length / 6));
+
+  if (!hayDatos) {
+    return (
+      <div>
+        <div className="py-8 text-center text-sm text-muted">
+          Sin marcas todavía en este rango.
+        </div>
+        <p className="mt-1 text-[10px] leading-relaxed text-muted">
+          Empieza a contar desde el despliegue del evento <code>sesion</code>: el
+          histórico anterior no se puede repartir (la plataforma no estaba en la
+          base de datos).
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Leyenda + reparto del periodo */}
+      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+        <span className="inline-flex items-center gap-1.5 text-white/80">
+          <span className="inline-block h-2 w-2.5 rounded-sm" style={{ background: "#7af0c8" }} />
+          App{" "}
+          <span className="font-mono text-white/60">
+            {totals.app.toLocaleString("es")}
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-white/60">
+          <span className="inline-block h-2 w-2.5 rounded-sm" style={{ background: "rgba(255,255,255,0.35)" }} />
+          Web{" "}
+          <span className="font-mono text-white/50">
+            {totals.web.toLocaleString("es")}
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-accent/90">
+          Cuota de app{" "}
+          <span className="font-mono">
+            {appShare == null ? "—" : `${(appShare * 100).toFixed(0)}%`}
+          </span>
+        </span>
+        {totals.legacy > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-white/40">
+            <span className="inline-block h-2 w-2.5 rounded-sm" style={{ background: "rgba(255,255,255,0.15)" }} />
+            Sin identificar{" "}
+            <span className="font-mono">{totals.legacy.toLocaleString("es")}</span>
+          </span>
+        )}
+      </div>
+
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none">
+        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top} y2={PAD.top} stroke="rgba(255,255,255,0.08)" />
+        <line x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom} y2={H - PAD.bottom} stroke="rgba(255,255,255,0.15)" />
+        <text x={PAD.left - 6} y={H - PAD.bottom} textAnchor="end" dominantBaseline="middle" fill="rgba(255,255,255,0.5)" fontSize="10">0</text>
+        <text x={PAD.left - 6} y={PAD.top} textAnchor="end" dominantBaseline="middle" fill="rgba(255,255,255,0.5)" fontSize="10">{maxY}</text>
+
+        {series.map((d, i) => {
+          const x = PAD.left + i * paso + (paso - anchoBarra) / 2;
+          const base = H - PAD.bottom;
+          // De abajo arriba: app, web, sin identificar. La app abajo porque es
+          // la serie que se mira, y apoyada en el eje se compara sin esfuerzo.
+          const hApp = (d.app / maxY) * alto;
+          const hWeb = (d.web / maxY) * alto;
+          const hLeg = (d.legacy / maxY) * alto;
+          const total = d.app + d.web + d.legacy;
+          const cuota = d.app + d.web > 0 ? (d.app / (d.app + d.web)) * 100 : null;
+          return (
+            <g key={d.date}>
+              {hLeg > 0 && (
+                <rect x={x} y={base - hApp - hWeb - hLeg} width={anchoBarra} height={hLeg} fill="rgba(255,255,255,0.15)" />
+              )}
+              {hWeb > 0 && (
+                <rect x={x} y={base - hApp - hWeb} width={anchoBarra} height={hWeb} fill="rgba(255,255,255,0.35)" />
+              )}
+              {hApp > 0 && (
+                <rect x={x} y={base - hApp} width={anchoBarra} height={hApp} fill="#7af0c8" />
+              )}
+              {/* Zona de hover a toda la altura: con barras de 2px de ancho, un
+                  <title> solo sobre el relleno es imposible de atinar. */}
+              <rect x={PAD.left + i * paso} y={PAD.top} width={paso} height={alto} fill="transparent">
+                <title>
+                  {`${shortDate(d.date)}: ${d.app} app · ${d.web} web` +
+                    (d.legacy ? ` · ${d.legacy} s/i` : "") +
+                    (cuota == null ? "" : ` — ${cuota.toFixed(0)}% app`) +
+                    ` (${total} disp.)`}
+                </title>
+              </rect>
+            </g>
+          );
+        })}
+
+        {series.map((d, i) =>
+          i % labelStep === 0 ? (
+            <text key={d.date} x={PAD.left + i * paso + paso / 2} y={H - PAD.bottom + 14} textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="10">
+              {shortDate(d.date)}
+            </text>
+          ) : null
+        )}
+      </svg>
+
+      <p className="mt-3 text-[10px] leading-relaxed text-muted">
+        Unidad: <span className="text-white/70">dispositivos-día</span>, no
+        personas — el cliente marca una vez por dispositivo y día, así que dos
+        navegadores del mismo humano cuentan dos. Lo fiable es la{" "}
+        <span className="text-accent/90">proporción</span>.{" "}
+        <span className="text-white/70">Sin identificar</span> = filas anteriores
+        a la migración y APKs sin actualizar; queda fuera del cálculo de la cuota
+        para que actualizar despacio no parezca una caída de uso. Empieza a
+        contar desde el despliegue: el histórico previo no se puede repartir.
       </p>
     </div>
   );

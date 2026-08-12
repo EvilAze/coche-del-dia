@@ -26,15 +26,98 @@
 
 import { next } from "@vercel/edge";
 import { get } from "@vercel/edge-config";
+import {
+  cabeceraCookie,
+  decidirPuerta,
+} from "./api/_lib/edge/admin-gate.js";
 
 export const config = {
-  // Dos cometidos, dos rutas:
-  //   "/"      → el preload de la imagen hero (lo de arriba).
+  // Tres cometidos:
+  //   "/"      → el preload de la imagen hero (lo de arriba). En el host
+  //              interno, además, la redirección al panel.
   //   "/r/:p*" → los enlaces COMPARTIDOS, que llevan la partida en la ruta y
   //              necesitan un og:image propio (ver más abajo).
+  //   el resto → LA PUERTA del panel interno (api/_lib/edge/admin-gate.js).
+  //              Son las rutas que montan el panel en el cliente; en el host
+  //              público la puerta las deja pasar sin tocarlas.
   // Nada más. Cuanto menos tráfico pase por aquí, menos superficie de fallo.
-  matcher: ["/", "/r/:path*"],
+  matcher: [
+    "/",
+    "/r/:path*",
+    "/admin-tools",
+    "/admin-tools/:path*",
+    "/preview",
+    "/admin/:path*",
+  ],
 };
+
+// ─── LA PUERTA DEL PANEL INTERNO ─────────────────────────────────────────────
+// La decisión vive en api/_lib/edge/admin-gate.js (lógica pura, con su suite:
+// el host de la petición es lo que la gobierna, y un Preview de Vercel tiene
+// una URL distinta en cada deploy, así que los tests son la verificación).
+//
+// Las dos variables se leen aquí y no allí para que el módulo siga siendo puro:
+//   ADMIN_HOST      subdominio del panel, p.ej. "taller.cochedeldia.com".
+//   ADMIN_GATE_KEY  clave del enlace de arranque (?k=…). Cambiarla invalida
+//                   todas las cookies emitidas.
+// Si falta cualquiera de las dos, la puerta no existe y todo se comporta como
+// antes: es el interruptor de emergencia si algo sale mal en producción.
+const ADMIN_HOST = process.env.ADMIN_HOST || "";
+const ADMIN_GATE_KEY = process.env.ADMIN_GATE_KEY || "";
+
+// Cabeceras de toda respuesta del host interno. El nombre del subdominio es
+// público (los certificados se publican en los logs de Certificate
+// Transparency), así que al menos que no lo indexe nadie.
+const CABECERAS_INTERNAS = {
+  "X-Robots-Tag": "noindex, nofollow, noarchive",
+  "Cache-Control": "private, no-store",
+};
+
+function aplicarPuerta(request, url) {
+  const decision = decidirPuerta({
+    hostname: url.hostname,
+    pathname: url.pathname,
+    search: url.search,
+    cookieHeader: request.headers.get("cookie") || "",
+    hostInterno: ADMIN_HOST,
+    clave: ADMIN_GATE_KEY,
+  });
+
+  switch (decision.tipo) {
+    case "redirigir":
+      return new Response(null, {
+        status: 307,
+        headers: { Location: new URL(decision.a, url).toString(), ...CABECERAS_INTERNAS },
+      });
+
+    case "sellar":
+      // Cookie + redirección a la URL sin la clave. Un solo viaje: al soltar
+      // el enlace de arranque el navegador acaba ya dentro del panel.
+      return new Response(null, {
+        status: 307,
+        headers: {
+          Location: new URL(decision.a, url).toString(),
+          "Set-Cookie": cabeceraCookie(ADMIN_GATE_KEY),
+          ...CABECERAS_INTERNAS,
+        },
+      });
+
+    case "seguir":
+      // Renovamos la cookie en cada visita válida: así el año de caducidad se
+      // cuenta desde la última vez que entré, y no desde que la sellé.
+      return next({
+        headers: { "Set-Cookie": cabeceraCookie(ADMIN_GATE_KEY), ...CABECERAS_INTERNAS },
+      });
+
+    case "ocultar":
+      // 404 seco, sin cuerpo. Ni formulario, ni "no autorizado", ni nada que
+      // confirme que en esta ruta hay algo que encontrar.
+      return new Response(null, { status: 404, headers: CABECERAS_INTERNAS });
+
+    default:
+      return null; // "ajeno": que siga el flujo normal del middleware.
+  }
+}
 
 // ─── ENLACES COMPARTIDOS: /r/DD-MM/CODIGO ───────────────────────────────────
 // El og:image de index.html es estático e igual para todos, así que por sí solo
@@ -152,6 +235,18 @@ async function getPreloadCached(today) {
 export default async function middleware(request) {
   const url = new URL(request.url);
 
+  // LA PUERTA VA PRIMERO, y va envuelta en try/catch como todo lo demás: si
+  // algo aquí explota, preferimos el comportamiento de siempre a una web
+  // caída. El caso normal —una visita al host público— sale en el primer
+  // `if` del módulo sin tocar nada.
+  try {
+    const respuesta = aplicarPuerta(request, url);
+    if (respuesta) return respuesta;
+  } catch {
+    // Puerta averiada: seguimos el flujo normal. Se degrada hacia "el panel
+    // vuelve a estar accesible", no hacia "la web no carga".
+  }
+
   // Enlaces compartidos: su propio camino, y ninguno de los dos se pisa.
   if (url.pathname.startsWith("/r/")) {
     try {
@@ -164,6 +259,12 @@ export default async function middleware(request) {
     }
     return next();
   }
+
+  // EL PRELOAD ES SOLO DE LA HOME. El matcher ya no es únicamente "/" y
+  // "/r/*": desde que vigila las rutas del panel, sin este guard una visita a
+  // /admin-tools en el host público gastaría una lectura de Edge Config (cuota
+  // del free tier) para inyectar un preload en una página que no lleva foto.
+  if (url.pathname !== "/") return next();
 
   try {
     const today = todayInMadrid();

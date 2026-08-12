@@ -168,8 +168,37 @@ const isDeleteAccount =
   pathname.startsWith("/eliminar-cuenta") ||
   pathname.startsWith("/delete-account");
 
+// EL PANEL SOLO EXISTE EN SU PROPIO HOST. `VITE_ADMIN_HOST` (p.ej.
+// "taller.cochedeldia.com") es un subdominio que apunta al MISMO deploy de
+// Vercel; si está definido y no estamos en él, las rutas internas no montan
+// nada y caen a la portada como cualquier ruta desconocida.
+//
+// Por qué, y por qué en el cliente:
+//   - El App Link de Android declara `cochedeldia.com` sin pathPattern (la app
+//     es esta misma SPA y atiende cualquier ruta), así que un clic en un
+//     resultado de Google hacia /admin-tools abría la APP. Los intent filters
+//     no tienen negación: la única salida es que el panel viva en un host que
+//     el manifest NO declara. Un subdominio no lo intercepta nunca.
+//   - En el apex NO devolvemos 404: un 404 en esta ruta y solo en esta ruta
+//     sería justo la confirmación de que ahí hay algo. Que se comporte como
+//     /cualquier-cosa es lo que hace que no se note. De ahí que el guard esté
+//     AQUÍ y no en el middleware, que en el host público no se mete.
+//   - La puerta del host interno (cookie, 404 sin ella) está en
+//     api/_lib/edge/admin-gate.js. Esto es solo la mitad que hace que el panel
+//     no se pinte donde no toca; la autorización real sigue siendo
+//     requireAdmin en el servidor.
+//
+// Sin la variable definida, el comportamiento es el de siempre. Eso cubre el
+// dev local y el build de la app —donde el host es `localhost`—, y es el
+// interruptor de emergencia: se borra el env en Vercel, se redeploya, y el
+// panel vuelve a responder en el apex.
+const HOST_INTERNO = (import.meta.env.VITE_ADMIN_HOST || "").toLowerCase();
+const esHostDelPanel =
+  !HOST_INTERNO || window.location.hostname.toLowerCase() === HOST_INTERNO;
+
 const isAnyAdminTools =
-  isAdminTools || isLegacyEditCar || isLegacyAddCar || isLegacyPreview;
+  esHostDelPanel &&
+  (isAdminTools || isLegacyEditCar || isLegacyAddCar || isLegacyPreview);
 
 // App va eager (la ruta principal); el resto pasa por Suspense para no
 // quedarse en blanco mientras descarga su chunk.

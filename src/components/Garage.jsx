@@ -564,7 +564,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
             key="garage-panel"
             className="
               relative flex w-full max-w-md flex-col overflow-hidden
-              border-x border-tinta/25 bg-papel
+              border-x border-border bg-papel
             "
             onClick={(e) => e.stopPropagation()}
             initial={{ y: 24, opacity: 0, scale: 0.98 }}
@@ -604,7 +604,7 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
                 py-3) viaja en la variable y no en un `pt-3`, porque la clase
                 pisaría la utilidad — ver el comentario de index.css. */}
             <div
-              className="safe-area-top flex items-center justify-between gap-3 border-b border-tinta/25 px-4 pb-3"
+              className="safe-area-top flex items-center justify-between gap-3 border-b border-border px-4 pb-3"
               style={{ "--safe-area-extra-top": "0.75rem" }}
             >
               <div className="min-w-0">
@@ -846,7 +846,7 @@ function BackIssuesBand({
   }
 
   return (
-    <div className="mx-4 mb-3 border border-tinta/25 bg-papel-mat px-3 py-2.5">
+    <div className="mx-4 mb-3 border border-border bg-papel-mat px-3 py-2.5">
       <div className="flex items-center gap-3">
         <DiceIcon className="h-5 w-5 flex-none text-accent" />
         <div className="min-w-0 flex-1">
@@ -862,7 +862,7 @@ function BackIssuesBand({
             flex-none border border-tinta bg-tinta px-3 py-1.5
             font-body text-[10px] font-extrabold uppercase tracking-[0.18em] text-papel
             transition-colors hover:bg-accent hover:border-accent
-            disabled:cursor-not-allowed disabled:border-tinta/25 disabled:bg-transparent
+            disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent
             disabled:text-muted
           "
         >
@@ -891,7 +891,7 @@ function BackIssuesBand({
 function FilterStrip({ countries, total, active, onSelect }) {
   const { t } = useT();
   return (
-    <div className="sticky top-0 z-10 border-y border-tinta/25 bg-papel">
+    <div className="sticky top-0 z-10 border-y border-border bg-papel">
       <div
         className="arch-tira flex gap-1.5 overflow-x-auto px-4 py-2"
         role="group"
@@ -949,7 +949,7 @@ function Showcase({ covers, newIds, order, onChangeOrder, onSelectCar, hasRarity
   if (covers.length === 0) {
     return (
       <div className="px-6 py-12 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center border border-tinta/25">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center border border-border">
           <CollectionIcon className="h-7 w-7 text-muted" />
         </div>
         <p className="font-display text-xl font-black text-tinta">
@@ -1042,7 +1042,7 @@ function CountryPage({ country, newIds, onSelectCar }) {
             alt=""
             aria-hidden="true"
             draggable={false}
-            className="h-[15px] w-[22px] flex-none border border-tinta/25 object-cover"
+            className="h-[15px] w-[22px] flex-none border border-border object-cover"
           />
           <h3 className="min-w-0 flex-1 truncate font-display text-2xl font-black leading-none tracking-tight text-tinta">
             {getLocalizedCountry(country.pais)}
@@ -1335,8 +1335,8 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                solo cuando el usuario ha mostrado interés tocando el hueco).
                Es el momento de intriga: "¿qué se esconde ahí?". */
             <div className="px-4 pb-4 pt-1">
-              <div className="border border-tinta/25">
-                <div className="flex items-center justify-between border-b border-tinta/15 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
+              <div className="border border-border">
+                <div className="flex items-center justify-between border-b border-border px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
                   <span>{t("garage.coverMasthead")}</span>
                   <span className="text-accent">{t("garage.issueShort")} ???</span>
                 </div>
@@ -1399,7 +1399,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                   aria-hidden={flipped}
                 >
                   <div className="border border-tinta">
-                    <div className="flex items-center justify-between border-b border-tinta/20 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
+                    <div className="flex items-center justify-between border-b border-border px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
                       <span>{t("garage.coverMasthead")}</span>
                       <span className="font-bold text-accent">
                         {t("garage.issueShort")} {issueLabel(displayCar.issue)}
@@ -1471,7 +1471,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                   className="arch-cara arch-cara--dorso px-4 pb-4 pt-1"
                   aria-hidden={!flipped}
                 >
-                  <div className="flex items-center justify-between border-b border-tinta/20 pb-1.5 font-mono text-[9px] uppercase tracking-wider text-muted">
+                  <div className="flex items-center justify-between border-b border-border pb-1.5 font-mono text-[9px] uppercase tracking-wider text-muted">
                     <span>{displayCar.marca} · {displayCar.modelo}</span>
                     <span className="font-bold text-accent">
                       {t("garage.issueShort")} {issueLabel(displayCar.issue)}
@@ -1608,7 +1608,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
             {t("garage.repescaConfirmBody", { poolSize })}
           </p>
 
-          <div className="mt-4 border border-tinta/20 px-3 py-1 text-left">
+          <div className="mt-4 border border-border px-3 py-1 text-left">
             <RuleRow icon={<CalendarIcon />}>{t("garage.repescaRuleOnePerDay")}</RuleRow>
             <RuleRow icon={<HalfIcon />}>{t("garage.repescaRuleHalfPoints")}</RuleRow>
             <RuleRow icon={<StreakSafeIcon />} last>{t("garage.repescaRuleNoStreak")}</RuleRow>
@@ -1728,7 +1728,7 @@ function RuleRow({ icon, children, last = false }) {
   return (
     <div
       className={`flex items-center gap-2.5 py-2 font-body text-xs text-muted ${
-        last ? "" : "border-b border-tinta/[0.12]"
+        last ? "" : "border-b border-border"
       }`}
     >
       <span className="shrink-0 text-accent">{icon}</span>
@@ -1830,7 +1830,7 @@ function RepescaHelpModal({ open, onClose }) {
 
 function HelpRow({ icon, title, children }) {
   return (
-    <div className="flex gap-3 border border-tinta/20 px-3 py-2.5">
+    <div className="flex gap-3 border border-border px-3 py-2.5">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center text-accent">
         {icon}
       </div>
@@ -1848,7 +1848,7 @@ function AuthWall({ onLogin }) {
   const { t } = useT();
   return (
     <div className="flex flex-1 items-center justify-center p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 border border-tinta/25 bg-papel-mat p-6 text-center">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 border border-border bg-papel-mat p-6 text-center">
         <div className="flex h-16 w-16 items-center justify-center border border-accent">
           <LockIcon className="h-8 w-8 text-accent" />
         </div>

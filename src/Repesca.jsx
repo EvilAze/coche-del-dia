@@ -526,7 +526,7 @@ export default function Repesca() {
             // encogía el botón como una pastilla.
             className="
               inline-flex items-center gap-1.5 rounded-none
-              border border-tinta/15 bg-papel-2/60
+              border border-border bg-papel-2/60
               px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta-2
               transition hover:border-rojo/60 hover:bg-rojo/10 hover:text-rojo
               active:translate-y-px

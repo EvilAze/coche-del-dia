@@ -384,7 +384,12 @@ export default function Ranking({
             )
           )}
           <button type="button" className="rank-ayuda group" onClick={() => setHelpOpen(true)} aria-label={t("ranking.helpButtonAria")} title={t("ranking.helpButtonAria")}>
-            <span className="flex items-center justify-center w-5 h-5 rounded-full border border-current font-serif text-sm font-medium transition-colors group-hover:bg-rojo group-hover:text-papel">?</span>
+            {/* CUADRADO, no disco. Era la única curva de toda la pantalla: un
+                círculo sobre un pliego que no redondea nada, rodeado de filetes
+                rectos y del cuadrado de tinta del sumario. Es exactamente el
+                mismo arreglo que ya se hizo en el nodo de hito de Achievements
+                —donde está escrito el porqué— y que a este se le pasó. */}
+            <span className="flex items-center justify-center w-5 h-5 rounded-none border border-current font-serif text-sm font-medium transition-colors group-hover:bg-rojo group-hover:text-papel">?</span>
           </button>
         </div>
 

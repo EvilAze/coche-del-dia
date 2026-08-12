@@ -110,6 +110,30 @@ describe("useHistoryClose / useHistoryChain", () => {
     expect(ventana.profundidad).toBe(0);
   });
 
+  // El relevo al revés, y el que rompía la puerta de entrada: en la
+  // clasificación, un jugador anónimo toca ENTRAR y el botón hace `onClose()` +
+  // `onOpenLogin()` en el mismo gesto. La cadena de la tabla se desmonta y el
+  // login entra en el slot global; con una trampa por overlay, el login se
+  // cerraba solo antes de que se viera y el botón parecía roto.
+  it("de la clasificación al login: el modal de entrada no se cierra solo", async () => {
+    const cerrar = vi.fn();
+    const atrasArchivo = vi.fn(() => false);
+
+    const { rerender } = render(
+      <Juego modal="archivo" cerrar={cerrar} atrasArchivo={atrasArchivo} />
+    );
+    await asentar();
+
+    await act(async () => {
+      rerender(<Juego modal="login" cerrar={cerrar} atrasArchivo={atrasArchivo} />);
+    });
+    await asentar();
+
+    expect(cerrar).not.toHaveBeenCalled();
+    expect(atrasArchivo).not.toHaveBeenCalled();
+    expect(ventana.profundidad).toBe(1);
+  });
+
   it("de un modal normal a otro no se dispara ningún cierre", async () => {
     const cerrar = vi.fn();
     const atrasArchivo = vi.fn(() => false);

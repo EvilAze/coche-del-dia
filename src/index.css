@@ -1636,6 +1636,37 @@ body,
 /* (Aquí vivía «EL MODO ESCRITURA» y su suelo de 360px de ventana. Se fue entero
    con el teclado: ver «EL CUPÓN QUE NO SE TECLEA», más abajo.) */
 
+/* ══ LA CABECERA DE LA APP: SIN MASTHEAD ════════════════════════════════════
+   El wordmark «Coche del Día» ocupa 47px —el 6% de la pantalla de un móvil
+   corriente— para decir algo que en una app ya está dicho: el icono con el que
+   se abrió, el splash y el conmutador de tareas. Es herencia de la web, donde
+   el visitante puede aterrizar desde Google sin saber dónde ha caído; aquí
+   nadie llega por sorpresa. Una app dice su nombre UNA vez, al abrirse.
+
+   Lo que NO se va es el folio: en un juego diario la fecha no es adorno, es el
+   número de la edición, y son 29px entre filetes dobles. Tampoco la barra, que
+   es navegación. La cabecera pasa de 106px a 59.
+
+   Medido en el banco (360x780, la pantalla del autor): el marco de la foto
+   pasa de 316x237 a 324x243 —su tamaño natural, que la cabecera le estaba
+   comiendo— y el historial de 56px (con scroll desde el segundo intento) a 97.
+   En pantallas cortas el efecto es mayor porque ahí la foto va a su suelo: en
+   un 360x640 el pliego pasa de deslizarse 87px a 41.
+
+   El h1 de verdad (SEO y lectores de pantalla) vive `sr-only` en Configurator,
+   así que esconder esto no le quita el nombre a nadie: el masthead es el
+   wordmark VISUAL. Por eso se apaga desde el CSS en vez de con una rama en
+   Header.jsx — una regla que cuelga de `data-plataforma` no puede filtrarse a
+   la web por accidente, y el componente sigue siendo uno solo. */
+@media (max-width: 1099px) {
+  :root[data-plataforma="app"] .prensa-masthead { display: none; }
+  /* Sin el wordmark de por medio, el filete de la barra y el doble filete del
+     folio quedaban a 5px: dos reglas casi pegadas se leen como un error de
+     imprenta, no como dos secciones. El aire que daba el masthead lo pone
+     ahora el propio folio. */
+  :root[data-plataforma="app"] .prensa-folio { margin-top: 10px; }
+}
+
 /* ══ EL CUPÓN QUE NO SE TECLEA — solo app ═══════════════════════════════════
    En la app los tres renglones del cupón dejaron de ser campos de texto y son
    botones que abren una hoja de selección. El teclado del sistema no vuelve a

@@ -1474,6 +1474,34 @@ body,
     --cdd-foto-suelo: 168px;
   }
 
+  /* LA COLUMNA DE LA APP, MÁS ESTRECHA DE MÁRGENES (18px → 12px).
+     Es el ÚNICO sitio de donde puede salir una fotografía más grande, y esto
+     conviene entenderlo antes de tocar nada: el marco es 4:3 y su alto lo manda
+     el ancho de la columna (ancho × 3/4), así que en un móvil alto la foto NO
+     está limitada por el espacio vertical —le sobra— sino por lo ancha que es
+     la columna. Liberar alto (quitar el masthead, apretar el pie) no la agranda
+     ni un píxel: ese espacio se lo queda el historial. Ensanchar, sí.
+
+     12px y no menos: a 8px la ganancia extra es del 5% y el filete del marco
+     empieza a rozar el borde de la pantalla, que es justo lo que separa una
+     fotografía enmarcada de una pegatina. A sangre se descartó a propósito.
+
+     Medido con 3 intentos, marco antes → después de esta regla:
+       360x780  324x243 → 336x252  (85k px², +13% sobre el original de 316x237)
+       384x854  348x261 → 360x270
+       412x915  376x282 → 388x291
+     En 320x568 y 360x640 el marco no se mueve: ahí manda el alto, no el ancho
+     (la foto está encogida contra su suelo y el pliego se desliza, que es la
+     degradación diseñada de siempre).
+
+     Va sobre `.prensa-hoja` y no solo sobre la pantalla de juego a propósito:
+     si el margen cambiara al terminar la partida, el pliego daría un salto
+     lateral justo al cerrar el parte del resultado. */
+  :root[data-plataforma="app"] .prensa-hoja {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
   :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla {
     /* `svh` y no `dvh`: es la misma unidad que ya usa .cdd-app (min-height:
        100svh), así que padre e hijo miden lo mismo por construcción y el

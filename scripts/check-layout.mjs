@@ -228,6 +228,11 @@ const PANTALLAS = [
   // recortaron unos 40px de esos, pero no llegan: aquí sigue entrando la
   // degradación diseñada (la válvula), igual que en el 320.
   { nombre: "Android medio        ", w: 360, h: 640, corriente: false },
+  // 360x780: el móvil del autor y la clase más común hoy (360x780/800). Estaba
+  // fuera de la lista, y es justo el ancho donde la foto pasa de estar limitada
+  // por el ALTO a estarlo por el ANCHO de la columna — la frontera entre los dos
+  // regímenes del shell. Sin él, ningún caso corriente medía esa transición.
+  { nombre: "Android alto         ", w: 360, h: 780, corriente: true },
   { nombre: "Galaxy S23 Ultra     ", w: 384, h: 854, corriente: true },
   { nombre: "Pixel 7              ", w: 412, h: 915, corriente: true },
   { nombre: "Muy corto (patológico)", w: 360, h: 480, corriente: false },
@@ -250,6 +255,22 @@ async function main() {
       `\n✖ El CSS compilado ya no contiene: ${ausentes.join(", ")}\n` +
       "  El banco estaría midiendo un DOM que no existe. Si has renombrado\n" +
       "  piezas del pliego, actualiza la maqueta de este script.\n"
+    );
+    process.exit(1);
+  }
+
+  // La otra deriva posible, y esta el CSS no la ve: la maqueta monta SIEMPRE la
+  // banda del historial porque Configurator la reserva en la app desde el
+  // primer pintado (`reservaHistorial`). Si esa reserva desapareciera, la app
+  // volvería a soltarle a la foto el suelo de la lista al primer intento —el
+  // salto de maqueta que mide la invariante 6— y este banco seguiría en verde,
+  // midiendo una maqueta más generosa que la realidad.
+  const configurador = await readFile(join(RAIZ, "src/components/configurator/Configurator.jsx"), "utf8");
+  if (!/reservaHistorial/.test(configurador)) {
+    console.error(
+      "\n✖ Configurator.jsx ya no reserva el hueco del historial (`reservaHistorial`).\n" +
+      "  La maqueta de este banco sí lo reserva, así que estaría midiendo una\n" +
+      "  pantalla que la app no pinta. Actualiza las dos o recupera la reserva.\n"
     );
     process.exit(1);
   }
@@ -286,6 +307,19 @@ async function main() {
 
   let fallos = 0;
   const linea = (ok, txt) => { if (!ok) fallos++; console.log(`${ok ? "✓" : "✗"} ${txt}`); };
+
+  // EL MARCO NO SE MUEVE EN TODA LA PARTIDA. Se guarda la medida del primer
+  // recuento (0 intentos) y se compara con las demás: es la promesa que la app
+  // le hace al jugador —la maqueta se decide al abrir y no se recompone— y la
+  // única de las cinco que necesita comparar DOS estados, no mirar uno.
+  //
+  // Se estrenó cazando esto: la banda del historial solo se montaba a partir
+  // del primer intento, así que en un móvil apretado la foto se quedaba con los
+  // 56px de su suelo al abrir y los soltaba al enviar el primer intento. En
+  // pantallas altas no se notaba (a la foto le sobra alto y el que manda es el
+  // ancho), que es como sobrevivió tanto tiempo. Lo reserva Configurator con
+  // `reservaHistorial`.
+  const marcoAlAbrir = new Map();
 
   for (const tema of ["dia", "noche"]) {
     for (const p of PANTALLAS) {
@@ -326,6 +360,13 @@ async function main() {
         if (m.scrollDoc > 1) fallo.push(`el documento scrollea ${m.scrollDoc}px`);
         // 5) En móviles corrientes, cero scroll. Es el requisito del shell.
         if (p.corriente && m.scrollPliego > 1) fallo.push(`scroll ${m.scrollPliego}px en móvil corriente`);
+        // 6) El marco mide LO MISMO durante toda la partida (ver arriba).
+        const clave = `${tema}|${p.nombre}`;
+        const alAbrir = marcoAlAbrir.get(clave);
+        if (!alAbrir) marcoAlAbrir.set(clave, { w: m.w, h: m.h });
+        else if (Math.abs(alAbrir.h - m.h) > 1 || Math.abs(alAbrir.w - m.w) > 1) {
+          fallo.push(`el marco cambia de tamaño jugando: ${alAbrir.w}x${alAbrir.h} al abrir → ${m.w}x${m.h}`);
+        }
 
         linea(
           fallo.length === 0,

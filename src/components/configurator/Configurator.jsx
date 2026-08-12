@@ -170,6 +170,28 @@ export default function Configurator({
   // que ya pintaba la fila viva. Sin fila viva no hay nada que descontar: el
   // historial recibe `guesses` entero.)
 
+  // EL HUECO DEL HISTORIAL SE RESERVA DESDE EL PRIMER PINTADO (solo app).
+  //
+  // El shell de la app reparte un presupuesto vertical cerrado (100svh), y en
+  // los móviles donde ese presupuesto aprieta —un 360x640, un 320x568— la
+  // fotografía es lo que cede. Con la banda del historial montada solo a partir
+  // del primer intento, la cuenta cambiaba EN MEDIO de la partida: al abrir, la
+  // foto se quedaba con los 56px del suelo de la lista (más su hueco) y al
+  // enviar el primer intento los soltaba de golpe. O sea, justo el salto que el
+  // shell venía a quitar, escondido en el único momento en que el jugador está
+  // mirando la foto con más atención.
+  //
+  // Reservarlo desde el principio hace que el marco valga LO MISMO en el intento
+  // 0 y en el 5, que es lo que se le pide a una app: la maqueta se decide al
+  // abrir y no se recompone. La banda vacía no pinta nada (AttemptList devuelve
+  // null sin intentos), así que el precio es espacio en blanco al pie del
+  // cupón, no una caja hueca.
+  //
+  // En WEB no: allí el pliego se lee bajando, no hay presupuesto que repartir y
+  // ese hueco sería un vacío gratuito. Y con la partida cerrada tampoco: el
+  // shell se suelta y el historial ya tiene contenido de sobra.
+  const reservaHistorial = enApp && !ended;
+
   // La estadística del día como bloque de página (columna izquierda del
   // broadsheet / final en móvil). GATEADA a partida cerrada: el hook ni
   // siquiera pide los datos mientras se juega (no chivar la dificultad).
@@ -278,7 +300,7 @@ export default function Configurator({
               país», la flecha del año— el historial volvió a ser el único sitio
               donde vive el acuse de recibo de cada intento. Se pinta siempre que
               haya algo que recapitular. */}
-          {guesses.length > 0 && (
+          {(guesses.length > 0 || reservaHistorial) && (
             <div className="prensa-historial">
               <AttemptList
                 guesses={guesses}

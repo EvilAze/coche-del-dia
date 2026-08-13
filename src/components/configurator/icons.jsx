@@ -56,4 +56,8 @@ export const I = {
   crosshair: ["M12 3v3M12 18v3M3 12h3M18 12h3", "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"],
   chevD: "M6 9l6 6 6-6",
   chevR: "M9 6l6 6-6 6",
+  // El espejo de chevR. Lo usa la salida de la Repesca, en el mismo sitio y con
+  // la misma medida que la marca del sumario del juego: la esquina superior
+  // izquierda es siempre el mismo objeto, y solo cambia lo que dice el trazo.
+  chevL: "M15 6l-6 6 6 6",
 };

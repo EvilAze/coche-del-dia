@@ -143,22 +143,30 @@ const SELECTORES = [
   // El cupón de la app: tres renglones que abren una hoja de selección en vez
   // de levantar el teclado.
   ".prensa-cupon", ".prensa-renglon",
-  // El folio dentro de la barra: si alguien lo renombra, la cabecera de la app
-  // pierde la fecha y este banco seguiría dando verde midiendo una barra sin
-  // ella.
-  ".prensa-folio-barra",
+  // La cifra del folio y la marca del sumario: entre las dos ponen el ALTO de
+  // la barra de la app (la marca fija 34px de caja; la cifra mide ~30 y cabe
+  // dentro). Si alguien las renombra, la cabecera pierde su ancla y este banco
+  // seguiría dando verde midiendo una barra que no existe.
+  ".prensa-folio-cifra", ".prensa-sumario-boton",
 ];
 
 // ── La maqueta ─────────────────────────────────────────────────────────────
 // Mismas clases que monta Configurator.jsx, en el mismo orden del DOM.
 //
 // La cabecera es la de la APP, que es lo que mide este banco en 30 de sus 31
-// escenarios: barra con el folio corto dentro (`.prensa-folio-barra`) y SIN la
-// banda `.prensa-folio`, porque en la app esa banda no se monta — la fecha
+// escenarios: barra con la cifra del folio dentro (`.prensa-folio-cifra`) y SIN
+// la banda `.prensa-folio`, porque en la app esa banda no se monta — la fecha
 // viaja en la barra (ver Header.jsx). El masthead sí se deja: lo apaga el CSS
 // por `data-plataforma`, y dejarlo aquí es justo lo que comprueba que sigue
 // apagándose. Por lo mismo el ladillo va con `solo-estado`: en la app el rótulo
 // «La fotografía del día» no se pinta y la línea la ocupa la pista.
+//
+// LA MARCA DEL SUMARIO VA COMO BOTÓN DE VERDAD, y no como la palabra «SUMARIO»
+// que había aquí. No es cosmética del banco: esa palabra medía un renglón de
+// 10px y la marca real mide 34px de caja, así que el banco llevaba tiempo
+// midiendo una cabecera ~22px más optimista que la que ve el jugador — en la
+// dirección peligrosa, porque este banco existe justo para decir si el pliego
+// cabe. Se corrige a la vez que la cabecera.
 //
 // El control negativo de web (abajo) borra `data-plataforma` en caliente y NO
 // repone la banda del folio: solo comprueba que hay scroll y que se ven los
@@ -172,7 +180,7 @@ function paginaHtml(hrefCss) {
 <body><div class="cdd-app prensa" style="--accent: var(--rojo)">
   <main class="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3 app-pantalla">
     <header class="prensa-area-cab">
-      <nav class="prensa-topbar"><span>SUMARIO <span class="prensa-folio-barra">Jue, 13 ago</span></span><span>CLASIFICACIÓN</span></nav>
+      <nav class="prensa-topbar"><span><button class="prensa-sumario-boton"><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 1h14M1 6h14M1 11h14"/></svg></button><span class="prensa-folio-cifra"><span class="dia">13</span><span class="resto"><span>ago</span><span>jue</span></span></span></span><span><button class="prensa-clasif"><span class="lad">Clasificación</span><span class="pos">12º</span></button></span></nav>
       <div class="prensa-masthead prensa-masthead--compacto"><p class="titulo">Coche del Día</p></div>
     </header>
     <section class="prensa-area-foto flex flex-col gap-3 pb-4">

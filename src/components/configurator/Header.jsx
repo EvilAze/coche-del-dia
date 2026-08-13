@@ -14,13 +14,23 @@
 // scrim y el «atrás» de Android los resuelve ya ModalShell para todos los
 // modales del juego.
 //
-// La marca del sumario es un CUADRO DE FILETE con las tres reglas del índice, no
-// la palabra «MENÚ» que había antes. El nombre era defendible cuando la barra
-// tenía que competir consigo misma (una fila de cuatro secciones iguales), pero
-// hoy la barra tiene dos elementos y el que importa es el de la derecha: gastar
-// un tercio del ancho en repetir un glifo universal solo le quitaba aire al
-// masthead. El área táctil real la agranda un pseudo-elemento (ver CSS): la caja
-// mide 34px por diseño de portada, el dedo recibe 50.
+// La marca del sumario son las tres reglas del índice, no la palabra «MENÚ» que
+// había antes. El nombre era defendible cuando la barra tenía que competir
+// consigo misma (una fila de cuatro secciones iguales), pero hoy la barra tiene
+// dos elementos y el que importa es el de la derecha: gastar un tercio del ancho
+// en repetir un glifo universal solo le quitaba aire al masthead. El área táctil
+// real la agranda un pseudo-elemento (ver CSS): la caja mide 34px por diseño de
+// portada, el dedo recibe 50.
+//
+// EN LA APP ESA CAJA NO LLEVA MARCO, y no es un capricho: el filete de 1px en
+// --line-strong es exactamente lo que dibuja `.cdd-stage-frame` alrededor de la
+// fotografía. En este sistema un marco de filete significa «esto es una lámina,
+// algo que se mira»; el botón del menú no es eso, es una marca de navegación.
+// Enmarcado, además, resultaba el objeto MÁS claro de una cabecera hecha de
+// susurros de 9 y 10px (en la edición de noche, --line-strong es lo siguiente
+// más brillante después de la propia foto). Se queda la geometría —34px, área
+// táctil de 50, esquina superior izquierda— y se va el marco. En web sigue
+// enmarcada: allí la barra cuelga de un masthead que la subordina.
 //
 // La clasificación es lo ÚNICO que no se pliega dentro del sumario: es la
 // palanca de retención del juego, y esconderla tras un toque extra la dejaría
@@ -56,26 +66,47 @@ export default function Header({
   // número de la edición colgando del cabecero.
   //
   // En la APP no hay masthead (se oculta en index.css: una app dice su nombre
-  // una vez, al abrirse), y sin ancla las tres bandas de la cabecera —barra,
-  // folio y ladillo— se leían como tres rótulos del mismo rango discutiendo
-  // entre ellos: 10px/9px/11px, todos en versalitas espaciadas. Nada mandaba.
+  // una vez, al abrirse). Al quitarlo, la cabecera se quedó sin ancla, y la
+  // primera respuesta fue restar: se plegó el folio dentro de la barra, en
+  // 9px y en gris. Eso arregló la jerarquía —ya no había tres rótulos del
+  // mismo rango discutiendo— pero dejó la barra CORRECTA Y ANÓNIMA: cuatro
+  // tamaños de letra en seis píxeles de rango (9, 10, 11 y el ordinal), o
+  // sea, una barra de herramientas. Ningún salto de escala en toda la
+  // cabecera; el único de la pantalla vivía abajo, en ADIVINAR.
   //
-  // Así que aquí el folio deja de ser una banda y vuelve a ser lo que es en un
-  // periódico de verdad: una línea fina AL BORDE, junto a la navegación, no un
-  // frontón centrado. Y en corto, porque tiene que convivir con la
-  // clasificación en 360px: la fecha larga no cabe sin apretarlo todo.
+  // Y el dato más apagado era justo el único irrepetible: un juego DIARIO es
+  // su edición, y la fecha iba a 9px en --cdd-muted al lado de un icono.
   //
-  // `weekday: "short"` + `month: "short"` da "jue, 13 ago" en es y "Thu, Aug 13"
-  // en en — lo resuelve Intl por locale, así que no hay formato escrito a mano
-  // que se desalinee con el idioma.
+  // Así que en la app el folio deja de ser una línea y pasa a ser una CIFRA,
+  // el bloque de fecha de cualquier periódico: el día en Fraunces grande y,
+  // apilados a su derecha, el mes y el día de la semana en microtipografía.
+  // Es el ancla que se perdió con el masthead, pero SIN banda propia: el
+  // bloque cabe dentro de los 34px que ya medía la marca del sumario, así que
+  // la cabecera no engorda ni un píxel por esto.
+  //
+  // `formatToParts` y no tres `toLocaleDateString`: una sola pasada de Intl
+  // que devuelve cada trozo etiquetado, así el orden lo decide la maqueta y no
+  // una plantilla escrita a mano que se desalinearía en otro idioma. El punto
+  // del mes abreviado ("ago.", según ICU) se cae aquí: una cifra de folio no
+  // lleva puntuación.
   const enApp = esApp();
-  const rawDate = new Date().toLocaleDateString(
-    dateLocale,
-    enApp
-      ? { weekday: "short", day: "numeric", month: "short" }
-      : { weekday: "long", day: "numeric", month: "long", year: "numeric" }
-  );
+  const ahora = new Date();
+  const rawDate = ahora.toLocaleDateString(dateLocale, {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
   const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
+  const folio = enApp
+    ? new Intl.DateTimeFormat(dateLocale, {
+        weekday: "short", day: "numeric", month: "short",
+      })
+        .formatToParts(ahora)
+        .reduce((acc, p) => {
+          if (p.type === "day" || p.type === "month" || p.type === "weekday") {
+            acc[p.type] = p.value.replace(/\.$/, "");
+          }
+          return acc;
+        }, {})
+    : null;
 
   return (
     <header className="prensa-area-cab">
@@ -104,13 +135,27 @@ export default function Header({
                 Archivo — aquí fuera solo cabe el aviso de que hay algo. */}
             {repescaAlert && <span className="aviso" aria-hidden="true" />}
           </button>
-          {/* El folio, solo en la app: pegado a la navegación y en voz baja
-              (--cdd-muted). Va DESPUÉS del botón y no centrado en la barra a
-              propósito: centrarlo lo pondría a competir con la clasificación
-              por el eje óptico, y en 360px además bailaría según lo largo que
-              sea el día de la semana. Agrupado a la izquierda, la barra se lee
-              en dos bloques limpios — «qué ejemplar es» y «qué puedo hacer». */}
-          {enApp && <span className="prensa-folio-barra">{dateLabel}</span>}
+          {/* La cifra del folio, solo en la app. Va DESPUÉS de la marca y no
+              centrada en la barra a propósito: centrarla la pondría a competir
+              con la clasificación por el eje óptico, y en 360px además bailaría
+              según lo largo que sea el mes. Agrupada a la izquierda, la barra
+              se lee en dos bloques limpios — «qué ejemplar es» y «qué puedo
+              hacer».
+
+              La fecha larga viaja `sr-only`: partida en cifra y abreviaturas,
+              un lector de pantalla diría «13 ago jue», que no es una fecha. Lo
+              visual queda `aria-hidden` y quien escucha oye el folio entero,
+              mejor de lo que lo oía antes. */}
+          {folio && (
+            <span className="prensa-folio-cifra">
+              <span className="sr-only">{dateLabel}</span>
+              <span className="dia" aria-hidden="true">{folio.day}</span>
+              <span className="resto" aria-hidden="true">
+                <span>{folio.month}</span>
+                <span>{folio.weekday}</span>
+              </span>
+            </span>
+          )}
         </span>
 
         {/* DERECHA: la clasificación. Con puesto, el ordinal en oro (mismo

@@ -801,7 +801,12 @@ body,
    del "·" lo da el padding horizontal de los propios enlaces, no un gap del
    separador: así el "·" respira por igual a ambos lados (antes, con margen
    negativo horizontal, se pegaba a las secciones). */
-.prensa-topbar > span { display: inline-flex; align-items: center; }
+/* El `gap` va en la regla base y no en la variante de la app (donde vivía, para
+   separar la marca del folio): la Repesca monta esta misma barra con dos piezas
+   en el grupo de la izquierda —salida y titulillo— y en el pliego ancho se
+   tocaban. En la cabecera del juego en web cada grupo lleva UNA pieza, así que
+   ahí no cambia un píxel. */
+.prensa-topbar > span { display: inline-flex; align-items: center; gap: 10px; }
 /* Los estilos base aplican a todos los botones (incluido el desplegable) */
 .prensa-topbar button, .prensa-topbar a {
   background: none; border: 0; cursor: pointer; color: var(--cdd-text);
@@ -1101,6 +1106,40 @@ body,
   font-family: var(--font-body); font-weight: 600;
   font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--cdd-muted); white-space: nowrap;
+}
+
+/* ── LA CIFRA DEL FOLIO (la cabecera de la app; Header.jsx la monta) ───────
+   El bloque de fecha de cualquier periódico: el día en Fraunces y, apilados a
+   su derecha, mes y día de la semana en microtipografía. Es lo único de la
+   cabecera con un salto de escala, y es deliberado — sin él la barra tenía
+   cuatro tamaños en un rango de seis píxeles, que es la definición de una
+   barra de herramientas y no la de un cabecero.
+
+   POR QUÉ LA FECHA Y NO LA PISTA: la otra candidata a mandar aquí era el
+   contador («1 de 5»), que al menos cambia mientras juegas. Pero un contador
+   no es identidad: se lo grita al jugador cada día y duplica lo que ya cuenta
+   el zoom al abrirse. La fecha es lo ÚNICO irrepetible de la pantalla — un
+   juego diario es su edición — y estaba siendo el texto más pequeño y apagado
+   de todos.
+
+   NO ENGORDA LA BARRA, y esa era la condición. Con la cifra a 24px y las dos
+   líneas de 9px a 1.15, el bloque mide ~30px de alto sobre la línea base
+   común: cabe dentro de los 34px que ya fija la marca del sumario, que es
+   quien pone el suelo de la barra. La cabecera mide lo mismo que antes.
+
+   `tabular-nums` para que el día no cambie de ancho del 11 al 22 y la barra no
+   baile de un día para otro. El peso 600 (y no el 900 del masthead) porque
+   esto es un folio, no un wordmark: tiene que anclar, no gritar. */
+.prensa-folio-cifra { display: inline-flex; align-items: baseline; gap: 6px; }
+.prensa-folio-cifra .dia {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 24px; line-height: 1; letter-spacing: 0;
+  color: var(--cdd-text); font-variant-numeric: lining-nums tabular-nums;
+}
+.prensa-folio-cifra .resto {
+  display: flex; flex-direction: column; line-height: 1.15;
+  font-family: var(--font-body); font-weight: 600; font-size: 9px;
+  letter-spacing: .14em; color: var(--cdd-muted); white-space: nowrap;
 }
 
 /* (Aquí vivía LA CLASIFICACIÓN como faja: un bloque bajo el folio con ladillo y
@@ -1514,6 +1553,13 @@ body,
   :root[data-plataforma="app"] .prensa-hoja {
     padding-left: 12px;
     padding-right: 12px;
+    /* AIRE BAJO LA BARRA DE ESTADO. El inset del sistema deja el pliego JUSTO
+       donde acaban el reloj y los iconos, así que entre ellos y la cabecera
+       solo quedaban los 10px del padding de la barra: pegados. Seis píxeles
+       más y la parte de arriba respira como respira una app cuidada. Van aquí
+       —sobre el pliego— y no en la barra, porque el que muerde el borde de la
+       pantalla es el pliego. */
+    padding-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 6px);
   }
 
   :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla {
@@ -1728,9 +1774,65 @@ body,
     padding: 10px 0;
     border-bottom: 3px double var(--line-strong);
   }
-  /* Aire entre el botón del sumario y el folio. El grupo de la izquierda pasa a
-     tener dos piezas y sin gap se tocaban. */
-  :root[data-plataforma="app"] .prensa-topbar > span:first-child { gap: 10px; }
+  /* (El `gap` entre la marca y el folio se subió a la regla base de
+     `.prensa-topbar > span`: la Repesca monta la misma barra y también en web.) */
+
+  /* ── LA MARCA DEL SUMARIO PIERDE EL MARCO ────────────────────────────────
+     El razonamiento entero está en Header.jsx: el filete de 1px en
+     --line-strong es el mismo objeto que enmarca la FOTOGRAFÍA, y usarlo para
+     el botón del menú es un error de categoría — en este sistema un marco
+     significa «esto es una lámina», no «esto es navegación». Encima lo dejaba
+     como el elemento más claro de una cabecera de 9 y 10px.
+
+     Se queda TODO lo demás: los 34px de caja (que son los que fijan el alto de
+     la barra), el área táctil de 50 del ::after y la esquina. Solo se va la
+     tinta del filete. El foco visible SÍ repone el borde, en rojo: quitarle el
+     marco a un botón no puede costarle el único indicador que tiene quien
+     navega con teclado. */
+  :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton {
+    border-color: transparent; color: var(--cdd-muted);
+  }
+  :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:hover {
+    border-color: transparent; background: none; color: var(--cdd-text);
+  }
+  :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:focus-visible {
+    border-color: var(--rojo); background: none; color: var(--rojo);
+  }
+  /* El aviso de repesca se pega a la MARCA y no a la esquina de un marco que ya
+     no está: sin esto, el cuadradito rojo quedaba flotando a 9px del glifo, en
+     mitad de la nada. Las tres reglas ocupan 16x12 centradas en la caja de 34,
+     o sea que acaban en (25, 11); con estos valores el cuadro queda 2px por
+     encima y 2px a la derecha de esa esquina. Pegado a ella —que fue el primer
+     intento— se leía como una errata del propio glifo: parecía que la regla de
+     arriba tuviera un pegote, no que hubiera un aviso al margen. */
+  :root[data-plataforma="app"] .prensa-sumario-boton .aviso { top: 2px; right: 1px; }
+
+  /* ── LA CLASIFICACIÓN BAJA LA VOZ (la palabra, no la cifra) ──────────────
+     «CLASIFICACIÓN» era la cadena más larga de la cabecera y estaba en tinta
+     plena, para un destino que se visita de vez en cuando; a su lado, el
+     ordinal en oro — el único color y la única serif de la barra. O sea que el
+     momento tipográfico más fuerte de la parte superior pertenecía a la tabla
+     y no al juego. Es la misma inversión que ya se corrigió entre el rótulo y
+     la pista, un piso más arriba.
+
+     La palabra pasa a --cdd-muted y se convierte en la ETIQUETA de la cifra en
+     vez de competir con ella; el oro sigue siendo el único acento de la barra,
+     que es lo que manda la regla de marca. No se toca en web: allí la barra
+     cuelga del masthead y no es lo primero que se lee. */
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .lad {
+    color: var(--cdd-muted);
+  }
+
+  /* ── EL FILETE DEL LADILLO ES DIVISIÓN MENOR ─────────────────────────────
+     Bajo la barra hay un doble filete (división mayor) y 40px después, el del
+     ladillo: mismo tono, y por tanto se leían como dos divisores del mismo
+     rango. El doble ya distingue por forma; con medio tono de diferencia se
+     distingue también de un vistazo. Medio y no --line (25% de alfa): ahí el
+     filete casi desaparecía en la edición de noche, y un ladillo sin su regla
+     deja de ser un ladillo. */
+  :root[data-plataforma="app"] .prensa-ladillo::after {
+    border-top-color: rgb(var(--line-strong-rgb) / .5);
+  }
 
   /* EL LADILLO QUE SOLO LLEVA ESTADO (ver ZoomStage.jsx). Hereda el gramaje que
      tenía el rótulo: si el estado se queda solo en la línea pero con el gris de

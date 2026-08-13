@@ -28,6 +28,9 @@ import { supabase } from "./supabaseClient";
 // (Configurator). La foto la sigue pintando CarImage en modo `configurator`
 // DENTRO de ZoomStage (pipeline/seguridad de imagen intactos).
 import ZoomStage from "./components/configurator/ZoomStage";
+// El set de iconos de línea compartido (trazo 1.6, caja 24): la salida de la
+// cabecera usa el mismo chevrón que el resto de la app.
+import { Icon, I } from "./components/configurator/icons";
 import AttemptProgress from "./components/configurator/AttemptProgress";
 import AttemptList, { AttemptRow } from "./components/configurator/AttemptList";
 // Formulario unificado con el del juego diario (Combo + YearField, piel v0).
@@ -504,57 +507,82 @@ export default function Repesca() {
     // Mismo shell visual que el juego diario (Configurator): tema
     // .prensa con el acento rojo inyectado en --accent — de él beben las cdd-*.
     <div className="cdd-app prensa" style={{ "--accent": ACCENT }}>
-      {/* Header simple: salir (a la izquierda) +
-          título centrado. A la derecha, spacer para mantener REPESCA centrado
-          (la repesca no lleva marcador). */}
-      {/* `safe-area-top`: la repesca ocupa la pantalla entera con cabecera
+      {/* ── LA CABECERA ES LA DEL PERIÓDICO, NO UNA BARRA PROPIA ─────────────
+          Aquí había una barra escrita en utilidades sueltas —chip enmarcado de
+          SALIR a la izquierda, «REPESCA» en Fraunces centrado, y un spacer
+          fantasma de 68px a la derecha para fingir el centrado—. Tres problemas
+          en tres líneas de JSX:
+
+            · La app tenía TRES gramáticas de barra superior (esta, la del juego
+              y la del Archivo). Nada hace que una app parezca tres apps más
+              rápido que cambiar de objeto en la esquina por la que entra el ojo.
+            · El chip era lo más pesado de la pantalla —marco, borde, chevrón y
+              palabra: tres señales— para la acción MENOS usada de la página.
+            · El centrado era falso: dependía de que «SALIR» midiera 68px. En
+              inglés («Exit») el chip encoge y el título se desplaza solo.
+
+          Ahora es `.prensa-topbar`, la misma barra del juego, con la misma
+          gramática de tres huecos: [salida] [titulillo de sección] … [estado].
+          La salida ocupa el sitio y la medida exactos de la marca del sumario
+          —34px, área táctil de 50, sin marco— así que la esquina superior
+          izquierda es UN solo objeto en toda la app: en el juego abre el
+          ejemplar, aquí vuelve al Archivo.
+
+          El titulillo NO lleva fecha, a diferencia del folio del juego: lo que
+          se juega en la repesca es un coche de OTRO día, y ponerle la fecha de
+          hoy sería mentir sobre qué ejemplar es este.
+
+          A la derecha, el hueco que en el juego ocupa la clasificación se lo
+          queda el modo: VETERANO estampado en oro (`pm-sello--oro`, el sello
+          que el sistema ya reserva a lo premium). Con eso desaparece el kicker
+          rojo centrado que decía lo mismo 40px más abajo. En modo normal el
+          hueco va vacío a propósito: no hay nada que declarar, y el ladillo de
+          la foto ya lleva la pista.
+
+          `safe-area-top`: la repesca ocupa la pantalla entera con cabecera
           propia, así que esta barra empieza en y=0 y en la app —edge-to-edge—
-          se dibujaba BAJO la barra de estado: «REPESCA» se cruzaba con el reloj
-          y los taps de SALIR se los quedaba el sistema. El inset lo pide la
-          cabecera porque es la que está arriba; el `.safe-area-pad` que llevaba
-          el <main> metía ese mismo hueco 100 píxeles más abajo, donde no
-          resolvía nada. */}
-      <header className="safe-area-top border-b border-border bg-bg-primary">
-        <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-3">
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href = "/?garage=true";
-            }}
-            // El chip del sistema, escrito en utilidades porque esta barra no es
-            // la del juego. Esquina viva y hundido de 1px; el `active:scale-95`
-            // encogía el botón como una pastilla.
-            className="
-              inline-flex items-center gap-1.5 rounded-none
-              border border-border bg-papel-2/60
-              px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-tinta-2
-              transition hover:border-rojo/60 hover:bg-rojo/10 hover:text-rojo
-              active:translate-y-px
-            "
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-3.5 w-3.5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-            <span>{t("repesca.buttonExit")}</span>
-          </button>
+          se dibujaba BAJO la barra de estado. Los 6px de extra son el mismo
+          aire que se le da al pliego del juego bajo el reloj del sistema. */}
+      <header className="safe-area-top" style={{ "--safe-area-extra-top": "0.375rem" }}>
+        {/* El margen horizontal va en este envoltorio y no en la barra: la
+            regla `.prensa-topbar` fija `padding` en shorthand y, como vive
+            después de `@tailwind utilities`, se comería cualquier `px-4`. */}
+        <div className="mx-auto w-full max-w-md px-4">
+          <nav className="prensa-topbar" aria-label={t("prensa.navAria")}>
+            <span>
+              <button
+                type="button"
+                className="prensa-sumario-boton"
+                aria-label={t("repesca.buttonExit")}
+                onClick={() => {
+                  haptic.impactLight();
+                  window.location.href = "/?garage=true";
+                }}
+              >
+                <Icon d={I.chevL} size={18} />
+              </button>
+              <span className="prensa-folio-barra">{t("repesca.headerTitle")}</span>
+            </span>
 
-          <p className="font-display text-xl tracking-widest text-tinta">
-            {t("repesca.headerTitle")}
-          </p>
-
-          {/* Spacer para mantener "REPESCA" centrado visualmente */}
-          <span className="w-[68px]" aria-hidden="true" />
+            <span>
+              {/* UNA palabra, no «Modo Veterano»: el sello va inclinado, así
+                  que su caja crece con el largo del texto por los dos ejes a la
+                  vez. Con las dos palabras ocupaba casi la mitad de la barra y
+                  su esquina bajaba a rozar el doble filete — dejaba de leerse
+                  como un sello estampado y pasaba a pegatina. «Veterano» junto
+                  a «REPESCA» dice sección y modo en el mismo golpe de vista, y
+                  el matiz completo lo da la nota de abajo. */}
+              {isVeteran && (
+                <span className="pm-sello pm-sello--oro">{t("repesca.veteranSello")}</span>
+              )}
+            </span>
+          </nav>
         </div>
       </header>
+
+      {/* El h1 de verdad (SEO y lectores de pantalla), como en el juego: el
+          titulillo de la barra es la marca VISUAL de la sección. */}
+      <h1 className="sr-only">{t("repesca.headerTitle")}</h1>
 
       {/* Columna única centrada, calcada del Configurator (max-w-md, gap). */}
       {/* El cuerpo solo se queda con el inset de ABAJO (la barra de gestos); el
@@ -571,17 +599,18 @@ export default function Repesca() {
         className="safe-area-bottom mx-auto flex w-full max-w-md min-w-0 flex-col gap-5 px-4 pt-4"
         style={{ "--safe-area-extra-bottom": "1rem" }}
       >
-        {/* Contexto del modo: kicker centrado sobre la imagen. */}
-        <div>
-          <p className="text-center text-[10px] uppercase tracking-[0.28em] text-accent">
-            {isVeteran ? t("repesca.veteranBadge") : t("repesca.modeSubheader")}
+        {/* LA NOTA DE LA SECCIÓN: qué cuesta esta partida, y nada más.
+            Aquí vivía además un kicker centrado en rojo que repetía el modo
+            («MODO VETERANO» / «Modo Repesca · una al día») justo debajo de una
+            cabecera que ya lo decía. Con el sello en la barra, el kicker era la
+            tercera vez que se nombraba lo mismo en 40px. En modo normal se
+            conserva lo único que el jugador no puede deducir: que los puntos
+            van a la mitad. */}
+        {!isVeteran && (
+          <p className="text-center text-xs text-muted/80">
+            {t("repesca.gameRulesNote")}
           </p>
-          {!isVeteran && (
-            <p className="mt-1 text-center text-xs text-muted/80">
-              {t("repesca.gameRulesNote")}
-            </p>
-          )}
-        </div>
+        )}
 
         {/* Nota veterano: reglas más duras (1 intento, sin pistas). */}
         {isVeteran && phase === "playing" && (

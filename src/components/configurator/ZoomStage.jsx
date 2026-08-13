@@ -55,10 +55,16 @@ export default function ZoomStage({
   // toca: allí el pliego es un documento que se lee bajando, con masthead y
   // varias secciones, y ahí el ladillo sí hace su trabajo de siempre.
   //
-  // El `estado != null` NO es defensivo de más: es exactamente el caso de
-  // Repesca Veterano, que no tiene pista. Sin esa guarda, ese modo se quedaba
-  // con un ladillo vacío —una línea en blanco y su filete— en vez de un rótulo.
-  const soloEstado = esApp() && estado != null;
+  // Y CUANDO NO HAY ESTADO, EN LA APP NO HAY LÍNEA. El caso es Repesca
+  // Veterano, el único modo sin pista. Antes esa rama conservaba el rótulo
+  // —para no dejar una línea en blanco con su filete—, pero conservarlo es
+  // volver a poner «La fotografía del día» encima de una fotografía: el mismo
+  // renglón que se retiró aquí por no decir nada, reaparecido justo en la
+  // pantalla más desnuda de todas. Si no hay nada vivo que contar, la línea
+  // entera se va y la foto sube.
+  const enApp = esApp();
+  const soloEstado = enApp && estado != null;
+  const sinLadillo = enApp && estado == null;
 
   return (
     // Sin sangría horizontal propia. La tenía (`px-4 md:px-8`) y era justo lo que
@@ -74,10 +80,12 @@ export default function ZoomStage({
     // ancho del elemento: el navegador elige el MISMO recurso, así que el preload
     // del middleware sigue coincidiendo byte a byte (regla 6).
     <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-3 pb-4">
-      <div className={"prensa-ladillo" + (soloEstado ? " solo-estado" : "")}>
-        {!soloEstado && t("prensa.ladilloFoto")}
-        <span className="aparte">{estado}</span>
-      </div>
+      {!sinLadillo && (
+        <div className={"prensa-ladillo" + (soloEstado ? " solo-estado" : "")}>
+          {!soloEstado && t("prensa.ladilloFoto")}
+          <span className="aparte">{estado}</span>
+        </div>
+      )}
 
       {/* UN solo marco. Aquí había un segundo paspartú en utilidades (padding,
           `bg-papel-mat`, `border-border` y `shadow-sm`) montado ALREDEDOR del

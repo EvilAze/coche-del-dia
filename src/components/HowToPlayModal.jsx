@@ -30,8 +30,14 @@ export default function HowToPlayModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       label={t("howto.title")}
-      backdropClassName="modal-scrim fixed inset-0 z-[85] flex items-center justify-center px-4 py-4"
-      panelClassName="modal-panel-flat w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5"
+      // Encaje de modal alto: `safe-area-pad` en el backdrop + `max-h-full` en el
+      // panel. El porqué, en index.css junto a `.safe-area-pad`; en corto: aquí
+      // había un `calc(100dvh - 2rem)` que sí evitaba el recorte pero medía el
+      // viewport ENTERO, barras del sistema incluidas, así que en la app esta
+      // hoja —la más larga del juego— se estiraba por debajo del reloj y de la
+      // barra de gestos. En web las dos variables valen 0: mismo 1rem de antes.
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[85] flex items-center justify-center px-4"
+      panelClassName="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>

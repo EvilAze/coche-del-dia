@@ -17,13 +17,24 @@
    TAMBIÉN SIRVE PARA EL BACKDROP DE UN MODAL, y ahí forma pareja con un
    `max-h-full` en el panel: el backdrop es `fixed inset-0`, así que su caja de
    contenido es la pantalla MENOS este padding, y un panel topado al 100% de esa
-   caja se queda por dentro de las dos barras sin cuentas de por medio. Es más
-   fiable que restar un alto del viewport (`calc(100dvh - 2rem)`, lo que hacen
-   las hojas de ayuda del juego): los insets de arriba y abajo no miden lo mismo,
-   y un panel centrado reparte el sobrante a partes iguales — o sea, mal.
-   Las dos mitades tienen que ir juntas: `safe-area-pad` sin tope de altura solo
-   mueve el recorte de sitio, y el tope sin padding no sabe dónde están las
-   barras. Lo usan los modales de la repesca (Garage.jsx). */
+   caja se queda por dentro de las dos barras sin cuentas de por medio.
+
+   ES EL ENCAJE DE TODO MODAL CENTRADO QUE PUEDA CRECER, y sustituye al
+   `max-h: calc(100dvh - 2rem)` que llevaban las hojas de ayuda. Aquel tope
+   evitaba el recorte, pero medía mal por dos motivos: (a) `100dvh` es el
+   viewport ENTERO —las barras del sistema van dentro—, así que un panel que
+   llegue al tope se mete debajo de ellas en la app; y (b) aunque se le restaran
+   los insets, arriba y abajo no miden lo mismo en Android, y un panel centrado
+   reparte el sobrante a partes iguales, o sea mal. Topar contra la caja del
+   backdrop arregla las dos: sigue a la barra de URL del móvil igual que `dvh`
+   (es `fixed`) y descuenta cada inset por su lado.
+
+   Las dos mitades van juntas: `safe-area-pad` sin tope de altura solo mueve el
+   recorte de sitio, y el tope sin este padding no sabe dónde están las barras.
+   Lo usan los dos modales de la repesca (Garage.jsx), HowToPlay, ScoringHelp,
+   Sumario y DeleteAccount. Los que ya scrollean por dentro con cabecera fija
+   (`flex-col` + `max-h-[90vh]`: Logros, MyStats, PublicProfile) siguen con lo
+   suyo — ahí el 10% de aire hace de colchón. */
 .safe-area-pad {
   padding-top: calc(1rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
   padding-bottom: calc(1rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));

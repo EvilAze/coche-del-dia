@@ -66,8 +66,13 @@ export default function DeleteAccountModal({ open, onClose }) {
       onClose={cerrar}
       dismissOnBackdrop={!borrando}
       label={t("deleteAccount.title")}
-      backdropClassName="modal-scrim fixed inset-0 z-[130] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6"
+      // Encaje de modal alto: `safe-area-pad` en el backdrop + `max-h-full` en el
+      // panel (el porqué, en index.css junto a `.safe-area-pad`). Este es el que
+      // menos margen admite: lo último de la hoja es el campo de confirmación y
+      // el botón de borrar, y con el aviso de error desplegado es justo lo que se
+      // iba bajo la barra de gestos en la app.
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[130] flex items-center justify-center px-4"
+      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-6"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>

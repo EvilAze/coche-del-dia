@@ -31,12 +31,17 @@ export default function ScoringHelpModal({ open, onClose }) {
     <ModalShell
       open={open}
       onClose={onClose}
-      backdropClassName="modal-scrim fixed inset-0 z-[90] flex items-center justify-center px-4 py-4"
-      // max-h con 100dvh (dynamic viewport) para que en móvil con la barra
-      // de URL desplegada el modal siga cabiendo. overflow-y-auto +
-      // overscroll-contain para que el scroll quede aislado al modal y no
-      // se propague al body al llegar al final del contenido.
-      panelClassName="modal-panel-flat w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5"
+      // Encaje de modal alto: `safe-area-pad` en el backdrop + `max-h-full` en el
+      // panel (el porqué, en index.css junto a `.safe-area-pad`). El tope era un
+      // `calc(100dvh - 2rem)`: resolvía lo de la barra de URL del móvil —que es
+      // lo que 100dvh sabe hacer— pero no lo de las barras de la app, porque el
+      // dynamic viewport las INCLUYE. Topar contra la caja del backdrop cubre las
+      // dos cosas: es `fixed inset-0`, así que ya sigue a la barra de URL, y el
+      // padding le descuenta los insets del sistema.
+      // overflow-y-auto + overscroll-contain: el scroll queda aislado al modal y
+      // no se propaga al body al llegar al final del contenido.
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[90] flex items-center justify-center px-4"
+      panelClassName="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>

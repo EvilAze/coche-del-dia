@@ -86,8 +86,13 @@ export default function SumarioModal({
       // elige una sección tiene que salir POR DEBAJO de la que entra. Con un z
       // mayor, su velo al 72% se quedaba 220 ms encima del panel nuevo — un
       // fogonazo oscuro justo al aterrizar.
-      backdropClassName="modal-scrim fixed inset-0 z-[78] flex items-center justify-center px-4 py-4"
-      panelClassName="modal-panel-flat w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-5"
+      // Encaje de modal alto: `safe-area-pad` en el backdrop + `max-h-full` en el
+      // panel (el porqué, en index.css junto a `.safe-area-pad`). El sumario
+      // crece con las secciones que tenga disponibles el jugador, así que es de
+      // los que llegan al tope; con el `calc(100dvh - 2rem)` de antes, llegar al
+      // tope en la app significaba meterse bajo las barras del sistema.
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[78] flex items-center justify-center px-4"
+      panelClassName="modal-panel-flat w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-5"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">

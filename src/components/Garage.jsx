@@ -1592,8 +1592,14 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
       onClose={onCancel}
       dismissOnBackdrop={!starting}
       label={t("garage.repescaConfirmTitle")}
-      backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden"
+      // Mismo encaje que RepescaHelpModal (ver allí el porqué del `max-h-full`
+      // y del `safe-area-pad`). Aquí no es una cuestión de comodidad sino de
+      // salida: este panel es más corto, pero en una pantalla baja —o con el
+      // tamaño de fuente del sistema subido— lo primero que se recortaba era la
+      // fila de botones, y sin CANCELAR ni ACEPTAR el jugador se queda mirando
+      // las condiciones de una repesca que no puede ni gastar ni rechazar.
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[95] flex items-center justify-center px-4"
+      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
         <div className="px-5 py-5 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center border border-accent text-accent">
@@ -1777,8 +1783,22 @@ function RepescaHelpModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       label={t("garage.repescaHelpTitle")}
-      backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm overflow-hidden"
+      // EL PANEL SE ENCAJA EN LA PANTALLA, NO AL REVÉS. Esta hoja son cinco
+      // reglas del modo repesca y crece con el idioma: en un móvil no cabe. Sin
+      // `max-h` el panel centrado se salía por ARRIBA Y POR ABAJO a la vez, y el
+      // `overflow-hidden` remataba la jugada recortando lo que sobresalía — el
+      // ENTENDIDO quedaba fuera de pantalla y no había gesto que llegara a él.
+      //
+      // EL TOPE ES `max-h-full`, no el `calc(100dvh - 2rem)` de las otras hojas
+      // de ayuda, y esa diferencia es justo lo que arregla la app: el backdrop es
+      // `fixed inset-0`, así que su caja de contenido ya ES la pantalla menos el
+      // padding, y con `safe-area-pad` ese padding incluye la barra de estado y
+      // la de gestos. Restar un alto simétrico del viewport no serviría: los dos
+      // insets de Android no miden lo mismo, y centrar el sobrante deja el panel
+      // debajo de una de las dos barras. En web ambos insets valen 0 → padding de
+      // 1rem, exactamente el `p-4` que había aquí: fuera de la app no cambia nada.
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[95] flex items-center justify-center px-4"
+      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
         <div className="absolute right-2 top-2 z-10">
           <CloseButton onClick={onClose} />

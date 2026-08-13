@@ -620,8 +620,11 @@ function CatalogoCaido({ onRetry }) {
       >
         {t("offline.retry")}
       </button>
+      {/* Sin `opacity`, por lo mismo que su gemelo de EdicionNoDisponible (ahí
+          está la cuenta): `pm-body` es --cdd-muted y ya viene con 4.97:1, al
+          borde del AA. El 70% que llevaba lo hundía a 2.80:1. */}
       {!online && (
-        <p className="pm-body m-0 mt-2 !text-[11px] opacity-70">{t("offline.autoRetry")}</p>
+        <p className="pm-body m-0 mt-2 !text-[11px]">{t("offline.autoRetry")}</p>
       )}
     </div>
   );

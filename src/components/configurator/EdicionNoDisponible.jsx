@@ -55,9 +55,18 @@ export default function EdicionNoDisponible({ onRetry, isRetrying = false }) {
       </button>
 
       {/* Solo sin conexión: avisamos de que no hace falta quedarse vigilando el
-          botón, porque useGame reintenta solo al volver la red. */}
+          botón, porque useGame reintenta solo al volver la red.
+
+          SIN `opacity`. La llevaba (70%) y era el peor sitio del sistema para
+          ponerla: `pm-body` ya se pinta con --cdd-muted, que sobre el papel mide
+          4.97:1 — justo en la raya del AA de la WCAG (4.5:1). Bajarlo al 70% lo
+          dejaba en 2.80:1 en día y 3.39:1 en noche, o sea SUSPENSO, y encima en
+          el texto más pequeño de la pantalla. La jerarquía ya la da el cuerpo de
+          12px; no hacía falta pagarla otra vez con contraste que no sobra.
+          Y el lector de este aviso es justo quien peor lo tiene: sin cobertura,
+          probablemente en la calle y con el móvil al sol. */}
       {!online && (
-        <p className="pm-body m-0 !text-[12px] opacity-70">{t("offline.autoRetry")}</p>
+        <p className="pm-body m-0 !text-[12px]">{t("offline.autoRetry")}</p>
       )}
     </section>
   );

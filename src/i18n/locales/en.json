@@ -180,6 +180,8 @@
     "countryOkTitle": "Correct country: {pais}"
   },
   "result": {
+    "verVideo": "Watch the video",
+    "videoTitulo": "Video of the car of the day",
     "wonTitle": "YOU GOT IT!",
     "lostTitle": "NO LUCK",
     "wasThe": "It was the",

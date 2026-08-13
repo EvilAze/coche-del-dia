@@ -298,7 +298,7 @@ export default async function handler(request) {
     const [liveResult, signedToken] = await Promise.all([
       supabaseAdmin
         .from("cars")
-        .select("make, model, year, pais, description, description_en")
+        .select("make, model, year, pais, description, description_en, video_id")
         .eq("id", todayCarId)
         .maybeSingle(),
       signRevealToken(today).catch((err) => {
@@ -327,6 +327,12 @@ export default async function handler(request) {
         // respeta en el momento de perder). Corregido al unificar la política.
         description: isWon ? liveCar.description ?? null : null,
         description_en: isWon ? liveCar.description_en ?? null : null,
+        // El vídeo va con la IDENTIDAD y no con la ficha (gane o pierda), y por
+        // eso no lleva el gate de `isWon` — el porqué está en validate-guess,
+        // paso 9. Esta rama es la que reconstruye el reveal al RECARGAR una
+        // partida ya cerrada: sin ella, el vídeo estaba en el panel al terminar
+        // y desaparecía al refrescar la página, que es peor que no estar.
+        videoId: liveCar.video_id ?? null,
       };
     }
     revealToken = signedToken;

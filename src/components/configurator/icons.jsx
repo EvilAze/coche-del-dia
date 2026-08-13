@@ -60,4 +60,10 @@ export const I = {
   // la misma medida que la marca del sumario del juego: la esquina superior
   // izquierda es siempre el mismo objeto, y solo cambia lo que dice el trazo.
   chevL: "M15 6l-6 6 6 6",
+  // Reproducir: el triángulo del vídeo de las temporadas presentadas. De línea
+  // y CERRADO (vuelve al punto de partida) porque a este tamaño un triángulo
+  // abierto se lee como un chevrón torcido; el `strokeLinejoin: round` del
+  // componente le redondea las tres esquinas, que es lo que lo hace parecerse
+  // al resto del set y no al play macizo de un reproductor.
+  play: "M9 6.5v11l9-5.5-9-5.5Z",
 };

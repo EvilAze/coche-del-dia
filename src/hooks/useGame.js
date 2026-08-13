@@ -100,6 +100,12 @@ function buildCarState({ img, blurData, zoomBase, reveal }) {
     // el locale activo. Si reveal aún no llegó, ambos quedan null.
     description: reveal?.description ?? null,
     description_en: reveal?.description_en ?? null,
+    // Vídeo del coche (temporadas presentadas). Llega por el MISMO canal que la
+    // identidad —el `reveal` de un servidor que solo lo emite con la partida
+    // cerrada—, así que aquí no hace falta ningún gate extra: mientras se juega
+    // `reveal` es null y esto es null. Sin vídeo, el panel de resultado pinta la
+    // fotografía de siempre.
+    videoId: reveal?.videoId ?? null,
   };
 }
 

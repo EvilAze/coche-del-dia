@@ -586,6 +586,51 @@ body,
 .cdd-reveal-meta { font-size: 10px; color: var(--cdd-muted); margin-top: 3px; display: inline-flex; align-items: center; gap: 6px; }
 .cdd-reveal-meta .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
 
+/* ── EL VÍDEO DEL COCHE (temporadas presentadas) ───────────────────────────
+   La banda de revelado tiene dos estados. Cerrada es exactamente la de
+   siempre: la fotografía, su degradado y el nombre. Abierta es el
+   reproductor, y entonces la banda cambia de forma.
+
+   POR QUÉ CAMBIA DE ALTO: la banda mide `clamp(150px, 24svh, 230px)`, que es
+   una FAJA — la proporción justa para que una foto haga de cabecera sin
+   comerse el panel. Un vídeo en 16:9 dentro de una faja es un sello de correos
+   con dos franjas negras. Al abrirse, la banda pasa a 16:9 y el panel se
+   recoloca debajo; es un salto de maqueta, sí, pero es el salto que el usuario
+   acaba de pedir con el dedo, y la alternativa es enseñarle el vídeo en
+   miniatura.
+
+   Y SE APAGA EL CROMO: degradado, nombre y sello del veredicto desaparecen
+   mientras corre el vídeo. Los controles de YouTube viven abajo, justo donde
+   están el degradado y el nombre, y dos capas de cromo peleando por la misma
+   franja es un botón de pausa que no se deja pulsar. El nombre del coche no se
+   pierde: se acaba de leer, y sigue escrito en la crónica de más abajo. */
+.cdd-reveal-play {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; background: none; cursor: pointer;
+}
+/* Un sello, no un botón redondo de reproductor: el sistema estampa, no dibuja
+   controles. En blanco porque va SOBRE una fotografía cualquiera, que es la
+   misma excepción que ya se documenta para la etiqueta de pista y la ✕. */
+.cdd-reveal-play .marca {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-body); font-weight: 800; font-size: 11px;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: #fff; border: 2px solid #fff; border-radius: 0;
+  padding: 9px 14px; background: rgb(var(--velo-rgb) / .55);
+  transition: background .14s, transform .14s;
+}
+.cdd-reveal-play:hover .marca { background: rgb(var(--velo-rgb) / .75); }
+.cdd-reveal-play:active .marca { transform: scale(.97); }
+.cdd-reveal-video {
+  position: absolute; inset: 0; z-index: 6;
+  width: 100%; height: 100%; border: 0;
+}
+.cdd-reveal.reproduciendo { height: auto; aspect-ratio: 16 / 9; }
+.cdd-reveal.reproduciendo .cdd-reveal-grad,
+.cdd-reveal.reproduciendo .cdd-reveal-head,
+.cdd-reveal.reproduciendo .prensa-sello { display: none; }
+
 /* Desbloqueo de cromo (victoria): UN RENGLÓN, no una caja. Cierra el bucle
    juego→colección, pero es la acción menos importante de la pantalla y era la que
    más gritaba: una caja tintada de oro con su filete, colocada ENCIMA del botón de
@@ -1207,6 +1252,29 @@ body,
 }
 .prensa-ladillo::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-3px); }
 .prensa-ladillo .aparte { font-weight: 600; color: var(--cdd-muted); letter-spacing: .14em; }
+
+/* ── QUIÉN PRESENTA LA TEMPORADA, al final del filete ──────────────────────
+   Un ciclo puede venir de una colaboración y decirlo aquí («USPI · POWERART»).
+   El filete pasa de `::after` a elemento real porque un pseudo-elemento va
+   SIEMPRE el último y la atribución tiene que ir después de la regla.
+
+   MÁS BAJO QUE LA PISTA, Y A PROPÓSITO: 9,5px en tinta apagada contra los 11px
+   a peso 800 del estado. Quien presenta la temporada no compite con lo que
+   está pasando en la partida — es un crédito, del mismo rango que el pie de
+   una fotografía de agencia. Si algún día un acuerdo pide más presencia, el
+   sitio para negociarla es este comentario, no una banda nueva sobre la foto.
+
+   `nowrap` y a la derecha: así lo único que se mueve cuando el dato llega
+   —llega después del primer pintado, ver Configurator— es el largo del filete.
+   El texto de la pista no baila. */
+.prensa-ladillo.con-presenta::after { content: none; }
+.prensa-ladillo .filete {
+  flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-3px);
+}
+.prensa-ladillo .presenta {
+  flex: none; font-weight: 600; font-size: 9.5px; letter-spacing: .16em;
+  color: var(--cdd-muted); white-space: nowrap;
+}
 
 /* ── Escenario: paspartú + filete (fuera HUD/grain/viñeta del sistema previo) ── */
 .prensa .cdd-stage-frame {
@@ -1903,7 +1971,8 @@ body,
      distingue también de un vistazo. Medio y no --line (25% de alfa): ahí el
      filete casi desaparecía en la edición de noche, y un ladillo sin su regla
      deja de ser un ladillo. */
-  :root[data-plataforma="app"] .prensa-ladillo::after {
+  :root[data-plataforma="app"] .prensa-ladillo::after,
+  :root[data-plataforma="app"] .prensa-ladillo .filete {
     border-top-color: rgb(var(--line-strong-rgb) / .5);
   }
 

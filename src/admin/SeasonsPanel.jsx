@@ -122,6 +122,10 @@ const EMPTY_FORM = {
   number: "",
   label_es: "",
   label_en: "",
+  // Quién presenta la temporada (colaboraciones). Vacío = temporada normal:
+  // la línea de la pista del juego no cambia.
+  presenta_es: "",
+  presenta_en: "",
   starts_at: "",
   ends_at: "",
   // Filtro temático, como texto de formulario (ver buildThemeFilter).
@@ -279,6 +283,8 @@ export default function SeasonsPanel() {
       number: String(s.number ?? ""),
       label_es: s.label_es ?? "",
       label_en: s.label_en ?? "",
+      presenta_es: s.presenta_es ?? "",
+      presenta_en: s.presenta_en ?? "",
       starts_at: s.starts_at ?? "",
       ends_at: s.ends_at ?? "",
       ...formFromFilter(s.theme_filter),
@@ -371,6 +377,8 @@ export default function SeasonsPanel() {
           number: Number(form.number),
           label_es: form.label_es,
           label_en: form.label_en,
+          presenta_es: form.presenta_es,
+          presenta_en: form.presenta_en,
           starts_at: form.starts_at,
           ends_at: form.ends_at,
           // null = temporada sin restricción: sortea de todo el catálogo.
@@ -459,6 +467,28 @@ export default function SeasonsPanel() {
                 value={form.label_en}
                 placeholder="Group B"
                 onChange={(e) => setForm((f) => ({ ...f, label_en: e.target.value }))}
+                className={inputCls}
+              />
+            </Field>
+            {/* Colaboraciones. Se pinta durante la partida, al final del filete
+                de la línea de pista, así que va en versalitas y corto: dos o
+                tres palabras. Vacío = temporada sin patrocinio y esa línea
+                queda como siempre. */}
+            <Field label="Presenta (ES)">
+              <input
+                value={form.presenta_es}
+                placeholder="USPI · POWERART"
+                maxLength={40}
+                onChange={(e) => setForm((f) => ({ ...f, presenta_es: e.target.value }))}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Presenta (EN)">
+              <input
+                value={form.presenta_en}
+                placeholder="USPI · POWERART"
+                maxLength={40}
+                onChange={(e) => setForm((f) => ({ ...f, presenta_en: e.target.value }))}
                 className={inputCls}
               />
             </Field>

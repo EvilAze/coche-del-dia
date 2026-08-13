@@ -407,7 +407,11 @@ export function getCurrentSeason() {
 async function fetchCurrentSeason(today) {
   const { data, error } = await supabase
     .from("seasons")
-    .select("id, number, label_es, label_en, starts_at, ends_at")
+    // `presenta_*` (quién presenta la temporada) tiene GRANT explícito, como el
+    // resto de esta lista: `seasons` va con grants por COLUMNA desde las
+    // temporadas temáticas, así que pedir aquí una columna sin conceder
+    // reventaría la query entera — y con ella el parte y el banner de la tabla.
+    .select("id, number, label_es, label_en, presenta_es, presenta_en, starts_at, ends_at")
     .lte("starts_at", today)
     .gte("ends_at", today)
     .maybeSingle();

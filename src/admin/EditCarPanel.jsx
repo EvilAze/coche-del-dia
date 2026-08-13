@@ -48,6 +48,10 @@ const initialForm = {
   // recibe y devuelve array; el form trabaja con string por comodidad de
   // edición). El servidor las normaliza a slug — ver api/_lib/season-theme.js.
   tags: "",
+  // Vídeo del coche (temporadas presentadas). El form guarda lo que se pegue —
+  // ID o URL de YouTube— y el servidor lo normaliza a ID de 11 caracteres (ver
+  // api/_lib/video-id.js). Vacío = el coche no tiene vídeo.
+  video_id: "",
 };
 
 // "grupo-b, rally" → ["grupo-b", "rally"]. El saneado real (slug, dedupe,
@@ -218,6 +222,7 @@ export default function EditCarPanel({
           zoom_base:
             typeof data.zoom_base === "number" ? data.zoom_base : DEFAULT_ZOOM_BASE,
           tags: Array.isArray(data.tags) ? data.tags.join(", ") : "",
+          video_id: data.video_id || "",
         };
 
         const ovr = overridesRef.current;
@@ -280,7 +285,8 @@ export default function EditCarPanel({
       form.focus_x !== originalForm.focus_x ||
       form.focus_y !== originalForm.focus_y ||
       form.zoom_base !== originalForm.zoom_base ||
-      form.tags !== originalForm.tags
+      form.tags !== originalForm.tags ||
+      form.video_id !== originalForm.video_id
     );
   }, [form, originalForm, selectedCarId]);
 
@@ -438,6 +444,9 @@ export default function EditCarPanel({
       // Se manda el array aunque quede vacío: `[]` significa "quítale todas las
       // etiquetas", y sin esto no habría forma de desetiquetar un coche.
       if (form.tags !== originalForm.tags) patch.tags = parseTagList(form.tags);
+      // Igual que tags: se manda aunque quede vacío, porque "" es la única
+      // forma de QUITARLE el vídeo a un coche.
+      if (form.video_id !== originalForm.video_id) patch.video_id = form.video_id.trim();
 
       const res = await fetch("/api/admin/save-car", {
         method: "POST",
@@ -675,6 +684,26 @@ export default function EditCarPanel({
                 pueda filtrar por ellas — no se muestran al jugador ni salen del
                 servidor. Úsalas para temas que no se deducen de marca, país o
                 año (Grupo B, prototipos de Le Mans, coches de película).
+              </span>
+            </Field>
+
+            <Field label="Vídeo (YouTube)">
+              <input
+                type="text"
+                value={form.video_id}
+                onChange={(e) => updateField("video_id", e.target.value)}
+                placeholder="Pega el enlace del vídeo, o su ID"
+                maxLength={200}
+                disabled={isSubmitting}
+                autoComplete="off"
+                className={inputClass}
+              />
+              <span className="text-[11px] leading-relaxed text-muted">
+                Pega el enlace tal cual (watch, youtu.be, shorts…): se guarda
+                solo el ID. Aparece como «Ver el vídeo» sobre la foto del panel
+                de resultado, al terminar la partida — nunca antes, porque el
+                vídeo delata el coche. Vacío = sin vídeo, y el panel queda como
+                siempre.
               </span>
             </Field>
 

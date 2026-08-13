@@ -180,6 +180,8 @@
     "countryOkTitle": "País correcto: {pais}"
   },
   "result": {
+    "verVideo": "Ver el vídeo",
+    "videoTitulo": "Vídeo del coche del día",
     "wonTitle": "¡ACERTASTE!",
     "lostTitle": "SIN SUERTE",
     "wasThe": "Era el",

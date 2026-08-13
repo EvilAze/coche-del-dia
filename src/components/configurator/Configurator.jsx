@@ -9,6 +9,7 @@ import { useT } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import { esApp } from "../../lib/plataforma";
+import { getCurrentSeason } from "../../lib/statsService";
 import Header from "./Header";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
@@ -101,6 +102,33 @@ export default function Configurator({
 
   // Conector del H1 según idioma ("marca, modelo y/and año").
   const conn = locale === "es" ? "y" : "and";
+
+  // ── QUIÉN PRESENTA LA TEMPORADA ───────────────────────────────────────────
+  // Una temporada puede venir de una colaboración (los coches que salieron en
+  // la sección de un canal, por ejemplo) y entonces lo dice en la línea de la
+  // pista. Sin colaboración —el caso normal— `presenta` es null y la línea es
+  // exactamente la de siempre.
+  //
+  // POR QUÉ AQUÍ Y NO EN /api/get-daily-car, que es el fetch que la pantalla ya
+  // hace: porque este dato NO puede retrasar la partida. `getCurrentSeason()`
+  // es una lectura pública con caché de un día a nivel de módulo (la comparte
+  // con el parte del final), así que cuesta una petición por sesión y ninguna
+  // en la ruta crítica de la foto. El precio es que el rótulo entra un
+  // instante después del primer pintado; se paga bien porque el rótulo va
+  // ALINEADO A LA DERECHA y en `nowrap`: lo único que se mueve al llegar es el
+  // largo del filete, no el texto de la pista. Y si la petición falla, no hay
+  // rótulo y no hay juego roto (regla 9).
+  const [season, setSeason] = useState(null);
+  useEffect(() => {
+    let cancelado = false;
+    getCurrentSeason()
+      .then((s) => { if (!cancelado) setSeason(s); })
+      .catch(() => { if (!cancelado) setSeason(null); });
+    return () => { cancelado = true; };
+  }, []);
+  const presenta = season
+    ? (locale === "en" ? season.presenta_en : season.presenta_es) || null
+    : null;
 
   // El «recorte» (PhotoPeek): cuando el escenario sale del viewport en plena
   // partida —el caso real es el teclado móvil abierto sobre el cupón—, una
@@ -276,6 +304,7 @@ export default function Configurator({
             status={status}
             hintIndex={hintIndex}
             totalHints={totalHints}
+            presenta={presenta}
             onRevealLoad={onRevealLoad}
             sectionRef={fotoRef}
           />

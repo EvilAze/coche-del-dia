@@ -167,6 +167,15 @@ expectSelectBlocked(
   "SELECT id, tags FROM cars (pool de la temporada temática)",
   await anon.from("cars").select("id, tags").limit(1)
 );
+// cars.video_id — el vídeo del coche en las temporadas presentadas. Tampoco
+// lleva GRANT (scripts/2026-08-temporada-presentada-y-video.sql) y por partida
+// doble: un ID de YouTube NOMBRA el coche del día, y además la columna estará
+// poblada justo en los coches del ciclo, así que leerla es leer el pool. Al
+// jugador solo le llega dentro del `reveal` de una partida ya cerrada.
+expectSelectBlocked(
+  "SELECT id, video_id FROM cars (el vídeo es la respuesta)",
+  await anon.from("cars").select("id, video_id").limit(1)
+);
 
 // Contra-test: la query que SÍ debe funcionar (la que usa /api/list-cars
 // para el autocomplete). Verificamos que no rompemos funcionalidad
@@ -216,10 +225,15 @@ expectSelectBlocked(
 // Contra-test: lo que SÍ lee el banner (statsService.getCurrentSeason). Si
 // esto rompe, el GRANT por columna se aplicó mal y la home se queda sin
 // temporada.
+// `presenta_*` va en esta lista y NO en la de bloqueados, al revés que
+// theme_filter: es el crédito de una colaboración («USPI · POWERART») y se
+// pinta durante la partida, así que el cliente TIENE que poder leerlo. No
+// filtra nada — dice de qué va el ciclo, igual que `label_es`; lo que sigue
+// sin salir del servidor es la lista de coches que lo componen.
 {
   const { error } = await anon
     .from("seasons")
-    .select("id, number, label_es, label_en, starts_at, ends_at")
+    .select("id, number, label_es, label_en, presenta_es, presenta_en, starts_at, ends_at")
     .limit(1);
   if (error) {
     fail(

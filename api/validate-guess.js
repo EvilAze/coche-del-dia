@@ -29,7 +29,11 @@ const MAX_ATTEMPTS = 5;
 async function fetchCarById(id) {
   const { data, error } = await getSupabaseAdmin()
     .from("cars")
-    .select("id, make, model, year, pais, description, description_en")
+    // `video_id` viaja en esta query y NO en la del cliente: es una columna sin
+    // GRANT (ver scripts/2026-08-temporada-presentada-y-video.sql) porque
+    // identifica el coche del día. Aquí estamos con service_role y su salida
+    // está gateada por la política de revelado del paso 9.
+    .select("id, make, model, year, pais, description, description_en, video_id")
     .eq("id", id)
     .single();
   if (error || !data) return null;
@@ -128,6 +132,7 @@ export default async function handler(req, res) {
       pais: realRow.pais,
       description: realRow.description ?? null,
       description_en: realRow.description_en ?? null,
+      video_id: realRow.video_id ?? null,
     };
 
     // -------- 5. attemptNumber AUTORITATIVO server-side -------------------
@@ -319,6 +324,17 @@ export default async function handler(req, res) {
         // EndScreen simplemente no pinta la nota).
         description: result.win ? realCar.description ?? null : null,
         description_en: result.win ? realCar.description_en ?? null : null,
+        // EL VÍDEO VA CON LA IDENTIDAD, NO CON LA FICHA: gane o pierda. Es la
+        // misma decisión —y el mismo argumento— que el revealToken de la foto
+        // completa unas líneas más abajo: al jugador que acaba de leer «era un
+        // Alpine A110» esconderle el vídeo de ESE coche es lo peor de los dos
+        // mundos, y en una temporada cuyo pool son coches de un canal, el vídeo
+        // es justo el premio de consolación que hace volver al que ha fallado.
+        //
+        // La regla 5 se cumple igual: `shouldReveal` es `win || isGameOver`, o
+        // sea que fuera de una partida cerrada este objeto entero es null y el
+        // ID no sale del servidor.
+        videoId: realCar.video_id ?? null,
       };
     }
 

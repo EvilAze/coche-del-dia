@@ -134,6 +134,24 @@ export default function EndScreen({
   const toast = useToast();
   const countdown = useCountdown();
   const [copied, setCopied] = useState(false);
+
+  // ── EL VÍDEO DEL COCHE (temporadas presentadas) ───────────────────────────
+  // Llega en el `reveal`, o sea solo con la partida cerrada (regla 5: antes de
+  // eso el ID de YouTube ES la respuesta). Sin vídeo, esta pantalla es la de
+  // siempre y no se ejecuta nada de lo de abajo.
+  //
+  // FACHADA, NO EMBED DIRECTO. Un iframe de YouTube montado de entrada son ~1 MB
+  // y cookies de terceros en el momento más importante de la partida, para todo
+  // el mundo, lo vea o no. Así que de entrada se queda la MISMA fotografía que
+  // ya había —que además es la portada correcta, y la única que podemos usar:
+  // la miniatura de YouTube lleva el ID en la URL— con un sello de reproducir
+  // encima. El iframe se monta al tocarlo, y ni un byte antes.
+  //
+  // `youtube-nocookie.com`: el dominio sin cookies de seguimiento hasta que hay
+  // reproducción. No convierte esto en privado —sigue siendo una petición a
+  // Google— pero es el mínimo decente cuando el usuario no ha pedido el vídeo.
+  const [videoAbierto, setVideoAbierto] = useState(false);
+  const videoId = car?.videoId || null;
   // (Aquí vivía `tab`. Ya no hay pestañas: la columna es única y el orden de
   // lectura hace de jerarquía. Ver la cabecera del archivo.)
   const copyTimer = useRef(null);
@@ -252,7 +270,7 @@ export default function EndScreen({
             SELLO estampándose — spec §2 del rediseño.) */}
 
         {/* Banda de revelado con el sello del veredicto */}
-        <div className="cdd-reveal">
+        <div className={"cdd-reveal" + (videoAbierto ? " reproduciendo" : "")}>
           <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true">
             {won ? t("prensa.selloWin") : t("prensa.selloLose")}
           </div>
@@ -270,6 +288,43 @@ export default function EndScreen({
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
             />
           )}
+          {/* EL SELLO DE REPRODUCIR. Va sobre la foto, no debajo del panel: lo
+              que el jugador acaba de descubrir es ESTE coche, y el vídeo es de
+              ese coche — pedirlo en otro sitio sería romper el momento en dos.
+              Cubre la banda entera porque a estas alturas la foto ya no tiene
+              más trabajo que hacer: la partida terminó y el nombre está escrito
+              debajo. */}
+          {videoId && !videoAbierto && (
+            <button
+              type="button"
+              className="cdd-reveal-play"
+              aria-label={t("result.verVideo")}
+              onClick={() => { haptic.impactLight(); setVideoAbierto(true); }}
+            >
+              <span className="marca">
+                <Icon d={I.play} size={17} />
+                {t("result.verVideo")}
+              </span>
+            </button>
+          )}
+
+          {/* El iframe solo existe a partir del toque. `title` es obligatorio
+              para lectores de pantalla en un iframe; `playsinline` evita que
+              Android se lo lleve a pantalla completa nada más arrancar, que en
+              un WebView deja al jugador fuera de la app. Si el canal tiene el
+              embebido desactivado, YouTube pinta su propio aviso aquí dentro y
+              el resto del panel sigue funcionando. */}
+          {videoAbierto && (
+            <iframe
+              className="cdd-reveal-video"
+              src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`}
+              title={t("result.videoTitulo")}
+              allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+          )}
+
           <div className="cdd-reveal-grad" />
           <div className="cdd-reveal-head">
             {/* (Aquí iba `.cdd-verdict`: «ACERTADO · 1/5» sobre la fotografía. Lo

@@ -1,9 +1,21 @@
 // src/components/CarImage.jsx
 import { useEffect, useRef, useState } from "react";
 import { haptic } from "../lib/haptics";
-import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import { apiUrl } from "../lib/apiUrl";
+
+// TAP-PARA-AMPLIAR RETIRADO. La foto fue tocable durante toda la vida del
+// diseño anterior, y con razón: el escenario era un recuadro modesto dentro de
+// una página con cabecera, formulario e historial, así que abrirlo a pantalla
+// completa (mismo `src` + mismo `scale(zoom)`, ni un píxel más de coche) era la
+// única forma de mirar de verdad la pista. Desde que la foto manda en el pliego
+// —marco a todo el ancho, con el escenario rompiendo el margen para tocar los
+// dos bordes— el lightbox enseñaba prácticamente lo mismo que ya había en
+// pantalla: un gesto que cobra un toque, un scrim y una animación para devolver
+// el sitio donde ya estabas. Con él se van su botón invisible a inset-0 (que se
+// comía cualquier intento de gesto sobre la foto), el icono de esquina, la copia
+// del <picture> a 1920 y la clase .cdd-lightbox-frame.
+// Si el escenario volviera a encoger, esto es lo que habría que resucitar.
 
 // Aspect ratio por defecto mientras la imagen aún no ha cargado.
 // Se reemplaza por el natural (img.naturalWidth/Height) al onLoad.
@@ -18,13 +30,11 @@ export default function CarImage({
   status,
   overlay = null,
   showHintLabel = true,
-  // Nodo opcional anidado en el borde inferior-centro de la imagen. Decorativo:
-  // pointer-events off para no interferir con el tap-to-ampliar.
+  // Nodo opcional anidado en el borde inferior-centro de la imagen. Decorativo.
   bottomCenter = null,
   // Nodo opcional anclado en la esquina inferior-DERECHA de la imagen (lo usa
-  // el indicador de intentos del juego principal). La izquierda la ocupa el
-  // botón de ampliar. Overlay discreto y pointer-events off; como la imagen es
-  // tap-to-ampliar, si molesta se ve sin interrupciones con un solo clic.
+  // el indicador de intentos del juego principal). Overlay discreto y
+  // pointer-events off: es un rótulo sobre la foto, no un control.
   bottomRight = null,
   // Callback que se dispara cuando la imagen de REVELADO (la completa sin
   // crop que se sirve al ganar/perder) termina de cargar. Lo consume App
@@ -36,15 +46,14 @@ export default function CarImage({
   // Variante "configurador" (rediseño premium): la foto vive en un marco 4:3
   // (.cdd-stage-frame) y se le superpone un HUD de cámara (`hud`). Cambia SOLO
   // el chrome visual; el pipeline de imagen y el zoom/crop (coherencia de
-  // seguridad con el servidor) quedan intactos. Desactiva la viñeta, el
-  // tap-to-ampliar y la etiqueta de pista propios del diseño anterior.
+  // seguridad con el servidor) quedan intactos. Desactiva la viñeta y la
+  // etiqueta de pista propias del diseño anterior.
   configurator = false,
   hud = null,
   // Barra de progreso de intentos anclada al BORDE INFERIOR de la imagen (dentro
   // del marco), por encima de la viñeta ::after que ya oscurece esa franja para
   // contener carrocerías claras → legible sobre cualquier coche. pointer-events
-  // off: el tap-para-ampliar sigue activo debajo y el lightbox NO la pinta, así
-  // que un toque muestra la foto limpia. Solo en modo configurador.
+  // off, como el resto del cromo que va sobre la foto. Solo en modo configurador.
   bottomBar = null,
 }) {
   const [loaded, setLoaded] = useState(false);
@@ -157,18 +166,7 @@ export default function CarImage({
   const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
   const showLabel = showHintLabel && status === "playing" && hintIndex != null && totalHints;
 
-  // Tap-to-ampliar: la imagen se puede abrir en grande (lightbox) al MISMO
-  // nivel de zoom del intento. NO revela más coche (mismo src + mismo
-  // scale(zoom)), solo facilita la vista. Excluida cuando está bloqueada/
-  // borrosa (anónimo que perdió) o aún sin cargar.
   const { t } = useT();
-  const [expanded, setExpanded] = useState(false);
-  // Tap-para-ampliar disponible también en el configurador (toda la foto es
-  // tappable). El HUD va con pointer-events:none, así que el toque pasa al botón
-  // de zoom de abajo; solo ocultamos el icono de esquina en modo configurador
-  // para que no choque visualmente con el HUD (ver más abajo).
-  const canExpand = loaded && Boolean(src) && status === "playing";
-  useEscape(expanded, () => setExpanded(false));
 
   function handleImageLoad(e) {
     const img = e.currentTarget;
@@ -407,33 +405,8 @@ export default function CarImage({
           </div>
         </div>
       )}
-      {/* Capa clicable para ampliar: cubre la imagen (los usuarios ya intentan
-          tocarla). Transparente salvo el icono de "ampliar" en una esquina.
-          Solo cuando se puede ampliar (cargada y no bloqueada). */}
-      {canExpand && (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          aria-label={t("app.enlargeImage")}
-          className="group absolute inset-0 z-[5] cursor-zoom-in"
-        >
-          {/* En configurador no pintamos el icono de esquina (chocaría con el
-              HUD "· INTENTO" abajo-izquierda): toda la foto es tappable y el
-              encuadre de visor ya invita a tocarla. En el resto de modos sí. */}
-          {!configurator && (
-            <span className="absolute bottom-2 left-2 flex h-7 w-7 items-center justify-center rounded-none border border-white/20 bg-black/40 text-white/70 transition group-hover:border-accent/60 group-hover:text-accent">
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
-              </svg>
-            </span>
-          )}
-        </button>
-      )}
-
-      {/* Indicador de intentos: overlay discreto en la esquina inferior-derecha
-          (la izquierda la ocupa el botón de ampliar). Mismo lenguaje de "chip"
-          que ese botón → integrado con los controles sobre la imagen.
-          pointer-events-none: el tap-para-ampliar sigue activo debajo. */}
+      {/* Indicador de intentos: overlay discreto en la esquina inferior-derecha.
+          pointer-events-none: es un rótulo sobre la foto, no un control. */}
       {bottomRight && (
         <div className="pointer-events-none absolute bottom-2 right-2 z-[6]">
           {bottomRight}
@@ -446,10 +419,9 @@ export default function CarImage({
       {configurator && hud}
 
       {/* Barra de progreso de intentos: anclada al borde inferior del marco, por
-          ENCIMA de la viñeta ::after (z5) y del HUD (z7). pointer-events:none para
-          no robar el tap-para-ampliar. El inset (left/right/bottom-2) es aire de
-          margen; ya no hay curva de la que escapar (el marco es de esquina viva
-          desde el rediseño «Prensa del motor»). */}
+          ENCIMA de la viñeta ::after (z5) y del HUD (z7). El inset
+          (left/right/bottom-2) es aire de margen; ya no hay curva de la que
+          escapar (el marco es de esquina viva desde «Prensa del motor»). */}
       {configurator && bottomBar && (
         <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-[8]">
           {bottomBar}
@@ -463,73 +435,6 @@ export default function CarImage({
       {bottomCenter && (
         <div className="flex items-center justify-center border-t border-white/[0.06] py-2.5">
           {bottomCenter}
-        </div>
-      )}
-
-      {/* Lightbox: mismo recorte (src + scale(zoom)) en grande → MISMO nivel de
-          zoom del intento, sin revelar más. position:fixed cubre el viewport
-          aunque el contenedor tenga overflow-hidden. */}
-      {expanded && (
-        <div
-          className="scrim-flat fixed inset-0 z-[120] flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setExpanded(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={t("app.enlargeImage")}
-        >
-          <div
-            // Esquina viva y filete, sin `shadow-2xl`: la foto ampliada es la
-            // MISMA foto del escenario, y el escenario no tiene ni redondeo ni
-            // sombra blanda. Con `rounded-2xl` el marco cambiaba de forma al
-            // tocarlo (16px de radio que aparecían de la nada) — el mismo motivo
-            // por el que la etiqueta de pista de este archivo ya se pasó a
-            // `rounded-none`. El filete se queda en blanco al 20%, como el resto
-            // del cromo que va SOBRE una fotografía: ahí el papel no es opción, y
-            // se alinea con el alfa que usan la etiqueta y la ✕ de cerrar.
-            className={
-              configurator
-                ? // MISMA proporción que el escenario → mismo recorte, sin revelar
-                  // más coche (coherencia de dificultad). Tamaño en la clase CSS.
-                  "cdd-lightbox-frame relative overflow-hidden rounded-none border border-white/20"
-                : "relative aspect-[4/3] w-full max-w-[min(92vw,calc(92vh*4/3))] overflow-hidden rounded-none border border-white/20"
-            }
-            onClick={(e) => e.stopPropagation()}
-          >
-            <picture>
-              {isApiProxy && (
-                <source
-                  type="image/avif"
-                  srcSet={`${proxBase}&f=avif&w=1280 1280w, ${proxBase}&f=avif&w=1920 1920w`}
-                  sizes="92vw"
-                />
-              )}
-              {isApiProxy && (
-                <source
-                  type="image/webp"
-                  srcSet={`${proxBase}&f=webp&w=1280 1280w, ${proxBase}&f=webp&w=1920 1920w`}
-                  sizes="92vw"
-                />
-              )}
-              <img
-                src={isApiProxy ? `${proxBase}&f=jpeg&w=1920` : src}
-                alt={t("cdd.carImageAlt")}
-                draggable={false}
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
-              />
-            </picture>
-
-            <button
-              type="button"
-              onClick={() => setExpanded(false)}
-              aria-label={t("common.close")}
-              className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-none border border-white/20 bg-black/50 text-white/80 transition hover:border-accent/60 hover:text-accent active:scale-90"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
-          </div>
         </div>
       )}
     </div>

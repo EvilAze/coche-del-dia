@@ -10,8 +10,9 @@
 //
 // LA PALANCA ES EL ANCHO, NO EL ALTO. El marco es 4:3 y esa proporción NO se
 // puede tocar: de ella dependen el recorte que calcula el servidor, los `scale`
-// del zoom y el lightbox, que replica el marco para enseñar exactamente los
-// mismos píxeles y ni uno más (reglas 5 y 7). Si capásemos la ALTURA, el marco
+// del zoom y el «recorte» flotante (PhotoPeek), que replica el marco para
+// enseñar exactamente los mismos píxeles y ni uno más (reglas 5 y 7).
+// Si capásemos la ALTURA, el marco
 // se volvería más apaisado que 4:3 y `object-fit: cover` recortaría de más —
 // cambiaría la dificultad del día. Capando el ANCHO la proporción se mantiene
 // intacta y la altura baja sola: la misma foto, más pequeña.

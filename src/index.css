@@ -372,7 +372,7 @@ body,
    -------------------------------------------------------------------
    Herencia del rediseño "configurador premium" (dir. Platino). Tras la purga
    F5 aquí solo quedan los selectores que el juego actual sigue montando
-   (escenario/lightbox, EndScreen, distribución, recorte…) — la capa .prensa
+   (escenario, EndScreen, distribución, recorte…) — la capa .prensa
    de más abajo los sobreescribe por cascada — y `.theme-platino`, que
    conserva el admin: PreviewPanel envuelve sus previews del escenario en ese
    tema para verlas como las ve el juego. (.theme-cobre, el header de iconos,
@@ -435,14 +435,10 @@ body,
   background: linear-gradient(to top, rgba(0,0,0,.4) 0%, transparent 24%);
 }
 
-/* Lightbox de la foto: MISMA proporción de 4:3. Crítico para la COHERENCIA DE
-   DIFICULTAD: con object-cover + la misma escala, igualar la proporción garantiza
-   el MISMO recorte — ni un píxel más de coche que en el intento actual. El ancho
-   se calcula para que el alto quepa en pantalla. */
-.cdd-lightbox-frame { width: min(94vw, calc(80vh * 4 / 3)); aspect-ratio: 4 / 3; }
-@media (min-width: 1000px) {
-  .cdd-lightbox-frame { width: min(82vw, calc(82vh * 4 / 3)); aspect-ratio: 4 / 3; }
-}
+/* (El lightbox de la foto —.cdd-lightbox-frame— se retiró con el
+   tap-para-ampliar: ver la cabecera de CarImage.jsx. Existía para que un
+   escenario pequeño se pudiera mirar a pantalla completa; con la foto ya a
+   todo el ancho del pliego, abría una copia del mismo tamaño.) */
 
 .cdd-hud { position: absolute; inset: 0; pointer-events: none; z-index: 7; }
 /* Crosshair a opacidad baja: es atrezzo de cámara, no un control — a .85
@@ -1166,7 +1162,8 @@ body,
 /* Encaje del escenario: el ancho máximo lo calcula useEncajeEscenario y lo deja
    en --cdd-marco-max sobre el pliego, para que el botón ADIVINAR entre entero
    en pantalla al abrir. Se capa el ANCHO y jamás el alto: el marco es 4:3 y de
-   esa proporción dependen el recorte del servidor y el lightbox (reglas 5 y 7);
+   esa proporción dependen el recorte del servidor y el recorte flotante
+   (reglas 5 y 7);
    tocando la altura el marco se volvería apaisado y `object-fit: cover`
    enseñaría MENOS coche del que toca ese intento. Encogiendo por el ancho la
    foto es la misma, solo más pequeña — igual que en un móvil más estrecho.
@@ -1255,8 +1252,8 @@ body,
    escritura lo agranda (ver «EL MODO ESCRITURA»). Marco 4:3 ESTRICTO —
    imprescindible: con object-cover + el
    mismo scale(zoom), solo la MISMA proporción que .cdd-stage-frame garantiza
-   el mismo crop (ni un píxel más que el escenario; mismo principio que
-   .cdd-lightbox-frame). ALTO EXPLÍCITO en el botón (no aspect-ratio): con
+   el mismo crop (ni un píxel más que el escenario, regla 5).
+   ALTO EXPLÍCITO en el botón (no aspect-ratio): con
    todos los hijos en absoluto no hay contenido en flujo, y si aspect-ratio
    fallara el img heredaría un alto roto y la foto SE ESTIRARÍA.
    Piel prensa: filete fuerte, esquina viva y la sombra funcional de overlay

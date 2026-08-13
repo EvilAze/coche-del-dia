@@ -24,7 +24,6 @@
     "title": "Car of the Day",
     "tagline": "Guess the make, model and year in 5 tries",
     "howToPlayAria": "How to play",
-    "enlargeImage": "Enlarge image",
     "attempts": "attempts",
     "attemptsRemainingAria": "{count} of {max} attempts left",
     "loginModalTitle": "SIGN IN",

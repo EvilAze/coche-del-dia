@@ -6,11 +6,11 @@
 // auditoría UX 2026-07: la retirada del peek en el rediseño v0 dejó este hueco
 // sin cubrir). Tap = cerrar teclado y volver al escenario.
 //
-// SEGURIDAD (regla 5, no revelar de más): mismo patrón que el lightbox de
-// CarImage — mismo `src` (ya recortado por el servidor) + mismo `scale(zoom)`
-// CSS + marco 4:3 (la MISMA proporción que .cdd-stage-frame; si el escenario
-// cambia de formato, este marco cambia con él) = exactamente los MISMOS
-// píxeles que ve el jugador en el intento actual, solo que en pequeño.
+// SEGURIDAD (regla 5, no revelar de más): mismo `src` (ya recortado por el
+// servidor) + mismo `scale(zoom)` CSS + marco 4:3 (la MISMA proporción que
+// .cdd-stage-frame; si el escenario cambia de formato, este marco cambia con
+// él) = exactamente los MISMOS píxeles que ve el jugador en el intento actual,
+// solo que en pequeño.
 //
 // CACHÉ: el <picture> replica BYTE A BYTE el srcset/sizes del CarImage
 // principal (mismo criterio que la regla 6 middleware↔CarImage): así el

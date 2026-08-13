@@ -1089,6 +1089,20 @@ body,
   font-size: clamp(8px, 2.4vw, 10px); letter-spacing: .1em; text-transform: uppercase;
 }
 
+/* EL FOLIO DE LA APP: la misma fecha, pero dentro de la barra y en corto (ver
+   Header.jsx). Va en `--cdd-muted` y un punto por debajo del resto de la barra
+   a propósito: es la fecha del ejemplar, no una acción. Si compitiera en tinta
+   plena con CLASIFICACIÓN volveríamos al problema de partida — dos elementos
+   del mismo peso peleando en la misma línea.
+   `nowrap` porque un folio partido en dos renglones deja de ser un folio.
+   Fuera de la media query de la app: solo lo renderiza la app, pero la
+   tipografía de una pieza no debe depender del ancho de la ventana. */
+.prensa-folio-barra {
+  font-family: var(--font-body); font-weight: 600;
+  font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--cdd-muted); white-space: nowrap;
+}
+
 /* (Aquí vivía LA CLASIFICACIÓN como faja: un bloque bajo el folio con ladillo y
    cifra a 38px, más su versión fina pegada al hacer scroll. Se retiró al
    simplificar la portada — el acceso al ranking está ahora en la barra
@@ -1688,11 +1702,43 @@ body,
    la web por accidente, y el componente sigue siendo uno solo. */
 @media (max-width: 1099px) {
   :root[data-plataforma="app"] .prensa-masthead { display: none; }
-  /* Sin el wordmark de por medio, el filete de la barra y el doble filete del
-     folio quedaban a 5px: dos reglas casi pegadas se leen como un error de
-     imprenta, no como dos secciones. El aire que daba el masthead lo pone
-     ahora el propio folio. */
-  :root[data-plataforma="app"] .prensa-folio { margin-top: 10px; }
+
+  /* ── LA BARRA ES AHORA EL CABECERO ENTERO ────────────────────────────────
+     Quitado el masthead, la cabecera se quedó con TRES bandas del mismo rango
+     —barra (10px/.18em/600), folio (9px/.1em/600) y ladillo (11px/.22em/800)—
+     apiladas y sin nada a lo que subordinarse. Tres rótulos en versalitas
+     discutiendo: ninguno mandaba. Y con ellas, CUATRO reglas horizontales en
+     unos 40px (filete de la barra, doble del folio arriba, doble abajo, filete
+     del ladillo), cuando el filete doble significa «división mayor» y un
+     periódico lo gasta UNA vez.
+
+     Ahora la barra se queda el doble filete —es la única división mayor que hay
+     aquí: navegación arriba, ejemplar abajo— y el folio se mete dentro de ella
+     (Header.jsx). El padding sube de 7 a 10px porque la barra pasa a llevar
+     tres cosas en vez de dos: con 7px el folio quedaba pegado al filete.
+
+     Cuentan las dos: se va la banda del folio (29px) y su separación (10px), y
+     entra el aire de la barra (+6px). Neto, la cabecera adelgaza ~33px. Ese
+     hueco NO se lo lleva la fotografía salvo en pantallas cortas —la foto es
+     `flex: 0 1 auto` y su alto sale del ANCHO por el 4:3 de las reglas 5 y 7—;
+     quien lo absorbe es el historial, que para eso es la lista. En un móvil
+     bajo, donde la foto sí iba por debajo de su tamaño natural, se lo lleva
+     ella. */
+  :root[data-plataforma="app"] .prensa-topbar {
+    padding: 10px 0;
+    border-bottom: 3px double var(--line-strong);
+  }
+  /* Aire entre el botón del sumario y el folio. El grupo de la izquierda pasa a
+     tener dos piezas y sin gap se tocaban. */
+  :root[data-plataforma="app"] .prensa-topbar > span:first-child { gap: 10px; }
+
+  /* EL LADILLO QUE SOLO LLEVA ESTADO (ver ZoomStage.jsx). Hereda el gramaje que
+     tenía el rótulo: si el estado se queda solo en la línea pero con el gris de
+     nota al margen, la línea entera se lee como secundaria y el problema sigue
+     igual, solo que con menos texto. */
+  :root[data-plataforma="app"] .prensa-ladillo.solo-estado .aparte {
+    font-weight: 800; letter-spacing: .22em; color: var(--cdd-text);
+  }
 }
 
 /* ══ EL CUPÓN QUE NO SE TECLEA — solo app ═══════════════════════════════════

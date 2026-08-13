@@ -143,10 +143,26 @@ const SELECTORES = [
   // El cupón de la app: tres renglones que abren una hoja de selección en vez
   // de levantar el teclado.
   ".prensa-cupon", ".prensa-renglon",
+  // El folio dentro de la barra: si alguien lo renombra, la cabecera de la app
+  // pierde la fecha y este banco seguiría dando verde midiendo una barra sin
+  // ella.
+  ".prensa-folio-barra",
 ];
 
 // ── La maqueta ─────────────────────────────────────────────────────────────
 // Mismas clases que monta Configurator.jsx, en el mismo orden del DOM.
+//
+// La cabecera es la de la APP, que es lo que mide este banco en 30 de sus 31
+// escenarios: barra con el folio corto dentro (`.prensa-folio-barra`) y SIN la
+// banda `.prensa-folio`, porque en la app esa banda no se monta — la fecha
+// viaja en la barra (ver Header.jsx). El masthead sí se deja: lo apaga el CSS
+// por `data-plataforma`, y dejarlo aquí es justo lo que comprueba que sigue
+// apagándose. Por lo mismo el ladillo va con `solo-estado`: en la app el rótulo
+// «La fotografía del día» no se pinta y la línea la ocupa la pista.
+//
+// El control negativo de web (abajo) borra `data-plataforma` en caliente y NO
+// repone la banda del folio: solo comprueba que hay scroll y que se ven los
+// enlaces del pie, y ~29px de folio no cambian ninguna de las dos cosas.
 function paginaHtml(hrefCss) {
   return `<!doctype html>
 <html lang="es" data-plataforma="app">
@@ -156,12 +172,11 @@ function paginaHtml(hrefCss) {
 <body><div class="cdd-app prensa" style="--accent: var(--rojo)">
   <main class="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3 app-pantalla">
     <header class="prensa-area-cab">
-      <nav class="prensa-topbar"><span>SUMARIO</span><span>CLASIFICACIÓN</span></nav>
+      <nav class="prensa-topbar"><span>SUMARIO <span class="prensa-folio-barra">Jue, 13 ago</span></span><span>CLASIFICACIÓN</span></nav>
       <div class="prensa-masthead prensa-masthead--compacto"><p class="titulo">Coche del Día</p></div>
-      <div class="prensa-folio"><span>Jueves, 6 de agosto de 2026</span></div>
     </header>
     <section class="prensa-area-foto flex flex-col gap-3 pb-4">
-      <div class="prensa-ladillo">La fotografía del día<span class="aparte">Pista 1 de 5</span></div>
+      <div class="prensa-ladillo solo-estado"><span class="aparte">Pista 1 de 5</span></div>
       <div class="cdd-stage"><div class="cdd-stage-frame" id="marco">
         <div style="position:absolute;inset:0;background:#888"></div>
       </div></div>

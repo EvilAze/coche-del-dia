@@ -8,6 +8,7 @@
 
 import CarImage from "../CarImage";
 import { useT } from "../../i18n";
+import { esApp } from "../../lib/plataforma";
 
 export default function ZoomStage({
   car,
@@ -32,6 +33,33 @@ export default function ZoomStage({
   const { t } = useT();
   const revealed = status !== "playing";
 
+  // El texto VIVO del ladillo: la pista en curso o el cierre de la edición.
+  // `hintIndex` null = modo sin pistas progresivas (Repesca veterano): no se
+  // pinta contador, para no contradecir el «sin pistas» que promete ese modo.
+  const estado = revealed
+    ? t("prensa.edicionCerrada")
+    : hintIndex != null
+      ? t("prensa.pista", { n: Math.min(hintIndex + 1, totalHints), max: totalHints })
+      : null;
+
+  // ── EN LA APP EL LADILLO SE QUEDA SOLO CON EL ESTADO ──────────────────────
+  // «La fotografía del día» es un rótulo que nombra lo evidente: está encima de
+  // una fotografía. Un ladillo se gana el sitio distinguiendo UNA sección entre
+  // muchas en una página densa; en el pliego de la app no hay más que esto en
+  // pantalla, así que gastaba un renglón entero —a peso 800 y en tinta plena—
+  // para no decir nada, mientras el único dato que cambia según juegas («Pista
+  // 1 de 5») iba de nota al margen, en gris y a peso 600. Estaba invertido: el
+  // rótulo gritaba y el estado susurraba.
+  //
+  // Quitado el rótulo, el estado hereda la línea y su gramaje. En WEB no se
+  // toca: allí el pliego es un documento que se lee bajando, con masthead y
+  // varias secciones, y ahí el ladillo sí hace su trabajo de siempre.
+  //
+  // El `estado != null` NO es defensivo de más: es exactamente el caso de
+  // Repesca Veterano, que no tiene pista. Sin esa guarda, ese modo se quedaba
+  // con un ladillo vacío —una línea en blanco y su filete— en vez de un rótulo.
+  const soloEstado = esApp() && estado != null;
+
   return (
     // Sin sangría horizontal propia. La tenía (`px-4 md:px-8`) y era justo lo que
     // impedía la decisión de portada que index.css lleva documentada desde el
@@ -46,18 +74,9 @@ export default function ZoomStage({
     // ancho del elemento: el navegador elige el MISMO recurso, así que el preload
     // del middleware sigue coincidiendo byte a byte (regla 6).
     <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-3 pb-4">
-      <div className="prensa-ladillo">
-        {t("prensa.ladilloFoto")}
-        <span className="aparte">
-          {revealed
-            ? t("prensa.edicionCerrada")
-            : // hintIndex null = modo sin pistas progresivas (Repesca veterano):
-              // no pintamos contador de pista para no contradecir "sin pistas".
-              // El daily y la repesca normal siempre pasan un índice numérico.
-              hintIndex != null
-              ? t("prensa.pista", { n: Math.min(hintIndex + 1, totalHints), max: totalHints })
-              : null}
-        </span>
+      <div className={"prensa-ladillo" + (soloEstado ? " solo-estado" : "")}>
+        {!soloEstado && t("prensa.ladilloFoto")}
+        <span className="aparte">{estado}</span>
       </div>
 
       {/* UN solo marco. Aquí había un segundo paspartú en utilidades (padding,

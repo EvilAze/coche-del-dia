@@ -32,6 +32,7 @@
 
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
+import { esApp } from "../../lib/plataforma";
 import { ordinal } from "../PuestoCifra";
 
 export default function Header({
@@ -48,11 +49,32 @@ export default function Header({
   // tabla, así que la barra le ofrece la sección a secas.
   const puesto = user && rank ? rank.rank : null;
 
-  // Fecha COMPLETA con año: es la línea de folio de un periódico, no un pie
-  // de barra — "Sábado, 5 de julio de 2026".
-  const rawDate = new Date().toLocaleDateString(dateLocale, {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  });
+  // ── EL FOLIO TIENE DOS FORMAS, UNA POR PLATAFORMA ─────────────────────────
+  // En WEB sigue siendo la línea de folio de siempre: fecha COMPLETA con año
+  // ("Sábado, 5 de julio de 2026"), centrada entre filetes dobles bajo el
+  // masthead. Ahí hay ancla —el masthead— y el folio se lee como lo que es, el
+  // número de la edición colgando del cabecero.
+  //
+  // En la APP no hay masthead (se oculta en index.css: una app dice su nombre
+  // una vez, al abrirse), y sin ancla las tres bandas de la cabecera —barra,
+  // folio y ladillo— se leían como tres rótulos del mismo rango discutiendo
+  // entre ellos: 10px/9px/11px, todos en versalitas espaciadas. Nada mandaba.
+  //
+  // Así que aquí el folio deja de ser una banda y vuelve a ser lo que es en un
+  // periódico de verdad: una línea fina AL BORDE, junto a la navegación, no un
+  // frontón centrado. Y en corto, porque tiene que convivir con la
+  // clasificación en 360px: la fecha larga no cabe sin apretarlo todo.
+  //
+  // `weekday: "short"` + `month: "short"` da "jue, 13 ago" en es y "Thu, Aug 13"
+  // en en — lo resuelve Intl por locale, así que no hay formato escrito a mano
+  // que se desalinee con el idioma.
+  const enApp = esApp();
+  const rawDate = new Date().toLocaleDateString(
+    dateLocale,
+    enApp
+      ? { weekday: "short", day: "numeric", month: "short" }
+      : { weekday: "long", day: "numeric", month: "long", year: "numeric" }
+  );
   const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
 
   return (
@@ -82,6 +104,13 @@ export default function Header({
                 Archivo — aquí fuera solo cabe el aviso de que hay algo. */}
             {repescaAlert && <span className="aviso" aria-hidden="true" />}
           </button>
+          {/* El folio, solo en la app: pegado a la navegación y en voz baja
+              (--cdd-muted). Va DESPUÉS del botón y no centrado en la barra a
+              propósito: centrarlo lo pondría a competir con la clasificación
+              por el eje óptico, y en 360px además bailaría según lo largo que
+              sea el día de la semana. Agrupado a la izquierda, la barra se lee
+              en dos bloques limpios — «qué ejemplar es» y «qué puedo hacer». */}
+          {enApp && <span className="prensa-folio-barra">{dateLabel}</span>}
         </span>
 
         {/* DERECHA: la clasificación. Con puesto, el ordinal en oro (mismo
@@ -111,9 +140,19 @@ export default function Header({
         <p className="titulo">{t("app.title")}</p>
       </div>
 
-      <div className="prensa-folio">
-        <span>{dateLabel}</span>
-      </div>
+      {/* La banda del folio es cosa de la WEB. En la app la fecha ya viaja en
+          la barra de arriba, y montarla también aquí sería decir la misma cosa
+          dos veces —y, peor, repetírsela a quien use lector de pantalla—. Con
+          esta banda se van sus DOS filetes dobles, que era el otro problema:
+          el filete doble significa «división mayor» y había dos seguidos en un
+          palmo (más el de la barra y el del ladillo, cuatro reglas en 40px).
+          Ahora queda UNO, bajo la barra, justo donde separa la navegación del
+          ejemplar. */}
+      {!enApp && (
+        <div className="prensa-folio">
+          <span>{dateLabel}</span>
+        </div>
+      )}
 
     </header>
   );

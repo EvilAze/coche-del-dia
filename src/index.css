@@ -1073,12 +1073,42 @@ body,
    ordinal en oro. El oro está reservado a lo premium (CLAUDE.md) y el puesto lo
    es; el ladillo se queda en tinta para que la cifra sea lo que destaque. */
 .prensa-topbar .prensa-clasif { gap: 7px; color: var(--cdd-text); }
+/* La cifra y su movimiento, juntos. En web este envoltorio no hace nada visible
+   (dentro solo va el ordinal); existe para que en la app el chip del salto no se
+   despegue del número al apilar la etiqueta encima. */
+.prensa-topbar .prensa-clasif .cifra {
+  display: inline-flex; align-items: baseline; gap: 6px;
+}
 .prensa-topbar .prensa-clasif .pos {
   font-family: var(--font-display); font-weight: 700; font-size: 13px;
   letter-spacing: 0; text-transform: none; color: var(--gold);
 }
 .prensa-topbar .prensa-clasif .pos--pendiente { color: var(--faint); }
 .prensa-topbar .prensa-clasif:hover .pos { color: var(--rojo); }
+/* Sin puesto: la invitación ocupa el hueco de la cifra. ROJO porque es acción
+   —el oro es «esto vale algo» y aquí todavía no vale nada—, y en la sans de la
+   interfaz, no en la serif de las cifras: no es un dato, es un botón. */
+.prensa-topbar .prensa-clasif .pos--invita {
+  font-family: var(--font-body); font-weight: 800; font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--rojo);
+}
+/* EL SALTO DEL DÍA. Flecha de línea + número, en tinta. Sin verde ni rojo a
+   propósito: en este juego esos dos colores son el veredicto de un intento
+   («acertado», «fallado») y aquí hablarían de otra cosa. El sentido lo lleva la
+   flecha, que para bajar es la misma volteada — un solo trazo que mantener. */
+.prensa-topbar .prensa-clasif .mov {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-family: var(--font-body); font-weight: 700; font-size: 11px;
+  letter-spacing: 0; text-transform: none; line-height: 1;
+  color: var(--cdd-text); font-variant-numeric: tabular-nums;
+}
+.prensa-topbar .prensa-clasif .mov--down svg { transform: scaleY(-1); }
+/* POR QUÉ UNA FLECHA Y NO UN «+2»: en una clasificación subir es que tu número
+   BAJE, así que un signo delante del contador es ambiguo de verdad — «+2» se
+   lee igual de bien como «has ganado dos puestos» que como «tu número ha subido
+   dos». La flecha no tiene esa lectura doble. Es la única concesión a un icono
+   en una barra a la que se le quitaron todos, y se paga con el trazo del
+   sistema (1.6 escalado a 2 para que a 11px no se deshaga en un acento). */
 
 .prensa-masthead { text-align: center; padding: 14px 0 12px; }
 .prensa-masthead .titulo {
@@ -1126,38 +1156,40 @@ body,
   color: var(--cdd-muted); white-space: nowrap;
 }
 
-/* ── LA CIFRA DEL FOLIO (la cabecera de la app; Header.jsx la monta) ───────
-   El bloque de fecha de cualquier periódico: el día en Fraunces y, apilados a
-   su derecha, mes y día de la semana en microtipografía. Es lo único de la
-   cabecera con un salto de escala, y es deliberado — sin él la barra tenía
-   cuatro tamaños en un rango de seis píxeles, que es la definición de una
-   barra de herramientas y no la de un cabecero.
+/* ── LA CORNISA (la cabecera de la app; Header.jsx la monta) ───────────────
+   El rótulo que en las páginas interiores de un diario dice qué se está
+   leyendo y de qué día: el nombre en versalitas diminutas y la fecha debajo,
+   en Fraunces. Sustituye a la CIFRA DEL FOLIO —el día a 24px con mes y día de
+   la semana apilados al lado—, que tenía dos problemas: se llevaba el mayor
+   peso tipográfico de la barra para el dato que menos se puede hacer con él
+   (ver Header.jsx), y su forma era la del icono de calendario de un teléfono,
+   no la de un periódico. El porqué completo, en Header.jsx.
 
-   POR QUÉ LA FECHA Y NO LA PISTA: la otra candidata a mandar aquí era el
-   contador («1 de 5»), que al menos cambia mientras juegas. Pero un contador
-   no es identidad: se lo grita al jugador cada día y duplica lo que ya cuenta
-   el zoom al abrirse. La fecha es lo ÚNICO irrepetible de la pantalla — un
-   juego diario es su edición — y estaba siendo el texto más pequeño y apagado
-   de todos.
+   POR QUÉ AQUÍ VUELVE EL NOMBRE, si el masthead se apaga en la app treinta
+   líneas más abajo: no es lo mismo. Aquel era el wordmark a 47px, la app
+   presentándose; esta es la página identificándose a 8,5px, y sirve para que
+   la izquierda de la barra tenga algo que decir aparte de «hoy es 13».
 
-   NO ENGORDA LA BARRA, y esa era la condición. Con la cifra a 24px y las dos
-   líneas de 9px a 1.15, el bloque mide ~30px de alto sobre la línea base
-   común: cabe dentro de los 34px que ya fija la marca del sumario, que es
-   quien pone el suelo de la barra. La cabecera mide lo mismo que antes.
+   NO ENGORDA LA BARRA, que sigue siendo la condición: 8,5 + 3 + 15 = 26,5px,
+   holgados dentro de los 34px que fija la marca del sumario.
 
-   `tabular-nums` para que el día no cambie de ancho del 11 al 22 y la barra no
-   baile de un día para otro. El peso 600 (y no el 900 del masthead) porque
-   esto es un folio, no un wordmark: tiene que anclar, no gritar. */
-.prensa-folio-cifra { display: inline-flex; align-items: baseline; gap: 6px; }
-.prensa-folio-cifra .dia {
-  font-family: var(--font-display); font-weight: 600;
-  font-size: 24px; line-height: 1; letter-spacing: 0;
-  color: var(--cdd-text); font-variant-numeric: lining-nums tabular-nums;
+   El `text-transform` y el `letter-spacing` de la FECHA van a cero a mano: los
+   hereda de `.prensa-topbar`, que compone toda la barra en versalitas
+   espaciadas, y una fecha en Fraunces con .18em de interletraje deja de leerse
+   como una fecha. `tabular-nums` para que el día no cambie de ancho del 11 al
+   22 y la barra no baile de un día para otro; `nowrap` porque una cornisa
+   partida en dos renglones deja de ser una cornisa. */
+.prensa-cornisa { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.prensa-cornisa .cabeza {
+  font-family: var(--font-body); font-weight: 600; font-size: 8.5px;
+  letter-spacing: .2em; text-transform: uppercase; line-height: 1;
+  color: var(--cdd-muted); white-space: nowrap;
 }
-.prensa-folio-cifra .resto {
-  display: flex; flex-direction: column; line-height: 1.15;
-  font-family: var(--font-body); font-weight: 600; font-size: 9px;
-  letter-spacing: .14em; color: var(--cdd-muted); white-space: nowrap;
+.prensa-cornisa .fecha {
+  font-family: var(--font-display); font-weight: 600; font-size: 15px;
+  line-height: 1; letter-spacing: 0; text-transform: none;
+  color: var(--cdd-text); white-space: nowrap;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 /* (Aquí vivía LA CLASIFICACIÓN como faja: un bloque bajo el folio con ladillo y
@@ -1826,20 +1858,42 @@ body,
      arriba tuviera un pegote, no que hubiera un aviso al margen. */
   :root[data-plataforma="app"] .prensa-sumario-boton .aviso { top: 2px; right: 1px; }
 
-  /* ── LA CLASIFICACIÓN BAJA LA VOZ (la palabra, no la cifra) ──────────────
-     «CLASIFICACIÓN» era la cadena más larga de la cabecera y estaba en tinta
-     plena, para un destino que se visita de vez en cuando; a su lado, el
-     ordinal en oro — el único color y la única serif de la barra. O sea que el
-     momento tipográfico más fuerte de la parte superior pertenecía a la tabla
-     y no al juego. Es la misma inversión que ya se corrigió entre el rótulo y
-     la pista, un piso más arriba.
+  /* ── LA CLASIFICACIÓN DEJA DE SER UNA PALABRA CON UN NÚMERO AL LADO ──────
+     Primero se le bajó la voz a la PALABRA (de tinta plena a --cdd-muted),
+     porque «CLASIFICACIÓN» era la cadena más larga de la cabecera y estaba
+     gritando por un destino que se visita de vez en cuando. Ayudó, pero se
+     quedó a medias: seguían siendo dos piezas EN LÍNEA, catorce caracteres de
+     etiqueta contra tres de valor, discutiendo por el mismo renglón. En un
+     marcador el número es el mensaje y la palabra es el pie.
 
-     La palabra pasa a --cdd-muted y se convierte en la ETIQUETA de la cifra en
-     vez de competir con ella; el oro sigue siendo el único acento de la barra,
-     que es lo que manda la regla de marca. No se toca en web: allí la barra
+     Ahora se apilan: la etiqueta encima a 8,5px y la cifra debajo a 22px, que
+     es el mismo objeto «etiqueta + cifra» que la cornisa del otro extremo y
+     que el marcador de PuestoCifra en la tabla y en el parte final. El oro
+     sigue siendo el único acento de la barra (regla de marca) pero ahora se
+     ve, que era justo el problema: el ordinal a 13px era lo más pequeño de la
+     cabecera siendo lo único accionable.
+
+     8,5 + 3 + 22 = 33,5px: sigue cabiendo en los 34px de la marca del sumario,
+     así que la barra NO engorda. Nada de esto se toca en web, donde la barra
      cuelga del masthead y no es lo primero que se lee. */
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif {
+    flex-direction: column; align-items: flex-end; gap: 3px;
+  }
   :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .lad {
-    color: var(--cdd-muted);
+    color: var(--cdd-muted); font-size: 8.5px; letter-spacing: .2em;
+    line-height: 1;
+  }
+  /* `line-height: 1` NO es cosmético: Fraunces sin interlineado declarado se
+     compone a `normal`, que en esta familia es ~1.4, así que el ordinal a 22px
+     ocupaba 31 y la barra entera engordaba 11px — justo lo que el presupuesto
+     de 34px existe para impedir. Con el interlineado a 1: 8,5 + 3 + 22 = 33,5,
+     y la cabecera vuelve a medir lo que medía. Medido con el banco de maqueta.
+     Lo mismo para la invitación, que es la otra pieza que ocupa ese hueco. */
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos {
+    font-size: 22px; line-height: 1;
+  }
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos--invita {
+    font-size: 13px; line-height: 1;
   }
 
   /* ── EL FILETE DEL LADILLO ES DIVISIÓN MENOR ─────────────────────────────

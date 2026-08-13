@@ -171,7 +171,8 @@
     "perfil": "Profile",
     "entrar": "Sign in",
     "navAria": "Sections",
-    "clasificacion": "Standings"
+    "clasificacion": "Standings",
+    "competir": "Join"
   },
   "guessRow": {
     "yearHigherTitle": "The correct year is higher",

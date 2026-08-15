@@ -161,6 +161,7 @@
   },
   "prensa": {
     "ladilloFoto": "Today's photograph",
+    "temporada": "Season · {tema}",
     "pista": "Clue {n} of {max}",
     "edicionCerrada": "Edition closed",
     "estadistica": "Today's numbers",

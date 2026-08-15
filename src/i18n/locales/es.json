@@ -161,6 +161,7 @@
   },
   "prensa": {
     "ladilloFoto": "La fotografía del día",
+    "temporada": "Temporada · {tema}",
     "pista": "Pista {n} de {max}",
     "edicionCerrada": "Edición cerrada",
     "estadistica": "La estadística del día",

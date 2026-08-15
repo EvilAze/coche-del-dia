@@ -10,6 +10,7 @@ import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import { esApp } from "../../lib/plataforma";
 import { getCurrentSeason } from "../../lib/statsService";
+import { creditoTemporada } from "../../lib/season";
 import Header from "./Header";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
@@ -103,11 +104,10 @@ export default function Configurator({
   // Conector del H1 según idioma ("marca, modelo y/and año").
   const conn = locale === "es" ? "y" : "and";
 
-  // ── QUIÉN PRESENTA LA TEMPORADA ───────────────────────────────────────────
+  // ── EL CRÉDITO DE LA TEMPORADA ────────────────────────────────────────────
   // Una temporada puede venir de una colaboración (los coches que salieron en
   // la sección de un canal, por ejemplo) y entonces lo dice en la línea de la
-  // pista. Sin colaboración —el caso normal— `presenta` es null y la línea es
-  // exactamente la de siempre.
+  // pista. Sin colaboración se anuncia la temporada a secas.
   //
   // POR QUÉ AQUÍ Y NO EN /api/get-daily-car, que es el fetch que la pantalla ya
   // hace: porque este dato NO puede retrasar la partida. `getCurrentSeason()`
@@ -126,9 +126,26 @@ export default function Configurator({
       .catch(() => { if (!cancelado) setSeason(null); });
     return () => { cancelado = true; };
   }, []);
-  const presenta = season
-    ? (locale === "en" ? season.presenta_en : season.presenta_es) || null
-    : null;
+  // LA TEMPORADA VUELVE A DECIR SU NOMBRE EN LA PANTALLA DE JUEGO. Lo tuvo
+  // (sello dorado en el masthead) hasta que el masthead se fue de aquí, y desde
+  // entonces el tema solo vivía dentro del modal de clasificación: se jugaron
+  // veinte días de Le Mans sin que la palabra «Le Mans» apareciera en ninguna
+  // parte del juego. Un ciclo temático que no se anuncia es coste sin relato —
+  // el pool se nota igual, pero nadie sabe por qué.
+  //
+  // PRIORIDAD: la colaboración manda. Es un crédito contractual y además ya
+  // nombra la temporada de la que habla («USPI · POWERART»); repetir debajo
+  // «Temporada · lo que sea» sería decir dos veces lo mismo en una línea que
+  // mide 9,5px.
+  //
+  // Sin número de temporada a propósito: el ordinal es dato de escalera y vive
+  // en el banner del ranking, mientras que aquí lo que engancha es el tema.
+  // Además la línea es `nowrap` y comparte renglón con la pista — cada palabra
+  // de más se paga en el filete (ver .prensa-ladillo en index.css).
+  //
+  // La regla de prioridad vive en lib/season.js, con test propio: aquí solo se
+  // consume.
+  const credito = creditoTemporada(season, locale, t);
 
   // El «recorte» (PhotoPeek): cuando el escenario sale del viewport en plena
   // partida —el caso real es el teclado móvil abierto sobre el cupón—, una
@@ -304,7 +321,7 @@ export default function Configurator({
             status={status}
             hintIndex={hintIndex}
             totalHints={totalHints}
-            presenta={presenta}
+            credito={credito}
             onRevealLoad={onRevealLoad}
             sectionRef={fotoRef}
           />

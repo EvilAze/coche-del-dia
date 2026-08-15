@@ -22,9 +22,13 @@ export default function ZoomStage({
   // salvo aquel caso, así que la prop se va con él.)
   overlay = null,
   progress = null,
-  // Quién presenta la temporada («USPI · POWERART»), o null si no hay
-  // colaboración. Lo resuelve Configurator; aquí solo se pinta.
-  presenta = null,
+  // El crédito del final del filete: quién presenta la temporada («USPI ·
+  // POWERART») o, si no hay colaboración, la temporada en curso («TEMPORADA ·
+  // LE MANS»). Un solo hueco para las dos cosas porque son la misma frase — de
+  // dónde salen los coches de estos días — y la prioridad la resuelve
+  // Configurator, que es quien tiene la temporada y el idioma. Aquí solo se
+  // pinta. null = línea de siempre.
+  credito = null,
   onRevealLoad,
   // Ref opcional a la <section> del escenario. Lo usa Configurator para
   // observar (IntersectionObserver) cuándo la foto sale del viewport y
@@ -67,11 +71,11 @@ export default function ZoomStage({
   // entera se va y la foto sube.
   const enApp = esApp();
   const soloEstado = enApp && estado != null;
-  // ...y si NO hay estado pero SÍ hay temporada presentada, la línea se queda:
-  // el único modo sin pista es la Repesca veterano, y ahí «la línea entera se
-  // va» dejaría al patrocinador fuera justo en una de las pantallas del juego.
-  // Una atribución que aparece según en qué modo estés no es una atribución.
-  const sinLadillo = enApp && estado == null && !presenta;
+  // ...y si NO hay estado pero SÍ hay crédito, la línea se queda: el único modo
+  // sin pista es la Repesca veterano, y ahí «la línea entera se va» dejaría al
+  // patrocinador fuera justo en una de las pantallas del juego. Una atribución
+  // que aparece según en qué modo estés no es una atribución.
+  const sinLadillo = enApp && estado == null && !credito;
 
   return (
     // Sin sangría horizontal propia. La tenía (`px-4 md:px-8`) y era justo lo que
@@ -87,30 +91,38 @@ export default function ZoomStage({
     // ancho del elemento: el navegador elige el MISMO recurso, así que el preload
     // del middleware sigue coincidiendo byte a byte (regla 6).
     <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-3 pb-4">
-      {/* LA ATRIBUCIÓN VA AL FINAL DEL FILETE, no en un renglón propio. Esta
+      {/* EL CRÉDITO VA AL FINAL DEL FILETE, no en un renglón propio. Esta
           línea ya dibuja una regla que llena lo que sobra del ancho, así que el
           rótulo de la temporada cabe en su extremo derecho sin costar un píxel
-          de alto: estado vivo a la izquierda, quién presenta a la derecha.
+          de alto: estado vivo a la izquierda, temporada a la derecha.
           Darle banda propia habría sido volver a poner un rótulo fijo encima de
           la foto — exactamente el renglón que se retiró de aquí por no decir
           nada (ver el bloque de arriba).
-          Con `presenta` el filete deja de ser el `::after` del CSS y pasa a ser
+          Con `credito` el filete deja de ser el `::after` del CSS y pasa a ser
           un elemento de verdad, porque un pseudo-elemento siempre va el último
-          y aquí necesitamos algo DESPUÉS de la regla. */}
+          y aquí necesitamos algo DESPUÉS de la regla.
+
+          El rótulo va en su propio <span> —antes era un nodo de texto suelto—
+          para que el CSS pueda retirarlo en pantalla estrecha cuando el crédito
+          ocupa el otro extremo. Sin eso, «La fotografía del día» y «Temporada ·
+          Bombas de bolsillo» no caben juntos en un móvil de 360 y la línea
+          rompía en dos renglones, que es justo el píxel de alto que este diseño
+          no quiere gastar. De los dos textos, el que cede es el que nombra lo
+          evidente. */}
       {!sinLadillo && (
         <div
           className={
             "prensa-ladillo" +
             (soloEstado ? " solo-estado" : "") +
-            (presenta ? " con-presenta" : "")
+            (credito ? " con-presenta" : "")
           }
         >
-          {!soloEstado && t("prensa.ladilloFoto")}
+          {!soloEstado && <span className="rotulo">{t("prensa.ladilloFoto")}</span>}
           <span className="aparte">{estado}</span>
-          {presenta && (
+          {credito && (
             <>
               <i className="filete" aria-hidden="true" />
-              <span className="presenta">{presenta}</span>
+              <span className="presenta">{credito}</span>
             </>
           )}
         </div>

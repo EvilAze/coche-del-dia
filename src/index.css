@@ -1274,6 +1274,21 @@ body,
 .prensa-ladillo .presenta {
   flex: none; font-weight: 600; font-size: 9.5px; letter-spacing: .16em;
   color: var(--cdd-muted); white-space: nowrap;
+  /* Válvula de seguridad, no maqueta: un nombre de temporada larguísimo se
+     corta con puntos suspensivos en vez de empujar el renglón a dos líneas.
+     `flex: none` sigue mandando mientras quepa; esto solo actúa cuando no. */
+  min-width: 0; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* EN PANTALLA ESTRECHA, EL RÓTULO CEDE. «La fotografía del día» (11px, peso 800)
+   y «Temporada · Bombas de bolsillo» no caben juntos en 360px, y el ladillo no
+   tiene flex-wrap: sin esto el texto rompería en dos renglones y se comería el
+   alto que esta línea presume de no gastar. Cede el rótulo porque nombra lo
+   evidente —está encima de una fotografía— y el crédito no: dice de dónde
+   salen los coches de esta semana. Es la misma decisión que ya se tomó para la
+   app (`solo-estado`), aplicada al ancho en vez de a la plataforma. */
+@media (max-width: 640px) {
+  .prensa-ladillo.con-presenta .rotulo { display: none; }
 }
 
 /* ── Escenario: paspartú + filete (fuera HUD/grain/viñeta del sistema previo) ── */

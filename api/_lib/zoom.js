@@ -74,7 +74,7 @@ export function zoomForAttempt(z, base = DEFAULT_ZOOM_BASE) {
   if (ZOOM_ATTEMPTS <= 1) return b;
   const zEnd = b - ZOOM_STEP * (ZOOM_ATTEMPTS - 1); // zoom del intento N (extremo)
   const t = (z - 1) / (ZOOM_ATTEMPTS - 1); // progreso normalizado 0..1
-  const f = Math.pow(t, ZOOM_EASE); // easing (ease-out con EASE<1)
+  const f = Math.pow(t, ZOOM_EASE); // easing (>1 = ease-in / back-loaded)
   return Math.exp(Math.log(b) + f * (Math.log(zEnd) - Math.log(b)));
 }
 

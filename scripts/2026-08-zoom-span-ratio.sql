@@ -59,21 +59,25 @@ begin;
 -- El techo sube a 7.5 porque migrar un 6.0 exige 7.10 (ver tabla de arriba) y
 -- hay que dejar holgura por encima; el suelo baja a 2.8 por simetría, para que
 -- el admin conserve margen hacia el lado fácil.
+--
+-- El CHECK se SUELTA aquí y se vuelve a poner al final, después de mover los
+-- valores. Al revés no funciona: el nuevo CHECK entraría en vigor antes del
+-- UPDATE y sería él quien rechazara una fila desbordada, dejando los clamps de
+-- seguridad de más abajo como código muerto que no puede llegar a ejecutarse.
 alter table public.cars
   drop constraint if exists cars_zoom_base_range;
-alter table public.cars
-  add constraint cars_zoom_base_range
-  check (zoom_base >= 2.8 and zoom_base <= 7.5);
 
 -- ── 2. Reajustar los zoom_base tuneados ───────────────────────────────────
 -- Los que están en el default se dejan intactos de forma EXPLÍCITA: con el
 -- span anclado en 3.7/1.7 la fórmula les devolvería 3.7 igualmente, pero
 -- excluirlos evita que un redondeo en coma flotante los mueva a 3.6999998 y
 -- ensucie el "83% del catálogo sin tocar" que sostiene toda la migración.
+--
+-- Se redondea a 1 decimal, que es el `step` del slider del admin
+-- (ZoomBaseField) y lo que muestra su etiqueta: así el valor migrado cae en la
+-- rejilla y tocar el slider no lo desplaza de golpe. La pérdida de fidelidad es
+-- de décimas de porcentaje (medido: deriva máxima 1.23%).
 update public.cars
--- A 1 decimal, que es el `step` del slider del admin (ZoomBaseField) y lo que
--- muestra su etiqueta: así el valor migrado cae en la rejilla y mover el slider
--- no lo desplaza de golpe. La pérdida de fidelidad es de décimas de porcentaje.
 set zoom_base = round(
       (zoom_base * power((3.7 / 1.7) / (zoom_base / (zoom_base - 2.0)), 0.4518102))::numeric,
       1
@@ -84,10 +88,15 @@ where zoom_base is not null
   -- fuera del rango viejo por lo que sea no se toca a ciegas.
   and zoom_base > 2.0;
 
--- Red de seguridad por si alguna fila venía ya fuera de rango: acótala en vez
--- de dejar que reviente el CHECK de arriba.
+-- Red de seguridad por si alguna fila venía ya fuera de rango (o se quedó fuera
+-- tras migrar): acótala en vez de hacer fallar el CHECK que viene después.
 update public.cars set zoom_base = 2.8 where zoom_base < 2.8;
 update public.cars set zoom_base = 7.5 where zoom_base > 7.5;
+
+-- Ahora sí, con todos los valores ya dentro, se vuelve a atar el rango.
+alter table public.cars
+  add constraint cars_zoom_base_range
+  check (zoom_base >= 2.8 and zoom_base <= 7.5);
 
 -- ── 3. Invalidar las sugerencias del DDA ──────────────────────────────────
 -- suggested_zoom_base son propuestas calculadas contra la curva vieja: si el

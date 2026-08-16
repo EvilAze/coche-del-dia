@@ -5,12 +5,12 @@
 // FocusPicker (que recibe el mismo zoomBase) muestra el efecto en vivo.
 //
 // OJO al balancear: los 5 intentos NO bajan "en saltos fijos de 0.5", como
-// decía aquí. La curva es LOGARÍTMICA CON EASING (ZOOM_EASE, src/lib/zoom.js):
-// ZOOM_STEP fija el SPAN —el intento 5 sigue siendo base − 2— pero los
-// intermedios se reparten en proporción, no en resta, y BACK-LOADED: cada paso
-// es mayor que el anterior y el salto gordo cae en el 4→5. Por eso mover el
-// slider no desplaza los cinco pasos por igual: mueve el intento 1 mucho y el 5
-// exactamente lo mismo que el span.
+// decía aquí. La curva es LOGARÍTMICA CON EASING (ZOOM_EASE, src/lib/zoom.js) y
+// BACK-LOADED: cada paso es mayor que el anterior y el salto gordo cae en el
+// 4→5. El span es un RATIO constante (ZOOM_SPAN): el intento 5 es siempre
+// base/2.1765, así que TODO coche revela el mismo factor total y el slider solo
+// decide cuánto se cierra el teaser inicial — mueve los cinco niveles a la vez,
+// en proporción, sin deformar la curva.
 //
 // La escalera de abajo lista los CINCO niveles (no solo los extremos) con la
 // misma fórmula que usa el juego, porque el reparto intermedio es justo lo que

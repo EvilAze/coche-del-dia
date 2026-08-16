@@ -293,13 +293,13 @@ export default function CarImage({
             scale(N..1.0)` CSS encima para los intentos con más zoom — la
             combinación es lo que da el zoom-out animado.
           - Por eso le mentimos al `sizes` para que pida imágenes grandes:
-            el scale del intento 1 es base/(base-2) —de 1.5× (base 6.0) a
-            2.67× (base 3.2)—, así que el "slot efectivo" llega a ser casi
-            3× el container CSS. Usamos "200vw" en móvil y 1280px en
-            desktop, igual que antes de que reorganizáramos esto. Ese scale
-            depende solo de los EXTREMOS de la curva, que son fijos: retocar
-            ZOOM_EASE no obliga a recalcular este `sizes` (ni el preload
-            gemelo de middleware.js, CLAUDE.md #6).
+            el scale del intento 1 es ZOOM_SPAN (≈2.18×) para CUALQUIER
+            coche, así que el "slot efectivo" es ~2.2× el container CSS.
+            Usamos "200vw" en móvil y 1280px en desktop, igual que antes de
+            que reorganizáramos esto. Ese scale ya no depende del zoom_base
+            ni de ZOOM_EASE —solo del span, que es constante—, así que
+            retocar la curva no obliga a recalcular este `sizes` ni el
+            preload gemelo de middleware.js (CLAUDE.md #6).
       */}
       <picture>
         {isApiProxy && !imgFailed && (

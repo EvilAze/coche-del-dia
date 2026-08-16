@@ -18,8 +18,10 @@
 --      Arquitectura B (visión IA en frío),
 --   3) señal de DERIVA global: si todo sale demasiado fácil/difícil, lo ves.
 --
--- Coherencia con el motor de zoom: el rango [3.2, 6.0] y el significado de
--- zoom_base son los de api/_lib/zoom.js / src/lib/zoom.js (CLAUDE.md #7).
+-- Coherencia con el motor de zoom: el rango [2.8, 7.5] y el significado de
+-- zoom_base son los de api/_lib/zoom.js / src/lib/zoom.js (CLAUDE.md #7). El
+-- cron pasa el rango EXPLÍCITO desde esas constantes (warm-daily.js), así que
+-- estos defaults solo aplican si ejecutas la función a mano desde el editor.
 --
 -- Ejecutar una vez en el SQL Editor de Supabase. Idempotente
 -- (IF NOT EXISTS / CREATE OR REPLACE): re-ejecutable sin efectos colaterales.
@@ -75,8 +77,8 @@ create or replace function public.recompute_car_difficulty(
   p_shrink_k     real    default 50.0,  -- fuerza del prior (partidas equivalentes)
   p_min_n        integer default 150,   -- partidas mínimas para emitir sugerencia
   p_step_cap     real    default 0.5,   -- ajuste máximo de base por ciclo
-  p_zoom_min     real    default 3.2,   -- = ZOOM_BASE_MIN (api/_lib/zoom.js)
-  p_zoom_max     real    default 6.0    -- = ZOOM_BASE_MAX (api/_lib/zoom.js)
+  p_zoom_min     real    default 2.8,   -- = ZOOM_BASE_MIN (api/_lib/zoom.js)
+  p_zoom_max     real    default 7.5    -- = ZOOM_BASE_MAX (api/_lib/zoom.js)
 )
 returns integer
 language plpgsql

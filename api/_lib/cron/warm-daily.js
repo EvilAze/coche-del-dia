@@ -48,6 +48,7 @@
 // serverless de Hobby. Ver scripts/2026-06-difficulty-observatory.sql.
 
 import { getSupabaseAdmin } from "../supabase.js";
+import { ZOOM_BASE_MIN, ZOOM_BASE_MAX } from "../zoom.js";
 
 /**
  * Escribe (upsert) un item en Vercel Edge Config vía REST API. La SDK
@@ -224,7 +225,13 @@ export async function warmDaily(req, res) {
       if (!supabaseAdmin) {
         result.steps.push({ step: "recalc-difficulty", skipped: true, reason: "admin envs ausentes" });
       } else {
-        const { data, error } = await supabaseAdmin.rpc("recompute_car_difficulty");
+        // El rango va EXPLÍCITO desde las constantes del motor de zoom: si no,
+        // vive duplicado en los defaults de la función SQL y basta con olvidar
+        // uno para que el DDA proponga bases fuera de lo que el código acepta.
+        const { data, error } = await supabaseAdmin.rpc("recompute_car_difficulty", {
+          p_zoom_min: ZOOM_BASE_MIN,
+          p_zoom_max: ZOOM_BASE_MAX,
+        });
         result.steps.push({
           step: "recalc-difficulty",
           ms: Date.now() - step4Start,

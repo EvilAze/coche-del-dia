@@ -2,51 +2,54 @@
 // Fuente de verdad del zoom escalonado del juego (lado SERVIDOR).
 //
 // Cada coche tiene un "zoom base" (cars.zoom_base) = el zoom lógico del
-// intento 1. Los 5 intentos NO bajan en saltos lineales fijos: interpolamos en
-// espacio LOG entre los extremos —intento 1 = base, intento 5 = base-2—
-// deformando el progreso con ZOOM_EASE. ZOOM_STEP define el SPAN de los
-// extremos, no un salto fijo: intento 5 sigue siendo base - STEP*(ATTEMPTS-1).
+// intento 1. Los 5 intentos NO bajan en saltos lineales: la curva es
+// zoom = base · ZOOM_SPAN^(-f), con f = t^ZOOM_EASE y t el progreso 0..1.
+//
+// ── POR QUÉ EL SPAN ES UN RATIO Y NO UNA RESTA ────────────────────────────
+// Antes el intento 5 era `base - 2.0`, una resta FIJA, así que el revelado
+// total dependía del base: un coche a 3.2 abría ×2.67 y uno a 6.0 solo ×1.50.
+// El coche difícil no era "difícil", era MUDO: pasaba de enseñar el 2.8% del
+// área al 6.3% en cinco intentos y sus pasos eran de ×1.08, invisibles. El
+// jugador no percibía que el juego le estuviera dando nada y se iba.
+//
+// Con un span constante todo coche revela el MISMO factor total y el zoom_base
+// pasa a significar solo una cosa —cuánto se cierra el teaser inicial— en vez
+// de dos cosas a la vez (teaser + cuánta cuerda te doy después). La curva
+// queda además invariante de escala: el reparto de los pasos es idéntico para
+// cualquier base, y el slider del admin ya no deforma la curva al moverse.
 //
 // ── POR QUÉ ESTA CURVA ES BACK-LOADED (EASE > 1) ──────────────────────────
 // El género (Wordle, Heardle: 1s→2s→4s→7s→11s→16s) reparte las pistas en
 // aceleración, no en desaceleración: la tensión tiene que subir hasta el
 // último intento y la pista más generosa es la que rescata al jugador que ya
 // se veía perdido. Con EASE<1 (ease-out) pasaba lo contrario — el salto grande
-// era el 1→2 y el 4→5 era el más pobre, justo en el momento de máxima tensión:
-// el jugador veía casi la misma foto en el intento 4 y en el 5 y el desenlace
-// se sentía como un anticlímax.
+// era el 1→2 y el 4→5 el más pobre, justo en el momento de máxima tensión.
 //
-// Con EASE 1.3 el span en log se reparte 16.5 / 24.1 / 28.2 / 31.2 % —pasos
-// monótonamente crecientes, el último ~1.9× el primero— y ese reparto es
-// IDÉNTICO para cualquier zoom_base (la curva es invariante de escala; el base
-// solo cambia la magnitud total, no la forma).
+// Con EASE 1.3 el span en log se reparte 16.5 / 24.1 / 28.2 / 31.2 % — pasos
+// monótonamente crecientes, el último ~1.9× el primero. Ojo con pasarse: un
+// EASE más alto adelgaza el paso 1→2 hasta hacerlo imperceptible ("he gastado
+// un intento para nada"). 1.3 lo deja en el 66% del geométrico, que se nota.
+// zoom.sync.test.js fija estas invariantes de forma.
 //
-// La propiedad que hace este cambio seguro: los EXTREMOS son fijos, así que la
-// información del intento 5 es exactamente la de antes y el SUELO DE DERROTA no
-// se mueve. Back-loading retrasa los aciertos hacia el 4-5 sin fabricar ni una
-// sola partida perdida — que es lo que de verdad quema al jugador. Y como el
-// intento 5 no cambia, tampoco cambian el crop servido, el hash de caché, la
-// envolvente de seguridad (CLAUDE.md #5/#6) ni la calibración por zoom_base que
-// el bucle DDA lleva meses ajustando.
-//
-// Ojo con el otro extremo: EASE demasiado alto adelgaza el paso 1→2 hasta
-// hacerlo imperceptible ("he gastado un intento para nada"). 1.3 deja el paso
-// más pequeño en un 66% del geométrico, que se sigue notando. zoom.sync.test.js
-// fija estas invariantes de forma para que no se pierdan en el próximo retoque.
+// ── EL ANCLA DE ZOOM_SPAN ─────────────────────────────────────────────────
+// SPAN = 3.7/1.7 es exactamente el span histórico del base por defecto, que es
+// el 83% del catálogo (367 de 441 coches al migrar). Así los coches sin tunear
+// se comportan IGUAL que siempre y la migración solo mueve los ~74 ajustados a
+// mano. Ver scripts/2026-08-zoom-span-ratio.sql.
 //
 // El recorte que sirve daily-image.js para el intento z es 1/zoom_z del lado
 // menor de la imagen. El servidor solo entrega el crop del intento 5 (el más
-// amplio, 1/(base-2)) durante la partida; el cliente cierra el resto con CSS.
+// amplio) durante la partida; el cliente cierra el resto con CSS.
 //
 // COHERENCIA (CLAUDE.md #7): el lado cliente replica esta fórmula en
-// src/lib/zoom.js. Si cambias STEP / ATTEMPTS / EASE / rango aquí, cámbialo allí.
+// src/lib/zoom.js. Si cambias SPAN / ATTEMPTS / EASE / rango aquí, cámbialo allí.
 
 export const DEFAULT_ZOOM_BASE = 3.7; // intento 1 histórico (3.7×)
-export const ZOOM_STEP = 0.5; // define el span de los extremos: zoom_N = base - STEP*(N-1)
+export const ZOOM_SPAN = 3.7 / 1.7; // ≈2.1765 — factor total de revelado, igual para todo coche
 export const ZOOM_ATTEMPTS = 5; // nº de intentos / pistas
-export const ZOOM_EASE = 1.3; // exponente de la curva log: 1 = geométrico (pasos iguales); >1 = ease-in (back-loaded, el salto grande al final)
-export const ZOOM_BASE_MIN = 3.2; // intento 5 = 1.2× → muestra ~83% (más fácil)
-export const ZOOM_BASE_MAX = 6.0; // intento 5 = 4.0× → muestra ~25% (más difícil)
+export const ZOOM_EASE = 1.3; // exponente de la curva log: 1 = geométrico (pasos iguales); >1 = ease-in (back-loaded)
+export const ZOOM_BASE_MIN = 2.8; // intento 1 = 35.7% del lado → intento 5 = 77.7% (fácil)
+export const ZOOM_BASE_MAX = 7.5; // intento 1 = 13.3% del lado → intento 5 = 29.0% (difícil)
 
 // Normaliza un zoom_base (de la BD o del body admin) a un número válido dentro
 // de rango. null/NaN → default, para compatibilidad con coches anteriores a la
@@ -54,8 +57,8 @@ export const ZOOM_BASE_MAX = 6.0; // intento 5 = 4.0× → muestra ~25% (más di
 export function clampZoomBase(value) {
   // `null` (columna vacía en Postgres) y `""` no son "un número fuera de
   // rango", son "no hay dato": Number() los convierte a 0, que SÍ es finito, y
-  // por eso caían al MIN (3.2) en vez de al default (3.7) que promete la línea
-  // de arriba. Un coche sin zoom_base se jugaba más fácil de lo previsto.
+  // por eso caían al MIN en vez de al default (3.7) que promete la línea de
+  // arriba. Un coche sin zoom_base se jugaba más fácil de lo previsto.
   if (value === null || value === "") return DEFAULT_ZOOM_BASE;
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return DEFAULT_ZOOM_BASE;
@@ -65,17 +68,15 @@ export function clampZoomBase(value) {
 }
 
 // Zoom lógico del intento z (1..ATTEMPTS) para un coche con este base.
-// Curva logarítmica con easing: log-lerp entre intento 1 (= base) e intento N
-// (= base - STEP*(N-1)), con el progreso deformado por ZOOM_EASE. Los extremos
-// quedan EXACTOS para cualquier EASE (en z=1, t=0; en z=N, t=1) — es justo esa
-// propiedad la que permite retocar la curva sin mover la dificultad calibrada.
+// En z=1 (t=0, f=0) devuelve base exacto; en z=N (t=1, f=1), base/SPAN exacto.
+// Esos extremos exactos son lo que permite retocar EASE sin mover ni el crop
+// servido ni la dificultad calibrada.
 export function zoomForAttempt(z, base = DEFAULT_ZOOM_BASE) {
   const b = clampZoomBase(base);
   if (ZOOM_ATTEMPTS <= 1) return b;
-  const zEnd = b - ZOOM_STEP * (ZOOM_ATTEMPTS - 1); // zoom del intento N (extremo)
   const t = (z - 1) / (ZOOM_ATTEMPTS - 1); // progreso normalizado 0..1
   const f = Math.pow(t, ZOOM_EASE); // easing (>1 = ease-in / back-loaded)
-  return Math.exp(Math.log(b) + f * (Math.log(zEnd) - Math.log(b)));
+  return b * Math.pow(ZOOM_SPAN, -f);
 }
 
 // Porcentaje del lado menor que el servidor recorta para el intento z. Es

@@ -1,6 +1,12 @@
 -- 2026-06-add-zoom-base.sql
 -- Zoom inicial por coche (dificultad ajustable).
 --
+-- SUPERSEDIDO EN PARTE por scripts/2026-08-zoom-span-ratio.sql: el span dejó de
+-- ser una resta fija (`base - 2.0`) y pasó a ser un ratio constante, y con ello
+-- el rango cambió de [3.2, 6.0] a [2.8, 7.5]. NO re-ejecutes este fichero tal
+-- cual: su CHECK restauraría el rango viejo y rechazaría los coches migrados.
+-- Se conserva como registro histórico del alta de la columna.
+--
 -- Hasta ahora el escalonado de zoom era global: intento 1 = 3.7×, bajando 0.5
 -- por intento hasta 1.7× en el intento 5. Algunos coches son demasiado
 -- reconocibles ya en el intento 1, así que añadimos un "zoom base" por coche:

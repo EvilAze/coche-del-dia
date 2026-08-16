@@ -1,31 +1,17 @@
 -- scripts/2026-08-temporada-4-pelotillas-atomicas.sql
--- TEMPORADA 4 «Pelotillas atómicas» (17-23 ago) + TEMPORADA 5 de respaldo
--- (24 ago - 5 sep, sin temática). Adelanta además el cierre de T3 «Le Mans».
+-- TEMPORADA 4 «Pelotillas atómicas» (16-22 ago) + TEMPORADA 5 de respaldo
+-- (23 ago - 5 sep, sin temática). Adelanta además el cierre de T3 «Le Mans».
+--
+-- ✅ YA APLICADO EN PRODUCCIÓN el 15 de agosto de 2026, antes de que abriera el
+-- 16. Consta en la base: seasons.closed_at de T3 es 2026-08-15 23:23:47+00 —la
+-- 01:23 de Madrid del 16, el warm-daily cerrándola en el cambio de día— y para
+-- cerrarla su ends_at ya tenía que estar en el 15. Este fichero se conserva como
+-- el registro de lo que se aplicó, y las fechas de aquí son las que están vivas.
 --
 -- Aplicar en el SQL editor de Supabase, DESPUÉS de 2026-07-temporadas-tematicas.sql.
--- Idempotente: se puede ejecutar dos veces sin duplicar nada.
---
--- ⚠️ NO TOCA NINGÚN DÍA EN CURSO, Y ES DELIBERADO. La primera versión de este
--- script se escribió el 15 y daba por hecho que se ejecutaría antes de que
--- abriera el 16. No fue así, y con el día ya empezado las dos escrituras que
--- llevaba se volvían destructivas:
---
---   · El DELETE de daily_cars borraba la fila del día EN CURSO. El calendario
---     estaba sorteado hasta el 28, así que esa fila existe y se lleva jugando
---     desde medianoche; borrarla hace que pick_daily_car sortee otro coche para
---     la misma fecha. Quien jugó por la mañana y quien entre por la noche verían
---     coches distintos el mismo día, y las stats del día, lo compartido y el
---     archivo quedarían apuntando a un coche que ya no es el del día.
---   · Mover ends_at de T3 por debajo del día en curso reasigna partidas ya
---     jugadas: get_season_leaderboard deriva la pertenencia de las FECHAS al
---     leerlas (ug.date BETWEEN starts_at AND ends_at), no la congela con cada
---     partida. Las partidas de hoy saldrían del podio de Le Mans para caer en
---     el de una temporada cuyo tema no jugaron.
---
--- Por eso T3 cierra el 16 INCLUIDO (el día que se está jugando se queda donde
--- ha estado siempre) y T4 arranca el 17. Si esto se vuelve a quedar un día
--- parado, hay que correr las fechas otra vez: la regla es que la primera fecha
--- que toca el script sea SIEMPRE mañana, nunca hoy.
+-- Idempotente: se puede ejecutar dos veces sin duplicar nada Y SIN ROMPER NADA.
+-- Lo segundo no era cierto en la primera versión, y es la razón del `AND date >`
+-- de la sección [2] — ver ahí.
 --
 -- ⚠️ ANTES DE ESTE FICHERO hay que ejecutar el que etiqueta el pool, que NO
 -- ESTÁ EN EL REPOSITORIO: scripts/privado/2026-08-pool-pelotillas.sql. Este de
@@ -95,31 +81,34 @@ BEGIN
 END $$;
 
 -- ============================================================================
--- [1] Le Mans cierra el 16, no el 19
+-- [1] Le Mans cierra el 15, no el 19
 -- ============================================================================
 -- Las temporadas no pueden solaparse (constraint de exclusión seasons_no_overlap),
--- así que para que T4 empiece el 17, T3 tiene que acabar el 16. Va lo PRIMERO
+-- así que para que T4 empiece el 16, T3 tiene que acabar el 15. Va lo PRIMERO
 -- de las escrituras: el constraint se comprueba en cada sentencia, no al final
 -- de la transacción.
 --
--- El 16 va INCLUIDO a propósito: es el día en curso cuando se ejecuta esto, y
--- las partidas ya jugadas hoy pertenecen a Le Mans. Ver el aviso de la cabecera
--- — bajar ends_at por debajo del día en curso no «adelanta el cierre», reescribe
--- a qué podio van partidas que ya están jugadas.
+-- OJO CON BAJAR ESTA FECHA POR DEBAJO DEL DÍA EN CURSO, si algún día se copia
+-- este patrón: no «adelanta el cierre», reescribe a qué podio van partidas que
+-- YA están jugadas. get_season_leaderboard deriva la pertenencia de las fechas
+-- al leerlas (ug.date BETWEEN starts_at AND ends_at), no la congela con cada
+-- partida. Aquí no pasó porque esto se ejecutó el 15 y el 15 fue el último día
+-- que Le Mans jugó entero.
 --
--- Efectos: el countdown del banner pasa a «Cierra hoy» (urgencia real, no
--- pérdida) y mañana el warm-daily la cierra sola — close_finished_seasons()
--- recoge cualquier temporada con ends_at < hoy y sin closed_at, así que el podio
--- de Le Mans se congela igual sobre los 21 días que se jugaron de verdad.
+-- Efectos: el countdown del banner pasó a «Cierra hoy» (urgencia real, no
+-- pérdida) y en el cambio de día el warm-daily la cerró sola —
+-- close_finished_seasons() recoge cualquier temporada con ends_at < hoy y sin
+-- closed_at, así que el podio de Le Mans se congeló sobre los 20 días que se
+-- jugaron de verdad.
 --
--- Y hay premio: los coches de Le Mans que quedaban programados a partir de
--- mañana vuelven sin jugar al pool general. Casi todos son justo los que no
--- tienen imagen — el problema de los 500 de /api/daily-image se cae solo — y el
--- tema deja de estar agotado: le quedan cartuchos para cuando Le Mans vuelva. La
--- consulta (e) del final los lista, sin necesidad de escribir aquí cuáles son.
+-- Y hubo premio: los 4 coches de Le Mans que quedaban programados volvieron sin
+-- jugar al pool general. Tres son justo los que no tienen imagen — el problema
+-- de los 500 de /api/daily-image se cayó solo — y el tema deja de estar
+-- agotado: le quedan cuatro cartuchos para cuando Le Mans vuelva. La consulta
+-- (e) del final los lista, sin necesidad de escribir aquí cuáles son.
 UPDATE public.seasons
-SET ends_at = DATE '2026-08-16'
-WHERE number = 3 AND ends_at > DATE '2026-08-16';
+SET ends_at = DATE '2026-08-15'
+WHERE number = 3 AND ends_at > DATE '2026-08-15';
 
 -- ============================================================================
 -- [2] Liberar los días ya programados de la ventana de T4
@@ -130,12 +119,26 @@ WHERE number = 3 AND ends_at > DATE '2026-08-16';
 -- escalera), así que sin este borrado la temática no se aplicaría ni un solo
 -- día.
 --
--- Solo días FUTUROS y sin jugar: del 17 al 23. El 16 NO se toca — es el día en
--- curso y borrarlo cambiaría el coche a media jornada (ver el aviso de la
--- cabecera). Los coches liberados no se pierden, vuelven al pool general. Del 24
--- al 28 se queda como está: caen ya en T5, que no lleva temática.
+-- Solo días FUTUROS y sin jugar. Los coches liberados no se pierden, vuelven al
+-- pool general. Del 23 al 28 se queda como está: caen ya en T5, sin temática.
+--
+-- EL `AND date >` NO ES ADORNO, ES LO QUE HACE ESTE SCRIPT SEGURO DE REEJECUTAR.
+-- La primera versión solo tenía el BETWEEN, y eso solo era inofensivo el día que
+-- se escribió: mientras la ventana estuviera entera en el futuro. En cuanto el
+-- 16 abrió, ese mismo BETWEEN pasó a incluir el día EN CURSO, y borrar su fila
+-- hace que pick_daily_car sortee otro coche para la misma fecha — quien jugó por
+-- la mañana y quien entre por la noche verían coches distintos el mismo día, con
+-- las stats, lo compartido y el archivo apuntando a un coche que ya no es el del
+-- día, y a quien estuviera a media partida se le cambiaría la foto debajo.
+--
+-- El comentario ya decía «solo días futuros»; lo que faltaba era que la consulta
+-- lo cumpliera en vez de confiar en la fecha en que uno la ejecuta. Con esta
+-- línea el script es inofensivo para siempre: hoy no borra nada porque la
+-- ventana ya pasó, y si se reejecuta a mitad de temporada solo tocaría los días
+-- que aún no ha visto nadie.
 DELETE FROM public.daily_cars
-WHERE date BETWEEN DATE '2026-08-17' AND DATE '2026-08-23';
+WHERE date BETWEEN DATE '2026-08-16' AND DATE '2026-08-22'
+  AND date > (now() AT TIME ZONE 'Europe/Madrid')::date;
 
 -- ============================================================================
 -- [3] Temporada 4 — «Pelotillas atómicas»
@@ -148,7 +151,7 @@ WHERE date BETWEEN DATE '2026-08-17' AND DATE '2026-08-23';
 -- temporada se le enseña al jugador encima de la foto de todas formas.
 INSERT INTO public.seasons (number, label_es, label_en, starts_at, ends_at, theme_filter)
 SELECT 4, 'Pelotillas atómicas', 'Pocket Rockets',
-       DATE '2026-08-17', DATE '2026-08-23',
+       DATE '2026-08-16', DATE '2026-08-22',
        '{"tags":["pelotillas"]}'::jsonb
 WHERE NOT EXISTS (SELECT 1 FROM public.seasons WHERE number = 4);
 
@@ -166,7 +169,7 @@ WHERE NOT EXISTS (SELECT 1 FROM public.seasons WHERE number = 4);
 -- foto pasa a dar el crédito de la colaboración en vez del nombre del ciclo.
 INSERT INTO public.seasons (number, label_es, label_en, starts_at, ends_at, theme_filter)
 SELECT 5, 'Temporada abierta', 'Open Season',
-       DATE '2026-08-24', DATE '2026-09-05',
+       DATE '2026-08-23', DATE '2026-09-05',
        NULL
 WHERE NOT EXISTS (SELECT 1 FROM public.seasons WHERE number = 5);
 
@@ -185,22 +188,28 @@ COMMIT;
 --
 -- SELECT * FROM season_pool_stats('{"tags":["pelotillas"]}'::jsonb);
 --
--- b) El calendario de la temporada está libre para que sortee el tema
---    (0 filas entre el 17 y el 23; el 16 SÍ debe seguir teniendo la suya, que es
---    el día que se jugó mientras se aplicaba esto):
+-- b) Los días de la temporada que aún no han sido sorteados están libres para
+--    que los sortee el tema (los ya jugados SÍ tienen su fila, y así debe ser):
 --
--- SELECT date FROM daily_cars WHERE date BETWEEN '2026-08-17' AND '2026-08-23';
--- SELECT date FROM daily_cars WHERE date = '2026-08-16';
+-- SELECT date FROM daily_cars WHERE date BETWEEN '2026-08-16' AND '2026-08-22' ORDER BY date;
 --
--- c) No hay hueco entre temporadas ni solapes (T3 hasta el 16, T4 del 17 al 23,
---    T5 del 24 al 5 de septiembre):
+--    Y la comprobación que de verdad importa una vez arrancada: que lo sorteado
+--    dentro de la ventana sea del tema. Devuelve un booleano por día, sin
+--    revelar qué coche es (regla 5):
 --
--- SELECT number, label_es, starts_at, ends_at, theme_filter FROM seasons ORDER BY starts_at;
+-- SELECT dc.date, ('pelotillas' = ANY (c.tags)) AS es_del_tema
+-- FROM daily_cars dc JOIN cars c ON c.id = dc.car_id
+-- WHERE dc.date BETWEEN '2026-08-16' AND '2026-08-22' ORDER BY dc.date;
 --
--- d) El coche del primer día ya cae dentro del tema. OJO: esto FIJA el día 17,
---    así que ejecútala solo si te vale con adelantar ese sorteo:
+-- c) No hay hueco entre temporadas ni solapes (T3 hasta el 15, T4 del 16 al 22,
+--    T5 del 23 al 5 de septiembre):
 --
--- SELECT make, model, year, pais FROM cars WHERE id = pick_daily_car(DATE '2026-08-17');
+-- SELECT number, label_es, starts_at, ends_at, closed_at, theme_filter FROM seasons ORDER BY starts_at;
+--
+-- d) El coche del primer día cae dentro del tema. OJO: esto FIJA ese día, así
+--    que ejecútala solo si te vale con adelantar ese sorteo:
+--
+-- SELECT make, model, year, pais FROM cars WHERE id = pick_daily_car(DATE '2026-08-16');
 --
 -- e) Le Mans deja cuatro coches sin jugar para una futura vuelta:
 --

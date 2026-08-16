@@ -105,6 +105,98 @@ describe("edicionApp", () => {
     expect(debeOfrecerFaldon()).toBe(false);
   });
 
+  // ── La app ya instalada ────────────────────────────────────────────────
+  // El caso que `esApp()` no cubre: la instaló y hoy entra por Chrome. Se
+  // simula `navigator.getInstalledRelatedApps`, que jsdom no trae.
+  function mockRelatedApps(impl) {
+    Object.defineProperty(navigator, "getInstalledRelatedApps", {
+      value: impl,
+      configurable: true,
+    });
+  }
+
+  function borrarRelatedApps() {
+    // `delete` no basta: se definió con defineProperty.
+    Object.defineProperty(navigator, "getInstalledRelatedApps", {
+      value: undefined,
+      configurable: true,
+    });
+  }
+
+  it("con la app ya instalada no se ofrece en ninguna de las dos superficies", async () => {
+    mockPlataforma(false);
+    const { comprobarAppInstalada, debeOfrecerApp, debeOfrecerFaldon, registrarDiaJugado } =
+      await import("./edicionApp.js");
+    setUA(UA_ANDROID);
+    for (let i = 1; i <= 5; i++) registrarDiaJugado(`2026-08-0${i}`);
+    expect(debeOfrecerFaldon()).toBe(true); // antes de preguntar, se ofrece
+
+    mockRelatedApps(async () => [{ platform: "play", id: "com.cochedeldia" }]);
+    await comprobarAppInstalada();
+
+    expect(debeOfrecerApp()).toBe(false); // la portadilla del perfil
+    expect(debeOfrecerFaldon()).toBe(false); // y el faldón del resultado
+  });
+
+  it("al desinstalarla vuelve a ofrecerse: el dato se cura en el siguiente arranque", async () => {
+    mockPlataforma(false);
+    const { comprobarAppInstalada, debeOfrecerApp } = await import("./edicionApp.js");
+    setUA(UA_ANDROID);
+
+    mockRelatedApps(async () => [{ platform: "play", id: "com.cochedeldia" }]);
+    await comprobarAppInstalada();
+    expect(debeOfrecerApp()).toBe(false);
+
+    // Arranque siguiente, ya sin la app: no hace falta TTL, se reescribe.
+    mockRelatedApps(async () => []);
+    await comprobarAppInstalada();
+    expect(debeOfrecerApp()).toBe(true);
+  });
+
+  it("otro paquete instalado no cuenta como la nuestra", async () => {
+    mockPlataforma(false);
+    const { comprobarAppInstalada, debeOfrecerApp } = await import("./edicionApp.js");
+    setUA(UA_ANDROID);
+
+    mockRelatedApps(async () => [{ platform: "play", id: "com.otracosa" }]);
+    await comprobarAppInstalada();
+    expect(debeOfrecerApp()).toBe(true);
+  });
+
+  it("ante la duda SE OFRECE: sin la API y si revienta, el embudo sigue vivo", async () => {
+    mockPlataforma(false);
+    const { comprobarAppInstalada, debeOfrecerApp } = await import("./edicionApp.js");
+    setUA(UA_ANDROID);
+
+    // Firefox Android / Chrome antiguo: la API no existe.
+    borrarRelatedApps();
+    await expect(comprobarAppInstalada()).resolves.toBeUndefined();
+    expect(debeOfrecerApp()).toBe(true);
+
+    // Y si existe pero rechaza (contexto no seguro, permiso denegado…).
+    mockRelatedApps(async () => {
+      throw new Error("no permitido");
+    });
+    await expect(comprobarAppInstalada()).resolves.toBeUndefined();
+    expect(debeOfrecerApp()).toBe(true);
+  });
+
+  // El caso "dentro del APK" no hace falta repetirlo: la guarda es
+  // `esAndroidWeb()`, y que ahí devuelva false ya lo cubre su propio test.
+  it("no se pregunta a quien no puede instalarla (iOS, escritorio)", async () => {
+    mockPlataforma(false);
+    const { comprobarAppInstalada } = await import("./edicionApp.js");
+    const preguntar = vi.fn(async () => []);
+    mockRelatedApps(preguntar);
+
+    setUA(UA_IPHONE);
+    await comprobarAppInstalada();
+    setUA(UA_ESCRITORIO);
+    await comprobarAppInstalada();
+
+    expect(preguntar).not.toHaveBeenCalled();
+  });
+
   it("sin localStorage no lanza y el fallo seguro es NO ofrecer", async () => {
     mockPlataforma(false);
     const { debeOfrecerFaldon, registrarDiaJugado } = await import("./edicionApp.js");

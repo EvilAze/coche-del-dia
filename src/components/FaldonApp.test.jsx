@@ -5,10 +5,11 @@
 //
 // POR QUÉ EXISTE: este componente es casi todo puerta de entrada, y una puerta
 // mal puesta no se nota en el Preview de Vercel — allí se ve desde un
-// escritorio, donde lo correcto es que NO salga nada. Los dos fallos que
-// importan son invisibles a ojo: que se le enseñe a quien ya tiene la app
-// (dentro del APK) o a quien no puede instalarla (iOS), y que reaparezca
-// después de que alguien haya dicho que no. Aquí se ejecutan esos casos.
+// escritorio, donde lo correcto es que NO salga nada. Los fallos que importan
+// son invisibles a ojo: que se le enseñe a quien ya tiene la app (jugando
+// dentro del APK, o instalada pero entrando por el navegador) o a quien no
+// puede instalarla (iOS), y que reaparezca después de que alguien haya dicho
+// que no. Aquí se ejecutan esos casos.
 //
 // El gate en sí (las tres condiciones) se prueba a nivel de lógica en
 // lib/edicionApp.test.js; esto comprueba que el componente lo OBEDECE y que el
@@ -83,6 +84,15 @@ describe("FaldonApp", () => {
   it("no aparece en iOS, donde el enlace no instalaría nada", async () => {
     sembrarDias(10);
     await montar({ ua: UA_IPHONE });
+    expect(screen.queryByText("app.promoTitle")).toBeNull();
+  });
+
+  it("no aparece si ya la tiene instalada, aunque hoy juegue en el navegador", async () => {
+    sembrarDias(10);
+    // La marca que deja comprobarAppInstalada() en el arranque; la detección en
+    // sí se prueba en lib/edicionApp.test.js.
+    localStorage.setItem("cd_app_instalada", "1");
+    await montar();
     expect(screen.queryByText("app.promoTitle")).toBeNull();
   });
 

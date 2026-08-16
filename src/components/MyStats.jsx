@@ -57,7 +57,7 @@ import Carnet, {
 import { MedalIcon, PhoneIcon } from "./carnet/icons";
 import { Icon, I } from "./configurator/icons";
 import { ordinal } from "./PuestoCifra";
-import { esAndroidWeb, urlPlay } from "../lib/edicionApp";
+import { debeOfrecerApp, urlPlay } from "../lib/edicionApp";
 import { track } from "../lib/analytics";
 
 export default function MyStats({
@@ -208,10 +208,11 @@ export default function MyStats({
     : t("myStats.logrosApunteVacio");
 
   // La puerta a Play solo existe donde el enlace instala algo: Android en
-  // navegador. Dentro del APK y en iOS/escritorio, ni se monta. Sin días
-  // mínimos, al revés que el faldón: quien abre su perfil y baja hasta aquí ya
-  // está buscando, y a ese no hay que ponerle una cuota de partidas.
-  const ofreceApp = esAndroidWeb();
+  // navegador y sin tenerla ya instalada. Dentro del APK y en iOS/escritorio, ni
+  // se monta. Sin días mínimos, al revés que el faldón: quien abre su perfil y
+  // baja hasta aquí ya está buscando, y a ese no hay que ponerle una cuota de
+  // partidas.
+  const ofreceApp = debeOfrecerApp();
 
   return (
     <>

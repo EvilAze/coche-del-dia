@@ -8,6 +8,7 @@ import ModalShell from "./components/ModalShell";
 import { getMySeasonRank } from "./lib/statsService";
 import { plataforma, track } from "./lib/analytics";
 import { registrarSesionDiaria } from "./lib/sesionDiaria";
+import { comprobarAppInstalada } from "./lib/edicionApp";
 import {
   leerErrorAuth,
   limpiarErrorAuth,
@@ -165,6 +166,17 @@ export default function App() {
     if (checkingProfile) return;
     registrarSesionDiaria({ logueado: !!user });
   }, [checkingProfile, user]);
+
+  // ¿Tiene ya instalada la edición Android? Se pregunta UNA vez por arranque y
+  // la respuesta se guarda, porque las dos superficies del embudo deciden
+  // síncronas en su primer render (lib/edicionApp.js). Aquí y no en el faldón: a
+  // ese solo se llega terminando una partida, así que preguntándolo allí la
+  // respuesta llegaría tarde para su propio render y nunca para la portadilla
+  // del perfil. No se espera ni se encadena nada — si falla, se sigue ofreciendo
+  // la app, que es como se comportaba antes de existir esta comprobación.
+  useEffect(() => {
+    comprobarAppInstalada();
+  }, []);
 
   // Al perder la sesión (logout desde otra pestaña, token caducado…),
   // cerramos cualquier modal abierto: la mayoría muestran datos del usuario

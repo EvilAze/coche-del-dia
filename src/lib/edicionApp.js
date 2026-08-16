@@ -14,10 +14,21 @@
 //   1. ANDROID EN NAVEGADOR. No hay app de iOS, y dentro del APK ofrecer el APK
 //      es absurdo (`esApp()`). En escritorio tampoco: el enlace de Play ahí no
 //      instala nada.
-//   2. TRES DÍAS JUGADOS. El jugador de una sola partida no tiene hábito que
+//   2. NO LA TIENE YA INSTALADA. `esApp()` solo caza al que está jugando DENTRO
+//      del APK; el que lo instaló y hoy entra por Chrome seguía viendo una
+//      invitación a instalar lo que ya tiene. Lo resuelve
+//      `comprobarAppInstalada()` — ver más abajo por qué es asíncrona y por qué
+//      su respuesta se guarda.
+//   3. TRES DÍAS JUGADOS. El jugador de una sola partida no tiene hábito que
 //      trasladar. El de tres vuelve solo, y es a quien le ahorras teclear la
 //      dirección cada mañana.
-//   3. NO LO HA RECHAZADO. Una vez. Si dice que no, no se vuelve a preguntar.
+//   4. NO LO HA RECHAZADO. Una vez. Si dice que no, no se vuelve a preguntar.
+//
+// Las condiciones 1 y 2 son "¿le sirve la app?" y valen para las DOS superficies
+// (`debeOfrecerApp()`); las 3 y 4 son "¿es buen momento?" y solo las pide el
+// faldón del resultado (`debeOfrecerFaldon()`). La puerta del perfil no lleva
+// cuota ni caducidad a propósito: hay que abrir el perfil y bajar hasta ella,
+// o sea que quien la ve la estaba buscando.
 //
 // LO QUE NO PROMETEMOS: "te avisamos cada día" NO es exclusivo de la app — la
 // web ya tiene Web Push (lib/webpush.js) y en Android Chrome funciona. El copy
@@ -37,6 +48,13 @@ const APP_ID = "com.cochedeldia";
 // sobra, y así la clave no crece sin fin en el almacenamiento del jugador.
 const DIAS_KEY = "cd_dias_jugados";
 const DESCARTE_KEY = "cd_app_faldon_no";
+// Última respuesta de `getInstalledRelatedApps()`. Por qué se guarda: la API es
+// asíncrona y aquí se decide SÍNCRONO en el primer render (para que no aparezca
+// un bloque a mitad de lectura). Esperarla obligaría a elegir entre un parpadeo
+// —pintar y retirar— o retrasar el faldón hasta después del primer paint, que
+// es justo el salto que este componente evita. Con la respuesta del arranque
+// anterior en almacenamiento, el render sigue leyendo un booleano ya listo.
+const INSTALADA_KEY = "cd_app_instalada";
 
 // Tres días jugados. Es el primer número en que "vuelve cada día" ya no es
 // casualidad: con uno no hay hábito y con dos podrían ser dos tardes seguidas.
@@ -111,10 +129,77 @@ export function marcarFaldonDescartado() {
 }
 
 /**
+ * ¿Sabemos ya que este jugador tiene la app instalada? Lectura síncrona de lo
+ * que dejó `comprobarAppInstalada()` en el arranque. Sin dato todavía —primera
+ * visita, o navegador sin la API— responde `false`, o sea "ofrécesela".
+ */
+export function appInstalada() {
+  try {
+    return localStorage.getItem(INSTALADA_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pregunta al navegador si el APK de Play está instalado y guarda la respuesta
+ * para el próximo render. Se llama una vez al arrancar (App.jsx) y no devuelve
+ * nada útil: quien decide es `appInstalada()`, leyendo lo guardado.
+ *
+ * REQUISITOS, los dos ya cumplidos: `related_applications` en manifest.json
+ * declarando el paquete, y el sitio verificado por Digital Asset Links
+ * (public/.well-known/assetlinks.json, el mismo fichero que ya sostiene el App
+ * Link del apex). Si alguien toca cualquiera de los dos, esto pasa a responder
+ * siempre "no instalada" en silencio. Ojo con la otra mitad del manifest:
+ * `prefer_related_applications` sigue SIN poner a propósito — pondría a Play por
+ * delante del "añadir a pantalla de inicio" del navegador, y la web es el
+ * producto principal, no un folleto de la app.
+ *
+ * EL FALLO SEGURO VA AL REVÉS QUE EN EL RESTO DEL MÓDULO. Aquí, ante la duda,
+ * SE OFRECE. `getInstalledRelatedApps` no existe en Firefox Android ni en Chrome
+ * antiguo, y tratar "no sé" como "la tiene" apagaría el embudo entero en esos
+ * navegadores sin que nadie se enterase — un fallo invisible y mucho peor que la
+ * molestia que esto viene a quitar. Enseñarle Play a alguien que ya la tiene es
+ * un mal menor: Play le pone "Abrir".
+ */
+export async function comprobarAppInstalada() {
+  // En iOS/escritorio/dentro del APK no hay nada que preguntar ni nadie a quien
+  // ofrecerle la app: nos ahorramos la llamada y la escritura.
+  if (!esAndroidWeb()) return;
+
+  let instalada = false;
+  try {
+    const apps = (await navigator.getInstalledRelatedApps?.()) || [];
+    instalada = apps.some((a) => a.platform === "play" && a.id === APP_ID);
+  } catch {
+    /* sin API, sin permiso o sin contexto seguro: se queda en false */
+  }
+
+  try {
+    // Se reescribe en cada arranque, sin caducidad: así el dato se cura solo. Si
+    // desinstala la app, el siguiente arranque borra la marca y la oferta vuelve
+    // sin que haya que inventarse un TTL.
+    if (instalada) localStorage.setItem(INSTALADA_KEY, "1");
+    else localStorage.removeItem(INSTALADA_KEY);
+  } catch {
+    /* sin storage: `appInstalada()` seguirá diciendo false, que es ofrecer */
+  }
+}
+
+/**
+ * ¿Le sirve de algo la app a este jugador? Android en navegador y sin tenerla ya
+ * instalada. Es la puerta MÍNIMA, la que comparten las dos superficies del
+ * embudo: la portadilla del perfil no pide nada más.
+ */
+export function debeOfrecerApp() {
+  return esAndroidWeb() && !appInstalada();
+}
+
+/**
  * ¿Toca ofrecer el faldón del final de partida? Síncrono a propósito: el
  * EndScreen decide en el primer render y así no aparece un bloque a mitad de
  * lectura (lo mismo que hace NotificationOptIn con `initialMode`).
  */
 export function debeOfrecerFaldon() {
-  return esAndroidWeb() && !faldonDescartado() && diasJugados() >= DIAS_MINIMOS;
+  return debeOfrecerApp() && !faldonDescartado() && diasJugados() >= DIAS_MINIMOS;
 }

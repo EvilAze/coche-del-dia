@@ -7,6 +7,13 @@
   "display": "standalone",
   "background_color": "#f3eee1",
   "theme_color": "#f3eee1",
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "com.cochedeldia",
+      "url": "https://play.google.com/store/apps/details?id=com.cochedeldia"
+    }
+  ],
   "icons": [
     {
       "src": "/favicon-96x96.png",

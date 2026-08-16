@@ -8,9 +8,9 @@
 // interrumpiendo. Por eso no está en la cabecera (taparía la fotografía, que es
 // el juego) ni en un modal de bienvenida (se lo comería quien aún no ha jugado).
 //
-// A QUIÉN: lo decide `debeOfrecerFaldon()` — Android en navegador, tres días
-// jugados y sin rechazo previo. El razonamiento de cada condición está en
-// lib/edicionApp.js.
+// A QUIÉN: lo decide `debeOfrecerFaldon()` — Android en navegador, sin tenerla
+// ya instalada, tres días jugados y sin rechazo previo. El razonamiento de cada
+// condición está en lib/edicionApp.js.
 //
 // FORMA: el mismo recuadro de "suscripción al boletín" que NotificationOptIn
 // (filete de tinta, kicker rojo, cuerpo en Fraunces). Deliberadamente NO parece

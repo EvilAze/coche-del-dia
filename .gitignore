@@ -25,6 +25,18 @@ skills-lock.json
 *.jks
 android/keystore.properties
 
+# SQL con los POOLS de las temporadas temáticas (NUNCA commitear).
+# El repositorio es PÚBLICO y la lista de coches de una temporada es justo lo
+# que la regla 3 del CLAUDE.md se niega a exponer: a `cars.tags` y a
+# `seasons.theme_filter` se les niega el GRANT —y `test:rls` falla si aparece—
+# para que nadie acote el coche del día cruzando la etiqueta con el catálogo
+# público. Publicar las tuplas en un .sql versionado tira esa defensa: durante
+# la semana de la temporada, el espacio de búsqueda pasa del catálogo entero a
+# los 20-25 coches del tema. El resto del SQL de la temporada (fechas, filas de
+# seasons, verificaciones) sí se versiona; lo único que se queda fuera es la
+# enumeración. Ver scripts/2026-08-temporada-4-pelotillas-atomicas.sql.
+scripts/privado/
+
 # Imágenes-fuente legacy de los coches. Vivían en public/ y Vite las
 # empaquetaba en el build/APK (366 MB de peso muerto), pero la app las sirve
 # desde el CDN/Supabase vía /api/daily-image y /api/car-image — nunca desde

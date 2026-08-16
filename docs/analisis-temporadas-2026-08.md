@@ -221,11 +221,24 @@ semana temática produce. Van con el crédito visible sobre la foto
 ## Lo que se hizo tras este análisis
 
 - `scripts/2026-08-temporada-4-pelotillas-atomicas.sql`: T4 «Pelotillas
-  atómicas» (16-22 ago, 21 coches, 17 marcas, 8 países, 1963-2018) y T5
-  «Temporada abierta» sin temática (23 ago – 5 sep) como red para que la
-  escalera no se quede vacía. Le Mans se corta el 15 en vez del 19 para dejarle
-  sitio: cierra con 20 días jugados y **cuatro coches sin gastar**, así que el
-  tema deja de estar agotado y puede volver.
+  atómicas» (17-23 ago, 21 coches, 17 marcas, 8 países, 1963-2018) y T5
+  «Temporada abierta» sin temática (24 ago – 5 sep) como red para que la
+  escalera no se quede vacía. Le Mans se corta el 16 en vez del 19 para dejarle
+  sitio: cierra con 21 días jugados y coches sin gastar, así que el tema deja de
+  estar agotado y puede volver.
+
+  El análisis proponía arrancar T4 el 16, pero el script se aplicó con ese día
+  ya en juego y las fechas se corrieron una jornada. No es un detalle de
+  calendario: bajar `ends_at` por debajo del día en curso reasigna partidas ya
+  jugadas de un podio a otro (`get_season_leaderboard` deriva la pertenencia de
+  las fechas al leerlas), y borrar su fila de `daily_cars` cambiaría el coche a
+  media jornada. La primera fecha que toque un script de temporada tiene que ser
+  siempre **mañana**.
+
+- El pool NO se versiona: va en `scripts/privado/`, fuera de un repositorio que
+  es público. La lista de coches de una temporada acota el sorteo de esa semana,
+  que es justo lo que la regla 3 defiende negando el `GRANT` a `cars.tags`. Ver
+  la regla 20 del `CLAUDE.md`.
 - La línea de temporada vuelve a la pantalla de juego, al final del filete que
   ya existía sobre la foto (`ZoomStage`, `lib/season.js#creditoTemporada`).
 

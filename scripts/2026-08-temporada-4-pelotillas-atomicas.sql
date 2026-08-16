@@ -50,10 +50,11 @@ BEGIN;
 -- [0] ¿Está el pool etiquetado?
 -- ============================================================================
 -- El UPDATE que reparte la etiqueta vive fuera de git, en
--- scripts/privado/2026-08-pool-pelotillas.sql, porque el repositorio es PÚBLICO
--- y la lista de coches de una temporada es justo lo que la regla 3 del
--- CLAUDE.md se niega a exponer: con el pool a la vista, el espacio de búsqueda
--- de esa semana pasa del catálogo entero a 21 candidatos conocidos.
+-- scripts/privado/2026-08-pool-pelotillas.sql, porque este repositorio es
+-- PÚBLICO y la lista de coches de una temporada es justo lo que la regla 20 del
+-- CLAUDE.md prohíbe versionar (y lo que la 3 defiende negando el GRANT a
+-- `cars.tags`): con el pool a la vista, el espacio de búsqueda de esa semana
+-- pasa del catálogo entero a 21 candidatos conocidos.
 --
 -- Aquí solo se comprueba el RECUENTO. Un número no identifica a nadie —saber
 -- que el pool tiene 21 coches no dice cuáles— así que la verificación puede

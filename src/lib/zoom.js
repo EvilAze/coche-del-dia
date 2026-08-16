@@ -4,16 +4,16 @@
 //
 // Cada coche tiene un "zoom base" (= zoom lógico del intento 1). La curva es
 // LOGARÍTMICA CON EASING: log-lerp entre intento 1 (= base) e intento 5
-// (= base-2), deformada por ZOOM_EASE (ease-out: revela antes, "Aha!" al 3-4).
-// ZOOM_STEP define el span de los extremos, no un salto fijo. El servidor sirve
-// SIEMPRE el crop del intento 5 (1/(base-2)) durante la partida; el cliente
-// "cierra" el zoom con un scale CSS por intento sobre esa imagen. Los extremos
-// no cambian respecto a la versión lineal: solo se redistribuyen los intermedios.
+// (= base-2), deformada por ZOOM_EASE (ease-IN: los pasos CRECEN hacia el
+// final). ZOOM_STEP define el span de los extremos, no un salto fijo. El
+// servidor sirve SIEMPRE el crop del intento 5 (1/(base-2)) durante la partida;
+// el cliente "cierra" el zoom con un scale CSS por intento sobre esa imagen.
+// Los extremos son fijos: solo se redistribuyen los intentos intermedios.
 
 export const DEFAULT_ZOOM_BASE = 3.7;
 export const ZOOM_STEP = 0.5;
 export const ZOOM_ATTEMPTS = 5;
-export const ZOOM_EASE = 0.7;
+export const ZOOM_EASE = 1.3;
 export const ZOOM_BASE_MIN = 3.2;
 export const ZOOM_BASE_MAX = 6.0;
 
@@ -34,7 +34,8 @@ export function clampZoomBase(value) {
 
 // Zoom lógico del intento z (1..ATTEMPTS). Curva logarítmica con easing:
 // log-lerp entre intento 1 (= base) e intento N (= base - STEP*(N-1)), con el
-// progreso deformado por ZOOM_EASE. Extremos exactos para cualquier EASE.
+// progreso deformado por ZOOM_EASE. Extremos exactos para cualquier EASE — de
+// eso depende que tocar EASE no mueva la dificultad calibrada (ver cabecera).
 export function zoomForAttempt(z, base = DEFAULT_ZOOM_BASE) {
   const b = clampZoomBase(base);
   if (ZOOM_ATTEMPTS <= 1) return b;
@@ -54,8 +55,10 @@ export function cropPctForAttempt(z, base = DEFAULT_ZOOM_BASE) {
 // Scales CSS por intento (1..N) que el cliente aplica sobre la imagen ?z=N que
 // sirve el servidor (= crop del intento N). scale_i = zoom_i / zoom_N, así el
 // intento N queda en 1.0 (ya se ve todo el crop). Deriva de zoomForAttempt para
-// no divergir de la curva (CLAUDE.md #7). Con la curva ease-out (EASE 0.7) y
-// base=3.7 da [2.176, 1.621, 1.348, 1.152, 1.0].
+// no divergir de la curva (CLAUDE.md #7). Con la curva ease-in (EASE 1.3) y
+// base=3.7 da [2.176, 1.914, 1.587, 1.275, 1.0]. El scale del intento 1 es
+// base/(base-STEP*(N-1)) y NO depende de EASE (los extremos son fijos): por eso
+// el `sizes` de CarImage.jsx sigue valiendo aunque se retoque la curva.
 export function cssZoomLevels(base = DEFAULT_ZOOM_BASE) {
   const end = zoomForAttempt(ZOOM_ATTEMPTS, base);
   return Array.from({ length: ZOOM_ATTEMPTS }, (_, i) =>

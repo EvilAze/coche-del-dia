@@ -288,14 +288,18 @@ export default function CarImage({
         <picture> con AVIF / WebP / JPEG (fallback):
           - El navegador elige el primer <source> que entiende. Safari 16+,
             Chrome y Firefox 93+ → AVIF. Safari 14-15 → WebP. Resto → JPEG.
-          - El servidor entrega la imagen ya con un primer crop (?z=5,
-            55% central) durante el juego. El cliente sigue aplicando un
-            `transform: scale(1.94..1.0)` CSS encima para los intentos
-            con más zoom — la combinación es lo que da el zoom-out animado.
+          - El servidor entrega la imagen ya con un primer crop (?z=5)
+            durante el juego. El cliente sigue aplicando un `transform:
+            scale(N..1.0)` CSS encima para los intentos con más zoom — la
+            combinación es lo que da el zoom-out animado.
           - Por eso le mentimos al `sizes` para que pida imágenes grandes:
-            con scale 1.94, el "slot efectivo" en el primer intento es
-            casi 2× el container CSS. Usamos "200vw" en móvil y 1280px en
-            desktop, igual que antes de que reorganizáramos esto.
+            el scale del intento 1 es base/(base-2) —de 1.5× (base 6.0) a
+            2.67× (base 3.2)—, así que el "slot efectivo" llega a ser casi
+            3× el container CSS. Usamos "200vw" en móvil y 1280px en
+            desktop, igual que antes de que reorganizáramos esto. Ese scale
+            depende solo de los EXTREMOS de la curva, que son fijos: retocar
+            ZOOM_EASE no obliga a recalcular este `sizes` (ni el preload
+            gemelo de middleware.js, CLAUDE.md #6).
       */}
       <picture>
         {isApiProxy && !imgFailed && (

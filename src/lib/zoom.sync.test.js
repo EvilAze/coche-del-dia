@@ -77,3 +77,75 @@ describe("sincronía src/lib/zoom.js ↔ api/_lib/zoom.js", () => {
     }
   });
 });
+
+// ── FORMA DE LA CURVA DE DIFICULTAD ────────────────────────────────────────
+// Estas invariantes son decisiones de DISEÑO DE JUEGO, no detalles de
+// implementación: se pueden romper cambiando un solo número (ZOOM_EASE) sin
+// que falle nada más, y el síntoma no se ve en el build sino semanas después
+// en la telemetría. Por eso se fijan aquí.
+const BASES = [3.2, 3.7, 4.4, 6.0];
+
+// Pasos de la curva en espacio LOG (que es donde vive la percepción): cuánto
+// se abre la foto de un intento al siguiente.
+function pasosLog(base) {
+  const { zoomForAttempt: zf, ZOOM_ATTEMPTS: N } = client;
+  return Array.from({ length: N - 1 }, (_, i) =>
+    Math.log(zf(i + 1, base)) - Math.log(zf(i + 2, base))
+  );
+}
+
+describe("forma de la curva de zoom", () => {
+  // LA invariante que hace seguro retocar ZOOM_EASE: los extremos no se mueven.
+  // El intento 1 fija el teaser y el 5 fija el suelo de derrota (y con él el
+  // crop que sirve daily-image.js, el hash de caché y la calibración por
+  // zoom_base del bucle DDA). Un EASE nuevo redistribuye los intermedios y NADA
+  // más; si esto falla, el cambio dejó de ser gratis.
+  it("los extremos son exactos para cualquier base y cualquier EASE", () => {
+    for (const base of BASES) {
+      const fin = base - client.ZOOM_STEP * (client.ZOOM_ATTEMPTS - 1);
+      expect(client.zoomForAttempt(1, base)).toBeCloseTo(base, 12);
+      expect(client.zoomForAttempt(client.ZOOM_ATTEMPTS, base)).toBeCloseTo(fin, 12);
+    }
+  });
+
+  // Back-loading (convención del género: Heardle 1→2→4→7→11→16). La tensión
+  // sube hasta el final y la pista más generosa es la última, la que rescata.
+  // Con pasos decrecientes el desenlace era un anticlímax: el intento 5 casi no
+  // añadía nada sobre el 4.
+  it("cada paso es mayor que el anterior y el más grande es el último", () => {
+    for (const base of BASES) {
+      const pasos = pasosLog(base);
+      for (let i = 1; i < pasos.length; i++) {
+        expect(pasos[i]).toBeGreaterThan(pasos[i - 1]);
+      }
+      expect(Math.max(...pasos)).toBeCloseTo(pasos[pasos.length - 1], 12);
+    }
+  });
+
+  // El otro extremo del péndulo: un EASE demasiado alto adelgaza el paso 1→2
+  // hasta hacerlo imperceptible y el jugador siente que ha gastado un intento
+  // para nada. El suelo es el 60% del paso geométrico (= el que tendría una
+  // curva de pasos iguales, EASE 1.0).
+  it("ningún paso queda por debajo del 60% del paso geométrico", () => {
+    for (const base of BASES) {
+      const pasos = pasosLog(base);
+      const geometrico = pasos.reduce((a, b) => a + b, 0) / pasos.length;
+      expect(Math.min(...pasos)).toBeGreaterThan(geometrico * 0.6);
+    }
+  });
+
+  // La forma es invariante de escala: el zoom_base cambia la MAGNITUD total del
+  // revelado, nunca el reparto. Así el slider del admin significa siempre lo
+  // mismo ("más difícil"), sin deformar además la curva por el camino — que es
+  // lo que hacía el escalonado lineal (una resta fija sobre bases distintas).
+  it("el reparto del span es idéntico para toda base", () => {
+    const referencia = pasosLog(BASES[0]).map(
+      (p, _, arr) => p / arr.reduce((a, b) => a + b, 0)
+    );
+    for (const base of BASES.slice(1)) {
+      const pasos = pasosLog(base);
+      const total = pasos.reduce((a, b) => a + b, 0);
+      pasos.forEach((p, i) => expect(p / total).toBeCloseTo(referencia[i], 12));
+    }
+  });
+});

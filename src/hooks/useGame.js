@@ -15,9 +15,10 @@ import { useT } from "../i18n";
 // nunca ve más imagen que un jugador legítimo en intento 5.
 //
 // La fórmula está centralizada en src/lib/zoom.js (réplica de api/_lib/zoom.js).
-// Con la curva logarítmica ease-out (EASE 0.7) y base por defecto (3.7),
-// cssZoomLevels da [2.176, 1.621, 1.348, 1.152, 1.0]. El intento 5 sigue en 1.0
-// (extremo intacto), solo se redistribuyen los intermedios para revelar antes.
+// Con la curva logarítmica ease-in (EASE 1.3) y base por defecto (3.7),
+// cssZoomLevels da [2.176, 1.914, 1.587, 1.275, 1.0]. El intento 5 siempre es
+// 1.0 y el 1 siempre base/(base-2): los extremos son fijos y la curva solo
+// reparte los intermedios, con el salto más grande en el último paso.
 import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 import { anonHeaders, setAnonToken } from "../lib/anonSession";
 import { haySesionLocal, esCuentaReal, asegurarSesionAnonima } from "../lib/auth";

@@ -7,11 +7,15 @@
 // OJO al balancear: los 5 intentos NO bajan "en saltos fijos de 0.5", como
 // decía aquí. La curva es LOGARÍTMICA CON EASING (ZOOM_EASE, src/lib/zoom.js):
 // ZOOM_STEP fija el SPAN —el intento 5 sigue siendo base − 2— pero los
-// intermedios se reparten en proporción, no en resta, y adelantados hacia el
-// intento 3-4. Por eso mover el slider no desplaza los cinco pasos por igual:
-// mueve el intento 1 mucho y el 5 exactamente lo mismo que el span. Los dos
-// porcentajes de abajo (intento 1 → intento 5) son los extremos reales y salen
-// de la misma fórmula que usa el juego.
+// intermedios se reparten en proporción, no en resta, y BACK-LOADED: cada paso
+// es mayor que el anterior y el salto gordo cae en el 4→5. Por eso mover el
+// slider no desplaza los cinco pasos por igual: mueve el intento 1 mucho y el 5
+// exactamente lo mismo que el span.
+//
+// La escalera de abajo lista los CINCO niveles (no solo los extremos) con la
+// misma fórmula que usa el juego, porque el reparto intermedio es justo lo que
+// se calibra al mover el slider y con solo los extremos era invisible. Es la
+// misma que pintan la tira de miniaturas del FocusPicker y el PreviewPanel.
 
 import {
   DEFAULT_ZOOM_BASE,
@@ -27,10 +31,11 @@ export default function ZoomBaseField({
   disabled = false,
 }) {
   const base = typeof value === "number" ? value : DEFAULT_ZOOM_BASE;
-  // % del lado menor visible en el primer y último intento (a menor %, más
-  // zoom / más difícil).
-  const startPct = Math.round(cropPctForAttempt(1, base) * 100);
-  const endPct = Math.round(cropPctForAttempt(ZOOM_ATTEMPTS, base) * 100);
+  // % del lado menor visible en CADA intento (a menor %, más zoom / más
+  // difícil). Misma fuente que el juego: cropPctForAttempt.
+  const pasos = Array.from({ length: ZOOM_ATTEMPTS }, (_, i) =>
+    Math.round(cropPctForAttempt(i + 1, base) * 100)
+  );
   const isDefault = Math.abs(base - DEFAULT_ZOOM_BASE) < 0.001;
 
   return (
@@ -52,8 +57,17 @@ export default function ZoomBaseField({
           {isDefault && <span className="ml-2 normal-case tracking-normal">· por defecto</span>}
         </span>
         <span className="normal-case tracking-normal">
-          muestra: intento 1 ~{startPct}% → intento 5 ~{endPct}%
+          muestra por intento (% del lado)
         </span>
+      </div>
+      {/* Escalera de los 5 intentos. El último va en acento porque es el paso
+          más grande de la curva (back-loaded) y el que decide la derrota. */}
+      <div className="flex justify-between font-mono text-[10px] text-muted">
+        {pasos.map((pct, i) => (
+          <span key={i} className={i === pasos.length - 1 ? "text-accent" : undefined}>
+            {i + 1}: {pct}%
+          </span>
+        ))}
       </div>
       {!isDefault && (
         <button

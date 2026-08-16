@@ -58,10 +58,10 @@ const FORMAT_MIME = {
 // nunca sale del servidor mientras el juego está activo.
 //
 // El porcentaje del crop es `1 / zoom_del_intento`, y el zoom depende del
-// `zoom_base` de CADA coche (cars.zoom_base): intento z → base - 0.5*(z-1).
-// La fórmula vive en _lib/zoom.js (compartida conceptualmente con el cliente,
-// src/lib/zoom.js). Para el base por defecto (3.7) reproduce los valores
-// históricos: z=1 → 27.0%, z=2 → 31.3%, z=3 → 37.0%, z=4 → 45.5%, z=5 → 58.8%.
+// `zoom_base` de CADA coche (cars.zoom_base). NO es una resta lineal: la curva
+// es log-lerp entre los extremos con easing back-loaded, y vive en _lib/zoom.js
+// (compartida conceptualmente con el cliente, src/lib/zoom.js). Para el base por
+// defecto (3.7): z=1 → 27.0%, z=2 → 30.7%, z=3 → 37.1%, z=4 → 46.1%, z=5 → 58.8%.
 // Si no se pasa `z` o el valor está fuera del set, NO se aplica crop:
 // devolvemos la imagen completa. El cliente solo debería pedir sin `z`
 // cuando el juego ha terminado (status=won|lost) y queremos revelar.

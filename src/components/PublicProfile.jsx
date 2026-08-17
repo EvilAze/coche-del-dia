@@ -165,6 +165,14 @@ export default function PublicProfile({ open, onClose, userId }) {
   const maxStreak = stats?.max_streak ?? 0;
   const portadas = state.data?.wonCarIds?.length || 0;
 
+  // Cuántos de sus aciertos salieron de números atrasados. La cifra «Aciertos»
+  // suma las dos cosas —coche del día y repesca— y sin decirlo se compara mal:
+  // la repesca va a una por día contra el archivo pendiente, así que un lector
+  // veterano acumula por una vía que un recién llegado no tiene. No se le resta
+  // nada a nadie; solo se dice de dónde viene el número.
+  // A 0 no se pinta: quien nunca ha repescado no necesita que se lo aclaren.
+  const repescaWins = state.data?.repescaWins || 0;
+
   // Tier global de coleccionista derivado del nº de coches ganados (mismo
   // hilo de nivel que el Archivo y el Perfil propio). No viene de la RPC: lo
   // calculamos de wonCarIds, que sí es público, con el helper compartido.
@@ -237,6 +245,12 @@ export default function PublicProfile({ open, onClose, userId }) {
                 {
                   label: t("myStats.statWins"),
                   value: cargando ? "—" : (stats?.total_wins ?? 0),
+                  apunte:
+                    !cargando && repescaWins > 0
+                      ? tn("publicProfile.winsFromRepesca", repescaWins, {
+                          count: repescaWins,
+                        })
+                      : null,
                 },
                 {
                   label: t("myStats.statStreak"),

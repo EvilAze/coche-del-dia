@@ -119,9 +119,17 @@ export function CarnetNombre({
   );
 }
 
-// La banda de datos: `items` es [{ label, value, tono }] y se reparte el ancho
-// a partes iguales. `tono`: "oro" para lo que se gana (puesto, racha viva),
-// "apagada" mientras no hay dato, y nada = tinta normal.
+// La banda de datos: `items` es [{ label, value, tono, apunte }] y se reparte el
+// ancho a partes iguales. `tono`: "oro" para lo que se gana (puesto, racha
+// viva), "apagada" mientras no hay dato, y nada = tinta normal.
+//
+// `apunte` es opcional y va DEBAJO de la etiqueta, en cuerpo menor: la letra
+// pequeña de una cifra que no significa una sola cosa. Hoy lo usa el desglose
+// de aciertos del perfil público («de ellos, N atrasados»), donde el problema
+// era que el total sumaba coche del día y repesca sin distinguirlos. Va aquí y
+// no en un renglón propio bajo el carnet a propósito: una salvedad separada de
+// la cifra que matiza es una nota al pie, y las notas al pie no se leen.
+// Cuando falta —lo normal— la casilla no gasta ni un píxel de más.
 export function CarnetCifras({ items }) {
   return (
     <div className="prensa-carnet-cifras">
@@ -129,6 +137,9 @@ export function CarnetCifras({ items }) {
         <div key={item.label}>
           <span className={`cifra ${item.tono || ""}`}>{item.value}</span>
           <span className="et" title={item.label}>{item.label}</span>
+          {item.apunte && (
+            <span className="apunte" title={item.apunte}>{item.apunte}</span>
+          )}
         </div>
       ))}
     </div>

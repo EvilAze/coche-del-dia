@@ -321,6 +321,10 @@
       "one": "{count} portada en su archivo",
       "other": "{count} portadas en su archivo"
     },
+    "winsFromRepesca": {
+      "one": "{count} atrasado",
+      "other": "{count} atrasados"
+    },
     "title": "Perfil",
     "publicLabel": "Perfil público",
     "noNickname": "Sin nickname",

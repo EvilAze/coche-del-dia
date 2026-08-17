@@ -1068,6 +1068,17 @@ body,
   font-size: 8px; letter-spacing: .16em; text-transform: uppercase; color: var(--cdd-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* La letra pequeña de una casilla: el desglose de una cifra que suma dos cosas
+   (hoy, los aciertos de repesca dentro del total). Va en cursiva y en tinta
+   floja porque NO es un dato más de la banda —si compitiera con la etiqueta
+   habría dos rótulos por casilla y ninguno mandaría—, sino una salvedad sobre
+   el número de arriba. Sin mayúsculas ni tracking justamente por eso: la banda
+   entera está en versalitas y romper esa voz es lo que lo marca como aparte. */
+.prensa-carnet-cifras .apunte {
+  display: block; margin-top: 3px; font-family: var(--font-body); font-style: italic;
+  font-weight: 500; font-size: 8.5px; line-height: 1.2; color: var(--faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* ── LA PLANCHA DE CROMOS (el palmarés del perfil ajeno) ──────────────────
    Los logros conseguidos, como una hoja de sellos: misma rejilla de filetes

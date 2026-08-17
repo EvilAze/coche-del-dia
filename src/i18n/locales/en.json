@@ -321,6 +321,10 @@
       "one": "{count} cover in their archive",
       "other": "{count} covers in their archive"
     },
+    "winsFromRepesca": {
+      "one": "{count} back issue",
+      "other": "{count} back issues"
+    },
     "title": "Profile",
     "publicLabel": "Public profile",
     "noNickname": "No nickname",

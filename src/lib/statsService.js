@@ -304,7 +304,7 @@ export async function persistAchievementUnlocks(unlocksMap) {
 
 // Lee el perfil público de OTRO usuario (no el actual). Llama a la RPC
 // SECURITY DEFINER `get_public_profile` que vive en Supabase. Devuelve
-// { profile: {display_name}, stats: {...}, wonCarIds: string[] }.
+// { profile: {display_name}, stats: {...}, wonCarIds: string[], repescaWins }.
 // La RPC solo expone lo que ya es público (mismos campos que ranking).
 export async function getPublicProfile(userId) {
   if (!userId) return null;
@@ -316,6 +316,12 @@ export async function getPublicProfile(userId) {
     profile: data?.profile ?? null,
     stats: data?.stats ?? null,
     wonCarIds: Array.isArray(data?.wonCarIds) ? data.wonCarIds : [],
+    // Cuántos de esos aciertos vinieron de números atrasados. Lo cruza la RPC
+    // con daily_cars, que el cliente no puede leer (ver
+    // scripts/2026-08-desglose-repesca-perfil.sql). Si la migración aún no
+    // está aplicada, la clave no viene y esto queda a 0: el carnet enseña el
+    // total de siempre, sin desglose, en vez de romperse.
+    repescaWins: Number.isFinite(data?.repescaWins) ? data.repescaWins : 0,
     achievementsUnlocked:
       data?.achievementsUnlocked && typeof data.achievementsUnlocked === "object"
         ? data.achievementsUnlocked

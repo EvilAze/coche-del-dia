@@ -1,6 +1,11 @@
 // src/components/AchievementIcons.jsx
-// Iconos SVG para logros. Línea fina dorada sobre fondo oscuro.
-// ViewBox 48×48 — todo el contenido centrado en y=24.
+// Iconos SVG de línea fina. ViewBox 48×48 — todo el contenido centrado en y=24.
+//
+// Nacieron para el modal de Logros y le sobrevivieron: cuando ese sistema se
+// retiró, sus dibujos ya estaban repartidos por la Clasificación (el icono del
+// puesto), la ayuda de puntuación y la ayuda de la repesca del Archivo. El
+// nombre del fichero se queda por no mover cuatro imports de sitio; lo que
+// describe es el SET, no una pantalla.
 
 const STROKE = {
   fill: "none",

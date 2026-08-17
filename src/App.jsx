@@ -33,7 +33,6 @@ import { reminderCopy } from "./lib/reminderCopy";
 const Ranking = lazy(() => import("./components/Ranking"));
 const Garage = lazy(() => import("./components/Garage"));
 const MyStats = lazy(() => import("./components/MyStats"));
-const AchievementsModal = lazy(() => import("./components/AchievementsModal"));
 const NicknameModal = lazy(() => import("./components/NicknameModal"));
 const HowToPlayModal = lazy(() => import("./components/HowToPlayModal"));
 // El sumario (el menú del juego): también lazy, y también prefetcheado en el
@@ -118,7 +117,7 @@ export default function App() {
   const [repescaAlert, setRepescaAlert] = useState(false);
   // El radar de abajo quería re-consultar «al cerrar El Archivo», pero dependía
   // de `activeModal` entero: abrir o cerrar CUALQUIER overlay (clasificación,
-  // perfil, logros, cómo se juega, la firma…) disparaba otra llamada a
+  // perfil, cómo se juega, la firma…) disparaba otra llamada a
   // /api/garage, que devuelve el catálogo COMPLETO con sus tokens de imagen —
   // el endpoint más caro que tenemos— para acabar quedándose con un booleano.
   // Este contador solo avanza en la transición que de verdad importa.
@@ -276,7 +275,6 @@ export default function App() {
   };
   const openGarage = () => openModal("garage");
   const openProfile = () => openModal("profile");
-  const openAchievements = () => openModal("achievements");
   const openMenu = () => openModal("menu");
 
   // LoginModal NO es lazy a propósito: es la puerta de entrada y un chunk que
@@ -331,7 +329,6 @@ export default function App() {
     const prefetch = () => {
       import("./components/Ranking");
       import("./components/MyStats");
-      import("./components/AchievementsModal");
       import("./components/NicknameModal");
       import("./components/SumarioModal");
     };
@@ -348,7 +345,7 @@ export default function App() {
 
   // «Atrás» de Android / gesto del navegador: cierra el overlay activo en vez
   // de sacar al usuario de la web. Como `activeModal` es un único slot, una
-  // sola línea cubre login, ranking, perfil, logros, cómo-se-juega y el nick.
+  // sola línea cubre login, ranking, perfil, cómo-se-juega y el nick.
   //
   // TRES quedan FUERA a propósito, y por el mismo motivo: tienen NIVELES
   // INTERNOS, así que gestionan su propia cadena con useHistoryChain. Meterlos
@@ -556,14 +553,15 @@ export default function App() {
           si un modal lazy aún no tiene su chunk en caché, suspende mientras
           descarga. Con un Suspense compartido, esa suspensión reemplazaba por
           `fallback={null}` a TODOS los modales del boundary —incluido el
-          Garaje, que estuviera a media animación de salida—. Al arrancar el
-          Garaje del árbol en pleno exit, framer-motion (AnimatePresence) perdía
+          Perfil, que estuviera a media animación de salida—. Al arrancar ese
+          modal del árbol en pleno exit, framer-motion (AnimatePresence) perdía
           el control de la salida y dejaba su backdrop `bg-black/85` colgado y
           opaco encima de todo, capturando los clics → la página parecía
-          congelada y había que recargar (caso típico: abrir "Logros" desde el
-          Garaje, que cierra el Garaje y monta el modal lazy a la vez).
+          congelada y había que recargar. El caso típico es cualquier salto de
+          un modal a otro: abrir la Clasificación desde el Perfil, por ejemplo,
+          cierra el Perfil y monta un chunk lazy a la vez.
           Aislando el Suspense por modal, la suspensión de uno nunca desmonta a
-          otro: el Garaje completa su salida limpiamente. */}
+          otro: el que se va completa su salida limpiamente. */}
       {mounted.ranking && (
         <Suspense fallback={null}>
           <Ranking
@@ -588,7 +586,6 @@ export default function App() {
             onClose={closeModal}
             user={user}
             onOpenLogin={openLogin}
-            onOpenAchievements={openAchievements}
           />
         </Suspense>
       )}
@@ -599,20 +596,10 @@ export default function App() {
             open={activeModal === "profile"}
             onClose={closeModal}
             onSignedOut={handleSignedOut}
-            onOpenAchievements={openAchievements}
             onOpenGarage={openGarage}
             onOpenRanking={openRanking}
             // El candado junto al nick pasa a ser un botón: ya se puede cambiar.
             onOpenNickname={() => openNickname("profile")}
-          />
-        </Suspense>
-      )}
-
-      {mounted.achievements && (
-        <Suspense fallback={null}>
-          <AchievementsModal
-            open={activeModal === "achievements"}
-            onClose={closeModal}
           />
         </Suspense>
       )}

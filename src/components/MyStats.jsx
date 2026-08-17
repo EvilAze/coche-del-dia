@@ -7,8 +7,8 @@
 //   1. EL CARNET (fijo arriba, hace de cabecera del modal): cabecera con doble
 //      filete, nombre con el sello del tier al margen, renglón de acreditación
 //      («Lector desde mayo de 2026») y la banda de cuatro datos.
-//   2. TUS SECCIONES (scrollable): podios y portadillas al Archivo, la
-//      Clasificación y los Logros.
+//   2. TUS SECCIONES (scrollable): podios y portadillas al Archivo y a la
+//      Clasificación.
 //   3. AJUSTES (fijo abajo): idioma, sesión y borrado de cuenta.
 //
 // QUÉ CAMBIÓ EN EL REDISEÑO DE PERFILES (y por qué):
@@ -54,7 +54,7 @@ import Carnet, {
   CarnetCifras,
   SelloTier,
 } from "./carnet/Carnet";
-import { MedalIcon, PhoneIcon } from "./carnet/icons";
+import { PhoneIcon } from "./carnet/icons";
 import { Icon, I } from "./configurator/icons";
 import { ordinal } from "./PuestoCifra";
 import { debeOfrecerApp, urlPlay } from "../lib/edicionApp";
@@ -64,7 +64,6 @@ export default function MyStats({
   open,
   onClose,
   onSignedOut,
-  onOpenAchievements,
   onOpenGarage,
   onOpenRanking,
   onOpenNickname,
@@ -87,7 +86,6 @@ export default function MyStats({
     points: 0,
     rank: null,
     collection: null,
-    achievements: null,
     tier: null,
     error: "",
   });
@@ -200,12 +198,6 @@ export default function MyStats({
         total: state.collection.total || "—",
       })
     : t("sumario.garajeApunte");
-  const logrosApunte = state.achievements
-    ? t("myStats.logrosApunte", {
-        unlocked: state.achievements.unlocked,
-        total: state.achievements.total,
-      })
-    : t("myStats.logrosApunteVacio");
 
   // La puerta a Play solo existe donde el enlace instala algo: Android en
   // navegador y sin tenerla ya instalada. Dentro del APK y en iOS/escritorio, ni
@@ -331,20 +323,15 @@ export default function MyStats({
                 apunte={t("sumario.clasificacionApunte")}
                 onClick={() => go(onOpenRanking, "perfil")}
               />
-              <Portadilla
-                icono={<MedalIcon className="h-5 w-5" />}
-                nombre={t("header.achievements")}
-                apunte={logrosApunte}
-                onClick={() => go(onOpenAchievements)}
-              />
               {/* La edición Android como una portadilla más, permanente y sin
                   caducidad: aquí no molesta a nadie (hay que abrir el perfil
                   para verla) y recoge al que la busca a propósito, que es el
                   caso que el faldón del resultado no cubre — ese solo aparece
-                  una vez y se puede rechazar. Última a propósito: las tres de
-                  arriba llevan a secciones del juego, esta se sale de la web.
-                  Con ella son cuatro y la rejilla cierra en 2×2; sin ella son
-                  tres y la última ocupa el ancho entero (ver .prensa-rejilla). */}
+                  una vez y se puede rechazar. Última a propósito: las de arriba
+                  llevan a secciones del juego, esta se sale de la web.
+                  Con ella son tres —y la última ocupa el ancho entero, ver
+                  .prensa-rejilla—; sin ella, dos y la fila cierra sola. Fueron
+                  cuatro mientras existió la puerta de los Logros. */}
               {ofreceApp && (
                 <Portadilla
                   icono={<PhoneIcon className="h-5 w-5" />}

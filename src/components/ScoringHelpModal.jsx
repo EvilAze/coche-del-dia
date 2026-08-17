@@ -18,8 +18,9 @@ export default function ScoringHelpModal({ open, onClose }) {
   useEscape(open, onClose);
 
   // Escalera de racha en lenguaje prensa: tres niveles que escalan por
-  // TIPOGRAFÍA y tinta (sin glows). Las llamas línea-arte se conservan
-  // (coherencia con Logros); el calor sube de tinta apagada a ORO VIEJO —
+  // TIPOGRAFÍA y tinta (sin glows). Las llamas línea-arte salen del set
+  // compartido (AchievementIcons.jsx); el calor sube de tinta apagada a ORO
+  // VIEJO —
   // la racha es "lo acumulado", territorio premium del spec §2.
   const STREAK_BONUS = [
     { labelKey: "scoring.streakLabel2", icon: "spark", bonus: "+1", iconColor: "text-tinta-2/60" },

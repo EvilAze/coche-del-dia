@@ -16,7 +16,6 @@
   "header": {
     "menuOpen": "Open menu",
     "menuOpenWithRepesca": "Open menu · you have a rescue available",
-    "achievements": "Achievements",
     "language": "Language"
   },
   "app": {
@@ -147,7 +146,7 @@
     "garajeRepesca": "You have a rescue waiting",
     "clasificacionApunte": "The season table",
     "clasificacionPuesto": "this season",
-    "perfilApunte": "Your stats and achievements",
+    "perfilApunte": "Your card and your stats",
     "perfilRacha": {
       "one": "{count}-day streak",
       "other": "{count}-day streak"
@@ -255,8 +254,6 @@
     "session": "Session",
     "sessionAnon": "Anonymous session",
     "archivoApunte": "{unlocked} of {total} covers",
-    "logrosApunte": "{unlocked} of {total} unlocked",
-    "logrosApunteVacio": "Your milestones and streaks",
     "appApunte": "The paper on your phone",
     "title": "My Profile",
     "carnetKicker": "Reader card",
@@ -295,27 +292,6 @@
     "errorRateLimited": "Too many tries in a row. Wait a few minutes and try again.",
     "errorGeneric": "Couldn't delete the account. Please try again in a moment."
   },
-  "achievements": {
-    "sectionTitle": "Achievements",
-    "modalSubtitle": "Your milestones and streaks. Makes and countries live in The Archive.",
-    "loading": "Loading achievements…",
-    "errorLoad": "Couldn't load your achievements.",
-    "empty": "No achievements available yet.",
-    "next": "Next",
-    "unlocked": "Unlocked",
-    "remainingCar": "{count} car to go",
-    "remainingCars": "{count} cars to go",
-    "remainingDay": "{count} day to go",
-    "remainingDays": "{count} days to go",
-    "toastUnlocked": "Unlocked:",
-    "toastMore": "And {count} more achievement(s) unlocked.",
-    "category": {
-      "milestone": "Collection",
-      "streak": "Streaks",
-      "brand": "Brands",
-      "country": "Countries"
-    }
-  },
   "publicProfile": {
     "portadas": {
       "one": "{count} cover in their archive",
@@ -330,9 +306,7 @@
     "noNickname": "No nickname",
     "errorLoad": "Couldn't load this profile.",
     "errorRpcMissing": "Server function not available. If you're the admin, run the SQL at scripts/supabase-public-profile-rpc.sql in Supabase.",
-    "statPoints": "Points",
-    "medalsTitle": "Honours",
-    "noMedalsYet": "No medals earned yet."
+    "statPoints": "Points"
   },
   "nickname": {
     "tag": "New byline",

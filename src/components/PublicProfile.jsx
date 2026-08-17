@@ -3,41 +3,36 @@
 // Es el GEMELO de MyStats: el mismo carnet (cabecera, nombre con sello y banda
 // de datos), pero adaptado a "ver a otro":
 //   - Sin email (privado, no se expone).
-//   - Sin botón Sign out, sin idioma, sin "puertas" a Archivo/Ranking/Logros
+//   - Sin botón Sign out, sin idioma, sin "puertas" a Archivo/Ranking
 //     (esas navegan a TUS secciones; en un perfil ajeno no aplican).
-//   - Las medallas se muestran INLINE (no hay adónde navegar): SOLO las
-//     conseguidas, sin progreso pendiente (eso es info personal). Si no
-//     tiene ninguna, mensaje amable.
 //
 // El carnet ya NO se dibuja aquí: vive en components/carnet/, compartido con
 // MyStats. Los dos perfiles se despegaron una vez (este se quedó con el avatar
 // de degradado menta del tema anterior mientras el propio migraba a papel) y la
 // causa era tener dos copias del mismo objeto. Ahora es una: el mismo documento
 // con otras cuatro casillas en la banda —aquí no hay puesto (la RPC pública no
-// expone posición), hay aciertos— y con el palmarés debajo.
+// expone posición), hay aciertos—.
 //
-// EL PALMARÉS ERA UNA PARED DE INSIGNIAS: una cuadrícula de cuadrados sueltos,
-// cada uno con filete de SU metal al 60%, o sea doce marcos de tres colores
-// flotando sobre el papel — el aspecto de «gamificación de aplicación» que el
-// resto del juego evita. Encima, la etiqueta del tier se imprimía SIN TRADUCIR
-// («GOLD», «SILVER») también en español, porque salía de la clave interna.
-// Ahora es una PLANCHA DE CROMOS: la misma rejilla de filetes que las
-// portadillas, el metal solo en la palabra de debajo del cromo, y localizado.
+// AQUÍ HUBO UNA PLANCHA DE CROMOS con los logros conseguidos, y se retiró con el
+// sistema entero. El motivo no fue estético: los logros de marca y de país
+// salían de los MISMOS datos que El Archivo (los coches ganados cruzados con el
+// catálogo), así que eran el álbum contado por segunda vez y peor — el Archivo
+// lleva nº de edición, rareza, cuándo lo ganaste y en cuántos intentos. Dos
+// superficies para un trabajo, y la buena es la otra. De aquel sistema
+// sobrevive el sello del tier, que sí resume algo de un vistazo y sigue en el
+// carnet (lib/collectionTier.js).
 //
 // Datos vienen de la RPC `get_public_profile` (ver scripts/supabase-
 // public-profile-rpc.sql). Solo expone campos que ya son públicos en
 // el leaderboard + lista de coches ganados.
 
-import { useEffect, useMemo, useState } from "react";
-import { useT, getLocalizedCountry } from "../i18n";
+import { useEffect, useState } from "react";
+import { useT } from "../i18n";
 import { getPublicProfile } from "../lib/statsService";
-import { loadCatalog } from "../data/catalog";
-import { computeAchievements } from "../lib/achievements";
-import { collectorTier, tierLabel } from "../lib/collectionTier";
+import { collectorTier } from "../lib/collectionTier";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
-import AchievementIcon from "./AchievementIcons";
 import PodiumMedals from "./PodiumMedals";
 import Carnet, {
   CarnetCabecera,
@@ -45,21 +40,6 @@ import Carnet, {
   CarnetCifras,
   SelloTier,
 } from "./carnet/Carnet";
-
-// Slugs idénticos a Garage.jsx y Achievements.jsx — claves para que los
-// logos de marca y banderas resuelvan correctamente.
-function brandSlug(marca) {
-  return String(marca || "").toLowerCase().replace(/\s+/g, "-");
-}
-function countrySlug(pais) {
-  return String(pais || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\./g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-");
-}
 
 export default function PublicProfile({ open, onClose, userId }) {
   const { t, tn, locale } = useT();
@@ -75,22 +55,14 @@ export default function PublicProfile({ open, onClose, userId }) {
     let cancelled = false;
     setState({ loading: true, data: null, error: "" });
 
-    Promise.all([getPublicProfile(userId), loadCatalog()])
-      .then(([profile, catalog]) => {
+    // Una sola lectura. Antes esto era un Promise.all con loadCatalog(), que
+    // hacía falta para calcular los logros del otro usuario: el catálogo
+    // entero descargado en un perfil ajeno para pintar medallas. Se fue con
+    // ellas.
+    getPublicProfile(userId)
+      .then((profile) => {
         if (cancelled) return;
-        const achievements = computeAchievements({
-          cars: catalog?.cars || [],
-          wonCarIds: profile?.wonCarIds || [],
-          stats: profile?.stats || {},
-          // Si el otro usuario tenía oro en una marca antes de que
-          // ampliáramos el catálogo, terceros lo siguen viendo en oro.
-          persistedUnlocks: profile?.achievementsUnlocked || {},
-        });
-        setState({
-          loading: false,
-          data: { ...profile, achievements },
-          error: "",
-        });
+        setState({ loading: false, data: profile, error: "" });
       })
       .catch((err) => {
         console.error("[PublicProfile]", err);
@@ -115,47 +87,6 @@ export default function PublicProfile({ open, onClose, userId }) {
       cancelled = true;
     };
   }, [open, userId, t, reintento]);
-
-  // Filtramos los logros que vamos a mostrar:
-  //   - Colecciones (marca/país): solo si tienen currentTier (al menos
-  //     un tier conseguido). Ocultamos las que aún no han iniciado.
-  //   - Hitos / rachas: solo los unlocked.
-  const visibleAchievements = useMemo(() => {
-    const items = state.data?.achievements || [];
-    return items.filter((a) => {
-      if (Array.isArray(a.tiers) && a.tiers.length > 0) {
-        return !!a.currentTier;
-      }
-      return !!a.unlocked;
-    });
-  }, [state.data]);
-
-  // Agrupar visualmente por categoría, mismo orden que Achievements.jsx.
-  const groups = useMemo(() => {
-    const map = new Map();
-    for (const a of visibleAchievements) {
-      if (!map.has(a.category)) map.set(a.category, []);
-      map.get(a.category).push(a);
-    }
-    for (const [category, arr] of map.entries()) {
-      if (category === "milestone" || category === "streak") {
-        arr.sort((a, b) => a.progress.total - b.progress.total);
-      } else {
-        arr.sort((a, b) => {
-          if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-          // Dentro de las que tienen al menos un tier, oro primero.
-          const tierRank = { gold: 0, silver: 1, bronze: 2 };
-          const ra = tierRank[a.currentTier] ?? 99;
-          const rb = tierRank[b.currentTier] ?? 99;
-          if (ra !== rb) return ra - rb;
-          return String(a.group).localeCompare(String(b.group), "es");
-        });
-      }
-    }
-    return ["milestone", "streak", "brand", "country"]
-      .filter((c) => map.has(c))
-      .map((c) => ({ category: c, items: map.get(c) }));
-  }, [visibleAchievements]);
 
   const cargando = state.loading;
   const stats = state.data?.stats;
@@ -269,124 +200,21 @@ export default function PublicProfile({ open, onClose, userId }) {
             <p className="mt-4 text-sm text-muted-foreground">{t("common.loading")}</p>
           ) : (
             <div className="scrollbar-premium -mx-5 min-h-0 flex-1 overflow-y-auto px-5 pt-4">
-              {/* Podios de temporada y de mes. Solo se renderiza si tiene
-                  alguno; el wrapper se colapsa con empty:hidden. */}
+              {/* Lo que queda bajo el carnet son los PODIOS, y solo si los
+                  tiene: el wrapper se colapsa con empty:hidden y el modal se
+                  queda en el carnet a secas. Aquí iba también la plancha de
+                  cromos con sus logros; se fue con el sistema (ver cabecera).
+                  Que un podio sí se quede y una medalla de marca no, es la
+                  distinción entera: el podio lo ganaste CONTRA alguien en un
+                  mes concreto, la medalla te la daba el propio hecho de seguir
+                  jugando. */}
               <div className="mb-4 empty:hidden">
                 <PodiumMedals userId={userId} />
               </div>
-
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="pm-label">{t("publicProfile.medalsTitle")}</h3>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {visibleAchievements.length}
-                </span>
-              </div>
-
-              {visibleAchievements.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  {t("publicProfile.noMedalsYet")}
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {groups.map(({ category, items }) => (
-                    <section key={category}>
-                      {/* Ladillo de grupo en versalitas de tinta, no en mono
-                          rojo: el rojo es «acción/atención» del sistema y aquí
-                          no hay nada que atender — son cuatro encabezados
-                          seguidos. */}
-                      <h4 className="pm-label mb-2">
-                        {t(`achievements.category.${category}`)}
-                      </h4>
-                      <div className="prensa-plancha">
-                        {items.map((a) => (
-                          <PublicBadge key={a.id} achievement={a} locale={locale} />
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </>
       )}
     </ModalShell>
-  );
-}
-
-// UN CROMO de la plancha: el icono del logro y, debajo, su metal cuando lo
-// tiene. Sin filete propio (los pone la plancha) y sin barra de progreso: aquí
-// solo se enseña lo conseguido, que lo pendiente de otra persona no es asunto
-// de nadie.
-function PublicBadge({ achievement, locale }) {
-  const { icon, currentTier, tiers, group } = achievement;
-  const isCollection = Array.isArray(tiers) && tiers.length > 0;
-  // Solo las colecciones tienen metal; un hito o una racha se tiene o no se
-  // tiene. Antes TODO se dibujaba con un metal (los hitos, en oro) y el marco
-  // dorado acababa siendo el estado por defecto — o sea, ninguno.
-  const metal = isCollection ? currentTier || null : null;
-  const metalClase =
-    metal === "gold" ? "oro" : metal === "silver" ? "plata" : metal === "bronze" ? "bronce" : "";
-
-  const title =
-    achievement.title?.[locale] ||
-    achievement.title?.es ||
-    achievement.title?.en ||
-    "";
-  const description =
-    achievement.description?.[locale] ||
-    achievement.description?.es ||
-    achievement.description?.en ||
-    "";
-
-  let iconNode;
-  if (icon.kind === "brand") {
-    iconNode = (
-      <img
-        src={`/brands/${brandSlug(icon.value)}.png`}
-        alt={group || ""}
-        draggable={false}
-        loading="lazy"
-        className="h-8 w-8 object-contain"
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-      />
-    );
-  } else if (icon.kind === "country") {
-    iconNode = (
-      <img
-        src={`/flags/${countrySlug(icon.value)}.jpg`}
-        alt={group ? getLocalizedCountry(group) : ""}
-        draggable={false}
-        loading="lazy"
-        className="h-8 w-8 rounded-none object-cover"
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-      />
-    );
-  } else if (icon.kind === "svg") {
-    iconNode = (
-      <AchievementIcon
-        name={icon.name}
-        repeat={icon.repeat || 1}
-        size="h-6 w-6"
-      />
-    );
-  } else {
-    iconNode = (
-      <span className="font-display text-2xl leading-none">{icon.value || "?"}</span>
-    );
-  }
-
-  return (
-    <div className="prensa-cromo" title={`${title} — ${description}`}>
-      {iconNode}
-      {/* El metal, EN CASTELLANO. Aquí se imprimía `currentTier` a pelo, o sea
-          la clave interna en inglés: un jugador español leía «GOLD» y «SILVER»
-          debajo de sus cromos. */}
-      {metal && <span className={`et ${metalClase}`}>{tierLabel(metal, locale)}</span>}
-    </div>
   );
 }

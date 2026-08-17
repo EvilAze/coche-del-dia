@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { useToast } from "../components/Toast";
-import { notifyAchievementsAfterWin } from "../lib/achievementsNotifier";
 import { track } from "../lib/analytics";
 import { markSeenToday } from "../lib/webpush";
 import { registrarDiaJugado } from "../lib/edicionApp";
@@ -557,14 +556,6 @@ export function useGame() {
       // medida es del hábito en ESTE dispositivo, que es a quien se le ofrece
       // la app, no del historial de la cuenta.
       if (newStatus !== "playing") registrarDiaJugado(getMadridDateStr());
-
-      // Logros: solo aplican a usuarios logueados (los anónimos no tienen
-      // persistencia en Supabase). Tras ganar, detectamos desbloqueos
-      // nuevos y los notificamos con toast. Lo hacemos "fire and forget":
-      // no bloquea el render del resultado de la partida.
-      if (newStatus === "won" && user) {
-        notifyAchievementsAfterWin({ toast, t, locale });
-      }
 
       // Persistencia local SOLO para anónimos. Para logueados, /api/validate-guess
       // ya escribió en user_guesses con valores server-validated.

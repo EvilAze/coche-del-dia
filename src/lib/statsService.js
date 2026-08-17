@@ -1,7 +1,6 @@
 import { supabase } from "../supabaseClient";
 import { isStreakAlive } from "../lib/dates";
 import { collectorTier } from "./collectionTier";
-import { countDisplayedAchievements } from "./achievements";
 
 const EMPTY_STATS = {
   current_streak: 0,
@@ -186,8 +185,12 @@ export async function getMyStats() {
   const [{ data: stats, error: statsError }, profile] = await Promise.all([
     supabase
       .from("stats")
+      // `achievements_unlocked` ya no se pide: lo leía el notificador de logros
+      // para no repetir avisos, y con él fuera era un jsonb viajando en cada
+      // apertura del perfil para que nadie lo mirase. La columna sigue en la
+      // tabla (ver más abajo).
       .select(
-        "current_streak, max_streak, total_wins, total_points, last_played_date, achievements_unlocked"
+        "current_streak, max_streak, total_wins, total_points, last_played_date"
       )
       .eq("user_id", user.id)
       .maybeSingle(),
@@ -236,19 +239,15 @@ async function getCatalogCount() {
 // existían — sin traer el Garaje entero ni el leaderboard completo:
 //   - rank:       getMySeasonRank (RPC que solo devuelve mi fila).
 //   - collection: nº de coches ganados (únicos) / total del catálogo.
-//   - achievements: conteo ligero de hitos+rachas (sin catálogo).
 //   - tier:       rango global de coleccionista derivado del nº ganado.
-// El conteo de logros y el tier salen del MISMO wonCount, así que no duplican
-// trabajo. Si el usuario no está logueado, devuelve la forma "vacía" de
-// getMyStats con los extras a null (la UI muestra el promo de login).
+// Si el usuario no está logueado, devuelve la forma "vacía" de getMyStats con
+// los extras a null (la UI muestra el promo de login).
 export async function getProfileSummary() {
   const base = await getMyStats();
 
   if (!base.user) {
-    return { ...base, points: 0, rank: null, collection: null, achievements: null, tier: null };
+    return { ...base, points: 0, rank: null, collection: null, tier: null };
   }
-
-  const maxStreak = base.stats?.max_streak ?? 0;
 
   // Cada extra cae con elegancia: un fallo en uno NO debe tumbar el carnet
   // (identidad + racha ya vienen de getMyStats). getMySeasonRank/getCatalogCount
@@ -266,7 +265,6 @@ export async function getProfileSummary() {
     points: base.stats?.total_points ?? 0,
     rank, // { rank, total } | null
     collection: { unlocked: wonCount, total: catalogTotal },
-    achievements: countDisplayedAchievements({ wonCount, maxStreak }),
     tier: collectorTier(wonCount),
   };
 }
@@ -281,26 +279,15 @@ export async function getMyWonCarIds() {
     .eq("status", "won");
   if (error) throw error;
   // Deduplicamos: un mismo coche se puede haber ganado en daily + repesca
-  // (raro pero posible). Para logros, "ganado" es ganado, una vez basta.
+  // (raro pero posible). Para la colección, "ganado" es ganado: una vez basta.
   return [...new Set((data || []).map((r) => r.car_id))];
 }
 
-// Persiste un mapa de logros desbloqueados (delta). El servidor hace
-// MERGE no-destructivo: solo añade claves, nunca quita. La frontend
-// debe enviar solo desbloqueos NUEVOS (no rebaja, no idempotente
-// innecesariamente — es defensa contra payload inflado).
-//
-// Formato esperado: { "brand_mitsubishi": "gold", "milestone_first": true, ... }
-//
-// Devuelve el mapa fusionado tras la operación.
-export async function persistAchievementUnlocks(unlocksMap) {
-  if (!unlocksMap || Object.keys(unlocksMap).length === 0) return null;
-  const { data, error } = await supabase.rpc("persist_achievement_unlocks", {
-    p_unlocks: unlocksMap,
-  });
-  if (error) throw error;
-  return data;
-}
+// (Aquí vivía persistAchievementUnlocks, que escribía en stats.achievements_unlocked
+// vía la RPC persist_achievement_unlocks. Se fue con el sistema de logros. La
+// columna y la RPC SIGUEN en Supabase a propósito: nadie las escribe ya, pero
+// dropearlas es irreversible y no cuesta nada dejarlas quietas por si el
+// palmarés vuelve en otra forma.)
 
 // Lee el perfil público de OTRO usuario (no el actual). Llama a la RPC
 // SECURITY DEFINER `get_public_profile` que vive en Supabase. Devuelve
@@ -322,10 +309,6 @@ export async function getPublicProfile(userId) {
     // está aplicada, la clave no viene y esto queda a 0: el carnet enseña el
     // total de siempre, sin desglose, en vez de romperse.
     repescaWins: Number.isFinite(data?.repescaWins) ? data.repescaWins : 0,
-    achievementsUnlocked:
-      data?.achievementsUnlocked && typeof data.achievementsUnlocked === "object"
-        ? data.achievementsUnlocked
-        : {},
   };
 }
 

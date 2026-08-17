@@ -15,7 +15,6 @@
 //     No hace falta pasarla: track() la añade sola. Ver plataforma() abajo.
 //
 // Convención de eventos:
-//   - achievement_unlocked  { id, category, tier? }  — al desbloquear medalla
 //   - profile_view          { source }                — abrir perfil ajeno
 //   - garage_open           { auth }                  — abrir el garaje (auth: user|anon)
 //   - garage_from_endscreen {}                        — abrir garaje desde el desbloqueo de la victoria

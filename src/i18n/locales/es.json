@@ -16,7 +16,6 @@
   "header": {
     "menuOpen": "Abrir menú",
     "menuOpenWithRepesca": "Abrir menú · tienes una repesca disponible",
-    "achievements": "Logros",
     "language": "Idioma"
   },
   "app": {
@@ -147,7 +146,7 @@
     "garajeRepesca": "Tienes una repesca esperando",
     "clasificacionApunte": "La tabla de la temporada",
     "clasificacionPuesto": "de la temporada",
-    "perfilApunte": "Tus estadísticas y logros",
+    "perfilApunte": "Tu carnet y tus estadísticas",
     "perfilRacha": {
       "one": "Racha de {count} día",
       "other": "Racha de {count} días"
@@ -255,8 +254,6 @@
     "session": "Sesión",
     "sessionAnon": "Sesión anónima",
     "archivoApunte": "{unlocked} de {total} portadas",
-    "logrosApunte": "{unlocked} de {total} conseguidos",
-    "logrosApunteVacio": "Tus hitos y tus rachas",
     "appApunte": "El diario en tu móvil",
     "title": "Mi Perfil",
     "carnetKicker": "Carnet de lector",
@@ -295,27 +292,6 @@
     "errorRateLimited": "Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.",
     "errorGeneric": "No se pudo eliminar la cuenta. Vuelve a intentarlo en un momento."
   },
-  "achievements": {
-    "sectionTitle": "Logros",
-    "modalSubtitle": "Tus hitos y rachas. Marcas y países viven en El Archivo.",
-    "loading": "Cargando logros…",
-    "errorLoad": "No se pudieron cargar tus logros.",
-    "empty": "Todavía no hay logros disponibles.",
-    "next": "Próximo",
-    "unlocked": "Conseguido",
-    "remainingCar": "Te falta {count} coche",
-    "remainingCars": "Te faltan {count} coches",
-    "remainingDay": "Te falta {count} día",
-    "remainingDays": "Te faltan {count} días",
-    "toastUnlocked": "Has desbloqueado:",
-    "toastMore": "Y {count} logro(s) más desbloqueado(s).",
-    "category": {
-      "milestone": "Colección",
-      "streak": "Rachas",
-      "brand": "Marcas",
-      "country": "Países"
-    }
-  },
   "publicProfile": {
     "portadas": {
       "one": "{count} portada en su archivo",
@@ -330,9 +306,7 @@
     "noNickname": "Sin nickname",
     "errorLoad": "No se pudo cargar el perfil.",
     "errorRpcMissing": "Función del servidor no disponible. Si eres el admin, ejecuta el SQL de scripts/supabase-public-profile-rpc.sql en Supabase.",
-    "statPoints": "Puntos",
-    "medalsTitle": "El palmarés",
-    "noMedalsYet": "Aún no ha conseguido medallas."
+    "statPoints": "Puntos"
   },
   "nickname": {
     "tag": "Nueva firma",

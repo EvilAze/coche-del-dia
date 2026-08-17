@@ -16,7 +16,7 @@
 //
 // El oro está reservado a lo premium (CLAUDE.md): el puesto lo es. En la tabla,
 // del 4º en adelante baja a tinta apagada — si todo es oro, nada lo es; y plata
-// y bronce completan el podio con los mismos tonos que el Archivo y los Logros.
+// y bronce completan el podio con los mismos tonos que el sello del tier.
 
 import { useT } from "../i18n";
 

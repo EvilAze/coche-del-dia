@@ -33,7 +33,7 @@
    recorte de sitio, y el tope sin este padding no sabe dónde están las barras.
    Lo usan los dos modales de la repesca (Garage.jsx), HowToPlay, ScoringHelp,
    Sumario y DeleteAccount. Los que ya scrollean por dentro con cabecera fija
-   (`flex-col` + `max-h-[90vh]`: Logros, MyStats, PublicProfile) siguen con lo
+   (`flex-col` + `max-h-[90vh]`: MyStats, PublicProfile) siguen con lo
    suyo — ahí el 10% de aire hace de colchón. */
 .safe-area-pad {
   padding-top: calc(1rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
@@ -337,10 +337,10 @@
 
   /* Acento ORO premium (texto). Prensa (F4): oro viejo de tinta var(--gold) —
      legible sobre papel (el #e8c87a era para grafito). Sin halo (fuera glows).
-     Racha, victoria, podio, logros. */
+     Racha, victoria, podio, sello del tier. */
   .text-gold { color: var(--gold); }
 
-  /* Barra de scroll de los paneles largos (Ranking, Logros, Leyendas).
+  /* Barra de scroll de los paneles largos (Ranking, Leyendas, Archivo).
      Prensa (F5): pulgar de TINTA vía terna RGB — antes era menta #7af0c8, un
      resto del sistema Platino que desentonaba dentro del periódico. Al salir
      de la terna, el modo noche lo hereda solo (tinta beige sobre grafito). */
@@ -1080,30 +1080,12 @@ body,
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* ── LA PLANCHA DE CROMOS (el palmarés del perfil ajeno) ──────────────────
-   Los logros conseguidos, como una hoja de sellos: misma rejilla de filetes
-   que las portadillas. Antes era una cuadrícula de cuadrados sueltos, cada uno
-   con un filete de SU metal (oro, plata, bronce) al 60% — doce marcos de tres
-   colores distintos flotando sobre el papel, que es el aspecto de «insignias
-   de aplicación» que el sistema evita en todo lo demás. El metal se dice donde
-   significa: en la palabra de debajo del cromo. La cuadrícula la dibujan los
-   filetes, y son los mismos de todo el juego. */
-.prensa-plancha {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 1px; background: var(--line); border: 1px solid var(--line-strong);
-}
-.prensa-cromo {
-  aspect-ratio: 1; background: var(--surface);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 5px; padding: 6px; text-align: center; overflow: hidden;
-}
-.prensa-cromo .et {
-  font-family: var(--font-mono); font-weight: 700; font-size: 7.5px;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--cdd-muted);
-}
-.prensa-cromo .et.oro { color: var(--gold); }
-.prensa-cromo .et.plata { color: var(--plata); }
-.prensa-cromo .et.bronce { color: var(--bronce); }
+/* (Aquí estaba .prensa-plancha / .prensa-cromo, la hoja de sellos con los
+   logros del perfil ajeno. Se fue con el sistema entero: sus cromos de marca y
+   de país los dibujaba a partir de los mismos coches ganados que El Archivo,
+   así que era el álbum contado dos veces. Lo que sí se queda es la medalla de
+   podio de aquí abajo — esa acredita haber quedado por delante de alguien un
+   mes concreto, que no es lo mismo que seguir jugando.) */
 
 /* La medalla de podio: filete de tinta y el metal SOLO en el disco y en el
    puesto. Iba con el filete del metal al 60% y fondo propio, así que tres

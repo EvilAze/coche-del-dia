@@ -10,8 +10,7 @@
 //
 // Y sobraba, porque el nick NO hace falta para jugar: `display_name` solo lo usa
 // la clasificación (las SQL de temporada filtran `WHERE p.display_name IS NOT
-// NULL`). Jugar, la racha, las estadísticas, el Archivo y los logros funcionan
-// sin él. Se bloqueaba el juego completo por el requisito de UNA función.
+// NULL`). Jugar, la racha, las estadísticas y el Archivo funcionan sin él. Se bloqueaba el juego completo por el requisito de UNA función.
 //
 // Ahora: no se abre solo nunca. Se pide donde el nick significa algo —al abrir
 // la clasificación y al ganar— y se puede cerrar. El «permanente» también se

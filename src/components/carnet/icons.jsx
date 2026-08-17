@@ -29,16 +29,10 @@ const ICO = {
 // los iconos del set del juego (configurator/icons.jsx), los mismos que estrena
 // el sumario. Un icono por dato era, además, la señal de que el dato no se
 // explicaba solo. ShieldIcon se fue antes, con la mecánica del escudo de racha
-// —ver scripts/2026-08-retirar-escudo-racha.sql.)
-
-export function MedalIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...ICO} aria-hidden="true">
-      <circle cx="12" cy="14" r="6" />
-      <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
-    </svg>
-  );
-}
+// —ver scripts/2026-08-retirar-escudo-racha.sql. Y MedalIcon detrás, con el
+// sistema de logros: era la portadilla que llevaba a su modal, y sin modal no
+// llevaba a ninguna parte. La medalla que sigue viva es la de PodiumMedals, que
+// tiene su propia copia porque dibuja otra cosa: un podio de mes ganado.)
 
 export function PencilIcon({ className = "h-4 w-4" }) {
   return (

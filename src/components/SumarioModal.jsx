@@ -104,8 +104,8 @@ export default function SumarioModal({
 
       {/* LAS SECCIONES. Cuatro y solo cuatro: la rejilla de 2×2 es lo que hace
           que se lean de un vistazo, y la quinta entrada obligaría a una fila
-          coja. Los Logros se llegan desde el perfil y el Archivo, que es donde
-          significan algo. */}
+          coja. La quinta candidata era la puerta de los Logros, que ya no
+          existe — el sumario cierra en 2×2 sin deberle un hueco a nadie. */}
       <div className="prensa-rejilla">
         <Portadilla
           icono={<Icon d={I.garage} size={20} />}

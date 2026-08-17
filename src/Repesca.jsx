@@ -48,7 +48,6 @@ import { PiePartida } from "./components/configurator/EndScreen";
 import { useToast } from "./components/Toast";
 import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
 import { flagImagePath } from "./data/countries";
-import { notifyAchievementsAfterWin } from "./lib/achievementsNotifier";
 import { track, plataforma } from "./lib/analytics";
 import { captureClientError } from "./lib/sentry";
 import { haptic } from "./lib/haptics";
@@ -437,13 +436,6 @@ export default function Repesca() {
         track("repesca_win", { mode, attempts: newGuesses.length });
       } else if (newPhase === "lost") {
         track("repesca_lose", { mode });
-      }
-
-      // Logros: solo aplican a usuarios logueados (la repesca ya lo
-      // requiere). Tras ganar, detectamos desbloqueos nuevos y los
-      // notificamos con toast staggered. Fire and forget.
-      if (newPhase === "won" && user) {
-        notifyAchievementsAfterWin({ toast, t, locale });
       }
 
       return result;

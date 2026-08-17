@@ -173,7 +173,7 @@ function brandLogoPath(marca) {
   return `/brands/${brandSlug(marca)}.png`;
 }
 
-export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchievements }) {
+export default function Garage({ open, onClose, user, onOpenLogin }) {
   const { t } = useT();
   const toast = useToast();
   const [state, setState] = useState({
@@ -613,19 +613,11 @@ export default function Garage({ open, onClose, user, onOpenLogin, onOpenAchieve
                   {t("garage.headerTitle")}
                 </h2>
               </div>
+              {/* Solo el cierre. Al lado iba el atajo a los Logros, que se
+                  retiró con el sistema: sus medallas de marca y país salían de
+                  estos mismos cromos, así que era un botón para ver el Archivo
+                  otra vez desde dentro del Archivo. */}
               <div className="flex flex-none items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => { onClose(); onOpenAchievements?.(); }}
-                  aria-label={t("header.achievements")}
-                  title={t("header.achievements")}
-                  className="focus-ring flex h-9 w-9 items-center justify-center text-muted transition-colors hover:text-accent"
-                >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="8" r="5" />
-                    <path d="M8.21 13.89 7 22l5-3 5 3-1.21-8.11" />
-                  </svg>
-                </button>
                 <CloseButton onClick={onClose} />
               </div>
             </div>

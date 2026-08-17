@@ -18,6 +18,7 @@
 
 import { pseudoIdFor } from "./_lib/repesca-token.js";
 import { repescaJugada, repescaEnCurso } from "./_lib/repesca/consumo.js";
+import { repescaActiva } from "./_lib/repesca/activa.js";
 import {
   signImageToken,
   IMAGE_MODE_CLEAR,
@@ -222,10 +223,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4) Estado de la repesca del usuario: si hay una activa hoy, no puede
-    //    iniciar otra. Si la activa coincide con un coche concreto, podemos
-    //    indicarlo para que el frontend ofrezca "Continuar" en lugar de
-    //    "Iniciar".
+    // 4) Estado de la repesca del usuario: si ya sorteó hoy, no puede sortear
+    //    otra. Si hay una partida activa (sorteada hoy o cualquier día
+    //    anterior, mientras siga viva), lo indicamos para que el frontend
+    //    ofrezca "Continuar" en lugar de "Iniciar".
     const { data: statsRow, error: statsErr } = await authClient
       .from("stats")
       .select("last_repesca_at, last_repesca_car_id")
@@ -236,9 +237,13 @@ export default async function handler(req, res) {
       // No abortamos: si stats no se puede leer, asumimos repesca disponible
       // como degradación segura (la verificación real ocurre en /start).
     }
-    const lastRepescaAt = statsRow?.last_repesca_at || null;
-    const drawnCarId =
-      lastRepescaAt === todayDate ? statsRow?.last_repesca_car_id || null : null;
+    // La repesca activa es la ÚLTIMA SORTEADA, y su partida se juega en la
+    // fecha del sorteo — que no siempre es hoy. Aquí había un
+    // `last_repesca_at === todayDate`: al cambiar el día, una partida viva
+    // desaparecía del garaje igual que se caía en start/validate/image
+    // (ver _lib/repesca/activa.js).
+    const activa = repescaActiva(statsRow);
+    const drawnCarId = activa?.carId || null;
 
     // La repesca se gasta con el PRIMER INTENTO, no con el sorteo (ver
     // _lib/repesca/consumo.js: el sorteo apunta el coche, pero entre ese apunte
@@ -247,13 +252,13 @@ export default async function handler(req, res) {
     // visto una pista). Por eso preguntamos a user_guesses si la partida llegó
     // a existir, en vez de fiarnos de la fecha del sorteo.
     let drawnRow = null;
-    if (drawnCarId) {
+    if (activa) {
       const { data, error: drawErr } = await authClient
         .from("user_guesses")
         .select("guesses, status")
         .eq("user_id", user.id)
-        .eq("car_id", drawnCarId)
-        .eq("date", todayDate)
+        .eq("car_id", activa.carId)
+        .eq("date", activa.fecha)
         .maybeSingle();
       if (drawErr) {
         console.error("[garage] read repesca draw:", drawErr);
@@ -264,13 +269,18 @@ export default async function handler(req, res) {
         drawnRow = data;
       }
     }
-    const repescaConsumedToday = repescaJugada(drawnRow);
+    // El presupuesto SÍ es por día natural: solo gasta la repesca de hoy una
+    // partida sorteada hoy. La de ayer, jugada o no, ya no cuenta contra ella
+    // — si contase, terminar una partida de anoche costaría la repesca de hoy.
+    const repescaConsumedToday =
+      activa?.fecha === todayDate && repescaJugada(drawnRow);
     const repescaAvailable = !repescaConsumedToday;
     // "Continuar" solo si la partida está empezada Y VIVA. Los dos extremos
     // tienen su propio estado y ninguno es continuar:
-    //   · sorteo que nunca se jugó → CTA "Jugar", que repite el flujo completo
-    //     (y /api/repesca/start, que sigue viendo el sorteo de hoy, devuelve EL
-    //     MISMO coche: reintentar no es re-sortear).
+    //   · sorteo de HOY que nunca se jugó → CTA "Jugar", que repite el flujo
+    //     completo (y /api/repesca/start, que sigue viendo el sorteo de hoy,
+    //     devuelve EL MISMO coche: reintentar no es re-sortear). Si el sorteo
+    //     sin jugar es de otro día, el CTA sí sortea uno nuevo.
     //   · partida ya cerrada       → CTA apagado y "vuelve mañana". Antes seguía
     //     diciendo "Continuar" y devolvía a una partida terminada.
     const repescaActiveCarId = repescaEnCurso(drawnRow) ? drawnCarId : null;
@@ -421,8 +431,10 @@ export default async function handler(req, res) {
       //                          (ver _lib/repesca/consumo.js): un sorteo que
       //                          se quedó por el camino no cuenta, y el CTA
       //                          reintenta el MISMO coche.
-      //   repescaActiveCarId   → si hay una partida de repesca empezada hoy,
-      //                          aquí va su car_id. Permite "Continuar".
+      //   repescaActiveCarId   → si hay una partida de repesca empezada y viva,
+      //                          aquí va su car_id. Permite "Continuar". No
+      //                          caduca a medianoche: la partida se juega en la
+      //                          fecha en que se sorteó.
       repescaPoolSize,
       repescaAvailable,
       // Convertimos también el carId de la repesca activa a pseudo para

@@ -9,22 +9,30 @@
 
 import sharp from "sharp";
 import { resolveRealCarId } from "../repesca-token.js";
+import { repescaActiva } from "./activa.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
 import { requireUser } from "../auth.js";
-import { todayInMadrid } from "../date.js";
 import { methodGuard, applyCors } from "../http.js";
 import { captureServerError } from "../sentry.js";
 import { clampZoomBase, cropPctForAttempt, ZOOM_ATTEMPTS } from "../zoom.js";
 
 // Crop durante la partida = el del ÚLTIMO intento (el más amplio que ve un
-// jugador legítimo), igual que /api/daily-image. Ahora es POR COCHE: depende
-// de su zoom_base (cropPctForAttempt). El cliente cierra el resto por CSS con
-// los mismos scales que el juego diario (src/lib/zoom.js). Antes servíamos la
-// imagen ENTERA en repesca y el zoom era client-side — con DevTools veías el
-// coche desnudo nada más arrancar.
+// jugador legítimo), igual que /api/daily-image: mismo tamaño (cropPctForAttempt
+// sobre el zoom_base del coche) y mismo centro (focus_x/focus_y). El cliente
+// cierra el resto por CSS con los mismos scales que el juego diario
+// (src/lib/zoom.js). Antes servíamos la imagen ENTERA en repesca y el zoom era
+// client-side — con DevTools veías el coche desnudo nada más arrancar.
+//
+// Las DOS mitades del encuadre tienen que venir de aquí, no solo el tamaño: el
+// punto focal se quedó fuera al portar el crop desde daily-image y el resultado
+// era un coche que en la repesca se veía distinto que en el juego diario.
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// focus_x / focus_y válidos = número finito dentro de [0,1]. Mismo criterio que
+// daily-image.js y og-image.js; fuera de ahí se cae al centro (0.5).
+const enRango = (v) => Number.isFinite(v) && v >= 0 && v <= 1;
 
 export default async function handler(req, res) {
   // Esta foto NO se pide con <img src>, se baja con fetch + Authorization para
@@ -68,9 +76,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid carId" });
     }
 
-    // Gate: ¿el usuario tiene una repesca activa hoy para ESE carId real?
+    // Gate: ¿el usuario tiene una repesca activa para ESE carId real?
     // Read con service_role (mismo motivo que en start/validate).
-    const today = todayInMadrid();
     const { data: statsRow, error: statsErr } = await getSupabaseAdmin()
       .from("stats")
       .select("last_repesca_at, last_repesca_car_id")
@@ -80,30 +87,32 @@ export default async function handler(req, res) {
       console.error("[repesca/image] read stats:", statsErr);
       return res.status(500).json({ error: "Failed to check repesca" });
     }
-    const valid =
-      statsRow?.last_repesca_at === today &&
-      statsRow?.last_repesca_car_id === carId;
-    if (!valid) {
+    const activa = repescaActiva(statsRow);
+    if (!activa || activa.carId !== carId) {
       return res.status(403).json({ error: "Repesca not active for this car" });
     }
+    // La partida vive en la fecha del SORTEO. Con el gate atado a «hoy», al
+    // cruzar medianoche este endpoint devolvía 403 y la página se quedaba con
+    // el skeleton para siempre (ver _lib/repesca/activa.js).
+    const gameDate = activa.fecha;
 
     // ¿Ha cerrado la partida el usuario para este coche? Si sí, le servimos
-    // la imagen completa; si no, la crop'eamos server-side al 55% central
-    // (igual que en daily-image durante "playing").
+    // la imagen completa; si no, la crop'eamos server-side al recorte del
+    // último intento (igual que en daily-image durante "playing").
     const { data: guessRow } = await authClient
       .from("user_guesses")
       .select("status")
       .eq("user_id", user.id)
       .eq("car_id", carId)
-      .eq("date", today)
+      .eq("date", gameDate)
       .maybeSingle();
     const isFinished =
       guessRow?.status === "won" || guessRow?.status === "lost";
 
-    // Cargar URL real del CDN + zoom_base para este coche.
+    // Cargar URL real del CDN + zoom_base + PUNTO FOCAL para este coche.
     const { data: row, error: fetchErr } = await getSupabaseAdmin()
       .from("cars")
-      .select("image_url, zoom_base")
+      .select("image_url, zoom_base, focus_x, focus_y")
       .eq("id", carId)
       .single();
     if (fetchErr || !row?.image_url) {
@@ -111,6 +120,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Failed to load car" });
     }
     const zoomBase = clampZoomBase(row.zoom_base);
+    // focus_x/focus_y = centro del recorte en [0,1], el mismo par que usan
+    // daily-image y og-image. Fuera de rango o a null (coches anteriores a la
+    // columna) → 0.5/0.5, que es el recorte centrado de siempre.
+    const focusX = enRango(row.focus_x) ? row.focus_x : 0.5;
+    const focusY = enRango(row.focus_y) ? row.focus_y : 0.5;
 
     // Fetch server-side de los bytes y proxy al cliente.
     let upstream;
@@ -146,8 +160,17 @@ export default async function handler(req, res) {
           const H = rotated90 ? meta.width : meta.height;
           const minDim = Math.min(W, H);
           const size = Math.max(1, Math.round(minDim * cropPctForAttempt(ZOOM_ATTEMPTS, zoomBase)));
-          const left = Math.max(0, Math.round((W - size) / 2));
-          const top = Math.max(0, Math.round((H - size) / 2));
+          // Cuadrado centrado en (focusX, focusY), NO en el centro geométrico.
+          // Aquí estaba el desencuadre: este endpoint recortaba siempre por el
+          // medio de la foto mientras daily-image lo hacía por el punto focal
+          // del coche, así que el MISMO coche se veía distinto en repesca que
+          // en el juego diario — más cerrado o simplemente apuntando a otra
+          // cosa en cuanto el foco estaba fuera del centro, que es justo para
+          // lo que existe la columna. El clamp pega el cuadrado al borde
+          // cuando el foco está cerca de una esquina (mismo criterio que
+          // daily-image.js).
+          const left = Math.max(0, Math.min(W - size, Math.round(W * focusX - size / 2)));
+          const top = Math.max(0, Math.min(H - size, Math.round(H * focusY - size / 2)));
           outBuffer = await sharp(originalBuffer)
             .rotate()
             .extract({ left, top, width: size, height: size })

@@ -3,17 +3,19 @@
 // /api/validate-guess (modo daily):
 //   - El coche objetivo NO se resuelve con pick_daily_car: lo dicta el
 //     usuario, pero gateado por su `stats.last_repesca_at` + `last_repesca_car_id`.
-//   - Persistencia en user_guesses con (user_id, car_id, date=hoy), igual
-//     que daily — pero como car_id != coche del día, no hay conflicto.
+//   - Persistencia en user_guesses con (user_id, car_id, date=fecha del
+//     sorteo), igual que daily — pero como car_id != coche del día, no hay
+//     conflicto. Ojo: la fecha es la del SORTEO, que no siempre es «hoy»
+//     (una partida puede cruzar medianoche; ver _lib/repesca/activa.js).
 //   - Scoring: la MITAD de los puntos normales, redondeo hacia arriba.
 //   - NO se llama a record_daily_result_v2 → no se toca current_streak,
 //     max_streak ni last_played_date. Solo se suman points y total_wins
 //     directamente sobre `stats`.
 
 import { resolveRealCarId } from "../repesca-token.js";
+import { repescaActiva } from "./activa.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
 import { requireUser } from "../auth.js";
-import { todayInMadrid } from "../date.js";
 import { parseBody, methodGuard, applyCors } from "../http.js";
 import { captureServerError } from "../sentry.js";
 import { getClientIp } from "../ratelimit.js";
@@ -107,9 +109,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid carId (target)" });
     }
 
-    const today = todayInMadrid();
-
-    // 1) Gate: el usuario debe tener una repesca activa HOY para este carId.
+    // 1) Gate: el usuario debe tener una repesca activa para este carId.
     //    Lectura con service_role: stats solo expone SELECT públicas en
     //    este proyecto y todas las mutaciones pasan por endpoints server-
     //    side. Mantenemos la disciplina aquí también.
@@ -124,12 +124,15 @@ export default async function handler(req, res) {
       console.error("[repesca/validate] read stats:", statsErr);
       return res.status(500).json({ error: "Failed to check repesca" });
     }
-    const repescaActive =
-      statsRow?.last_repesca_at === today &&
-      statsRow?.last_repesca_car_id === carId;
-    if (!repescaActive) {
+    const activa = repescaActiva(statsRow);
+    if (!activa || activa.carId !== carId) {
       return res.status(403).json({ error: "Repesca not active for this car" });
     }
+    // La partida se juega en la fecha del SORTEO, no en «hoy». El gate pedía
+    // antes `last_repesca_at === today` y por eso una repesca empezada a las
+    // 23:58 contestaba 403 al primer intento pasada la medianoche, con los
+    // intentos ya escritos en la fila de ayer (ver _lib/repesca/activa.js).
+    const gameDate = activa.fecha;
 
     // 2) Cargar coche-real (objetivo) y coche-guess.
     const [realRow, guessRow] = await Promise.all([
@@ -174,13 +177,14 @@ export default async function handler(req, res) {
     const effectiveMaxAttempts = isVeteran ? MAX_ATTEMPTS_VETERAN : MAX_ATTEMPTS;
 
     // 4) Número de intento server-side. Leemos la fila de user_guesses
-    //    para (user_id, car_id, date=hoy) — única para esta repesca.
+    //    para (user_id, car_id, date=fecha del sorteo) — única para esta
+    //    repesca.
     const { data: row, error: rowErr } = await authClient
       .from("user_guesses")
       .select("guesses, status")
       .eq("user_id", user.id)
       .eq("car_id", carId)
-      .eq("date", today)
+      .eq("date", gameDate)
       .maybeSingle();
     if (rowErr) {
       console.error("[repesca/validate] read user_guesses:", rowErr);
@@ -219,7 +223,7 @@ export default async function handler(req, res) {
       {
         user_id: user.id,
         car_id: carId,
-        date: today,
+        date: gameDate,
         guesses: newGuesses,
         status: newStatus,
         car_data: isGameOver ? { ...realCar, id: carId } : null,
@@ -294,10 +298,12 @@ export default async function handler(req, res) {
     }
 
     // Auditoría oculta (best-effort): misma tabla que daily, mode='repesca'.
+    // `gameDate` es el del sorteo: así los intentos de una partida que cruzó
+    // medianoche se auditan juntos, en vez de partirse en dos días.
     await logGuessAttempt({
       req,
       mode: "repesca",
-      gameDate: today,
+      gameDate,
       carId,
       userId: user.id,
       isAnon: false,

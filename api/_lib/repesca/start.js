@@ -6,15 +6,20 @@
 //
 //   POST {} (sin carId)
 //     → "Arrancar una repesca nueva."
-//     - Si ya hay una repesca activa hoy → devuelve esa (idempotente).
-//     - Si no hay activa → el server elige un coche al azar de la pool
-//       de elegibles del usuario, consume la repesca del día y la devuelve.
+//     - Si ya se sorteó HOY → devuelve esa (idempotente).
+//     - Si no → el server elige un coche al azar de la pool de elegibles
+//       del usuario, consume la repesca del día y la devuelve.
 //
 //   POST { carId: <pseudoId> }
 //     → "Estoy en la página /repesca?id=X, dame el estado actual."
-//     - Si X coincide con la repesca activa hoy → devuelve estado (idempotente).
+//     - Si X coincide con la repesca activa → devuelve estado (idempotente).
 //     - Si X no coincide o no hay activa → 409 / 404.
 //     - NUNCA arranca una repesca nueva por carId del cliente.
+//
+// «Activa» y «sorteada hoy» NO son lo mismo, y confundirlas es lo que mataba la
+// partida a medianoche. La activa es la última sorteada, se juega en SU fecha y
+// no caduca por el reloj; el «una al día» solo limita el SORTEO. La distinción
+// vive en _lib/repesca/activa.js.
 //
 // Por qué este diseño:
 //   Antes, el cliente elegía el coche con Math.random() en Garage.jsx y
@@ -25,6 +30,7 @@
 
 import { randomInt } from "node:crypto";
 import { pseudoIdFor } from "../repesca-token.js";
+import { repescaActiva, puedeSortear } from "./activa.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "../supabase.js";
 import { requireUser } from "../auth.js";
 import { todayInMadrid } from "../date.js";
@@ -59,13 +65,17 @@ async function isVeteranMode(authClient, userId, carId) {
 // formatea para que el cliente lo pinte directamente sin necesitar el
 // cars.id real. Usa authClient para que RLS confirme que la fila es del
 // usuario (defensa en profundidad — ya validamos auth.uid arriba).
-async function readRepescaState(authClient, userId, carId, today) {
+//
+// `gameDate` es la fecha del SORTEO, no «hoy»: es la clave con la que se
+// escribió la fila y la única que la encuentra si la partida cruzó medianoche
+// (ver _lib/repesca/activa.js).
+async function readRepescaState(authClient, userId, carId, gameDate) {
   const { data: row, error } = await authClient
     .from("user_guesses")
     .select("guesses, status, car_data")
     .eq("user_id", userId)
     .eq("car_id", carId)
-    .eq("date", today)
+    .eq("date", gameDate)
     .maybeSingle();
   if (error) {
     console.error("[repesca/start] readRepescaState:", error);
@@ -187,52 +197,65 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Failed to read stats" });
     }
 
-    const activeCarId =
-      statsRow?.last_repesca_at === today ? statsRow?.last_repesca_car_id : null;
+    // La repesca activa se identifica por el coche apuntado en stats, y su
+    // partida vive en la FECHA DEL SORTEO — no en «hoy». Antes esto era un
+    // `last_repesca_at === today` y la partida moría a medianoche: 404 aquí,
+    // 403 en validate y en image (ver _lib/repesca/activa.js).
+    const activa = repescaActiva(statsRow);
 
     // === FASE 2: Resolver qué coche se va a tocar ===
     let carId;
     let isNewStart;
+    let gameDate;
 
     if (clientPseudoCarId) {
       // --- MODO RESUME ---
       // El cliente está en /repesca?id=X y nos pide el estado. SOLO
-      // respondemos OK si X coincide con la repesca activa hoy. Esto
+      // respondemos OK si X coincide con la repesca activa. Esto
       // bloquea el vector "URL crafteada con un pseudo arbitrario para
       // arrancar una repesca a la carta": si X no es la activa, error.
-      if (!activeCarId) {
+      if (!activa) {
         return res.status(404).json({
           error: "No active repesca",
           detail:
-            "No tienes ninguna repesca activa hoy. Inicia una nueva desde el garaje.",
+            "No tienes ninguna repesca activa. Inicia una nueva desde el garaje.",
         });
       }
       // Verificación directa: derivamos el pseudo del coche activo y
       // comparamos. No hace falta cargar la tabla cars entera para
       // resolveRealCarId — basta con esta comparación O(1).
-      const expectedPseudo = pseudoIdFor(activeCarId, user.id);
+      const expectedPseudo = pseudoIdFor(activa.carId, user.id);
       if (clientPseudoCarId !== expectedPseudo) {
         return res.status(409).json({
           error: "Repesca mismatch",
           detail:
-            "El coche que intentas reanudar no coincide con tu repesca activa de hoy.",
+            "El coche que intentas reanudar no coincide con tu repesca activa.",
           activeCarId: expectedPseudo, // Lo damos para que el cliente
           // pueda redirigir al activo correcto si quiere.
         });
       }
-      carId = activeCarId;
+      carId = activa.carId;
+      gameDate = activa.fecha;
       isNewStart = false;
     } else {
       // --- MODO NEW START ---
       // Cliente no especifica carId → server decide.
-      if (activeCarId) {
-        // Idempotencia: ya hay una activa, la devolvemos sin consumir.
+      if (!puedeSortear(activa, today)) {
+        // Idempotencia: ya se sorteó HOY, devolvemos esa sin consumir.
         // Útil si Garage.jsx fallback re-invoca start (no debería, ya
         // que detecta repescaActiveCarId antes — pero defensivo).
-        carId = activeCarId;
+        carId = activa.carId;
+        gameDate = activa.fecha;
         isNewStart = false;
       } else {
-        // No hay activa: calculamos pool server-side y elegimos con CSPRNG.
+        // Ojo: se llega aquí también con una partida de un día anterior
+        // todavía abierta, y sortear la sustituye (stats solo guarda una).
+        // Es deliberado — ver `puedeSortear`: bloquear el sorteo hasta
+        // cerrarla dejaría sin repesca para siempre a quien abandone una. El
+        // garaje ofrece «Continuar» mientras siga viva, así que por la UI no
+        // se pierde ninguna partida sin querer.
+        //
+        // Sorteo: calculamos pool server-side y elegimos con CSPRNG.
         let pool;
         try {
           pool = await computeEligiblePool(authClient, user.id, today);
@@ -247,6 +270,7 @@ export default async function handler(req, res) {
           });
         }
         carId = pickRandomCryptoSafe(pool);
+        gameDate = today; // la partida nace hoy y se jugará siempre en esta fecha
         isNewStart = true;
       }
     }
@@ -294,7 +318,7 @@ export default async function handler(req, res) {
     // === FASE 5: Devolver estado al cliente ===
     // Siempre pseudo carId, nunca real. Mantenemos la propiedad "el
     // cliente nunca conoce el cars.id real de un coche bloqueado".
-    const state = await readRepescaState(authClient, user.id, carId, today);
+    const state = await readRepescaState(authClient, user.id, carId, gameDate);
 
     // LQIP (blur_data) del coche: el placeholder borroso de ~0.5-1 KB que
     // CarImage pinta como fondo mientras descarga la foto real. Devolverlo

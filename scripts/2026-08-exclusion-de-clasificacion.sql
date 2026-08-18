@@ -77,10 +77,24 @@ REVOKE ALL ON public.excluidos_de_clasificacion FROM anon, authenticated;
 --   get_season_leaderboard  → de aquí leen get_my_season_rank y
 --                             compute_season_podium (o sea, también el podio).
 --   get_monthly_leaderboard → de aquí leen get_my_monthly_rank y
---                             compute_monthly_podium.
+--                             compute_monthly_podium. OJO: el ranking mensual
+--                             es ANTERIOR a las temporadas y la app ya no lo
+--                             llama desde ninguna pantalla (solo queda nombrado
+--                             en comentarios de lib/admin-handlers/analytics.js).
+--                             Se parchea igual, porque las funciones siguen ahí
+--                             y con GRANT a anon: una función pública que
+--                             ignorase la exclusión sería una puerta abierta
+--                             aunque hoy no la use nuestro cliente.
 --   get_champions           → el salón, que lee season_podium ya sellado; como
 --                             filtra en LECTURA, excluir a alguien lo retira
 --                             también de los podios viejos.
+--
+-- FALTA UNA CUARTA TABLA Y NO ESTÁ AQUÍ: «Leyendas», el histórico acumulado.
+-- No es una función —el cliente consultaba `stats` directamente—, así que no
+-- había cuerpo que parchear. Se convierte en RPC en
+-- scripts/2026-08-leyendas-por-rpc.sql, que hay que aplicar DESPUÉS de este.
+-- Sin ese fichero la exclusión está a medias, y a medias justo en la tabla de
+-- la que más cuesta salir, porque es la única que no se resetea por temporada.
 --
 -- Los tres tienen escrita LA MISMA línea, palabra por palabra:
 --

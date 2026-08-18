@@ -320,39 +320,35 @@ export async function getPublicProfile(userId) {
 
 export async function getLeaderboard() {
   // Devolvemos a TODOS los jugadores con puntos > 0 y nickname puesto.
-  // El `.limit(1000)` es solo un techo de seguridad para no traer la BD
-  // entera si algún día crece mucho; Supabase devuelve por defecto 1000,
-  // así que esto es el cap real. La UI (Ranking.jsx) ya hace scroll
-  // interno cuando hay más de 5 entradas.
-  const { data, error } = await supabase
-    .from("stats")
-    .select(`
-      user_id,
-      current_streak,
-      max_streak,
-      total_wins,
-      total_points,
-      last_played_date,
-      profile:profiles (
-        display_name
-      )
-    `)
-    .gt("total_points", 0)
-    .order("total_points", { ascending: false })
-    .order("max_streak", { ascending: false })
-    .limit(1000);
+  // El `1000` es solo un techo de seguridad para no traer la BD entera si algún
+  // día crece mucho. La UI (Ranking.jsx) ya hace scroll interno cuando hay más
+  // de 5 entradas.
+  //
+  // ANTES ERA UNA CONSULTA DIRECTA a `stats` con join a `profiles`, y por eso
+  // esta tabla se quedó fuera de la exclusión de clasificación: el filtro de
+  // excluidos vive en la base de datos y aquí no había ninguna función donde
+  // ponerlo (ver scripts/2026-08-leyendas-por-rpc.sql). Las otras tres tablas
+  // públicas ya eran RPC; esta era la excepción, y la excepción era justo la
+  // más difícil de abandonar, porque el histórico no se resetea por temporada.
+  //
+  // El `shape` que se devuelve NO cambia: Ranking.jsx no se entera.
+  const { data, error } = await supabase.rpc("get_legends_leaderboard", {
+    p_limit: 1000,
+  });
 
   if (error) throw error;
 
   // Guard de null: PostgREST puede devolver `data: null` (sin error) en
-  // ciertos escenarios; sin esto, `.filter` revienta con TypeError. Mismo
+  // ciertos escenarios; sin esto, `.map` revienta con TypeError. Mismo
   // criterio defensivo que getSeasonLeaderboard, que ya hacía `(data || [])`.
+  //
+  // El `.filter` de display_name que había aquí ya no hace falta: la RPC no
+  // devuelve filas sin nick, así que esas ni salen de la base de datos.
   return (data || [])
-    .filter((row) => row.profile?.display_name)
     .map((row, index) => ({
       rank: index + 1,
       userId: row.user_id,
-      displayName: row.profile.display_name,
+      displayName: row.display_name,
       // Misma regla de frescura que el header: si no jugó hoy ni ayer
       // (Madrid), la racha está rota aunque la BD aún tenga el valor viejo
       // (se resetea cuando vuelve a jugar). Evita mostrar 🔥 fantasma.

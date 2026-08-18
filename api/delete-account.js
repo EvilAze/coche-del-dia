@@ -172,8 +172,23 @@ export default async function handler(request) {
     .delete()
     .eq("user_id", uid);
   if (errMensajes) {
-    console.error("[delete-account] mensajes:", errMensajes.message);
-    return json({ error: "db_error" }, 500);
+    // «La tabla no existe» NO puede tumbar un borrado de cuenta. El código y el
+    // esquema se despliegan por caminos distintos —un push contra un fichero
+    // pegado a mano en el SQL editor— así que entre un deploy y el otro hay una
+    // ventana en la que esta tabla todavía no está. Que un jugador no pueda
+    // ejercer su derecho de supresión durante esa ventana, por una tabla que
+    // además estaría vacía para él, sería el peor cambio posible: es lo único
+    // de este endpoint que Play exige que funcione siempre.
+    //
+    // Cualquier OTRO error sí aborta: si la tabla está y no se deja borrar,
+    // quedaría PII de alguien que ha pedido irse, y eso no se puede saldar con
+    // un console.warn.
+    const noExisteAun = ["PGRST205", "42P01"].includes(errMensajes.code);
+    if (!noExisteAun) {
+      console.error("[delete-account] mensajes:", errMensajes.message);
+      return json({ error: "db_error" }, 500);
+    }
+    console.warn("[delete-account] mensajes: tabla ausente, se omite");
   }
 
   // 3) Auditoría antifraude: se desliga de la persona y pierde las huellas del

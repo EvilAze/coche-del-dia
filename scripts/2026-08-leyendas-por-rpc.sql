@@ -1,8 +1,17 @@
 -- scripts/2026-08-leyendas-por-rpc.sql
 -- «LEYENDAS» PASA POR UNA RPC, COMO LAS OTRAS TRES TABLAS.
 --
--- Aplicar en el SQL editor de Supabase DESPUÉS de
--- 2026-08-exclusion-de-clasificacion.sql. Idempotente.
+-- Aplicar en el SQL editor de Supabase. Idempotente y SIN ORDEN OBLIGATORIO
+-- respecto a los otros scripts de agosto: filtra por `profiles.is_flagged`, que
+-- existe desde junio de 2026, así que no depende de ninguna migración reciente.
+--
+-- OJO SI LEES UNA VERSIÓN VIEJA DE ESTE FICHERO EN EL HISTORIAL: nació filtrando
+-- por una tabla `excluidos_de_clasificacion` que duró unas horas. Resultó que el
+-- proyecto YA tenía un shadowban —`is_flagged`, escondido dentro del cuerpo de
+-- dos policies de RLS y en ningún otro sitio— y se unificaron los dos en
+-- 2026-08-unificar-shadowban.sql, que borró aquella tabla. Este fichero quedó
+-- apuntando a algo inexistente: como Postgres valida el cuerpo de una función
+-- SQL al crearla, ejecutarlo daba error en vez de crear nada.
 --
 -- ---------------------------------------------------------------------------
 -- POR QUÉ
@@ -59,9 +68,7 @@ AS $$
   JOIN public.profiles p ON p.id = s.user_id
   WHERE s.total_points > 0
     AND p.display_name IS NOT NULL AND p.display_name <> ''
-    AND NOT EXISTS (
-      SELECT 1 FROM public.excluidos_de_clasificacion ex WHERE ex.user_id = p.id
-    )
+    AND p.is_flagged IS NOT TRUE
   -- El puesto lo sigue numerando el cliente por el orden de llegada (índice del
   -- map), igual que antes: así la regla de «racha viva» (isStreakAlive, que
   -- necesita la hora del navegador) se queda donde estaba y esta función no
@@ -76,12 +83,13 @@ GRANT EXECUTE ON FUNCTION public.get_legends_leaderboard(int) TO anon, authentic
 -- ============================================================================
 -- Verificación
 -- ============================================================================
--- Cuántos salen en Leyendas y cuántos quedan fuera por exclusión. El segundo
--- número es 0 mientras no se use el botón del panel; si algún día no lo es,
--- esta consulta es la que dice que la exclusión está haciendo su trabajo.
+-- Cuántos salen en Leyendas y cuántos quedan fuera por estar marcados. El
+-- segundo número es 0 mientras no se use el botón del panel; si algún día no lo
+-- es, la diferencia entre la primera y la tercera columna es exactamente ese
+-- segundo número, y eso dice que el shadowban está haciendo su trabajo.
 SELECT
   (SELECT count(*) FROM public.get_legends_leaderboard(1000000))     AS en_leyendas,
-  (SELECT count(*) FROM public.excluidos_de_clasificacion)           AS excluidos,
+  (SELECT count(*) FROM public.profiles WHERE is_flagged IS TRUE)    AS marcados,
   (SELECT count(*) FROM public.stats s
      JOIN public.profiles p ON p.id = s.user_id
     WHERE s.total_points > 0

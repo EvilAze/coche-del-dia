@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from "react";
 import { saveDisplayName } from "../lib/statsService";
+import { filtrarNick, limpiarNick, nickValido, NICK_MAX } from "../lib/nickname";
 import { useT } from "../i18n";
 import ModalShell from "./ModalShell";
 import CloseButton from "./CloseButton";
@@ -48,9 +49,9 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const clean = displayName.trim();
+    const clean = limpiarNick(displayName);
 
-    if (!/^[A-Za-z0-9]{1,12}$/.test(clean)) {
+    if (!nickValido(clean)) {
       setError(t("nickname.errorFormat"));
       return;
     }
@@ -114,9 +115,9 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
         <input
           autoFocus
           value={displayName}
-          maxLength={12}
+          maxLength={NICK_MAX}
           onChange={(e) => {
-            setDisplayName(e.target.value.replace(/[^A-Za-z0-9]/g, ""));
+            setDisplayName(filtrarNick(e.target.value));
             setError("");
           }}
           placeholder={t("nickname.placeholder")}

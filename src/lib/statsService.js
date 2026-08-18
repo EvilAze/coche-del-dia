@@ -1,6 +1,7 @@
 import { supabase } from "../supabaseClient";
 import { isStreakAlive } from "../lib/dates";
 import { collectorTier } from "./collectionTier";
+import { limpiarNick, nickValido } from "./nickname";
 
 const EMPTY_STATS = {
   current_streak: 0,
@@ -12,10 +13,10 @@ const EMPTY_STATS = {
 
 // La comprobación de frescura de la racha (isStreakAlive) vive ahora en
 // src/lib/dates.js — módulo puro y testeable. Ver allí la explicación.
-
-function cleanDisplayName(value) {
-  return String(value || "").trim();
-}
+//
+// La regla del nick (formato y recorte) vive en src/lib/nickname.js, réplica
+// del CHECK de la base de datos. Aquí había una copia del regex y otra del
+// trim; ver allí por qué esto es cortesía y no defensa.
 
 async function getCurrentUser() {
   const { data, error } = await supabase.auth.getUser();
@@ -122,9 +123,9 @@ export async function saveDisplayName(displayName) {
     throw new Error("Necesitas iniciar sesión.");
   }
 
-  const clean = cleanDisplayName(displayName);
+  const clean = limpiarNick(displayName);
 
-  if (!/^[A-Za-z0-9]{1,12}$/.test(clean)) {
+  if (!nickValido(clean)) {
     throw new Error("Usa solo letras y números, máximo 12 caracteres.");
   }
 
@@ -158,6 +159,11 @@ export async function saveDisplayName(displayName) {
   if (error) {
     const errorText = `${error.code || ""} ${error.message || ""} ${error.details || ""}`.toLowerCase();
 
+    // 23505 llega por DOS caminos, y los dos quieren el mismo mensaje: el nick
+    // está cogido (índice UNIQUE), o está RETIRADO por moderación (el trigger
+    // profiles_nick_no_retirado levanta ese mismo errcode a propósito). Que
+    // sean indistinguibles es la gracia: nadie puede sondear la lista de
+    // moderación probando nombres. No los separes.
     const isDuplicate =
       error.code === "23505" ||
       errorText.includes("duplicate") ||

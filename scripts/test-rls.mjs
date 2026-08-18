@@ -360,6 +360,28 @@ expectSelectBlocked(
   }
 }
 
+// El nick es el ÚNICO texto que escribe un usuario y leen los demás (sale en
+// la clasificación, el podio y el perfil público), así que su formato lo tiene
+// que decidir la base de datos y no el navegador — ver
+// scripts/2026-08-nick-validado-en-servidor.sql.
+//
+// Aquí solo se comprueba la mitad que se puede comprobar SIN sesión: con la
+// anon key a secas, `auth.uid()` es NULL y la policy `profiles own update` no
+// debe casar ninguna fila. La otra mitad —que un registrado con su JWT
+// legítimo tampoco pueda escribir basura en su propia fila— no se puede probar
+// desde aquí sin crear una cuenta real, y este script no escribe nada en
+// producción a propósito. Esa mitad la garantiza el CHECK
+// `profiles_display_name_formato`; la consulta de verificación que confirma
+// que está puesto va en el propio .sql.
+expectMutationBlocked(
+  "UPDATE profiles.display_name sin sesión (anon key a secas)",
+  await anon
+    .from("profiles")
+    .update({ display_name: "X".repeat(64) })
+    .eq("id", NULL_UUID)
+    .select()
+);
+
 // ============================================================================
 console.log("\n[RPC] funciones expuestas — solo las que QUEREMOS callables");
 // ============================================================================

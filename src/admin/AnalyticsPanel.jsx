@@ -37,6 +37,28 @@ async function authFetch(path) {
   return res.json();
 }
 
+// Gemelo POST del de arriba. Aparte y no un parámetro más de authFetch porque
+// las dos llamadas no se parecen en lo que importa: una lee y se puede repetir
+// sin consecuencias, la otra escribe.
+async function authPost(path, payload) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("No session");
+  const res = await fetch(path, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // Formato de fecha humano corto: "24 may" — ahorra espacio en eje X.
 function shortDate(isoDate) {
   const months = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -80,6 +102,11 @@ export default function AnalyticsPanel() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userHistory, setUserHistory] = useState(null);
   const [userHistoryLoading, setUserHistoryLoading] = useState(false);
+  // Moderación del nick: "" mientras no pasa nada, texto tras retirar (o tras
+  // fallar). Se limpia al cambiar de usuario para no arrastrar el aviso de uno
+  // a la ficha de otro.
+  const [modEstado, setModEstado] = useState("");
+  const [modEnCurso, setModEnCurso] = useState(false);
 
   // Fetch principal al cambiar el range.
   useEffect(() => {
@@ -102,14 +129,22 @@ export default function AnalyticsPanel() {
   }, [range]);
 
   // Fetch del historial cuando se selecciona usuario.
+  //
+  // La dependencia es el ID, no el objeto: retirar un nick parchea la fila
+  // abierta (`username: null`) y con `[selectedUser]` ese parcheo contaba como
+  // "otro usuario" — se repetía la query del historial y, peor, el
+  // `setModEstado("")` de aquí abajo borraba el aviso de «nick retirado» justo
+  // después de escribirlo. Es la misma ficha; solo cambió un campo.
+  const selectedUserId = selectedUser?.id ?? null;
   useEffect(() => {
-    if (!selectedUser) {
+    setModEstado("");
+    if (!selectedUserId) {
       setUserHistory(null);
       return;
     }
     let cancelled = false;
     setUserHistoryLoading(true);
-    authFetch(`/api/admin/analytics?userId=${encodeURIComponent(selectedUser.id)}`)
+    authFetch(`/api/admin/analytics?userId=${encodeURIComponent(selectedUserId)}`)
       .then((json) => {
         if (cancelled) return;
         setUserHistory(json.history || []);
@@ -122,7 +157,66 @@ export default function AnalyticsPanel() {
         if (!cancelled) setUserHistoryLoading(false);
       });
     return () => { cancelled = true; };
-  }, [selectedUser]);
+  }, [selectedUserId]);
+
+  // Retirar el nick del usuario abierto. Ver lib/admin-handlers/moderacion.js:
+  // el nombre se apunta como retirado (nadie puede volver a tomarlo) y la fila
+  // desaparece de la clasificación sola, porque las funciones de temporada
+  // filtran por `display_name IS NOT NULL`.
+  //
+  // window.confirm y no un modal a medida: es el idioma que ya habla este
+  // panel (SchedulePanel, SeasonsPanel) y esta acción no se deshace desde la
+  // interfaz — para devolverle el nombre a alguien hay que borrar su fila de
+  // `nicks_retirados` a mano en Supabase, que es la fricción correcta para
+  // algo que debería pasar tres veces al año.
+  async function retirarNick() {
+    if (!selectedUser || modEnCurso) return;
+    const nick = selectedUser.username;
+    if (!nick) return;
+    const ok = window.confirm(
+      `Retirar el nick «${nick}»?\n\n` +
+        "Desaparece de la clasificación en el acto y NADIE podrá volver a " +
+        "usar ese nombre. Al jugador se le pedirá uno nuevo la próxima vez " +
+        "que abra la clasificación.\n\n" +
+        "No toca su puntuación ni su racha."
+    );
+    if (!ok) return;
+
+    setModEnCurso(true);
+    setModEstado("");
+    try {
+      const r = await authPost("/api/admin/moderacion", {
+        action: "retirar-nick",
+        userId: selectedUser.id,
+      });
+      setModEstado(
+        r?.yaEstaba ? "Ese perfil ya no tenía nick." : `Nick «${r.nick}» retirado.`
+      );
+      // Recargar la analítica entera son varios segundos de queries para
+      // cambiar una celda, así que parcheamos en sitio las DOS copias del
+      // nombre: la ficha abierta y la fila del directorio de arriba. Sin la
+      // segunda, el nick retirado seguía leyéndose en la tabla y la acción
+      // parecía no haber funcionado.
+      setSelectedUser((u) => (u ? { ...u, username: null } : u));
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              users: {
+                ...d.users,
+                directory: d.users.directory.map((u) =>
+                  u.id === selectedUser.id ? { ...u, username: null } : u
+                ),
+              },
+            }
+          : d
+      );
+    } catch (err) {
+      setModEstado(`Error: ${err.message || "no se pudo retirar"}`);
+    } finally {
+      setModEnCurso(false);
+    }
+  }
 
   // Derivados para los KPIs de jugadores totales / anónimos. Misma base que la
   // gráfica de composición: totalAvg (daily_stats, incl. anónimos) y
@@ -301,15 +395,38 @@ export default function AnalyticsPanel() {
             <Card
               title={`Historial · ${selectedUser.username || maskEmail(selectedUser.email)}`}
               action={
-                <button
-                  type="button"
-                  onClick={() => setSelectedUser(null)}
-                  className="text-xs text-muted hover:text-white"
-                >
-                  Cerrar
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* Solo si hay algo que retirar. Un botón que no puede hacer
+                      nada es ruido en una cabecera de tarjeta. */}
+                  {selectedUser.username && (
+                    <button
+                      type="button"
+                      onClick={retirarNick}
+                      disabled={modEnCurso}
+                      className="text-xs text-rose-300 hover:text-rose-200 disabled:opacity-50"
+                    >
+                      {modEnCurso ? "Retirando…" : "Retirar nick"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUser(null)}
+                    className="text-xs text-muted hover:text-white"
+                  >
+                    Cerrar
+                  </button>
+                </div>
               }
             >
+              {modEstado && (
+                <p
+                  className={`mb-3 text-xs ${
+                    modEstado.startsWith("Error") ? "text-rose-300" : "text-emerald-300"
+                  }`}
+                >
+                  {modEstado}
+                </p>
+              )}
               {userHistoryLoading ? (
                 <div className="py-8 text-center text-sm text-muted">Cargando…</div>
               ) : userHistory && userHistory.length === 0 ? (

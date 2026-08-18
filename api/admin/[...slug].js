@@ -29,6 +29,7 @@
 import { applyCors } from "../_lib/http.js";
 import analytics from "../../lib/admin-handlers/analytics.js";
 import audit from "../../lib/admin-handlers/audit.js";
+import moderacion from "../../lib/admin-handlers/moderacion.js";
 import saveCar from "../../lib/admin-handlers/save-car.js";
 import schedule from "../../lib/admin-handlers/schedule.js";
 import seasons from "../../lib/admin-handlers/seasons.js";
@@ -39,6 +40,7 @@ import describeCar from "../../lib/admin-handlers/describe-car.js";
 const ROUTES = {
   "analytics":     analytics,
   "audit":         audit,
+  "moderacion":    moderacion,
   "save-car":      saveCar,
   "schedule":      schedule,
   "seasons":       seasons,
@@ -48,7 +50,7 @@ const ROUTES = {
 };
 
 export default async function handler(req, res) {
-  // CORS AQUÍ, EN EL DISPATCHER, y no en cada handler. Los ocho llevan
+  // CORS AQUÍ, EN EL DISPATCHER, y no en cada handler. Todos llevan
   // Authorization (requireAdmin), así que desde la app —origen
   // https://localhost, cross-origin contra producción— el navegador manda
   // primero un preflight OPTIONS. Sin responderlo, TODA llamada del panel
@@ -56,10 +58,10 @@ export default async function handler(req, res) {
   // era inservible dentro del APK.
   //
   // En el dispatcher porque es la única puerta: los handlers viven fuera de
-  // api/ (lib/admin-handlers/) y son ocho; ponerlo en cada uno sería repetir
-  // la misma línea ocho veces y olvidarla en el noveno. Aquí, un endpoint
-  // admin nuevo nace con CORS resuelto. Antes del routing y de cualquier
-  // auth: un preflight no lleva credenciales por definición, así que
+  // api/ (lib/admin-handlers/) y ya van por la decena; ponerlo en cada uno
+  // sería repetir la misma línea N veces y olvidarla en la N+1. Aquí, un
+  // endpoint admin nuevo nace con CORS resuelto. Antes del routing y de
+  // cualquier auth: un preflight no lleva credenciales por definición, así que
   // gatearlo detrás de requireAdmin lo rechazaría siempre.
   if (applyCors(req, res)) return; // preflight OPTIONS / headers CORS
 

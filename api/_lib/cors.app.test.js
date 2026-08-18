@@ -53,6 +53,7 @@ const DECISIONES = {
   "/api/admin/analyze-image": { cors: true },
   "/api/admin/describe-car": { cors: true },
   "/api/admin/moderacion": { cors: true },
+  "/api/admin/estado": { cors: true },
 
   "/api/push": {
     cors: false,

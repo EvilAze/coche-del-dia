@@ -23,6 +23,7 @@ import PreviewPanel from "./PreviewPanel";
 import AnalyticsPanel from "./AnalyticsPanel";
 import AuditPanel from "./AuditPanel";
 import SwapCarModal from "./SwapCarModal";
+import EstadoStrip from "./EstadoStrip";
 
 const ADMIN_EMAILS = ["ievilaze@gmail.com"];
 
@@ -268,6 +269,12 @@ export default function AdminTools({ defaultTab }) {
             Herramientas
           </h1>
         </header>
+
+        {/* Estado del juego. Va en el shell y no en una pestaña porque las tres
+            cosas que vigila se rompen despacio y por olvido: un aviso que hay
+            que ir a buscar llega el día después. Comparte refreshKey con el
+            calendario, que es lo que mueve estas cifras. */}
+        <EstadoStrip refreshKey={refreshKey} />
 
         {/* Tabs */}
         <nav

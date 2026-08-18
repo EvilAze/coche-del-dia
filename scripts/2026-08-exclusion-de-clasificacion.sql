@@ -139,6 +139,9 @@ BEGIN
     FROM pg_proc pr
     JOIN pg_namespace n ON n.oid = pr.pronamespace
     WHERE n.nspname = 'public'
+      -- Funciones normales y nada más: pg_get_functiondef lanza 42809 sobre un
+      -- agregado o una función de ventana, y en `public` hay agregados.
+      AND pr.prokind = 'f'
       AND pr.proname IN (
         'get_season_leaderboard',
         'get_monthly_leaderboard',

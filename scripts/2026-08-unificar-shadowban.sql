@@ -77,6 +77,11 @@ BEGIN
     FROM pg_proc pr
     JOIN pg_namespace n ON n.oid = pr.pronamespace
     WHERE n.nspname = 'public'
+      -- Funciones normales y nada más. Los agregados y las funciones de ventana
+      -- hacen que pg_get_functiondef lance 42809 (ver el comentario largo de
+      -- [3]); aquí el filtro por nombre ya lo hacía improbable, pero lo que se
+      -- parchea es el cuerpo de una función, así que se dice explícitamente.
+      AND pr.prokind = 'f'
       AND pr.proname IN (
         'get_season_leaderboard',
         'get_monthly_leaderboard',
@@ -148,10 +153,23 @@ DO $limpieza$
 DECLARE
   v_referencias int;
 BEGIN
+  -- `prokind NOT IN ('a','w')` NO es adorno: pg_get_functiondef LANZA un error
+  -- —«"array_agg" is an aggregate function», 42809— si se le pasa un agregado o
+  -- una función de ventana, y en el esquema `public` de este proyecto hay
+  -- agregados. Sin este filtro, el recorrido revienta al toparse con uno; y como
+  -- el SQL editor ejecuta el fichero entero en UNA transacción, ese error tira
+  -- atrás también los bloques [1] y [2], que ya habían hecho su trabajo.
+  --
+  -- Se excluyen solo esas dos clases porque son exactamente las que fallan: las
+  -- funciones normales ('f') y los procedimientos ('p') se introspeccionan sin
+  -- problema, y dejarlos dentro mantiene el guard haciendo su trabajo —que es
+  -- detectar una referencia en CUALQUIER función, incluida una que se me haya
+  -- pasado, no solo en las cuatro que conozco—.
   SELECT count(*) INTO v_referencias
   FROM pg_proc pr
   JOIN pg_namespace n ON n.oid = pr.pronamespace
   WHERE n.nspname = 'public'
+    AND pr.prokind NOT IN ('a', 'w')
     AND pg_get_functiondef(pr.oid) LIKE '%excluidos_de_clasificacion%';
 
   IF v_referencias > 0 THEN

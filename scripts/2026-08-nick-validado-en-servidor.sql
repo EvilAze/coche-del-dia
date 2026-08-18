@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS public.nicks_retirados (
 COMMENT ON TABLE public.nicks_retirados IS
   'Nicks retirados por moderación. No se pueden volver a tomar. Deny-all: solo service_role.';
 
--- Deny-all, mismo patrón que push_subscriptions y tunel_games: esta lista no
+-- Deny-all, mismo patrón que push_subscriptions: esta lista no
 -- la lee el cliente. Publicarla sería publicar el registro de moderación —y,
 -- de paso, la lista exacta de lo que alguien escribió alguna vez.
 ALTER TABLE public.nicks_retirados ENABLE ROW LEVEL SECURITY;

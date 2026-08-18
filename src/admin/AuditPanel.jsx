@@ -29,6 +29,27 @@ async function authFetch(path) {
   return res.json();
 }
 
+// Gemelo POST. Este panel era de solo lectura hasta que ganó la columna de
+// acciones, así que antes no hacía falta.
+async function authPost(path, payload) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("No session");
+  const res = await fetch(path, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 function shortDateTime(isoString) {
   if (!isoString) return "—";
   return new Date(isoString).toLocaleString("es-ES", {
@@ -66,11 +87,41 @@ function StatusDot({ status }) {
   );
 }
 
+// La celda de acción. Excluido se pinta en ámbar y no en rojo: el rojo de esta
+// tabla ya significa «sospechoso» (ZScoreCell, ScoreBadge) y usarlo también
+// para el estado de moderación haría que la fila entera pareciera una sola
+// alarma. Aquí el color dice «tocado por un humano», no «peligro».
+function ExclusionCell({ excluido, enCurso, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={enCurso}
+      title={
+        excluido
+          ? "Fuera de las tablas públicas. Pulsa para readmitir."
+          : "Sacar de clasificación, histórica, salón y podios futuros. Sigue jugando."
+      }
+      className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider disabled:opacity-50 ${
+        excluido
+          ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+          : "bg-white/5 text-muted hover:bg-white/10 hover:text-white"
+      }`}
+    >
+      {enCurso ? "…" : excluido ? "Excluido" : "Excluir"}
+    </button>
+  );
+}
+
 export default function AuditPanel() {
   const [range, setRange] = useState("14d");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Moderación: userId en curso (para deshabilitar solo SU botón, no todos) y
+  // el último aviso.
+  const [modUserId, setModUserId] = useState(null);
+  const [modEstado, setModEstado] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +133,60 @@ export default function AuditPanel() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [range]);
+
+  // Excluir de las tablas públicas / readmitir. Ver
+  // scripts/2026-08-exclusion-de-clasificacion.sql: la cuenta sigue jugando y
+  // sigue sumando, solo deja de salir en clasificación, histórica, salón y
+  // podios futuros.
+  //
+  // El estado se parchea en local en vez de recargar: recargar la auditoría
+  // vuelve a recorrer guess_audit entero, que en rango "Todo" son segundos, y
+  // el único dato que ha cambiado es la pertenencia a una lista.
+  async function alternarExclusion(suspect) {
+    if (modUserId) return;
+    const yaExcluido = (data?.excluidos || []).includes(suspect.userId);
+    const accion = yaExcluido ? "readmitir-clasificacion" : "excluir-clasificacion";
+
+    const ok = window.confirm(
+      yaExcluido
+        ? `Readmitir a ${suspect.email} en la clasificación?\n\n` +
+            "Volverá a aparecer en las tablas públicas y a entrar en los podios."
+        : `Excluir a ${suspect.email} de la clasificación?\n\n` +
+            "Desaparece de la clasificación de temporada, de la histórica y del " +
+            "salón de campeones, y deja de entrar en los podios que se sellen.\n\n" +
+            "NO se le borra la cuenta, NO pierde puntos ni racha y puede seguir " +
+            "jugando. Es reversible desde aquí mismo."
+    );
+    if (!ok) return;
+
+    setModUserId(suspect.userId);
+    setModEstado("");
+    try {
+      const r = await authPost("/api/admin/moderacion", {
+        action: accion,
+        userId: suspect.userId,
+      });
+      setData((d) => {
+        if (!d) return d;
+        const previos = d.excluidos || [];
+        return {
+          ...d,
+          excluidos: r.excluido
+            ? [...previos, suspect.userId]
+            : previos.filter((id) => id !== suspect.userId),
+        };
+      });
+      setModEstado(
+        r.excluido
+          ? `${suspect.email} fuera de las tablas públicas.`
+          : `${suspect.email} readmitido.`
+      );
+    } catch (err) {
+      setModEstado(`Error: ${err.message || "no se pudo aplicar"}`);
+    } finally {
+      setModUserId(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -146,6 +251,15 @@ export default function AuditPanel() {
                 típicas por encima de la media está cada cuenta (≥3σ = muy improbable por azar).
               </p>
             )}
+            {modEstado && (
+              <p
+                className={`text-xs ${
+                  modEstado.startsWith("Error") ? "text-rose-300" : "text-emerald-300"
+                }`}
+              >
+                {modEstado}
+              </p>
+            )}
             {(!data.suspects || data.suspects.length === 0) ? (
               <div className="rounded-xl border border-border bg-bg-secondary/40 p-4 text-center text-xs text-muted">
                 Sin datos suficientes en este rango (prueba "Todo").
@@ -162,6 +276,7 @@ export default function AuditPanel() {
                       <th className="px-2 py-2 text-right" title="Desviaciones típicas por encima de la media poblacional de acierto frío a la 1ª. ≥3σ = muy improbable por azar.">σ</th>
                       <th className="px-2 py-2 text-right" title="Tiempo mediano desde abrir el juego hasta ganar (solo wins con session_start logueado)">t→win</th>
                       <th className="px-2 py-2 text-right">Score</th>
+                      <th className="px-2 py-2 text-right">Clasificación</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -181,6 +296,13 @@ export default function AuditPanel() {
                         </td>
                         <td className="px-2 py-1.5 text-right">
                           <ScoreBadge score={s.score} />
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          <ExclusionCell
+                            excluido={(data.excluidos || []).includes(s.userId)}
+                            enCurso={modUserId === s.userId}
+                            onClick={() => alternarExclusion(s)}
+                          />
                         </td>
                       </tr>
                     ))}

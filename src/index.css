@@ -763,6 +763,23 @@ body,
   padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
 .cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
+/* El aviso de repesca reutiliza la caja de la cuenta atrás (.cdd-next) porque
+   es su pareja: el reloj dice "vuelve mañana" y este renglón dice "o no". Dos
+   cajas idénticas, una encima de otra, se leen como una sola idea en dos
+   líneas — que es exactamente lo que son. Solo se separa en el remate: donde
+   el reloj tiene una cifra, este tiene algo que pulsar. */
+.cdd-repesca { margin-top: 6px; }
+.cdd-repesca-cta {
+  background: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  /* 44px de área táctil, como .cdd-end-link: es un objetivo de pulgar, no un
+     enlace de 10px. Los márgenes negativos se comen ese alto extra para que la
+     caja no crezca respecto a la del reloj y las dos sigan pareciendo gemelas. */
+  min-height: 44px; margin: -12px 0; padding: 12px 0;
+  font-family: var(--font-body); font-weight: 700; font-size: 11.5px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--accent);
+  border: none; transition: color .15s;
+}
+.cdd-repesca-cta:hover { color: var(--cdd-text); }
 /* "Ver mi partida" como botón secundario (ghost) de área táctil cómoda (≥44px),
    no un enlace de 10px imposible de acertar con el pulgar. Sigue por DEBAJO de
    Compartir (relleno = primario) y de la X de cerrar: es la salida etiquetada
@@ -2405,6 +2422,11 @@ body,
 /* "Ver mi partida" editorial: cuadrado, tinta, hover rojo. */
 .prensa .cdd-end-link { border-radius: 0; color: var(--cdd-text); border-color: var(--line-strong); }
 .prensa .cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
+/* En prensa el acento es el rojo de rotativa: es "acción/atención", que es
+   justo lo que este renglón pide. Nada de oro — el oro está reservado a lo que
+   vale algo (racha, victoria, podio) y una repesca todavía no se ha ganado. */
+.prensa .cdd-repesca-cta { color: var(--rojo); }
+.prensa .cdd-repesca-cta:hover { color: var(--cdd-text); }
 .prensa .cdd-reveal { border-radius: 0; background: var(--surface); border-bottom: 1px solid var(--line-strong); }
 .prensa .cdd-reveal-grad { background: linear-gradient(to top, var(--bg) 4%, transparent 55%); }
 .prensa .cdd-reveal-brand { font-family: var(--font-body); font-weight: 600; letter-spacing: .2em; color: var(--rojo); }

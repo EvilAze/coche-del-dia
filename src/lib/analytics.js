@@ -18,6 +18,11 @@
 //   - profile_view          { source }                — abrir perfil ajeno
 //   - garage_open           { auth }                  — abrir el garaje (auth: user|anon)
 //   - garage_from_endscreen {}                        — abrir garaje desde el desbloqueo de la victoria
+//   - repesca_from_endscreen {}                       — abrir el Archivo desde el aviso de repesca del final
+//        Mide si la repesca deja de ser invisible: hasta ago-2026 la segunda
+//        partida del día no se nombraba en el EndScreen, así que solo la
+//        encontraba quien ya sabía que existía. Su denominador natural es
+//        `daily_win` + `daily_lose`; su continuación, `repesca_start`.
 //   - repesca_start         { mode }                  — iniciar repesca
 //   - repesca_win           { mode, attempts }        — ganarla
 //   - daily_win             { attempts }              — ganar partida diaria

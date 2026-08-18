@@ -123,6 +123,7 @@ export default function EndScreen({
   shareText,
   user,
   rank,
+  repescaAlert = false,
   necesitaNick = false,
   onOpenNickname,
   onClose,
@@ -473,6 +474,43 @@ export default function EndScreen({
           <div className="cdd-mono cdd-next-k">{t("cdd.nextCar")}</div>
           <div className="cdd-next-clock cdd-mono">{countdown.formatted}</div>
         </div>
+
+        {/* LA REPESCA, PEGADA A LA CUENTA ATRÁS Y ANTES QUE NADA MÁS.
+            La segunda partida del día existe desde hace meses y esta pantalla
+            —la única que ve el 100% de los jugadores, en el momento exacto en
+            que están decidiendo si cierran la pestaña— no la mencionaba. Vivía
+            detrás del Sumario y dentro del Archivo, que para un recién llegado
+            es una estantería vacía: la puerta menos probable de todas.
+
+            Va JUSTO debajo del reloj porque es la respuesta literal a lo que el
+            reloj acaba de decir. «Próximo coche en 14 h» invita a irse; si hay
+            una repesca esperando, irse es la decisión equivocada y el jugador
+            no tenía forma de saberlo.
+
+            Y va ANTES que el faldón de Android, que dice lo mismo con menos
+            fuerza: la app es una comodidad para mañana; la repesca es una
+            partida ahora, y además vale en todas las plataformas.
+
+            Tipografía y filete, sin relleno saturado: la regla de atención de
+            esta pantalla (ver la cabecera del fichero) es que solo COMPARTIR
+            lleva relleno, y esto no viene a discutirle el sitio. */}
+        {repescaAlert && (
+          <div className="cdd-next cdd-repesca">
+            <div className="cdd-mono cdd-next-k">{t("cdd.repescaKicker")}</div>
+            <button
+              type="button"
+              className="cdd-repesca-cta cdd-mono"
+              onClick={() => {
+                haptic.impactLight();
+                track("repesca_from_endscreen");
+                onOpenGarage?.();
+              }}
+            >
+              {t("cdd.repescaCta")}
+              <Icon d={I.chevR} size={14} />
+            </button>
+          </div>
+        )}
 
         {/* La edición Android, JUSTO después de la cuenta atrás: el renglón de
             arriba acaba de decir "vuelve mañana", y esta es la respuesta a eso.

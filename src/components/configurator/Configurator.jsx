@@ -428,6 +428,11 @@ export default function Configurator({
           shareText={shareText}
           user={user}
           rank={rank}
+          // El mismo booleano que enciende el punto de la campana en la
+          // cabecera. Aquí sirve para lo contrario que allí: no para avisar de
+          // que hay algo pendiente, sino para ofrecerlo en el único momento en
+          // que el jugador está decidiendo si cierra la pestaña.
+          repescaAlert={repescaAlert}
           necesitaNick={necesitaNick}
           onOpenNickname={onOpenNickname}
           onOpenLogin={onOpenLogin}

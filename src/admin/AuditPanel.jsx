@@ -99,8 +99,8 @@ function ExclusionCell({ excluido, enCurso, onClick }) {
       disabled={enCurso}
       title={
         excluido
-          ? "Fuera de las tablas públicas. Pulsa para readmitir."
-          : "Sacar de clasificación, histórica, salón y podios futuros. Sigue jugando."
+          ? "Marcada (is_flagged): invisible para los demás. Pulsa para readmitir."
+          : "Shadowban: fuera de las cuatro tablas y de los podios futuros. Sigue jugando."
       }
       className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider disabled:opacity-50 ${
         excluido
@@ -134,10 +134,9 @@ export default function AuditPanel() {
     return () => { cancelled = true; };
   }, [range]);
 
-  // Excluir de las tablas públicas / readmitir. Ver
-  // scripts/2026-08-exclusion-de-clasificacion.sql: la cuenta sigue jugando y
-  // sigue sumando, solo deja de salir en clasificación, histórica, salón y
-  // podios futuros.
+  // Marcar / desmarcar la cuenta (`profiles.is_flagged`). Ver
+  // scripts/2026-08-unificar-shadowban.sql: la cuenta sigue jugando y sigue
+  // sumando, solo deja de ser visible para los demás.
   //
   // El estado se parchea en local en vez de recargar: recargar la auditoría
   // vuelve a recorrer guess_audit entero, que en rango "Todo" son segundos, y
@@ -149,13 +148,15 @@ export default function AuditPanel() {
 
     const ok = window.confirm(
       yaExcluido
-        ? `Readmitir a ${suspect.email} en la clasificación?\n\n` +
-            "Volverá a aparecer en las tablas públicas y a entrar en los podios."
-        : `Excluir a ${suspect.email} de la clasificación?\n\n` +
-            "Desaparece de la clasificación de temporada, de la histórica y del " +
-            "salón de campeones, y deja de entrar en los podios que se sellen.\n\n" +
-            "NO se le borra la cuenta, NO pierde puntos ni racha y puede seguir " +
-            "jugando. Es reversible desde aquí mismo."
+        ? `Readmitir a ${suspect.email}?\n\n` +
+            "Vuelve a ser visible: reaparece en las cuatro tablas y vuelve a " +
+            "entrar en los podios que se sellen."
+        : `Marcar a ${suspect.email} (shadowban)?\n\n` +
+            "Desaparece de Temporada, Leyendas, Campeones y del ranking " +
+            "mensual, y deja de entrar en los podios que se sellen. Su perfil " +
+            "tampoco será visible para otros jugadores.\n\n" +
+            "NO se le borra la cuenta, NO pierde puntos ni racha, y él lo sigue " +
+            "viendo todo con normalidad. Es reversible desde aquí mismo."
     );
     if (!ok) return;
 
@@ -178,8 +179,8 @@ export default function AuditPanel() {
       });
       setModEstado(
         r.excluido
-          ? `${suspect.email} fuera de las tablas públicas.`
-          : `${suspect.email} readmitido.`
+          ? `${suspect.email} marcado: fuera de las tablas públicas.`
+          : `${suspect.email} desmarcado: vuelve a ser visible.`
       );
     } catch (err) {
       setModEstado(`Error: ${err.message || "no se pudo aplicar"}`);

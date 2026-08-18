@@ -294,6 +294,29 @@
     "errorRateLimited": "Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.",
     "errorGeneric": "No se pudo eliminar la cuenta. Vuelve a intentarlo en un momento."
   },
+  "contacto": {
+    "ajusteTitulo": "Escribir al equipo",
+    "ajusteApunte": "Un fallo, un aviso o una idea",
+    "ajusteBoton": "Escribir",
+    "kicker": "Correspondencia",
+    "titulo": "Escribe al equipo",
+    "descripcion": "Lo leemos nosotros. Si dejas un correo, te contestamos.",
+    "tipo_problema": "Un fallo",
+    "tipo_reporte": "Reportar",
+    "tipo_sugerencia": "Una idea",
+    "placeholder_problema": "¿Qué ha pasado? Cuéntanos qué hacías y qué esperabas que pasara.",
+    "placeholder_reporte": "¿Qué quieres reportar? Si es un nombre de la clasificación, escríbelo tal cual aparece.",
+    "placeholder_sugerencia": "¿Qué le falta al juego?",
+    "emailPlaceholder": "Tu correo (opcional, para responderte)",
+    "enviar": "Enviar",
+    "enviando": "Enviando…",
+    "enviado": "Mensaje enviado. Gracias.",
+    "errorCuerpo": "Escribe un poco más: al menos diez caracteres.",
+    "errorEmail": "Ese correo no parece válido.",
+    "errorCuota": "Has enviado varios mensajes hoy. Prueba mañana.",
+    "errorSesion": "No se pudo identificar tu sesión. Recarga la página.",
+    "errorGenerico": "No se pudo enviar. Inténtalo otra vez."
+  },
   "publicProfile": {
     "portadas": {
       "one": "{count} portada en su archivo",

@@ -294,6 +294,29 @@
     "errorRateLimited": "Too many tries in a row. Wait a few minutes and try again.",
     "errorGeneric": "Couldn't delete the account. Please try again in a moment."
   },
+  "contacto": {
+    "ajusteTitulo": "Contact the team",
+    "ajusteApunte": "A bug, a report or an idea",
+    "ajusteBoton": "Write",
+    "kicker": "Correspondence",
+    "titulo": "Write to the team",
+    "descripcion": "We read every message. Leave an email and we'll reply.",
+    "tipo_problema": "A bug",
+    "tipo_reporte": "Report",
+    "tipo_sugerencia": "An idea",
+    "placeholder_problema": "What happened? Tell us what you were doing and what you expected.",
+    "placeholder_reporte": "What do you want to report? If it's a name on the leaderboard, write it exactly as it appears.",
+    "placeholder_sugerencia": "What is the game missing?",
+    "emailPlaceholder": "Your email (optional, so we can reply)",
+    "enviar": "Send",
+    "enviando": "Sending…",
+    "enviado": "Message sent. Thank you.",
+    "errorCuerpo": "Write a little more: at least ten characters.",
+    "errorEmail": "That email doesn't look valid.",
+    "errorCuota": "You've sent several messages today. Try again tomorrow.",
+    "errorSesion": "We couldn't identify your session. Reload the page.",
+    "errorGenerico": "Couldn't send. Please try again."
+  },
   "publicProfile": {
     "portadas": {
       "one": "{count} cover in their archive",

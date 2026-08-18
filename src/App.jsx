@@ -34,6 +34,10 @@ const Ranking = lazy(() => import("./components/Ranking"));
 const Garage = lazy(() => import("./components/Garage"));
 const MyStats = lazy(() => import("./components/MyStats"));
 const NicknameModal = lazy(() => import("./components/NicknameModal"));
+// Escribir al equipo. Lazy y sin prefetch: es la puerta menos transitada de
+// todas —hay que abrir el perfil y bajar hasta Ajustes— y su chunk no debe
+// competir por el ancho de banda del primer minuto de partida.
+const ContactoModal = lazy(() => import("./components/ContactoModal"));
 const HowToPlayModal = lazy(() => import("./components/HowToPlayModal"));
 // El sumario (el menú del juego): también lazy, y también prefetcheado en el
 // primer hueco de ocio — es el modal con más probabilidad de abrirse, así que
@@ -270,6 +274,7 @@ export default function App() {
   const openGarage = () => openModal("garage");
   const openProfile = () => openModal("profile");
   const openMenu = () => openModal("menu");
+  const openContacto = () => openModal("contacto");
 
   // LoginModal NO es lazy a propósito: es la puerta de entrada y un chunk que
   // descargar en ese momento se nota. No necesita mountModal.
@@ -616,6 +621,7 @@ export default function App() {
             onOpenRanking={openRanking}
             // El candado junto al nick pasa a ser un botón: ya se puede cambiar.
             onOpenNickname={() => openNickname("profile")}
+            onOpenContacto={openContacto}
           />
         </Suspense>
       )}
@@ -639,6 +645,16 @@ export default function App() {
                 setActiveModal(null);
               }
             }}
+          />
+        </Suspense>
+      )}
+
+      {mounted.contacto && (
+        <Suspense fallback={null}>
+          <ContactoModal
+            open={activeModal === "contacto"}
+            onClose={closeModal}
+            user={user}
           />
         </Suspense>
       )}

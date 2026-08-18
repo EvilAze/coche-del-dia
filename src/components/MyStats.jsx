@@ -67,6 +67,7 @@ export default function MyStats({
   onOpenGarage,
   onOpenRanking,
   onOpenNickname,
+  onOpenContacto,
 }) {
   const { t, locale, dateLocale } = useT();
   // El modal de borrado se monta DENTRO de este (z-index por encima) en vez de
@@ -371,6 +372,27 @@ export default function MyStats({
                 className="focus-ring pm-chip pm-chip--rojo shrink-0"
               >
                 {t("common.signOut")}
+              </button>
+            </div>
+
+            {/* Escribir al equipo. Encima del borrado de cuenta A PROPÓSITO: la
+                mayoría de la gente que baja hasta aquí buscando «cómo aviso de
+                esto» no quiere irse, quiere que alguien lo lea. Ofrecerle
+                primero la puerta de salida es contestar a una pregunta que no
+                ha hecho. */}
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0">
+                <span className="et block">{t("contacto.ajusteTitulo")}</span>
+                <span className="mt-0.5 block truncate font-display text-[12px] italic text-muted-foreground">
+                  {t("contacto.ajusteApunte")}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => onOpenContacto?.()}
+                className="focus-ring pm-chip shrink-0"
+              >
+                {t("contacto.ajusteBoton")}
               </button>
             </div>
 

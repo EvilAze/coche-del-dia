@@ -54,6 +54,7 @@ const DECISIONES = {
   "/api/admin/describe-car": { cors: true },
   "/api/admin/moderacion": { cors: true },
   "/api/admin/estado": { cors: true },
+  "/api/admin/mensajes": { cors: true },
 
   "/api/push": {
     cors: false,

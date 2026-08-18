@@ -21,6 +21,9 @@
 //   FUERA · push_subscriptions → el endpoint de push identifica al dispositivo
 //                                y además seguiría avisando a alguien que se
 //                                ha ido.
+//   FUERA · mensajes           → lo que escribió al buzón del juego, con su
+//                                texto y a veces una dirección de correo suya.
+//                                Es PII y se va con la persona.
 //   FUERA · identidad de auth  → email, teléfono, credenciales, identidades de
 //                                Google y los metadatos que trae el proveedor
 //                                (nombre y foto). Lo hace GoTrue con su borrado
@@ -155,6 +158,21 @@ export default async function handler(request) {
     .eq("user_id", uid);
   if (errPush) {
     console.error("[delete-account] push_subscriptions:", errPush.message);
+    return json({ error: "db_error" }, 500);
+  }
+
+  // 2b) El buzón. Un mensaje lleva lo que la persona escribió y, a veces, una
+  //     dirección de correo suya: es PII y se va con ella. Hay que borrarlo
+  //     AQUÍ y no confiar en el ON DELETE CASCADE de la tabla, porque este
+  //     endpoint hace borrado BLANDO —la fila de auth.users se queda— y ese
+  //     cascade no llega a dispararse nunca. Misma razón por la que
+  //     push_subscriptions se borra a mano justo aquí arriba.
+  const { error: errMensajes } = await admin
+    .from("mensajes")
+    .delete()
+    .eq("user_id", uid);
+  if (errMensajes) {
+    console.error("[delete-account] mensajes:", errMensajes.message);
     return json({ error: "db_error" }, 500);
   }
 

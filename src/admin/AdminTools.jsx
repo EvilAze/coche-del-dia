@@ -22,6 +22,7 @@ import AddCarPanel from "./AddCarPanel";
 import PreviewPanel from "./PreviewPanel";
 import AnalyticsPanel from "./AnalyticsPanel";
 import AuditPanel from "./AuditPanel";
+import MensajesPanel from "./MensajesPanel";
 import SwapCarModal from "./SwapCarModal";
 import EstadoStrip from "./EstadoStrip";
 
@@ -35,6 +36,7 @@ const TABS = [
   { id: "preview", label: "Preview" },
   { id: "analytics", label: "Analítica" },
   { id: "audit", label: "Auditoría" },
+  { id: "mensajes", label: "Buzón" },
 ];
 
 function readInitialState() {
@@ -70,6 +72,11 @@ export default function AdminTools({ defaultTab }) {
   const [assignToDate, setAssignToDate] = useState(initial.assignToDate);
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewOverrides, setPreviewOverrides] = useState(null);
+  // Mensajes pendientes. Vive en el shell porque lo pinta la PESTAÑA, y una
+  // bandeja cuyo aviso solo se ve estando dentro de ella no avisa de nada.
+  // Lo rellena MensajesPanel al cargar; hasta entonces no se pinta ningún
+  // número, que es mejor que pintar un 0 que quizá sea mentira.
+  const [sinLeer, setSinLeer] = useState(null);
 
   // Modal de swap (vive en el shell para poder navegar al tab Add al
   // pulsar "Crear coche nuevo").
@@ -280,7 +287,7 @@ export default function AdminTools({ defaultTab }) {
         <nav
           role="tablist"
           aria-label="Herramientas de administración"
-          className="mt-4 grid grid-cols-3 lg:grid-cols-7 gap-1 rounded-xl border border-border bg-bg-secondary/40 p-1"
+          className="mt-4 grid grid-cols-3 lg:grid-cols-8 gap-1 rounded-xl border border-border bg-bg-secondary/40 p-1"
         >
           {TABS.map((t) => {
             const active = tab === t.id;
@@ -301,6 +308,9 @@ export default function AdminTools({ defaultTab }) {
                 `}
               >
                 {t.label}
+                {t.id === "mensajes" && sinLeer > 0 && (
+                  <span className="ml-1 font-mono">({sinLeer})</span>
+                )}
               </button>
             );
           })}
@@ -342,6 +352,7 @@ export default function AdminTools({ defaultTab }) {
           )}
           {tab === "analytics" && <AnalyticsPanel />}
           {tab === "audit" && <AuditPanel />}
+          {tab === "mensajes" && <MensajesPanel onSinLeer={setSinLeer} />}
         </main>
       </div>
 

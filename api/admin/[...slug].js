@@ -30,6 +30,7 @@ import { applyCors } from "../_lib/http.js";
 import analytics from "../../lib/admin-handlers/analytics.js";
 import audit from "../../lib/admin-handlers/audit.js";
 import estado from "../../lib/admin-handlers/estado.js";
+import mensajes from "../../lib/admin-handlers/mensajes.js";
 import moderacion from "../../lib/admin-handlers/moderacion.js";
 import saveCar from "../../lib/admin-handlers/save-car.js";
 import schedule from "../../lib/admin-handlers/schedule.js";
@@ -42,6 +43,7 @@ const ROUTES = {
   "analytics":     analytics,
   "audit":         audit,
   "estado":        estado,
+  "mensajes":      mensajes,
   "moderacion":    moderacion,
   "save-car":      saveCar,
   "schedule":      schedule,

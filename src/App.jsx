@@ -193,15 +193,9 @@ export default function App() {
     if (user && activeModal === "login") closeModal();
   }, [user, activeModal, closeModal]);
 
-  // Recordatorio "racha en peligro": cuando se conoce/actualiza la racha del
-  // logueado (al loguear o tras terminar partida), reprogramamos la notificación
-  // local diaria con copy personalizado (>=2 días → "no pierdas tu racha"; si no,
-  // genérico). Solo nativo; rearmIfEnabled no-opea sin permiso del SO. Anónimos
-  // tienen racha 0 → copy genérico.
-  useEffect(() => {
-    if (!isNative()) return;
-    rearmIfEnabled(reminderCopy(t, tn, streak)).catch(() => {});
-  }, [streak, t, tn]);
+  // (El recordatorio local se reprograma más abajo, justo después de useGame:
+  // necesita saber si la partida de hoy está cerrada y `status` se declara
+  // allí.)
 
   // Radar de repesca: tras login, miramos si hay repesca disponible Y
   // al menos un coche "missed" en el catálogo. Una sola petición ligera;
@@ -403,6 +397,28 @@ export default function App() {
     submitGuess,
     buildShareText,
   } = useGame();
+
+  // Recordatorio local: se reprograma cuando cambia la racha (al loguear o al
+  // terminar partida) y cuando la partida de hoy pasa a cerrada.
+  //
+  // `status !== "playing"` ES la señal de «ya jugó hoy», y es la que faltaba.
+  // Antes el aviso se programaba como repetición diaria y sonaba a las 20:00
+  // juegues o no: quien jugaba por la mañana recibía por la tarde un «no
+  // pierdas tu racha de N días» por una racha que ya había asegurado. Ahora se
+  // programa una ventana de días sueltos y el día que ya has jugado
+  // sencillamente no está en ella (ver src/lib/reminderSchedule.js).
+  //
+  // Depende de `status` y no del contador de intentos porque lo que importa es
+  // si la edición de hoy está cerrada —ganada o perdida—, no cuánto costó.
+  // Solo nativo; rearmIfEnabled no-opea sin permiso del SO. Anónimos tienen
+  // racha 0 → copy genérico.
+  useEffect(() => {
+    if (!isNative()) return;
+    rearmIfEnabled({
+      ...reminderCopy(t, tn, streak),
+      yaJugoHoy: status !== "playing",
+    }).catch(() => {});
+  }, [streak, status, t, tn]);
 
   // Cuando una partida termina, /api/validate-guess persiste el resultado y
   // record_daily_result_v2 devuelve el currentStreak ya actualizado. Lo

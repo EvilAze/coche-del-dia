@@ -19,16 +19,32 @@ export function reminderCopy(t, tn, streak = 0) {
     channelDescription: t("notif.channelDescription"),
   };
 
+  // El copy genérico viaja SIEMPRE, además del que toque. Desde que el
+  // recordatorio se programa como una ventana de días sueltos
+  // (src/lib/reminderSchedule.js), el número de la racha solo es cierto para el
+  // aviso MÁS CERCANO: ese lo protege la racha que hay ahora mismo. El de
+  // pasado mañana solo sería correcto si el jugador juega mañana — y si juega,
+  // la app se abre, se reprograma la ventana y el número se refresca. Si no
+  // juega, la racha está rota y «no pierdas tu racha de 48 días» es mentira.
+  //
+  // Así que el resto de la ventana va con el genérico. Un recordatorio que
+  // miente enseña a ignorar los recordatorios, y ese daño no se deshace.
+  const generico = {
+    title: t("notif.reminderTitle"),
+    body: t("notif.reminderBody"),
+  };
+
   if (typeof streak === "number" && streak >= STREAK_NUDGE_MIN) {
     return {
       ...canal,
       title: t("notif.streakReminderTitle"),
       body: tn("notif.streakReminderBody", streak, { count: streak }),
+      generico,
     };
   }
   return {
     ...canal,
-    title: t("notif.reminderTitle"),
-    body: t("notif.reminderBody"),
+    ...generico,
+    generico,
   };
 }

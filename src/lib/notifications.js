@@ -8,10 +8,16 @@
 
 import { Capacitor } from "@capacitor/core";
 
-export const REMINDER_ID = 1;     // id fijo → reprogramar reemplaza, no duplica
-// 20:00 hora local del DISPOSITIVO (no de Madrid: `schedule.on` casa contra el
-// reloj del móvil, y un jugador de vacaciones prefiere que el aviso siga a su
-// día, no al del servidor). Se movió desde las 10:00 porque a media mañana el
+import { proximosAvisos, DIAS_VENTANA } from "./reminderSchedule";
+
+// Id heredado del recordatorio ÚNICO y repetitivo que hubo hasta agosto de
+// 2026. Se conserva exportado porque es el primero de la ventana y porque
+// nombrarlo explica el rango de ids de abajo.
+export const REMINDER_ID = 1;
+// 20:00 hora local del DISPOSITIVO (no de Madrid: las fechas se construyen con
+// el reloj del móvil —ver reminderSchedule.js—, y un jugador de vacaciones
+// prefiere que el aviso siga a su día, no al del servidor). Se movió desde las
+// 10:00 porque a media mañana el
 // aviso compite con el trabajo y se descarta sin abrirlo; por la tarde-noche
 // pilla al que aún no ha jugado y todavía le sobran cuatro horas de margen
 // antes de que la edición cierre a medianoche en Madrid.
@@ -126,32 +132,64 @@ async function ensureChannel({ name, description }) {
   return true;
 }
 
-export async function scheduleDailyReminder({ title, body, channelName, channelDescription }) {
+// Los ids de la ventana. EMPIEZAN EN 1 A PROPÓSITO, y ese 1 es el REMINDER_ID
+// de siempre: hasta agosto de 2026 el recordatorio era UNA notificación con ese
+// id y repetición diaria (`schedule.on`). En los móviles que ya la tienen
+// programada sigue viva, y una repetición no se agota sola — si la ventana
+// nueva usara ids nuevos, el aviso viejo seguiría sonando cada tarde para
+// siempre, junto al nuevo. Al reutilizar el rango, el `cancel` de abajo la mata
+// en la primera apertura tras actualizar.
+const REMINDER_IDS = Array.from({ length: DIAS_VENTANA }, (_, i) => i + 1);
+
+/**
+ * Programa la ventana completa de recordatorios.
+ *
+ * `yaJugoHoy` es lo único que este módulo necesita saber del juego: si la
+ * partida de hoy está cerrada, hoy no se avisa. Ver reminderSchedule.js para el
+ * porqué de la ventana y su precio.
+ */
+export async function scheduleDailyReminder({
+  title,
+  body,
+  generico,
+  channelName,
+  channelDescription,
+  yaJugoHoy = false,
+}) {
   if (!isNative()) return;
   const { LocalNotifications: LN } = await loadLN();
   const conCanal = await ensureChannel({
     name: channelName,
     description: channelDescription,
   });
-  // Cancelar el anterior (mismo id) antes de reprogramar evita acumulación.
-  await LN.cancel({ notifications: [{ id: REMINDER_ID }] });
+
+  // Cancelar TODA la ventana antes de reprogramar. No es solo higiene: es lo
+  // que hace que reprogramar sea idempotente y lo que retira los avisos de los
+  // días que ya no tocan (el de hoy, cuando se acaba de jugar).
+  await LN.cancel({ notifications: REMINDER_IDS.map((id) => ({ id })) });
+
+  const fechas = proximosAvisos({
+    ahora: new Date(),
+    yaJugoHoy,
+    hora: REMINDER_HOUR,
+    minuto: REMINDER_MINUTE,
+  });
+
   await LN.schedule({
-    notifications: [
-      {
-        id: REMINDER_ID,
-        title,
-        body,
-        // Solo si el canal existe (ver ensureChannel). Omitirlo hace que el
-        // plugin use su canal por defecto, que siempre está creado: peor
-        // nombre, pero la notificación LLEGA.
-        ...(conCanal ? { channelId: REMINDER_CHANNEL_ID } : {}),
-        // `on` = repetición diaria al casar hora:minuto del dispositivo.
-        schedule: {
-          on: { hour: REMINDER_HOUR, minute: REMINDER_MINUTE },
-          allowWhileIdle: true,
-        },
-      },
-    ],
+    notifications: fechas.map((at, i) => ({
+      id: REMINDER_IDS[i],
+      // Solo el aviso más cercano puede hablar de la racha con un número
+      // cierto; el resto van en genérico (ver reminderCopy.js).
+      title: i === 0 ? title : generico?.title ?? title,
+      body: i === 0 ? body : generico?.body ?? body,
+      // Solo si el canal existe (ver ensureChannel). Omitirlo hace que el
+      // plugin use su canal por defecto, que siempre está creado: peor
+      // nombre, pero la notificación LLEGA.
+      ...(conCanal ? { channelId: REMINDER_CHANNEL_ID } : {}),
+      // `at` = disparo único en una fecha exacta. Antes era `on` (repetición
+      // diaria), que nunca moría pero tampoco se podía saltar un día.
+      schedule: { at, allowWhileIdle: true },
+    })),
   });
 }
 
@@ -163,9 +201,23 @@ export async function scheduleDailyReminder({ title, body, channelName, channelD
 
 // Re-arma en cada arranque SI el permiso ya está concedido. Si el usuario lo
 // revocó en los ajustes de Android, no reprogramamos (el SO "manda").
-export async function rearmIfEnabled({ title, body, channelName, channelDescription }) {
+export async function rearmIfEnabled({
+  title,
+  body,
+  generico,
+  channelName,
+  channelDescription,
+  yaJugoHoy = false,
+}) {
   if (!isNative()) return;
   if (await isPermissionGranted()) {
-    await scheduleDailyReminder({ title, body, channelName, channelDescription });
+    await scheduleDailyReminder({
+      title,
+      body,
+      generico,
+      channelName,
+      channelDescription,
+      yaJugoHoy,
+    });
   }
 }

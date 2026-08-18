@@ -15,7 +15,8 @@ describe("notifications", () => {
     expect(n.REMINDER_HOUR).toBe(20);
   });
 
-  it("nativo + permiso concedido: rearmIfEnabled programa con id fijo", async () => {
+  // Helper: monta los mocks nativos con permiso concedido y devuelve los spies.
+  function montarNativo() {
     const schedule = vi.fn().mockResolvedValue();
     const cancel = vi.fn().mockResolvedValue();
     vi.doMock("@capacitor/core", () => ({
@@ -29,12 +30,94 @@ describe("notifications", () => {
         cancel,
       },
     }));
+    return { schedule, cancel };
+  }
+
+  it("programa una VENTANA de avisos sueltos, no una repeticion", async () => {
+    const { schedule } = montarNativo();
     const n = await import("./notifications");
+    const { DIAS_VENTANA } = await import("./reminderSchedule");
+
     await n.rearmIfEnabled({ title: "Hoy hay coche", body: "Juega" });
-    expect(schedule).toHaveBeenCalledTimes(1);
-    const arg = schedule.mock.calls[0][0].notifications[0];
-    expect(arg.id).toBe(n.REMINDER_ID);
-    expect(arg.schedule.on).toEqual({ hour: n.REMINDER_HOUR, minute: 0 });
+
+    const avisos = schedule.mock.calls[0][0].notifications;
+    expect(avisos).toHaveLength(DIAS_VENTANA);
+    // `at` (disparo unico con fecha) y NUNCA `on` (repeticion): `on` no se
+    // puede saltar un dia, que es justo lo que veniamos a arreglar.
+    for (const a of avisos) {
+      expect(a.schedule.at instanceof Date).toBe(true);
+      expect(a.schedule.on).toBeUndefined();
+    }
+    expect(avisos[0].id).toBe(n.REMINDER_ID);
+  });
+
+  // EL CASO QUE MOTIVO EL CAMBIO: jugar por la manana no debe costarte un aviso
+  // por la tarde diciendote que no pierdas la racha que ya aseguraste.
+  it("si ya jugo hoy, el primer aviso NO es hoy", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 7, 18, 9, 30)); // 18 ago, 09:30
+      const { schedule } = montarNativo();
+      const n = await import("./notifications");
+
+      await n.rearmIfEnabled({ title: "t", body: "b", yaJugoHoy: true });
+
+      const primero = schedule.mock.calls[0][0].notifications[0].schedule.at;
+      expect(primero.getDate()).toBe(19);
+      expect(primero.getHours()).toBe(n.REMINDER_HOUR);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sin haber jugado y antes de la hora, el primer aviso SI es hoy", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 7, 18, 9, 30));
+      const { schedule } = montarNativo();
+      const n = await import("./notifications");
+
+      await n.rearmIfEnabled({ title: "t", body: "b", yaJugoHoy: false });
+
+      const primero = schedule.mock.calls[0][0].notifications[0].schedule.at;
+      expect(primero.getDate()).toBe(18);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // Sin esto, quien actualice la app se queda con la repeticion vieja (id 1)
+  // sonando cada tarde PARA SIEMPRE, ademas de la ventana nueva.
+  it("cancela todo el rango de ids, incluido el heredado", async () => {
+    const { cancel } = montarNativo();
+    const n = await import("./notifications");
+    const { DIAS_VENTANA } = await import("./reminderSchedule");
+
+    await n.rearmIfEnabled({ title: "t", body: "b" });
+
+    const cancelados = cancel.mock.calls[0][0].notifications.map((x) => x.id);
+    expect(cancelados).toHaveLength(DIAS_VENTANA);
+    expect(cancelados).toContain(n.REMINDER_ID);
+  });
+
+  it("solo el aviso mas cercano habla de la racha; el resto, generico", async () => {
+    const { schedule } = montarNativo();
+    const n = await import("./notifications");
+
+    await n.rearmIfEnabled({
+      title: "No pierdas tu racha de 48 dias",
+      body: "cuerpo con racha",
+      generico: { title: "Hoy hay coche", body: "cuerpo neutro" },
+    });
+
+    const avisos = schedule.mock.calls[0][0].notifications;
+    expect(avisos[0].title).toBe("No pierdas tu racha de 48 dias");
+    // El numero se congela al programar: para pasado manana solo seria cierto
+    // si juega manana, y si juega la app se abre y reprograma.
+    for (const a of avisos.slice(1)) {
+      expect(a.title).toBe("Hoy hay coche");
+      expect(a.body).toBe("cuerpo neutro");
+    }
   });
 
   it("nativo: crea el canal propio, borra el huérfano y etiqueta el aviso", async () => {

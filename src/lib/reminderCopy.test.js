@@ -14,10 +14,21 @@ const CANAL = {
   channelDescription: "notif.channelDescription",
 };
 
+// El copy genérico viaja SIEMPRE, además del que toque: desde que el
+// recordatorio es una ventana de días sueltos, solo el aviso más cercano puede
+// llevar un número de racha cierto, y el resto caen a este.
+const GENERICO = {
+  generico: {
+    title: "notif.reminderTitle",
+    body: "notif.reminderBody",
+  },
+};
+
 describe("reminderCopy", () => {
   it("racha 0 (anónimo / sin racha) → copy genérico", () => {
     expect(reminderCopy(t, tn, 0)).toEqual({
       ...CANAL,
+      ...GENERICO,
       title: "notif.reminderTitle",
       body: "notif.reminderBody",
     });
@@ -26,6 +37,7 @@ describe("reminderCopy", () => {
   it("racha 1 (por debajo del umbral) → copy genérico", () => {
     expect(reminderCopy(t, tn, 1)).toEqual({
       ...CANAL,
+      ...GENERICO,
       title: "notif.reminderTitle",
       body: "notif.reminderBody",
     });
@@ -35,6 +47,7 @@ describe("reminderCopy", () => {
     expect(STREAK_NUDGE_MIN).toBe(2);
     expect(reminderCopy(t, tn, 5)).toEqual({
       ...CANAL,
+      ...GENERICO,
       title: "notif.streakReminderTitle",
       body: "notif.streakReminderBody#5",
     });
@@ -43,6 +56,7 @@ describe("reminderCopy", () => {
   it("streak ausente/no numérico → genérico (defensivo)", () => {
     expect(reminderCopy(t, tn, undefined)).toEqual({
       ...CANAL,
+      ...GENERICO,
       title: "notif.reminderTitle",
       body: "notif.reminderBody",
     });
@@ -58,5 +72,17 @@ describe("reminderCopy", () => {
     expect(conRacha.channelDescription).toBe(sinRacha.channelDescription);
     // …pero el aviso en sí sí cambia (si no, este test no probaría nada).
     expect(conRacha.title).not.toBe(sinRacha.title);
+  });
+
+  // Lo que hace posible la ventana: con racha, el aviso cercano habla de la
+  // racha y el genérico sigue disponible para los días de después, donde ese
+  // número ya no sería cierto.
+  it("con racha, `generico` sigue siendo el copy neutro", () => {
+    const conRacha = reminderCopy(t, tn, 9);
+    expect(conRacha.title).toBe("notif.streakReminderTitle");
+    expect(conRacha.generico).toEqual({
+      title: "notif.reminderTitle",
+      body: "notif.reminderBody",
+    });
   });
 });

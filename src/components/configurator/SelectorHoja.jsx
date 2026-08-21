@@ -23,9 +23,21 @@
 // EL ALTO ES `dvh` A PROPÓSITO. Con el teclado abierto Android redimensiona el
 // WebView, así que `dvh` ya vale lo que queda libre y la hoja se ajusta sola
 // por encima del teclado. Sin medir nada y sin plugin.
+//
+// Y LA HOJA NO ES UNA PANTALLA, ES UNA BANDA: deja arriba el hueco de la
+// fotografía y no lo tiñe. Eran 86dvh de lista bajo un velo al 72%, o sea que
+// en el momento exacto de decidir —que es para lo que se abre— el jugador se
+// quedaba sin lo único que hay que mirar. Ahora el alto máximo se calcula
+// restando el hueco de la foto (`--pm-hueco-foto`, en index.css) y el velo es
+// transparente: la separación la hacen el papel de la hoja y su filete de
+// arriba, que es como se separan las cosas en este sistema. Del otro lado del
+// hueco se ocupa useEscenarioApartado, que aparta la foto lo justo para que
+// quepa entera. Tocar la foto sigue cerrando la hoja: el velo la cubre.
 
+import { useCallback, useState } from "react";
 import ModalShell from "../ModalShell";
 import { useEscape } from "../../hooks/useEscape";
+import { useEscenarioApartado } from "../../hooks/useEscenarioApartado";
 import { useT } from "../../i18n";
 import { Icon, I } from "./icons";
 
@@ -41,18 +53,39 @@ export default function SelectorHoja({
   const { t } = useT();
   useEscape(open, onClose);
 
+  // El panel, para poder medirlo. Va en ESTADO y no en un ref porque ModalShell
+  // lo monta un render DESPUÉS de abrirse (primero decide que hay que montar,
+  // luego anima la entrada): con un ref, el efecto que mide llegaría antes que
+  // el nodo y no habría a qué volver. Con estado, la aparición del nodo es la
+  // que dispara la medida.
+  //
+  // El `useCallback` no es adorno: un ref en línea se recrea en cada render y
+  // React lo llamaría con null y con el nodo cada vez, encadenando medidas por
+  // nada. Así solo se ejecuta al montar y al desmontar.
+  const [hojaEl, setHojaEl] = useState(null);
+  const anclar = useCallback(
+    // El tirador es hijo del panel; `closest` sube al panel de ModalShell, que
+    // es el que lleva la clase que este mismo componente le pone abajo.
+    (nodo) => setHojaEl(nodo ? nodo.closest(".pm-hoja") : null),
+    []
+  );
+  useEscenarioApartado(open, hojaEl);
+
   return (
     <ModalShell
       open={open}
       onClose={onClose}
       label={titulo}
-      backdropClassName="modal-scrim fixed inset-0 z-[90] flex items-end justify-center"
+      // Sin `modal-scrim`: el velo de la hoja no tiñe (ver la cabecera). Sigue
+      // siendo una capa a pantalla completa, así que tocar la foto —o el
+      // pliego— cierra la hoja igual que antes.
+      backdropClassName="pm-hoja-velo fixed inset-0 z-[90] flex items-end justify-center"
       panelClassName="pm-hoja"
     >
       {/* El tirador: no arrastra nada (no hay gesto de arrastre), pero es el
           signo universal de «esto es una hoja que se cierra hacia abajo». El
           gesto real de cierre son el velo, la X y el atrás de Android. */}
-      <div className="pm-hoja-tirador" aria-hidden="true" />
+      <div className="pm-hoja-tirador" aria-hidden="true" ref={anclar} />
 
       <div className="pm-hoja-cab">
         <div className="min-w-0">

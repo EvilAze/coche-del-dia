@@ -1865,6 +1865,74 @@ body,
   }
 }
 
+/* ── EL ESCENARIO SE APARTA — la foto no se pierde mientras se elige ───────
+   Con la hoja de selección abierta, el jugador está haciendo justo aquello para
+   lo que necesita la fotografía: decidir. Y hasta este cambio la hoja se la
+   tapaba entera. Ahora la hoja deja un hueco arriba (ver `--pm-hueco-foto` en
+   .pm-hoja) y la foto se mete dentro de ese hueco.
+
+   LAS DOS PALANCAS LAS CALCULA lib/escenarioApartado y las publica
+   useEscenarioApartado en la raíz. Aquí solo se aplican:
+     · `--cdd-escenario-subida`: lo que la foto sube. Encima solo hay cromo —la
+       cabecera y el ladillo de la pista— y mientras se elige ese cromo no se
+       usa, así que se apaga y cede su sitio. Con `data-eligiendo="apartada"`,
+       que es el único caso en que la foto le pisaría el sitio: si la hoja es
+       corta (el año), no se mueve ni se apaga nada.
+     · `--cdd-escenario-escala`: lo que la foto encoge, y SOLO lo que la subida
+       no haya resuelto. Es `scale` sobre el marco entero: los mismos píxeles
+       que ya servía el servidor, más pequeños (regla 5), y con el 4:3 intacto
+       (regla 7).
+
+   EL `transform` VA AL MARCO Y NO A LA CAJA DE FUERA, y no es indiferente:
+   `[data-escenario]` (.cdd-stage) es lo que mide el hook, y tiene que devolver
+   siempre la posición de MAQUETA. Si se transformara la misma caja que se mide,
+   cada recálculo con el teclado subiendo leería una posición a media animación
+   y la cuenta se realimentaría.
+
+   Y no se declara `transform` fuera de `[data-eligiendo]` —ni siquiera la
+   identidad— porque un `transform` cualquiera convierte al elemento en bloque
+   contenedor de lo que lleve dentro posicionado como `fixed`. La transición sí
+   vive fuera, que es lo que hace que la vuelta se anime igual que la ida. */
+:root[data-plataforma="app"] .cdd-stage-frame {
+  transition: transform 220ms ease-out;
+}
+:root[data-plataforma="app"][data-eligiendo] .cdd-stage-frame {
+  transform:
+    translateY(calc(-1 * var(--cdd-escenario-subida, 0px)))
+    scale(var(--cdd-escenario-escala, 1));
+  /* Desde el borde de ARRIBA: así el escalado no mueve el techo de la foto y la
+     subida es la única que decide dónde queda. Y en horizontal desde el centro,
+     que es donde el marco ya está centrado en su caja. */
+  transform-origin: 50% 0;
+}
+
+/* El cromo de encima de la foto, apagado mientras la foto ocupa su sitio. No se
+   retira del flujo a propósito: si desapareciera, el pliego entero se
+   recompondría por debajo de la hoja —para nada, porque no se ve— y el salto se
+   vería justo al cerrar. Apagado ocupa lo mismo y vuelve sin mover nada.
+   El diálogo ya es `aria-modal`, así que para un lector de pantalla el fondo no
+   existía ni antes ni ahora. */
+:root[data-plataforma="app"] .app-pantalla > .prensa-area-cab,
+:root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-ladillo,
+:root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-pie {
+  transition: opacity 200ms ease-out;
+}
+:root[data-plataforma="app"][data-eligiendo="apartada"] .app-pantalla > .prensa-area-cab,
+:root[data-plataforma="app"][data-eligiendo="apartada"] .app-pantalla .prensa-area-foto .prensa-ladillo,
+:root[data-plataforma="app"][data-eligiendo="apartada"] .app-pantalla .prensa-area-foto .prensa-pie {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-plataforma="app"] .cdd-stage-frame,
+  :root[data-plataforma="app"] .app-pantalla > .prensa-area-cab,
+  :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-ladillo,
+  :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-pie {
+    transition: none;
+  }
+}
+
 /* (Aquí vivía «EL MODO ESCRITURA» y su suelo de 360px de ventana. Se fue entero
    con el teclado: ver «EL CUPÓN QUE NO SE TECLEA», más abajo.) */
 
@@ -2088,22 +2156,56 @@ body,
 .prensa-horquilla.resuelta { color: var(--verde); font-style: normal; font-weight: 700; }
 
 /* ── LA HOJA ────────────────────────────────────────────────────────────────
-   Anclada al borde inferior, ancho completo, hasta 86dvh. El anclaje es de esta
-   pieza y no del sistema: aquí se ELIGE algo de una lista larga, así que el
-   pulgar tiene que llegar y el scroll agarrarse desde abajo. (El panel de fin de
-   partida seguía este mismo patrón y dejó de hacerlo: allí no se elige nada, se
-   LEE, y el que cabía entero —el de la repesca— se quedaba pegado abajo con un
-   palmo de pliego encima. Ver `.cdd-end` en móvil.)
+   Anclada al borde inferior y a ancho completo. El anclaje es de esta pieza y no
+   del sistema: aquí se ELIGE algo de una lista larga, así que el pulgar tiene
+   que llegar y el scroll agarrarse desde abajo. (El panel de fin de partida
+   seguía este mismo patrón y dejó de hacerlo: allí no se elige nada, se LEE, y
+   el que cabía entero —el de la repesca— se quedaba pegado abajo con un palmo
+   de pliego encima. Ver `.cdd-end` en móvil.)
 
    `dvh` y no `svh`: si el jugador toca «buscar», Android encoge el WebView para
    hacer sitio al teclado y la hoja tiene que encoger con él. Con `svh` se
    quedaría midiendo la pantalla entera y la lista seguiría por debajo del
-   teclado. */
+   teclado.
+
+   EL ALTO SALE DE RESTAR, NO DE ELEGIR UN PORCENTAJE. Aquí ponía `86dvh`, y ese
+   número —con el velo al 72% que llevaba el fondo— dejaba la fotografía fuera de
+   la pantalla justo cuando se abre la hoja, o sea justo cuando hay que mirarla.
+   Ahora se reserva primero el hueco de la foto y la hoja se queda con el resto:
+
+     · `--pm-hueco-foto` es lo que mide la fotografía en su sitio. El marco es
+       4:3 y su ancho es la columna del pliego (`min(100vw, 560px)` menos los
+       12px de sangría de cada lado que pone `.prensa-hoja` en la app), así que
+       su alto es ese ancho × 3/4. Se le suma el inset de la barra de estado y un
+       pellizco de aire. La cuenta no tiene que ser exacta al píxel: lo que
+       sobre o falte lo ajusta useEscenarioApartado moviendo la foto.
+     · Los dos extremos ponen lo que la resta sola no sabe. El suelo de 300px es
+       el caso del teclado abierto, donde la ventana se queda en nada y la resta
+       pediría una hoja de tres dedos: por debajo de eso la lista deja de ser una
+       lista. Y el techo de 72dvh va POR FUERA del suelo —`min(72dvh, max(300px,
+       …))` y no un `clamp`— porque en un `clamp` con el suelo por encima del
+       techo gana el suelo: en una ventana de 330px (un móvil bajo con el teclado
+       arriba) la hoja se quedaba con 300 de 330 y volvía a tapar la foto, que es
+       exactamente lo que veníamos a arreglar. Con el `min` fuera, la hoja nunca
+       pasa de las tres cuartas partes de la ventana y SIEMPRE queda hueco.
+
+   Y con contenido corto —el año con la horquilla acotada— la hoja mide MENOS que
+   este techo y el hueco de arriba crece solo: la foto ni se mueve. */
 .pm-hoja {
+  --pm-hueco-foto: calc(
+    (min(100vw, 560px) - 24px) * 0.75 +
+    var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 22px
+  );
   position: relative; display: flex; flex-direction: column;
-  width: 100%; max-width: 560px; max-height: 86dvh;
+  width: 100%; max-width: 560px;
+  max-height: min(72dvh, max(300px, calc(100dvh - var(--pm-hueco-foto))));
   background: var(--surface);
   border: 0; border-top: 2px solid var(--line-strong); border-radius: 0;
+  /* La sombra del sistema, la misma del recorte flotante y del desplegable del
+     cupón. Antes la separaba del fondo el velo; sin velo, es esto lo que hace
+     que la hoja se lea como algo que está POR ENCIMA del pliego y no como una
+     banda pegada al pie de la página. */
+  box-shadow: var(--sombra-flota);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   /* Neutraliza el `scale-95` del estado oculto de ModalShell. En una tarjeta
      centrada encoger desde el centro está bien; en una hoja a sangre deja dos
@@ -2111,6 +2213,14 @@ body,
      de pintado. El deslizamiento vertical sí se queda: es el que cuenta. */
   --tw-scale-x: 1; --tw-scale-y: 1;
 }
+/* EL VELO NO TIÑE. Un velo al 72% sobre la fotografía es exactamente el problema
+   que este cambio viene a resolver: da igual dejarle hueco a la foto si luego se
+   apaga. Sigue siendo una capa a pantalla completa —para eso está: recoge el
+   toque fuera de la hoja y la cierra, así que tocar la propia foto la cierra—,
+   pero no pinta nada. La jerarquía la dicen el papel de la hoja, su filete
+   superior de tinta plena y su sombra, que es como se separan las capas en este
+   sistema. */
+.pm-hoja-velo { background: transparent; }
 /* El tirador no arrastra nada —no hay gesto de arrastre— pero es el signo
    universal de «esto se cierra hacia abajo». Cuesta tres píxeles. */
 .pm-hoja-tirador {

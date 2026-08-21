@@ -328,3 +328,103 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     expect(document.querySelectorAll("input").length).toBe(0);
   });
 });
+
+// ── LA FOTOGRAFÍA NO SE PIERDE MIENTRAS SE ELIGE ────────────────────────────
+// La composición vive en CSS, pero quien la enciende es JS: useEscenarioApartado
+// mide la pantalla y publica el resultado en `<html>`. Y esa medida se agarra a
+// tres asideros del DOM —el panel de la hoja, `[data-escenario]` y el pliego
+// `.app-pantalla`— que ningún compilador vigila: si mañana alguien renombra uno,
+// la hoja seguirá abriéndose tan campante y la foto volverá a quedarse debajo,
+// sin un solo error en consola. Esto lo caza.
+//
+// jsdom no maqueta (todo mide cero), así que las cuatro medidas que entran en la
+// cuenta se sirven a mano. Los números son los de un móvil de 360x800 con la
+// hoja de MARCA abierta; la aritmética en sí ya la prueba escenarioApartado.test.
+describe("La hoja aparta el escenario en vez de taparlo", () => {
+  const ALTO_VENTANA = 800;
+  const ALTO_HOJA = 500;
+  const FOTO_TOP = 137;
+  const FOTO_ALTO = 252;
+
+  let pliego;
+  let rectOriginal;
+  let innerHeightOriginal;
+
+  beforeEach(() => {
+    // El pliego de la partida, que este test monta a mano porque GuessForm es
+    // solo el cupón: la foto y el shell viven en Configurator.
+    pliego = document.createElement("main");
+    pliego.className = "app-pantalla";
+    pliego.style.paddingTop = "30px"; // el inset de la barra de estado + aire
+    const escenario = document.createElement("div");
+    escenario.setAttribute("data-escenario", "");
+    pliego.appendChild(escenario);
+    document.body.appendChild(pliego);
+
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      configurable: true,
+      get() {
+        if (this.classList.contains("pm-hoja")) return ALTO_HOJA;
+        if (this.hasAttribute("data-escenario")) return FOTO_ALTO;
+        return 0;
+      },
+    });
+    rectOriginal = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function () {
+      const base = rectOriginal.call(this);
+      if (this.hasAttribute?.("data-escenario")) return { ...base, top: FOTO_TOP };
+      return base;
+    };
+    innerHeightOriginal = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: ALTO_VENTANA,
+    });
+  });
+
+  afterEach(() => {
+    pliego.remove();
+    delete HTMLElement.prototype.offsetHeight;
+    Element.prototype.getBoundingClientRect = rectOriginal;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: innerHeightOriginal,
+    });
+  });
+
+  it("abrir la hoja sube la foto y apaga el cromo de encima", async () => {
+    await montar();
+    const raiz = document.documentElement;
+    expect(raiz.dataset.eligiendo).toBeUndefined();
+
+    fireEvent.click(renglon("cdd.labelMarca"));
+
+    // 137 + 252 = 389 de fondo de foto contra un suelo de 290 (800 - 500 - 10):
+    // sobran 99px y encima hay 107 de cabecera y ladillo, así que sube los 99 y
+    // NO encoge. Esa es la promesa del diseño en un móvil normal.
+    await waitFor(() => {
+      expect(raiz.style.getPropertyValue("--cdd-escenario-subida")).toBe("99px");
+    });
+    expect(raiz.style.getPropertyValue("--cdd-escenario-escala")).toBe("1");
+    // "apartada" es lo que apaga la cabecera y el ladillo: la foto les pisa el
+    // sitio, así que se quitan de en medio.
+    expect(raiz.dataset.eligiendo).toBe("apartada");
+  });
+
+  it("al cerrar la hoja la foto vuelve a su sitio", async () => {
+    await montar();
+    const raiz = document.documentElement;
+    fireEvent.click(renglon("cdd.labelMarca"));
+    await waitFor(() => expect(raiz.dataset.eligiendo).toBe("apartada"));
+
+    fireEvent.click(screen.getByRole("button", { name: "cdd.selectorClose" }));
+
+    // Sin atributo no hay `transform`, y la transición del CSS devuelve la foto
+    // mientras la hoja se va. Que se limpie importa: si se quedara puesto, la
+    // foto se quedaría subida y encogida el resto de la partida.
+    await waitFor(() => {
+      expect(raiz.dataset.eligiendo).toBeUndefined();
+    });
+    expect(raiz.style.getPropertyValue("--cdd-escenario-subida")).toBe("");
+  });
+});

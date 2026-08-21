@@ -138,7 +138,18 @@ export default function ZoomStage({
           pantalla de juego, donde el sistema separa con filetes.
           El marco vivo sigue siendo `.cdd-stage-frame`: es la pieza que fija el
           4:3 y la que busca useEncajeEscenario. */}
-      <div className={"cdd-stage" + (revealed ? " revealed" : "")}>
+      {/* `data-escenario` es el asidero de useEscenarioApartado, que mide ESTA
+          caja —la de fuera, la que nunca se transforma— para saber cuánto tiene
+          que apartarse la foto cuando se abre la hoja de selección de la app.
+          Va aquí y no en el marco a propósito: el `transform` lo lleva el marco
+          de dentro (.cdd-stage-frame), así que medir el de fuera devuelve
+          siempre la posición de maqueta y no una posición en vuelo a media
+          animación. Si algún día el marco deja de ocupar esta caja entera, esa
+          cuenta deja de valer. */}
+      <div
+        className={"cdd-stage" + (revealed ? " revealed" : "")}
+        data-escenario=""
+      >
         <CarImage
           configurator
           src={car?.img ?? null}

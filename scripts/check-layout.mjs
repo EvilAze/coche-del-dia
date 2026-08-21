@@ -48,6 +48,7 @@ import { execFileSync } from "node:child_process";
 import { extname, join, dirname, basename, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
+import { AIRE_HOJA, calcularApartado } from "../src/lib/escenarioApartado.js";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BUILD = join(RAIZ, "build");
@@ -77,7 +78,16 @@ async function cssCompilado() {
   }
   if (motivo) {
     console.log(`· ${motivo} → compilando (npm run build)…`);
-    execFileSync("npm", ["run", "build"], { cwd: RAIZ, stdio: "ignore" });
+    // EN WINDOWS, `npm.cmd` Y POR EL SHELL. `execFileSync` no pasa por el shell,
+    // así que "npm" a secas daba ENOENT (el ejecutable se llama npm.cmd) y
+    // "npm.cmd" a secas daba EINVAL (desde Node 20 un .cmd no se lanza sin
+    // shell). Las dos veces reventaba justo en la máquina desde la que se
+    // compila el APK. Mismo motivo que el `basename` de más abajo: un banco que
+    // no corre donde se trabaja no es un banco.
+    const win = process.platform === "win32";
+    execFileSync(win ? "npm.cmd" : "npm", ["run", "build"], {
+      cwd: RAIZ, stdio: "ignore", shell: win,
+    });
     ruta = await buscar();
     if (!ruta) throw new Error("el build no ha dejado ningún CSS en build/assets/");
   }
@@ -143,6 +153,10 @@ const SELECTORES = [
   // El cupón de la app: tres renglones que abren una hoja de selección en vez
   // de levantar el teclado.
   ".prensa-cupon", ".prensa-renglon",
+  // La hoja de selección y su velo: la banda que se abre al tocar un renglón.
+  // El banco comprueba que deja ver la fotografía, así que si alguien renombra
+  // la hoja mediría una composición que no existe.
+  ".pm-hoja", ".pm-hoja-velo", ".pm-hoja-cuerpo", ".pm-lista", ".pm-opcion",
   // La cornisa y la marca del sumario: entre las dos ponen el ALTO de la barra
   // de la app (la marca fija 34px de caja; la cornisa mide ~26,5 y cabe dentro).
   // Si alguien las renombra, la cabecera pierde su ancla y este banco seguiría
@@ -243,6 +257,38 @@ function paginaHtml(hrefCss) {
     }
   };
   setIntentos(0);
+
+  // LA HOJA DE SELECCIÓN, con las mismas clases que monta SelectorHoja. La
+  // maqueta la inyecta en caliente porque solo existe mientras se elige.
+  window.abrirHoja = function (n) {
+    const velo = document.createElement("div");
+    velo.id = "velo";
+    velo.className = "pm-hoja-velo fixed inset-0 z-[90] flex items-end justify-center";
+    velo.innerHTML =
+      '<div class="pm-hoja"><div class="pm-hoja-tirador"></div>' +
+      '<div class="pm-hoja-cab"><div class="min-w-0"><h2 class="pm-hoja-titulo">Marca</h2></div>' +
+      '<button class="pm-hoja-cerrar">x</button></div>' +
+      '<div class="pm-hoja-cuerpo"><div class="pm-buscar">' +
+      '<input class="pm-buscar-campo" placeholder="Buscar marca"></div>' +
+      '<div class="pm-lista-caja"><ul class="pm-lista"></ul></div></div></div>';
+    document.body.appendChild(velo);
+    const ul = velo.querySelector(".pm-lista");
+    for (let i = 0; i < n; i++) {
+      const li = document.createElement("li");
+      li.className = "pm-opcion";
+      li.textContent = "Marca " + (i + 1);
+      ul.appendChild(li);
+    }
+  };
+
+  // Lo que publica useEscenarioApartado en la raíz. El banco calcula los valores
+  // con la MISMA función que la app (lib/escenarioApartado) y los aplica aquí.
+  window.aplicarApartado = function (subida, escala) {
+    const r = document.documentElement;
+    r.style.setProperty("--cdd-escenario-subida", subida + "px");
+    r.style.setProperty("--cdd-escenario-escala", String(escala));
+    r.dataset.eligiendo = subida > 0 ? "apartada" : "abierta";
+  };
 </script></body></html>`;
 }
 
@@ -404,6 +450,147 @@ async function main() {
           (fallo.length ? `   ← ${fallo.join(" · ")}` : "")
         );
       }
+    }
+  }
+
+  // ── LA HOJA DE SELECCIÓN NO TAPA LA FOTOGRAFÍA ───────────────────────────
+  // La promesa del cupón de la app: mientras eliges marca, modelo o año, la
+  // fotografía —que es a lo que estás mirando para decidir— sigue a la vista.
+  // Lo sostienen dos piezas que este banco es el único sitio capaz de medir
+  // juntas: el techo de `.pm-hoja` (que reserva el hueco de la foto) y el
+  // `transform` del marco (que mete la foto dentro de ese hueco).
+  //
+  // La cuenta la hace la MISMA función que en la app: se importa arriba. Aquí
+  // solo se le sirven las medidas del navegador de verdad y se comprueba el
+  // resultado en píxeles.
+  //
+  // Con teclado y sin él, porque el caso apretado es el otro: al subir, Android
+  // encoge el WebView y el hueco se reparte entre tres. Se simula encogiendo el
+  // viewport, que es literalmente lo que hace el sistema.
+  // El teclado de Android no mide lo mismo en todas partes: es ~el 42% de la
+  // pantalla con un tope por arriba. Ponerlo fijo en 290 fabricaba ventanas
+  // imposibles (190px de alto en el móvil patológico) y el banco acababa
+  // suspendiendo por pantallas que no existen.
+  const teclado = (h) => Math.min(290, Math.round(h * 0.42));
+  // 80 opciones = las marcas del catálogo. Es la lista más larga que existe, o
+  // sea la hoja más alta y el peor caso para la foto.
+  const OPCIONES = 80;
+  // Suelo de legibilidad de la fotografía apartada. Por debajo deja de ser una
+  // referencia con la que decidir y pasa a ser un sello — que es exactamente lo
+  // que este cambio venía a evitar.
+  const FOTO_MINIMA = 130;
+  // El alto del recorte flotante (`.cdd-peek`), que es el tamaño que este
+  // proyecto ya da por bueno como referencia mínima. Es el mismo suelo que usa
+  // lib/escenarioApartado para dejar de encoger.
+  const ALTO_PEEK = 78;
+
+  for (const p of PANTALLAS) {
+    for (const conTeclado of [false, true]) {
+      const alto = conTeclado ? p.h - teclado(p.h) : p.h;
+      // Por debajo de 300px de ventana no sobrevive ninguna composición: caben
+      // la cabecera de la hoja y su buscador, y se acabó. Es el móvil patológico
+      // (o sea, un teléfono en horizontal) con el teclado encima, y ahí el banco
+      // no mide nada útil — mediría cuál de las dos piezas sacrificamos, que es
+      // una pregunta sin respuesta buena.
+      if (alto < 300) continue;
+      const page2 = await navegador.newPage({ viewport: { width: p.w, height: alto } });
+      await page2.goto(url, { waitUntil: "networkidle" });
+      await page2.evaluate(() => window.setIntentos(3));
+      await page2.waitForTimeout(50);
+
+      const medidas = await page2.evaluate((n) => {
+        window.abrirHoja(n);
+        const hoja = document.querySelector(".pm-hoja");
+        const escenario = document.querySelector(".cdd-stage");
+        const pliego = document.querySelector(".app-pantalla");
+        return {
+          hojaAlto: hoja.offsetHeight,
+          fotoTop: escenario.getBoundingClientRect().top,
+          fotoAlto: escenario.offsetHeight,
+          tope:
+            pliego.getBoundingClientRect().top +
+            (parseFloat(getComputedStyle(pliego).paddingTop) || 0),
+          ventana: window.innerHeight,
+        };
+      }, OPCIONES);
+
+      const { subida, escala } = calcularApartado({
+        tope: medidas.tope,
+        suelo: medidas.ventana - medidas.hojaAlto - AIRE_HOJA,
+        fotoTop: medidas.fotoTop,
+        fotoAlto: medidas.fotoAlto,
+      });
+
+      await page2.evaluate(([s0, e0]) => window.aplicarApartado(s0, e0), [subida, escala]);
+      // La composición ENTRA con transición (220ms el marco, 200ms el cromo):
+      // medir en el mismo tick devolvería la pantalla de antes, que es como este
+      // banco dio once fallos fantasma la primera vez que se escribió.
+      await page2.waitForTimeout(320);
+
+      const v = await page2.evaluate(() => {
+        const marco = document.querySelector(".cdd-stage-frame").getBoundingClientRect();
+        const hoja = document.querySelector(".pm-hoja").getBoundingClientRect();
+        const lista = document.querySelector(".pm-lista").getBoundingClientRect();
+        const cab = document.querySelector(".prensa-area-cab");
+        return {
+          marcoTop: marco.top, marcoBottom: marco.bottom,
+          marcoW: marco.width, marcoH: marco.height,
+          hojaTop: hoja.top,
+          lista: lista.height,
+          cabOpacidad: getComputedStyle(cab).opacity,
+        };
+      });
+      await page2.close();
+
+      // Lo que de verdad se ve de la foto por encima del filete de la hoja.
+      const visible = Math.min(v.marcoBottom, v.hojaTop) - Math.max(v.marcoTop, 0);
+
+      const fallo = [];
+      // 1) SEGURIDAD, y aquí no hay grados: el escalado es uniforme, así que el
+      //    4:3 aguanta y el recorte sigue siendo el que sirvió el servidor
+      //    (reglas 5 y 7). Se exige en TODAS las pantallas.
+      const ratio = v.marcoW / v.marcoH;
+      if (Math.abs(ratio - RATIO) > 0.01) fallo.push(`ratio ${ratio.toFixed(3)}≠1.333`);
+      // 2) La foto no se escapa por arriba, que sería la otra forma de perderla
+      //    de vista.
+      if (v.marcoTop < -1) fallo.push(`la foto se sale por arriba ${Math.round(-v.marcoTop)}px`);
+      // 3) La cabecera se apaga si —y solo si— la foto le pisa el sitio.
+      const debeApagarse = subida > 0;
+      if ((v.cabOpacidad === "0") !== debeApagarse)
+        fallo.push(`cabecera opacidad ${v.cabOpacidad} con subida ${subida}`);
+      // 4) Y la lista sigue siendo una lista.
+      const opciones = v.lista / 52;
+      if (opciones < (p.corriente ? 3 : 2))
+        fallo.push(`solo ${opciones.toFixed(1)} opciones a la vista`);
+
+      if (p.corriente) {
+        // LA PROMESA COMPLETA, y solo se exige en móviles de uso real: ni un
+        // píxel de foto por debajo del filete de la hoja, y la foto entera
+        // mirable. Es la misma política que el resto del banco usa con el scroll
+        // — en un móvil corriente el diseño se cumple; por debajo se degrada.
+        if (v.marcoBottom > v.hojaTop + 1)
+          fallo.push(`la hoja tapa ${Math.round(v.marcoBottom - v.hojaTop)}px de foto`);
+        if (v.marcoH < FOTO_MINIMA)
+          fallo.push(`foto de ${Math.round(v.marcoH)}px: ya no es una referencia`);
+      } else if (visible < ALTO_PEEK - AIRE_HOJA) {
+        // EN LOS MÓVILES DE MUSEO, y solo con el teclado encima, el reparto no
+        // da para las dos cosas: una ventana de 330px son la hoja, su buscador y
+        // poco más. Ahí la degradación diseñada es que la LISTA baje a dos
+        // opciones y la foto se quede en el tamaño del recorte flotante — la
+        // prioridad es la foto, que es lo que este cambio venía a rescatar, y el
+        // catálogo entero sigue a un gesto (bajar el teclado). Lo que sí se
+        // exige es que quede a la vista al menos ese recorte, descontando el
+        // aire que se reserva contra el filete de la hoja.
+        fallo.push(`solo ${Math.round(visible)}px de foto a la vista`);
+      }
+
+      linea(
+        fallo.length === 0,
+        `hoja  ${p.nombre}  ${String(p.w).padStart(3)}x${String(alto).padStart(3)}` +
+        `${conTeclado ? " +teclado" : "         "} · hoja ${medidas.hojaAlto}px · ` +
+        `foto ${Math.round(v.marcoW)}x${Math.round(v.marcoH)} (sube ${subida}, x${escala})` +
+        (fallo.length ? `   ← ${fallo.join(" · ")}` : "")
+      );
     }
   }
 

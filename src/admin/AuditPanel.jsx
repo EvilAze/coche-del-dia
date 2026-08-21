@@ -8,6 +8,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import Identidad, { etiquetaCuenta } from "./Identidad";
+import TablaScroll from "./TablaScroll";
 
 const RANGE_OPTIONS = [
   { id: "7d",  label: "7 días" },
@@ -146,12 +148,15 @@ export default function AuditPanel() {
     const yaExcluido = (data?.excluidos || []).includes(suspect.userId);
     const accion = yaExcluido ? "readmitir-clasificacion" : "excluir-clasificacion";
 
+    // La etiqueta lleva nick Y correo: decidir un shadowban mirando solo una
+    // dirección obliga a recordar de quién era justo en el peor momento.
+    const quien = etiquetaCuenta(suspect);
     const ok = window.confirm(
       yaExcluido
-        ? `Readmitir a ${suspect.email}?\n\n` +
+        ? `Readmitir a ${quien}?\n\n` +
             "Vuelve a ser visible: reaparece en las cuatro tablas y vuelve a " +
             "entrar en los podios que se sellen."
-        : `Marcar a ${suspect.email} (shadowban)?\n\n` +
+        : `Marcar a ${quien} (shadowban)?\n\n` +
             "Desaparece de Temporada, Leyendas, Campeones y del ranking " +
             "mensual, y deja de entrar en los podios que se sellen. Su perfil " +
             "tampoco será visible para otros jugadores.\n\n" +
@@ -179,8 +184,8 @@ export default function AuditPanel() {
       });
       setModEstado(
         r.excluido
-          ? `${suspect.email} marcado: fuera de las tablas públicas.`
-          : `${suspect.email} desmarcado: vuelve a ser visible.`
+          ? `${quien} marcado: fuera de las tablas públicas.`
+          : `${quien} desmarcado: vuelve a ser visible.`
       );
     } catch (err) {
       setModEstado(`Error: ${err.message || "no se pudo aplicar"}`);
@@ -266,9 +271,13 @@ export default function AuditPanel() {
                 Sin datos suficientes en este rango (prueba "Todo").
               </div>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-border">
+              /* 8 columnas no caben en un móvil. Antes esto era
+                 `overflow-hidden`, así que no es que hubiera que arrastrar: es
+                 que las últimas columnas —σ, score y el propio botón de
+                 excluir— quedaban recortadas y sin forma de llegar a ellas. */
+              <TablaScroll minAncho="min-w-[640px]" alto="max-h-[30rem]">
                 <table className="w-full text-left text-[11px]">
-                  <thead className="bg-bg-secondary/60 text-[9px] uppercase tracking-wider text-muted">
+                  <thead className="text-[9px] uppercase tracking-wider text-muted">
                     <tr>
                       <th className="px-2 py-2">Cuenta</th>
                       <th className="px-2 py-2 text-right">Part.</th>
@@ -283,7 +292,9 @@ export default function AuditPanel() {
                   <tbody>
                     {data.suspects.map((s) => (
                       <tr key={s.userId} className="border-t border-border-strong/60">
-                        <td className="px-2 py-1.5 text-white">{s.email}</td>
+                        <td className="max-w-[13rem] px-2 py-1.5 text-white">
+                          <Identidad username={s.username} email={s.email} />
+                        </td>
                         <td className="px-2 py-1.5 text-right text-muted">{s.games}</td>
                         <td className="px-2 py-1.5 text-right text-muted">{pct(s.winRate)}</td>
                         <td className="px-2 py-1.5 text-right text-muted">
@@ -309,7 +320,7 @@ export default function AuditPanel() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TablaScroll>
             )}
           </section>
 
@@ -319,11 +330,18 @@ export default function AuditPanel() {
               <h3 className="font-display text-sm uppercase tracking-[0.18em] text-white">
                 Canarios (tokens forjados)
               </h3>
-              <div className="space-y-1">
+              {/* Hasta 100 filas llegan del servidor. Sin techo, un pico de
+                  tokens forjados empuja «Casos por IP» fuera de la pantalla. */}
+              <div className="max-h-[18rem] space-y-1 overflow-y-auto">
                 {data.canaries.map((c, i) => (
                   <div key={i} className="flex flex-wrap items-center gap-x-2 rounded-lg bg-red-500/[0.05] px-2 py-1 text-[11px]">
                     <span className="text-muted">{shortDateTime(c.ts)}</span>
-                    <span className={`font-semibold ${c.isAnon ? "text-amber-300" : "text-white"}`}>{c.who}</span>
+                    <span
+                      className={`font-semibold ${c.isAnon ? "text-amber-300" : "text-white"}`}
+                      title={c.whoEmail || ""}
+                    >
+                      {c.who}
+                    </span>
                     <span className="rounded bg-red-500/20 px-1 text-[9px] uppercase text-red-300">{c.reason}</span>
                     {c.ipHash && <span className="text-[10px] text-muted">ip {c.ipHash}…</span>}
                   </div>
@@ -366,8 +384,11 @@ export default function AuditPanel() {
                       {f.car.marca} {f.car.modelo} {f.car.anio || ""}
                     </span>
                   </div>
-                  <span className="rounded bg-red-500/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-red-300">
-                    ganó a la 1ª: {f.winnerEmail}
+                  <span
+                    className="rounded bg-red-500/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-red-300"
+                    title={f.winnerEmail}
+                  >
+                    ganó a la 1ª: {f.winnerNick || f.winnerEmail}
                   </span>
                 </div>
                 <p className="mt-1 text-[10px] text-muted">ip_hash {f.ipHash}…</p>
@@ -382,7 +403,10 @@ export default function AuditPanel() {
                       }`}
                     >
                       <span className="text-muted">{shortDateTime(t.ts)}</span>
-                      <span className={`font-semibold ${t.isAnon ? "text-amber-300" : "text-white"}`}>
+                      <span
+                        className={`font-semibold ${t.isAnon ? "text-amber-300" : "text-white"}`}
+                        title={t.whoEmail || ""}
+                      >
                         {t.who}
                       </span>
                       <span className="text-muted">[{t.mode}]</span>

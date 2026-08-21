@@ -626,7 +626,11 @@ export default function SeasonsPanel() {
       )}
 
       {!loading && !error && seasons.length > 0 && (
-        <ul className="flex flex-col gap-2">
+        /* Las temporadas no se borran al cerrarse: se acumulan una por semana,
+           así que en un año esta lista son cincuenta tarjetas entre el botón de
+           «Nueva temporada» y el final de la página. Con techo y scroll propio,
+           el panel mide lo mismo en la T4 que en la T60. */
+        <ul className="grid max-h-[34rem] grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
           {seasons.map((s) => {
             const st = seasonStatus(s, today);
             return (

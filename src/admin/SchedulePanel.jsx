@@ -285,7 +285,11 @@ export default function SchedulePanel({
       )}
 
       {!loading && !error && (
-        <ul className="flex flex-col gap-3">
+        /* Rejilla y no columna: con el contenedor del shell llegando ya a 6xl,
+           siete tarjetas en fila india dejaban dos tercios de pantalla en
+           blanco y obligaban a hacer scroll para ver la semana entera —que es
+           justo lo único que este panel viene a enseñar de un vistazo. */
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
             <li
               key={item.date}

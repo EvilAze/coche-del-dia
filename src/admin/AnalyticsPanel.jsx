@@ -13,6 +13,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "../supabaseClient";
+import Identidad, { etiquetaCuenta } from "./Identidad";
+import TablaScroll from "./TablaScroll";
 
 const RANGE_OPTIONS = [
   { id: "24h", label: "24 h" },
@@ -82,15 +84,8 @@ function pct(n) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
-// Email truncado: oculta parte del local para no exponer addresses
-// completas en un screenshot accidental.
-function maskEmail(email) {
-  if (!email) return "—";
-  const [local, domain] = email.split("@");
-  if (!domain) return email;
-  if (local.length <= 3) return email;
-  return `${local.slice(0, 3)}…@${domain}`;
-}
+// (maskEmail vivía aquí. Se ha mudado a ./Identidad junto con el resto de la
+// presentación de una cuenta, que ahora comparten este panel y el de auditoría.)
 
 export default function AnalyticsPanel() {
   const [range, setRange] = useState("7d");
@@ -393,7 +388,7 @@ export default function AnalyticsPanel() {
           {/* ROW 7 · Drill-down de usuario */}
           {selectedUser && (
             <Card
-              title={`Historial · ${selectedUser.username || maskEmail(selectedUser.email)}`}
+              title={`Historial · ${etiquetaCuenta(selectedUser)}`}
               action={
                 <div className="flex items-center gap-3">
                   {/* Solo si hay algo que retirar. Un botón que no puede hacer
@@ -797,57 +792,115 @@ function HardestCarsTable({ cars }) {
     );
   }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[480px] text-xs">
+    <TablaScroll minAncho="min-w-[480px]" pie={`${cars.length} coches medidos en el periodo.`}>
+      <table className="w-full text-xs">
         <thead>
           <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-muted">
-            <th className="pb-2 pr-3">Coche</th>
-            <th className="pb-2 pr-3">Año</th>
-            <th className="pb-2 pr-3 text-right">Jugadas</th>
-            <th className="pb-2 pr-3 text-right">Fallos</th>
-            <th className="pb-2 text-right">% fallo</th>
+            <th className="px-3 py-2">Coche</th>
+            <th className="px-3 py-2">Año</th>
+            <th className="px-3 py-2 text-right">Jugadas</th>
+            <th className="px-3 py-2 text-right">Fallos</th>
+            <th className="px-3 py-2 text-right">% fallo</th>
           </tr>
         </thead>
         <tbody>
           {cars.map((c) => (
             <tr key={c.carId} className="border-t border-white/5 text-white/85">
-              <td className="py-2 pr-3">
+              <td className="px-3 py-2">
                 <span className="font-semibold text-white">{c.marca}</span>{" "}
                 <span className="text-white/70">{c.modelo}</span>
               </td>
-              <td className="py-2 pr-3 text-white/60">{c.anio || "—"}</td>
-              <td className="py-2 pr-3 text-right font-mono">{c.plays}</td>
-              <td className="py-2 pr-3 text-right font-mono text-rose-300">{c.losses}</td>
-              <td className="py-2 text-right font-mono text-rose-300">{pct(c.loseRate)}</td>
+              <td className="px-3 py-2 text-white/60">{c.anio || "—"}</td>
+              <td className="px-3 py-2 text-right font-mono">{c.plays}</td>
+              <td className="px-3 py-2 text-right font-mono text-rose-300">{c.losses}</td>
+              <td className="px-3 py-2 text-right font-mono text-rose-300">{pct(c.loseRate)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </TablaScroll>
   );
 }
 
 function UsersTable({ users, selectedUserId, onSelect }) {
+  // Buscador por nick o correo. El scroll acota el ALTO, pero encontrar a
+  // alguien concreto seguía siendo arrastrar y leer: con el directorio pasado
+  // el centenar de cuentas, la lista solo sirve si se puede preguntar por un
+  // nombre. Sin estado en la URL a propósito — es un filtro de un vistazo, no
+  // una vista que merezca sobrevivir a un F5.
+  const [filtro, setFiltro] = useState("");
+
+  const visibles = useMemo(() => {
+    const q = filtro.trim().toLowerCase();
+    if (!q) return users || [];
+    return (users || []).filter(
+      (u) =>
+        (u.username || "").toLowerCase().includes(q) ||
+        (u.email || "").toLowerCase().includes(q)
+    );
+  }, [users, filtro]);
+
   if (!users || users.length === 0) {
     return <div className="py-6 text-center text-sm text-muted">Sin usuarios registrados.</div>;
   }
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[420px] text-xs">
+    <div className="space-y-2">
+      {/* El buscador solo aparece cuando hay lista que buscar: con ocho
+          cuentas es un control que estorba más de lo que ayuda. */}
+      {users.length > 12 && (
+        <input
+          type="search"
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          placeholder="Filtrar por nick o correo…"
+          aria-label="Filtrar usuarios por nick o correo"
+          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-white placeholder:text-muted focus:border-accent/60 focus:outline-none"
+        />
+      )}
+      {visibles.length === 0 ? (
+        <div className="py-6 text-center text-xs text-muted">
+          Ningún usuario coincide con «{filtro}».
+        </div>
+      ) : (
+        <UsersTableBody
+          users={visibles}
+          total={users.length}
+          filtrando={filtro.trim().length > 0}
+          selectedUserId={selectedUserId}
+          onSelect={onSelect}
+        />
+      )}
+    </div>
+  );
+}
+
+function UsersTableBody({ users, total, filtrando, selectedUserId, onSelect }) {
+  return (
+    // El directorio crece con el juego y no tiene techo: es la lista que
+    // convertía esta pestaña en una tirada de varias pantallas.
+    <TablaScroll
+      pie={
+        filtrando
+          ? `${users.length} de ${total} usuarios · click en una fila para ver su historial de juego.`
+          : `${total} usuarios · click en una fila para ver su historial de juego.`
+      }
+    >
+      <table className="w-full text-xs">
         <thead>
           <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-muted">
-            <th className="pb-2 pr-3">Usuario</th>
-            <th className="pb-2 pr-3">Último login</th>
-            <th className="pb-2">Registrado</th>
+            <th className="px-3 py-2">Usuario</th>
+            <th className="px-3 py-2">Último login</th>
+            <th className="px-3 py-2">Registrado</th>
           </tr>
         </thead>
         <tbody>
           {users.map((u) => {
             const isSel = u.id === selectedUserId;
-            // Primera columna: nombre de usuario. Si la cuenta no tiene
-            // display_name todavía, caemos al email enmascarado para que la
-            // fila siga siendo identificable. El email completo va en `title`
-            // (hover) por comodidad del admin.
+            // Nick y correo JUNTOS (ver ./Identidad): antes esta celda elegía
+            // uno de los dos y el correo solo salía al pasar el ratón, así que
+            // cruzar «quién es este nick» con «qué cuenta es» no se podía hacer
+            // de un vistazo — que es justo para lo que se abre el directorio.
             return (
               <tr
                 key={u.id}
@@ -856,33 +909,37 @@ function UsersTable({ users, selectedUserId, onSelect }) {
                   isSel ? "bg-accent/10" : "hover:bg-white/[0.03]"
                 }`}
               >
-                <td className="py-2 pr-3 font-semibold text-white/90" title={u.email || ""}>
-                  {u.username || maskEmail(u.email)}
+                <td className="max-w-[14rem] px-3 py-2">
+                  <Identidad username={u.username} email={u.email} />
                 </td>
-                <td className="py-2 pr-3 text-white/70">{shortDateTime(u.lastSignInAt)}</td>
-                <td className="py-2 text-white/55">{shortDateTime(u.createdAt)}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-white/70">
+                  {shortDateTime(u.lastSignInAt)}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-white/55">
+                  {shortDateTime(u.createdAt)}
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <p className="mt-2 text-[10px] text-muted">
-        {users.length} usuarios · click en una fila para ver su historial de juego.
-      </p>
-    </div>
+    </TablaScroll>
   );
 }
 
 function UserHistoryTable({ history }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[420px] text-xs">
+    // Un veterano lleva ya cientos de partidas: esta tabla es la que más
+    // crece de las tres, y encima se abre DEBAJO del directorio — sin techo,
+    // seleccionar un usuario mandaba la tabla de arriba fuera de la pantalla.
+    <TablaScroll pie={`${history.length} partidas.`}>
+      <table className="w-full text-xs">
         <thead>
           <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-muted">
-            <th className="pb-2 pr-3">Fecha</th>
-            <th className="pb-2 pr-3">Coche</th>
-            <th className="pb-2 pr-3">Estado</th>
-            <th className="pb-2 text-right">Intentos</th>
+            <th className="px-3 py-2">Fecha</th>
+            <th className="px-3 py-2">Coche</th>
+            <th className="px-3 py-2">Estado</th>
+            <th className="px-3 py-2 text-right">Intentos</th>
           </tr>
         </thead>
         <tbody>
@@ -891,13 +948,13 @@ function UserHistoryTable({ history }) {
             const isLost = h.status === "lost";
             return (
               <tr key={`${h.date}-${h.carId}-${i}`} className="border-t border-white/5 text-white/85">
-                <td className="py-2 pr-3 text-white/70">{h.date}</td>
-                <td className="py-2 pr-3">
+                <td className="whitespace-nowrap px-3 py-2 text-white/70">{h.date}</td>
+                <td className="px-3 py-2">
                   <span className="font-semibold text-white">{h.marca}</span>{" "}
                   <span className="text-white/70">{h.modelo}</span>{" "}
                   <span className="text-white/50">{h.anio || ""}</span>
                 </td>
-                <td className="py-2 pr-3">
+                <td className="px-3 py-2">
                   <span
                     className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                       isWon
@@ -910,13 +967,13 @@ function UserHistoryTable({ history }) {
                     {isWon ? "Ganada" : isLost ? "Perdida" : "En curso"}
                   </span>
                 </td>
-                <td className="py-2 text-right font-mono">{h.attempts}/5</td>
+                <td className="px-3 py-2 text-right font-mono">{h.attempts}/5</td>
               </tr>
             );
           })}
         </tbody>
       </table>
-    </div>
+    </TablaScroll>
   );
 }
 

@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { maskEmail } from "./Identidad";
 
 const TIPO = {
   problema: { etiqueta: "Problema", clase: "bg-rose-500/15 text-rose-300" },
@@ -149,9 +150,18 @@ export default function MensajesPanel({ onSinLeer }) {
                   <span className={`rounded px-1.5 py-0.5 uppercase tracking-wider ${tipo.clase}`}>
                     {tipo.etiqueta}
                   </span>
-                  <span className="font-semibold text-white/90">
+                  {/* Nick Y cuenta. El nick es con lo que se le conoce en el
+                      juego; el correo de la cuenta es con lo que se le busca en
+                      Analítica o Auditoría. Enseñar solo uno obligaba a
+                      adivinar el otro. Enmascarado, como en el resto del panel
+                      (ver ./Identidad): entero en el `title` y en el enlace de
+                      respuesta de abajo. */}
+                  <span className="font-semibold text-white/90" title={m.emailCuenta || ""}>
                     {m.nick || "sin nick"}
                   </span>
+                  {m.emailCuenta && (
+                    <span className="text-muted">{maskEmail(m.emailCuenta)}</span>
+                  )}
                   <span className="text-muted">{fechaHora(m.creado_en)}</span>
                   <span className="text-muted">· {m.plataforma || "?"}</span>
                   <button

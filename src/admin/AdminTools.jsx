@@ -66,10 +66,17 @@ function writeUrlState({ tab, selectedCarId, assignToDate }) {
 }
 
 export default function AdminTools({ defaultTab }) {
-  const initial = readInitialState();
-  const [tab, setTab] = useState(defaultTab || initial.tab);
-  const [selectedCarId, setSelectedCarId] = useState(initial.selectedCarId);
-  const [assignToDate, setAssignToDate] = useState(initial.assignToDate);
+  // Inicializadores perezosos: `readInitialState()` lee y parsea la URL, y
+  // llamándolo en el cuerpo del componente se ejecutaba en CADA render para
+  // tirar el resultado a la basura — sólo cuenta en el primero. Con la forma
+  // `useState(() => …)` React lo llama una vez y ya.
+  const [tab, setTab] = useState(() => defaultTab || readInitialState().tab);
+  const [selectedCarId, setSelectedCarId] = useState(
+    () => readInitialState().selectedCarId
+  );
+  const [assignToDate, setAssignToDate] = useState(
+    () => readInitialState().assignToDate
+  );
   const [refreshKey, setRefreshKey] = useState(0);
   const [previewOverrides, setPreviewOverrides] = useState(null);
   // Mensajes pendientes. Vive en el shell porque lo pinta la PESTAÑA, y una
@@ -189,6 +196,34 @@ export default function AdminTools({ defaultTab }) {
     setAssignToDate(null);
   }
 
+  // Flechas para moverse entre pestañas. No es un adorno: al marcar las
+  // inactivas con tabIndex=-1 (lo que pide el patrón tablist, para que Tab
+  // salte la barra entera en vez de recorrer ocho botones) el teclado se
+  // quedaría sin forma de llegar a ellas. Home/End van a los extremos, y la
+  // lista da la vuelta porque una barra de 8 con dos filas no tiene «final»
+  // visual que justifique un tope.
+  function handleTabKeyDown(e) {
+    const salto =
+      e.key === "ArrowRight" ? 1 :
+      e.key === "ArrowLeft" ? -1 :
+      0;
+    let destino = null;
+    if (salto !== 0) {
+      const i = TABS.findIndex((t) => t.id === tab);
+      destino = TABS[(i + salto + TABS.length) % TABS.length];
+    } else if (e.key === "Home") {
+      destino = TABS[0];
+    } else if (e.key === "End") {
+      destino = TABS[TABS.length - 1];
+    }
+    if (!destino) return;
+    e.preventDefault();
+    setTab(destino.id);
+    // El foco tiene que seguir al tab activo o el siguiente flechazo sale del
+    // botón que acaba de quedarse con tabIndex=-1.
+    document.getElementById(`tab-${destino.id}`)?.focus();
+  }
+
   // ---- Gates ----
 
   if (checkingSession) {
@@ -267,7 +302,14 @@ export default function AdminTools({ defaultTab }) {
 
   return (
     <div className="min-h-screen bg-bg-primary font-body text-white">
-      <div className="mx-auto w-full max-w-md lg:max-w-4xl px-4 pt-6">
+      {/* ANCHO: antes era `max-w-md lg:max-w-4xl`, o sea 448 px fijos hasta los
+          1024 px de viewport. Eso dejaba un salto enorme —una tablet, un móvil
+          en horizontal o una ventana a media pantalla se quedaban con un
+          carril de 448 px y el resto en blanco— y, sobre todo, apretaba en un
+          móvil las tablas de 6 y 8 columnas de Analítica y Auditoría. Ahora el
+          contenedor crece por tramos, y el padding se afloja con él: en el
+          móvil manda `px-3`, que devuelve 8 px de ancho útil a las tablas. */}
+      <div className="mx-auto w-full max-w-md px-3 pt-6 sm:max-w-2xl sm:px-4 lg:max-w-4xl xl:max-w-6xl">
         <header className="border-b border-border pb-4">
           <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
             Admin
@@ -283,23 +325,42 @@ export default function AdminTools({ defaultTab }) {
             calendario, que es lo que mueve estas cifras. */}
         <EstadoStrip refreshKey={refreshKey} />
 
-        {/* Tabs */}
+        {/* Tabs. 8 pestañas en 3 columnas son 3 filas de nada en un móvil; con
+            4 caben en dos filas limpias. El salto a 8 se hace en `lg`, que es
+            donde el contenedor ya mide 4xl y el rótulo entero cabe sin
+            apretarse. */}
         <nav
           role="tablist"
           aria-label="Herramientas de administración"
-          className="mt-4 grid grid-cols-3 lg:grid-cols-8 gap-1 rounded-xl border border-border bg-bg-secondary/40 p-1"
+          onKeyDown={handleTabKeyDown}
+          className="mt-4 grid grid-cols-4 gap-1 rounded-xl border border-border bg-bg-secondary/40 p-1 lg:grid-cols-8"
         >
           {TABS.map((t) => {
             const active = tab === t.id;
+            // El rótulo se aprieta en móvil y se suelta a partir de `sm`:
+            // «Calendario» y «Temporadas» en versalitas con 0.14em de tracking
+            // no caben en un cuarto de pantalla de 360 px. `truncate` es la
+            // red: antes que desbordar la rejilla y descuadrar la barra
+            // entera, que corte.
             return (
               <button
                 key={t.id}
                 role="tab"
+                id={`tab-${t.id}`}
+                // La mitad que faltaba del patrón ARIA: el `role="tablist"` ya
+                // estaba, pero sin `aria-controls` ni un `tabpanel` al otro
+                // lado un lector de pantalla anuncia «pestaña» y no sabe decir
+                // qué región cambia al pulsarla. `tabIndex` deja fuera del
+                // tabulador las pestañas no activas, que es como se recorre un
+                // tablist (flechas dentro, Tab para salir).
                 aria-selected={active}
+                aria-controls="admin-panel"
+                tabIndex={active ? 0 : -1}
                 onClick={() => setTab(t.id)}
                 className={`
-                  rounded-lg px-2 py-2 text-[11px] uppercase tracking-[0.14em]
-                  transition
+                  truncate rounded-lg px-1 py-2 text-[10px] uppercase
+                  tracking-tight transition
+                  sm:px-2 sm:text-[11px] sm:tracking-[0.14em]
                   ${
                     active
                       ? "bg-accent text-bg-primary font-semibold"
@@ -316,7 +377,13 @@ export default function AdminTools({ defaultTab }) {
           })}
         </nav>
 
-        <main className="py-6">
+        <main
+          id="admin-panel"
+          role="tabpanel"
+          aria-labelledby={`tab-${tab}`}
+          tabIndex={-1}
+          className="py-6"
+        >
           {tab === "schedule" && (
             <SchedulePanel
               refreshKey={refreshKey}

@@ -46,6 +46,15 @@ export default function ModalShell({
   // Nombre accesible del diálogo (aria-label). Opcional: sin él, el lector de
   // pantalla anuncia "diálogo" igualmente. Recomendado pasarlo desde el caller.
   label,
+  // CÓMO ENTRA Y SALE EL PANEL. Por defecto, lo de siempre: una tarjeta centrada
+  // que aparece creciendo un pelín desde el centro. Se puede cambiar porque una
+  // HOJA anclada abajo no entra así —entra deslizándose desde el borde, entera y
+  // sin desvanecerse, que es lo que la hace parecer un objeto y no un dibujo—, y
+  // esa diferencia la sabe el caller, no este chasis. Los valores por defecto son
+  // literalmente las clases que había escritas aquí: quien no pase nada no nota
+  // ningún cambio.
+  panelEntraClassName = "opacity-100 translate-y-0 scale-100",
+  panelSaleClassName = "opacity-0 translate-y-2 scale-95",
 }) {
   // Evita scroll chaining mientras el modal está abierto (contador interno,
   // así modales anidados funcionan bien).
@@ -163,7 +172,7 @@ export default function ModalShell({
           outline-none
           transition-[opacity,transform] duration-200 ease-out
           motion-reduce:transition-none
-          ${visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95"}
+          ${visible ? panelEntraClassName : panelSaleClassName}
         `}
         onClick={(e) => e.stopPropagation()}
       >

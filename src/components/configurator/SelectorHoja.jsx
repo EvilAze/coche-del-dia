@@ -37,6 +37,7 @@
 import { useCallback, useState } from "react";
 import ModalShell from "../ModalShell";
 import { useEscape } from "../../hooks/useEscape";
+import { useArrastreHoja } from "../../hooks/useArrastreHoja";
 import { useEscenarioApartado } from "../../hooks/useEscenarioApartado";
 import { useT } from "../../i18n";
 import { Icon, I } from "./icons";
@@ -69,7 +70,17 @@ export default function SelectorHoja({
     (nodo) => setHojaEl(nodo ? nodo.closest(".pm-hoja") : null),
     []
   );
-  useEscenarioApartado(open, hojaEl);
+  // La foto se aparta al abrir... y VUELVE con el dedo al arrastrar: el hook
+  // devuelve un `seguir(px)` que recalcula la composición para una hoja
+  // desplazada, y el arrastre se lo va dando frame a frame. Las dos piezas son
+  // la misma composición, así que se mueven juntas o el truco se ve.
+  const seguirConLaFoto = useEscenarioApartado(open, hojaEl);
+  useArrastreHoja({
+    hojaEl,
+    activo: open,
+    onCerrar: onClose,
+    onDesplazar: seguirConLaFoto,
+  });
 
   return (
     <ModalShell
@@ -81,10 +92,19 @@ export default function SelectorHoja({
       // pliego— cierra la hoja igual que antes.
       backdropClassName="pm-hoja-velo fixed inset-0 z-[90] flex items-end justify-center"
       panelClassName="pm-hoja"
+      // LA HOJA ENTRA DESLIZÁNDOSE, no encogiendo desde el centro como una
+      // tarjeta: sale de debajo del borde de la pantalla y sube hasta su sitio,
+      // que es lo que la hace parecer un objeto que se ha traído a mano. Sin
+      // `opacity` en ninguno de los dos estados a propósito — un objeto no se
+      // desvanece (ver .pm-hoja-velo, que hace lo propio con el velo).
+      panelEntraClassName="opacity-100 translate-y-0"
+      panelSaleClassName="opacity-100 translate-y-full"
     >
-      {/* El tirador: no arrastra nada (no hay gesto de arrastre), pero es el
-          signo universal de «esto es una hoja que se cierra hacia abajo». El
-          gesto real de cierre son el velo, la X y el atrás de Android. */}
+      {/* El tirador, que ahora dice la verdad: la hoja SE ARRASTRA hacia abajo
+          para cerrarla (useArrastreHoja), y este es el signo universal de que se
+          puede. Durante meses fue un adorno de tres píxeles prometiendo un gesto
+          que no existía. Los otros cierres siguen ahí: el velo, la X y el atrás
+          de Android. */}
       <div className="pm-hoja-tirador" aria-hidden="true" ref={anclar} />
 
       <div className="pm-hoja-cab">

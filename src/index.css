@@ -1894,8 +1894,20 @@ body,
    contenedor de lo que lleve dentro posicionado como `fixed`. La transición sí
    vive fuera, que es lo que hace que la vuelta se anime igual que la ida. */
 :root[data-plataforma="app"] .cdd-stage-frame {
-  transition: transform 220ms ease-out;
+  /* Clavada a la de la hoja: mismos 200ms y misma curva (ver .pm-hoja). Las dos
+     piezas salen del mismo gesto y tienen que llegar juntas — con curvas
+     distintas se ve que una persigue a la otra. Y la aplicación del transform va
+     sincronizada al frame desde useEscenarioApartado, que espera el mismo doble
+     rAF que ModalShell antes de encender la suya. */
+  transition: transform 200ms cubic-bezier(.16, 1, .3, 1);
 }
+/* MIENTRAS EL DEDO ARRASTRA LA HOJA, EL MARCO VA SIN TRANSICIÓN. La foto tiene
+   que ir pegada a la hoja, no persiguiéndola con 200ms de retraso: durante el
+   gesto cada `touchmove` publica una subida nueva y una transición convertiría
+   ese chorro de valores en un arrastre pastoso. Lo enciende useArrastreHoja al
+   pasar el umbral y lo apaga al soltar, justo antes de la vuelta —que entonces
+   sí se anima. */
+:root[data-arrastrando] .cdd-stage-frame { transition: none; }
 :root[data-plataforma="app"][data-eligiendo] .cdd-stage-frame {
   transform:
     translateY(calc(-1 * var(--cdd-escenario-subida, 0px)))
@@ -1911,11 +1923,27 @@ body,
    recompondría por debajo de la hoja —para nada, porque no se ve— y el salto se
    vería justo al cerrar. Apagado ocupa lo mismo y vuelve sin mover nada.
    El diálogo ya es `aria-modal`, así que para un lector de pantalla el fondo no
-   existía ni antes ni ahora. */
+   existía ni antes ni ahora.
+
+   Y NO SE APAGA IGUAL QUE SE ENCIENDE, que es el detalle que separa un cambio de
+   estado de un movimiento coreografiado:
+     · Al ABRIR se va deprisa y sin esperar (130ms). La foto tarda 200 en llegar,
+       así que cuando llega el sitio ya está vacío. Con los dos a 200 se veía un
+       instante la cabecera POR DEBAJO de la foto que venía a ocupar su hueco.
+     · Al CERRAR espera 90ms antes de volver. Primero la foto se retira a su
+       sitio y después reaparece lo que tapaba, en ese orden — al revés se
+       encienden a la vez y el ojo no sabe qué mirar.
+   Los dos tiempos viajan en variables de la raíz y no en dos reglas: así la
+   declaración de la transición sigue siendo UNA, que es lo que deja limpia la
+   excepción de `prefers-reduced-motion` de aquí abajo. */
 :root[data-plataforma="app"] .app-pantalla > .prensa-area-cab,
 :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-ladillo,
 :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-pie {
-  transition: opacity 200ms ease-out;
+  transition: opacity var(--cdd-cromo-ms, 180ms) ease-out var(--cdd-cromo-espera, 90ms);
+}
+:root[data-plataforma="app"][data-eligiendo="apartada"] {
+  --cdd-cromo-ms: 130ms;
+  --cdd-cromo-espera: 0ms;
 }
 :root[data-plataforma="app"][data-eligiendo="apartada"] .app-pantalla > .prensa-area-cab,
 :root[data-plataforma="app"][data-eligiendo="apartada"] .app-pantalla .prensa-area-foto .prensa-ladillo,
@@ -1924,7 +1952,12 @@ body,
   pointer-events: none;
 }
 
+/* Con movimiento reducido la composición NO se retira —la foto sigue teniendo
+   que caber, que es lo funcional— pero se llega a ella de golpe. La hoja entra
+   en esta lista porque su transición se declara en `.pm-hoja`, que por orden de
+   cascada le gana al `motion-reduce:transition-none` que trae el chasis. */
 @media (prefers-reduced-motion: reduce) {
+  .pm-hoja,
   :root[data-plataforma="app"] .cdd-stage-frame,
   :root[data-plataforma="app"] .app-pantalla > .prensa-area-cab,
   :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-ladillo,
@@ -2207,11 +2240,21 @@ body,
      banda pegada al pie de la página. */
   box-shadow: var(--sombra-flota);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  /* Neutraliza el `scale-95` del estado oculto de ModalShell. En una tarjeta
-     centrada encoger desde el centro está bien; en una hoja a sangre deja dos
-     franjas de fondo a los lados durante la entrada, que se lee como un fallo
-     de pintado. El deslizamiento vertical sí se queda: es el que cuenta. */
-  --tw-scale-x: 1; --tw-scale-y: 1;
+  /* LA HOJA ENTRA DESLIZÁNDOSE, Y ESTA LÍNEA ES LA MITAD DEL TRUCO. La otra
+     mitad son las clases que le pasa SelectorHoja a ModalShell
+     (`translate-y-full` en reposo, `translate-y-0` a la vista) en vez del
+     encogimiento de una tarjeta centrada, que en una hoja a sangre dejaba dos
+     franjas de fondo a los lados durante la entrada.
+
+     Y la transición se declara AQUÍ, pisando la utilidad `duration-200 ease-out`
+     que pone el chasis: las reglas propias van después de `@tailwind utilities`,
+     así que a igual especificidad gana esta. Se hace por una razón concreta —los
+     mismos 200ms y la MISMA curva que el marco de la fotografía— porque las dos
+     piezas se mueven a la vez y cualquier diferencia entre sus curvas se lee
+     como que una persigue a la otra. 200 y no más: ModalShell desmonta el panel
+     a los 220ms, así que una salida más lenta se vería cortada.
+     El arrastre pisa esto con estilos en línea mientras dura el gesto. */
+  transition: transform 200ms cubic-bezier(.16, 1, .3, 1);
 }
 /* EL VELO NO TIÑE. Un velo al 72% sobre la fotografía es exactamente el problema
    que este cambio viene a resolver: da igual dejarle hueco a la foto si luego se
@@ -2220,7 +2263,15 @@ body,
    pero no pinta nada. La jerarquía la dicen el papel de la hoja, su filete
    superior de tinta plena y su sombra, que es como se separan las capas en este
    sistema. */
-.pm-hoja-velo { background: transparent; }
+.pm-hoja-velo {
+  background: transparent;
+  /* Y TAMPOCO SE DESVANECE. El velo es transparente, así que su `opacity` ya no
+     tiñe nada: lo único que hacía era desvanecer a su hijo, o sea la hoja. Una
+     hoja que aparece difuminándose es un dibujo; una que entra deslizándose es
+     un objeto, y esa es la diferencia entre parecer una app y serlo. Pisa las
+     utilidades `opacity-0/100` del chasis por orden de cascada, sin `!`. */
+  opacity: 1;
+}
 /* El tirador no arrastra nada —no hay gesto de arrastre— pero es el signo
    universal de «esto se cierra hacia abajo». Cuesta tres píxeles. */
 .pm-hoja-tirador {

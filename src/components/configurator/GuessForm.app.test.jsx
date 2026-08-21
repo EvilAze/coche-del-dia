@@ -411,6 +411,48 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     expect(raiz.dataset.eligiendo).toBe("apartada");
   });
 
+  // ── EL ARRASTRE ──────────────────────────────────────────────────────────
+  // El tirador promete que la hoja se cierra hacia abajo; esto comprueba que la
+  // promesa se cumple y, sobre todo, que NO se cumple de más: un roce mientras
+  // se recorre la lista no puede tirar la hoja. jsdom no tiene gestos, así que
+  // el dedo se escribe a mano — que es lo único que hace falta, porque lo que se
+  // prueba es el umbral, no la física.
+  const dedo = (el, ys) => {
+    fireEvent.touchStart(el, { touches: [{ clientX: 180, clientY: ys[0] }] });
+    for (const y of ys.slice(1)) {
+      fireEvent.touchMove(el, { touches: [{ clientX: 180, clientY: y }] });
+    }
+    fireEvent.touchEnd(el, { changedTouches: [{ clientX: 180, clientY: ys[ys.length - 1] }] });
+  };
+
+  it("arrastrar la hoja hacia abajo la cierra", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+    const hoja = document.querySelector(".pm-hoja");
+
+    // 240px sobre una hoja de 500: pasa de sobra el 28% que hace falta.
+    dedo(hoja, [400, 460, 540, 640]);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+  });
+
+  it("un roce corto NO la cierra: vuelve a su sitio", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+    const hoja = document.querySelector(".pm-hoja");
+
+    // 40px de nada. Ni llega al 28% ni es un gesto rápido (los eventos de un
+    // test caen todos en el mismo milisegundo, así que no hay ventana de
+    // velocidad que medir — que es justo lo que la ventana de 30ms garantiza).
+    dedo(hoja, [400, 420, 448]);
+
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    // Y la hoja se anima de vuelta al cero, sin quedarse colgada donde el dedo.
+    expect(hoja.style.transform).toBe("translateY(0px)");
+  });
+
   it("al cerrar la hoja la foto vuelve a su sitio", async () => {
     await montar();
     const raiz = document.documentElement;

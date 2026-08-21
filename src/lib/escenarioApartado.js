@@ -39,7 +39,7 @@
 // foto deja de servir para nada y preferimos que asome por debajo de la hoja
 // antes que encogerla hasta callarla. Solo se alcanza con el teclado abierto en
 // un móvil bajo, que es el caso más apretado que existe.
-const ALTO_MINIMO = 78;
+export const ALTO_MINIMO_FOTO = 78;
 
 // Aire entre el borde de abajo de la foto y el filete de arriba de la hoja. Sin
 // él las dos piezas se tocan y se leen como una sola. Se exporta porque lo usan
@@ -75,7 +75,7 @@ export function calcularApartado({ tope, suelo, fotoTop, fotoAlto }) {
   // El suelo en píxeles se traduce a escala AQUÍ, con el alto real del marco: el
   // mismo 78px vale 0.31 en un Pixel y 0.42 en un móvil bajo, que es justo lo
   // que se quiere — el límite es lo que se VE, no cuánto encoge.
-  const escalaMinima = Math.min(1, ALTO_MINIMO / fotoAlto);
+  const escalaMinima = Math.min(1, ALTO_MINIMO_FOTO / fotoAlto);
   const escala = Math.min(1, Math.max(disponible / fotoAlto, escalaMinima));
 
   return {
@@ -84,4 +84,24 @@ export function calcularApartado({ tope, suelo, fotoTop, fotoAlto }) {
     // nota como un salto al recalcular con el teclado subiendo.
     escala: Math.round(escala * 1000) / 1000,
   };
+}
+
+/**
+ * CUÁNTO PUEDE CRECER LA HOJA ANTES DE COMERSE LA FOTOGRAFÍA.
+ *
+ * La hoja no tiene una altura, tiene un RECORRIDO: se abre en su sitio de
+ * reposo —el que deja la foto entera— y el jugador puede tirar de ella hacia
+ * arriba para ver más lista. Lo que no puede es hacerla desaparecer: el tope es
+ * justo donde la foto llega a los 78px del recorte flotante, así que estirando
+ * del todo la fotografía se convierte EN el recorte y ni un píxel menos. Esa es
+ * la frontera del diseño, y por eso vive aquí y no en un número suelto del
+ * gesto: es la misma regla que impide encogerla de más al abrir.
+ *
+ * @returns {number} px que puede subir el borde superior de la hoja. 0 = ya no
+ *          hay margen (móvil bajo, teclado abierto), y entonces no hay gesto
+ *          hacia arriba que valga.
+ */
+export function margenDeCrecimiento({ ventana, alturaHoja, tope }) {
+  const margen = ventana - alturaHoja - AIRE_HOJA - tope - ALTO_MINIMO_FOTO;
+  return margen > 0 ? Math.round(margen) : 0;
 }

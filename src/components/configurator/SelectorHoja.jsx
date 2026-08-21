@@ -70,16 +70,22 @@ export default function SelectorHoja({
     (nodo) => setHojaEl(nodo ? nodo.closest(".pm-hoja") : null),
     []
   );
-  // La foto se aparta al abrir... y VUELVE con el dedo al arrastrar: el hook
-  // devuelve un `seguir(px)` que recalcula la composición para una hoja
-  // desplazada, y el arrastre se lo va dando frame a frame. Las dos piezas son
-  // la misma composición, así que se mueven juntas o el truco se ve.
-  const seguirConLaFoto = useEscenarioApartado(open, hojaEl);
+  // La foto se aparta al abrir... y se mueve con el dedo al arrastrar, en los
+  // dos sentidos: `seguir(px)` recoloca la composición para una hoja empujada
+  // hacia fuera y `margenParaCrecer` dice hasta dónde puede estirarse hacia
+  // arriba sin comerse la fotografía. Las dos piezas son la misma composición,
+  // así que se mueven juntas o el truco se ve.
+  const { seguir, margenParaCrecer } = useEscenarioApartado(open, hojaEl);
   useArrastreHoja({
     hojaEl,
     activo: open,
+    // El título cambia con el paso del cupón (marca → modelo → año), que es
+    // exactamente cuando la hoja tiene que volver a su altura de reposo: lo que
+    // se estiró para ochenta marcas es papel en blanco para cinco décadas.
+    clave: titulo,
     onCerrar: onClose,
-    onDesplazar: seguirConLaFoto,
+    onDesplazar: seguir,
+    margenParaCrecer,
   });
 
   return (

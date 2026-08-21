@@ -4,7 +4,7 @@
 // del ancho de columna.
 
 import { describe, it, expect } from "vitest";
-import { calcularApartado } from "./escenarioApartado";
+import { calcularApartado, margenDeCrecimiento } from "./escenarioApartado";
 
 describe("calcularApartado", () => {
   it("no toca nada si la foto ya cabe sobre la hoja", () => {
@@ -60,5 +60,19 @@ describe("calcularApartado", () => {
     // Aunque sobre hueco, el marco es el que es (reglas 5 y 7).
     const r = calcularApartado({ tope: 0, suelo: 900, fotoTop: 100, fotoAlto: 252 });
     expect(r.escala).toBe(1);
+  });
+});
+
+describe("margenDeCrecimiento", () => {
+  it("da el recorrido que la hoja puede subir sin comerse la foto", () => {
+    // 360x780 con la hoja de marcas: 780 - 506 - 10 de aire - 6 de tope - 78 de
+    // suelo = 180px de tirón. La hoja pasa de 506 a 686 y la foto acaba
+    // midiendo exactamente el recorte flotante.
+    expect(margenDeCrecimiento({ ventana: 780, alturaHoja: 506, tope: 6 })).toBe(180);
+  });
+
+  it("es cero cuando ya no queda hueco: no hay gesto hacia arriba", () => {
+    // Teclado abierto en un móvil bajo. Estirar aquí solo taparía la foto.
+    expect(margenDeCrecimiento({ ventana: 380, alturaHoja: 300, tope: 6 })).toBe(0);
   });
 });

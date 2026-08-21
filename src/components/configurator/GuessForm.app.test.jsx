@@ -453,6 +453,63 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     expect(hoja.style.transform).toBe("translateY(0px)");
   });
 
+  // Una lista que de verdad desborda. jsdom no maqueta, así que el desbordamiento
+  // —que es lo que decide si la hoja tiene algo que enseñar estirándose— se
+  // declara a mano sobre el nodo real.
+  function listaQueDesborda() {
+    const lista = document.querySelector(".pm-lista");
+    lista.style.overflowY = "auto";
+    Object.defineProperty(lista, "scrollHeight", { configurable: true, value: 2000 });
+    Object.defineProperty(lista, "clientHeight", { configurable: true, value: 300 });
+    return lista;
+  }
+
+  it("tirar hacia arriba la estira hasta el suelo de la fotografía, y ni un píxel más", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+    const hoja = document.querySelector(".pm-hoja");
+    listaQueDesborda();
+
+    // El recorrido: 800 de ventana - 500 de hoja - 10 de aire - 30 de tope - 78
+    // del recorte flotante = 182px. Estirada del todo, la foto mide exactamente
+    // lo que el recorte, que es la promesa que no se rompe ni tirando fuerte.
+    dedo(hoja, [500, 440, 380, 350]);
+
+    expect(hoja.style.height).toBe("682px");
+    // Sin soltar el techo del CSS la hoja no podría pasar de su alto de reposo.
+    expect(hoja.style.maxHeight).toBe("none");
+    // Y sigue abierta: hacia arriba no se cierra nada.
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("con el contenido entero a la vista NO se estira: no hay nada que enseñar", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+    const hoja = document.querySelector(".pm-hoja");
+    // Sin desbordamiento declarado: la lista cabe. Es el caso del año con la
+    // horquilla acotada, donde estirar solo taparía la foto con papel en blanco.
+    dedo(hoja, [500, 440, 380]);
+
+    expect(hoja.style.height).toBe("");
+  });
+
+  it("estirada, un cambio de paso la devuelve a su altura de reposo", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelMarca"));
+    const hoja = document.querySelector(".pm-hoja");
+    listaQueDesborda();
+    dedo(hoja, [500, 440, 380, 350]);
+    expect(hoja.style.height).toBe("682px");
+
+    // Elegir marca encadena al modelo: MISMA hoja, otro contenido. Una hoja de
+    // 682px para dos modelos sería papel en blanco tapando el coche.
+    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
+
+    await waitFor(() => {
+      expect(document.querySelector(".pm-hoja").style.height).toBe("");
+    });
+  });
+
   it("al cerrar la hoja la foto vuelve a su sitio", async () => {
     await montar();
     const raiz = document.documentElement;

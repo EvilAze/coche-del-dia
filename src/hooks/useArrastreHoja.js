@@ -1,32 +1,42 @@
 // src/hooks/useArrastreHoja.js
-// Cerrar la hoja de selección deslizándola hacia abajo.
+// La hoja de selección se agarra y se mueve: hacia abajo para cerrarla, hacia
+// arriba para ver más lista. Y la fotografía la sigue en los dos sentidos, en
+// tiempo real.
 //
-// POR QUÉ. El tirador de la hoja lleva desde el primer día diciendo «esto se
-// cierra hacia abajo» y no era verdad: era un adorno de tres píxeles. En una app
-// eso se nota — el pulgar ya está sobre la hoja, y el gesto que pide una
-// superficie anclada al borde inferior es empujarla fuera, no subir hasta la X.
+// LA IDEA, Y ES UNA SOLA. La hoja no tiene «una altura», tiene un RECORRIDO, y
+// la foto no está en «una posición», está donde la deje la hoja. Son la misma
+// composición vista por sus dos extremos, así que el gesto no es «abrir/cerrar»
+// sino mover un único número: dónde queda el filete de arriba de la hoja. Todo
+// lo demás sale de ahí — cuánto sube la foto, cuánto encoge, cuántas marcas
+// caben. Por eso el dedo no dispara estados, los recorre.
 //
-// EL GESTO ES CONTINUO, NO UN DISPARADOR. La hoja sigue al dedo píxel a píxel y
-// la FOTOGRAFÍA baja con ella (`onDesplazar`), porque las dos son la misma
-// composición: la foto está donde está porque la hoja ocupa lo que ocupa. Si al
-// arrastrar solo se moviera la hoja, la foto se quedaría suspendida en un sitio
-// que ya no le corresponde y el truco se vería. Al soltar, o se va (y la foto
-// vuelve entera) o rebota a su sitio; en los dos casos las dos piezas viajan
-// juntas.
+// EL RECORRIDO, de arriba abajo:
+//   · ESTIRADA. El tope lo pone lib/escenarioApartado: justo donde la foto llega
+//     a los 78px del recorte flotante. Tirando del todo, la fotografía SE
+//     CONVIERTE en el recorte y ni un píxel menos — la promesa de que no se
+//     pierde de vista se sostiene hasta el último milímetro del gesto.
+//   · EN REPOSO. Donde se abre: la foto entera y la lista debajo.
+//   · FUERA. Pasado el 28% de su alto (o con un manotazo), se va.
+// Al soltar cae al escalón de al lado: ni se queda a medias ni hay que acertar.
 //
-// DE DÓNDE SE PUEDE TIRAR. De cualquier sitio de la hoja MENOS de una lista que
-// esté a media altura: ahí el gesto hacia abajo es scroll y robárselo sería
-// insufrible. Con la lista arriba del todo, en cambio, tirar hacia abajo ya no
-// scrollea nada (`overscroll-behavior: contain`), así que ese gesto está libre y
-// es justo el que la gente usa para «salir de aquí». La búsqueda del scroller es
-// por altura real y `overflow-y` computado, no por clase: la hoja tiene tres
-// contenidos distintos (marcas, modelos, años) y cada uno desplaza lo suyo.
+// DE DÓNDE SE PUEDE TIRAR. De la cabecera y del tirador, siempre. De la lista,
+// solo si está ARRIBA DEL TODO — a media lista el gesto vertical es scroll y
+// robárselo sería insufrible; y estando arriba, tirar hacia abajo ya no scrollea
+// nada, así que ese gesto está libre. La regla vale para los dos sentidos a
+// propósito: «la hoja se agarra por donde no hay lista que mover» se explica en
+// una frase, y una regla que se explica en una frase es una que el pulgar
+// aprende solo.
+//
+// LO QUE NO CRECE ES LO QUE NO TIENE NADA QUE ENSEÑAR. Si el contenido cabe
+// entero —los años de una horquilla corta— no hay gesto hacia arriba: estirar
+// solo serviría para tapar la foto con papel en blanco. El margen se recorta a
+// lo que de verdad sobresale.
 //
 // TOUCH Y NO POINTER EVENTS, a propósito: hace falta `preventDefault()` sobre el
-// `touchmove` para cortarle el scroll al navegador en el instante en que
-// tomamos el mando, y eso obliga a un listener NO pasivo, que es algo que se
-// declara al registrar. Con pointer events habría que además pelearse con
-// `touch-action`, y la hoja solo existe dentro de la app: aquí no hay ratón.
+// `touchmove` para cortarle el scroll al navegador en el instante en que tomamos
+// el mando, y eso obliga a un listener NO pasivo, que se declara al registrar.
+// Con pointer events habría que además pelearse con `touch-action`, y la hoja
+// solo existe dentro de la app: aquí no hay ratón.
 
 import { useEffect, useRef } from "react";
 
@@ -37,9 +47,9 @@ const UMBRAL = 8;
 // alto. Un cuarto largo: menos y se cierra sin querer al intentar mirar la lista
 // de abajo; más y hay que arrastrarla media pantalla.
 const FRACCION_CIERRE = 0.28;
-// El atajo del gesto rápido: un manotazo corto y decidido cierra sin llegar a la
-// fracción. px/ms — 0,55 es un gesto claramente intencionado.
-const VELOCIDAD_CIERRE = 0.55;
+// El atajo del gesto rápido: un manotazo corto y decidido decide el destino sin
+// llegar a la mitad del recorrido. px/ms.
+const VELOCIDAD = 0.55;
 const MINIMO_GESTO_RAPIDO = 24;
 // LA VELOCIDAD SE MIDE SOBRE UNA VENTANA, NO SOBRE EL ÚLTIMO TRAMO. Dividir el
 // último salto entre su intervalo da números disparatados cuando el intervalo es
@@ -51,18 +61,33 @@ const VENTANA_MS = 150;
 const MINIMO_VENTANA_MS = 30;
 // La misma duración y la misma curva que la entrada de la hoja (index.css) y que
 // el marco de la foto: las tres piezas se mueven como una.
-const VUELTA_MS = 200;
+const ASENTAR_MS = 200;
 const CURVA = "cubic-bezier(.16,1,.3,1)";
 
 /**
  * @param {object} p
  * @param {HTMLElement|null} p.hojaEl   panel de la hoja.
  * @param {boolean} p.activo            solo con la hoja abierta.
+ * @param {string} p.clave              cambia cuando cambia el contenido (el
+ *                                      paso del cupón). Devuelve la hoja a su
+ *                                      altura de reposo: una hoja estirada para
+ *                                      ochenta marcas es papel en blanco para
+ *                                      cinco años.
  * @param {() => void} p.onCerrar       cerrar de verdad (lo decide el caller).
- * @param {(px: number) => void} p.onDesplazar  la hoja va N px más abajo.
+ * @param {(px: number) => void} p.onDesplazar  la hoja va N px más abajo (0 si
+ *                                      lo que ha cambiado es su altura).
+ * @param {(alturaReposo: number) => number} p.margenParaCrecer  cuánto puede
+ *                                      estirarse sin comerse la fotografía.
  */
-export function useArrastreHoja({ hojaEl, activo, onCerrar, onDesplazar }) {
-  // LAS DOS FUNCIONES, POR REF Y NO POR DEPENDENCIA. `onCerrar` llega como una
+export function useArrastreHoja({
+  hojaEl,
+  activo,
+  clave,
+  onCerrar,
+  onDesplazar,
+  margenParaCrecer,
+}) {
+  // LAS FUNCIONES, POR REF Y NO POR DEPENDENCIA. `onCerrar` llega como una
   // flecha nueva en cada render del cupón, así que ponerla en el array de
   // dependencias desmontaría y volvería a montar los listeners cada vez que algo
   // se re-renderiza — y si eso cae A MITAD DE UN GESTO, el arrastre pierde su
@@ -70,25 +95,35 @@ export function useArrastreHoja({ hojaEl, activo, onCerrar, onDesplazar }) {
   // efecto se monta una vez por apertura y siempre llama a la última versión.
   const cerrarRef = useRef(onCerrar);
   const desplazarRef = useRef(onDesplazar);
+  const margenRef = useRef(margenParaCrecer);
   cerrarRef.current = onCerrar;
   desplazarRef.current = onDesplazar;
+  margenRef.current = margenParaCrecer;
 
   useEffect(() => {
     if (!activo || !hojaEl || typeof document === "undefined") return;
     const raiz = document.documentElement;
 
+    // Lo estirada que está la hoja ahora mismo, en px por encima de su altura de
+    // reposo. Sobrevive entre gestos: si la dejas arriba, se queda arriba.
+    let estirada = 0;
+    // Estado del gesto en curso.
     let inicioY = 0;
     let muestras = [];
-    let recorrido = 0;
+    let base = 0;
+    let margen = 0;
+    let offset0 = 0;
+    let offset = 0;
     let permitido = false;
     let siguiendo = false;
+    let pintado = 0;
+    let objetivo = 0;
     // La devolución de estilos queda pendiente de un `transitionend`, y ese
     // evento puede no llegar nunca: si el dedo vuelve a agarrar la hoja a mitad
-    // del rebote, la transición se CANCELA (y `transitionend` no se dispara con
-    // una cancelación). El oyente huérfano se quedaría esperando y acabaría
-    // saltando en la siguiente transición de la hoja —la de salida, por
-    // ejemplo—, borrando el `transform` justo cuando hace falta. Se guarda para
-    // poder retirarlo a mano.
+    // del asentamiento, la transición se CANCELA (y `transitionend` no se
+    // dispara con una cancelación). El oyente huérfano acabaría saltando en la
+    // siguiente transición de la hoja —la de salida, por ejemplo— y borraría el
+    // `transform` justo cuando hace falta.
     let limpieza = null;
 
     function cancelarLimpieza() {
@@ -97,32 +132,38 @@ export function useArrastreHoja({ hojaEl, activo, onCerrar, onDesplazar }) {
       limpieza = null;
     }
 
+    function desbordaEnVertical(el) {
+      if (el.scrollHeight <= el.clientHeight + 1) return false;
+      const desborde = getComputedStyle(el).overflowY;
+      return desborde === "auto" || desborde === "scroll";
+    }
+
     // El primer ancestro DESPLAZABLE entre el dedo y la hoja. Se para en la
     // propia hoja: lo que haya por encima no es asunto de este gesto.
     function scrollerBajo(nodo) {
       let el = nodo instanceof Element ? nodo : null;
       while (el && el !== hojaEl) {
-        if (el.scrollHeight > el.clientHeight + 1) {
-          const desborde = getComputedStyle(el).overflowY;
-          if (desborde === "auto" || desborde === "scroll") return el;
-        }
+        if (desbordaEnVertical(el)) return el;
         el = el.parentElement;
       }
       return null;
     }
 
-    function mover(px) {
-      hojaEl.style.transition = "none";
-      hojaEl.style.transform = `translateY(${px}px)`;
-      desplazarRef.current?.(px);
-    }
-
-    function soltarElMando() {
-      // Devuelve la hoja a sus clases: a partir de aquí manda ModalShell otra
-      // vez. Sin esto, el `transform` en línea se quedaría puesto y la siguiente
-      // animación de entrada no tendría desde dónde salir.
-      hojaEl.style.transition = "";
-      hojaEl.style.transform = "";
+    // Cuánto contenido queda por debajo del corte. Es el techo real del gesto
+    // hacia arriba: estirar más de lo que hay que enseñar solo añade papel.
+    // Recorrido en anchura y con tope, porque el scroller de la hoja está a uno
+    // o dos niveles del cuerpo pero no siempre en el mismo sitio (la lista de
+    // marcas vive dentro de su caja; la rejilla de años, no).
+    function sobraDeContenido() {
+      const cuerpo = hojaEl.querySelector(".pm-hoja-cuerpo");
+      if (!cuerpo) return 0;
+      const pila = [...cuerpo.children];
+      for (let i = 0; i < pila.length && i < 40; i++) {
+        const el = pila[i];
+        if (desbordaEnVertical(el)) return el.scrollHeight - el.clientHeight;
+        pila.push(...el.children);
+      }
+      return 0;
     }
 
     // px/ms del final del gesto (positivo = hacia abajo). 0 si no hay recorrido
@@ -135,14 +176,58 @@ export function useArrastreHoja({ hojaEl, activo, onCerrar, onDesplazar }) {
       return (fin.y - desde.y) / (fin.t - desde.t);
     }
 
+    // EL ÚNICO SITIO QUE TOCA EL DOM. `offset` es dónde queda el filete de
+    // arriba de la hoja respecto a su reposo: negativo = estirada, positivo =
+    // empujada hacia fuera. Los dos lados se pintan distinto, y no es capricho —
+    // estirarla le cambia el ALTO (la lista tiene que crecer para enseñar más
+    // filas) y empujarla fuera es un `transform` (no hay nada nuevo que enseñar,
+    // así que no hay por qué recomponer nada).
+    function escribir(px) {
+      if (px < 0) {
+        hojaEl.style.maxHeight = "none";
+        hojaEl.style.height = `${base - px}px`;
+        hojaEl.style.transform = "translateY(0px)";
+        // Sin desplazamiento: el alto nuevo ya está en el nodo y el hook de la
+        // composición lo lee de ahí.
+        desplazarRef.current?.(0);
+        return;
+      }
+      hojaEl.style.maxHeight = "";
+      hojaEl.style.height = "";
+      hojaEl.style.transform = `translateY(${px}px)`;
+      desplazarRef.current?.(px);
+    }
+
+    // Un pintado por frame como mucho. Los eventos táctiles llegan más deprisa
+    // que los frames en muchos móviles, y cada pintado de este cuesta una
+    // recomposición de la lista: escribir tres veces para el mismo frame es
+    // trabajo tirado, y del caro.
+    function programar(px) {
+      objetivo = px;
+      if (pintado) return;
+      pintado = requestAnimationFrame(() => {
+        pintado = 0;
+        escribir(objetivo);
+      });
+    }
+
     function onStart(e) {
       if (e.touches.length !== 1) return;
       cancelarLimpieza();
       const t = e.touches[0];
       inicioY = t.clientY;
       muestras = [{ y: t.clientY, t: e.timeStamp }];
-      recorrido = 0;
       siguiendo = false;
+      base = hojaEl.offsetHeight - estirada;
+      offset0 = -estirada;
+      offset = offset0;
+      // El margen se mide contra el reposo, y la sobra de contenido contra lo
+      // que se ve AHORA: sumarle lo ya estirado devuelve el recorrido completo,
+      // que es el mismo tanto si el gesto empieza abajo como a medio camino.
+      margen = Math.max(
+        0,
+        Math.min(margenRef.current?.(base) ?? 0, sobraDeContenido() + estirada)
+      );
       const scroller = scrollerBajo(e.target);
       permitido = !scroller || scroller.scrollTop <= 0;
     }
@@ -151,24 +236,54 @@ export function useArrastreHoja({ hojaEl, activo, onCerrar, onDesplazar }) {
       if (!permitido || e.touches.length !== 1) return;
       const y = e.touches[0].clientY;
       const dy = y - inicioY;
-      // Hacia arriba no se arrastra: la hoja está anclada abajo y subirla
-      // despegaría su borde inferior del borde de la pantalla.
+
       if (!siguiendo) {
-        if (dy < UMBRAL) return;
+        if (Math.abs(dy) < UMBRAL) return;
+        // HACIA ARRIBA SOLO SI HAY SITIO. Si la hoja no puede crecer más, el
+        // gesto NO se toca: todavía no se ha llamado a `preventDefault`, así que
+        // el navegador se lo queda y la lista scrollea nativa, con su inercia.
+        // Robarlo para no hacer nada con él sería lo peor de los dos mundos.
+        if (dy < 0 && offset0 <= -margen) {
+          permitido = false;
+          return;
+        }
         siguiendo = true;
-        // Mientras dura el gesto, el marco de la foto va SIN transición: tiene
-        // que ir pegado al dedo, no persiguiéndolo con 200ms de retraso.
+        // Mientras dura el gesto nada se anima: la hoja y la foto van pegadas al
+        // dedo, no persiguiéndolo con 200ms de retraso.
         raiz.dataset.arrastrando = "";
+        hojaEl.style.transition = "none";
       }
       // El scroll del navegador, cortado justo aquí y no antes: hasta el umbral
-      // el gesto todavía podía ser un scroll de la lista.
+      // el gesto todavía podía ser suyo.
       if (e.cancelable) e.preventDefault();
       muestras.push({ y, t: e.timeStamp });
       while (muestras.length > 2 && e.timeStamp - muestras[0].t > VENTANA_MS) {
         muestras.shift();
       }
-      recorrido = Math.max(0, dy - UMBRAL);
-      mover(recorrido);
+      // El umbral se descuenta para que la hoja no dé un salto de 8px al
+      // engancharse: empieza a moverse desde donde estaba, no desde donde el
+      // dedo lleva ya recorrido.
+      offset = Math.max(offset0 + dy - Math.sign(dy) * UMBRAL, -margen);
+      programar(offset);
+    }
+
+    function asentar(destino) {
+      cancelAnimationFrame(pintado);
+      pintado = 0;
+      estirada = Math.max(0, -destino);
+      hojaEl.style.transition =
+        `height ${ASENTAR_MS}ms ${CURVA}, transform ${ASENTAR_MS}ms ${CURVA}`;
+      escribir(destino);
+      limpieza = (ev) => {
+        if (ev.target !== hojaEl) return;
+        cancelarLimpieza();
+        // Solo se suelta la transición. El alto y el `transform` SON el reposo
+        // nuevo si la hoja se ha quedado estirada; devolverlos a las clases la
+        // dejarían caer de golpe.
+        hojaEl.style.transition = "";
+        if (destino === 0) hojaEl.style.transform = "";
+      };
+      hojaEl.addEventListener("transitionend", limpieza);
     }
 
     function onEnd() {
@@ -178,47 +293,81 @@ export function useArrastreHoja({ hojaEl, activo, onCerrar, onDesplazar }) {
       }
       siguiendo = false;
       permitido = false;
+      cancelAnimationFrame(pintado);
+      pintado = 0;
       delete raiz.dataset.arrastrando;
 
-      const alto = hojaEl.offsetHeight || 1;
-      const cierra =
-        recorrido > alto * FRACCION_CIERRE ||
-        (velocidadFinal() > VELOCIDAD_CIERRE && recorrido > MINIMO_GESTO_RAPIDO);
-
-      hojaEl.style.transition = `transform ${VUELTA_MS}ms ${CURVA}`;
-      if (cierra) {
+      const velocidad = velocidadFinal();
+      if (
+        offset > base * FRACCION_CIERRE ||
+        (velocidad > VELOCIDAD && offset > MINIMO_GESTO_RAPIDO)
+      ) {
         // Se termina el viaje que el dedo dejó a medias. `onCerrar` desmonta la
         // hoja por la vía de siempre (ModalShell y su animación de salida), y la
-        // limpieza del hook de la foto la devuelve a su sitio a la vez: el
-        // mismo gesto, las dos piezas.
+        // limpieza del hook de la foto la devuelve a su sitio a la vez: el mismo
+        // gesto, las dos piezas.
+        estirada = 0;
+        hojaEl.style.transition = `transform ${ASENTAR_MS}ms ${CURVA}`;
         hojaEl.style.transform = "translateY(100%)";
         cerrarRef.current?.();
         return;
       }
-      hojaEl.style.transform = "translateY(0px)";
-      desplazarRef.current?.(0);
-      limpieza = (ev) => {
-        if (ev.target !== hojaEl) return;
-        cancelarLimpieza();
-        soltarElMando();
-      };
-      hojaEl.addEventListener("transitionend", limpieza);
+
+      // Entre los dos escalones que quedan manda el impulso; sin impulso, el más
+      // cercano. Es lo que hace que un gesto corto y decidido valga tanto como
+      // uno largo.
+      let destino = 0;
+      if (margen > 0) {
+        if (velocidad < -VELOCIDAD) destino = -margen;
+        else if (velocidad > VELOCIDAD) destino = 0;
+        else destino = offset < -margen / 2 ? -margen : 0;
+      }
+      asentar(destino);
     }
 
     // `touchcancel` lo dispara el sistema cuando se lleva el gesto (una llamada,
-    // el gesto de atrás del borde). Se trata como un final: la hoja vuelve.
+    // el gesto de atrás del borde). Se trata como un final: la hoja se asienta.
     hojaEl.addEventListener("touchstart", onStart, { passive: true });
     hojaEl.addEventListener("touchmove", onMove, { passive: false });
     hojaEl.addEventListener("touchend", onEnd);
     hojaEl.addEventListener("touchcancel", onEnd);
 
+    // Si cambia el tamaño de la ventana —el teclado, girar el móvil— el alto en
+    // línea que dejó el gesto ya no vale: se calculó contra otra pantalla. Se
+    // suelta y vuelve a mandar el CSS, que es quien sabe rehacer la cuenta.
+    const alRedimensionar = () => {
+      if (siguiendo || !estirada) return;
+      estirada = 0;
+      hojaEl.style.height = "";
+      hojaEl.style.maxHeight = "";
+    };
+    window.addEventListener("resize", alRedimensionar);
+    window.visualViewport?.addEventListener("resize", alRedimensionar);
+
     return () => {
+      cancelAnimationFrame(pintado);
       cancelarLimpieza();
       hojaEl.removeEventListener("touchstart", onStart);
       hojaEl.removeEventListener("touchmove", onMove);
       hojaEl.removeEventListener("touchend", onEnd);
       hojaEl.removeEventListener("touchcancel", onEnd);
+      window.removeEventListener("resize", alRedimensionar);
+      window.visualViewport?.removeEventListener("resize", alRedimensionar);
       delete raiz.dataset.arrastrando;
     };
-  }, [hojaEl, activo]);
+    // `clave` entra en las dependencias para que al cambiar de paso el efecto se
+    // rehaga: `estirada` es estado de este efecto, así que remontarlo ES el
+    // reset. El alto en línea lo suelta el efecto de abajo.
+  }, [hojaEl, activo, clave]);
+
+  // EL ALTO EN LÍNEA NO SOBREVIVE A UN CAMBIO DE PASO: la hoja de los años no
+  // mide lo que la de las marcas, y dejarla estirada para cinco décadas es papel
+  // en blanco tapando la foto. Va en su propio efecto y no en la limpieza del de
+  // arriba porque aquella corre TAMBIÉN al cerrar, y ahí el nodo está en plena
+  // animación de salida: tocarle el alto en ese momento se vería como un tirón.
+  useEffect(() => {
+    if (!hojaEl) return;
+    hojaEl.style.height = "";
+    hojaEl.style.maxHeight = "";
+  }, [hojaEl, clave]);
 }

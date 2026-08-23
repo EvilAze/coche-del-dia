@@ -92,6 +92,45 @@ export async function conTimeoutOFallback(
   }
 }
 
+/**
+ * Como `conTimeoutOFallback` pero REINTENTANDO. Recibe una FÁBRICA y no una
+ * promesa, porque una promesa ya lanzada no se puede volver a esperar: hay que
+ * pedirle una nueva a cada intento.
+ *
+ * Para qué: sin reintento, un plazo convierte en error toda petición que
+ * tarde más de la cuenta —incluidas las que iban a llegar—. Y ahí la
+ * comparación importante no es con el ideal, es con lo que pasaba ANTES de
+ * haber plazos: antes una lectura de 7 s acababa sirviendo la partida, tarde
+ * pero entera. Con un plazo pelado de 5 s pasaría a ser una pantalla de error,
+ * y eso es empeorarle la experiencia a quien no la tenía rota. Con dos
+ * intentos, el caso lento se resuelve solo y el caso atrancado sigue cortando.
+ *
+ * @template T
+ * @param {() => Promise<T>} fabricar
+ * @param {number} ms plazo de CADA intento
+ * @param {T} valorPorDefecto si se agotan los intentos
+ * @param {{ etiqueta?: string, intentos?: number }} [opts]
+ * @returns {Promise<T>}
+ */
+export async function conTimeoutReintentando(
+  fabricar,
+  ms,
+  valorPorDefecto,
+  { etiqueta = "operación", intentos = 2 } = {}
+) {
+  for (let i = 1; i <= intentos; i++) {
+    try {
+      return await conTimeout(fabricar(), ms, { etiqueta });
+    } catch (err) {
+      console.error(
+        `[timeout] ${etiqueta} falló (intento ${i}/${intentos}):`,
+        err?.message || err
+      );
+      if (i === intentos) return valorPorDefecto;
+    }
+  }
+}
+
 // Plazos por dependencia. Centralizados aquí para que se lean juntos y se vea
 // el criterio: cada uno es varias veces el p99 sano de esa dependencia, no un
 // número apretado. El objetivo NO es cortar peticiones lentas, es no llegar
@@ -110,6 +149,14 @@ export const PLAZOS = {
   // 10 s de margen real, que sigue estando muy por debajo de los 25 s del
   // Edge y no depende de acertar el número a la primera.
   AUTH: 5000,
-  // Lecturas y RPC contra PostgREST: sano son 20-120 ms desde fra1.
-  SUPABASE: 5000,
+  // Lecturas y RPC contra PostgREST: sano son 20-120 ms desde fra1. 4 s es ~33
+  // veces ese p99, y las lecturas que sostienen la partida van con DOS
+  // intentos (conTimeoutReintentando), o sea 8 s de margen real.
+  //
+  // Baja de 5000 a 4000 justo por eso: al añadir el reintento, el peor caso
+  // encadenado de get-daily-car —limiter + (auth ∥ pick_daily_car) +
+  // user_guesses + reveal— se salía de los 25 s de la Edge Function, y
+  // pasarse de ahí devuelve el 504 con HTML que veníamos a eliminar. El test
+  // de PLAZOS vigila esa suma.
+  SUPABASE: 4000,
 };

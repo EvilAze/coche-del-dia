@@ -43,7 +43,7 @@ import { logSessionStart } from "./_lib/edge/audit.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
 import { isAllowedOrigin, CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS } from "./_lib/cors.js";
-import { conTimeoutOFallback, PLAZOS } from "./_lib/timeout.js";
+import { conTimeoutOFallback, conTimeoutReintentando, PLAZOS } from "./_lib/timeout.js";
 
 // Intentos máximos de la partida diaria. Este valor viaja al cliente en la
 // respuesta para que la UI no tenga que hardcodearlo — pero es SOLO
@@ -150,8 +150,12 @@ export default async function handler(request) {
   // las dos fue. El RPC devuelve la forma de PostgREST ({data, error}) para
   // que el fallo por plazo entre por el mismo `if (rpcErr)` de siempre.
   const [rpcResult, authResult] = await Promise.all([
-    conTimeoutOFallback(
-      supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+    // Con reintento: sin coche del día no hay juego, así que es la lectura que
+    // menos nos podemos permitir dar por perdida a la primera. pick_daily_car
+    // es idempotente (fija el coche de la fecha y después lo devuelve), así
+    // que repetirla no tiene efectos.
+    conTimeoutReintentando(
+      () => supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
       PLAZOS.SUPABASE,
       { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
       { etiqueta: "pick_daily_car" }
@@ -214,15 +218,18 @@ export default async function handler(request) {
       { data: null, error: { message: "read image_url sin respuesta a tiempo" } },
       { etiqueta: "read image_url" }
     ),
+    // También con reintento: si esta lectura se pierde, el usuario logueado se
+    // come un 503 aunque su partida esté ahí. Es la otra que sostiene el juego.
     user
-      ? conTimeoutOFallback(
-          authClient
-            .from("user_guesses")
-            .select("guesses, status")
-            .eq("user_id", user.id)
-            .eq("car_id", todayCarId)
-            .eq("date", today)
-            .maybeSingle(),
+      ? conTimeoutReintentando(
+          () =>
+            authClient
+              .from("user_guesses")
+              .select("guesses, status")
+              .eq("user_id", user.id)
+              .eq("car_id", todayCarId)
+              .eq("date", today)
+              .maybeSingle(),
           PLAZOS.SUPABASE,
           { data: null, error: { message: "read user_guesses sin respuesta a tiempo" } },
           { etiqueta: "read user_guesses" }

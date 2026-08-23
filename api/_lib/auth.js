@@ -74,6 +74,17 @@ async function identidadLocal(client, accessToken) {
     const { data, error } = await client.auth.getClaims(accessToken, { keys });
     if (error || !data?.claims?.sub) return { sinClaves: true };
     const c = data.claims;
+    // SIN `email` NO NOS VALE, aunque la firma sea buena. `requireAdmin`
+    // autoriza comparando ese campo con ADMIN_EMAILS, así que un claim
+    // ausente no daría un fallo ruidoso: daría un 403 silencioso y te
+    // dejaría fuera de tu propio panel sin manera de entrar. Los JWT de
+    // Supabase lo traen siempre, pero «siempre» no es una garantía que
+    // convenga firmar cuando el coste de equivocarse es ese. Caemos a
+    // getUser(), que lo devuelve seguro.
+    if (!c.email) {
+      console.error("[auth] claims sin email, se cae a getUser");
+      return { sinClaves: true };
+    }
     // Forma de `user` equivalente a la que devolvía getUser en lo que el
     // código consume: id, email y user_metadata (delete-account).
     return {

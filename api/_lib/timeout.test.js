@@ -5,7 +5,13 @@
 // el fallback cubra las dos formas de fallar, y que el rechazo tardío de la
 // promesa perdedora no salga como unhandled.
 import { describe, it, expect, vi } from "vitest";
-import { conTimeout, conTimeoutOFallback, TimeoutError, PLAZOS } from "./timeout.js";
+import {
+  conTimeout,
+  conTimeoutOFallback,
+  conTimeoutReintentando,
+  TimeoutError,
+  PLAZOS,
+} from "./timeout.js";
 
 // Promesa que NO se resuelve nunca: es el caso que el try/catch de antes no
 // cubría y el que tumbó la web el 23 de agosto de 2026.
@@ -104,9 +110,61 @@ describe("PLAZOS", () => {
     expect(PLAZOS.RATELIMIT).toBeLessThan(PLAZOS.SUPABASE);
   });
 
-  it("los tres sumados siguen dejando margen dentro de los 25 s del Edge", () => {
-    // get-daily-car encadena como mucho limiter → (auth ∥ RPC) → lecturas.
-    const peorCaso = PLAZOS.RATELIMIT + Math.max(PLAZOS.AUTH, PLAZOS.SUPABASE) + PLAZOS.SUPABASE;
-    expect(peorCaso).toBeLessThan(20000);
+  it("el peor caso encadenado de get-daily-car cabe en los 25 s del Edge", () => {
+    // Este test es el que impide que un plazo suba «solo un poco» y la
+    // función acabe muriendo por presupuesto — devolviendo justo el 504 con
+    // cuerpo HTML que todo esto viene a eliminar.
+    //
+    // La cadena real, con los reintentos incluidos:
+    //   limiter  →  (auth ∥ pick_daily_car)  →  user_guesses  →  reveal
+    // auth y pick_daily_car van en paralelo (Promise.all), así que cuenta el
+    // mayor de los dos. Los que llevan DOS intentos pagan el plazo dos veces.
+    const DOS_INTENTOS = 2;
+    const auth = PLAZOS.AUTH * DOS_INTENTOS;
+    const rpc = PLAZOS.SUPABASE * DOS_INTENTOS;
+    const guesses = PLAZOS.SUPABASE * DOS_INTENTOS;
+    const reveal = PLAZOS.SUPABASE;
+
+    const peorCaso = PLAZOS.RATELIMIT + Math.max(auth, rpc) + guesses + reveal;
+    // Margen de sobra por debajo del límite duro de la Edge Function.
+    expect(peorCaso).toBeLessThan(25000);
+  });
+});
+
+describe("conTimeoutReintentando", () => {
+  it("devuelve a la primera si la dependencia responde", async () => {
+    const fabricar = vi.fn(async () => "ok");
+    expect(await conTimeoutReintentando(fabricar, 1000, "porDefecto")).toBe("ok");
+    expect(fabricar).toHaveBeenCalledTimes(1);
+  });
+
+  it("PIDE UNA PROMESA NUEVA en cada intento", async () => {
+    // Por esto recibe una fábrica y no una promesa: una promesa ya rechazada
+    // se queda rechazada, así que reintentar sobre ella no reintenta nada.
+    const fabricar = vi
+      .fn()
+      .mockImplementationOnce(nuncaResuelve)
+      .mockImplementationOnce(async () => "a la segunda");
+    const r = await conTimeoutReintentando(fabricar, 20, "porDefecto", {
+      etiqueta: "pick_daily_car",
+    });
+    expect(r).toBe("a la segunda");
+    expect(fabricar).toHaveBeenCalledTimes(2);
+  });
+
+  it("agotados los intentos, cae al valor por defecto", async () => {
+    const fabricar = vi.fn(nuncaResuelve);
+    const r = await conTimeoutReintentando(fabricar, 20, { data: null, error: { message: "x" } });
+    expect(r.error.message).toBe("x");
+    expect(fabricar).toHaveBeenCalledTimes(2);
+  });
+
+  it("un error (no un plazo) también se reintenta", async () => {
+    // Una conexión cortada es tan transitoria como una lenta.
+    const fabricar = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("ECONNRESET"))
+      .mockResolvedValueOnce("recuperado");
+    expect(await conTimeoutReintentando(fabricar, 1000, "porDefecto")).toBe("recuperado");
   });
 });

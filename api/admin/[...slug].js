@@ -39,6 +39,7 @@ import seasons from "../../lib/admin-handlers/seasons.js";
 import translate from "../../lib/admin-handlers/translate.js";
 import analyzeImage from "../../lib/admin-handlers/analyze-image.js";
 import describeCar from "../../lib/admin-handlers/describe-car.js";
+import masters from "../../lib/admin-handlers/masters.js";
 
 const ROUTES = {
   "analytics":     analytics,
@@ -52,6 +53,7 @@ const ROUTES = {
   "translate":     translate,
   "analyze-image": analyzeImage,
   "describe-car":  describeCar,
+  "masters":       masters,
 };
 
 // PLAZO POR RUTA, en ms. El dispatcher es el único sitio por el que pasan los
@@ -77,6 +79,8 @@ const PLAZO_MS = {
   "translate": 55000,
   // Sube la foto al CDN además de escribir en la base.
   "save-car": 45000,
+  // Descarga, recodifica y sube varias fotos de varios MB por lote.
+  "masters": 55000,
 };
 
 export default async function handler(req, res) {

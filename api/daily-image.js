@@ -29,6 +29,7 @@ import sharp from "sharp";
 import { verifyRevealToken } from "./_lib/reveal-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
 import { authClientAndUser } from "./_lib/auth.js";
+import { leerImagenOrigen } from "./_lib/imagen-origen.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { methodGuard } from "./_lib/http.js";
 import { getClientIp } from "./_lib/ratelimit.js";
@@ -207,24 +208,16 @@ export default async function handler(req, res) {
   //                       lo usamos; si no, fallback a z=5.
   const wantedZ = canReveal ? zRequested : zRequested ?? 5;
 
-  // 4) Fetch server-side de los bytes. Si el CDN falla, propagamos el status
-  //    para que el cliente sepa que no es un error de nuestra app.
-  let upstream;
-  try {
-    upstream = await fetch(row.image_url);
-  } catch (err) {
-    console.error("[daily-image] upstream fetch:", err);
+  // 4) Bytes de origen. Por el helper: prefiere el master WebP —misma
+  //    resolución, la mitad de peso— y cae al original si aún no existe,
+  //    además de cachear en el proceso para que las 54 variantes del día no
+  //    se descarguen 54 veces. El porqué completo, en imagen-origen.js.
+  const origen = await leerImagenOrigen(row.image_url);
+  if (!origen) {
     return res.status(502).json({ message: "Upstream image unavailable" });
   }
-
-  if (!upstream.ok) {
-    console.error("[daily-image] upstream status:", upstream.status);
-    return res.status(502).json({ message: "Upstream image error" });
-  }
-
-  const originalContentType =
-    upstream.headers.get("content-type") || "image/jpeg";
-  const originalBuffer = Buffer.from(await upstream.arrayBuffer());
+  const originalContentType = origen.contentType;
+  const originalBuffer = origen.buffer;
 
   // 5) Procesamiento. Si el cliente pidió tamaño o formato, pasamos por
   //    sharp. Si no, passthrough (mantenemos backward-compat con cualquier

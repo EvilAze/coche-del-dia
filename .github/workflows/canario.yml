@@ -1,0 +1,121 @@
+# .github/workflows/canario.yml
+# Vigila que el juego se pueda jugar, y avisa cuando deja de poder jugarse.
+#
+# POR QUÉ EXISTE. El 23 de agosto de 2026 la web y el panel estuvieron caídos
+# para usuarios con sesión mientras Supabase tenía GoTrue degradado. Lo que
+# convirtió eso en un mal día no fue la caída: fue que llevaba pasando desde el
+# 7 DE JULIO —11 timeouts en /api/health en una sola semana, sobre 7 usuarios
+# distintos— y el primer aviso fue una persona abriendo la web y viéndola rota.
+# Sentry no lo cogía porque no eran excepciones, eran esperas que nunca
+# terminaban.
+#
+# POR QUÉ AQUÍ Y NO EN UN CRON DE VERCEL. El vigilante no puede vivir dentro de
+# lo que vigila: una sonda que corre en Vercel no puede avisar de que Vercel no
+# responde. Desde el runner de GitHub se mira la web igual que la mira un
+# jugador, desde fuera y por internet. Y de paso esquiva el límite de crons del
+# plan Hobby, como ya hace daily-push.
+#
+# CÓMO AVISA. Fallando. GitHub manda un correo al dueño del repo cuando un
+# workflow programado falla, así que no hace falta montar ninguna integración
+# ni añadir un secreto: si esto se pone rojo, te enteras.
+#
+# OJO: GitHub deshabilita los workflows programados de un repo sin actividad
+# durante 60 días. Si el proyecto se queda quieto una temporada, hay que
+# reactivarlo a mano desde la pestaña Actions.
+
+name: canario
+
+on:
+  schedule:
+    # Cada 15 minutos. GitHub no garantiza puntualidad en los cron programados
+    # (puede retrasarlos bajo carga); da igual, esto vigila una tendencia, no
+    # un instante.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  sondear:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sondear el juego y sus dependencias
+        run: |
+          set -uo pipefail
+
+          # La URL de Supabase NO es un secreto: viaja en VITE_SUPABASE_URL
+          # dentro del bundle del navegador y se ve en cualquier pestaña de red.
+          # No dice nada del coche del día, así que la regla 20 no aplica.
+          SUPA="https://ftojemthjgkgwbjjmuwy.supabase.co"
+          FALLOS=""
+
+          # sondea <nombre> <url> <maximo_segundos> [texto_que_debe_aparecer]
+          # Reintenta UNA vez antes de dar nada por malo: un hipo suelto no es
+          # una caída, y un canario que grita por ruido se acaba ignorando —que
+          # es la única forma de que esto no sirva para nada.
+          sondea() {
+            nombre="$1"; url="$2"; limite="$3"; espera="${4:-}"
+            for intento in 1 2; do
+              cuerpo=$(mktemp)
+              res=$(curl -s -o "$cuerpo" -w "%{http_code} %{time_total}" --max-time 25 "$url" || echo "000 25")
+              code="${res%% *}"; t="${res##* }"
+              lento=$(awk -v t="$t" -v l="$limite" 'BEGIN{print (t>l)?1:0}')
+              falta=0
+              if [ -n "$espera" ] && ! grep -q "$espera" "$cuerpo"; then falta=1; fi
+              if [ "$code" = "200" ] && [ "$lento" = "0" ] && [ "$falta" = "0" ]; then
+                echo "  OK   $nombre  ($code en ${t}s)"
+                rm -f "$cuerpo"; return 0
+              fi
+              motivo="HTTP $code en ${t}s"
+              [ "$lento" = "1" ] && motivo="$motivo (por encima de ${limite}s)"
+              [ "$falta" = "1" ] && motivo="$motivo (falta '$espera' en la respuesta)"
+              rm -f "$cuerpo"
+              [ "$intento" = "1" ] && sleep 5
+            done
+            echo "  MAL  $nombre  -> $motivo"
+            FALLOS="$FALLOS\n  - $nombre: $motivo"
+            return 1
+          }
+
+          echo "== Lo que ve un jugador =="
+          # get-daily-car es EL request bloqueante del primer paint: si esto no
+          # va, no hay juego, por muy bien que esté todo lo demás.
+          sondea "portada"             "https://cochedeldia.com/"                 5
+          sondea "coche del dia"       "https://cochedeldia.com/api/get-daily-car" 6  '"date"'
+          sondea "catalogo"            "https://cochedeldia.com/api/list-cars"     6  '"cars"'
+          sondea "salud (base)"        "https://cochedeldia.com/api/health"        6  '"db":"up"'
+
+          echo ""
+          echo "== Supabase, por separado =="
+          # Separar GoTrue de PostgREST es justo lo que costó una hora averiguar
+          # el 23 de agosto: la base contestaba en 200 ms y el auth no contestaba
+          # en 10 s. Con estas dos líneas, la próxima vez se ve de un vistazo.
+          # A /auth/v1/user sin token bueno se le pide un 401 RÁPIDO: lo que se
+          # mide es que conteste, no que autorice.
+          for etiqueta in "auth (GoTrue)|$SUPA/auth/v1/user" "claves de firma|$SUPA/auth/v1/.well-known/jwks.json"; do
+            nombre="${etiqueta%%|*}"; url="${etiqueta##*|}"
+            res=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" --max-time 12 -H "Authorization: Bearer canario" "$url" || echo "000 12")
+            code="${res%% *}"; t="${res##* }"
+            lento=$(awk -v t="$t" 'BEGIN{print (t>3)?1:0}')
+            if [ "$code" = "000" ] || [ "$lento" = "1" ]; then
+              echo "  MAL  $nombre  -> HTTP $code en ${t}s"
+              FALLOS="$FALLOS\n  - $nombre (Supabase): HTTP $code en ${t}s"
+            else
+              echo "  OK   $nombre  ($code en ${t}s)"
+            fi
+          done
+
+          echo ""
+          if [ -n "$FALLOS" ]; then
+            echo "=============================================="
+            echo "EL CANARIO HA CANTADO:"
+            printf "%b\n" "$FALLOS"
+            echo ""
+            echo "Cómo leerlo:"
+            echo "  - Falla algo de Supabase y NO el juego -> aguanta el blindaje;"
+            echo "    vigila, pero no toques nada."
+            echo "  - Falla el juego -> mira los logs de Vercel. Las lineas [auth],"
+            echo "    [jwks] y [timeout] dicen cual de las dependencias se atranco."
+            echo "  - Fallan los dos -> es Supabase, y el blindaje no ha llegado."
+            echo "=============================================="
+            exit 1
+          fi
+          echo "Todo en pie."

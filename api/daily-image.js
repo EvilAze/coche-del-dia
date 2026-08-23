@@ -28,6 +28,7 @@
 import sharp from "sharp";
 import { verifyRevealToken } from "./_lib/reveal-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
+import { conTimeoutOFallback, PLAZOS } from "./_lib/timeout.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { methodGuard } from "./_lib/http.js";
 import { getClientIp } from "./_lib/ratelimit.js";
@@ -78,7 +79,17 @@ async function tryReadUserStatus(req, carId, today) {
   const client = token ? createAuthClient(token) : null;
   if (!client) return null;
   try {
-    const { data: u } = await client.auth.getUser();
+    // JWT explícito y con plazo. Este check es DEFENSIVO —el camino normal
+    // del reveal va por el revealToken firmado— así que si GoTrue tartamudea
+    // preferimos seguir sin él a que la foto del día se quede colgada: el
+    // fallback `{}` deja `u.user` a undefined y salimos por el return de
+    // abajo, exactamente igual que ante un token que no vale.
+    const { data: u } = await conTimeoutOFallback(
+      client.auth.getUser(token),
+      PLAZOS.AUTH,
+      {},
+      { etiqueta: "daily-image auth.getUser" }
+    );
     if (!u?.user) return null;
     const { data: row } = await client
       .from("user_guesses")

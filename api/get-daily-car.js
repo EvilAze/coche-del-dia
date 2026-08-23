@@ -109,17 +109,31 @@ async function authClientAndUser(accessToken) {
     // logueado la fuente de verdad es el servidor). O sea que quien llevara
     // tres intentos se encontraría la partida a cero a media mañana. Un 503
     // con el mensaje de siempre es mucho menos daño que eso.
-    const { data, error } = await conTimeout(
-      client.auth.getUser(),
-      PLAZOS.AUTH,
-      { etiqueta: "auth.getUser" }
-    );
+    // Con plazo, JWT explícito y UN reintento — los tres motivos están
+    // explicados en la copia de _lib/auth.js (`pedirUsuario`), que es la
+    // réplica de esta: GoTrue no se cae, tartamudea, así que contra un fallo
+    // intermitente lo que arregla la experiencia es el segundo intento y no
+    // afinar el plazo. Si tocas uno, toca el otro.
+    let respuesta = null;
+    for (let intento = 1; intento <= 2 && !respuesta; intento++) {
+      try {
+        respuesta = await conTimeout(
+          client.auth.getUser(accessToken),
+          PLAZOS.AUTH,
+          { etiqueta: `auth.getUser (intento ${intento})` }
+        );
+      } catch (err) {
+        if (!(err instanceof TimeoutError)) throw err;
+        console.error(
+          `[get-daily-car] GoTrue no respondió en ${PLAZOS.AUTH} ms (intento ${intento}/2)`
+        );
+        if (intento === 2) return { client: null, user: null, timedOut: true };
+      }
+    }
+    const { data, error } = respuesta;
     if (error || !data?.user) return { client: null, user: null };
     return { client, user: data.user };
-  } catch (err) {
-    if (err instanceof TimeoutError) {
-      return { client: null, user: null, timedOut: true };
-    }
+  } catch {
     return { client: null, user: null };
   }
 }

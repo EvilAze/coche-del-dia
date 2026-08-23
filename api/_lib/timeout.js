@@ -102,7 +102,14 @@ export const PLAZOS = {
   // más barato sale y el que más daño evita.
   RATELIMIT: 1500,
   // auth.getUser() contra GoTrue: sano son 60-150 ms.
-  AUTH: 4000,
+  //
+  // Empezó en 4000 y era DEMASIADO CORTO, y eso fue un error de esta misma
+  // entrega: GoTrue no falla, tartamudea —a las 17:00:43 contestó y a las
+  // 17:03:37 no—, así que un plazo apretado convierte en error una petición
+  // que iba a llegar. 5 s por intento y dos intentos (ver pedirUsuario) dan
+  // 10 s de margen real, que sigue estando muy por debajo de los 25 s del
+  // Edge y no depende de acertar el número a la primera.
+  AUTH: 5000,
   // Lecturas y RPC contra PostgREST: sano son 20-120 ms desde fra1.
   SUPABASE: 5000,
 };

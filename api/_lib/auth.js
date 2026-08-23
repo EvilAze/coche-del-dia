@@ -35,6 +35,44 @@ export function extractAccessToken(req) {
 }
 
 /**
+ * Pide el usuario a GoTrue con plazo y UN reintento.
+ *
+ * EL REINTENTO NO ES ADORNO: el modo de fallo observado no es «GoTrue está
+ * caído» sino «GoTrue tartamudea». El 23 de agosto de 2026 contestó a
+ * /api/garage a las 17:00:43 y dejó de contestar a /api/admin/estado a las
+ * 17:03:37, con la misma sesión y el mismo token. Contra un fallo intermitente
+ * el segundo intento es lo que de verdad arregla la experiencia; afinar el
+ * plazo solo mueve la frontera de a quién le toca fallar.
+ *
+ * Y SE LE PASA EL JWT EXPLÍCITO. `getUser()` sin argumento se va por
+ * `initializePromise` + `_acquireLock` + `_useSession` para acabar leyendo un
+ * almacén de sesión que aquí SIEMPRE está vacío (creamos el cliente con
+ * `persistSession: false`), y termina mandando la petición gracias a la
+ * cabecera Authorization global. `getUser(jwt)` entra directo al request
+ * —`if (jwt) return await this._getUser(jwt)`—: mismo resultado, camino corto
+ * y sin estado compartido de por medio. Es el patrón que la librería
+ * documenta para servidor.
+ *
+ * @param {string} accessToken
+ * @returns {Promise<{data?: any, error?: any, timedOut?: boolean}>}
+ */
+async function pedirUsuario(client, accessToken) {
+  for (let intento = 1; intento <= 2; intento++) {
+    try {
+      return await conTimeout(client.auth.getUser(accessToken), PLAZOS.AUTH, {
+        etiqueta: `auth.getUser (intento ${intento})`,
+      });
+    } catch (err) {
+      if (!(err instanceof TimeoutError)) throw err;
+      console.error(
+        `[auth] GoTrue no respondió en ${PLAZOS.AUTH} ms (intento ${intento}/2)`
+      );
+      if (intento === 2) return { timedOut: true };
+    }
+  }
+}
+
+/**
  * Resuelve sesión + cliente con JWT. NO falla por sí mismo: devuelve
  * {user: null, client: null} si no hay token válido. Pensado para
  * usarse desde requireUser/requireAdmin o desde endpoints que aceptan
@@ -47,13 +85,8 @@ export async function authClientAndUser(accessToken) {
   try {
     const client = createAuthClient(accessToken);
     if (!client) return { client: null, user: null };
-    // Con plazo: GoTrue es una dependencia por red como cualquier otra y
-    // esperarla indefinidamente es lo que convierte un atranco en un 504.
-    const { data, error } = await conTimeout(
-      client.auth.getUser(),
-      PLAZOS.AUTH,
-      { etiqueta: "auth.getUser" }
-    );
+    const { data, error, timedOut } = await pedirUsuario(client, accessToken);
+    if (timedOut) return { client: null, user: null, timedOut: true };
     if (error || !data?.user) return { client: null, user: null };
     return { client, user: data.user };
   } catch (err) {

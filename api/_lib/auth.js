@@ -14,6 +14,7 @@
 //   ...
 
 import { createAuthClient } from "./supabase.js";
+import { conTimeout, TimeoutError, PLAZOS } from "./timeout.js";
 
 // Whitelist de emails con permisos de admin. Lo dejamos en código (no
 // env var) para evitar misconfiguración silenciosa: si quieres añadir
@@ -46,10 +47,25 @@ export async function authClientAndUser(accessToken) {
   try {
     const client = createAuthClient(accessToken);
     if (!client) return { client: null, user: null };
-    const { data, error } = await client.auth.getUser();
+    // Con plazo: GoTrue es una dependencia por red como cualquier otra y
+    // esperarla indefinidamente es lo que convierte un atranco en un 504.
+    const { data, error } = await conTimeout(
+      client.auth.getUser(),
+      PLAZOS.AUTH,
+      { etiqueta: "auth.getUser" }
+    );
     if (error || !data?.user) return { client: null, user: null };
     return { client, user: data.user };
-  } catch {
+  } catch (err) {
+    // `timedOut` separa DOS cosas que este helper venía devolviendo iguales:
+    // «el token no vale» y «no hemos podido comprobar si vale». La primera es
+    // un 401 —y es definitiva, no tiene sentido reintentar—; la segunda es un
+    // 503 temporal. Contestar 401 a un atranco de GoTrue manda al usuario a
+    // volver a iniciar sesión por un problema que no es suyo y que se arregla
+    // solo en un minuto.
+    if (err instanceof TimeoutError) {
+      return { client: null, user: null, timedOut: true };
+    }
     return { client: null, user: null };
   }
 }
@@ -64,7 +80,13 @@ export async function authClientAndUser(accessToken) {
  */
 export async function requireUser(req) {
   const token = extractAccessToken(req);
-  const { client, user } = await authClientAndUser(token);
+  const { client, user, timedOut } = await authClientAndUser(token);
+  if (timedOut) {
+    // 503, no 401: el token puede ser perfectamente válido, lo que ha fallado
+    // es el servicio que lo comprueba. Retry-After para que el cliente sepa
+    // que esto se reintenta, no se resuelve volviendo a entrar.
+    return { error: { status: 503, message: "Auth temporarily unavailable", retryAfter: 5 } };
+  }
   if (!user || !client) {
     return { error: { status: 401, message: "Unauthorized" } };
   }

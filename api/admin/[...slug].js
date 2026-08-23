@@ -27,6 +27,7 @@
 // ---------------------------------------------------------------------
 
 import { applyCors } from "../_lib/http.js";
+import { conTimeout, TimeoutError } from "../_lib/timeout.js";
 import analytics from "../../lib/admin-handlers/analytics.js";
 import audit from "../../lib/admin-handlers/audit.js";
 import estado from "../../lib/admin-handlers/estado.js";
@@ -51,6 +52,31 @@ const ROUTES = {
   "translate":     translate,
   "analyze-image": analyzeImage,
   "describe-car":  describeCar,
+};
+
+// PLAZO POR RUTA, en ms. El dispatcher es el único sitio por el que pasan los
+// once handlers, así que es donde el plazo se pone una vez en vez de once.
+//
+// El 23 de agosto de 2026 el panel se pasó ocho minutos devolviendo 504: 25
+// invocaciones muertas al agotar los 60 s de presupuesto, cada una con cuerpo
+// HTML que el panel no sabe leer. Con plazo propio contestan un JSON antes de
+// que Vercel las mate, que es la diferencia entre «vuelve a intentarlo» y una
+// pantalla en blanco.
+//
+// No vale un número único: los tres handlers de IA hablan con un modelo y
+// tardan decenas de segundos EN CONDICIONES NORMALES; cortarlos a 15 s sería
+// romper lo que hoy funciona. Los de datos, en cambio, son lecturas a Supabase
+// y 15 s ya es un orden de magnitud sobre su peor caso sano.
+const PLAZO_MS = {
+  _default: 15000,
+  // Hablan con la API de IA: su normalidad son decenas de segundos. El plazo
+  // solo está para ganarle por poco al presupuesto de Vercel (60 s) y poder
+  // contestar JSON en vez de que nos maten a media frase.
+  "analyze-image": 55000,
+  "describe-car": 55000,
+  "translate": 55000,
+  // Sube la foto al CDN además de escribir en la base.
+  "save-car": 45000,
 };
 
 export default async function handler(req, res) {
@@ -113,5 +139,30 @@ export default async function handler(req, res) {
     });
   }
 
-  return route(req, res);
+  // El handler, con su plazo. `conTimeout` deja enganchado un catch a la
+  // promesa original, así que si el handler acaba fallando DESPUÉS de que
+  // hayamos contestado por plazo —incluido el ERR_HTTP_HEADERS_SENT de
+  // intentar escribir sobre una respuesta ya enviada— ese rechazo no sale
+  // como unhandled y no se lleva por delante la invocación.
+  const nombre = segments[0];
+  const plazo = PLAZO_MS[nombre] ?? PLAZO_MS._default;
+  try {
+    return await conTimeout(Promise.resolve(route(req, res)), plazo, {
+      etiqueta: `admin/${nombre}`,
+    });
+  } catch (err) {
+    // Si el handler ya contestó, no hay nada que rescatar: el plazo venció
+    // sobre trabajo que hacía en segundo plano después de responder.
+    if (res.headersSent || res.writableEnded) return;
+    if (err instanceof TimeoutError) {
+      console.error(`[admin] ${nombre} superó su plazo de ${plazo} ms`);
+      res.setHeader("Retry-After", "10");
+      return res.status(503).json({
+        error: "Upstream temporarily unavailable",
+        detail: `El endpoint ${nombre} no respondió en ${Math.round(plazo / 1000)} s.`,
+      });
+    }
+    // Error de verdad del handler: que siga subiendo como siempre.
+    throw err;
+  }
 }

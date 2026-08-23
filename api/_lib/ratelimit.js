@@ -19,6 +19,7 @@
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { conTimeout, PLAZOS } from "./timeout.js";
 
 // Cliente Redis memoizado. _resolved evita reintentar la lectura de envs en
 // cada petición de una instancia warm.
@@ -66,7 +67,17 @@ function getLimiter({ max, windowSec, prefix }) {
 export async function evaluateLimit(limiter, key) {
   try {
     if (!limiter) return { ok: true }; // sin Upstash configurado → fail-open
-    const res = await limiter.limit(key);
+    // CON PLAZO, y no solo con try/catch. El fail-open que promete la cabecera
+    // de este fichero («si Upstash cae/TARDA/sin cuota, dejamos pasar») solo
+    // estaba implementado para la mitad de los casos: un catch atrapa a una
+    // dependencia que contesta mal, no a una que no contesta. Sin plazo, un
+    // Upstash atrancado deja este await colgado para siempre, el catch no
+    // llega a ejecutarse nunca y la Edge Function muere de timeout a los 25 s
+    // — y como esto va en la PRIMERA línea de get-daily-car, antes de tocar
+    // Supabase, bastaba para tumbar la home con la base de datos sana.
+    const res = await conTimeout(limiter.limit(key), PLAZOS.RATELIMIT, {
+      etiqueta: `ratelimit(${key})`,
+    });
     if (res.success) return { ok: true };
     // reset es timestamp ms del fin de ventana; lo damos en segundos (mín 1).
     const retryAfter = Math.max(1, Math.ceil((res.reset - Date.now()) / 1000));

@@ -37,6 +37,17 @@ describe("evaluateLimit", () => {
     const lim = fakeLimiter(new Error("redis down"));
     expect(await evaluateLimit(lim, "1.2.3.4")).toEqual({ ok: true });
   });
+
+  it("el limiter NO CONTESTA (Upstash atrancado) → ok (fail-open)", async () => {
+    // El caso que faltaba, y el que importa: la cabecera del módulo promete
+    // fail-open si Upstash «cae/TARDA/sin cuota», pero un try/catch solo cubre
+    // al que contesta mal, no al que no contesta. Sin plazo este await se
+    // quedaba colgado, el catch no llegaba a ejecutarse y la Edge Function
+    // moría a los 25 s — con la base de datos perfectamente sana, porque esto
+    // corre ANTES de tocar Supabase.
+    const lim = { limit: () => new Promise(() => {}) };
+    expect(await evaluateLimit(lim, "1.2.3.4")).toEqual({ ok: true });
+  }, 10000);
 });
 
 describe("getClientIpEdge", () => {

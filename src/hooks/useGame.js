@@ -269,7 +269,35 @@ export function useGame() {
         const headers = { ...anonHeaders() };
         if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-        const res = await fetch("/api/get-daily-car", { headers });
+        // Plazo propio en el cliente. El servidor ya corta por su cuenta
+        // (api/_lib/timeout.js), pero entre el navegador y nuestra función
+        // hay más cosas que pueden atrancarse —la red del móvil, la cola de
+        // Vercel— y sin AbortController este fetch no vence nunca: se queda
+        // esperando a que el navegador se rinda, que en móvil son minutos.
+        // Con 15 s la pantalla de error aparece mientras el usuario sigue
+        // mirando, no cuando ya ha cerrado la pestaña.
+        const aborter = new AbortController();
+        const plazo = setTimeout(() => aborter.abort(), 15000);
+        let res;
+        try {
+          res = await fetch("/api/get-daily-car", { headers, signal: aborter.signal });
+        } finally {
+          clearTimeout(plazo);
+        }
+
+        // MIRAR res.ok ANTES de parsear. Un fetch solo rechaza si falla la
+        // red: un 503 nuestro o un 504 de Vercel llegan aquí como respuestas
+        // perfectamente correctas, y el 504 trae cuerpo HTML. Al hacerle
+        // `res.json()` a ese HTML salía un «SyntaxError: Unexpected token
+        // 'A', "An error o"...» —el principio de «An error occurred with your
+        // deployment»— y eso es lo que acababa en la consola y en el estado de
+        // error: un mensaje que no menciona el 504 por ningún lado y manda a
+        // buscar un bug de parseo que no existe. El caso ya se degradaba bien
+        // (la pantalla «La rotativa no responde» salía igual); lo que no se
+        // podía era diagnosticar.
+        if (!res.ok) {
+          throw new Error(`/api/get-daily-car respondió ${res.status}`);
+        }
         const daily = await res.json();
         // El servidor devuelve el token (nuevo o renovado): lo persistimos.
         if (daily?.anonToken) setAnonToken(daily.anonToken);

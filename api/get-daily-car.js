@@ -42,6 +42,7 @@ import { logSessionStart } from "./_lib/edge/audit.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
 import { isAllowedOrigin, CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS } from "./_lib/cors.js";
+import { conTimeout, conTimeoutOFallback, TimeoutError, PLAZOS } from "./_lib/timeout.js";
 
 // Intentos máximos de la partida diaria. Este valor viaja al cliente en la
 // respuesta para que la UI no tenga que hardcodearlo — pero es SOLO
@@ -96,10 +97,29 @@ async function authClientAndUser(accessToken) {
   try {
     const client = createAuthClient(accessToken);
     if (!client) return { client: null, user: null };
-    const { data, error } = await client.auth.getUser();
+    // Con plazo, igual que la copia de _lib/auth.js, y con la misma distinción
+    // entre «el token no vale» y «no hemos podido comprobarlo».
+    //
+    // Y aquí esa distinción importa MÁS que en el panel, porque la degradación
+    // tentadora es la mala: si GoTrue no contesta, tratar al usuario como
+    // anónimo NO es servir una versión reducida, es servirle un tablero
+    // VACÍO. La rama anónima devuelve `guesses: []` y `status: "playing"`, y
+    // el cliente no compensa con localStorage cuando hay sesión (useGame solo
+    // lee el snapshot local `if (!session)`, y con razón: para un usuario
+    // logueado la fuente de verdad es el servidor). O sea que quien llevara
+    // tres intentos se encontraría la partida a cero a media mañana. Un 503
+    // con el mensaje de siempre es mucho menos daño que eso.
+    const { data, error } = await conTimeout(
+      client.auth.getUser(),
+      PLAZOS.AUTH,
+      { etiqueta: "auth.getUser" }
+    );
     if (error || !data?.user) return { client: null, user: null };
     return { client, user: data.user };
-  } catch {
+  } catch (err) {
+    if (err instanceof TimeoutError) {
+      return { client: null, user: null, timedOut: true };
+    }
     return { client: null, user: null };
   }
 }
@@ -146,17 +166,42 @@ export default async function handler(request) {
 
   // FASE 1: arranque paralelo. Ni pick_daily_car ni la resolución de
   // sesión dependen del otro. El usuario anónimo paga solo pick_daily_car.
+  // Cada rama con su plazo, y NO uno solo alrededor del Promise.all: así una
+  // dependencia atrancada no arrastra a la otra, y en los logs se ve cuál de
+  // las dos fue. El RPC devuelve la forma de PostgREST ({data, error}) para
+  // que el fallo por plazo entre por el mismo `if (rpcErr)` de siempre.
   const [rpcResult, authResult] = await Promise.all([
-    supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+    conTimeoutOFallback(
+      supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+      PLAZOS.SUPABASE,
+      { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
+      { etiqueta: "pick_daily_car" }
+    ),
     accessToken
       ? authClientAndUser(accessToken)
       : Promise.resolve({ client: null, user: null }),
   ]);
 
+  // Auth atrancado con token presente → 503 y fuera. Ver la nota larga de
+  // authClientAndUser: seguir como anónimo aquí le vacía el tablero a un
+  // usuario que está a media partida.
+  if (authResult.timedOut) {
+    console.error("[get-daily-car] auth.getUser sin respuesta a tiempo");
+    return respond(
+      { message: "Auth temporarily unavailable" },
+      { status: 503, headers: { "Retry-After": "5" } }
+    );
+  }
+
   const { data: todayCarId, error: rpcErr } = rpcResult;
   if (rpcErr || !todayCarId) {
     console.error("[get-daily-car] pick_daily_car:", rpcErr);
-    return respond({ message: "Failed to pick daily car" }, { status: 500 });
+    // 503 y no 500: sin coche del día no hay juego, pero esto se arregla solo
+    // en cuanto la base vuelva. El 500 invitaba a buscar un bug que no existe.
+    return respond(
+      { message: "Failed to pick daily car" },
+      { status: 503, headers: { "Retry-After": "5" } }
+    );
   }
   const { client: authClient, user } = authResult;
 
@@ -180,19 +225,29 @@ export default async function handler(request) {
   // Para anónimos, la rama de user_guesses cae a un resolve(null) y solo
   // hacemos la lectura de imagen.
   const [imgResult, gameResult] = await Promise.all([
-    supabaseAdmin
-      .from("cars")
-      .select("image_url, blur_data, zoom_base")
-      .eq("id", todayCarId)
-      .maybeSingle(),
+    conTimeoutOFallback(
+      supabaseAdmin
+        .from("cars")
+        .select("image_url, blur_data, zoom_base")
+        .eq("id", todayCarId)
+        .maybeSingle(),
+      PLAZOS.SUPABASE,
+      { data: null, error: { message: "read image_url sin respuesta a tiempo" } },
+      { etiqueta: "read image_url" }
+    ),
     user
-      ? authClient
-          .from("user_guesses")
-          .select("guesses, status")
-          .eq("user_id", user.id)
-          .eq("car_id", todayCarId)
-          .eq("date", today)
-          .maybeSingle()
+      ? conTimeoutOFallback(
+          authClient
+            .from("user_guesses")
+            .select("guesses, status")
+            .eq("user_id", user.id)
+            .eq("car_id", todayCarId)
+            .eq("date", today)
+            .maybeSingle(),
+          PLAZOS.SUPABASE,
+          { data: null, error: { message: "read user_guesses sin respuesta a tiempo" } },
+          { etiqueta: "read user_guesses" }
+        )
       : Promise.resolve({ data: null, error: null }),
   ]);
 
@@ -280,7 +335,17 @@ export default async function handler(request) {
   const { data: gameRow, error: gameErr } = gameResult;
   if (gameErr) {
     console.error("[get-daily-car] read user_guesses:", gameErr);
-    return respond(base);
+    // 503, no `respond(base)`. Devolver `base` era servirle al usuario un
+    // tablero A CERO: `base.guesses` va vacío y `base.status` es "playing",
+    // y el cliente no lo compensa con localStorage porque para una sesión
+    // iniciada la fuente de verdad es el servidor. Quien llevara tres intentos
+    // veía la partida en blanco y —peor— podía volver a jugarla desde el
+    // principio contra un servidor que sí recuerda los intentos gastados.
+    // Un error honesto es mejor que un estado inventado.
+    return respond(
+      { message: "Game state temporarily unavailable" },
+      { status: 503, headers: { "Retry-After": "5" } }
+    );
   }
 
   const status = gameRow?.status || "playing";
@@ -296,11 +361,16 @@ export default async function handler(request) {
   if (status === "won" || status === "lost") {
     const isWon = status === "won";
     const [liveResult, signedToken] = await Promise.all([
-      supabaseAdmin
-        .from("cars")
-        .select("make, model, year, pais, description, description_en, video_id")
-        .eq("id", todayCarId)
-        .maybeSingle(),
+      conTimeoutOFallback(
+        supabaseAdmin
+          .from("cars")
+          .select("make, model, year, pais, description, description_en, video_id")
+          .eq("id", todayCarId)
+          .maybeSingle(),
+        PLAZOS.SUPABASE,
+        { data: null, error: { message: "read cars (live) sin respuesta a tiempo" } },
+        { etiqueta: "read cars (live)" }
+      ),
       signRevealToken(today).catch((err) => {
         console.error("[get-daily-car] signRevealToken:", err?.message || err);
         return null;

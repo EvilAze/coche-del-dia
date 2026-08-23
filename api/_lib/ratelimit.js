@@ -29,7 +29,10 @@ let _redisResolved = false;
 // instancia, así que una por (prefix,max,windowSec).
 const _limiters = new Map();
 
-function getRedis() {
+// Se exporta porque jwks.js lo reutiliza como caché compartida entre
+// instancias. Es el mismo Redis y la misma memoización: abrir un segundo
+// cliente para lo mismo sería gastar conexiones del free tier por nada.
+export function getRedis() {
   if (_redisResolved) return _redis;
   _redisResolved = true;
   const url = process.env.UPSTASH_REDIS_REST_URL;

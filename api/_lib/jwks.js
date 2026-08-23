@@ -1,38 +1,54 @@
 // api/_lib/jwks.js
-// Claves públicas con las que Supabase firma los JWT de sesión, cacheadas a
-// nivel de MÓDULO (no de cliente). Edge-safe: solo fetch y process.env.
+// Claves públicas con las que Supabase firma los JWT de sesión. Es lo que
+// permite verificar la identidad SIN preguntarle a GoTrue en cada petición.
 //
-// POR QUÉ EXISTE ESTE FICHERO Y NO SE USA LA CACHÉ DE LA LIBRERÍA.
-// `getClaims()` sabe cachear el JWKS, pero lo guarda en la INSTANCIA del
-// cliente (`this.jwks` / `this.jwks_cached_at`), y nosotros creamos un cliente
-// nuevo por petición a propósito —`createAuthClient` no se memoiza porque cada
-// petición trae su propio token—. Con eso, la caché nace vacía en cada
-// invocación y `getClaims` acabaría pidiendo el JWKS por red CADA VEZ: justo
-// el viaje que veníamos a quitar, mudado de endpoint.
+// TRES NIVELES, y el orden importa:
+//   L1  memoria del módulo   — instantáneo, por instancia.
+//   L2  Upstash Redis        — compartido entre instancias y, sobre todo,
+//                              SOBREVIVE A UNA CAÍDA DE GOTRUE.
+//   L3  el endpoint JWKS     — la fuente, pero la sirve el propio GoTrue.
 //
-// `fetchJwk(kid, jwks)` mira primero las claves que se le pasan, así que
-// cacheando aquí y suministrándolas por `options.keys` la verificación queda
-// 100% local mientras la caché esté caliente.
+// POR QUÉ L2 NO ES UN LUJO. La primera versión de esto solo tenía L1 y L3, y
+// se estrelló en producción el 23 de agosto de 2026 de una forma que conviene
+// no olvidar: `/auth/v1/.well-known/jwks.json` lo sirve el MISMO servicio que
+// estaba atrancado, así que una instancia que arrancaba en frío durante la
+// caída no podía conseguir las claves, se caía al respaldo `getUser()` —que
+// también estaba muerto— y devolvía 503. Verificar en local no sirve de nada
+// si para poder verificar hay que llamar antes a quien no contesta.
 //
-// El módulo sobrevive entre invocaciones de una instancia warm, que es donde
-// está la ganancia: una lectura del JWKS por instancia y hora, no por petición.
+// Con L2, basta UNA lectura exitosa en toda la flota para que la verificación
+// siga funcionando aunque GoTrue esté caído durante días. Y Upstash es una
+// dependencia distinta: el 23 de agosto estuvo en pie todo el rato, sirviendo
+// el rate-limit sin un fallo.
+//
+// POR QUÉ NO VALE LA CACHÉ DE LA LIBRERÍA. `getClaims()` sabe cachear el JWKS,
+// pero lo guarda en la INSTANCIA del cliente, y `createAuthClient` crea una por
+// petición a propósito. Con eso la caché nace vacía cada vez y `getClaims`
+// pediría el JWKS por red SIEMPRE. `fetchJwk(kid, jwks)` mira primero las
+// claves que se le pasan, así que suministrándolas nosotros la verificación es
+// local de verdad.
 
 import { conTimeout } from "./timeout.js";
+import { getRedis } from "./ratelimit.js";
 
-// 1 hora. Las claves de firma rotan muy de tarde en tarde y una rotación no
-// invalida la caché de golpe: Supabase publica la clave nueva junto a la
-// vieja durante la transición, y una `kid` desconocida fuerza un refresco
-// (ver `necesitaRefresco`).
+// TTL de la caché en memoria. Las claves rotan muy de tarde en tarde y una
+// rotación no invalida esto de golpe: Supabase publica la nueva junto a la
+// vieja durante la transición, y un `kid` desconocido fuerza refresco.
 const TTL_MS = 60 * 60 * 1000;
-// El JWKS es un JSON diminuto y el endpoint respondía en 240 ms mientras
-// /auth/v1/user estaba muerto, pero el plazo va igual: la razón de ser de
-// todo esto es no volver a colgarnos de una dependencia por red.
-const PLAZO_MS = 3000;
+// En Redis viven mucho más: su valor es precisamente estar ahí cuando la
+// fuente no está. 30 días.
+const TTL_REDIS_S = 30 * 24 * 60 * 60;
+const CLAVE_REDIS = "jwks:v1";
+const PLAZO_MS = 5000;
+// Tras un fallo, no se vuelve a intentar durante este rato. Sin esto, con
+// GoTrue caído CADA petición autenticada pagaba el plazo entero del fetch
+// antes de caer al respaldo — latencia añadida a un usuario que ya lo estaba
+// pasando mal.
+const ESPERA_TRAS_FALLO_MS = 60 * 1000;
 
 let _cache = { keys: [] };
 let _cacheadoEn = 0;
-// Petición en vuelo, para que N peticiones concurrentes de una instancia fría
-// no disparen N lecturas del JWKS.
+let _falloEn = 0;
 let _enVuelo = null;
 
 function urlJwks() {
@@ -40,32 +56,85 @@ function urlJwks() {
   return base ? `${base}/auth/v1/.well-known/jwks.json` : null;
 }
 
-async function leerJwks() {
+function valido(json) {
+  return Array.isArray(json?.keys) && json.keys.length > 0;
+}
+
+async function leerDeRedis() {
+  try {
+    const redis = getRedis();
+    if (!redis) return null;
+    const json = await conTimeout(redis.get(CLAVE_REDIS), 1500, { etiqueta: "jwks redis get" });
+    // El SDK de Upstash ya deserializa el JSON.
+    const parsed = typeof json === "string" ? JSON.parse(json) : json;
+    return valido(parsed) ? parsed : null;
+  } catch (err) {
+    console.error("[jwks] Redis no disponible:", err?.message || err);
+    return null;
+  }
+}
+
+async function guardarEnRedis(json) {
+  try {
+    const redis = getRedis();
+    if (!redis) return;
+    await conTimeout(redis.set(CLAVE_REDIS, JSON.stringify(json), { ex: TTL_REDIS_S }), 1500, {
+      etiqueta: "jwks redis set",
+    });
+  } catch (err) {
+    // Que no se pueda guardar no invalida las claves que acabamos de leer.
+    console.error("[jwks] no se pudo guardar en Redis:", err?.message || err);
+  }
+}
+
+async function leerDelOrigen() {
   const url = urlJwks();
   if (!url) return null;
   const apikey = process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
-  const res = await conTimeout(
-    fetch(url, { headers: apikey ? { apikey } : {} }),
-    PLAZO_MS,
-    { etiqueta: "jwks" }
-  );
+  const res = await conTimeout(fetch(url, { headers: apikey ? { apikey } : {} }), PLAZO_MS, {
+    etiqueta: "jwks",
+  });
   if (!res.ok) throw new Error(`jwks HTTP ${res.status}`);
   const json = await res.json();
-  if (!Array.isArray(json?.keys) || json.keys.length === 0) {
-    throw new Error("jwks sin claves");
-  }
+  if (!valido(json)) throw new Error("jwks sin claves");
   return json;
 }
 
+// Refresca L1 pasando por L2 y, si hace falta, por L3. Nunca lanza.
+async function refrescar() {
+  // L2 primero: es la que sigue viva cuando la fuente no lo está, y además
+  // es más rápida.
+  const deRedis = await leerDeRedis();
+  if (deRedis) {
+    _cache = deRedis;
+    _cacheadoEn = Date.now();
+    return _cache;
+  }
+  // L3: la fuente. Si sale bien, se siembra L2 para toda la flota.
+  try {
+    const json = await leerDelOrigen();
+    if (json) {
+      _cache = json;
+      _cacheadoEn = Date.now();
+      _falloEn = 0;
+      await guardarEnRedis(json);
+    }
+  } catch (err) {
+    _falloEn = Date.now();
+    console.error("[jwks] no se pudo refrescar:", err?.message || err);
+  }
+  return _cache;
+}
+
 /**
- * Claves de firma vigentes. NUNCA lanza: si la lectura falla devuelve la
- * última caché buena (o `{keys: []}`, que hace que el llamante caiga al
- * camino de `getUser`). Un JWKS que no se puede refrescar no debe tumbar la
- * autenticación mientras las claves que ya tenemos sigan sirviendo.
+ * Claves de firma vigentes. NUNCA lanza: si no se pueden refrescar devuelve la
+ * última caché buena, o `{keys: []}` —que hace que el llamante caiga al camino
+ * de `getUser`—. Un JWKS irrefrescable no debe tumbar la autenticación
+ * mientras las claves que ya tenemos sigan sirviendo.
  *
- * @param {{ kid?: string }} [opts] `kid` de la cabecera del token en curso: si
- *   no está en la caché, se fuerza un refresco aunque el TTL siga vivo (es la
- *   señal de que ha entrado una clave nueva).
+ * @param {{ kid?: string }} [opts] `kid` del token en curso: si no está en la
+ *   caché se fuerza refresco aunque el TTL siga vivo (así se absorbe una
+ *   rotación sin esperar una hora).
  * @returns {Promise<{keys: object[]}>}
  */
 export async function getJwks({ kid } = {}) {
@@ -74,25 +143,17 @@ export async function getJwks({ kid } = {}) {
   const desconocida = kid && !_cache.keys.some((k) => k.kid === kid);
   if (_cache.keys.length > 0 && !caducado && !desconocida) return _cache;
 
-  // Una sola lectura en vuelo por instancia.
+  // Backoff: si acabamos de fallar, no reintentamos en cada petición. Con lo
+  // que haya en L1 basta para seguir, y si L1 está vacía el llamante usará el
+  // respaldo sin pagar otro plazo de red.
+  if (_falloEn && ahora - _falloEn < ESPERA_TRAS_FALLO_MS) return _cache;
+
+  // Una sola operación en vuelo por instancia: N peticiones concurrentes de
+  // una instancia fría no deben disparar N lecturas.
   if (!_enVuelo) {
-    _enVuelo = leerJwks()
-      .then((json) => {
-        if (json) {
-          _cache = json;
-          _cacheadoEn = Date.now();
-        }
-        return _cache;
-      })
-      .catch((err) => {
-        console.error("[jwks] no se pudo refrescar:", err?.message || err);
-        // Nos quedamos con lo que hubiera: si está vacío, el llamante usará
-        // getUser() y si no, seguimos verificando en local con las de antes.
-        return _cache;
-      })
-      .finally(() => {
-        _enVuelo = null;
-      });
+    _enVuelo = refrescar().finally(() => {
+      _enVuelo = null;
+    });
   }
   return _enVuelo;
 }
@@ -101,5 +162,6 @@ export async function getJwks({ kid } = {}) {
 export function _resetJwksCache() {
   _cache = { keys: [] };
   _cacheadoEn = 0;
+  _falloEn = 0;
   _enVuelo = null;
 }

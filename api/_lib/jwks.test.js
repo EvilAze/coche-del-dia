@@ -1,12 +1,21 @@
 // api/_lib/jwks.test.js
-// Tests de la caché de claves públicas. Lo que importa demostrar es que la
-// verificación es LOCAL de verdad: si esto pidiera el JWKS por red en cada
-// petición, habríamos cambiado un viaje a /auth/v1/user por otro viaje, que
-// era exactamente el problema que veníamos a quitar.
+// Tests de la caché de claves públicas. Lo que hay que demostrar son las dos
+// propiedades de las que depende que la autenticación siga en pie:
+//   1. la verificación es LOCAL de verdad (no se pide el JWKS por petición), y
+//   2. sigue habiendo claves aunque GoTrue —que es quien las sirve— esté caído.
+// La (2) es la que faltaba en la primera versión y la que la estrelló.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getJwks, _resetJwksCache } from "./jwks.js";
+
+const redisMock = { get: vi.fn(), set: vi.fn() };
+let hayRedis = true;
+vi.mock("./ratelimit.js", () => ({
+  getRedis: () => (hayRedis ? redisMock : null),
+}));
+
+const { getJwks, _resetJwksCache } = await import("./jwks.js");
 
 const CLAVES = { keys: [{ kid: "k1", alg: "ES256" }] };
+const OTRAS = { keys: [{ kid: "k1" }, { kid: "k2" }] };
 
 function respuesta(json, ok = true, status = 200) {
   return { ok, status, json: async () => json };
@@ -14,34 +23,28 @@ function respuesta(json, ok = true, status = 200) {
 
 beforeEach(() => {
   _resetJwksCache();
+  hayRedis = true;
+  redisMock.get.mockReset().mockResolvedValue(null);
+  redisMock.set.mockReset().mockResolvedValue("OK");
   process.env.SUPABASE_URL = "https://proyecto.supabase.co";
   process.env.SUPABASE_ANON_KEY = "sb_publishable_x";
   vi.restoreAllMocks();
 });
 
-describe("getJwks", () => {
-  it("pide las claves la primera vez", async () => {
+describe("verificación local de verdad", () => {
+  it("pide las claves la primera vez y NO vuelve a pedirlas", async () => {
     const fetchMock = vi.fn().mockResolvedValue(respuesta(CLAVES));
     vi.stubGlobal("fetch", fetchMock);
-    expect(await getJwks()).toEqual(CLAVES);
+    await getJwks({ kid: "k1" });
+    await getJwks({ kid: "k1" });
+    await getJwks({ kid: "k1" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(
       "https://proyecto.supabase.co/auth/v1/.well-known/jwks.json"
     );
   });
 
-  it("NO vuelve a pedirlas mientras la caché sirva", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(respuesta(CLAVES));
-    vi.stubGlobal("fetch", fetchMock);
-    await getJwks({ kid: "k1" });
-    await getJwks({ kid: "k1" });
-    await getJwks({ kid: "k1" });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
   it("N llamadas concurrentes en frío → UNA sola lectura", async () => {
-    // Una instancia que arranca en frío atendiendo varias peticiones a la vez
-    // no debe disparar N lecturas del JWKS.
     const fetchMock = vi.fn().mockResolvedValue(respuesta(CLAVES));
     vi.stubGlobal("fetch", fetchMock);
     await Promise.all([getJwks(), getJwks(), getJwks(), getJwks()]);
@@ -49,21 +52,58 @@ describe("getJwks", () => {
   });
 
   it("un kid DESCONOCIDO fuerza refresco aunque el TTL siga vivo", async () => {
-    // Es como se absorbe una rotación de claves sin esperar una hora.
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(respuesta(CLAVES))
-      .mockResolvedValueOnce(respuesta({ keys: [{ kid: "k1" }, { kid: "k2" }] }));
+      .mockResolvedValueOnce(respuesta(OTRAS));
     vi.stubGlobal("fetch", fetchMock);
     await getJwks({ kid: "k1" });
     const r = await getJwks({ kid: "k2" });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(r.keys.map((k) => k.kid)).toEqual(["k1", "k2"]);
   });
+});
+
+describe("sobrevive a una caída de GoTrue", () => {
+  it("REDIS ANTES QUE EL ORIGEN: con claves en Redis no se toca la red", async () => {
+    // El caso que motiva todo el nivel L2: GoTrue caído, instancia en frío, y
+    // aun así la autenticación funciona.
+    redisMock.get.mockResolvedValue(CLAVES);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await getJwks({ kid: "k1" })).toEqual(CLAVES);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("una lectura buena SIEMBRA Redis para el resto de la flota", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta(CLAVES)));
+    await getJwks();
+    expect(redisMock.set).toHaveBeenCalledWith(
+      "jwks:v1",
+      JSON.stringify(CLAVES),
+      expect.objectContaining({ ex: expect.any(Number) })
+    );
+  });
+
+  it("Redis vacío o caído → se sigue por el origen, sin romper", async () => {
+    redisMock.get.mockRejectedValue(new Error("upstash down"));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta(CLAVES)));
+    expect(await getJwks()).toEqual(CLAVES);
+  });
+
+  it("tras un fallo NO se reintenta en cada petición (backoff)", async () => {
+    // Sin esto, con GoTrue caído cada petición autenticada pagaba el plazo
+    // entero del fetch ANTES de caer al respaldo: latencia de más para un
+    // usuario que ya lo estaba pasando mal.
+    const fetchMock = vi.fn().mockRejectedValue(new Error("gotrue caído"));
+    vi.stubGlobal("fetch", fetchMock);
+    await getJwks();
+    await getJwks();
+    await getJwks();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 
   it("si el refresco falla se conserva la caché anterior, no se vacía", async () => {
-    // Un JWKS que no se puede refrescar no debe tumbar la autenticación
-    // mientras las claves que ya teníamos sigan sirviendo.
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(respuesta(CLAVES))
@@ -73,18 +113,24 @@ describe("getJwks", () => {
     const r = await getJwks({ kid: "desconocido" });
     expect(r).toEqual(CLAVES);
   });
+});
 
-  it("no lanza nunca: sin envs devuelve claves vacías", async () => {
-    // Claves vacías hace que el llamante caiga a getUser(), que es el
-    // comportamiento de antes: degradar, no romper.
+describe("no lanza nunca", () => {
+  it("sin envs devuelve claves vacías", async () => {
     delete process.env.SUPABASE_URL;
     delete process.env.REACT_APP_SUPABASE_URL;
     vi.stubGlobal("fetch", vi.fn());
     expect(await getJwks()).toEqual({ keys: [] });
   });
 
-  it("no lanza nunca: un HTTP de error deja las claves vacías", async () => {
+  it("un HTTP de error deja las claves vacías", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta(null, false, 503)));
     expect(await getJwks()).toEqual({ keys: [] });
+  });
+
+  it("sin Upstash configurado sigue funcionando por el origen", async () => {
+    hayRedis = false;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta(CLAVES)));
+    expect(await getJwks()).toEqual(CLAVES);
   });
 });

@@ -51,6 +51,31 @@ beforeEach(() => {
 });
 
 describe("identidad verificada en local", () => {
+  it("SIN CLAIM email sigue entrando: el juego no necesita el correo", async () => {
+    // La regresión del 23 de agosto de 2026: un guard puesto para proteger el
+    // panel tiraba identidades perfectamente verificadas y, con GoTrue caido,
+    // dejaba sin jugar a cualquiera cuyo token no trajera email.
+    getClaimsMock.mockResolvedValue({ data: { claims: { sub: "u1" } }, error: null });
+    const r = await authClientAndUser(TOKEN_ASIMETRICO);
+    expect(r.user.id).toBe("u1");
+    expect(r.user.email).toBeNull();
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
+
+  it("requiereEmail (solo admin) SI pregunta a GoTrue cuando falta el claim", async () => {
+    getClaimsMock.mockResolvedValue({ data: { claims: { sub: "u1" } }, error: null });
+    getUserMock.mockResolvedValue(usuario);
+    const r = await authClientAndUser(TOKEN_ASIMETRICO, { requiereEmail: true });
+    expect(r.user.email).toBe("a@b.c");
+    expect(getUserMock).toHaveBeenCalled();
+  });
+
+  it("requiereEmail con el claim presente NO pregunta a GoTrue", async () => {
+    const r = await authClientAndUser(TOKEN_ASIMETRICO, { requiereEmail: true });
+    expect(r.user.email).toBe("a@b.c");
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
+
   it("con JWKS y token asimétrico NO se llama a GoTrue", async () => {
     // Es el punto entero del cambio: durante la degradación del 23 de agosto
     // de 2026, /auth/v1/user no contestaba en 10 s y esto tumbaba la web.

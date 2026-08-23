@@ -79,6 +79,13 @@ const PLAZO_MS = {
   "translate": 55000,
   // Sube la foto al CDN además de escribir en la base.
   "save-car": 45000,
+  // Analítica y auditoría barren rangos de hasta 90 días y cruzan varias
+  // tablas: son los únicos «de datos» que tardan de verdad, y 15 s les
+  // quedaba corto — la Auditoría a 14 días moría en el plazo cuando antes
+  // acababa. Que un panel interno tarde 40 s es molesto; que no cargue, no
+  // sirve.
+  "audit": 45000,
+  "analytics": 45000,
   // Descarga, recodifica y sube varias fotos de varios MB por lote.
   "masters": 55000,
 };

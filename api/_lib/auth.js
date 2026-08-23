@@ -79,17 +79,21 @@ async function identidadLocal(client, accessToken) {
     const { data, error } = await client.auth.getClaims(accessToken, { keys });
     if (error || !data?.claims?.sub) return { sinClaves: true };
     const c = data.claims;
-    // SIN `email` NO NOS VALE, aunque la firma sea buena. `requireAdmin`
-    // autoriza comparando ese campo con ADMIN_EMAILS, así que un claim
-    // ausente no daría un fallo ruidoso: daría un 403 silencioso y te
-    // dejaría fuera de tu propio panel sin manera de entrar. Los JWT de
-    // Supabase lo traen siempre, pero «siempre» no es una garantía que
-    // convenga firmar cuando el coste de equivocarse es ese. Caemos a
-    // getUser(), que lo devuelve seguro.
-    if (!c.email) {
-      console.error("[auth] claims sin email, se cae a getUser");
-      return { sinClaves: true };
-    }
+    // SOBRE EL `email` AUSENTE, que aquí tuvo un guard y fue un error.
+    //
+    // Este helper resuelve QUIÉN es el portador del token, y para eso basta
+    // con `sub`: es lo único que usan el juego, la repesca y el garaje. El
+    // `email` solo lo necesita `requireAdmin`, para cruzarlo con ADMIN_EMAILS.
+    //
+    // Puse el guard aquí —«sin email no nos vale»— para que un claim ausente
+    // no se convirtiera en un 403 silencioso en el panel, y el tiro salió por
+    // la culata de la peor manera: con GoTrue caído, TODO usuario cuyo token
+    // no trajera email veía su identidad perfectamente verificada tirada a la
+    // basura y acababa en un 503. Es decir, un guard pensado para proteger el
+    // panel dejó sin jugar a la gente, que no tiene nada que ver con el panel.
+    //
+    // Ahora la exigencia vive donde importa: `requireAdmin` la pide por
+    // `requiereEmail`, y el resto del mundo entra con su `sub` verificado.
     // Forma de `user` equivalente a la que devolvía getUser en lo que el
     // código consume: id, email y user_metadata (delete-account).
     return {
@@ -177,7 +181,7 @@ async function pedirUsuario(client, accessToken) {
  *
  * @param {string | null} accessToken
  */
-export async function authClientAndUser(accessToken) {
+export async function authClientAndUser(accessToken, { requiereEmail = false } = {}) {
   if (!accessToken) return { client: null, user: null };
   try {
     const client = createAuthClient(accessToken);
@@ -185,7 +189,16 @@ export async function authClientAndUser(accessToken) {
 
     // 1) Camino normal: firma verificada en local, sin red.
     const local = await identidadLocal(client, accessToken);
-    if (local.user) return { client, user: local.user };
+    // `requiereEmail` solo lo pide requireAdmin: si el token no trae el claim
+    // y hace falta para autorizar, se pregunta a GoTrue en vez de contestar un
+    // 403 que sería mentira. Para todos los demás, con el `sub` verificado
+    // sobra — y ahí está la diferencia entre que la gente juegue o no.
+    if (local.user && (!requiereEmail || local.user.email)) {
+      return { client, user: local.user };
+    }
+    if (local.user && requiereEmail) {
+      console.error("[auth] claims sin email y hace falta para admin, se pregunta a GoTrue");
+    }
     if (local.invalido) return { client: null, user: null };
 
     // 2) Respaldo: preguntarle a GoTrue, como se hacía antes. Solo se llega
@@ -217,9 +230,9 @@ export async function authClientAndUser(accessToken) {
  * @param {import("@vercel/node").VercelRequest} req
  * @returns {Promise<{user: any, authClient: any, error?: undefined} | {error: {status: number, message: string}, user?: undefined, authClient?: undefined}>}
  */
-export async function requireUser(req) {
+export async function requireUser(req, opciones) {
   const token = extractAccessToken(req);
-  const { client, user, timedOut } = await authClientAndUser(token);
+  const { client, user, timedOut } = await authClientAndUser(token, opciones);
   if (timedOut) {
     // 503, no 401: el token puede ser perfectamente válido, lo que ha fallado
     // es el servicio que lo comprueba. Retry-After para que el cliente sepa
@@ -239,7 +252,12 @@ export async function requireUser(req) {
  * @param {import("@vercel/node").VercelRequest} req
  */
 export async function requireAdmin(req) {
-  const base = await requireUser(req);
+  // requiereEmail: aquí SÍ, porque la autorización se decide comparando el
+  // email con ADMIN_EMAILS. Un token sin ese claim no puede autorizarse en
+  // local, así que se paga el viaje a GoTrue — pero solo aquí, y solo para
+  // admin. Ver la nota de identidadLocal sobre por qué esto no puede vivir
+  // en el camino común.
+  const base = await requireUser(req, { requiereEmail: true });
   if (base.error) return base;
   const email = (base.user.email || "").toLowerCase();
   if (!ADMIN_EMAILS.includes(email)) {

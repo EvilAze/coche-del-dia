@@ -15,6 +15,87 @@
 
 import { createAuthClient } from "./supabase.js";
 import { conTimeout, TimeoutError, PLAZOS } from "./timeout.js";
+import { getJwks } from "./jwks.js";
+
+/**
+ * Decodifica la cabecera de un JWT sin verificar nada, solo para saber con qué
+ * `kid` está firmado y poder pedir esa clave concreta. Verificar es cosa de
+ * getClaims; esto es leer el sobre.
+ */
+function kidDelToken(token) {
+  try {
+    const [cabecera] = token.split(".");
+    const json = atob(cabecera.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(json)?.kid || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Identidad del portador del token, VERIFICADA EN LOCAL.
+ *
+ * Antes esto era una llamada a `auth.getUser()`, o sea un viaje a GoTrue en
+ * CADA petición autenticada. El 23 de agosto de 2026 eso dejó la web y el
+ * panel inservibles para usuarios con sesión durante una degradación del API
+ * Gateway de Supabase: PostgREST contestaba en 200 ms y /auth/v1/user no
+ * contestaba en 10 s. Un servicio del que dependía cada request y que no
+ * teníamos forma de esquivar.
+ *
+ * `getClaims(jwt, { keys })` verifica la FIRMA del token con WebCrypto contra
+ * las claves públicas del proyecto (ES256) y no habla con nadie. Las claves
+ * las suministramos desde `jwks.js` —caché de módulo— para que la
+ * verificación sea local de verdad; ver allí por qué no vale la caché de la
+ * librería.
+ *
+ * LO QUE ESTO CAMBIA, dicho claro: la validez pasa a depender del `exp` del
+ * token y no de lo que opine el servidor AHORA. Una sesión cerrada o revocada
+ * sigue siendo válida hasta que caduque su access token (1 h por defecto).
+ * Es el trade-off aceptado a cambio de no depender de GoTrue en el camino
+ * crítico, y aplica también a admin. Lo que NO cambia es el RLS: las queries
+ * siguen yendo con el JWT a PostgREST, que lo valida por su cuenta.
+ *
+ * Si el proyecto no usa firma asimétrica, o no hay JWKS, o la verificación
+ * falla por algo que no sea un token inválido, se cae a `getUser()` — el
+ * camino de siempre, con su plazo y su reintento.
+ *
+ * @returns {Promise<{user?: object, invalido?: boolean, sinClaves?: boolean}>}
+ */
+async function identidadLocal(client, accessToken) {
+  const kid = kidDelToken(accessToken);
+  // Sin kid es firma simétrica (HS256): getClaims acabaría llamando a getUser
+  // igualmente, así que nos ahorramos el rodeo y vamos directos al respaldo.
+  if (!kid) return { sinClaves: true };
+
+  const { keys } = await getJwks({ kid });
+  if (!keys.length) return { sinClaves: true };
+
+  try {
+    const { data, error } = await client.auth.getClaims(accessToken, { keys });
+    if (error || !data?.claims?.sub) return { sinClaves: true };
+    const c = data.claims;
+    // Forma de `user` equivalente a la que devolvía getUser en lo que el
+    // código consume: id, email y user_metadata (delete-account).
+    return {
+      user: {
+        id: c.sub,
+        email: c.email ?? null,
+        user_metadata: c.user_metadata ?? {},
+        app_metadata: c.app_metadata ?? {},
+      },
+    };
+  } catch (err) {
+    // Firma mala o token caducado: es un NO definitivo, no un fallo de
+    // servicio. Distinguirlo importa, porque caer al respaldo aquí sería
+    // pedirle a GoTrue que nos repita que no.
+    const nombre = err?.name || "";
+    if (nombre === "AuthInvalidJwtError" || /expired|signature|jwt/i.test(err?.message || "")) {
+      return { invalido: true };
+    }
+    console.error("[auth] getClaims falló, se cae a getUser:", err?.message || err);
+    return { sinClaves: true };
+  }
+}
 
 // Whitelist de emails con permisos de admin. Lo dejamos en código (no
 // env var) para evitar misconfiguración silenciosa: si quieres añadir
@@ -85,6 +166,15 @@ export async function authClientAndUser(accessToken) {
   try {
     const client = createAuthClient(accessToken);
     if (!client) return { client: null, user: null };
+
+    // 1) Camino normal: firma verificada en local, sin red.
+    const local = await identidadLocal(client, accessToken);
+    if (local.user) return { client, user: local.user };
+    if (local.invalido) return { client: null, user: null };
+
+    // 2) Respaldo: preguntarle a GoTrue, como se hacía antes. Solo se llega
+    //    aquí si no hay claves con las que verificar (firma simétrica, JWKS
+    //    ilegible) — no por un token que sencillamente no vale.
     const { data, error, timedOut } = await pedirUsuario(client, accessToken);
     if (timedOut) return { client: null, user: null, timedOut: true };
     if (error || !data?.user) return { client: null, user: null };

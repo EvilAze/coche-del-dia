@@ -27,8 +27,8 @@
 
 import sharp from "sharp";
 import { verifyRevealToken } from "./_lib/reveal-token.js";
-import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
-import { conTimeoutOFallback, PLAZOS } from "./_lib/timeout.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
+import { authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { methodGuard } from "./_lib/http.js";
 import { getClientIp } from "./_lib/ratelimit.js";
@@ -76,25 +76,18 @@ async function tryReadUserStatus(req, carId, today) {
   const auth = req.headers?.authorization || "";
   if (!auth.startsWith("Bearer ")) return null;
   const token = auth.slice(7);
-  const client = token ? createAuthClient(token) : null;
-  if (!client) return null;
+  if (!token) return null;
   try {
-    // JWT explícito y con plazo. Este check es DEFENSIVO —el camino normal
-    // del reveal va por el revealToken firmado— así que si GoTrue tartamudea
-    // preferimos seguir sin él a que la foto del día se quede colgada: el
-    // fallback `{}` deja `u.user` a undefined y salimos por el return de
-    // abajo, exactamente igual que ante un token que no vale.
-    const { data: u } = await conTimeoutOFallback(
-      client.auth.getUser(token),
-      PLAZOS.AUTH,
-      {},
-      { etiqueta: "daily-image auth.getUser" }
-    );
-    if (!u?.user) return null;
+    // Por el helper compartido: firma verificada en local, sin viaje a GoTrue.
+    // Este check es DEFENSIVO —el camino normal del reveal va por el
+    // revealToken firmado—, así que ante cualquier duda seguimos sin él antes
+    // que dejar la foto del día colgada.
+    const { client, user } = await authClientAndUser(token);
+    if (!client || !user) return null;
     const { data: row } = await client
       .from("user_guesses")
       .select("status")
-      .eq("user_id", u.user.id)
+      .eq("user_id", user.id)
       .eq("car_id", carId)
       .eq("date", today)
       .maybeSingle();

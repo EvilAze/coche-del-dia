@@ -33,7 +33,8 @@
 //     (marca/modelo/año/país) y la firma del revealToken corren a la vez.
 //   En total: pasamos de 5 round-trips secuenciales a 3.
 
-import { getSupabaseAdmin, getMissingAdminEnvs, createAuthClient } from "./_lib/supabase.js";
+import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
+import { authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { signRevealToken } from "./_lib/edge/reveal-token.js";
 import { readAnonTokenFromRequest, signAnonSession } from "./_lib/edge/anon-session.js";
@@ -42,7 +43,7 @@ import { logSessionStart } from "./_lib/edge/audit.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
 import { isAllowedOrigin, CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS } from "./_lib/cors.js";
-import { conTimeout, conTimeoutOFallback, TimeoutError, PLAZOS } from "./_lib/timeout.js";
+import { conTimeoutOFallback, PLAZOS } from "./_lib/timeout.js";
 
 // Intentos máximos de la partida diaria. Este valor viaja al cliente en la
 // respuesta para que la UI no tenga que hardcodearlo — pero es SOLO
@@ -89,54 +90,18 @@ function corsHeadersFor(request) {
   };
 }
 
-// Cliente Supabase con el JWT del usuario, llamada local porque el helper
-// existente vive en auth.js que usa req.headers estilo Vercel. Aquí lo
-// inline para que la cadena de imports sea estrictamente Edge-safe.
-async function authClientAndUser(accessToken) {
-  if (!accessToken) return { client: null, user: null };
-  try {
-    const client = createAuthClient(accessToken);
-    if (!client) return { client: null, user: null };
-    // Con plazo, igual que la copia de _lib/auth.js, y con la misma distinción
-    // entre «el token no vale» y «no hemos podido comprobarlo».
-    //
-    // Y aquí esa distinción importa MÁS que en el panel, porque la degradación
-    // tentadora es la mala: si GoTrue no contesta, tratar al usuario como
-    // anónimo NO es servir una versión reducida, es servirle un tablero
-    // VACÍO. La rama anónima devuelve `guesses: []` y `status: "playing"`, y
-    // el cliente no compensa con localStorage cuando hay sesión (useGame solo
-    // lee el snapshot local `if (!session)`, y con razón: para un usuario
-    // logueado la fuente de verdad es el servidor). O sea que quien llevara
-    // tres intentos se encontraría la partida a cero a media mañana. Un 503
-    // con el mensaje de siempre es mucho menos daño que eso.
-    // Con plazo, JWT explícito y UN reintento — los tres motivos están
-    // explicados en la copia de _lib/auth.js (`pedirUsuario`), que es la
-    // réplica de esta: GoTrue no se cae, tartamudea, así que contra un fallo
-    // intermitente lo que arregla la experiencia es el segundo intento y no
-    // afinar el plazo. Si tocas uno, toca el otro.
-    let respuesta = null;
-    for (let intento = 1; intento <= 2 && !respuesta; intento++) {
-      try {
-        respuesta = await conTimeout(
-          client.auth.getUser(accessToken),
-          PLAZOS.AUTH,
-          { etiqueta: `auth.getUser (intento ${intento})` }
-        );
-      } catch (err) {
-        if (!(err instanceof TimeoutError)) throw err;
-        console.error(
-          `[get-daily-car] GoTrue no respondió en ${PLAZOS.AUTH} ms (intento ${intento}/2)`
-        );
-        if (intento === 2) return { client: null, user: null, timedOut: true };
-      }
-    }
-    const { data, error } = respuesta;
-    if (error || !data?.user) return { client: null, user: null };
-    return { client, user: data.user };
-  } catch {
-    return { client: null, user: null };
-  }
-}
+// La resolución de identidad vive en _lib/auth.js y se IMPORTA, no se copia.
+//
+// Aquí hubo una réplica inline con este motivo: «el helper existente vive en
+// auth.js que usa req.headers estilo Vercel». La premisa no se sostenía —
+// `authClientAndUser(token)` recibe un string y no toca `req`; quien lee
+// cabeceras es `requireUser`, que desde aquí no se llama— y la cadena de
+// imports de auth.js es Edge-safe entera: createAuthClient, timeout.js y
+// jwks.js no usan nada de Node.
+//
+// Y desde que la identidad se verifica criptográficamente en local, la copia
+// dejó de ser solo redundante: serían DOS verificaciones de firma que
+// mantener, con el riesgo de endurecer una y olvidar la otra. Una sola.
 
 export default async function handler(request) {
   // Preflight CORS de la app Android.

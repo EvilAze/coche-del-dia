@@ -8,9 +8,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock del módulo de clientes: authClientAndUser solo necesita que
 // createAuthClient le devuelva algo con .auth.getUser().
 const getUserMock = vi.fn();
+const getClaimsMock = vi.fn();
 vi.mock("./supabase.js", () => ({
-  createAuthClient: vi.fn(() => ({ auth: { getUser: getUserMock } })),
+  createAuthClient: vi.fn(() => ({
+    auth: { getUser: getUserMock, getClaims: getClaimsMock },
+  })),
 }));
+
+// El JWKS se mockea: qué claves haya es cosa de jwks.js y tiene su propio
+// contrato; aquí lo que se prueba es a quién se le pregunta la identidad.
+const jwksMock = vi.fn();
+vi.mock("./jwks.js", () => ({ getJwks: (...a) => jwksMock(...a) }));
 
 const { authClientAndUser, requireUser } = await import("./auth.js");
 
@@ -18,8 +26,79 @@ const { authClientAndUser, requireUser } = await import("./auth.js");
 const seAtranca = () => new Promise(() => {});
 const usuario = { data: { user: { id: "u1", email: "a@b.c" } }, error: null };
 
+// Token de mentira con cabecera decodificable: lo único que auth.js le lee es
+// el `kid`, para saber qué clave pedir.
+function tokenCon(cabecera) {
+  const b64 = (o) =>
+    Buffer.from(JSON.stringify(o)).toString("base64").replace(/=+$/, "");
+  return `${b64(cabecera)}.${b64({ sub: "u1" })}.firma`;
+}
+const TOKEN_ASIMETRICO = tokenCon({ alg: "ES256", kid: "k1" });
+const TOKEN_SIMETRICO = tokenCon({ alg: "HS256" });
+
+const claims = {
+  data: { claims: { sub: "u1", email: "a@b.c", user_metadata: { nick: "ruben" } } },
+  error: null,
+};
+
 beforeEach(() => {
   getUserMock.mockReset();
+  getClaimsMock.mockReset();
+  jwksMock.mockReset();
+  // Por defecto: hay claves y la firma verifica.
+  jwksMock.mockResolvedValue({ keys: [{ kid: "k1" }] });
+  getClaimsMock.mockResolvedValue(claims);
+});
+
+describe("identidad verificada en local", () => {
+  it("con JWKS y token asimétrico NO se llama a GoTrue", async () => {
+    // Es el punto entero del cambio: durante la degradación del 23 de agosto
+    // de 2026, /auth/v1/user no contestaba en 10 s y esto tumbaba la web.
+    const r = await authClientAndUser(TOKEN_ASIMETRICO);
+    expect(r.user).toEqual({
+      id: "u1",
+      email: "a@b.c",
+      user_metadata: { nick: "ruben" },
+      app_metadata: {},
+    });
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
+
+  it("le pide al JWKS la clave del kid que trae el token", async () => {
+    await authClientAndUser(TOKEN_ASIMETRICO);
+    expect(jwksMock).toHaveBeenCalledWith({ kid: "k1" });
+    expect(getClaimsMock).toHaveBeenCalledWith(TOKEN_ASIMETRICO, {
+      keys: [{ kid: "k1" }],
+    });
+  });
+
+  it("token con firma inválida o caducada → NO se pregunta a GoTrue", async () => {
+    // Un token que no vale es un NO definitivo; caer al respaldo sería pedirle
+    // a GoTrue que nos repita lo mismo, y encima con GoTrue caído daría 503.
+    const err = new Error("Invalid JWT signature");
+    err.name = "AuthInvalidJwtError";
+    getClaimsMock.mockRejectedValue(err);
+    const r = await authClientAndUser(TOKEN_ASIMETRICO);
+    expect(r.user).toBeNull();
+    expect(r.timedOut).toBeUndefined();
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
+
+  it("token simétrico (HS256, sin kid) → respaldo a GoTrue", async () => {
+    getUserMock.mockResolvedValue(usuario);
+    const r = await authClientAndUser(TOKEN_SIMETRICO);
+    expect(r.user.id).toBe("u1");
+    expect(getClaimsMock).not.toHaveBeenCalled();
+    expect(getUserMock).toHaveBeenCalledWith(TOKEN_SIMETRICO);
+  });
+
+  it("sin claves en el JWKS → respaldo a GoTrue", async () => {
+    jwksMock.mockResolvedValue({ keys: [] });
+    getUserMock.mockResolvedValue(usuario);
+    const r = await authClientAndUser(TOKEN_ASIMETRICO);
+    expect(r.user.id).toBe("u1");
+    expect(getUserMock).toHaveBeenCalled();
+  });
 });
 
 describe("authClientAndUser", () => {

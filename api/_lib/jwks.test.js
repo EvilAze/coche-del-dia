@@ -13,6 +13,7 @@ vi.mock("./ratelimit.js", () => ({
 }));
 
 const { getJwks, _resetJwksCache } = await import("./jwks.js");
+const { default: EMBEBIDAS } = await import("./jwks-embebido.js");
 
 const CLAVES = { keys: [{ kid: "k1", alg: "ES256" }] };
 const OTRAS = { keys: [{ kid: "k1" }, { kid: "k2" }] };
@@ -103,6 +104,17 @@ describe("sobrevive a una caída de GoTrue", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("ROTACION: un Redis obsoleto no bloquea la clave nueva", async () => {
+    // Sin esto nos quedariamos clavados en la copia de Redis hasta que expire
+    // -30 dias- y ningun token firmado con la clave nueva verificaria.
+    redisMock.get.mockResolvedValue(CLAVES); // solo k1
+    const fetchMock = vi.fn().mockResolvedValue(respuesta(OTRAS)); // k1 + k2
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await getJwks({ kid: "k2" });
+    expect(fetchMock).toHaveBeenCalled();
+    expect(r.keys.map((k) => k.kid)).toContain("k2");
+  });
+
   it("si el refresco falla se conserva la caché anterior, no se vacía", async () => {
     const fetchMock = vi
       .fn()
@@ -115,17 +127,39 @@ describe("sobrevive a una caída de GoTrue", () => {
   });
 });
 
-describe("no lanza nunca", () => {
-  it("sin envs devuelve claves vacías", async () => {
+describe("el suelo: SIEMPRE hay claves", () => {
+  it("las embebidas son claves publicas de verdad, sin material privado", () => {
+    // Van commiteadas en un repo PUBLICO: si algun dia alguien pega ahi un
+    // JWKS completo con la parte privada, esto lo caza.
+    expect(EMBEBIDAS.keys.length).toBeGreaterThan(0);
+    for (const k of EMBEBIDAS.keys) {
+      expect(k.key_ops).toEqual(["verify"]);
+      expect(k).not.toHaveProperty("d");
+      expect(k).not.toHaveProperty("p");
+      expect(k).not.toHaveProperty("q");
+    }
+  });
+
+  it("sin envs se sigue verificando con las embebidas", async () => {
     delete process.env.SUPABASE_URL;
     delete process.env.REACT_APP_SUPABASE_URL;
     vi.stubGlobal("fetch", vi.fn());
-    expect(await getJwks()).toEqual({ keys: [] });
+    expect(await getJwks()).toEqual(EMBEBIDAS);
   });
 
-  it("un HTTP de error deja las claves vacías", async () => {
+  it("CON GOTRUE Y REDIS CAIDOS A LA VEZ, sigue habiendo claves", async () => {
+    // Es exactamente el escenario del 23 de agosto de 2026, en el que las dos
+    // versiones anteriores de este modulo se quedaban sin nada que hacer.
+    redisMock.get.mockRejectedValue(new Error("upstash down"));
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("gotrue down")));
+    const r = await getJwks({ kid: EMBEBIDAS.keys[0].kid });
+    expect(r.keys.length).toBeGreaterThan(0);
+    expect(r).toEqual(EMBEBIDAS);
+  });
+
+  it("un HTTP de error no deja a nadie sin claves", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respuesta(null, false, 503)));
-    expect(await getJwks()).toEqual({ keys: [] });
+    expect(await getJwks()).toEqual(EMBEBIDAS);
   });
 
   it("sin Upstash configurado sigue funcionando por el origen", async () => {

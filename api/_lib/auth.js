@@ -68,7 +68,12 @@ async function identidadLocal(client, accessToken) {
   if (!kid) return { sinClaves: true };
 
   const { keys } = await getJwks({ kid });
-  if (!keys.length) return { sinClaves: true };
+  // Tiene que estar LA clave de este token, no basta con que haya claves. Si
+  // le pasáramos a getClaims un juego que no incluye su `kid`, la librería se
+  // iría por su cuenta a pedir el JWKS por red (fetchJwk cae al endpoint
+  // cuando no encuentra la clave suministrada) — o sea, el viaje a GoTrue que
+  // todo esto existe para evitar, colado por la puerta de atrás.
+  if (!keys.some((k) => k.kid === kid)) return { sinClaves: true };
 
   try {
     const { data, error } = await client.auth.getClaims(accessToken, { keys });

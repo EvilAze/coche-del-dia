@@ -2,24 +2,35 @@
 // Claves públicas con las que Supabase firma los JWT de sesión. Es lo que
 // permite verificar la identidad SIN preguntarle a GoTrue en cada petición.
 //
-// TRES NIVELES, y el orden importa:
+// CUATRO NIVELES, y el orden importa:
 //   L1  memoria del módulo   — instantáneo, por instancia.
-//   L2  Upstash Redis        — compartido entre instancias y, sobre todo,
-//                              SOBREVIVE A UNA CAÍDA DE GOTRUE.
+//   L2  Upstash Redis        — compartido entre instancias, sobrevive a una
+//                              caída de GoTrue.
 //   L3  el endpoint JWKS     — la fuente, pero la sirve el propio GoTrue.
+//   L0  claves embebidas     — el suelo: siempre hay claves, sin red.
 //
-// POR QUÉ L2 NO ES UN LUJO. La primera versión de esto solo tenía L1 y L3, y
-// se estrelló en producción el 23 de agosto de 2026 de una forma que conviene
-// no olvidar: `/auth/v1/.well-known/jwks.json` lo sirve el MISMO servicio que
-// estaba atrancado, así que una instancia que arrancaba en frío durante la
-// caída no podía conseguir las claves, se caía al respaldo `getUser()` —que
-// también estaba muerto— y devolvía 503. Verificar en local no sirve de nada
-// si para poder verificar hay que llamar antes a quien no contesta.
+// LA LECCIÓN, que costó dos intentos. La primera versión tenía solo L1 y L3 y
+// se estrelló: `/auth/v1/.well-known/jwks.json` lo sirve el MISMO servicio que
+// se atranca, así que una instancia en frío durante la caída no conseguía las
+// claves y acababa en el respaldo `getUser()`, que también estaba muerto.
+// Verificar en local no sirve de nada si para poder verificar hay que llamar
+// antes a quien no contesta.
 //
-// Con L2, basta UNA lectura exitosa en toda la flota para que la verificación
-// siga funcionando aunque GoTrue esté caído durante días. Y Upstash es una
-// dependencia distinta: el 23 de agosto estuvo en pie todo el rato, sirviendo
-// el rate-limit sin un fallo.
+// Se añadió L2 (Redis) y TAMPOCO bastó, porque tenía una dependencia circular
+// que solo se ve cuando ya te ha mordido: Redis solo se puede SEMBRAR con una
+// lectura de L3, y L3 era justo lo que no funcionaba. Los dos niveles nuevos
+// estaban vacíos y no había manera de llenarlos:
+//
+//     [jwks] no se pudo refrescar: jwks superó el plazo de 5000 ms
+//
+// De ahí L0, y de ahí que se llame L0 y no L4: es el SUELO, no el último
+// cartucho. Las claves van en el repo, así que una instancia recién nacida
+// puede verificar desde el primer milisegundo sin haber hablado con nadie.
+// L1-L3 solo sirven para tener claves más FRESCAS que las embebidas.
+//
+// Upstash sigue mereciendo su nivel: es una dependencia distinta —el 23 de
+// agosto estuvo en pie todo el rato sirviendo el rate-limit— y es quien
+// propaga una rotación al resto de la flota sin esperar a un despliegue.
 //
 // POR QUÉ NO VALE LA CACHÉ DE LA LIBRERÍA. `getClaims()` sabe cachear el JWKS,
 // pero lo guarda en la INSTANCIA del cliente, y `createAuthClient` crea una por
@@ -30,6 +41,7 @@
 
 import { conTimeout } from "./timeout.js";
 import { getRedis } from "./ratelimit.js";
+import EMBEBIDAS from "./jwks-embebido.js";
 
 // TTL de la caché en memoria. Las claves rotan muy de tarde en tarde y una
 // rotación no invalida esto de golpe: Supabase publica la nueva junto a la
@@ -46,7 +58,11 @@ const PLAZO_MS = 5000;
 // pasando mal.
 const ESPERA_TRAS_FALLO_MS = 60 * 1000;
 
-let _cache = { keys: [] };
+// L1 nace con las claves embebidas, NO vacía: así nunca existe el instante en
+// que una instancia no puede verificar nada. `_cacheadoEn = 0` las marca como
+// caducadas de entrada, de modo que se intenta refrescar en la primera
+// llamada — pero si el refresco falla, seguimos teniendo con qué trabajar.
+let _cache = EMBEBIDAS;
 let _cacheadoEn = 0;
 let _falloEn = 0;
 let _enVuelo = null;
@@ -101,11 +117,15 @@ async function leerDelOrigen() {
 }
 
 // Refresca L1 pasando por L2 y, si hace falta, por L3. Nunca lanza.
-async function refrescar() {
+async function refrescar(kid) {
   // L2 primero: es la que sigue viva cuando la fuente no lo está, y además
   // es más rápida.
   const deRedis = await leerDeRedis();
-  if (deRedis) {
+  // OJO con el kid: si estamos refrescando PORQUE ha aparecido una clave
+  // desconocida, una copia de Redis que tampoco la tenga no resuelve nada —y
+  // aceptarla nos dejaría clavados en ella hasta que expire, 30 días—. En ese
+  // caso seguimos al origen, que es quien puede traer la clave nueva.
+  if (deRedis && (!kid || deRedis.keys.some((k) => k.kid === kid))) {
     _cache = deRedis;
     _cacheadoEn = Date.now();
     return _cache;
@@ -151,16 +171,17 @@ export async function getJwks({ kid } = {}) {
   // Una sola operación en vuelo por instancia: N peticiones concurrentes de
   // una instancia fría no deben disparar N lecturas.
   if (!_enVuelo) {
-    _enVuelo = refrescar().finally(() => {
+    _enVuelo = refrescar(kid).finally(() => {
       _enVuelo = null;
     });
   }
   return _enVuelo;
 }
 
-// Solo para tests: devuelve la caché a su estado inicial.
+// Solo para tests: devuelve la caché a su estado inicial — que NO es vacía,
+// sino las claves embebidas, igual que al arrancar el módulo en producción.
 export function _resetJwksCache() {
-  _cache = { keys: [] };
+  _cache = EMBEBIDAS;
   _cacheadoEn = 0;
   _falloEn = 0;
   _enVuelo = null;

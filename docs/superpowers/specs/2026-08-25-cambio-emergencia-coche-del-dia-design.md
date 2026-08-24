@@ -190,7 +190,7 @@ versionado lleva el esquema, nunca datos que acoten el sorteo (regla 20).
 
 | # | Riesgo | Mitigación |
 |---|---|---|
-| **R1** | **CONFIRMADO (2026-08-25)**: `record_daily_result_v2` se re-deriva el coche con `v_car := public.pick_daily_car(v_today)` y lee `user_guesses` por ese `car_id`. Un congelado que gane tiene la fila con el `car_id` viejo → `v_guesses is null` → `raise exception 'No game state for today'`: **gana y no se le registra ni puntos ni racha**. Y más abajo hay una verificación del último intento contra la ficha real del coche que también fallaría | Parche SQL versionado, en **un solo punto**: resolver `v_car` al principio (ver abajo). El resto del cuerpo no se toca |
+| **R1** | **CONFIRMADO Y ACOTADO (2026-08-25)**: `record_daily_result_v2` se re-deriva el coche con `v_car := public.pick_daily_car(v_today)`. Falla en **dos** puntos para un congelado: la lectura de `user_guesses` por ese `car_id` (`raise 'No game state for today'` → **gana y no se le registra ni puntos ni racha**) y, dentro del `if p_won`, la verificación del último intento contra `cars` por `v_car` (`raise 'Winning guess does not match real car'`) | Parche SQL versionado en **un solo punto**: resolver `v_car` al principio (ver abajo). Los dos fallos usan el mismo `v_car`, así que el resto del cuerpo no se toca |
 | **R2** | El anti-trampas de `lib/admin-handlers/audit.js` descartará como «repescas» las partidas congeladas de ese día | Misma regla de una línea (`∪ prev_car_ids`), en el mismo lote |
 | **R3** | `daily_stats` y el observatorio de dificultad atribuyen por `date → daily_cars`: las estadísticas de ese día quedan **mezcladas entre dos coches** | No se arregla, se avisa. Es un día suelto, no justifica un esquema nuevo |
 | **R4** | El coche saliente vuelve al bombo: **quien lo jugó hoy lo verá repetido** cuando vuelva a salir | Decisión tomada. El modal dice cuánta gente lo jugó, para decidir con el dato delante |
@@ -230,6 +230,22 @@ de JS acota el pin a `{vigente} ∪ prev` en vez de a «su fila de hoy».
 fila en el vigente, gana la de `prev`. Por construcción no puede pasar (el pin
 impide que se cree la segunda), pero la regla queda escrita para que SQL y JS no
 diverjan si algún día pasa.
+
+### Lo que se verificó en Supabase (2026-08-25)
+
+Tres comprobaciones antes de dar el diseño por bueno:
+
+- **`record_daily_result_v2` delega en `public.record_daily_result(p_won,
+  p_attempt_number)`**, y esa función es **completamente ajena al coche**: su
+  idempotencia va por `stats.last_played_date = hoy` y la racha por fechas.
+  Ni `daily_cars` ni `car_id` en todo el cuerpo. **El radio de daño de R1
+  termina en el envoltorio `_v2`.** Y esa idempotencia por fecha es además una
+  red que ya estaba puesta: aunque alguien acabase con partida en dos
+  revisiones del mismo día, solo puntúa una vez.
+- **`pick_daily_car(p_date date, p_allow_drafts boolean)`** — firma confirmada;
+  la envoltura `coche_de_hoy` tiene que respetarla.
+- **`daily_cars` es `(date, car_id, created_at)`** — no hay ninguna columna
+  reaprovechable, así que la migración de `prev_car_ids` es necesaria.
 
 ## Tests
 

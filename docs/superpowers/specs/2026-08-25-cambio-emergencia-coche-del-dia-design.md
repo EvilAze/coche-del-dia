@@ -190,13 +190,46 @@ versionado lleva el esquema, nunca datos que acoten el sorteo (regla 20).
 
 | # | Riesgo | Mitigación |
 |---|---|---|
-| **R1** | **`record_daily_result_v2` puede derivar el `car_id` de `daily_cars`** (así lo hace el template de `scripts/supabase-hardening.sql`). Si es así, un congelado que gane recibe `No game state to record`: **pierde puntos y racha**. No se puede resolver desde el repo. | **Paso 0 del plan, antes de escribir código**: ejecutar `[A.4]` de `supabase-hardening.sql` en Supabase y leer el cuerpo real. Si deriva de `daily_cars`, script SQL versionado que acepte `{car_id} ∪ prev_car_ids` |
+| **R1** | **CONFIRMADO (2026-08-25)**: `record_daily_result_v2` se re-deriva el coche con `v_car := public.pick_daily_car(v_today)` y lee `user_guesses` por ese `car_id`. Un congelado que gane tiene la fila con el `car_id` viejo → `v_guesses is null` → `raise exception 'No game state for today'`: **gana y no se le registra ni puntos ni racha**. Y más abajo hay una verificación del último intento contra la ficha real del coche que también fallaría | Parche SQL versionado, en **un solo punto**: resolver `v_car` al principio (ver abajo). El resto del cuerpo no se toca |
 | **R2** | El anti-trampas de `lib/admin-handlers/audit.js` descartará como «repescas» las partidas congeladas de ese día | Misma regla de una línea (`∪ prev_car_ids`), en el mismo lote |
 | **R3** | `daily_stats` y el observatorio de dificultad atribuyen por `date → daily_cars`: las estadísticas de ese día quedan **mezcladas entre dos coches** | No se arregla, se avisa. Es un día suelto, no justifica un esquema nuevo |
 | **R4** | El coche saliente vuelve al bombo: **quien lo jugó hoy lo verá repetido** cuando vuelva a salir | Decisión tomada. El modal dice cuánta gente lo jugó, para decidir con el dato delante |
 | **R5** | El Archivo / Garaje de ese día mostrará el coche vigente; quien jugó el viejo lo tiene en su ficha vía `user_guesses.car_data` | Verificar `api/garage.js` durante la implementación. Si chirría, misma regla `∪ prev` |
 | **R6** | La RPC nueva está en el **camino crítico del primer paint** | Es un envoltorio que no toca `pick_daily_car`, y el handler cae a `pick_daily_car` si falla. El test que suma la cadena de plazos (regla 21) cubre que no se pase de los 25 s del Edge |
 | **R7** | `og-image` (`max-age=300`) servirá la miniatura vieja unos minutos al compartir | Se deja: se cura solo y no afecta a ninguna partida |
+
+### Parche de `record_daily_result_v2` (R1)
+
+Va justo después de `v_car := public.pick_daily_car(v_today)`, y el resto del
+cuerpo sigue igual sin enterarse:
+
+```sql
+-- Si el usuario tiene fila en una revisión ANTERIOR del día (cambio de
+-- emergencia), esa es su partida: la jugó contra ese coche y contra ese coche
+-- hay que verificarla. En un día normal prev_car_ids está vacío y esto no hace
+-- nada.
+select coalesce(prev_car_ids, '{}') into v_prev
+  from public.daily_cars where date = v_today;
+
+select car_id into v_car_congelado
+  from public.user_guesses
+ where user_id = v_user and date = v_today and car_id = any(v_prev)
+ limit 1;
+
+if v_car_congelado is not null then
+  v_car := v_car_congelado;
+end if;
+```
+
+No abre ningún agujero: `v_prev` solo contiene coches que **realmente fueron**
+el coche del día, así que un coche de repesca no puede colarse por ahí a robar
+los puntos y la racha de la diaria. Es la misma razón por la que el resolvedor
+de JS acota el pin a `{vigente} ∪ prev` en vez de a «su fila de hoy».
+
+**Desempate, y es el mismo en los dos sitios:** si existieran fila en `prev` y
+fila en el vigente, gana la de `prev`. Por construcción no puede pasar (el pin
+impide que se cree la segunda), pero la regla queda escrita para que SQL y JS no
+diverjan si algún día pasa.
 
 ## Tests
 

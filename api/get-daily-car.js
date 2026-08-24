@@ -38,7 +38,6 @@ import { authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { signRevealToken } from "./_lib/edge/reveal-token.js";
 import { readAnonTokenFromRequest, signAnonSession } from "./_lib/edge/anon-session.js";
-import { sha1Hex } from "./_lib/edge/crypto.js";
 import { logSessionStart } from "./_lib/edge/audit.js";
 import { versionDeImagen } from "./_lib/version-imagen.js";
 import { clampZoomBase } from "./_lib/zoom.js";

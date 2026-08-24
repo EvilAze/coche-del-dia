@@ -137,8 +137,13 @@ logueado sin fila que reenviara un sello viejo: se le sirve el coche vigente.
 
 - `api/get-daily-car.js` — imagen, estado guardado y `revealToken`.
 - `api/daily-image.js` — hoy resuelve por su cuenta con `pick_daily_car`, así
-  que le serviría la foto **nueva** a un congelado. También su
-  `tryReadUserStatus`, que filtra por `car_id`.
+  que le serviría la foto **nueva** a un congelado. **Pero no puede usar el
+  resolvedor**: la foto la pide una etiqueta `<img>`, y un `<img>` no manda ni
+  `Authorization` ni `X-Anon-Session`. Ahí la identidad viaja por la **URL**, en
+  el `v` que ya lleva. Como `v` es un hash del coche, **`v` es el selector de
+  revisión**: si no casa con el del coche vigente, se busca entre los salientes
+  y se sirve ese. Sin cambios en el cliente y sin autenticar nada. El
+  `tryReadUserStatus` del reveal recibe el coche ya resuelto.
 - `api/validate-guess.js` — o validaría los intentos contra el coche que no es.
 
 #### La caché del proxy de imagen no se contamina
@@ -150,6 +155,11 @@ CDN nunca puede servirle la foto de uno al otro. Es la propiedad que hace viable
 que una misma ruta devuelva coches distintos según quién pregunte, y hay que
 mantenerla: si algún día `v` dejara de derivar del coche, esto se convierte en
 una fuga.
+
+Y como el cálculo de `v` pasa a ser **la** pieza de la que depende qué foto
+recibe cada uno, deja de estar escrito a mano en `get-daily-car` y se muda a
+`api/_lib/version-imagen.js`, que importan los dos endpoints. No es una réplica
+a mantener en sync (regla 7): es un único sitio, y por eso funciona.
 
 `api/og-image.js` se queda con el coche vigente: es la miniatura pública de
 compartir, no la partida de nadie.

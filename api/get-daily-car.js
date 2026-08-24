@@ -40,6 +40,7 @@ import { signRevealToken } from "./_lib/edge/reveal-token.js";
 import { readAnonTokenFromRequest, signAnonSession } from "./_lib/edge/anon-session.js";
 import { sha1Hex } from "./_lib/edge/crypto.js";
 import { logSessionStart } from "./_lib/edge/audit.js";
+import { versionDeImagen } from "./_lib/version-imagen.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
 import { isAllowedOrigin, CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS } from "./_lib/cors.js";
@@ -248,15 +249,9 @@ export default async function handler(request) {
   // por intento; clampZoomBase cae al default 3.7 si la columna no existe aún.
   const zoomBase = clampZoomBase(imgRow?.zoom_base);
 
-  // Cache-buster sha1 corto. Si admin reemplaza la foto desde
-  // /admin/edit-car, image_url cambia → hash cambia → CDN sirve la nueva
-  // al instante. Si solo edita texto, image_url no se toca y el CDN
-  // mantiene el hit caliente. Incluimos también el zoom_base: si admin ajusta
-  // la dificultad del coche del día, el crop que sirve daily-image cambia, así
-  // que el hash debe invalidar la entrada cacheada.
-  const imgVersion = imgRow?.image_url
-    ? (await sha1Hex(`${imgRow.image_url}:${zoomBase}`)).slice(0, 8)
-    : "0";
+  // El hash identifica al coche, y daily-image lo usa para saber qué revisión
+  // del día pide quien carga la foto. Ver api/_lib/version-imagen.js.
+  const imgVersion = await versionDeImagen(imgRow?.image_url, zoomBase);
   const dailyImgUrl = `/api/daily-image?d=${today}&v=${imgVersion}`;
   const blurData = imgRow?.blur_data || null;
 

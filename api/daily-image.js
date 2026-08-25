@@ -4,8 +4,9 @@
 // se expone al navegador.
 //
 // Flujo:
-//   1) Resolvemos el coche del día con pick_daily_car (service_role: la RPC
-//      está revocada de anon/authenticated por hardening previo).
+//   1) Resolvemos el coche del día con coche_de_hoy (service_role: las RPC
+//      están revocadas de anon/authenticated por hardening previo), y el `v`
+//      de la URL decide cuál de las revisiones del día sirve esta petición.
 //   2) Leemos image_url de la fila (columna privilegiada).
 //   3) Hacemos un fetch server-side al CDN.
 //   4) Si el cliente pidió `?w` o `?f`, redimensionamos / recodificamos con
@@ -13,9 +14,11 @@
 //
 // Query params:
 //   ?d=YYYY-MM-DD   → cache buster diario (no se lee aquí; es solo cache key).
-//   ?v=<hash>       → hash corto de image_url (no se lee aquí; es solo cache
-//                     key — invalida automáticamente cuando admin cambia la
-//                     foto desde /admin/edit-car).
+//   ?v=<hash>       → hash corto de (image_url, zoom_base). Sigue siendo cache
+//                     buster —invalida solo cuando el admin cambia la foto
+//                     desde /admin/edit-car— pero ADEMÁS es lo único que dice
+//                     qué revisión del día está mirando quien pide la foto:
+//                     ver la nota larga del bloque de resolución más abajo.
 //   ?w=320|640|1280 → ancho objetivo. Allowlist estricta para evitar DoS por
 //                     resize a tamaños absurdos.
 //   ?f=avif|webp|jpeg → formato de salida. Allowlist estricta.
@@ -35,6 +38,7 @@ import { methodGuard } from "./_lib/http.js";
 import { getClientIp } from "./_lib/ratelimit.js";
 import { logCanary } from "./_lib/audit.js";
 import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
+import { versionDeImagen } from "./_lib/version-imagen.js";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
@@ -110,28 +114,87 @@ export default async function handler(req, res) {
 
   const today = todayInMadrid();
 
-  // 1) Coche del día.
-  const { data: carId, error: rpcErr } = await supabaseAdmin.rpc(
-    "pick_daily_car",
+  // 1) Qué coche sirve esta petición. Normalmente el vigente — pero si hubo un
+  //    cambio de emergencia, quien estaba jugando sigue pidiendo la foto del
+  //    suyo, y hay que dársela o vería el coche nuevo con su tablero viejo.
+  //
+  //    Aquí NO se puede usar el resolvedor de _lib/coche-de-hoy.js: la foto la
+  //    pide una etiqueta <img>, que no manda Authorization ni X-Anon-Session.
+  //    Ahí no hay usuario que resolver. Lo único que identifica la revisión es
+  //    el `v` de la URL, que es un hash del coche (_lib/version-imagen.js).
+  //    Como el hash sale del coche, cada revisión tiene su propia URL y la
+  //    caché compartida del CDN no puede servirle la foto de un jugador a
+  //    otro. Esa propiedad es la que hace viable todo esto.
+  const { data: filas, error: rpcErr } = await supabaseAdmin.rpc(
+    "coche_de_hoy",
     { p_date: today }
   );
+  let carId = filas?.[0]?.car_id || null;
+  const prevCarIds = filas?.[0]?.prev_car_ids || [];
+
   if (rpcErr || !carId) {
-    console.error("[daily-image] pick_daily_car:", rpcErr);
-    return res.status(500).json({ message: "Failed to pick daily car" });
+    // Respaldo: sin la envoltura desplegada se sirve el coche vigente y ya.
+    // Aquí sí se puede prescindir de los salientes (a diferencia de
+    // get-daily-car, donde inventarlos vaciaría un tablero): un `v` que no
+    // case cae en el vigente, que es exactamente el comportamiento histórico
+    // de este proxy. Lo peor que pasa es que un congelado vea la foto nueva.
+    console.error("[daily-image] coche_de_hoy:", rpcErr);
+    const { data: respaldo, error: respErr } = await supabaseAdmin.rpc(
+      "pick_daily_car",
+      { p_date: today }
+    );
+    if (respErr || !respaldo) {
+      console.error("[daily-image] pick_daily_car:", respErr);
+      return res.status(503).json({ message: "No daily car" });
+    }
+    carId = respaldo;
   }
+
+  const vPedido = typeof req.query?.v === "string" ? req.query.v : null;
 
   // 2) URL real del CDN + punto focal. Nunca salen de este proceso.
   //    focus_x/focus_y indican el centro del crop en [0,1]. Si están a
   //    null (compat con coches anteriores a la columna) o fuera de rango,
   //    cae al 0.5/0.5 — equivalente al crop centrado del comportamiento
   //    histórico.
-  const { data: row, error: fetchErr } = await supabaseAdmin
+  //
+  //    Se leen los candidatos del día —el vigente y, si hubo cambio hoy, los
+  //    salientes— en una sola consulta. En un día normal `prevCarIds` está
+  //    vacío y esto es la consulta de siempre con un `in` de un elemento.
+  const { data: filasCars, error: carsErr } = await supabaseAdmin
     .from("cars")
-    .select("image_url, focus_x, focus_y, zoom_base")
-    .eq("id", carId)
-    .single();
-  if (fetchErr || !row?.image_url) {
-    console.error("[daily-image] fetch car:", fetchErr);
+    .select("id, image_url, focus_x, focus_y, zoom_base")
+    .in("id", [carId, ...prevCarIds]);
+  if (carsErr || !filasCars?.length) {
+    console.error("[daily-image] read cars:", carsErr);
+    return res.status(503).json({ message: "No daily car" });
+  }
+
+  let carRow = filasCars.find((c) => c.id === carId);
+
+  // ¿El `v` que pide es el de una revisión anterior? Entonces esa es su foto.
+  // El bucle solo se paga los días que hubo cambio: esto se sirve en CADA
+  // carga de foto, y hashear por gusto un coche al día sería un coste diario
+  // por un caso excepcional. Un `v` que no case con nada (una foto que el
+  // admin reemplazó, una caché vieja) cae en el vigente: es el comportamiento
+  // de siempre y no es un error.
+  if (vPedido && prevCarIds.length > 0) {
+    for (const candidata of filasCars) {
+      const v = await versionDeImagen(
+        candidata.image_url,
+        clampZoomBase(candidata.zoom_base)
+      );
+      if (v === vPedido) {
+        carRow = candidata;
+        carId = candidata.id;
+        break;
+      }
+    }
+  }
+
+  const row = carRow;
+  if (!row?.image_url) {
+    console.error("[daily-image] fetch car: sin image_url para", carId);
     return res.status(500).json({ message: "Failed to load daily car" });
   }
   // Zoom base por coche (dificultad). clampZoomBase cae al default 3.7 si la

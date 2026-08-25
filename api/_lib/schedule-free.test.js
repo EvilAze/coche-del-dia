@@ -7,6 +7,7 @@
 import { describe, it, expect } from "vitest";
 import {
   validateFreeDate,
+  validateSwapDate,
   draftsAllowedFor,
   daysBetween,
   MIN_DRAFT_OFFSET_DAYS,
@@ -150,5 +151,31 @@ describe("validateFreeDate — cruces de mes y de año", () => {
     });
     expect(past.ok).toBe(false);
     expect(past.status).toBe(409);
+  });
+});
+
+describe("validateSwapDate — a hoy solo se llega por la puerta de emergencia", () => {
+  it("hoy se rechaza con 409 y dice por dónde se pasa", () => {
+    const r = validateSwapDate({ date: TODAY, today: TODAY, maxDate: MAX });
+    expect(r.ok).toBe(false);
+    expect(r.status).toBe(409);
+    expect(r.error).toContain("emergencia");
+  });
+
+  it("el pasado se rechaza", () => {
+    const r = validateSwapDate({ date: "2026-07-25", today: TODAY, maxDate: MAX });
+    expect(r.ok).toBe(false);
+    expect(r.status).toBe(409);
+  });
+
+  it("mañana se acepta", () => {
+    const r = validateSwapDate({ date: "2026-07-27", today: TODAY, maxDate: MAX });
+    expect(r).toEqual({ ok: true, date: "2026-07-27" });
+  });
+
+  it("más allá de la ventana visible se rechaza con 400", () => {
+    const r = validateSwapDate({ date: "2026-09-01", today: TODAY, maxDate: MAX });
+    expect(r.ok).toBe(false);
+    expect(r.status).toBe(400);
   });
 });

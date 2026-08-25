@@ -104,3 +104,43 @@ export function validateFreeDate({ date, today, maxDate }) {
   }
   return { ok: true, date: value };
 }
+
+/**
+ * ¿Se puede ASIGNAR un coche a esta fecha desde el calendario?
+ *
+ * Igual que validateFreeDate pero para el swap normal, y con una diferencia
+ * que importa: HOY se rechaza. Hasta ahora el POST del calendario aceptaba hoy
+ * y lo único que lo impedía era un botón deshabilitado en la UI — es decir, la
+ * cerradura era de cortesía. Cambiar el coche de hoy tiene consecuencias que el
+ * swap normal no sabe manejar (hay partidas en curso), así que se hace por su
+ * propia puerta, que avisa de lo que va a pasar y guarda el saliente.
+ */
+export function validateSwapDate({ date, today, maxDate }) {
+  const value = typeof date === "string" ? date.trim() : "";
+
+  if (!FREE_DATE_RE.test(value)) {
+    return { ok: false, status: 400, error: "Invalid date (expected YYYY-MM-DD)" };
+  }
+  if (value === today) {
+    return {
+      ok: false,
+      status: 409,
+      error: "El coche de hoy ya está en juego: usa el cambio de emergencia.",
+    };
+  }
+  if (value < today) {
+    return {
+      ok: false,
+      status: 409,
+      error: "No se puede reasignar un día pasado: es el histórico del juego.",
+    };
+  }
+  if (value > maxDate) {
+    return {
+      ok: false,
+      status: 400,
+      error: `Solo se pueden asignar fechas posteriores a hoy y hasta ${maxDate}.`,
+    };
+  }
+  return { ok: true, date: value };
+}

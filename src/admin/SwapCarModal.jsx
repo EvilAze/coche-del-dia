@@ -26,7 +26,17 @@ export default function SwapCarModal({
   // panel Añadir aparezca aquí de inmediato. useCatalog sirve una versión
   // cacheada (memoria de sesión + CDN s-maxage=300) que se quedaría sin el
   // coche nuevo hasta expirar — justo el bug de "no aparece en la lista".
-  const { data: catalog, reload: reloadCatalog } = useFreshCatalog();
+  //
+  // `auto: false`: este modal se monta SIEMPRE (ModalShell lo exige para poder
+  // animar la salida), así que un fetch en el mount descargaba el catálogo
+  // entero —sin caché de memoria ni de CDN— a todo admin que abriera el
+  // calendario, lo usara o no. Y otra vez al abrir, porque el efecto de `open`
+  // ya recarga. Ahora la única descarga es esa, y solo si se abre.
+  const {
+    data: catalog,
+    reload: reloadCatalog,
+    loading: cargandoCatalogo,
+  } = useFreshCatalog({ auto: false });
   const CARS = catalog?.cars ?? [];
 
   const [query, setQuery] = useState("");
@@ -185,7 +195,14 @@ export default function SwapCarModal({
       <ul className="flex-1 overflow-y-auto px-3 py-2">
         {filtered.length === 0 ? (
           <li className="px-2 py-6 text-center text-xs uppercase tracking-widest text-muted">
-            {query ? "Ningún coche encaja con la búsqueda" : "Catálogo vacío"}
+            {/* El catálogo se pide al abrir, así que una lista vacía puede
+                ser "todavía no ha llegado". Decir «Catálogo vacío» ahí sería
+                un diagnóstico falso. */}
+            {cargandoCatalogo && !catalog
+              ? "Cargando catálogo..."
+              : query
+                ? "Ningún coche encaja con la búsqueda"
+                : "Catálogo vacío"}
           </li>
         ) : (
           filtered.map((c) => {

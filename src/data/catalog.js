@@ -142,8 +142,19 @@ async function loadFreshCatalog() {
 
 // Hook gemelo de `useCatalog` pero con fresh-fetch en mount y `reload()`
 // expuesto para refrescar manualmente (p.ej. tras guardar un coche).
-export function useFreshCatalog() {
-  const [state, setState] = useState({ data: null, error: null, loading: true });
+//
+// `auto: false` desactiva ESE fetch de mount y deja la carga entera en manos de
+// `reload()`. Para quién es: un modal que está montado siempre —ModalShell
+// exige que el caller lo renderice también con open=false, o la animación de
+// salida se corta al desmontarlo— y que ya recarga al abrirse. Ahí el fetch de
+// mount no es "uno de más": es el catálogo entero, sin caché de CDN ni de
+// memoria, descargado al entrar en el panel aunque nadie abra el modal, y otra
+// vez cuando se abre. Con `auto: false` se descarga una vez, y solo al abrir.
+export function useFreshCatalog({ auto = true } = {}) {
+  // `loading` arranca en false cuando no hay fetch de mount: no se está
+  // cargando nada todavía, y decir lo contrario dejaría a un consumidor
+  // pintando un esqueleto para siempre.
+  const [state, setState] = useState({ data: null, error: null, loading: auto });
 
   const reload = useCallback(() => {
     setState({ data: null, error: null, loading: true });
@@ -159,6 +170,7 @@ export function useFreshCatalog() {
   }, []);
 
   useEffect(() => {
+    if (!auto) return;
     let mounted = true;
     loadFreshCatalog()
       .then((data) => {
@@ -170,7 +182,7 @@ export function useFreshCatalog() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [auto]);
 
   return { ...state, reload };
 }

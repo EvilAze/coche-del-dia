@@ -192,6 +192,24 @@ function todayInMadrid() {
 // srcset/sizes DEBEN coincidir byte-a-byte con los del <picture> de
 // CarImage.jsx. Si difieren, el navegador no reusa el recurso precargado
 // y descarga dos veces. Si tocas el srcset de CarImage, tócalo también aquí.
+//
+// MATIZ desde el cambio de emergencia del coche del día: la coincidencia ya no
+// es total, y hay UN caso en que la doble descarga es inevitable. Un jugador
+// CONGELADO —empezó la partida antes del cambio y se queda con su coche hasta
+// medianoche— pide en su <picture> la foto de SU revisión, y cada revisión
+// tiene su propio `v` (hash de image_url + zoom_base, ver
+// api/_lib/version-imagen.js). El preload de aquí sale de Edge Config, que solo
+// conoce el coche VIGENTE, y no hay forma de afinarlo: esto es una petición de
+// documento, sin sesión que mirar, así que el middleware no sabe quién viene ni
+// qué revisión le toca. Resultado: ese jugador se descarga la foto del coche
+// nuevo (preload) y luego la suya (<picture>).
+//
+// No se arregla, y es una decisión: solo ocurre el día de un cambio de
+// emergencia y solo a quien ya estaba jugando, mientras que quitar el preload
+// para todos costaría el adelanto de la imagen hero en TODAS las visitas del
+// resto del año. Lo que no se puede es leer las tres líneas de arriba y darlas
+// por literales: el srcset sigue teniendo que coincidir, pero la URL puede no
+// hacerlo.
 const IMAGE_SIZES =
   "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px";
 

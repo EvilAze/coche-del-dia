@@ -50,7 +50,18 @@ export default function EmergencySwapModal({ open, onClose, onSwapped }) {
   // useFreshCatalog y NO useCatalog: la versión cacheada (memoria de sesión +
   // CDN s-maxage=300) se quedaría sin el coche que acabas de crear, y en una
   // emergencia el recambio suele ser justo ese.
-  const { data: catalog, reload: reloadCatalog } = useFreshCatalog();
+  //
+  // `auto: false` porque este modal está montado SIEMPRE (SchedulePanel lo
+  // renderiza también cerrado: ModalShell lo exige para no cortar la animación
+  // de salida). Con el fetch de mount, entrar en el calendario se llevaba el
+  // catálogo entero sin caché aunque nadie pulsara nada, y abrir el modal lo
+  // descargaba otra vez por el reloadCatalog() de abajo. Quien carga es el
+  // efecto de [open], una sola vez y solo al abrir.
+  const {
+    data: catalog,
+    loading: cargandoCatalogo,
+    reload: reloadCatalog,
+  } = useFreshCatalog({ auto: false });
   const CARS = catalog?.cars ?? [];
 
   const [info, setInfo] = useState(null);
@@ -239,7 +250,15 @@ export default function EmergencySwapModal({ open, onClose, onSwapped }) {
           <ul className="flex-1 overflow-y-auto px-3 py-2">
             {filtrados.length === 0 ? (
               <li className="px-2 py-6 text-center text-xs uppercase tracking-widest text-muted">
-                {query ? "Ningún coche encaja con la búsqueda" : "Catálogo vacío"}
+                {/* El catálogo ya no viene descargado de antes (se pide al
+                    abrir), así que la lista vacía puede ser "todavía no ha
+                    llegado". Decir «Catálogo vacío» ahí sería un diagnóstico
+                    falso justo cuando el admin tiene prisa. */}
+                {cargandoCatalogo && !catalog
+                  ? "Cargando catálogo..."
+                  : query
+                    ? "Ningún coche encaja con la búsqueda"
+                    : "Catálogo vacío"}
               </li>
             ) : (
               filtrados.map((c) => (

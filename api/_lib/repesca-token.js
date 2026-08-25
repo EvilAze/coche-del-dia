@@ -15,7 +15,12 @@
 
 import crypto from "crypto";
 
-const SECRET = process.env.REPESCA_TOKEN_SECRET || "";
+// Perezoso (función, no `const` al importar): igual que la regla 2 prohíbe
+// `const supabase = createClient(...)` a nivel de módulo, leer el env aquí
+// arriba congelaría un secreto vacío si REPESCA_TOKEN_SECRET llega después
+// del import — y a partir de ahí `pseudoIdFor` lanzaría "not configured" para
+// siempre, aunque el entorno esté perfectamente configurado.
+const SECRET = () => process.env.REPESCA_TOKEN_SECRET || "";
 
 /**
  * Calcula el pseudo-id (24 hex chars, 96 bits) que se le muestra al
@@ -25,12 +30,13 @@ const SECRET = process.env.REPESCA_TOKEN_SECRET || "";
  * mejor fallar ruidoso que servir tokens inseguros con un secreto vacío.
  */
 export function pseudoIdFor(carId, userId) {
-  if (!SECRET) {
+  const secret = SECRET();
+  if (!secret) {
     throw new Error("REPESCA_TOKEN_SECRET not configured");
   }
   if (!carId || !userId) return null;
   return crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", secret)
     .update(`${userId}:${carId}`)
     .digest("hex")
     .slice(0, 24);

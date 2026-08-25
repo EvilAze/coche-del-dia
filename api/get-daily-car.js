@@ -45,7 +45,12 @@ import { sellosDe } from "./_lib/sello.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
 import { isAllowedOrigin, CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS } from "./_lib/cors.js";
-import { conTimeoutOFallback, conTimeoutReintentando, PLAZOS } from "./_lib/timeout.js";
+import {
+  conTimeoutOFallback,
+  conTimeoutReintentando,
+  fuePorPlazo,
+  PLAZOS,
+} from "./_lib/timeout.js";
 
 // Intentos máximos de la partida diaria. Este valor viaja al cliente en la
 // respuesta para que la UI no tenga que hardcodearlo — pero es SOLO
@@ -89,6 +94,100 @@ function corsHeadersFor(request) {
     "Vary": "Origin",
     "Access-Control-Allow-Methods": CORS_ALLOW_METHODS,
     "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS,
+  };
+}
+
+/**
+ * Qué coche es el de hoy y qué salientes tiene, RESPALDO INCLUIDO.
+ *
+ * Vive en una función —y no suelto en el handler— por dos motivos que son el
+ * mismo: así el respaldo cabe DENTRO de la fase paralela, corriendo a la vez
+ * que la resolución de identidad en vez de detrás de ella. Cuando el respaldo
+ * colgaba del handler, sus plazos se sumaban EN SERIE a los de auth y el peor
+ * caso encadenado se iba a 31,5 s — por encima de los 25 s del Edge, o sea el
+ * 504 con cuerpo HTML que la regla 21 existe para eliminar. Aquí la resolución
+ * entera (RPC + respaldo) queda acotada por PLAZOS.SUPABASE × 2, que es lo que
+ * ya costaba antes de haber respaldo, y el `max()` con auth se la come.
+ *
+ * @returns {Promise<{carId?: string, prevCarIds?: string[], salientesDesconocidos?: boolean, fallo?: "plazo"|"sin-coche"}>}
+ */
+async function resolverElDia(supabaseAdmin, today) {
+  // coche_de_hoy() = pick_daily_car() + los salientes del día, en un solo
+  // viaje. Los salientes hacen falta para anclar a quien ya estaba jugando
+  // cuando se cambió el coche por emergencia, y leerlos aparte añadiría un
+  // round-trip al único request bloqueante del primer paint.
+  //
+  // Con reintento: sin coche del día no hay juego, así que es la lectura que
+  // menos nos podemos permitir dar por perdida a la primera. La RPC es
+  // idempotente (fija el coche de la fecha y después lo devuelve), así que
+  // repetirla no tiene efectos.
+  const rpcResult = await conTimeoutReintentando(
+    () => supabaseAdmin.rpc("coche_de_hoy", { p_date: today }),
+    PLAZOS.SUPABASE,
+    { data: null, error: { message: "coche_de_hoy sin respuesta a tiempo" } },
+    { etiqueta: "coche_de_hoy" }
+  );
+
+  // `returns table` → PostgREST devuelve un array de filas.
+  const fila = rpcResult.data?.[0] || null;
+  if (!rpcResult.error && fila?.car_id) {
+    return { carId: fila.car_id, prevCarIds: fila.prev_car_ids || [] };
+  }
+  console.error("[get-daily-car] coche_de_hoy:", rpcResult.error);
+
+  // EL RESPALDO NO SE INTENTA SI EL FALLO FUE POR PLAZO, y este es el porqué:
+  // `coche_de_hoy` es un envoltorio finísimo que por dentro llama a
+  // `pick_daily_car`. Si no ha contestado porque Supabase está atrancado,
+  // `pick_daily_car` tampoco va a contestar — el respaldo no compra
+  // resiliencia contra eso, solo contra «la función todavía no está
+  // desplegada», que falla INSTANTÁNEAMENTE (PostgREST devuelve PGRST202 al
+  // momento). O sea: detrás de una espera agotada el respaldo no arregla nada
+  // y sí gasta otro plazo del presupuesto de la función. 503 honesto y fuera.
+  if (fuePorPlazo(rpcResult)) return { fallo: "plazo" };
+
+  // A partir de aquí sabemos que PostgREST ha contestado —mal, pero al
+  // momento—, así que el respaldo va con UN SOLO intento. El reintento existe
+  // para el tartamudeo (regla 21, corolario 1) y aquí acabamos de medir que no
+  // hay tartamudeo: la base responde. Un segundo intento solo añadiría plazo a
+  // un presupuesto que ya está contado.
+  //
+  // Los salientes hay que leerlos IGUAL, con un select plano. `[]` no significa
+  // «no he podido averiguarlo», significa «hoy no ha habido cambio»: fabricarlo
+  // a ciegas haría que la lectura acotada de user_guesses no viera la fila de un
+  // congelado y le sirviéramos tablero nuevo con cinco intentos — justo la
+  // rejugada que todo esto existe para impedir. Si no se puede leer se avisa con
+  // `salientesDesconocidos` y decide el handler, que es quien sabe a quién le
+  // afecta.
+  const [respaldo, salientes] = await Promise.all([
+    conTimeoutOFallback(
+      supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+      PLAZOS.SUPABASE,
+      { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
+      { etiqueta: "pick_daily_car (respaldo)" }
+    ),
+    conTimeoutOFallback(
+      supabaseAdmin
+        .from("daily_cars")
+        .select("prev_car_ids")
+        .eq("date", today)
+        .maybeSingle(),
+      PLAZOS.SUPABASE,
+      { data: null, error: { message: "prev_car_ids sin respuesta a tiempo" } },
+      { etiqueta: "read prev_car_ids" }
+    ),
+  ]);
+
+  if (respaldo.error || !respaldo.data) {
+    console.error("[get-daily-car] pick_daily_car:", respaldo.error);
+    return { fallo: "sin-coche" };
+  }
+  if (salientes.error) {
+    console.error("[get-daily-car] read prev_car_ids:", salientes.error);
+    return { carId: respaldo.data, prevCarIds: [], salientesDesconocidos: true };
+  }
+  return {
+    carId: respaldo.data,
+    prevCarIds: salientes.data?.prev_car_ids || [],
   };
 }
 
@@ -145,28 +244,15 @@ export default async function handler(request) {
     ? authHeader.slice(7)
     : null;
 
-  // FASE 1: arranque paralelo. Ni coche_de_hoy ni la resolución de
-  // sesión dependen del otro. El usuario anónimo paga solo coche_de_hoy.
+  // FASE 1: arranque paralelo. Ni la resolución del día ni la de sesión
+  // dependen de la otra. El usuario anónimo paga solo la del día.
   // Cada rama con su plazo, y NO uno solo alrededor del Promise.all: así una
   // dependencia atrancada no arrastra a la otra, y en los logs se ve cuál de
-  // las dos fue. El RPC devuelve la forma de PostgREST ({data, error}) para
-  // que el fallo por plazo entre por el mismo `if (rpcErr)` de siempre.
-  const [rpcResult, authResult] = await Promise.all([
-    // coche_de_hoy() = pick_daily_car() + los salientes del día, en un solo
-    // viaje. Los salientes hacen falta para anclar a quien ya estaba jugando
-    // cuando se cambió el coche por emergencia, y leerlos aparte añadiría un
-    // round-trip al único request bloqueante del primer paint.
-    //
-    // Con reintento: sin coche del día no hay juego, así que es la lectura que
-    // menos nos podemos permitir dar por perdida a la primera. La RPC es
-    // idempotente (fija el coche de la fecha y después lo devuelve), así que
-    // repetirla no tiene efectos.
-    conTimeoutReintentando(
-      () => supabaseAdmin.rpc("coche_de_hoy", { p_date: today }),
-      PLAZOS.SUPABASE,
-      { data: null, error: { message: "coche_de_hoy sin respuesta a tiempo" } },
-      { etiqueta: "coche_de_hoy" }
-    ),
+  // las dos fue. El respaldo de la RPC va DENTRO de resolverElDia y por tanto
+  // también dentro de este paralelo: colgándolo del handler, su plazo se
+  // sumaba en serie al de auth y se salía del presupuesto del Edge.
+  const [dia, authResult] = await Promise.all([
+    resolverElDia(supabaseAdmin, today),
     accessToken
       ? authClientAndUser(accessToken)
       : Promise.resolve({ client: null, user: null }),
@@ -183,58 +269,15 @@ export default async function handler(request) {
     );
   }
 
-  // `returns table` → PostgREST devuelve un array de filas.
-  let todayCarId = rpcResult.data?.[0]?.car_id || null;
-  let prevCarIds = rpcResult.data?.[0]?.prev_car_ids || [];
-  let rpcErr = rpcResult.error;
-
-  // RESPALDO: si la envoltura no está desplegada en esta base (o falla), se
-  // sigue con el sorteo de siempre. El código puede llegar a producción antes
-  // que el SQL.
-  //
-  // Pero los salientes hay que leerlos IGUAL, con un select plano. `[]` no
-  // significa «no he podido averiguarlo», significa «hoy no ha habido cambio»:
-  // fabricarlo aquí haría que la lectura acotada de user_guesses no viera la
-  // fila de un congelado y le sirviéramos tablero nuevo con cinco intentos —
-  // justo la rejugada que todo esto existe para impedir. Si tampoco se puede
-  // leer, se cae al 503 de abajo: un error honesto hace mucho menos daño que
-  // un estado inventado (regla 21).
-  if (rpcErr || !todayCarId) {
-    console.error("[get-daily-car] coche_de_hoy:", rpcErr);
-    const [respaldo, salientes] = await Promise.all([
-      conTimeoutReintentando(
-        () => supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
-        PLAZOS.SUPABASE,
-        { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
-        { etiqueta: "pick_daily_car (respaldo)" }
-      ),
-      conTimeoutOFallback(
-        supabaseAdmin
-          .from("daily_cars")
-          .select("prev_car_ids")
-          .eq("date", today)
-          .maybeSingle(),
-        PLAZOS.SUPABASE,
-        { data: null, error: { message: "prev_car_ids sin respuesta a tiempo" } },
-        { etiqueta: "read prev_car_ids" }
-      ),
-    ]);
-    todayCarId = respaldo.data || null;
-    rpcErr = respaldo.error;
-    if (salientes.error) {
-      // No sabemos si hoy hubo cambio. Antes que arriesgarnos a vaciarle el
-      // tablero a alguien, 503.
-      console.error("[get-daily-car] read prev_car_ids:", salientes.error);
-      return respond(
-        { message: "Game state temporarily unavailable" },
-        { status: 503, headers: { "Retry-After": "5" } }
-      );
-    }
-    prevCarIds = salientes.data?.prev_car_ids || [];
+  if (dia.fallo === "plazo") {
+    // Supabase no contesta. No hay plan B que valga (ver resolverElDia): 503
+    // en cuanto lo sabemos, que es lo contrario de morir por presupuesto.
+    return respond(
+      { message: "Daily car temporarily unavailable" },
+      { status: 503, headers: { "Retry-After": "5" } }
+    );
   }
-
-  if (rpcErr || !todayCarId) {
-    console.error("[get-daily-car] pick_daily_car:", rpcErr);
+  if (dia.fallo === "sin-coche") {
     // 503 y no 500: sin coche del día no hay juego, pero esto se arregla solo
     // en cuanto la base vuelva. El 500 invitaba a buscar un bug que no existe.
     return respond(
@@ -242,6 +285,18 @@ export default async function handler(request) {
       { status: 503, headers: { "Retry-After": "5" } }
     );
   }
+
+  if (dia.salientesDesconocidos) {
+    // No sabemos si hoy hubo cambio. Antes que arriesgarnos a vaciarle el
+    // tablero a alguien, 503.
+    return respond(
+      { message: "Game state temporarily unavailable" },
+      { status: 503, headers: { "Retry-After": "5" } }
+    );
+  }
+
+  const todayCarId = dia.carId;
+  const prevCarIds = dia.prevCarIds;
   const { client: authClient, user } = authResult;
 
   // FASE 2: con las revisiones del día resueltas, paralelizamos:

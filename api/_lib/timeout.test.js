@@ -9,6 +9,7 @@ import {
   conTimeout,
   conTimeoutOFallback,
   conTimeoutReintentando,
+  fuePorPlazo,
   TimeoutError,
   PLAZOS,
 } from "./timeout.js";
@@ -97,6 +98,55 @@ describe("conTimeoutOFallback", () => {
   });
 });
 
+describe("fuePorPlazo", () => {
+  // La distinción que sostiene el arreglo del respaldo: un plan B detrás de una
+  // espera agotada suma su plazo al presupuesto de la función, así que quien
+  // tenga plan B necesita poder preguntar «¿esto es que me han dicho que no, o
+  // es que no me han contestado?».
+  it("marca el fallback cuando venció el plazo", async () => {
+    const r = await conTimeoutOFallback(nuncaResuelve(), 20, { data: null, error: {} });
+    expect(fuePorPlazo(r)).toBe(true);
+  });
+
+  it("NO marca el fallback cuando la dependencia contestó (mal, pero contestó)", async () => {
+    const r = await conTimeoutOFallback(
+      Promise.reject(new Error("PGRST202")),
+      1000,
+      { data: null, error: {} }
+    );
+    expect(fuePorPlazo(r)).toBe(false);
+  });
+
+  it("con reintentos, manda cómo falló el ÚLTIMO intento", async () => {
+    // Un plazo seguido de un error instantáneo describe una base que responde:
+    // ahí el plan B sí tiene sentido.
+    const fabricar = vi
+      .fn()
+      .mockImplementationOnce(nuncaResuelve)
+      .mockRejectedValueOnce(new Error("PGRST202"));
+    const r = await conTimeoutReintentando(fabricar, 20, { data: null, error: {} });
+    expect(fuePorPlazo(r)).toBe(false);
+
+    const fabricar2 = vi.fn(nuncaResuelve);
+    const r2 = await conTimeoutReintentando(fabricar2, 20, { data: null, error: {} });
+    expect(fuePorPlazo(r2)).toBe(true);
+  });
+
+  it("la marca no viaja: ni en JSON ni en las claves del objeto", async () => {
+    // El valor por defecto tiene forma de PostgREST y acaba en logs y en
+    // respuestas. La marca es para el código, no para el cable.
+    const r = await conTimeoutOFallback(nuncaResuelve(), 20, { data: null, error: { message: "x" } });
+    expect(Object.keys(r)).toEqual(["data", "error"]);
+    expect(JSON.parse(JSON.stringify(r))).toEqual({ data: null, error: { message: "x" } });
+  });
+
+  it("no se inventa la marca sobre valores que no la llevan", () => {
+    expect(fuePorPlazo(null)).toBe(false);
+    expect(fuePorPlazo("porDefecto")).toBe(false);
+    expect(fuePorPlazo({ data: null })).toBe(false);
+  });
+});
+
 describe("PLAZOS", () => {
   it("todos son números positivos y caben en el presupuesto del Edge (25 s)", () => {
     for (const [nombre, ms] of Object.entries(PLAZOS)) {
@@ -128,6 +178,36 @@ describe("PLAZOS", () => {
     const peorCaso = PLAZOS.RATELIMIT + Math.max(auth, rpc) + guesses + reveal;
     // Margen de sobra por debajo del límite duro de la Edge Function.
     expect(peorCaso).toBeLessThan(25000);
+  });
+
+  it("la cadena CON RESPALDO de get-daily-car también cabe en los 25 s", () => {
+    // El camino que se olvidaba: cuando `coche_de_hoy` no sirve, el handler
+    // llama después a `pick_daily_car`. Si ese respaldo se pagara en serie
+    // detrás de la fase de auth, la suma se iba a 31,5 s y volvía el 504.
+    //
+    // Dos cosas lo mantienen dentro, y las dos se comprueban aquí:
+    //   1) El respaldo solo se intenta si el fallo fue INSTANTÁNEO (un plazo
+    //      agotado corta con 503 sin plan B), así que la RPC no puede haber
+    //      gastado sus dos intentos completos antes de él: como mucho uno.
+    //   2) El respaldo vive DENTRO de la fase paralela, o sea que compite con
+    //      auth en un `max()` en vez de sumarse detrás.
+    const DOS_INTENTOS = 2;
+    const auth = PLAZOS.AUTH * DOS_INTENTOS;
+    // Resolución del día por el camino largo: un intento de coche_de_hoy que
+    // vence + el respaldo (un solo intento; pick_daily_car y la lectura de
+    // prev_car_ids van en paralelo entre ellos).
+    const diaConRespaldo = PLAZOS.SUPABASE + PLAZOS.SUPABASE;
+    const guesses = PLAZOS.SUPABASE * DOS_INTENTOS;
+    const reveal = PLAZOS.SUPABASE;
+
+    const peorCaso =
+      PLAZOS.RATELIMIT + Math.max(auth, diaConRespaldo) + guesses + reveal;
+    expect(peorCaso).toBeLessThan(25000);
+
+    // Y que no se cuele por la puerta de atrás: la resolución del día con
+    // respaldo NO puede costar más que la de siempre, o dejaría de estar
+    // absorbida por el `max()` con auth.
+    expect(diaConRespaldo).toBeLessThanOrEqual(PLAZOS.SUPABASE * DOS_INTENTOS);
   });
 });
 

@@ -23,6 +23,8 @@ import { parseBody, methodGuard, applyCors } from "./_lib/http.js";
 import { logGuessAttempt } from "./_lib/audit.js";
 import { compareGuess } from "./_lib/compare-guess.js";
 import { basePointsFor } from "./_lib/score.js";
+import { resolverCocheDelUsuario } from "./_lib/coche-de-hoy.js";
+import { sellosDe } from "./_lib/sello.js";
 
 const MAX_ATTEMPTS = 5;
 
@@ -102,17 +104,123 @@ export default async function handler(req, res) {
     const accessToken = extractAccessToken(req);
     const { client: authClient, user } = await authClientAndUser(accessToken);
 
+    // El token anónimo se lee UNA vez, y aquí arriba: además de gobernar el
+    // contador de intentos, es lo único que dice si un visitante sin sesión
+    // lleva partida empezada — dato que hace falta más abajo para decidir qué
+    // hacer si no se pueden leer los salientes.
+    // SOLO cuenta sin sesión y si es de HOY (ver la nota del mismo bloque en
+    // get-daily-car: la cabecera viaja siempre y nadie la borra al registrarse).
+    const anonBruto = readAnonToken(req);
+    const anonEntrante = !user && anonBruto?.d === today ? anonBruto : null;
+
     // -------- 3. Coche del día (resuelto en servidor) --------------------
-    const { data: todayCarId, error: pickErr } = await supabaseAdmin.rpc(
-      "pick_daily_car",
+    // coche_de_hoy() = pick_daily_car() + los salientes del día. Los salientes
+    // hacen falta para saber si este jugador está anclado a una revisión
+    // anterior (cambio de emergencia del coche del día).
+    const { data: filasDia, error: pickErr } = await supabaseAdmin.rpc(
+      "coche_de_hoy",
       { p_date: today }
     );
-    if (pickErr || !todayCarId) {
-      console.error("[validate-guess] pick_daily_car:", pickErr);
-      return res.status(500).json({ error: "Failed to resolve daily car" });
+    let carIdVigente = filasDia?.[0]?.car_id || null;
+    let prevCarIds = filasDia?.[0]?.prev_car_ids || [];
+
+    if (pickErr || !carIdVigente) {
+      // RESPALDO: sin la envoltura desplegada se juega el coche de siempre.
+      // Los salientes se leen IGUAL con un select plano: `[]` significa «hoy no
+      // hubo cambio», no «no lo sé». Inventarlo aquí haría que a un congelado
+      // se le validara el intento contra el coche que no es.
+      console.error("[validate-guess] coche_de_hoy:", pickErr);
+      const { data: respaldo, error: respErr } = await supabaseAdmin.rpc(
+        "pick_daily_car",
+        { p_date: today }
+      );
+      if (respErr || !respaldo) {
+        console.error("[validate-guess] pick_daily_car:", respErr);
+        return res.status(500).json({ error: "Failed to resolve daily car" });
+      }
+      const { data: fila, error: filaErr } = await supabaseAdmin
+        .from("daily_cars")
+        .select("prev_car_ids")
+        .eq("date", today)
+        .maybeSingle();
+      if (filaErr) {
+        console.error("[validate-guess] read prev_car_ids:", filaErr);
+        // El 503 solo a quien de verdad le afecta (regla 21, corolario 3: una
+        // protección no se pone en un ámbito más ancho que el problema que
+        // protege). Al anónimo SIN partida empezada —sin token válido de hoy, o
+        // con n === 0— los salientes no le pueden cambiar el coche: las dos
+        // reglas del resolvedor que lo anclarían a una revisión anterior
+        // necesitan o fila de user_guesses (no hay sesión) o intentos gastados
+        // (no hay). Para él `[]` no es un estado inventado, es su situación
+        // exacta — y por eso esto no contradice el 503 de al lado, que sigue
+        // en pie para el logueado y para el anónimo a media partida, donde `[]`
+        // significaría validarle el intento contra el coche que no es.
+        const leAfectan =
+          Boolean(user) ||
+          (Number.isInteger(anonEntrante?.n) && anonEntrante.n > 0);
+        if (leAfectan) {
+          return res.status(503).json({ error: "Game state temporarily unavailable" });
+        }
+      }
+      carIdVigente = respaldo;
+      prevCarIds = fila?.prev_car_ids || [];
+    }
+
+    // -------- 3.bis ¿Contra qué coche se valida ESTE intento? -------------
+    // La partida de un anónimo va en su token firmado (`anonEntrante`, leído
+    // arriba); la de un logueado, en su fila. Los dos hay que leerlos ANTES de
+    // decidir contra qué coche se valida este intento, porque puede no ser el
+    // vigente. Un logueado manda su sello por el body, que es el que le acaba
+    // de dar get-daily-car.
+    const selloCliente =
+      anonEntrante?.c || (typeof body.sello === "string" ? body.sello : null);
+
+    let filasUsuario = [];
+    if (user) {
+      const { data: filas, error: filaErr } = await authClient
+        .from("user_guesses")
+        .select("car_id, guesses, status")
+        .eq("user_id", user.id)
+        .eq("date", today)
+        // Acotado a las revisiones del día: la partida de REPESCA de hoy vive
+        // en esta misma tabla, con esta misma fecha y otro car_id.
+        .in("car_id", [carIdVigente, ...prevCarIds]);
+      if (filaErr) {
+        console.error("[validate-guess] read user_guesses:", filaErr);
+        return res.status(500).json({ error: "Failed to read attempts" });
+      }
+      // Sin `.limit(1)`: si hubiera fila en el vigente y en un saliente, el
+      // desempate es del resolvedor, no de Postgres.
+      filasUsuario = Array.isArray(filas) ? filas : [];
+    }
+
+    const sellosPorCarId = await sellosDe([carIdVigente, ...prevCarIds], today);
+    const { carId: todayCarId, cocheCambiado } = resolverCocheDelUsuario({
+      carIdVigente,
+      prevCarIds,
+      filasUsuario,
+      hayUsuario: Boolean(user),
+      selloCliente,
+      sellosPorCarId,
+      intentosAnon: Number.isInteger(anonEntrante?.n) ? anonEntrante.n : 0,
+    });
+
+    // El jugador está respondiendo sobre una foto que ya no es la de su
+    // partida: el coche del día se cambió mientras tenía la pestaña abierta.
+    // 409 y SIN gastar intento — puntuarle esto contra el coche nuevo sería
+    // cobrarle un fallo que no ha cometido. Va ANTES de contar intentos y de
+    // cualquier escritura, que es lo que hace que no cueste nada.
+    if (cocheCambiado) {
+      return res.status(409).json({
+        error: "coche_cambiado",
+        message: "El coche de hoy ha cambiado. Recarga para seguir jugando.",
+      });
     }
 
     // -------- 4. Cargar coche-real y coche-guess -------------------------
+    // `todayCarId` es a partir de aquí el coche ANCLADO de quien pregunta, que
+    // puede no ser el vigente: todo lo de abajo (ficha real, upsert, auditoría)
+    // tiene que hablar de ESE y no del de daily_cars.
     const [realRow, guessRow] = await Promise.all([
       fetchCarById(todayCarId),
       fetchCarById(guessCarId),
@@ -149,27 +257,23 @@ export default async function handler(req, res) {
     let existingGuesses = [];
     let anonSession = null;
     if (user) {
-      const { data: row, error: rowErr } = await authClient
-        .from("user_guesses")
-        .select("guesses, status")
-        .eq("user_id", user.id)
-        .eq("car_id", todayCarId)
-        .eq("date", today)
-        .maybeSingle();
-      if (rowErr) {
-        console.error("[validate-guess] read user_guesses:", rowErr);
-        return res.status(500).json({ error: "Failed to read attempts" });
-      }
-      if (row?.status === "won" || row?.status === "lost") {
+      // Ya las leímos arriba para resolver el coche: no hace falta ir dos veces.
+      // Y es la fila DEL COCHE RESUELTO, no una cualquiera: un congelado tiene
+      // la suya en el saliente.
+      const filaUsuario =
+        filasUsuario.find((f) => f.car_id === todayCarId) || null;
+      if (filaUsuario?.status === "won" || filaUsuario?.status === "lost") {
         return res.status(403).json({ error: "Game already finished" });
       }
-      existingGuesses = Array.isArray(row?.guesses) ? row.guesses : [];
+      existingGuesses = Array.isArray(filaUsuario?.guesses) ? filaUsuario.guesses : [];
       if (existingGuesses.length >= MAX_ATTEMPTS) {
         return res.status(403).json({ error: "Max attempts reached" });
       }
       attemptNumber = existingGuesses.length + 1;
     } else {
-      anonSession = readAnonToken(req);
+      // El mismo token que ya se leyó (y verificó) arriba: `readAnonToken` es
+      // pura, pero volver a llamarla invita a que las dos lecturas diverjan.
+      anonSession = anonBruto;
       // Si no hay token válido o es de otro día, rechazamos: el cliente
       // debe pasar por /api/get-daily-car primero (que lo emite). En el
       // flujo normal esto siempre ocurre — el frontend llama get-daily-car
@@ -353,7 +457,15 @@ export default async function handler(req, res) {
     let anonToken = null;
     if (!user && anonSession) {
       try {
-        anonToken = signAnonSession({ d: today, n: attemptNumber, s: newStatus });
+        anonToken = signAnonSession({
+          d: today,
+          n: attemptNumber,
+          s: newStatus,
+          // Se reafirma el sello del coche que está jugando: si es un congelado,
+          // su token sigue diciendo «vengo del coche anterior» en el siguiente
+          // intento.
+          c: sellosPorCarId[todayCarId] || null,
+        });
       } catch (err) {
         console.error("[validate-guess] signAnonSession:", err?.message || err);
       }
@@ -362,7 +474,10 @@ export default async function handler(req, res) {
     let revealToken = null;
     if (shouldReveal) {
       try {
-        revealToken = signRevealToken(today);
+        // Con el sello del coche que ESTE jugador acaba de terminar: si es un
+        // congelado, su llave abre la foto del saliente y no la del vigente
+        // (ver la nota larga de _lib/reveal-token.js).
+        revealToken = signRevealToken(today, sellosPorCarId[todayCarId] || null);
       } catch (err) {
         console.error("[validate-guess] signRevealToken:", err?.message || err);
       }
@@ -394,6 +509,10 @@ export default async function handler(req, res) {
       reveal,
       revealToken,
       anonToken,
+      // El sello del coche que este jugador está jugando. El logueado no tiene
+      // token donde guardarlo, así que lo devuelve por aquí y lo reenvía en el
+      // siguiente intento: es lo que le ancla a SU coche si hoy hubo cambio.
+      sello: sellosPorCarId[todayCarId] || null,
       score,
     });
   } catch (err) {

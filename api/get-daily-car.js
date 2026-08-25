@@ -24,7 +24,7 @@
 //     para que el frontend no tenga que conocer el car_id.
 //
 // PARALELIZACIÓN DE I/O (lo nuevo en esta versión):
-//   - pick_daily_car y auth.getUser() se ejecutan en paralelo: son
+//   - coche_de_hoy y auth.getUser() se ejecutan en paralelo: son
 //     independientes y entre los dos solían sumar 250-500 ms en
 //     secuencial.
 //   - Después de tener carId: la lectura de cars.image_url y la
@@ -38,12 +38,19 @@ import { authClientAndUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { signRevealToken } from "./_lib/edge/reveal-token.js";
 import { readAnonTokenFromRequest, signAnonSession } from "./_lib/edge/anon-session.js";
-import { sha1Hex } from "./_lib/edge/crypto.js";
 import { logSessionStart } from "./_lib/edge/audit.js";
+import { versionDeImagen } from "./_lib/version-imagen.js";
+import { resolverCocheDelUsuario } from "./_lib/coche-de-hoy.js";
+import { sellosDe } from "./_lib/sello.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
 import { isAllowedOrigin, CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS } from "./_lib/cors.js";
-import { conTimeoutOFallback, conTimeoutReintentando, PLAZOS } from "./_lib/timeout.js";
+import {
+  conTimeoutOFallback,
+  conTimeoutReintentando,
+  fuePorPlazo,
+  PLAZOS,
+} from "./_lib/timeout.js";
 
 // Intentos máximos de la partida diaria. Este valor viaja al cliente en la
 // respuesta para que la UI no tenga que hardcodearlo — pero es SOLO
@@ -87,6 +94,100 @@ function corsHeadersFor(request) {
     "Vary": "Origin",
     "Access-Control-Allow-Methods": CORS_ALLOW_METHODS,
     "Access-Control-Allow-Headers": CORS_ALLOW_HEADERS,
+  };
+}
+
+/**
+ * Qué coche es el de hoy y qué salientes tiene, RESPALDO INCLUIDO.
+ *
+ * Vive en una función —y no suelto en el handler— por dos motivos que son el
+ * mismo: así el respaldo cabe DENTRO de la fase paralela, corriendo a la vez
+ * que la resolución de identidad en vez de detrás de ella. Cuando el respaldo
+ * colgaba del handler, sus plazos se sumaban EN SERIE a los de auth y el peor
+ * caso encadenado se iba a 31,5 s — por encima de los 25 s del Edge, o sea el
+ * 504 con cuerpo HTML que la regla 21 existe para eliminar. Aquí la resolución
+ * entera (RPC + respaldo) queda acotada por PLAZOS.SUPABASE × 2, que es lo que
+ * ya costaba antes de haber respaldo, y el `max()` con auth se la come.
+ *
+ * @returns {Promise<{carId?: string, prevCarIds?: string[], salientesDesconocidos?: boolean, fallo?: "plazo"|"sin-coche"}>}
+ */
+async function resolverElDia(supabaseAdmin, today) {
+  // coche_de_hoy() = pick_daily_car() + los salientes del día, en un solo
+  // viaje. Los salientes hacen falta para anclar a quien ya estaba jugando
+  // cuando se cambió el coche por emergencia, y leerlos aparte añadiría un
+  // round-trip al único request bloqueante del primer paint.
+  //
+  // Con reintento: sin coche del día no hay juego, así que es la lectura que
+  // menos nos podemos permitir dar por perdida a la primera. La RPC es
+  // idempotente (fija el coche de la fecha y después lo devuelve), así que
+  // repetirla no tiene efectos.
+  const rpcResult = await conTimeoutReintentando(
+    () => supabaseAdmin.rpc("coche_de_hoy", { p_date: today }),
+    PLAZOS.SUPABASE,
+    { data: null, error: { message: "coche_de_hoy sin respuesta a tiempo" } },
+    { etiqueta: "coche_de_hoy" }
+  );
+
+  // `returns table` → PostgREST devuelve un array de filas.
+  const fila = rpcResult.data?.[0] || null;
+  if (!rpcResult.error && fila?.car_id) {
+    return { carId: fila.car_id, prevCarIds: fila.prev_car_ids || [] };
+  }
+  console.error("[get-daily-car] coche_de_hoy:", rpcResult.error);
+
+  // EL RESPALDO NO SE INTENTA SI EL FALLO FUE POR PLAZO, y este es el porqué:
+  // `coche_de_hoy` es un envoltorio finísimo que por dentro llama a
+  // `pick_daily_car`. Si no ha contestado porque Supabase está atrancado,
+  // `pick_daily_car` tampoco va a contestar — el respaldo no compra
+  // resiliencia contra eso, solo contra «la función todavía no está
+  // desplegada», que falla INSTANTÁNEAMENTE (PostgREST devuelve PGRST202 al
+  // momento). O sea: detrás de una espera agotada el respaldo no arregla nada
+  // y sí gasta otro plazo del presupuesto de la función. 503 honesto y fuera.
+  if (fuePorPlazo(rpcResult)) return { fallo: "plazo" };
+
+  // A partir de aquí sabemos que PostgREST ha contestado —mal, pero al
+  // momento—, así que el respaldo va con UN SOLO intento. El reintento existe
+  // para el tartamudeo (regla 21, corolario 1) y aquí acabamos de medir que no
+  // hay tartamudeo: la base responde. Un segundo intento solo añadiría plazo a
+  // un presupuesto que ya está contado.
+  //
+  // Los salientes hay que leerlos IGUAL, con un select plano. `[]` no significa
+  // «no he podido averiguarlo», significa «hoy no ha habido cambio»: fabricarlo
+  // a ciegas haría que la lectura acotada de user_guesses no viera la fila de un
+  // congelado y le sirviéramos tablero nuevo con cinco intentos — justo la
+  // rejugada que todo esto existe para impedir. Si no se puede leer se avisa con
+  // `salientesDesconocidos` y decide el handler, que es quien sabe a quién le
+  // afecta.
+  const [respaldo, salientes] = await Promise.all([
+    conTimeoutOFallback(
+      supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+      PLAZOS.SUPABASE,
+      { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
+      { etiqueta: "pick_daily_car (respaldo)" }
+    ),
+    conTimeoutOFallback(
+      supabaseAdmin
+        .from("daily_cars")
+        .select("prev_car_ids")
+        .eq("date", today)
+        .maybeSingle(),
+      PLAZOS.SUPABASE,
+      { data: null, error: { message: "prev_car_ids sin respuesta a tiempo" } },
+      { etiqueta: "read prev_car_ids" }
+    ),
+  ]);
+
+  if (respaldo.error || !respaldo.data) {
+    console.error("[get-daily-car] pick_daily_car:", respaldo.error);
+    return { fallo: "sin-coche" };
+  }
+  if (salientes.error) {
+    console.error("[get-daily-car] read prev_car_ids:", salientes.error);
+    return { carId: respaldo.data, prevCarIds: [], salientesDesconocidos: true };
+  }
+  return {
+    carId: respaldo.data,
+    prevCarIds: salientes.data?.prev_car_ids || [],
   };
 }
 
@@ -143,23 +244,15 @@ export default async function handler(request) {
     ? authHeader.slice(7)
     : null;
 
-  // FASE 1: arranque paralelo. Ni pick_daily_car ni la resolución de
-  // sesión dependen del otro. El usuario anónimo paga solo pick_daily_car.
+  // FASE 1: arranque paralelo. Ni la resolución del día ni la de sesión
+  // dependen de la otra. El usuario anónimo paga solo la del día.
   // Cada rama con su plazo, y NO uno solo alrededor del Promise.all: así una
   // dependencia atrancada no arrastra a la otra, y en los logs se ve cuál de
-  // las dos fue. El RPC devuelve la forma de PostgREST ({data, error}) para
-  // que el fallo por plazo entre por el mismo `if (rpcErr)` de siempre.
-  const [rpcResult, authResult] = await Promise.all([
-    // Con reintento: sin coche del día no hay juego, así que es la lectura que
-    // menos nos podemos permitir dar por perdida a la primera. pick_daily_car
-    // es idempotente (fija el coche de la fecha y después lo devuelve), así
-    // que repetirla no tiene efectos.
-    conTimeoutReintentando(
-      () => supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
-      PLAZOS.SUPABASE,
-      { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
-      { etiqueta: "pick_daily_car" }
-    ),
+  // las dos fue. El respaldo de la RPC va DENTRO de resolverElDia y por tanto
+  // también dentro de este paralelo: colgándolo del handler, su plazo se
+  // sumaba en serie al de auth y se salía del presupuesto del Edge.
+  const [dia, authResult] = await Promise.all([
+    resolverElDia(supabaseAdmin, today),
     accessToken
       ? authClientAndUser(accessToken)
       : Promise.resolve({ client: null, user: null }),
@@ -176,9 +269,15 @@ export default async function handler(request) {
     );
   }
 
-  const { data: todayCarId, error: rpcErr } = rpcResult;
-  if (rpcErr || !todayCarId) {
-    console.error("[get-daily-car] pick_daily_car:", rpcErr);
+  if (dia.fallo === "plazo") {
+    // Supabase no contesta. No hay plan B que valga (ver resolverElDia): 503
+    // en cuanto lo sabemos, que es lo contrario de morir por presupuesto.
+    return respond(
+      { message: "Daily car temporarily unavailable" },
+      { status: 503, headers: { "Retry-After": "5" } }
+    );
+  }
+  if (dia.fallo === "sin-coche") {
     // 503 y no 500: sin coche del día no hay juego, pero esto se arregla solo
     // en cuanto la base vuelva. El 500 invitaba a buscar un bug que no existe.
     return respond(
@@ -186,21 +285,51 @@ export default async function handler(request) {
       { status: 503, headers: { "Retry-After": "5" } }
     );
   }
+
+  const todayCarId = dia.carId;
   const { client: authClient, user } = authResult;
 
-  // AUDITORÍA: registra la PRIMERA visita del día por (user|ip + día).
-  // Deliberadamente SIN await — el insert vuela en background; Vercel Edge
-  // deja que las fetches en vuelo se completen tras devolver la Response.
-  // Dedupe en memoria de la instancia warm evita filas por cada F5.
-  logSessionStart({
-    request,
-    userId: user?.id || null,
-    isAnon: !user,
-    gameDate: today,
-    carId: todayCarId,
-  }).catch(() => {});
+  // Token de sesión anónima firmado (HMAC). Se lee UNA vez y se reutiliza en la
+  // rama anónima de más abajo.
+  //
+  // SOLO cuenta si NO hay sesión y si es de HOY: el cliente manda la cabecera
+  // X-Anon-Session esté logueado o no, y nada la borra al registrarse. Sin esos
+  // dos filtros, quien jugó anónimo y luego se hizo cuenta arrastraría para
+  // siempre un sello rancio que no casa con nada — y acabaría en un bucle de
+  // recargas permanente.
+  //
+  // Se lee AQUÍ ARRIBA —y no junto al resolvedor, que es donde se usaba— porque
+  // decidir qué hacer sin los salientes necesita saber si quien pregunta lleva
+  // partida empezada. Es HMAC en local, sin red: no añade latencia a la fase 2.
+  const tokenAnonEntrante = user ? null : await readAnonTokenFromRequest(request);
+  const anonVigente =
+    !user && tokenAnonEntrante?.d === today ? tokenAnonEntrante : null;
 
-  // FASE 2: con carId resuelto, paralelizamos:
+  // ¿Y si no se pudieron leer los salientes? Depende de a QUIÉN se le devuelve.
+  //
+  // El 503 estaba puesto para todo el mundo, y es más ancho que el problema que
+  // protege (regla 21, corolario 3): al visitante anónimo SIN partida empezada
+  // —sin token, o con token de n === 0— los salientes no le pueden cambiar la
+  // respuesta. Las dos reglas del resolvedor que lo anclarían a una revisión
+  // anterior necesitan o una fila de user_guesses (no hay sesión) o intentos
+  // gastados (no hay), así que le toca el coche vigente pase lo que pase. Para
+  // él `prevCarIds = []` NO es un estado inventado: es exactamente su
+  // situación, y por eso esta rama no contradice el 503 de arriba. A quien sí
+  // le afecta —logueado, o anónimo a media partida— se le sigue diciendo la
+  // verdad, porque ahí `[]` sería vaciarle el tablero.
+  if (dia.salientesDesconocidos) {
+    const leAfectan =
+      Boolean(user) || (Number.isInteger(anonVigente?.n) && anonVigente.n > 0);
+    if (leAfectan) {
+      return respond(
+        { message: "Game state temporarily unavailable" },
+        { status: 503, headers: { "Retry-After": "5" } }
+      );
+    }
+  }
+  const prevCarIds = dia.prevCarIds;
+
+  // FASE 2: con las revisiones del día resueltas, paralelizamos:
   //   - Lectura de image_url + blur_data (necesarios para construir el
   //     URL del proxy + el LQIP).
   //   - Si hay usuario, lectura de su user_guesses (status + guesses).
@@ -208,12 +337,17 @@ export default async function handler(request) {
   // Para anónimos, la rama de user_guesses cae a un resolve(null) y solo
   // hacemos la lectura de imagen.
   const [imgResult, gameResult] = await Promise.all([
+    // Se leen TODOS los candidatos del día —el vigente y los salientes— en vez
+    // de solo el vigente, porque qué coche le toca a este jugador depende de su
+    // propia fila de user_guesses, que se está leyendo AQUÍ AL LADO. Resolver
+    // primero y leer la imagen después costaría un round-trip en serie en el
+    // único request bloqueante del primer paint. En un día normal prevCarIds
+    // está vacío y esto es la consulta de siempre con un `in` de un elemento.
     conTimeoutOFallback(
       supabaseAdmin
         .from("cars")
-        .select("image_url, blur_data, zoom_base")
-        .eq("id", todayCarId)
-        .maybeSingle(),
+        .select("id, image_url, blur_data, zoom_base")
+        .in("id", [todayCarId, ...prevCarIds]),
       PLAZOS.SUPABASE,
       { data: null, error: { message: "read image_url sin respuesta a tiempo" } },
       { etiqueta: "read image_url" }
@@ -225,11 +359,19 @@ export default async function handler(request) {
           () =>
             authClient
               .from("user_guesses")
-              .select("guesses, status")
+              .select("car_id, guesses, status")
               .eq("user_id", user.id)
-              .eq("car_id", todayCarId)
               .eq("date", today)
-              .maybeSingle(),
+              // Acotado a las revisiones del día: sin esto entraría también la
+              // partida de REPESCA de hoy, que vive en esta misma tabla con la
+              // misma fecha y otro car_id.
+              //
+              // Sin `.limit(1)` a propósito: si el usuario tuviera fila en el
+              // coche vigente y en un saliente, quién gana es una decisión de
+              // negocio (gana el saliente: es la partida que está jugando) y la
+              // toma el resolvedor, que es donde está escrita y probada. Un
+              // `limit(1)` sin `order` se la dejaría a Postgres.
+              .in("car_id", [todayCarId, ...prevCarIds]),
           PLAZOS.SUPABASE,
           { data: null, error: { message: "read user_guesses sin respuesta a tiempo" } },
           { etiqueta: "read user_guesses" }
@@ -237,26 +379,81 @@ export default async function handler(request) {
       : Promise.resolve({ data: null, error: null }),
   ]);
 
-  const { data: imgRow, error: imgRowErr } = imgResult;
+  const { data: filasCars, error: imgRowErr } = imgResult;
   if (imgRowErr) {
     // Si falla la lectura de image_url, seguimos sin versión (cache "vieja"
     // hasta el TTL natural). Es estrictamente mejor que romper la home.
     console.error("[get-daily-car] read image_url:", imgRowErr);
   }
 
+  const { data: filasGuesses, error: gameErr } = gameResult;
+  if (gameErr) {
+    console.error("[get-daily-car] read user_guesses:", gameErr);
+    // 503, no `respond(base)`. Devolver `base` era servirle al usuario un
+    // tablero A CERO: `base.guesses` va vacío y `base.status` es "playing",
+    // y el cliente no lo compensa con localStorage porque para una sesión
+    // iniciada la fuente de verdad es el servidor. Quien llevara tres intentos
+    // veía la partida en blanco y —peor— podía volver a jugarla desde el
+    // principio contra un servidor que sí recuerda los intentos gastados.
+    // Un error honesto es mejor que un estado inventado.
+    //
+    // Y se corta AQUÍ, antes de resolver: sin sus filas no se sabe a qué coche
+    // está anclado, así que cualquier cosa que hiciéramos después (la foto que
+    // se sirve, la fila de auditoría) saldría del coche equivocado.
+    return respond(
+      { message: "Game state temporarily unavailable" },
+      { status: 503, headers: { "Retry-After": "5" } }
+    );
+  }
+  // Array, no fila: el desempate entre revisiones lo hace el resolvedor.
+  const filasUsuario = Array.isArray(filasGuesses) ? filasGuesses : [];
+
+  // (`tokenAnonEntrante` / `anonVigente` se leyeron arriba, antes de decidir
+  //  qué hacer sin los salientes: son el mismo dato y una sola lectura.)
+
+  // ¿Qué coche le toca a QUIEN PREGUNTA? Puede no ser el vigente: si hubo
+  // cambio de emergencia, quien ya estaba jugando se queda con el suyo hasta
+  // medianoche. A partir de aquí, todo lo que sea «lo que ve ESTE jugador» usa
+  // carIdDelUsuario; todayCarId solo vale para hablar del día en abstracto.
+  const sellosPorCarId = await sellosDe([todayCarId, ...prevCarIds], today);
+  const { carId: carIdDelUsuario } = resolverCocheDelUsuario({
+    carIdVigente: todayCarId,
+    prevCarIds,
+    filasUsuario,
+    hayUsuario: Boolean(user),
+    selloCliente: anonVigente?.c || null,
+    sellosPorCarId,
+    intentosAnon: Number.isInteger(anonVigente?.n) ? anonVigente.n : 0,
+  });
+
+  // La fila de `cars` del coche de ESTE jugador, de entre las candidatas.
+  const imgRow =
+    (Array.isArray(filasCars) ? filasCars : []).find(
+      (c) => c.id === carIdDelUsuario
+    ) || null;
+
+  // AUDITORÍA: registra la PRIMERA visita del día por (user|ip + día).
+  // Deliberadamente SIN await — el insert vuela en background; Vercel Edge
+  // deja que las fetches en vuelo se completen tras devolver la Response.
+  // Dedupe en memoria de la instancia warm evita filas por cada F5.
+  //
+  // Con el coche RESUELTO: si esta visita es la de un congelado, la fila de
+  // auditoría tiene que decir qué coche está jugando él, no cuál es el vigente.
+  logSessionStart({
+    request,
+    userId: user?.id || null,
+    isAnon: !user,
+    gameDate: today,
+    carId: carIdDelUsuario,
+  }).catch(() => {});
+
   // Zoom base del coche de hoy. El cliente lo usa para calcular los scales CSS
   // por intento; clampZoomBase cae al default 3.7 si la columna no existe aún.
   const zoomBase = clampZoomBase(imgRow?.zoom_base);
 
-  // Cache-buster sha1 corto. Si admin reemplaza la foto desde
-  // /admin/edit-car, image_url cambia → hash cambia → CDN sirve la nueva
-  // al instante. Si solo edita texto, image_url no se toca y el CDN
-  // mantiene el hit caliente. Incluimos también el zoom_base: si admin ajusta
-  // la dificultad del coche del día, el crop que sirve daily-image cambia, así
-  // que el hash debe invalidar la entrada cacheada.
-  const imgVersion = imgRow?.image_url
-    ? (await sha1Hex(`${imgRow.image_url}:${zoomBase}`)).slice(0, 8)
-    : "0";
+  // El hash identifica al coche, y daily-image lo usa para saber qué revisión
+  // del día pide quien carga la foto. Ver api/_lib/version-imagen.js.
+  const imgVersion = await versionDeImagen(imgRow?.image_url, zoomBase);
   const dailyImgUrl = `/api/daily-image?d=${today}&v=${imgVersion}`;
   const blurData = imgRow?.blur_data || null;
 
@@ -269,22 +466,32 @@ export default async function handler(request) {
     guesses: [],
     status: "playing",
     reveal: null,
+    // Sello del coche que ESTE jugador tiene delante. Lo reenvía en
+    // validate-guess para que el servidor detecte si está respondiendo sobre
+    // una foto que ya no es la de su partida. Opaco: no dice qué coche es.
+    sello: sellosPorCarId[carIdDelUsuario] || null,
   };
 
   // -------- RAMA ANÓNIMA -------------------------------------------------
   if (!user) {
-    // Token de sesión anónima firmado (HMAC). Antes era una cookie HttpOnly;
-    // ahora viaja en el body para que la app Android (origen distinto) no
-    // dependa de cookies cross-site. El cliente lo guarda en localStorage y lo
-    // reenvía en el header X-Anon-Session.
-    const incoming = await readAnonTokenFromRequest(request);
+    // El token de sesión anónima ya se leyó arriba (lo necesitaba el
+    // resolvedor). Antes era una cookie HttpOnly; ahora viaja en el body para
+    // que la app Android (origen distinto) no dependa de cookies cross-site.
+    // El cliente lo guarda en localStorage y lo reenvía en X-Anon-Session.
+    const incoming = tokenAnonEntrante;
     const valid =
       incoming &&
       incoming.d === today &&
       Number.isInteger(incoming.n) &&
       typeof incoming.s === "string";
 
-    const session = valid ? incoming : { d: today, n: 0, s: "playing" };
+    // El sello del coche resuelto se REESCRIBE en cada visita: es lo que ancla
+    // al anónimo a su revisión (y lo que lo reengancha al coche nuevo si no
+    // había empezado). Si no hay secreto configurado no hay sello, y se
+    // conserva el que trajera antes que perderlo.
+    const session = valid
+      ? { ...incoming, c: sellosPorCarId[carIdDelUsuario] || incoming.c || null }
+      : { d: today, n: 0, s: "playing", c: sellosPorCarId[carIdDelUsuario] || null };
 
     let anonToken = null;
     try {
@@ -308,7 +515,14 @@ export default async function handler(request) {
     let revealToken = null;
     if (valid && (session.s === "won" || session.s === "lost")) {
       try {
-        revealToken = await signRevealToken(today);
+        // Con el sello del coche RESUELTO, no el del vigente: el token abre la
+        // foto de SU revisión. Sin esto, el congelado que terminaba su partida
+        // se llevaba una llave que también abría el coche que los demás siguen
+        // jugando (ver la nota larga de _lib/reveal-token.js).
+        revealToken = await signRevealToken(
+          today,
+          sellosPorCarId[carIdDelUsuario] || null
+        );
       } catch (err) {
         console.error("[get-daily-car] signRevealToken (anon):", err?.message || err);
       }
@@ -318,21 +532,10 @@ export default async function handler(request) {
   }
 
   // -------- RAMA LOGUEADA ------------------------------------------------
-  const { data: gameRow, error: gameErr } = gameResult;
-  if (gameErr) {
-    console.error("[get-daily-car] read user_guesses:", gameErr);
-    // 503, no `respond(base)`. Devolver `base` era servirle al usuario un
-    // tablero A CERO: `base.guesses` va vacío y `base.status` es "playing",
-    // y el cliente no lo compensa con localStorage porque para una sesión
-    // iniciada la fuente de verdad es el servidor. Quien llevara tres intentos
-    // veía la partida en blanco y —peor— podía volver a jugarla desde el
-    // principio contra un servidor que sí recuerda los intentos gastados.
-    // Un error honesto es mejor que un estado inventado.
-    return respond(
-      { message: "Game state temporarily unavailable" },
-      { status: 503, headers: { "Retry-After": "5" } }
-    );
-  }
+  // La fila que cuenta es la del coche RESUELTO, no «la de hoy»: si está
+  // congelado en una revisión anterior, su partida es la del saliente.
+  // (El error de la lectura ya se atendió arriba con un 503.)
+  const gameRow = filasUsuario.find((f) => f.car_id === carIdDelUsuario) || null;
 
   const status = gameRow?.status || "playing";
   const guesses = Array.isArray(gameRow?.guesses) ? gameRow.guesses : [];
@@ -351,16 +554,22 @@ export default async function handler(request) {
         supabaseAdmin
           .from("cars")
           .select("make, model, year, pais, description, description_en, video_id")
-          .eq("id", todayCarId)
+          // El coche del jugador, que puede no ser el vigente: revelarle el
+          // coche nuevo sobre su partida vieja sería mentirle en la cara.
+          .eq("id", carIdDelUsuario)
           .maybeSingle(),
         PLAZOS.SUPABASE,
         { data: null, error: { message: "read cars (live) sin respuesta a tiempo" } },
         { etiqueta: "read cars (live)" }
       ),
-      signRevealToken(today).catch((err) => {
-        console.error("[get-daily-car] signRevealToken:", err?.message || err);
-        return null;
-      }),
+      // Con el sello del coche RESUELTO, igual que en la rama anónima: la
+      // llave abre la foto de la revisión que este jugador se ha ganado.
+      signRevealToken(today, sellosPorCarId[carIdDelUsuario] || null).catch(
+        (err) => {
+          console.error("[get-daily-car] signRevealToken:", err?.message || err);
+          return null;
+        }
+      ),
     ]);
 
     if (liveResult.error) {
@@ -395,11 +604,7 @@ export default async function handler(request) {
   }
 
   return respond({
-    date: today,
-    img: dailyImgUrl,
-    blurData,
-    zoomBase,
-    maxAttempts: MAX_ATTEMPTS,
+    ...base,
     guesses,
     status,
     reveal,

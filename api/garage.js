@@ -173,6 +173,12 @@ export default async function handler(req, res) {
     //      - repesca  → solo fechas ESTRICTAMENTE anteriores a hoy.
     //      - nº       → el orden cronológico completo (la edición nº 1 es el
     //                   primer coche del día que existió).
+    //
+    //    OJO con los cambios de emergencia (api/_lib/coche-de-hoy.js): el coche
+    //    saliente pierde su fila aquí, así que ese día no le cuenta como
+    //    portada ni le da nº de edición, y quien lo perdió no puede repescarlo
+    //    todavía. Es deliberado y se cura solo: el saliente vuelve al bombo, y
+    //    cuando salga de verdad recibe su fecha, su número y su repesca.
     const todayDate = todayInMadrid();
     const { data: dailies, error: dailiesErr } = await supabaseAdmin
       .from("daily_cars")

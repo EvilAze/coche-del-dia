@@ -55,6 +55,7 @@ const DECISIONES = {
   "/api/admin/moderacion": { cors: true },
   "/api/admin/estado": { cors: true },
   "/api/admin/mensajes": { cors: true },
+  "/api/admin/emergency-swap": { cors: true },
 
   "/api/push": {
     cors: false,

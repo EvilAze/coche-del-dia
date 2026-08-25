@@ -34,6 +34,45 @@ export class TimeoutError extends Error {
   }
 }
 
+// Marca con la que un fallback dice «esto NO es la respuesta de la dependencia,
+// es lo que devuelvo porque venció el plazo».
+//
+// POR QUÉ HACE FALTA. `conTimeoutOFallback` y `conTimeoutReintentando` aplanan
+// las dos formas de fallar en un mismo valor por defecto, y el que llama pierde
+// la única distinción que a veces importa: «me ha contestado que no» (rápido,
+// definitivo) frente a «no me ha contestado» (lento, y probablemente tampoco
+// conteste al siguiente). Quien tenga un plan B en serie necesita saberlo,
+// porque un plan B detrás de una espera agotada SUMA su plazo al presupuesto de
+// la función — que es exactamente el 504 que este módulo existe para evitar.
+//
+// Symbol y no-enumerable a propósito: el valor por defecto suele ser un objeto
+// con forma de PostgREST ({data, error}) que acaba en logs y respuestas. La
+// marca es para el código, no para el cable.
+const POR_PLAZO = Symbol("porPlazo");
+
+function marcarPorPlazo(valor) {
+  if (valor && typeof valor === "object") {
+    Object.defineProperty(valor, POR_PLAZO, {
+      value: true,
+      enumerable: false,
+      configurable: true,
+    });
+  }
+  return valor;
+}
+
+/**
+ * ¿Este valor es el fallback que devolvió un helper porque venció el plazo?
+ * `false` para todo lo demás — incluido el fallback devuelto tras un error
+ * normal, que es justo la diferencia que hay que poder ver.
+ *
+ * @param {unknown} valor
+ * @returns {boolean}
+ */
+export function fuePorPlazo(valor) {
+  return Boolean(valor && typeof valor === "object" && valor[POR_PLAZO] === true);
+}
+
 /**
  * Corre `promesa` con un plazo. Si vence, RECHAZA con TimeoutError.
  *
@@ -88,7 +127,11 @@ export async function conTimeoutOFallback(
     return await conTimeout(promesa, ms, { etiqueta });
   } catch (err) {
     console.error(`[timeout] ${etiqueta}, se sigue sin ello:`, err?.message || err);
-    return valorPorDefecto;
+    // Solo se marca el fallback del PLAZO: un error normal ya llega dentro del
+    // propio valor por defecto y no obliga a nadie a replantearse su plan B.
+    return err instanceof TimeoutError
+      ? marcarPorPlazo(valorPorDefecto)
+      : valorPorDefecto;
   }
 }
 
@@ -126,7 +169,13 @@ export async function conTimeoutReintentando(
         `[timeout] ${etiqueta} falló (intento ${i}/${intentos}):`,
         err?.message || err
       );
-      if (i === intentos) return valorPorDefecto;
+      // Manda cómo falló el ÚLTIMO intento: es el que describe en qué estado
+      // se ha quedado la dependencia ahora mismo.
+      if (i === intentos) {
+        return err instanceof TimeoutError
+          ? marcarPorPlazo(valorPorDefecto)
+          : valorPorDefecto;
+      }
     }
   }
 }

@@ -4,8 +4,9 @@
 // se expone al navegador.
 //
 // Flujo:
-//   1) Resolvemos el coche del día con pick_daily_car (service_role: la RPC
-//      está revocada de anon/authenticated por hardening previo).
+//   1) Resolvemos el coche del día con coche_de_hoy (service_role: las RPC
+//      están revocadas de anon/authenticated por hardening previo), y el `v`
+//      de la URL decide cuál de las revisiones del día sirve esta petición.
 //   2) Leemos image_url de la fila (columna privilegiada).
 //   3) Hacemos un fetch server-side al CDN.
 //   4) Si el cliente pidió `?w` o `?f`, redimensionamos / recodificamos con
@@ -13,9 +14,11 @@
 //
 // Query params:
 //   ?d=YYYY-MM-DD   → cache buster diario (no se lee aquí; es solo cache key).
-//   ?v=<hash>       → hash corto de image_url (no se lee aquí; es solo cache
-//                     key — invalida automáticamente cuando admin cambia la
-//                     foto desde /admin/edit-car).
+//   ?v=<hash>       → hash corto de (image_url, zoom_base). Sigue siendo cache
+//                     buster —invalida solo cuando el admin cambia la foto
+//                     desde /admin/edit-car— pero ADEMÁS es lo único que dice
+//                     qué revisión del día está mirando quien pide la foto:
+//                     ver la nota larga del bloque de resolución más abajo.
 //   ?w=320|640|1280 → ancho objetivo. Allowlist estricta para evitar DoS por
 //                     resize a tamaños absurdos.
 //   ?f=avif|webp|jpeg → formato de salida. Allowlist estricta.
@@ -35,6 +38,8 @@ import { methodGuard } from "./_lib/http.js";
 import { getClientIp } from "./_lib/ratelimit.js";
 import { logCanary } from "./_lib/audit.js";
 import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
+import { versionDeImagen } from "./_lib/version-imagen.js";
+import { selloDeCoche } from "./_lib/sello.js";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
@@ -73,6 +78,28 @@ const ALLOWED_Z = new Set([1, 2, 3, 4, 5]);
 // reveal a su `user_guesses.status`. Es opcional: el flujo normal de
 // reveal pasa por el revealToken firmado, pero este check es defensivo
 // para clientes que aún no tengan token (cache antigua, refresh raro).
+/**
+ * ¿El revealToken que presenta este visitante abre la foto que está pidiendo?
+ *
+ * El token trae el SELLO del coche que su portador se ganó (_lib/reveal-token.js),
+ * y aquí se compara con el sello del coche que hemos resuelto por el `v` de la
+ * URL. Si no casan, el token es de otra revisión del día y no abre nada: se le
+ * sirve el recorte, como a cualquiera.
+ *
+ * COMPATIBILIDAD CON LOS TOKENS VIEJOS (sin sello), que siguen circulando en
+ * clientes que no han recargado: se aceptan SOLO si el día no tiene salientes.
+ * Ahí el razonamiento antiguo —«un día = un coche»— sigue siendo verdad y el
+ * token no puede abrir nada que su portador no se hubiera ganado ya. En cuanto
+ * hay salientes, un token sin sello no puede demostrar de qué revisión es, y el
+ * fallo seguro es no revelar: como mucho le cuesta una recarga al legítimo
+ * (get-daily-car le emite uno nuevo, ya con sello).
+ */
+async function tokenAbreEstaFoto(selloDelToken, carId, today, hayCambioHoy) {
+  if (!selloDelToken) return !hayCambioHoy;
+  const esperado = await selloDeCoche(carId, today);
+  return Boolean(esperado) && esperado === selloDelToken;
+}
+
 async function tryReadUserStatus(req, carId, today) {
   const auth = req.headers?.authorization || "";
   if (!auth.startsWith("Bearer ")) return null;
@@ -110,28 +137,87 @@ export default async function handler(req, res) {
 
   const today = todayInMadrid();
 
-  // 1) Coche del día.
-  const { data: carId, error: rpcErr } = await supabaseAdmin.rpc(
-    "pick_daily_car",
+  // 1) Qué coche sirve esta petición. Normalmente el vigente — pero si hubo un
+  //    cambio de emergencia, quien estaba jugando sigue pidiendo la foto del
+  //    suyo, y hay que dársela o vería el coche nuevo con su tablero viejo.
+  //
+  //    Aquí NO se puede usar el resolvedor de _lib/coche-de-hoy.js: la foto la
+  //    pide una etiqueta <img>, que no manda Authorization ni X-Anon-Session.
+  //    Ahí no hay usuario que resolver. Lo único que identifica la revisión es
+  //    el `v` de la URL, que es un hash del coche (_lib/version-imagen.js).
+  //    Como el hash sale del coche, cada revisión tiene su propia URL y la
+  //    caché compartida del CDN no puede servirle la foto de un jugador a
+  //    otro. Esa propiedad es la que hace viable todo esto.
+  const { data: filas, error: rpcErr } = await supabaseAdmin.rpc(
+    "coche_de_hoy",
     { p_date: today }
   );
+  let carId = filas?.[0]?.car_id || null;
+  const prevCarIds = filas?.[0]?.prev_car_ids || [];
+
   if (rpcErr || !carId) {
-    console.error("[daily-image] pick_daily_car:", rpcErr);
-    return res.status(500).json({ message: "Failed to pick daily car" });
+    // Respaldo: sin la envoltura desplegada se sirve el coche vigente y ya.
+    // Aquí sí se puede prescindir de los salientes (a diferencia de
+    // get-daily-car, donde inventarlos vaciaría un tablero): un `v` que no
+    // case cae en el vigente, que es exactamente el comportamiento histórico
+    // de este proxy. Lo peor que pasa es que un congelado vea la foto nueva.
+    console.error("[daily-image] coche_de_hoy:", rpcErr);
+    const { data: respaldo, error: respErr } = await supabaseAdmin.rpc(
+      "pick_daily_car",
+      { p_date: today }
+    );
+    if (respErr || !respaldo) {
+      console.error("[daily-image] pick_daily_car:", respErr);
+      return res.status(503).json({ message: "No daily car" });
+    }
+    carId = respaldo;
   }
+
+  const vPedido = typeof req.query?.v === "string" ? req.query.v : null;
 
   // 2) URL real del CDN + punto focal. Nunca salen de este proceso.
   //    focus_x/focus_y indican el centro del crop en [0,1]. Si están a
   //    null (compat con coches anteriores a la columna) o fuera de rango,
   //    cae al 0.5/0.5 — equivalente al crop centrado del comportamiento
   //    histórico.
-  const { data: row, error: fetchErr } = await supabaseAdmin
+  //
+  //    Se leen los candidatos del día —el vigente y, si hubo cambio hoy, los
+  //    salientes— en una sola consulta. En un día normal `prevCarIds` está
+  //    vacío y esto es la consulta de siempre con un `in` de un elemento.
+  const { data: filasCars, error: carsErr } = await supabaseAdmin
     .from("cars")
-    .select("image_url, focus_x, focus_y, zoom_base")
-    .eq("id", carId)
-    .single();
-  if (fetchErr || !row?.image_url) {
-    console.error("[daily-image] fetch car:", fetchErr);
+    .select("id, image_url, focus_x, focus_y, zoom_base")
+    .in("id", [carId, ...prevCarIds]);
+  if (carsErr || !filasCars?.length) {
+    console.error("[daily-image] read cars:", carsErr);
+    return res.status(503).json({ message: "No daily car" });
+  }
+
+  let carRow = filasCars.find((c) => c.id === carId);
+
+  // ¿El `v` que pide es el de una revisión anterior? Entonces esa es su foto.
+  // El bucle solo se paga los días que hubo cambio: esto se sirve en CADA
+  // carga de foto, y hashear por gusto un coche al día sería un coste diario
+  // por un caso excepcional. Un `v` que no case con nada (una foto que el
+  // admin reemplazó, una caché vieja) cae en el vigente: es el comportamiento
+  // de siempre y no es un error.
+  if (vPedido && prevCarIds.length > 0) {
+    for (const candidata of filasCars) {
+      const v = await versionDeImagen(
+        candidata.image_url,
+        clampZoomBase(candidata.zoom_base)
+      );
+      if (v === vPedido) {
+        carRow = candidata;
+        carId = candidata.id;
+        break;
+      }
+    }
+  }
+
+  const row = carRow;
+  if (!row?.image_url) {
+    console.error("[daily-image] fetch car: sin image_url para", carId);
     return res.status(500).json({ message: "Failed to load daily car" });
   }
   // Zoom base por coche (dificultad). clampZoomBase cae al default 3.7 si la
@@ -165,9 +251,12 @@ export default async function handler(req, res) {
   // DevTools, copiaba la URL, quitaba `&z=5` y veía el coche entero. Ahora
   // exigimos prueba server-verificable de que el visitante ha terminado
   // la partida. Dos vías equivalentes:
-  //   (a) ?t=<revealToken> firmado por hoy (lo emiten get-daily-car y
-  //       validate-guess cuando aplican — también al anónimo que GANÓ, así
-  //       que el incógnito ganador revela por aquí, no por su sesión).
+  //   (a) ?t=<revealToken> firmado por hoy Y PARA ESTE COCHE (lo emiten
+  //       get-daily-car y validate-guess cuando aplican — también al anónimo
+  //       que GANÓ, así que el incógnito ganador revela por aquí, no por su
+  //       sesión). El sello del token tiene que corresponder al coche que
+  //       hemos resuelto por el `v`: la fecha sola dejó de bastar el día que
+  //       un día pudo tener dos coches.
   //   (b) Bearer del usuario y user_guesses.status ∈ {won, lost}.
   // Si NINGUNA aplica, forzamos el crop más amplio que un jugador
   // legítimo podría ver durante la partida (z=5 = 55,6% central).
@@ -175,23 +264,32 @@ export default async function handler(req, res) {
 
   const tParam = typeof req.query?.t === "string" ? req.query.t : "";
   if (tParam) {
-    const tokenDate = verifyRevealToken(tParam);
-    if (tokenDate === today) {
-      canReveal = true;
-    } else {
+    const datos = verifyRevealToken(tParam);
+    if (datos?.date !== today) {
       // CANARIO: un cliente legítimo solo presenta tokens que el servidor
-      // emitió para HOY. Un token con firma inválida (tokenDate === null) es
+      // emitió para HOY. Un token con firma inválida (datos === null) es
       // forjado; uno válido pero de otra fecha es caducado/replay (puede ser
       // una pestaña vieja, señal más débil). Registramos ambos con motivo
       // distinto. Best-effort: nunca rompe la entrega de la imagen.
       await logCanary({
         req,
-        reason: tokenDate === null ? "forged_reveal_token" : "stale_reveal_token",
+        reason: datos === null ? "forged_reveal_token" : "stale_reveal_token",
         carId,
         gameDate: today,
         isAnon: !String(req.headers?.authorization || "").startsWith("Bearer "),
         ip: getClientIp(req),
       });
+    } else if (
+      await tokenAbreEstaFoto(datos.sello, carId, today, prevCarIds.length > 0)
+    ) {
+      canReveal = true;
+    } else {
+      // Token bien firmado y de hoy, pero de OTRA revisión del día. NO es un
+      // ataque: es exactamente lo que le pasa a quien terminó su partida con el
+      // coche saliente y luego carga la foto del vigente. Registrarlo como
+      // canario llenaría la auditoría anti-trampas de falsos positivos justo
+      // el día en que más falta hace poder leerla. Se le sirve el recorte y ya.
+      console.warn("[daily-image] revealToken de otra revisión: se sirve recorte");
     }
   }
 

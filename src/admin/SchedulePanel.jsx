@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
+import EmergencySwapModal from "./EmergencySwapModal";
 
 const WEEKDAY_FMT = new Intl.DateTimeFormat("es-ES", {
   weekday: "long",
@@ -47,6 +48,11 @@ export default function SchedulePanel({
   // la jornada injugable, así que nunca puede ser el default.
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [localRefresh, setLocalRefresh] = useState(0);
+  // El cambio de emergencia tiene su propio modal (src/admin/EmergencySwapModal)
+  // porque no es el swap del calendario: aquel reasigna un día que nadie ha
+  // jugado, y este toca la jornada EN CURSO. No lleva fecha como estado porque
+  // solo puede apuntar a un día — hoy.
+  const [emergenciaAbierta, setEmergenciaAbierta] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -366,23 +372,48 @@ export default function SchedulePanel({
                   Editar coche
                 </button>
                 <div className="w-px bg-border" aria-hidden="true" />
-                <button
-                  type="button"
-                  disabled={item.isToday}
-                  onClick={() =>
-                    typeof onSwapCar === "function" &&
-                    onSwapCar(item.date, item.car?.id || null)
-                  }
-                  className="
-                    flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.18em] text-accent
-                    transition hover:bg-accent/10
-                    disabled:cursor-not-allowed disabled:opacity-40 disabled:text-muted
-                  "
-                  title={item.isToday ? "El coche de hoy no se puede cambiar" : undefined}
-                >
-                  Cambiar coche
-                </button>
+                {/* Hoy no es "Cambiar coche deshabilitado": es OTRA acción.
+                    El botón gris de antes dejaba el panel sin ninguna salida
+                    cuando el coche del día salía mal (foto rota, coche
+                    repetido) y había que arreglarlo a mano en Supabase. Ahora
+                    hay puerta, pero es una puerta distinta y se ve distinta:
+                    en rojo, con su nombre, y con un modal que dice a cuánta
+                    gente afecta antes de tocar nada. */}
+                {item.isToday ? (
+                  <button
+                    type="button"
+                    onClick={() => setEmergenciaAbierta(true)}
+                    className="
+                      flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.18em] text-rojo
+                      transition hover:bg-rojo/10
+                    "
+                    title="Sustituir el coche de hoy con la jornada ya empezada"
+                  >
+                    Cambio de emergencia
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      typeof onSwapCar === "function" &&
+                      onSwapCar(item.date, item.car?.id || null)
+                    }
+                    className="
+                      flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.18em] text-accent
+                      transition hover:bg-accent/10
+                      disabled:cursor-not-allowed disabled:opacity-40 disabled:text-muted
+                    "
+                  >
+                    Cambiar coche
+                  </button>
+                )}
                 <div className="w-px bg-border" aria-hidden="true" />
+                {/* «Liberar» sigue deshabilitado hoy, y no es un descuido de
+                    la línea de arriba: liberar BORRA la fila de daily_cars, y
+                    con ella prev_car_ids — o sea, la lista de coches salientes
+                    que es lo único que mantiene jugando a quien ya había
+                    empezado. Cambiar el coche de hoy se hace por emergencia,
+                    que la conserva; liberarlo no tiene arreglo. */}
                 <button
                   type="button"
                   disabled={item.isToday || freeing !== null}
@@ -405,6 +436,17 @@ export default function SchedulePanel({
           ))}
         </ul>
       )}
+
+      {/* Montado siempre (ModalShell decide cuándo pintar) para que la
+          animación de salida no se corte. Al terminar se incrementa
+          localRefresh: es el mismo contador que usan aleatorizar y liberar
+          para volver a disparar el GET de /api/admin/schedule, así que la
+          tarjeta de hoy se repinta ya con el coche nuevo. */}
+      <EmergencySwapModal
+        open={emergenciaAbierta}
+        onClose={() => setEmergenciaAbierta(false)}
+        onSwapped={() => setLocalRefresh((prev) => prev + 1)}
+      />
     </div>
   );
 }

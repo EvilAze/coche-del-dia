@@ -216,4 +216,13 @@ export const PLAZOS = {
   // nadie lee en caliente es retrasarle el resultado a una partida que va bien.
   // Mismo criterio que RATELIMIT — fail-open, plazo barato.
   AUDITORIA: 1500,
+  // Descarga de la foto original desde Supabase Storage. Es el plazo más largo
+  // del repo porque es lo único que mueve megabytes (originales de ~1,3 MB), y
+  // no corta descargas lentas: corta cuelgues.
+  //
+  // Vivía como constante suelta dentro de imagen-origen.js. Sube aquí para que
+  // el test que suma la cadena de daily-image pueda contarla — que es el punto
+  // entero de tener los plazos centralizados: un número que el test no ve es un
+  // número que puede subir «solo un poco» sin que salte nada.
+  CDN: 15000,
 };

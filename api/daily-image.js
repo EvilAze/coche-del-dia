@@ -27,6 +27,16 @@
 //   Cada combinación (d, v, w, f) tiene su propia entrada en el edge cache
 //   de Vercel. El cost de sharp se paga una vez por entrada y región, y
 //   luego durante 24 h se sirve desde el CDN sin tocar la función.
+//
+// PLAZOS (regla 21). Esta función tiene un presupuesto de 60 s que NO es todo
+// para la I/O: sharp puede llevarse segundos en frío (ver la nota de effort 2
+// en AVIF, más abajo), y ese trozo no se puede acotar con un plazo porque es
+// CPU nuestra, no espera ajena. Así que las esperas van cortas y, sobre todo,
+// no se encadenan: cada respaldo de aquí abajo lleva escrito por qué se
+// intenta o por qué no. El principio que gobierna las decisiones es que este
+// handler YA sabe degradar —sirve el original si sharp peta, sirve el recorte
+// si no puede confirmar el reveal— y un plazo nunca debe convertir en error
+// algo que hoy se degrada con gracia.
 
 import sharp from "sharp";
 import { verifyRevealToken } from "./_lib/reveal-token.js";
@@ -40,6 +50,12 @@ import { logCanary } from "./_lib/audit.js";
 import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
 import { versionDeImagen } from "./_lib/version-imagen.js";
 import { selloDeCoche } from "./_lib/sello.js";
+import {
+  conTimeoutOFallback,
+  conTimeoutReintentando,
+  fuePorPlazo,
+  PLAZOS,
+} from "./_lib/timeout.js";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
@@ -112,13 +128,23 @@ async function tryReadUserStatus(req, carId, today) {
     // que dejar la foto del día colgada.
     const { client, user } = await authClientAndUser(token);
     if (!client || !user) return null;
-    const { data: row } = await client
-      .from("user_guesses")
-      .select("status")
-      .eq("user_id", user.id)
-      .eq("car_id", carId)
-      .eq("date", today)
-      .maybeSingle();
+    // Plazo, sin reintento y sin 5xx: si esta lectura no llega, se sigue sin
+    // ella. Es el mismo criterio que ya declara la nota de arriba —ante
+    // cualquier duda, el recorte antes que la foto colgada— y el ámbito
+    // correcto para la protección, porque el camino normal del reveal es el
+    // revealToken firmado y este check solo lo alcanza el cliente raro.
+    const { data: row } = await conTimeoutOFallback(
+      client
+        .from("user_guesses")
+        .select("status")
+        .eq("user_id", user.id)
+        .eq("car_id", carId)
+        .eq("date", today)
+        .maybeSingle(),
+      PLAZOS.SUPABASE,
+      { data: null },
+      { etiqueta: "read user_guesses (daily-image)" }
+    );
     return row?.status || null;
   } catch (err) {
     console.error("[daily-image] tryReadUserStatus:", err?.message || err);
@@ -148,26 +174,50 @@ export default async function handler(req, res) {
   //    Como el hash sale del coche, cada revisión tiene su propia URL y la
   //    caché compartida del CDN no puede servirle la foto de un jugador a
   //    otro. Esa propiedad es la que hace viable todo esto.
-  const { data: filas, error: rpcErr } = await supabaseAdmin.rpc(
-    "coche_de_hoy",
-    { p_date: today }
+  //
+  //    DOS INTENTOS: sin coche resuelto no hay foto que servir, y la RPC es
+  //    idempotente. El plazo pelado convertiría en «sin foto» una lectura lenta
+  //    que hoy acaba llegando; el reintento deja el corte para el atranco de
+  //    verdad.
+  const rpcResult = await conTimeoutReintentando(
+    () => supabaseAdmin.rpc("coche_de_hoy", { p_date: today }),
+    PLAZOS.SUPABASE,
+    { data: null, error: { message: "coche_de_hoy sin respuesta a tiempo" } },
+    { etiqueta: "coche_de_hoy" }
   );
+  const { data: filas, error: rpcErr } = rpcResult;
   let carId = filas?.[0]?.car_id || null;
   const prevCarIds = filas?.[0]?.prev_car_ids || [];
 
   if (rpcErr || !carId) {
+    console.error("[daily-image] coche_de_hoy:", rpcErr);
+
+    // El respaldo NO se intenta si el fallo fue por PLAZO: `coche_de_hoy`
+    // envuelve a `pick_daily_car`, así que si el primero no contesta el segundo
+    // tampoco. El respaldo cubre «la función no está desplegada», que falla al
+    // instante; detrás de una espera agotada solo gastaría otro plazo del
+    // presupuesto de la función.
+    if (fuePorPlazo(rpcResult)) {
+      res.setHeader("Retry-After", "5");
+      return res.status(503).json({ message: "No daily car" });
+    }
+
     // Respaldo: sin la envoltura desplegada se sirve el coche vigente y ya.
     // Aquí sí se puede prescindir de los salientes (a diferencia de
     // get-daily-car, donde inventarlos vaciaría un tablero): un `v` que no
     // case cae en el vigente, que es exactamente el comportamiento histórico
     // de este proxy. Lo peor que pasa es que un congelado vea la foto nueva.
-    console.error("[daily-image] coche_de_hoy:", rpcErr);
-    const { data: respaldo, error: respErr } = await supabaseAdmin.rpc(
-      "pick_daily_car",
-      { p_date: today }
+    //
+    // Un solo intento: acabamos de comprobar que PostgREST responde.
+    const { data: respaldo, error: respErr } = await conTimeoutOFallback(
+      supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+      PLAZOS.SUPABASE,
+      { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
+      { etiqueta: "pick_daily_car (respaldo)" }
     );
     if (respErr || !respaldo) {
       console.error("[daily-image] pick_daily_car:", respErr);
+      res.setHeader("Retry-After", "5");
       return res.status(503).json({ message: "No daily car" });
     }
     carId = respaldo;
@@ -184,12 +234,24 @@ export default async function handler(req, res) {
   //    Se leen los candidatos del día —el vigente y, si hubo cambio hoy, los
   //    salientes— en una sola consulta. En un día normal `prevCarIds` está
   //    vacío y esto es la consulta de siempre con un `in` de un elemento.
-  const { data: filasCars, error: carsErr } = await supabaseAdmin
-    .from("cars")
-    .select("id, image_url, focus_x, focus_y, zoom_base")
-    .in("id", [carId, ...prevCarIds]);
+  //
+  //    Con dos intentos, por lo mismo que la RPC: es la lectura que decide si
+  //    hay foto o no, y no hay degradación posible al otro lado —sin image_url
+  //    no hay bytes que servir—, así que el reintento es lo único que separa
+  //    «la base va lenta» de «hoy no se ve el coche».
+  const { data: filasCars, error: carsErr } = await conTimeoutReintentando(
+    () =>
+      supabaseAdmin
+        .from("cars")
+        .select("id, image_url, focus_x, focus_y, zoom_base")
+        .in("id", [carId, ...prevCarIds]),
+    PLAZOS.SUPABASE,
+    { data: null, error: { message: "read cars sin respuesta a tiempo" } },
+    { etiqueta: "read cars" }
+  );
   if (carsErr || !filasCars?.length) {
     console.error("[daily-image] read cars:", carsErr);
+    res.setHeader("Retry-After", "5");
     return res.status(503).json({ message: "No daily car" });
   }
 
@@ -270,7 +332,11 @@ export default async function handler(req, res) {
       // emitió para HOY. Un token con firma inválida (datos === null) es
       // forjado; uno válido pero de otra fecha es caducado/replay (puede ser
       // una pestaña vieja, señal más débil). Registramos ambos con motivo
-      // distinto. Best-effort: nunca rompe la entrega de la imagen.
+      // distinto. Best-effort: nunca rompe la entrega de la imagen — y con
+      // plazo corto dentro de audit.js, porque «best-effort» y «await» juntos
+      // significan que una tabla de auditoría atrancada retrasaría la foto de
+      // todo el que llegue con un token caducado (una pestaña vieja, sin ir más
+      // lejos).
       await logCanary({
         req,
         reason: datos === null ? "forged_reveal_token" : "stale_reveal_token",
@@ -294,7 +360,19 @@ export default async function handler(req, res) {
   }
 
   if (!canReveal) {
-    const userStatus = await tryReadUserStatus(req, carId, today);
+    // UN SOLO PRESUPUESTO PARA TODO EL CHECK, y no la suma de sus partes. Por
+    // dentro esto resuelve identidad (que ya tiene su plazo, hasta 2×AUTH) y
+    // luego lee user_guesses (otro plazo): encadenados, una comprobación
+    // OPCIONAL —el camino normal del reveal es el revealToken firmado— podría
+    // costarle 14 s a la foto del día. La protección no puede ser más cara que
+    // el problema que protege; al vencer se sigue sin ella, que es exactamente
+    // lo que ya hacía este helper ante cualquier otro fallo.
+    const userStatus = await conTimeoutOFallback(
+      tryReadUserStatus(req, carId, today),
+      PLAZOS.SUPABASE,
+      null,
+      { etiqueta: "tryReadUserStatus" }
+    );
     if (userStatus === "won" || userStatus === "lost") canReveal = true;
   }
 

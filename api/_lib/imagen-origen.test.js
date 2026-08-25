@@ -5,6 +5,7 @@
 // egress intacto y nadie enterándose. Por eso va con tests.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { urlDelMaster, leerImagenOrigen, _resetCacheImagenes } from "./imagen-origen.js";
+import { PLAZOS } from "./timeout.js";
 
 const PUB = "https://ref.supabase.co/storage/v1/object/public/cars_images";
 const ORIG = `${PUB}/1712345678-audi-tt.jpg`;
@@ -79,6 +80,27 @@ describe("leerImagenOrigen", () => {
   it("devuelve null si tampoco se puede con el original", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => resp(false)));
     expect(await leerImagenOrigen(ORIG)).toBeNull();
+  });
+
+  it("un Storage ATRANCADO no se paga dos veces", async () => {
+    // Los dos ficheros viven en el mismo Storage: si el master no contesta en
+    // 15 s, probar el original solo pone otros 15 s en la cuenta de una función
+    // que después todavía tiene que pasar por sharp. Es el mismo criterio que
+    // el respaldo de coche_de_hoy — detrás de una espera agotada, el plan B no
+    // arregla nada y sí gasta presupuesto.
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn((u) =>
+        u === MASTER ? new Promise(() => {}) : Promise.resolve(resp(true))
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      const p = leerImagenOrigen(ORIG);
+      await vi.advanceTimersByTimeAsync(PLAZOS.CDN + 50);
+      await expect(p).resolves.toBeNull();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("un master que peta no impide servir la foto", async () => {

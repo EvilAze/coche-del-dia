@@ -251,6 +251,37 @@ describe("PLAZOS", () => {
     expect(diaConRespaldo).toBeLessThanOrEqual(dia);
   });
 
+  it("el peor caso encadenado de daily-image deja sitio para sharp", () => {
+    // La cadena real:
+    //   coche_de_hoy → cars → canario → tryReadUserStatus → descarga del CDN
+    //
+    // Y DESPUÉS sharp, que no es una espera sino CPU nuestra y por tanto no se
+    // puede acotar con un plazo: en frío se va a segundos (el propio handler lo
+    // documenta al elegir effort 2 en AVIF, porque effort 4 llevaba el
+    // arranque de 1-2 s a 3-8 s). Por eso la I/O no puede quedarse los 60 s: lo
+    // que se mide aquí es que quede presupuesto DESPUÉS de esperar.
+    const SHARP_EN_FRIO = 8000; // el peor extremo documentado en daily-image.js
+    const DOS_INTENTOS = 2;
+
+    const dia = PLAZOS.SUPABASE * DOS_INTENTOS;
+    const cars = PLAZOS.SUPABASE * DOS_INTENTOS;
+    const canario = PLAZOS.AUDITORIA;
+    // El check defensivo del Bearer va acotado ENTERO por un solo plazo, no por
+    // la suma de la identidad y la lectura que hace por dentro.
+    const statusDefensivo = PLAZOS.SUPABASE;
+    // La descarga se cuenta UNA vez: tras un plazo vencido en el master no se
+    // prueba el original (mismo Storage), así que 2×CDN no es alcanzable.
+    const descarga = PLAZOS.CDN;
+
+    const espera = dia + cars + canario + statusDefensivo + descarga;
+    expect(espera + SHARP_EN_FRIO).toBeLessThan(PRESUPUESTO_NODE);
+
+    // La descarga es el plazo más caro de la cadena: si algún día deja de
+    // serlo, o es que se ha disparado otro o que este se ha quedado corto para
+    // mover megabytes. En ambos casos toca releer la suma, no ajustar a ojo.
+    expect(PLAZOS.CDN).toBeGreaterThan(PLAZOS.SUPABASE * DOS_INTENTOS);
+  });
+
   it("el plazo de auditoría es de los baratos: nadie espera esas filas", () => {
     // Un insert de telemetría no puede costar lo mismo que la lectura que
     // sostiene la partida: al vencer no se pierde nada que el jugador vea, y

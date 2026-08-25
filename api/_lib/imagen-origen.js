@@ -28,14 +28,13 @@
 // donde el jugador se deja los ojos. El ahorro tiene que salir del formato,
 // nunca de los píxeles.
 
-import { conTimeout } from "./timeout.js";
+import { conTimeout, PLAZOS, TimeoutError } from "./timeout.js";
 
 // Caché del proceso. Diminuta a propósito: en un día solo se piden el coche
 // de hoy y, como mucho, el de una repesca. Guardar más sería ocupar memoria
 // de la función para nada.
 const MAX_ENTRADAS = 2;
 const TTL_MS = 30 * 60 * 1000;
-const PLAZO_MS = 15000; // descargar varios MB puede tardar; esto solo corta cuelgues
 const _cache = new Map(); // url -> { buffer, contentType, en }
 
 /**
@@ -66,7 +65,11 @@ export function urlDelMaster(imageUrl) {
 }
 
 async function descargar(url) {
-  const res = await conTimeout(fetch(url), PLAZO_MS, { etiqueta: `descarga ${url.slice(0, 60)}` });
+  // PLAZOS.CDN (15 s): descargar varios MB puede tardar, así que esto no corta
+  // descargas lentas, corta cuelgues. Vive en timeout.js —y no aquí como
+  // constante suelta— para que el test que suma la cadena de daily-image pueda
+  // contarlo: es el plazo más largo del handler y el que más margen se lleva.
+  const res = await conTimeout(fetch(url), PLAZOS.CDN, { etiqueta: `descarga ${url.slice(0, 60)}` });
   if (!res.ok) return { ok: false, status: res.status };
   return {
     ok: true,
@@ -121,6 +124,17 @@ export async function leerImagenOrigen(imageUrl) {
       return null;
     } catch (err) {
       if (url === master) {
+        // EL ORIGINAL NO SE INTENTA SI EL MASTER VENCIÓ EL PLAZO. Los dos
+        // ficheros viven en el MISMO Storage: si el primero no ha contestado en
+        // 15 s, el segundo tampoco va a hacerlo, y probarlo pone 15 s más en la
+        // cuenta de una función que después todavía tiene que pasar por sharp
+        // (segundos en frío). El caso que este `continue` existe para cubrir
+        // —el master que aún no se ha generado— NO llega por aquí: eso es un
+        // 404, que se resuelve al instante y sale por la rama de arriba.
+        if (err instanceof TimeoutError) {
+          console.error("[imagen-origen] Storage atrancado en el master, no se prueba el original");
+          return null;
+        }
         console.error("[imagen-origen] master no disponible:", err?.message || err);
         continue;
       }

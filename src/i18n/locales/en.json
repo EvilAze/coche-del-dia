@@ -445,7 +445,8 @@
     "validationFailed": "Couldn't validate your guess.",
     "validationDetail": "Error: {detail}",
     "unexpectedResponse": "Unexpected response from the server.",
-    "processingResponse": "Error processing the response."
+    "processingResponse": "Error processing the response.",
+    "cocheCambiado": "Today's car has changed. Loading the new one..."
   },
   "repesca": {
     "errorNeedLogin": "You need to sign in to play the rescue.",

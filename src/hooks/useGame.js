@@ -180,6 +180,14 @@ export function useGame() {
   //   - Si el usuario llega con la partida ya cerrada → desde /api/get-daily-car.
   //   - Si la cierra en esta sesión → desde la respuesta de /api/validate-guess.
   const [revealToken, setRevealToken] = useState(null);
+  // Sello del coche que ESTE jugador tiene delante. Es opaco (no dice qué coche
+  // es, regla 5) y viaja de vuelta en cada intento para que el servidor detecte
+  // que está respondiendo sobre una foto que ya no es la de su partida —el
+  // coche del día se cambió a media jornada— y corte con un 409 SIN cobrarle el
+  // intento. El anónimo ya lo lleva dentro de su token firmado; el logueado no
+  // tiene token, así que para él este campo es la ÚNICA forma de decir "yo
+  // estoy jugando esta revisión".
+  const [sello, setSello] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -301,8 +309,12 @@ export function useGame() {
         const daily = await res.json();
         // El servidor devuelve el token (nuevo o renovado): lo persistimos.
         if (daily?.anonToken) setAnonToken(daily.anonToken);
-        // daily = { date, img, maxAttempts, guesses, status, reveal, revealToken }
+        // daily = { date, img, maxAttempts, guesses, status, reveal, revealToken, sello }
         setRevealToken(daily.revealToken || null);
+        // El sello se REESCRIBE en cada carga (igual que hace el servidor con
+        // el del token anónimo): es lo que ancla la partida a la revisión que
+        // esta pestaña acaba de recibir.
+        setSello(daily.sello || null);
         if (Number.isInteger(daily.maxAttempts) && daily.maxAttempts > 0) {
           setMaxAttempts(daily.maxAttempts);
         }
@@ -435,6 +447,8 @@ export function useGame() {
       guessCarId,
       anio,
       attemptNumber: guesses.length + 1,
+      // Contra qué revisión del día se juega este intento (ver `sello` arriba).
+      sello,
     };
 
     let response;
@@ -499,8 +513,41 @@ export function useGame() {
     }
     // Token anónimo renovado tras el intento: lo persistimos para el siguiente.
     if (data?.anonToken) setAnonToken(data.anonToken);
+    // Y el sello reafirmado: el servidor lo devuelve en cada intento válido, así
+    // que el siguiente viaja anclado a la misma revisión aunque el coche del día
+    // haya cambiado por debajo mientras se jugaba.
+    if (data?.sello) setSello(data.sello);
 
     if (!response.ok) {
+      // El coche del día se cambió mientras esta pestaña estaba abierta: la foto
+      // que hay en pantalla ya no es la de la partida. Va ANTES del toast
+      // genérico, o el jugador lee «no se pudo validar el intento» —que suena a
+      // fallo suyo— en vez de la única instrucción que sirve aquí.
+      //
+      // El intento NO se ha gastado: el servidor corta antes de contar nada y
+      // antes de cualquier escritura, así que el tablero tiene que quedar
+      // EXACTAMENTE como estaba. Por eso solo se quitan la fila pending y el
+      // bloqueo del botón: no se toca `guesses`, ni `status`, ni el
+      // `cocheDia_state` de los anónimos (que solo se escribe en el camino
+      // bueno, más abajo). Recargar es obligatorio y no opcional: seguir
+      // jugando contra una foto que el servidor ya no reconoce es gastar
+      // intentos a ciegas, el mismo motivo por el que el aviso de cambio de día
+      // (App.jsx) tampoco deja cerrarse.
+      if (response.status === 409 && data?.error === "coche_cambiado") {
+        // duration: 0 → el telegrama no se desvanece solo; lo retira la propia
+        // recarga. Con la duración por defecto (2400 ms) desaparecería casi a la
+        // vez que llega la nueva edición y el jugador vería cambiar la foto sin
+        // haber leído por qué.
+        toast.push(t("errors.cocheCambiado"), { type: "info", duration: 0 });
+        setPendingGuess(null);
+        setIsSubmitting(false);
+        // `window.location.reload()` es lo que ya hace el aviso de cambio de día
+        // en App.jsx, y vale igual dentro del APK: el WebView se recarga como el
+        // navegador (por eso ahí solo cambia el COPY, no el gesto).
+        setTimeout(() => window.location.reload(), 2500);
+        return;
+      }
+
       console.error("[submitGuess] el servidor devolvió un error", {
         status: response.status,
         statusText: response.statusText,

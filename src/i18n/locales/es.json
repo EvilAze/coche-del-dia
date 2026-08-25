@@ -445,7 +445,8 @@
     "validationFailed": "No se pudo validar el intento.",
     "validationDetail": "Error: {detail}",
     "unexpectedResponse": "Respuesta inesperada del servidor.",
-    "processingResponse": "Error procesando la respuesta."
+    "processingResponse": "Error procesando la respuesta.",
+    "cocheCambiado": "El coche de hoy ha cambiado. Cargando el nuevo..."
   },
   "repesca": {
     "errorNeedLogin": "Necesitas iniciar sesión para jugar la repesca.",

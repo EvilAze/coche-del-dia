@@ -39,6 +39,7 @@ import seasons from "../../lib/admin-handlers/seasons.js";
 import translate from "../../lib/admin-handlers/translate.js";
 import analyzeImage from "../../lib/admin-handlers/analyze-image.js";
 import describeCar from "../../lib/admin-handlers/describe-car.js";
+import emergencySwap from "../../lib/admin-handlers/emergency-swap.js";
 import masters from "../../lib/admin-handlers/masters.js";
 
 const ROUTES = {
@@ -49,6 +50,10 @@ const ROUTES = {
   "moderacion":    moderacion,
   "save-car":      saveCar,
   "schedule":      schedule,
+  // Cambio de emergencia del coche de HOY: puerta propia, separada del swap
+  // del calendario. Le vale el plazo por defecto (15 s): son lecturas y un
+  // UPDATE cortos a Supabase.
+  "emergency-swap": emergencySwap,
   "seasons":       seasons,
   "translate":     translate,
   "analyze-image": analyzeImage,

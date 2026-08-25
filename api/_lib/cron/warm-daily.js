@@ -55,8 +55,14 @@ import { ZOOM_BASE_MIN, ZOOM_BASE_MAX } from "../zoom.js";
  * `@vercel/edge-config` es READ-ONLY; las escrituras van por la API HTTP.
  * No es fatal si falla: el warming es el trabajo principal, el Edge Config
  * es la optimización extra del preload.
+ *
+ * Exportada porque el cambio de emergencia del coche del día
+ * (lib/admin-handlers/emergency-swap.js) tiene que reescribir el MISMO
+ * `daily_preload` en cuanto cambia la portada. Comparte esta función a
+ * propósito: dos escrituras distintas a la misma clave acabarían con formatos
+ * distintos, y el middleware solo sabe leer uno.
  */
-async function writeEdgeConfig(key, value) {
+export async function writeEdgeConfig(key, value) {
   const token = process.env.VERCEL_API_TOKEN;
   const configId = process.env.EDGE_CONFIG_ID;
   if (!token || !configId) {

@@ -286,18 +286,48 @@ export default async function handler(request) {
     );
   }
 
-  if (dia.salientesDesconocidos) {
-    // No sabemos si hoy hubo cambio. Antes que arriesgarnos a vaciarle el
-    // tablero a alguien, 503.
-    return respond(
-      { message: "Game state temporarily unavailable" },
-      { status: 503, headers: { "Retry-After": "5" } }
-    );
-  }
-
   const todayCarId = dia.carId;
-  const prevCarIds = dia.prevCarIds;
   const { client: authClient, user } = authResult;
+
+  // Token de sesión anónima firmado (HMAC). Se lee UNA vez y se reutiliza en la
+  // rama anónima de más abajo.
+  //
+  // SOLO cuenta si NO hay sesión y si es de HOY: el cliente manda la cabecera
+  // X-Anon-Session esté logueado o no, y nada la borra al registrarse. Sin esos
+  // dos filtros, quien jugó anónimo y luego se hizo cuenta arrastraría para
+  // siempre un sello rancio que no casa con nada — y acabaría en un bucle de
+  // recargas permanente.
+  //
+  // Se lee AQUÍ ARRIBA —y no junto al resolvedor, que es donde se usaba— porque
+  // decidir qué hacer sin los salientes necesita saber si quien pregunta lleva
+  // partida empezada. Es HMAC en local, sin red: no añade latencia a la fase 2.
+  const tokenAnonEntrante = user ? null : await readAnonTokenFromRequest(request);
+  const anonVigente =
+    !user && tokenAnonEntrante?.d === today ? tokenAnonEntrante : null;
+
+  // ¿Y si no se pudieron leer los salientes? Depende de a QUIÉN se le devuelve.
+  //
+  // El 503 estaba puesto para todo el mundo, y es más ancho que el problema que
+  // protege (regla 21, corolario 3): al visitante anónimo SIN partida empezada
+  // —sin token, o con token de n === 0— los salientes no le pueden cambiar la
+  // respuesta. Las dos reglas del resolvedor que lo anclarían a una revisión
+  // anterior necesitan o una fila de user_guesses (no hay sesión) o intentos
+  // gastados (no hay), así que le toca el coche vigente pase lo que pase. Para
+  // él `prevCarIds = []` NO es un estado inventado: es exactamente su
+  // situación, y por eso esta rama no contradice el 503 de arriba. A quien sí
+  // le afecta —logueado, o anónimo a media partida— se le sigue diciendo la
+  // verdad, porque ahí `[]` sería vaciarle el tablero.
+  if (dia.salientesDesconocidos) {
+    const leAfectan =
+      Boolean(user) || (Number.isInteger(anonVigente?.n) && anonVigente.n > 0);
+    if (leAfectan) {
+      return respond(
+        { message: "Game state temporarily unavailable" },
+        { status: 503, headers: { "Retry-After": "5" } }
+      );
+    }
+  }
+  const prevCarIds = dia.prevCarIds;
 
   // FASE 2: con las revisiones del día resueltas, paralelizamos:
   //   - Lectura de image_url + blur_data (necesarios para construir el
@@ -378,17 +408,8 @@ export default async function handler(request) {
   // Array, no fila: el desempate entre revisiones lo hace el resolvedor.
   const filasUsuario = Array.isArray(filasGuesses) ? filasGuesses : [];
 
-  // Token de sesión anónima firmado (HMAC). Se lee UNA vez y se reutiliza en la
-  // rama anónima de más abajo.
-  //
-  // SOLO cuenta si NO hay sesión y si es de HOY: el cliente manda la cabecera
-  // X-Anon-Session esté logueado o no, y nada la borra al registrarse. Sin esos
-  // dos filtros, quien jugó anónimo y luego se hizo cuenta arrastraría para
-  // siempre un sello rancio que no casa con nada — y acabaría en un bucle de
-  // recargas permanente.
-  const tokenAnonEntrante = user ? null : await readAnonTokenFromRequest(request);
-  const anonVigente =
-    !user && tokenAnonEntrante?.d === today ? tokenAnonEntrante : null;
+  // (`tokenAnonEntrante` / `anonVigente` se leyeron arriba, antes de decidir
+  //  qué hacer sin los salientes: son el mismo dato y una sola lectura.)
 
   // ¿Qué coche le toca a QUIEN PREGUNTA? Puede no ser el vigente: si hubo
   // cambio de emergencia, quien ya estaba jugando se queda con el suyo hasta

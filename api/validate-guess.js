@@ -104,6 +104,15 @@ export default async function handler(req, res) {
     const accessToken = extractAccessToken(req);
     const { client: authClient, user } = await authClientAndUser(accessToken);
 
+    // El token anónimo se lee UNA vez, y aquí arriba: además de gobernar el
+    // contador de intentos, es lo único que dice si un visitante sin sesión
+    // lleva partida empezada — dato que hace falta más abajo para decidir qué
+    // hacer si no se pueden leer los salientes.
+    // SOLO cuenta sin sesión y si es de HOY (ver la nota del mismo bloque en
+    // get-daily-car: la cabecera viaja siempre y nadie la borra al registrarse).
+    const anonBruto = readAnonToken(req);
+    const anonEntrante = !user && anonBruto?.d === today ? anonBruto : null;
+
     // -------- 3. Coche del día (resuelto en servidor) --------------------
     // coche_de_hoy() = pick_daily_car() + los salientes del día. Los salientes
     // hacen falta para saber si este jugador está anclado a una revisión
@@ -136,22 +145,33 @@ export default async function handler(req, res) {
         .maybeSingle();
       if (filaErr) {
         console.error("[validate-guess] read prev_car_ids:", filaErr);
-        return res.status(503).json({ error: "Game state temporarily unavailable" });
+        // El 503 solo a quien de verdad le afecta (regla 21, corolario 3: una
+        // protección no se pone en un ámbito más ancho que el problema que
+        // protege). Al anónimo SIN partida empezada —sin token válido de hoy, o
+        // con n === 0— los salientes no le pueden cambiar el coche: las dos
+        // reglas del resolvedor que lo anclarían a una revisión anterior
+        // necesitan o fila de user_guesses (no hay sesión) o intentos gastados
+        // (no hay). Para él `[]` no es un estado inventado, es su situación
+        // exacta — y por eso esto no contradice el 503 de al lado, que sigue
+        // en pie para el logueado y para el anónimo a media partida, donde `[]`
+        // significaría validarle el intento contra el coche que no es.
+        const leAfectan =
+          Boolean(user) ||
+          (Number.isInteger(anonEntrante?.n) && anonEntrante.n > 0);
+        if (leAfectan) {
+          return res.status(503).json({ error: "Game state temporarily unavailable" });
+        }
       }
       carIdVigente = respaldo;
       prevCarIds = fila?.prev_car_ids || [];
     }
 
     // -------- 3.bis ¿Contra qué coche se valida ESTE intento? -------------
-    // La partida de un anónimo va en su token firmado; la de un logueado, en su
-    // fila. Los dos hay que leerlos ANTES de decidir contra qué coche se valida
-    // este intento, porque puede no ser el vigente.
-    // El token anónimo SOLO cuenta sin sesión y si es de HOY (ver la nota del
-    // mismo bloque en get-daily-car: la cabecera viaja siempre y nadie la borra
-    // al registrarse). Un logueado manda su sello por el body, que es el que le
-    // acaba de dar get-daily-car.
-    const anonBruto = readAnonToken(req);
-    const anonEntrante = !user && anonBruto?.d === today ? anonBruto : null;
+    // La partida de un anónimo va en su token firmado (`anonEntrante`, leído
+    // arriba); la de un logueado, en su fila. Los dos hay que leerlos ANTES de
+    // decidir contra qué coche se valida este intento, porque puede no ser el
+    // vigente. Un logueado manda su sello por el body, que es el que le acaba
+    // de dar get-daily-car.
     const selloCliente =
       anonEntrante?.c || (typeof body.sello === "string" ? body.sello : null);
 

@@ -21,10 +21,28 @@
 import { useEffect, useRef, useState } from "react";
 import { useScrollLock } from "../hooks/useScrollLock";
 
-// Duración de la transición (ms). El desmontaje espera un pelín más que la
-// animación CSS para no cortar la salida. Mantener en sync con las clases
-// `duration-200` de abajo.
-const EXIT_MS = 220;
+// LO QUE TARDA EN IRSE, QUE NO ES LO MISMO QUE LO QUE TARDA EN VENIR.
+//
+// Entrar y salir duraban igual (200 ms con la misma curva) porque es lo que sale
+// de escribir una sola clase de transición, no porque nadie lo decidiera. Pero
+// las dos mitades no hacen el mismo trabajo: al ABRIR hay algo nuevo que
+// presentar y merece la pena mirarlo llegar; al CERRAR el usuario YA ha decidido
+// y lo único que queda entre él y lo que quiere es el panel. Una salida a la
+// misma velocidad que la entrada se siente lenta aunque dure lo mismo, porque
+// se está esperando a algo que ya no interesa. Sale más rápido y con la curva
+// contraria: `sale` acelera hacia el final, que es como se quita algo de en
+// medio, mientras `entra` frena al final, que es como se posa algo.
+//
+// LA HOJA DEL CUPÓN ES LA EXCEPCIÓN, y no es negociable (CLAUDE.md #18): hoja,
+// marco de la foto y cromo de encima tienen que caer en el MISMO frame o se ve
+// que una persigue a la otra, y el marco no puede tener una curva por sentido
+// (es una sola declaración de CSS). Por eso `salidaRapida` se puede apagar, y
+// SelectorHoja la apaga.
+const SALIDA_MS = 160;   // --ms-roce
+const ENTRADA_MS = 200;  // --ms-hoja
+// Margen sobre la transición: el desmontaje espera un pelín más para no cortar
+// la salida a media animación.
+const COLCHON_MS = 20;
 
 // La «atrás» de Android/navegador NO se gestiona aquí. Hubo un intento de
 // hacerlo (pila propia de modales + pushState por apertura) y duplicaba lo que
@@ -55,6 +73,10 @@ export default function ModalShell({
   // ningún cambio.
   panelEntraClassName = "opacity-100 translate-y-0 scale-100",
   panelSaleClassName = "opacity-0 translate-y-2 scale-95",
+  // Ver el bloque de SALIDA_MS: por defecto el panel se retira más deprisa de
+  // lo que entró. La hoja del cupón lo apaga porque va coreografiada con el
+  // marco de la fotografía, que no puede ir a dos velocidades.
+  salidaRapida = true,
 }) {
   // Evita scroll chaining mientras el modal está abierto (contador interno,
   // así modales anidados funcionan bien).
@@ -62,7 +84,7 @@ export default function ModalShell({
 
   // `render`: ¿está el nodo en el árbol? `visible`: ¿clases de estado visible?
   // Al abrir: montamos (render) y, tras un frame, activamos visible → entra.
-  // Al cerrar: quitamos visible → sale, y desmontamos tras EXIT_MS.
+  // Al cerrar: quitamos visible → sale, y desmontamos cuando acaba la salida.
   const [render, setRender] = useState(open);
   const [visible, setVisible] = useState(false);
   const exitTimer = useRef(null);
@@ -95,14 +117,14 @@ export default function ModalShell({
     exitTimer.current = setTimeout(() => {
       setRender(false);
       exitTimer.current = null;
-    }, EXIT_MS);
+    }, (salidaRapida ? SALIDA_MS : ENTRADA_MS) + COLCHON_MS);
     return () => {
       if (exitTimer.current) {
         clearTimeout(exitTimer.current);
         exitTimer.current = null;
       }
     };
-  }, [open]);
+  }, [open, salidaRapida]);
 
   // Foco: al abrir llevamos el foco al diálogo (sin robarlo si un hijo ya lo
   // tomó, p.ej. un input con autofocus). Al cerrar lo devolvemos al disparador
@@ -155,7 +177,8 @@ export default function ModalShell({
     <div
       className={`
         ${backdropClassName}
-        transition-opacity duration-200 ease-out motion-reduce:transition-none
+        transition-opacity motion-reduce:transition-none
+        ${visible || !salidaRapida ? "duration-hoja ease-entra" : "duration-roce ease-sale"}
         ${visible ? "opacity-100" : "opacity-0"}
       `}
       onClick={dismissOnBackdrop ? onClose : undefined}
@@ -170,8 +193,9 @@ export default function ModalShell({
         className={`
           ${panelClassName}
           outline-none
-          transition-[opacity,transform] duration-200 ease-out
+          transition-[opacity,transform]
           motion-reduce:transition-none
+          ${visible || !salidaRapida ? "duration-hoja ease-entra" : "duration-roce ease-sale"}
           ${visible ? panelEntraClassName : panelSaleClassName}
         `}
         onClick={(e) => e.stopPropagation()}

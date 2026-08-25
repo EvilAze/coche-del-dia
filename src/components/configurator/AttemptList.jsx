@@ -17,9 +17,18 @@ import { flagImagePath } from "../../data/countries";
 import { Icon, I } from "./icons";
 import { useFitText } from "../../hooks/useFitText";
 
-// Stagger del estampado por celda: la cascada marca → modelo → año se lee
-// con calma, como tres golpes de tampón.
-const STAGGER_MS = 120;
+// Stagger del estampado por celda: la cascada marca → modelo → año se lee con
+// calma, como tres golpes de tampón.
+//
+// 110 ms y no 120 porque estos tres golpes son los tres primeros tiempos de una
+// frase de CUATRO: el cuarto es la fotografía abriéndose, que arranca en el
+// milisegundo 280 (`--ms-sello`, el retardo de la transición en CarImage). Con
+// 110 el último sello cae en el 220 y la foto entra justo detrás; con 120 el
+// tercer golpe y la foto se pisaban.
+//
+// Si tocas este número, mira el retardo de la foto en CarImage.jsx — son las
+// dos mitades del mismo compás y no hay nada que las ate salvo esta nota.
+const STAGGER_MS = 110;
 
 function Dato({ estado, pending, value, apostilla, hint, srStatus, fresh, delay, fitKey }) {
   // Auto-ajuste del nombre a una línea: el wrapper bloque da el ancho de la

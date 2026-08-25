@@ -29,13 +29,20 @@ export default function CarImage({
   totalHints,
   status,
   overlay = null,
-  showHintLabel = true,
-  // Nodo opcional anidado en el borde inferior-centro de la imagen. Decorativo.
-  bottomCenter = null,
-  // Nodo opcional anclado en la esquina inferior-DERECHA de la imagen (lo usa
-  // el indicador de intentos del juego principal). Overlay discreto y
-  // pointer-events off: es un rótulo sobre la foto, no un control.
-  bottomRight = null,
+  // (Purga F6: se van cuatro props que no pasaba NADIE. ZoomStage es el único
+  // punto de llamada de este componente en todo el repo, y no montaba ninguna:
+  //   · `showHintLabel` + su etiqueta «Pista N de M» sobre la foto — ZoomStage
+  //     la pasaba explícitamente en false porque ese dato vive en el ladillo,
+  //     encima del marco, desde el rediseño. La etiqueta se llevaba consigo el
+  //     último cromo de blanco y negro crudo escrito a mano del componente.
+  //   · `hud` — el atrezzo de cámara del configurador Platino. El HUD que sí
+  //     existe (StageHud) lo monta el admin directamente, no por aquí.
+  //   · `bottomBar` y `bottomCenter` — la barra de intentos y la «repisa» del
+  //     mismo rediseño, con su filete `border-white/[0.06]`.
+  //   · `bottomRight` — el indicador de intentos, que hoy son los pips del pie.
+  // Eran ~60 líneas de JSX inalcanzable con su propio comentario explicando
+  // para qué servían, que es la peor clase de código muerto: el que se lee como
+  // si estuviera vivo.)
   // Callback que se dispara cuando la imagen de REVELADO (la completa sin
   // crop que se sirve al ganar/perder) termina de cargar. Lo consume App
   // para coordinar el scroll automático al panel de resultado: no tiene
@@ -44,20 +51,12 @@ export default function CarImage({
   // un timeout fijo dispararía el scroll mientras la foto aún carga.
   onRevealLoad = null,
   // Variante "configurador" (rediseño premium): la foto vive en un marco 4:3
-  // (.cdd-stage-frame) y se le superpone un HUD de cámara (`hud`). Cambia SOLO
-  // el chrome visual; el pipeline de imagen y el zoom/crop (coherencia de
-  // seguridad con el servidor) quedan intactos. Desactiva la viñeta y la
-  // etiqueta de pista propias del diseño anterior.
+  // (.cdd-stage-frame). Cambia SOLO el chrome visual; el pipeline de imagen y
+  // el zoom/crop (coherencia de seguridad con el servidor) quedan intactos.
+  // Desactiva la viñeta propia del diseño anterior.
   configurator = false,
-  hud = null,
-  // Barra de progreso de intentos anclada al BORDE INFERIOR de la imagen (dentro
-  // del marco), por encima de la viñeta ::after que ya oscurece esa franja para
-  // contener carrocerías claras → legible sobre cualquier coche. pointer-events
-  // off, como el resto del cromo que va sobre la foto. Solo en modo configurador.
-  bottomBar = null,
 }) {
   const [loaded, setLoaded] = useState(false);
-  const [flashKey, setFlashKey] = useState(0);
   // Cuando el <source> AVIF/WebP falla o tarda demasiado, marcamos fallback:
   // re-renderizamos sin los <source> y dejamos solo el elemento img JPEG (más
   // compatible). El navegador NO hace fallback automático entre <source>s
@@ -118,7 +117,7 @@ export default function CarImage({
   // usuario vea la foto, no el LQIP eterno.
   // Limitamos a cuando puede ocurrir realmente: tras cambio de src o
   // mientras loaded sigue false. Antes corría tras cada render (incluso al
-  // cambiar flashKey o naturalRatio) — innecesario y ruidoso en profiler.
+  // cambiar el destello o naturalRatio) — innecesario y ruidoso en profiler.
   useEffect(() => {
     if (loaded) return;
     const img = imgRef.current;
@@ -132,16 +131,27 @@ export default function CarImage({
     }
   }, [src, loaded, status, onRevealLoad]);
 
-  // Flash dorado de "pista desbloqueada" sólo durante la partida. Se
-  // dispara al cambiar el `zoom` CSS (cada intento baja el scale).
-  // El háptico (tap ligerísimo) acompaña al flash para reforzar la sensación
-  // de "algo se ha revelado" — coherente con el shake del intento erróneo
-  // que YA disparó haptic.warning() en GuessForm; aquí es el contrapunto
-  // positivo del mismo gesto.
+  // EL DESTELLO ROJO SE RETIRA. Era un lavado de `bg-accent/35` a pantalla
+  // completa sobre la fotografía, y es el último efecto de videojuego que
+  // quedaba en un sistema que prohíbe hasta los halos: la foto es la pieza con
+  // más carácter de la app y se le tiraba un tinte rojo por encima cada vez que
+  // el jugador fallaba. Además tapaba justo lo que venía a anunciar — el trozo
+  // de coche recién descubierto — durante medio segundo.
+  //
+  // Y estaba roto para quien pide menos movimiento: el overlay se montaba con
+  // `{flashKey > 0 && ...}` y no se desmontaba nunca, así que apagarle la
+  // animación (que es lo que hacía la regla de `prefers-reduced-motion`) lo
+  // dejaba en su opacidad natural, o sea el rojo PERMANENTE encima del coche
+  // para el resto de la partida.
+  //
+  // Lo que anuncia la pista nueva ahora es la propia foto abriéndose —enseñarlo
+  // en vez de decirlo— y, en tipografía, el contador «Pista N de M» del ladillo,
+  // que se re-estampa (ZoomStage). El háptico se queda: es el contrapunto
+  // positivo del temblor del intento fallido, y ahora cae acompasado con el
+  // movimiento en vez de con un tinte.
   useEffect(() => {
     const changed = prevZoomRef.current !== zoom;
     if (loaded && changed && status === "playing") {
-      setFlashKey((k) => k + 1);
       haptic.impactLight();
     }
     prevZoomRef.current = zoom;
@@ -164,8 +174,6 @@ export default function CarImage({
   // zoom CSS activo (p.ej. 1.667 si ganó en el 2º intento). Sin esto, la
   // animación arrancaría desde scale=1 y el "pop" no tendría amplitud.
   const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
-  const showLabel = showHintLabel && status === "playing" && hintIndex != null && totalHints;
-
   const { t } = useT();
 
   function handleImageLoad(e) {
@@ -217,7 +225,9 @@ export default function CarImage({
               // En juego el marco es 1:1 (lo fija el CSS con cqmin); al revelar
               // adopta el aspecto natural de la foto para mostrarla completa.
               aspectRatio: isRevealed && loaded ? containerAspect : undefined,
-              transition: isRevealed ? "aspect-ratio 600ms cubic-bezier(0.4, 0, 0.2, 1)" : undefined,
+              transition: isRevealed
+                ? "aspect-ratio var(--ms-revelado) var(--curva-lente)"
+                : undefined,
             }
           : undefined
       }
@@ -233,7 +243,7 @@ export default function CarImage({
             ? undefined
             : {
                 aspectRatio: containerAspect,
-                transition: "aspect-ratio 750ms cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: "aspect-ratio var(--ms-revelado) var(--curva-lente)",
               }
         }
       >
@@ -248,11 +258,18 @@ export default function CarImage({
         parpadeo en el handoff. Ahora el skeleton se queda detrás y el
         LQIP aparece encima cubriéndolo; cuando la imagen real carga, los
         tres (skeleton, LQIP, img) se cruzan suavemente por opacidad.
+
+        La textura ya no es el `animate-pulse` de Tailwind sino la espera de la
+        casa (.pm-esperando, index.css): el mismo entintado con el que la fila
+        del cupón aguarda al servidor. Y la clase se RETIRA al cargar, no solo
+        se tapa: una keyframe infinita sigue componiéndose aunque el elemento
+        esté a opacidad 0, y esta vivía detrás de la fotografía el resto de la
+        sesión.
       */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 animate-pulse bg-bg-secondary/60"
-        style={{ opacity: loaded ? 0 : 1, transition: "opacity 300ms ease-out" }}
+        className={"absolute inset-0" + (loaded ? "" : " pm-esperando")}
+        style={{ opacity: loaded ? 0 : 1, transition: "opacity var(--ms-sello) var(--curva-entra)" }}
       />
 
       {/*
@@ -279,7 +296,7 @@ export default function CarImage({
             filter: "blur(20px) saturate(1.1)",
             transform: "scale(1.1)",
             opacity: loaded ? 0 : 1,
-            transition: "opacity 300ms ease-out",
+            transition: "opacity var(--ms-sello) var(--curva-entra)",
           }}
         />
       )}
@@ -346,28 +363,36 @@ export default function CarImage({
             opacity: loaded ? 1 : 0,
             transformOrigin: "center center",
             transform: isWinReveal ? undefined : `scale(${zoom})`,
+            // EL CUARTO TIEMPO DEL COMPÁS. La fotografía se abría en el MISMO
+            // instante en que se estampaba el veredicto, y con la curva
+            // contraria: sello con rebote de 280 ms contra un ease-in-out de
+            // 750. Dos movimientos a la vez, tirando cada uno para su lado, en
+            // el único momento de la partida que de verdad importa — y el ojo,
+            // que no puede mirar dos sitios, acababa sin ver bien ninguno.
+            //
+            // Ahora es una frase de cuatro tiempos: marca (0) → modelo (110) →
+            // año (220) → y la foto se abre en el 280, justo cuando cae el
+            // último sello. El retardo no la hace más lenta, la hace LEGIBLE:
+            // primero se lee el veredicto, después se ve la consecuencia. Es la
+            // diferencia entre causa→efecto y ruido simultáneo.
+            //
+            // La curva es `lente` y no la de siempre: un ease-in-out arranca
+            // despacio, y un objetivo que se abre no titubea — sale disparado y
+            // frena largo. Es el único movimiento de la app con derecho a
+            // `--ms-revelado` (ver «EL COMPÁS» en index.css).
             transition: isWinReveal
-              ? "opacity 0.25s ease-out"
-              : "transform 0.75s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease-out",
+              ? "opacity var(--ms-roce) var(--curva-entra)"
+              : "transform var(--ms-revelado) var(--curva-lente) var(--ms-sello), opacity var(--ms-roce) var(--curva-entra)",
             "--zoom-from": zoomFrom,
           }}
         />
       </picture>
 
-      {/* Hint-flash: overlay efímero al desbloquear nueva pista */}
-      {flashKey > 0 && (
-        <div
-          key={flashKey}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-accent/35 animate-hint-flash"
-        />
-      )}
-
       {/* Viñeta decorativa: sólo cuando la imagen ya está visible. En modo
           configurador el diseño aporta su propio grano/HUD, así que se omite. */}
       {loaded && !configurator && (
         <div
-          className="pointer-events-none absolute inset-0 transition-opacity duration-700"
+          className="pointer-events-none absolute inset-0 transition-opacity duration-revelado ease-lente"
           style={{
             opacity: status === "playing" ? 1 : 0,
             background:
@@ -385,62 +410,8 @@ export default function CarImage({
         </div>
       )}
 
-      {/* Etiqueta narrativa de pista con mini progress bar. El texto va por
-          i18n (misma clave prensa.pista que el ladillo del escenario): antes
-          "Pista" iba hardcodeado y el jugador EN lo veía en español. */}
-      {showLabel && loaded && (
-        // Rectángulo, no píldora: sobre la foto esto es un PIE de imagen, y el
-        // sistema no redondea nada. El fondo oscuro se queda (va encima de una
-        // fotografía cualquiera, ahí el papel no es una opción) pero pierde la
-        // forma de burbuja del tema anterior.
-        <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 rounded-none border border-white/20 bg-black/70 px-3 py-1.5">
-          <span className="text-[10px] uppercase tracking-widest text-white tabular-nums">
-            {t("prensa.pista", { n: hintIndex + 1, max: totalHints })}
-          </span>
-          <div className="flex gap-0.5">
-            {Array.from({ length: totalHints }).map((_, i) => (
-              <span
-                key={i}
-                className={`h-1 w-1.5 rounded-none transition-colors ${
-                  i <= hintIndex ? "bg-accent" : "bg-white/15"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      {/* Indicador de intentos: overlay discreto en la esquina inferior-derecha.
-          pointer-events-none: es un rótulo sobre la foto, no un control. */}
-      {bottomRight && (
-        <div className="pointer-events-none absolute bottom-2 right-2 z-[6]">
-          {bottomRight}
-        </div>
-      )}
       </div>
 
-      {/* HUD del configurador (crosshair + grano): superpuesto al marco, fuera del
-          área de imagen para que no escale. */}
-      {configurator && hud}
-
-      {/* Barra de progreso de intentos: anclada al borde inferior del marco, por
-          ENCIMA de la viñeta ::after (z5) y del HUD (z7). El inset
-          (left/right/bottom-2) es aire de margen; ya no hay curva de la que
-          escapar (el marco es de esquina viva desde «Prensa del motor»). */}
-      {configurator && bottomBar && (
-        <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-[8]">
-          {bottomBar}
-        </div>
-      )}
-
-      {/* REPISA: extensión del marco por debajo donde se anidan las shift
-          lights de intentos. Forma parte del frame (mismo borde redondeado),
-          separada de la foto por un filete sutil. Solo en partida (el caller
-          pasa bottomCenter únicamente entonces). */}
-      {bottomCenter && (
-        <div className="flex items-center justify-center border-t border-white/[0.06] py-2.5">
-          {bottomCenter}
-        </div>
-      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@
 // el sistema. Mientras NO haya override, seguimos los cambios del sistema.
 
 import { useEffect, useState } from "react";
+import { conCruce } from "./movimiento";
 
 const STORAGE_KEY = "cdd-tema";
 // Debe coincidir con --bg de cada tema (index.css) y con el <meta theme-color>.
@@ -117,8 +118,24 @@ function setTheme(tema) {
   } catch {
     // ignore (modo privado / iframe)
   }
-  applyTheme(tema);
-  listeners.forEach((fn) => fn());
+  // EL CAMBIO DE EDICIÓN SE CRUZA, NO SALTA. Cambiar el tema reescribe las
+  // ternas RGB de :root, así que en UN fotograma cambian a la vez el papel, la
+  // tinta, los filetes, el rojo, el oro y hasta el marco de la fotografía. Es
+  // el cambio visual más grande que hace la app —literalmente toda la
+  // pantalla— y era el único que ocurría sin transición ninguna.
+  //
+  // No se resuelve poniéndole una transición a los colores: habría que
+  // declararla en cada propiedad de cada regla que use un token (cientos), y
+  // aun así el navegador no interpola `var()` reescritas en :root. La API de
+  // transiciones de vista sí: fotografía el antes y el después y los funde,
+  // sin que ninguna regla del sistema se entere.
+  //
+  // Donde no existe la API, `conCruce` ejecuta el cambio a pelo — exactamente
+  // lo que pasaba antes. Y a quien pide menos movimiento no se le cruza nada.
+  conCruce(() => {
+    applyTheme(tema);
+    listeners.forEach((fn) => fn());
+  });
 }
 
 function toggleTheme() {

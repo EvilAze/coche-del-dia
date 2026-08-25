@@ -157,12 +157,15 @@ const ALLOW = [
     reglas: ["emoji"],
     porque: "verifica esa misma rejilla de texto plano",
   },
-  {
-    path: "src/components/CarImage.jsx",
-    reglas: ["blanco-negro"],
-    porque:
-      "todo el cromo de este componente (etiqueta de pista, filete y ✕ del lightbox, icono de ampliar) se pinta ENCIMA de una fotografía cualquiera: ahí el papel no es una opción y el blanco/negro es lo único que se lee sobre una carrocería blanca o negra. El resto del archivo sí sigue vigilado",
-  },
+  // (Se fue la excepción de src/components/CarImage.jsx a la regla
+  // `blanco-negro`. Perdonaba el cromo que va SOBRE la fotografía —«etiqueta de
+  // pista, filete y ✕ del lightbox, icono de ampliar»— y de esas cuatro piezas
+  // ya no queda ninguna: el lightbox se retiró hace dos rediseños y la etiqueta
+  // de pista, en F6, al comprobar que ZoomStage la pasaba en `false` desde
+  // siempre. Una excepción que no perdona nada es peor que ninguna: describe un
+  // permiso vigente para un caso que ya no existe, y el fichero se queda sin
+  // vigilar por si acaso. Si vuelve a hacer falta cromo sobre la foto, que lo
+  // pida entonces — el motivo sigue siendo bueno, lo que caducó es el caso.)
   {
     path: "src/components/LoginModal.jsx",
     reglas: ["blanco-negro"],
@@ -244,6 +247,88 @@ for (const locale of ["es", "en"]) {
     }
   };
   recorrer(datos);
+}
+
+// ── 3. El compás: duraciones y curvas sueltas en index.css ───────────────
+//
+// Por qué esta regla existe, que es distinto de las siete de arriba: aquellas
+// vigilan RESTOS de pieles anteriores; esta vigila una DERIVA que empieza de
+// cero cada vez. Nadie añade un `.17s` por nostalgia de un tema viejo — lo
+// añade porque estaba escribiendo una transición y le pareció bien ese número.
+// Y catorce decisiones razonables tomadas por separado dan justo lo que había
+// aquí antes del compás: `.14s`, `.15s`, `.16s`, `.18s`, `.2s`, `.22s`, `.28s`,
+// `.3s`, `.42s`, `.45s`, `.5s`, `.6s`, `.7s`, `.75s`, la mayoría sin curva —o
+// sea con el `ease` por defecto del navegador, que es el que tailwind.config.js
+// describía como «demasiado flojo y sin punch» en el comentario de al lado—.
+//
+// Eso no se ve de una en una, y por eso ningún build ni ningún test lo detenía.
+// Se ve todo junto, al usar la app: es la diferencia entre una interfaz que
+// parece diseñada y una que parece improvisada.
+//
+// Lo que se exige: las duraciones y las curvas salen de los tokens del compás
+// (`--ms-*` / `--curva-*`, definidos en :root con su porqué). Los valores
+// literales solo se permiten en la definición de esos tokens y dentro de
+// @keyframes, donde los porcentajes son la forma del movimiento y no su tempo.
+const CSS_VIGILADO = "src/index.css";
+// Una duración literal en `transition:` o `animation:` (no en @keyframes).
+const DURACION_SUELTA = /(?:transition|animation)(?:-duration|-delay)?:[^;]*?(?<![\w-])\d*\.?\d+m?s(?![\w-])/;
+// Una curva literal donde debería ir un token.
+const CURVA_SUELTA = /(?:transition|animation)[^;]*?(?:cubic-bezier\(|(?<![\w-])(?:ease-in-out|ease-out|ease-in|ease|linear)(?![\w-]))/;
+
+{
+  const src = readFileSync(join(ROOT, CSS_VIGILADO), "utf8");
+  const lineas = sinComentariosDeBloque(src).split(/\r?\n/);
+
+  // Los @keyframes quedan fuera: allí un `50%` es la FORMA del movimiento, y la
+  // declaración que los monta —la que sí lleva tempo— vive en otra regla.
+  let dentroDeKeyframes = 0;
+  // Y el silenciador de `prefers-reduced-motion` queda fuera por el mismo
+  // motivo que los tokens: es EL sitio donde un literal es la respuesta
+  // correcta. Apagar el movimiento con `var(--ms-pulso)` sería pedirle al
+  // compás que se apague a sí mismo, y `1ms` no es un tempo — es un cero que
+  // deja pasar el `transitionend` del que depende el asentamiento de la hoja.
+  let dentroDeSilencio = 0;
+  lineas.forEach((linea, i) => {
+    if (/@media[^{]*prefers-reduced-motion/.test(linea)) dentroDeSilencio = 1;
+    if (dentroDeSilencio) {
+      dentroDeSilencio += (linea.match(/\{/g) || []).length;
+      dentroDeSilencio -= (linea.match(/\}/g) || []).length;
+      if (dentroDeSilencio <= 1 && /\}/.test(linea)) dentroDeSilencio = 0;
+      return;
+    }
+    if (/@keyframes/.test(linea)) dentroDeKeyframes = 1;
+    if (dentroDeKeyframes) {
+      // Contamos llaves para saber cuándo se cierra el bloque completo.
+      dentroDeKeyframes += (linea.match(/\{/g) || []).length;
+      dentroDeKeyframes -= (linea.match(/\}/g) || []).length;
+      if (dentroDeKeyframes <= 1 && /\}/.test(linea)) dentroDeKeyframes = 0;
+      return;
+    }
+    // La definición de los propios tokens es donde viven los números.
+    if (/--ms-[a-z]+\s*:|--curva-[a-z]+\s*:/.test(linea)) return;
+    // `transition: none` y `animation: none` son apagados, no tempos.
+    if (/(?:transition|animation)[^:]*:\s*none/.test(linea)) return;
+
+    const codigo = linea.replace(/\/\/.*$/, "");
+    if (DURACION_SUELTA.test(codigo)) {
+      fallos.push({
+        rel: CSS_VIGILADO,
+        linea: i + 1,
+        regla: "compas-duracion",
+        msg: "duración suelta — el tempo sale del compás: var(--ms-pulso|roce|hoja|sello|escena|revelado|latido). La duración la fija el RECORRIDO, no el gusto",
+        texto: linea.trim().slice(0, 100),
+      });
+    }
+    if (CURVA_SUELTA.test(codigo)) {
+      fallos.push({
+        rel: CSS_VIGILADO,
+        linea: i + 1,
+        regla: "compas-curva",
+        msg: "curva suelta — usa var(--curva-entra|sale|roce|sello|lente). El `ease` por defecto del navegador es el que este proyecto lleva años describiendo como flojo",
+        texto: linea.trim().slice(0, 100),
+      });
+    }
+  });
 }
 
 // ── Informe ──────────────────────────────────────────────────────────────

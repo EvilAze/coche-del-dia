@@ -25,6 +25,7 @@ import { Capacitor } from "@capacitor/core";
 import { rearmIfEnabled } from "./lib/notifications";
 import { initNativeAuth } from "./lib/nativeAuth";
 import { installKeyboardWatcher } from "./lib/teclado";
+import { montarTacto } from "./lib/tacto";
 import { rutaDesdeEnlace, debeNavegar } from "./lib/deepLink";
 import { reminderCopy } from "./lib/reminderCopy";
 import { t, tn } from "./i18n";
@@ -232,6 +233,13 @@ root.render(
 // no en un efecto de App porque tiene que cubrir TODAS las rutas (repesca,
 // privacidad, admin), no solo el juego. En web es no-op.
 hideSplashWhenReady();
+
+// El acuse de recibo del dedo, delegado en la raíz. Va aquí y no dentro de App
+// por el mismo motivo que el splash: cubre TODAS las rutas —el Archivo, la
+// clasificación, la repesca, la privacidad— y son justo esas las que no tenían
+// ninguno. Es un solo oyente pasivo; en escritorio no llega a vibrar nunca
+// (filtra por `pointerType === "touch"`).
+montarTacto();
 
 // Registro del service worker para Web Push. Diferido a 'load' para no competir
 // con el primer render. Guard explícito de nativo: en la app Android NO

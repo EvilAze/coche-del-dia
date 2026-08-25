@@ -38,6 +38,11 @@
 // además la que el usuario configura una vez para todo el sistema. Si algún día
 // hay ajustes en la app, el sitio de ese toggle es el ajuste, no este módulo.
 
+// La consulta de `prefers-reduced-motion` vivía aquí, y era el ÚNICO sitio del
+// repo que la hacía: los tres desplazamientos suaves de la app la ignoraban. Se
+// ha mudado a lib/movimiento.js, que es ahora lo que sabe de esto en JS.
+import { menosMovimiento } from "./movimiento";
+
 // Patrones (ms). Single number = pulso simple. Array = pulso/pausa/pulso/...
 //
 // Diseño:
@@ -62,38 +67,65 @@ const PATTERNS = {
   error: [22, 40, 22, 40, 22],
 };
 
-function isReducedMotion() {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  try {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
-}
-
 function canVibrate() {
   return (
     typeof navigator !== "undefined" && typeof navigator.vibrate === "function"
   );
 }
 
-// Pequeño throttle: dos pattern calls a <30 ms se solapan en algunos
-// dispositivos Android y se pierden. Si llamas dos veces casi a la vez
-// (p.ej. validation error + toast push), nos quedamos con el primero.
-let lastFireAt = 0;
-function shouldFire() {
-  const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
-  if (now - lastFireAt < 30) return false;
-  lastFireAt = now;
+// PESO de cada intención. No es intensidad de vibración (eso lo decide el
+// patrón): es cuánto IMPORTA el mensaje, y sirve para resolver los empates de
+// la ventana de abajo.
+const PESOS = {
+  selection: 1,
+  impactLight: 2,
+  impactMedium: 3,
+  impactHeavy: 4,
+  warning: 4,
+  success: 5,
+  error: 5,
+};
+
+// LA VENTANA DE COALESCENCIA. Aquí había un throttle de 30 ms con la regla
+// "gana el primero", puesto porque dos `vibrate()` muy seguidas se solapan en
+// Android y se pierden. El problema no es el throttle, es el criterio: el
+// primero en llegar es casi siempre el MENOS importante.
+//
+// El caso real, y el que obligó a cambiarlo: el acuse de recibo del dedo
+// (lib/tacto.js) suena en `pointerdown`, y la validación del cupón suena en
+// `click` — veinte milisegundos después. Con "gana el primero", el tic de 8 ms
+// de "te he leído el dedo" se comía el `warning` de "ese coche ya lo probaste",
+// que es justo el que lleva información. El jugador sentía algo, sí, pero lo
+// mismo tanto si el intento valía como si no.
+//
+// Ahora: dentro de la ventana solo pasa lo que pesa MÁS que lo último que sonó.
+// Con eso el tic hace su trabajo (decir "sí, te he sentido") y se aparta en
+// cuanto llega algo con contenido. Y sigue cumpliendo lo que el throttle venía
+// a hacer: nunca salen dos vibraciones solapadas.
+//
+// 110 ms y no 30 porque el hueco que hay que cubrir es el de pointerdown→click
+// (unos 20-60 ms en un dedo normal, más en uno lento), no el de dos llamadas
+// consecutivas de código. Por debajo de ~100 ms dos pulsos no se perciben como
+// dos de todas formas: se perciben como uno más largo y más barato, que es
+// contra lo que avisa la cabecera de este módulo.
+const VENTANA_MS = 110;
+let ultimoInstante = 0;
+let ultimoPeso = 0;
+
+function debeSonar(peso) {
+  const ahora = typeof performance !== "undefined" ? performance.now() : Date.now();
+  if (ahora - ultimoInstante < VENTANA_MS && peso <= ultimoPeso) return false;
+  ultimoInstante = ahora;
+  ultimoPeso = peso;
   return true;
 }
 
-function fire(pattern) {
+function fire(nombre) {
   if (!canVibrate()) return;
-  if (isReducedMotion()) return;
-  if (!shouldFire()) return;
+  if (menosMovimiento()) return;
+  if (!debeSonar(PESOS[nombre] ?? 1)) return;
   try {
-    navigator.vibrate(pattern);
+    navigator.vibrate(PATTERNS[nombre]);
   } catch {
     // Algunos navegadores tiran si el patrón es inválido — silencioso.
   }
@@ -102,11 +134,11 @@ function fire(pattern) {
 // API pública. Cada método nombra una *intención*, no un patrón concreto.
 // Si en el futuro afinamos los números, los call sites no se enteran.
 export const haptic = {
-  selection: () => fire(PATTERNS.selection),
-  impactLight: () => fire(PATTERNS.impactLight),
-  impactMedium: () => fire(PATTERNS.impactMedium),
-  impactHeavy: () => fire(PATTERNS.impactHeavy),
-  success: () => fire(PATTERNS.success),
-  warning: () => fire(PATTERNS.warning),
-  error: () => fire(PATTERNS.error),
+  selection: () => fire("selection"),
+  impactLight: () => fire("impactLight"),
+  impactMedium: () => fire("impactMedium"),
+  impactHeavy: () => fire("impactHeavy"),
+  success: () => fire("success"),
+  warning: () => fire("warning"),
+  error: () => fire("error"),
 };

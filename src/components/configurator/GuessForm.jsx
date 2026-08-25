@@ -11,6 +11,7 @@ import { useT } from "../../i18n";
 import { useToast } from "../Toast";
 import { useOnline } from "../../hooks/useOnline";
 import { haptic } from "../../lib/haptics";
+import { desplazarSuave } from "../../lib/movimiento";
 import { flagImagePath } from "../../data/countries";
 import { resolver } from "../../lib/resolver";
 import { yearRange } from "../../lib/yearRange";
@@ -345,7 +346,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     if (window.matchMedia("(max-width: 1099px)").matches) {
       document.activeElement?.blur?.();
       requestAnimationFrame(() => {
-        cuponRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        desplazarSuave(cuponRef.current, { block: "nearest" });
       });
     }
   }

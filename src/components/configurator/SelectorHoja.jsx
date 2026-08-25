@@ -105,6 +105,13 @@ export default function SelectorHoja({
       // desvanece (ver .pm-hoja-velo, que hace lo propio con el velo).
       panelEntraClassName="opacity-100 translate-y-0"
       panelSaleClassName="opacity-100 translate-y-full"
+      // La hoja sale a la MISMA velocidad a la que entró. Es la única de la
+      // app que lo hace, y es lo que manda la regla 18: hoja, marco de la
+      // fotografía y cromo de encima son una sola composición y tienen que
+      // caer en el mismo frame. El marco lleva una única transición de CSS,
+      // que no puede ir a dos velocidades según el sentido; si la hoja se
+      // retirase más rápido que él, se vería a la foto persiguiéndola.
+      salidaRapida={false}
     >
       {/* El tirador, que ahora dice la verdad: la hoja SE ARRASTRA hacia abajo
           para cerrarla (useArrastreHoja), y este es el signo universal de que se

@@ -27,6 +27,7 @@
 // al cerrarla.
 
 import { Capacitor } from "@capacitor/core";
+import { desplazarSuave } from "./movimiento";
 
 const ABIERTO = "abierto";
 
@@ -110,6 +111,6 @@ export function acercarCampoAlTeclado(el) {
   // 280ms: el teclado tarda en subir y el viewport en encoger; antes de eso el
   // navegador calcularía el destino contra la ventana todavía entera.
   window.setTimeout(() => {
-    el.scrollIntoView({ block: "start", behavior: "smooth" });
+    desplazarSuave(el, { block: "start" });
   }, 280);
 }

@@ -1,6 +1,18 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  // EL HOVER NO EXISTE EN UN MÓVIL, PERO SE PEGA. Esta bandera hace que todas
+  // las utilidades `hover:` compilen dentro de `@media (hover: hover)`, que es
+  // lo mismo que las reglas de index.css hacen ya a mano. Sin ella, tocar un
+  // elemento en Android aplica su estado de hover y lo deja PUESTO hasta que
+  // tocas otra cosa: el botón del cupón se quedaba levantado con su sombra dura
+  // después de cada intento, y la portada del Archivo, flotando. Es de esas
+  // cosas que nadie sabe nombrar y todo el mundo nota — se lee como que la app
+  // «se queda colgada» en el sitio donde acabas de tocar.
+  //
+  // (En Tailwind 4 esto es el comportamiento por defecto y la bandera
+  // desaparece; aquí, en la 3, hay que pedirlo.)
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       fontFamily: {
@@ -90,31 +102,52 @@ module.exports = {
       // el `estamparFila` de index.css — el que sí se usa. Una animación que no
       // monta nadie no engorda el CSS (Tailwind purga por contenido), pero sí
       // se ofrece a quien busque en el tema y crea que es la vigente.
+      // ── EL COMPÁS, del lado de Tailwind ──────────────────────────────────
+      // Gemelos de los tokens `--ms-*` / `--curva-*` de index.css, para que el
+      // JSX pueda escribir `duration-hoja ease-entra` en vez de inventarse un
+      // `duration-[180ms]`. Apuntan A LAS MISMAS variables y no a copias de los
+      // valores: dos listas de números que hay que acordarse de sincronizar es
+      // exactamente el problema que el compás viene a resolver, y aquí ya pasó
+      // una vez —esta misma sección describía una curva "strong ease-out" que
+      // index.css no usaba en ninguna de sus cincuenta transiciones—.
+      transitionDuration: {
+        pulso: "var(--ms-pulso)",
+        roce: "var(--ms-roce)",
+        hoja: "var(--ms-hoja)",
+        sello: "var(--ms-sello)",
+        escena: "var(--ms-escena)",
+        revelado: "var(--ms-revelado)",
+      },
+      transitionTimingFunction: {
+        entra: "var(--curva-entra)",
+        sale: "var(--curva-sale)",
+        roce: "var(--curva-roce)",
+        sello: "var(--curva-sello)",
+        lente: "var(--curva-lente)",
+      },
+      // (Se fue `hint-flash` con su keyframe: era el lavado rojo al 35% sobre la
+      // fotografía al desbloquear pista. Lo cuenta CarImage — resumen: tapaba
+      // justo el trozo de coche que venía a anunciar, era el único efecto de
+      // videojuego en un sistema que prohíbe los halos, y con
+      // `prefers-reduced-motion` se quedaba PUESTO para siempre. El aviso lo da
+      // ahora la foto abriéndose y el contador de pista re-estampándose.)
       animation: {
-        // Entradas (fade/slide): curva ease-out FUERTE en vez del `ease`
-        // nativo de CSS, que es demasiado flojo y no tiene "punch". Arrancar
-        // rápido y frenar al final hace que el contenido se sienta más
-        // responsivo justo en el instante en que el ojo está mirando.
-        // cubic-bezier(0.23,1,0.32,1) es el "strong ease-out" de referencia.
-        "fade-in": "fadeIn 0.4s cubic-bezier(0.23,1,0.32,1) forwards",
-        "slide-up": "slideUp 0.35s cubic-bezier(0.23,1,0.32,1) forwards",
-        "hint-flash": "hintFlash 0.55s ease-out forwards",
-        "reveal-win": "revealWin 1s cubic-bezier(0.34,1.56,0.64,1) forwards",
-        "toast-in": "toastIn 0.28s cubic-bezier(0.34,1.4,0.64,1) forwards",
+        // Entradas: `entra` es el ease-out fuerte del sistema. Arrancar rápido y
+        // frenar al final hace que el contenido se sienta más responsivo justo
+        // en el instante en que el ojo está mirando.
+        "fade-in": "fadeIn var(--ms-escena) var(--curva-entra) forwards",
+        "slide-up": "slideUp var(--ms-escena) var(--curva-entra) forwards",
+        "reveal-win": "revealWin var(--ms-revelado) var(--curva-lente) forwards",
+        "toast-in": "toastIn var(--ms-sello) var(--curva-sello) forwards",
         // ── Prensa del motor: el movimiento es "de imprenta" — sellar (el
         //    sello cae con overshoot) y temblor (errata en el cupón). Sin
         //    glows ni rebotes largos.
-        "sellar": "sellar 0.45s cubic-bezier(0.2,1.4,0.4,1) both",
-        "temblor": "temblor 0.4s ease",
+        "sellar": "sellar var(--ms-escena) var(--curva-sello) both",
+        "temblor": "temblor var(--ms-escena) var(--curva-roce)",
       },
       keyframes: {
         fadeIn: { from: { opacity: 0 }, to: { opacity: 1 } },
         slideUp: { from: { opacity: 0, transform: "translateY(12px)" }, to: { opacity: 1, transform: "translateY(0)" } },
-        hintFlash: {
-          "0%":   { opacity: 0 },
-          "25%":  { opacity: 1 },
-          "100%": { opacity: 0 },
-        },
         // Animación al ganar: parte del último zoom CSS activo (inyectado
         // por CarImage como --zoom-from, p.ej. 1.667 si ganó en el 2º
         // intento) y vuelve a scale=1, pasando por un pequeño overshoot.

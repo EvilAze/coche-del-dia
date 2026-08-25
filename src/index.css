@@ -243,6 +243,124 @@
   --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
   --warn: rgb(var(--rojo-rgb));
   --bad: rgb(var(--tinta2-rgb)); --bad-ink: rgb(var(--tinta2-rgb)); --bad-sub: rgb(var(--tinta2-rgb));
+
+  /* ── EL COMPÁS ────────────────────────────────────────────────────────────
+     La cuarta mitad del sistema, y la que faltaba. El color tenía sus ternas,
+     la forma su filete y la tipografía sus tres voces; el MOVIMIENTO no tenía
+     nada: catorce duraciones distintas repartidas por el fichero y, en la
+     mayoría, ninguna curva —o sea el `ease` por defecto del navegador, que es
+     justo el que tailwind.config.js describe como «demasiado flojo y sin
+     punch» dos líneas antes de no usarlo—. Eso no se ve de una en una; se ve
+     todo junto, y es lo que hace que una app dibujada con cuidado se sienta
+     improvisada al tocarla.
+
+     LA DURACIÓN LA FIJA EL RECORRIDO, NO EL GUSTO. Es la única regla que hace
+     falta para no volver a inventar un `.17s`: lo que se mueve un píxel es
+     instantáneo, lo que cruza la pantalla se ve viajar. De ahí salen los seis
+     peldaños, y cada uno tiene un trabajo con nombre:
+
+       · pulso    — el papel se hunde bajo el dedo y vuelve. Un píxel.
+       · roce     — cambia el color o el filete, la geometría no se entera.
+       · hoja     — un panel entra o sale. NO se toca a la ligera: es el
+                    contrato que comparten ModalShell, la hoja del cupón y el
+                    marco de la foto que se aparta (regla 18: los tres tienen
+                    que caer en el mismo frame o se ve que uno persigue a otro).
+       · sello    — el golpe de tampón. El único sitio del sistema con rebote.
+       · escena   — algo cambia de FORMA o de cara: un cromo que se voltea, una
+                    barra que se llena, una caja que cambia de alto.
+       · revelado — la fotografía abriéndose. Tiene UN SOLO consumidor y así se
+                    queda: es lo único de la app que el jugador está mirando de
+                    verdad mientras se mueve, y por eso es lo único que se puede
+                    permitir tardar casi un segundo. Si algún día aparece un
+                    segundo consumidor, o es una foto o es un error.
+
+     Las curvas van aparte porque el peldaño dice CUÁNTO y la curva dice CÓMO.
+     `entra` es el ease-out fuerte que el proyecto ya usaba de facto en sus
+     mejores momentos (el `cubic-bezier(.16,1,.3,1)` de la hoja y del recorte);
+     `sello` es el único overshoot que existe, y existe porque un tampón rebota;
+     `lente` es la cola larga de la fotografía, que sale disparada y frena
+     durante medio segundo —el gesto de un objetivo abriéndose, no el de una
+     caja de CSS moviéndose de A a B—.
+
+     Y LA REGLA MANDA SOBRE EL NOMBRE, que es donde esto se rompería solo: el
+     sello grande del final de partida (`.prensa-sello`) cae desde `scale(1.7)`
+     girando siete grados, así que VIAJA como una escena aunque se llame sello,
+     y lleva `--ms-escena`. El peldaño lo elige el recorrido; el nombre solo
+     dice para qué se inventó el peldaño. Si algún día alguien lee esto y le
+     chirría, la alternativa es peor: peldaños que mienten sobre lo que duran
+     para que el nombre cuadre con el objeto.
+
+     `latido` está fuera de la escala a propósito: no es un movimiento de A a B
+     sino un pulso ambiental que no termina nunca (la fila entintada esperando
+     al servidor, el pip del último intento). No se mide en recorrido, se mide
+     en respiración — y por eso es el único valor de aquí que se cuenta en
+     segundos y no en milisegundos. */
+  --ms-pulso: 90ms;
+  --ms-roce: 160ms;
+  --ms-hoja: 200ms;
+  --ms-sello: 280ms;
+  --ms-escena: 460ms;
+  --ms-revelado: 720ms;
+  --ms-latido: 1.2s;
+  /* EL PASO DE LA CASCADA. No es una duración sino una DISTANCIA en el tiempo:
+     lo que separa a una pieza de la siguiente cuando varias entran seguidas.
+     40 ms es el hueco más corto en el que el ojo todavía distingue orden —por
+     debajo se lee como simultáneo y la cascada no se ve; por encima, la página
+     empieza a parecer que carga a trozos. El estampado del veredicto usa un
+     paso MAYOR (110 ms, en AttemptList.jsx) a propósito: son tres golpes de
+     tampón con peso, no cuatro renglones encendiéndose. */
+  --ms-paso: 40ms;
+
+  --curva-entra: cubic-bezier(.16, 1, .3, 1);
+  --curva-sale: cubic-bezier(.4, 0, 1, 1);
+  --curva-roce: cubic-bezier(.4, 0, .2, 1);
+  --curva-sello: cubic-bezier(.2, 1.4, .4, 1);
+  --curva-lente: cubic-bezier(.22, 1, .28, 1);
+  /* La respiración del latido. Simétrica a propósito: un pulso que no termina
+     nunca no "entra" ni "sale", así que no le vale ninguna de las cinco de
+     arriba — todas están hechas para un viaje con principio y final. */
+  --curva-latido: ease-in-out;
+}
+
+/* ── EL COMPÁS EN SILENCIO ─────────────────────────────────────────────────
+   Aquí había OCHO bloques `prefers-reduced-motion` repartidos por el fichero,
+   cada uno con su lista de selectores a mano: los `animate-*` de Tailwind, la
+   barra de la distribución, el scrim y la tarjeta del final, el recorte, la
+   hoja y el marco de la app, los pips y la fila estampada, el sello, y las
+   cuatro piezas del Archivo. Treinta líneas para enumerar lo que se mueve.
+
+   El problema de enumerar no es la longitud, es que la lista SIEMPRE va por
+   detrás: cada animación nueva nace fuera de ella y nadie se entera, porque
+   olvidarse no rompe el build ni ningún test — solo deja a alguien con
+   sensibilidad vestibular mirando un movimiento que había pedido no ver. Y de
+   las ocho listas, dos ya se habían quedado atrás.
+
+   Se invierte: se apaga TODO por defecto y no hay lista que mantener. Es
+   exhaustivo por construcción, cubre también los estilos en línea que escribe
+   el JS (el asentamiento de la hoja) y no hay forma de añadir una animación que
+   se escape.
+
+   DOS DECISIONES FINAS, las dos aprendidas de lo que había:
+
+   · `animation: none` y NO `animation-duration: 0s`. Todas las keyframes del
+     sistema van de un estado oculto o desplazado al estado natural del
+     elemento (`from { opacity: 0 }`), así que apagarlas deja las cosas donde
+     tienen que estar. Con duración cero, en cambio, una keyframe infinita se
+     congela en su primer fotograma — la fila entintada se quedaría al 45% de
+     opacidad para siempre.
+
+   · `transition-duration: 1ms` y NO `transition: none`. Un milisegundo es
+     imperceptible pero SÍ dispara `transitionend`, y hay código que espera ese
+     evento para devolver estilos (useArrastreHoja, al asentar la hoja). Con
+     `transition: none` el evento no llega nunca y la limpieza se queda
+     colgada. Un milisegundo cuesta lo mismo que cero y no rompe a nadie. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 /* «Edición de noche» — grafito cálido. Rojo y oro subidos para leer sobre
    fondo oscuro (contraste AA); filete fuerte en un beige apagado, no blanco
@@ -379,15 +497,6 @@ body,
 /* (Purga F5: el keyframe confettiBurst se fue con el confetti — en el
    lenguaje prensa la celebración es el sello estampándose, spec §2.) */
 
-@media (prefers-reduced-motion: reduce) {
-  .animate-hint-flash,
-  .animate-reveal-win,
-  .animate-toast-in,
-  .animate-slide-up,
-  .animate-fade-in {
-    animation: none !important;
-  }
-}
 
 /* ===================================================================
    CHASIS .cdd-* — piezas VIVAS del juego re-vestidas por .prensa
@@ -446,7 +555,7 @@ body,
 /* Marco de la foto calcado del v0: aspect-[4/3], rounded-2xl, borde sutil, bg-card. */
 .cdd-stage-frame {
   position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
-  border-radius: 16px; border: 1px solid var(--line);
+  border: 1px solid var(--line);
   background: var(--surface);
 }
 /* Viñeta inferior sutil para que la barra de progreso (dots) lea sobre
@@ -485,30 +594,29 @@ body,
    actual son las filas tipográficas .prensa-fila/.prensa-dato con marcas de
    corrector. Se conserva solo el freno de reduced-motion de la barra de
    distribución, que sigue viva en EndScreen/estadística del día.) */
-@media (prefers-reduced-motion: reduce) {
-  .cdd-dist-bar { transition: none !important; }
-}
 
 /* ── Botón de acción .cdd-submit ──
    (Purga F5: el resto del formulario Platino —.cdd-form/.cdd-combo/.cdd-input/
    .cdd-listbox/.cdd-decades/steppers— se borró: el cupón vivo usa las clases
    .prensa-* de más abajo. .cdd-submit SÍ sigue vivo: lo montan EndScreen
    (COMPARTIR + su variante ghost) y el revelado de la Repesca.) */
-.cdd-submit { width: 100%; height: 56px; border: 0; border-radius: 12px; cursor: pointer;
+.cdd-submit { width: 100%; height: 56px; border: 0; cursor: pointer;
   /* Botón plano (rediseño v0): menta sólida, sin degradado ni gloss. */
   background: var(--accent);
   color: var(--accent-ink); font-family: var(--font-display);
   font-weight: 800; font-size: 14px; letter-spacing: .14em; text-transform: uppercase;
-  display: flex; align-items: center; justify-content: center; gap: 9px; transition: .18s;
+  display: flex; align-items: center; justify-content: center; gap: 9px; transition: background var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
   box-shadow: none; }
-.cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: color-mix(in oklab, var(--accent) 90%, #fff); }
-.cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: scale(.98); }
+@media (hover: hover) {
+  .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: color-mix(in oklab, var(--accent) 90%, #fff); }
+}
+.cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(1px); }
 /* Label en --cdd-muted y no --faint: --faint sobre --surface2 da ~2.7:1 y el
    CTA (el texto más importante de la pantalla) se leía como "roto" (auditoría
    UX #2). Con muted ronda 5:1 — apagado pero legible, también en disabled. */
 /* Polish premium #3: sin estados "muertos" — un sheen superior + ring interior
    hacen que el gris inactivo parezca intencional, no roto. */
-.cdd-submit:disabled { background: var(--surface2); color: var(--cdd-muted); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 0 1px var(--line); cursor: not-allowed; }
+.cdd-submit:disabled { cursor: not-allowed; }
 /* Formulario incompleto: mismo aspecto apagado que disabled pero TOCABLE — el
    tap dispara shake + toast con el campo que falta (un botón muerto no explica
    nada). Al completarse, la transition .18s del botón anima apagado→accent:
@@ -526,8 +634,10 @@ body,
    (p.ej. "guardar progreso" junto a "compartir"). Menos alto y sin sombra. */
 .cdd-submit--ghost { height: 50px; background: transparent; color: var(--accent);
   border: 1px solid color-mix(in oklab, var(--accent) 55%, var(--line)); box-shadow: none; }
-.cdd-submit--ghost:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 10%, transparent);
-  border-color: var(--accent); box-shadow: none; }
+@media (hover: hover) {
+  .cdd-submit--ghost:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 10%, transparent);
+    border-color: var(--accent); box-shadow: none; }
+}
 
 /* (Purga F5: .cdd-shakewrap y el footer .cdd-footer/.cdd-foot-link eran del
    Configurator Platino; el temblor vivo es .animate-temblor sobre el cupón y
@@ -543,13 +653,12 @@ body,
            max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
 /* Scrim del EndScreen: SOLO tinte (sin blur) para que el card de encima refracte
    el escenario nítido. Un punto más oscuro para mantener el foco sin desenfoque. */
-.cdd-end-scrim { position: absolute; inset: 0; background: color-mix(in oklab, var(--bg2) 82%, transparent); animation: cddFade .3s ease; }
+.cdd-end-scrim { position: absolute; inset: 0; background: color-mix(in oklab, var(--bg2) 82%, transparent); animation: cddFade var(--ms-hoja) var(--curva-roce); }
 .cdd-end-card { position: relative; width: 100%; max-width: 460px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
   /* Tarjeta plana (rediseño v0): superficie sólida + borde, sin glints ni blur. */
   background: var(--surface);
-  border: 1px solid var(--line-strong); border-radius: 18px;
-  box-shadow: 0 30px 70px -28px rgba(0,0,0,.9);
-  animation: cddRise .5s cubic-bezier(.16,1,.3,1); }
+  border: 1px solid var(--line-strong);
+  animation: cddRise var(--ms-escena) var(--curva-entra); }
 @keyframes cddFade { from { opacity: 0; } }
 @keyframes cddRise { from { opacity: 0; transform: translateY(22px) scale(.98); } }
 
@@ -563,16 +672,18 @@ body,
 .cdd-end-close {
   pointer-events: auto; margin: 8px; width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center; cursor: pointer;
-  border-radius: 999px; color: #fff;
+  color: #fff;
   background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.18);
-  transition: background .15s, transform .08s;
+  transition: background var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
 }
-.cdd-end-close:hover { background: rgba(0,0,0,.62); }
-.cdd-end-close:active { transform: scale(.93); }
+@media (hover: hover) {
+  .cdd-end-close:hover { background: rgba(0,0,0,.62); }
+}
+.cdd-end-close:active { transform: translateY(1px); }
 
 /* Banda de revelado: alto fluido (clamp) para que en pantallas bajas no empuje
    el resto del contenido fuera de la tarjeta. */
-.cdd-reveal { position: relative; height: clamp(150px, 24svh, 230px); overflow: hidden; border-radius: 18px 18px 0 0; background: var(--surface); }
+.cdd-reveal { position: relative; height: clamp(150px, 24svh, 230px); overflow: hidden; background: var(--surface); }
 .cdd-reveal .cdd-reveal-grad { position: absolute; inset: 0; background: linear-gradient(to top, var(--surface) 4%, transparent 60%); z-index: 2; }
 .cdd-reveal-head { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
 /* (Purga: `.cdd-verdict` era la píldora «ACERTADO · 1/5» estampada sobre la
@@ -584,7 +695,7 @@ body,
 .cdd-reveal-brand { font-family: var(--font-mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
 .cdd-reveal-model { font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: -.02em; }
 .cdd-reveal-meta { font-size: 10px; color: var(--cdd-muted); margin-top: 3px; display: inline-flex; align-items: center; gap: 6px; }
-.cdd-reveal-meta .cdd-flag { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+.cdd-reveal-meta .cdd-flag { width: 18px; height: 12px; object-fit: cover; }
 
 /* ── EL VÍDEO DEL COCHE (temporadas presentadas) ───────────────────────────
    La banda de revelado tiene dos estados. Cerrada es exactamente la de
@@ -618,10 +729,12 @@ body,
   letter-spacing: .2em; text-transform: uppercase;
   color: #fff; border: 2px solid #fff; border-radius: 0;
   padding: 9px 14px; background: rgb(var(--velo-rgb) / .55);
-  transition: background .14s, transform .14s;
+  transition: background var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
 }
-.cdd-reveal-play:hover .marca { background: rgb(var(--velo-rgb) / .75); }
-.cdd-reveal-play:active .marca { transform: scale(.97); }
+@media (hover: hover) {
+  .cdd-reveal-play:hover .marca { background: rgb(var(--velo-rgb) / .75); }
+}
+.cdd-reveal-play:active .marca { transform: translateY(1px); }
 .cdd-reveal-video {
   position: absolute; inset: 0; z-index: 6;
   width: 100%; height: 100%; border: 0;
@@ -639,14 +752,16 @@ body,
    ley de marca: oro = «esto vale algo»), pero como tinta, sin relleno ni marco. */
 .cdd-unlock { display: flex; align-items: baseline; gap: 7px; width: 100%;
   padding: 4px 0; cursor: pointer; text-align: left;
-  background: transparent; border: 0; color: var(--gold); transition: color .16s; }
+  background: transparent; border: 0; color: var(--gold); transition: color var(--ms-roce) var(--curva-roce); }
 .cdd-unlock-kicker { flex: none; font-family: var(--font-body); font-weight: 800;
   font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); }
 .cdd-unlock-name { min-width: 0; flex: 1; font-family: var(--font-display); font-weight: 700;
   font-size: 13px; color: var(--cdd-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-unlock-chev { flex: none; align-self: center; }
-.cdd-unlock:hover .cdd-unlock-name { color: var(--gold); }
+@media (hover: hover) {
+  .cdd-unlock:hover .cdd-unlock-name { color: var(--gold); }
+}
 
 /* EL PIE DE TU PARTIDA: el renglón que resume el resultado, en la voz de los pies
    de foto (Fraunces cursiva). Sustituye a la etiqueta «TU PARTIDA» + la caja con
@@ -694,14 +809,14 @@ body,
    (`.cdd-dist-title` se fue con él): lo pone el llamante como ladillo, porque en
    el Configurator caía justo debajo de otro encabezado y la sección se anunciaba
    dos veces. */
-.cdd-dist-card { background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; }
+.cdd-dist-card { padding: 12px 13px; }
 .cdd-dist { display: flex; flex-direction: column; gap: 6px; }
 .cdd-dist-row { display: flex; align-items: center; gap: 8px; }
 .cdd-dist-n { width: 12px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
 .cdd-dist-n.me { color: var(--accent); font-weight: 700; }
-.cdd-dist-track { flex: 1; height: 16px; border-radius: 5px; background: rgba(255,255,255,0.05); overflow: hidden; }
-.cdd-dist-bar { height: 100%; border-radius: 5px; background: rgba(255,255,255,0.12); transition: transform .6s cubic-bezier(.16,1,.3,1); }
-.cdd-dist-bar.me { background: var(--accent); box-shadow: 0 0 14px -4px var(--accent); }
+.cdd-dist-track { flex: 1; height: 16px; overflow: hidden; }
+.cdd-dist-bar { height: 100%; transition: transform var(--ms-escena) var(--curva-entra); }
+.cdd-dist-bar.me { background: var(--accent); }
 .cdd-dist-pct { width: 36px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
 .cdd-dist-pct.me { color: var(--accent); }
 .cdd-dist-foot { margin-top: 9px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .14em; color: var(--faint); }
@@ -757,10 +872,12 @@ body,
   letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-text);
   border-bottom: 2px solid var(--rojo);
 }
-.cdd-parte-cta:hover { color: var(--rojo); }
+@media (hover: hover) {
+  .cdd-parte-cta:hover { color: var(--rojo); }
+}
 
 .cdd-next { display: flex; align-items: center; justify-content: space-between; margin: 8px 18px 0;
-  padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; }
+  padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
 .cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
 /* El aviso de repesca reutiliza la caja de la cuenta atrás (.cdd-next) porque
@@ -777,9 +894,11 @@ body,
   min-height: 44px; margin: -12px 0; padding: 12px 0;
   font-family: var(--font-body); font-weight: 700; font-size: 11.5px; letter-spacing: .16em;
   text-transform: uppercase; color: var(--accent);
-  border: none; transition: color .15s;
+  border: none; transition: color var(--ms-roce) var(--curva-roce);
 }
-.cdd-repesca-cta:hover { color: var(--cdd-text); }
+@media (hover: hover) {
+  .cdd-repesca-cta:hover { color: var(--cdd-text); }
+}
 /* "Ver mi partida" como botón secundario (ghost) de área táctil cómoda (≥44px),
    no un enlace de 10px imposible de acertar con el pulgar. Sigue por DEBAJO de
    Compartir (relleno = primario) y de la X de cerrar: es la salida etiquetada
@@ -790,9 +909,11 @@ body,
   display: inline-flex; align-items: center; justify-content: center;
   font-family: var(--font-body); font-weight: 700; font-size: 11.5px; letter-spacing: .16em;
   text-transform: uppercase; color: var(--cdd-muted);
-  border: 1px solid var(--line); border-radius: 10px; transition: color .15s, border-color .15s;
+  border: 1px solid var(--line); transition: color var(--ms-roce) var(--curva-roce), border-color var(--ms-roce) var(--curva-roce);
 }
-.cdd-end-link:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+@media (hover: hover) {
+  .cdd-end-link:hover { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+}
 
 /* (Purga F5: el "fold" móvil del Platino —.cdd-fold y su cuadrado 100cqmin—
    se borró: el pliego prensa reparte la columna única con `order` y la foto
@@ -828,7 +949,6 @@ body,
   .cdd-end { padding: 0; }
   .cdd-end-card {
     max-width: none; width: 100%; max-height: 92svh;
-    border-radius: 18px;
   }
   /* Piel editorial: sin outline flotante (se saldría a sangre por los bordes)
      ni esquinas; filetes arriba y abajo, como una sección del pliego. */
@@ -844,9 +964,6 @@ body,
    se borró; el broadsheet de 3 columnas vive en .prensa-pliego ≥1100px. El
    aspect-ratio 4:3 del marco ya lo fija la regla base de .cdd-stage-frame.) */
 
-@media (prefers-reduced-motion: reduce) {
-  .cdd-end-scrim, .cdd-end-card { animation: none !important; }
-}
 /* ═══════════════════════════════════════════════════════════════════════
    SISTEMA «PRENSA DEL MOTOR» — F1 (pantalla de juego)
    -----------------------------------------------------------------------
@@ -899,7 +1016,9 @@ body,
 .prensa-topbar > span > button, .prensa-topbar > span > a {
   padding: 16px 12px; margin: -16px -12px;
 }
-.prensa-topbar > span > button:hover, .prensa-topbar > span > a:hover { color: var(--rojo); }
+@media (hover: hover) {
+  .prensa-topbar > span > button:hover, .prensa-topbar > span > a:hover { color: var(--rojo); }
+}
 .prensa-topbar .sep { color: var(--cdd-muted); }
 
 /* ── LA MARCA DEL SUMARIO (el botón que abre el índice) ───────────────────
@@ -917,14 +1036,18 @@ body,
   width: 34px; height: 34px;
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--line-strong); color: var(--cdd-text);
-  transition: color .14s, border-color .14s, background .14s;
+  transition: color var(--ms-roce) var(--curva-roce), border-color var(--ms-roce) var(--curva-roce), background var(--ms-roce) var(--curva-roce);
 }
 .prensa-sumario-boton::after {
   content: ""; position: absolute; inset: -8px -10px;
 }
-.prensa-topbar > span > .prensa-sumario-boton:hover,
 .prensa-topbar > span > .prensa-sumario-boton:focus-visible {
   color: var(--rojo); border-color: var(--rojo); background: var(--surface2);
+}
+@media (hover: hover) {
+  .prensa-topbar > span > .prensa-sumario-boton:hover {
+    color: var(--rojo); border-color: var(--rojo); background: var(--surface2);
+  }
 }
 .prensa-sumario-boton:active { transform: translateY(1px); }
 /* Repesca pendiente: cuadradito de tinta roja mordiendo la esquina del cuadro.
@@ -957,14 +1080,18 @@ body,
   position: relative; display: flex; flex-direction: column; align-items: flex-start;
   gap: 5px; min-height: 98px; padding: 13px 12px 14px; text-align: left;
   background: var(--surface); border: 0; cursor: pointer; color: var(--cdd-text);
-  transition: color .14s, background .14s;
+  transition: color var(--ms-roce) var(--curva-roce), background var(--ms-roce) var(--curva-roce);
 }
-.prensa-portadilla:hover, .prensa-portadilla:focus-visible {
+.prensa-portadilla:focus-visible {
   background: var(--surface2); color: var(--rojo);
 }
+@media (hover: hover) {
+  .prensa-portadilla:hover { background: var(--surface2); color: var(--rojo); }
+}
 .prensa-portadilla:active { transform: translateY(1px); }
-.prensa-portadilla .marca { color: var(--cdd-muted); transition: color .14s; }
-.prensa-portadilla:hover .marca, .prensa-portadilla:focus-visible .marca { color: var(--rojo); }
+.prensa-portadilla .marca { color: var(--cdd-muted); transition: color var(--ms-roce) var(--curva-roce); }
+.prensa-portadilla:focus-visible .marca { color: var(--rojo); }
+@media (hover: hover) { .prensa-portadilla:hover .marca { color: var(--rojo); } }
 .prensa-portadilla .nombre {
   font-family: var(--font-body); font-weight: 800; font-size: 10px;
   letter-spacing: .18em; text-transform: uppercase; line-height: 1.2;
@@ -978,7 +1105,8 @@ body,
   font-family: var(--font-display); font-style: italic; font-size: 12px;
   line-height: 1.3; color: var(--cdd-muted);
 }
-.prensa-portadilla:hover .apunte, .prensa-portadilla:focus-visible .apunte { color: var(--cdd-muted); }
+.prensa-portadilla:focus-visible .apunte { color: var(--cdd-muted); }
+@media (hover: hover) { .prensa-portadilla:hover .apunte { color: var(--cdd-muted); } }
 /* Tu ordinal dentro del apunte: el oro de PuestoCifra, la firma de la sección
    (CLAUDE.md reserva el oro a lo premium, y el puesto lo es). */
 .prensa-portadilla .apunte .oro {
@@ -1010,9 +1138,11 @@ body,
   font-family: var(--font-body); font-weight: 700; font-size: 9.5px;
   letter-spacing: .18em; text-transform: uppercase;
   color: var(--cdd-muted); text-decoration: none;
-  transition: color .14s;
+  transition: color var(--ms-roce) var(--curva-roce);
 }
-.prensa-sumario-pie a:hover { color: var(--rojo); }
+@media (hover: hover) {
+  .prensa-sumario-pie a:hover { color: var(--rojo); }
+}
 
 /* ── EL CARNET DE LECTOR ──────────────────────────────────────────────────
    El objeto de identidad que comparten el perfil propio y el ajeno. Antes era
@@ -1139,7 +1269,9 @@ body,
   letter-spacing: 0; text-transform: none; color: var(--gold);
 }
 .prensa-topbar .prensa-clasif .pos--pendiente { color: var(--faint); }
-.prensa-topbar .prensa-clasif:hover .pos { color: var(--rojo); }
+@media (hover: hover) {
+  .prensa-topbar .prensa-clasif:hover .pos { color: var(--rojo); }
+}
 /* Sin puesto: la invitación ocupa el hueco de la cifra. ROJO porque es acción
    —el oro es «esto vale algo» y aquí todavía no vale nada—, y en la sans de la
    interfaz, no en la serif de las cifras: no es un dato, es un botón. */
@@ -1303,7 +1435,7 @@ body,
 
 /* ── Escenario: paspartú + filete (fuera HUD/grain/viñeta del sistema previo) ── */
 .prensa .cdd-stage-frame {
-  border-radius: 0; border: 1px solid var(--line-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface); padding: 8px;
 }
 /* Encaje del escenario: el ancho máximo lo calcula useEncajeEscenario y lo deja
@@ -1388,7 +1520,7 @@ body,
 .prensa-pips .pip { width: 9px; height: 9px; border: 1px solid var(--line-strong); border-radius: 0; }
 .prensa-pips .pip.gastado { background: var(--line-strong); }
 .prensa-pips .pip.actual { border-color: var(--rojo); background: var(--rojo); }
-.prensa-pips .pip.actual.peligro { animation: prensaParpadeo 1.1s ease-in-out infinite; }
+.prensa-pips .pip.actual.peligro { animation: prensaParpadeo var(--ms-latido) var(--curva-latido) infinite; }
 @keyframes prensaParpadeo { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
 /* ── El «recorte»: miniatura flotante de la foto (PhotoPeek) ──
@@ -1412,7 +1544,7 @@ body,
   width: 104px; height: 78px; padding: 0; overflow: hidden; cursor: pointer;
   border-radius: 0; border: 1px solid var(--line-strong); background: var(--surface);
   box-shadow: var(--sombra-flota);
-  animation: cddPeekIn .22s cubic-bezier(.16,1,.3,1); }
+  animation: cddPeekIn var(--ms-hoja) var(--curva-entra); }
 /* picture { display: contents }: fuera la caja intermedia; el img se ancla
    directamente al botón, sin depender de cómo cada motor posicione <picture>.
    object-fit: cover NUNCA deforma — recorta, como en el escenario (regla 5). */
@@ -1420,12 +1552,11 @@ body,
 .cdd-peek img { position: absolute; top: 0; left: 0; display: block;
   width: 100%; height: 100%; object-fit: cover; object-position: center;
   transform-origin: center center; }
-.cdd-peek:active { transform: scale(.96); }
+.cdd-peek:active { transform: translateY(1px); }
 /* En el pliego ancho la foto ES la columna central: nunca se pierde de vista
    y el recorte solo taparía la esquina del cupón. Fuera. */
 @media (min-width: 1100px) { .cdd-peek { display: none; } }
 @keyframes cddPeekIn { from { opacity: 0; transform: translateY(-6px) scale(.92); } }
-@media (prefers-reduced-motion: reduce) { .cdd-peek { animation: none; } }
 
 /* ── Clasificación: marcas de corrector de pruebas ──
    Verde = correcto, rojo = incorrecto: la convención universal, la que promete
@@ -1471,9 +1602,9 @@ body,
    los dígitos (16px) → mismo centro óptico, sin tocar la altura de la línea. */
 .prensa-dato .prensa-dir { color: var(--ambar); margin-left: 4px; }
 .prensa-dato .prensa-dir svg { display: inline-block; vertical-align: baseline; }
-.prensa-fila-pendiente { animation: prensaEntintado 1.2s ease-in-out infinite; }
+.prensa-fila-pendiente { animation: prensaEntintado var(--ms-latido) var(--curva-latido) infinite; }
 @keyframes prensaEntintado { 0%, 100% { opacity: .45; } 50% { opacity: .8; } }
-.prensa-estampada { animation: estamparFila .28s cubic-bezier(.2, 1, .3, 1) both; }
+.prensa-estampada { animation: estamparFila var(--ms-sello) var(--curva-sello) both; }
 @keyframes estamparFila { from { opacity: 0; transform: scale(1.02); } }
 
 /* ── El cupón de respuesta ──
@@ -1514,10 +1645,12 @@ body,
    El hover no coge el gesto de ADIVINAR (levantarse con sombra dura): esa es la
    firma del botón del cupón y repetirla la diluiría. Aquí solo baja de tono. */
 .prensa .cdd-submit {
-  border-radius: 0; background: var(--rojo); color: var(--bg);
+  background: var(--rojo); color: var(--bg);
   font-family: var(--font-body); font-weight: 800; font-size: 13px; letter-spacing: .26em;
 }
-.prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: var(--rojo-dark); }
+@media (hover: hover) {
+  .prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: var(--rojo-dark); }
+}
 .prensa .cdd-submit:disabled {
   background: transparent; color: var(--faint);
   box-shadow: inset 0 0 0 1px var(--line);
@@ -1540,14 +1673,19 @@ body,
   background: transparent; color: var(--cdd-text);
   border: 0; box-shadow: inset 0 0 0 1px var(--cdd-text);
 }
-.prensa .cdd-submit--ghost:hover:not(:disabled) {
-  background: transparent; color: var(--rojo);
-  box-shadow: inset 0 0 0 1px var(--rojo);
+@media (hover: hover) {
+  .prensa .cdd-submit--ghost:hover:not(:disabled) {
+    background: transparent; color: var(--rojo);
+    box-shadow: inset 0 0 0 1px var(--rojo);
+  }
 }
-/* Un solo gesto de pulsación en el sistema: el papel se hunde 1px (lo mismo que
-   .pm-btn). El `scale(.98)` que traía de serie era del rediseño plano y hacía
-   que el botón se encogiera como una pastilla de app. */
-.prensa .cdd-submit:active:not(:disabled):not(.is-incomplete) { transform: translateY(1px); }
+/* (El override que hundía 1px este botón bajo `.prensa` se retira: la regla
+   base ya hunde 1px, porque el gesto dejó de ser una excepción de una piel para
+   ser EL gesto del sistema. Se anotaba aquí que el `scale(.98)` de serie «hacía
+   que el botón se encogiera como una pastilla de app»; ese scale ya no existe
+   en ningún sitio, y con él se han ido los otros cuatro tamaños de encogerse
+   que convivían — .93 en el cierre del revelado, .96 en el recorte, .97 en el
+   botón de vídeo y .98 aquí.) */
 
 /* ── Pie de página del juego ── */
 /* Pie centrado en columna: el reloj de cierre arriba y los enlaces de servicio
@@ -1569,7 +1707,9 @@ body,
   color: var(--cdd-muted); font: inherit; letter-spacing: inherit;
   text-transform: inherit; text-decoration: none;
 }
-.prensa-cierre button:hover, .prensa-cierre a:hover { color: var(--rojo); }
+@media (hover: hover) {
+  .prensa-cierre button:hover, .prensa-cierre a:hover { color: var(--rojo); }
+}
 /* (Se fueron de aquí `.pie-clasif` —la clasificación en el pie, que ahora vive
    en la barra— y `.reloj`, cuyo tabular-nums lo pone hoy el propio JSX.) */
 
@@ -1899,7 +2039,7 @@ body,
      distintas se ve que una persigue a la otra. Y la aplicación del transform va
      sincronizada al frame desde useEscenarioApartado, que espera el mismo doble
      rAF que ModalShell antes de encender la suya. */
-  transition: transform 200ms cubic-bezier(.16, 1, .3, 1);
+  transition: transform var(--ms-hoja) var(--curva-entra);
 }
 /* MIENTRAS EL DEDO ARRASTRA LA HOJA, EL MARCO VA SIN TRANSICIÓN. La foto tiene
    que ir pegada a la hoja, no persiguiéndola con 200ms de retraso: durante el
@@ -1939,7 +2079,7 @@ body,
 :root[data-plataforma="app"] .app-pantalla > .prensa-area-cab,
 :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-ladillo,
 :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-pie {
-  transition: opacity var(--cdd-cromo-ms, 180ms) ease-out var(--cdd-cromo-espera, 90ms);
+  transition: opacity var(--cdd-cromo-ms, var(--ms-roce)) var(--curva-entra) var(--cdd-cromo-espera, var(--ms-pulso));
 }
 :root[data-plataforma="app"][data-eligiendo="apartada"] {
   --cdd-cromo-ms: 130ms;
@@ -1956,15 +2096,6 @@ body,
    que caber, que es lo funcional— pero se llega a ella de golpe. La hoja entra
    en esta lista porque su transición se declara en `.pm-hoja`, que por orden de
    cascada le gana al `motion-reduce:transition-none` que trae el chasis. */
-@media (prefers-reduced-motion: reduce) {
-  .pm-hoja,
-  :root[data-plataforma="app"] .cdd-stage-frame,
-  :root[data-plataforma="app"] .app-pantalla > .prensa-area-cab,
-  :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-ladillo,
-  :root[data-plataforma="app"] .app-pantalla .prensa-area-foto .prensa-pie {
-    transition: none;
-  }
-}
 
 /* (Aquí vivía «EL MODO ESCRITURA» y su suelo de 360px de ventana. Se fue entero
    con el teclado: ver «EL CUPÓN QUE NO SE TECLEA», más abajo.) */
@@ -2037,8 +2168,10 @@ body,
   :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton {
     border-color: transparent; color: var(--cdd-muted);
   }
-  :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:hover {
-    border-color: transparent; background: none; color: var(--cdd-text);
+  @media (hover: hover) {
+    :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:hover {
+      border-color: transparent; background: none; color: var(--cdd-text);
+    }
   }
   :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:focus-visible {
     border-color: var(--rojo); background: none; color: var(--rojo);
@@ -2149,7 +2282,7 @@ body,
   min-height: 48px; padding: 10px 2px; cursor: pointer;
   background: transparent; border: 0; border-radius: 0;
   border-bottom: 1px solid var(--line-strong);
-  transition: border-color .15s;
+  transition: border-color var(--ms-roce) var(--curva-roce);
 }
 .prensa-renglon:active:not(:disabled) { border-bottom-color: var(--rojo); }
 .prensa-renglon:disabled { opacity: .45; cursor: not-allowed; }
@@ -2254,7 +2387,7 @@ body,
      como que una persigue a la otra. 200 y no más: ModalShell desmonta el panel
      a los 220ms, así que una salida más lenta se vería cortada.
      El arrastre pisa esto con estilos en línea mientras dura el gesto. */
-  transition: transform 200ms cubic-bezier(.16, 1, .3, 1);
+  transition: transform var(--ms-hoja) var(--curva-entra);
 }
 /* EL VELO NO TIÑE. Un velo al 72% sobre la fotografía es exactamente el problema
    que este cambio viene a resolver: da igual dejarle hueco a la foto si luego se
@@ -2423,10 +2556,6 @@ body,
   outline: 2px solid var(--rojo); outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .prensa-pips .pip.actual.peligro, .prensa-fila-pendiente,
-  .prensa-estampada { animation: none !important; }
-}
 
 /* ── Cupón: inputs de línea base, listbox de papel y submit de tinta (F1-T8).
       Los componentes (Combo/YearField/GuessForm) usan estas clases prensa-*
@@ -2446,7 +2575,7 @@ body,
      pegado a su etiqueta —el aire de arriba era el que sobraba— dejando el cupón
      más compacto. El focus baja el padding-bottom en 1px para compensar el borde
      de 1→2px y que el texto NO salte al enfocar. */
-  padding: 7px 2px; transition: border-color .15s;
+  padding: 7px 2px; transition: border-color var(--ms-roce) var(--curva-roce);
 }
 .prensa-input:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 6px; }
 .prensa-input.invalida { border-bottom: 2px solid var(--rojo); }
@@ -2538,15 +2667,28 @@ body,
   background: rgb(var(--rojo-rgb)); color: var(--bg);
   font-family: var(--font-display); font-weight: 900; font-size: 24px;
   letter-spacing: .05em; text-transform: uppercase;
-  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
 }
-.prensa-submit:hover:not(:disabled):not(.is-incomplete) {
-  transform: translateY(-2px);
-  box-shadow: 4px 4px 0px rgb(var(--tinta-rgb));
+/* LA FIRMA DEL BOTON DEL CUPON: se levanta y proyecta su propia tinta, como un
+   tipo de imprenta que todavia no ha bajado. Entra en @media (hover: hover)
+   porque en un movil no existe "pasar por encima": el navegador aplica el hover
+   AL TOCAR y lo deja pegado hasta que tocas otra cosa. O sea que ADIVINAR se
+   quedaba levantado con su sombra dura despues de cada intento, y quien juega
+   en el movil —casi todo el mundo— veia el estado de reposo UNA vez, al abrir. */
+@media (hover: hover) {
+  .prensa-submit:hover:not(:disabled):not(.is-incomplete) {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0px rgb(var(--tinta-rgb));
+  }
 }
-.prensa-submit:active:not(:disabled) { 
-  transform: translateY(2px); 
-  box-shadow: 0px 0px 0px rgb(var(--tinta-rgb));
+/* Y la pulsacion es la del sistema: el papel se hunde UN pixel. Bajaba dos, y
+   dos desde el reposo deja el boton POR DEBAJO del papel — que es lo que no
+   hace ningun objeto real: un tipo de imprenta se apoya, no atraviesa. Con
+   raton cae desde -2px (tres pixeles de recorrido y la sombra colapsando); sin
+   raton es exactamente el mismo pixel que hunden .pm-btn y todos los demas. */
+.prensa-submit:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 .prensa-submit:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
 
@@ -2556,8 +2698,10 @@ body,
   color: var(--bg);
   box-shadow: none;
 }
-.prensa-submit.is-incomplete:hover { 
-  background: color-mix(in srgb, rgb(var(--tinta-rgb)) 80%, black);
+@media (hover: hover) {
+  .prensa-submit.is-incomplete:hover { 
+    background: color-mix(in srgb, rgb(var(--tinta-rgb)) 80%, black);
+  }
 }
 
 /* ── F2: Fin de partida — la crónica con sello ──
@@ -2566,7 +2710,7 @@ body,
    filetes. El chasis gana el doble filete de recortable; la celebración es
    el SELLO estampándose (el confetti se retiró: era de otra fiesta). */
 .prensa .cdd-end-card {
-  border-radius: 0; background: var(--bg);
+  background: var(--bg);
   border: 1px solid var(--line-strong);
   outline: 1px solid var(--line-strong); outline-offset: 4px;
   box-shadow: none;
@@ -2575,25 +2719,30 @@ body,
 /* X de cerrar en piel editorial: cuadrada, tinta plena sobre papel, sin blur.
    Al hover vira a rojo (acción), como el resto de controles prensa. */
 .prensa .cdd-end-close {
-  border-radius: 0; color: var(--cdd-text);
+  color: var(--cdd-text);
   background: color-mix(in srgb, var(--bg) 84%, transparent);
   border: 1px solid var(--line-strong);
 }
-.prensa .cdd-end-close:hover { color: var(--rojo); border-color: var(--rojo); background: var(--bg); }
+@media (hover: hover) {
+  .prensa .cdd-end-close:hover { color: var(--rojo); border-color: var(--rojo); background: var(--bg); }
+}
 /* "Ver mi partida" editorial: cuadrado, tinta, hover rojo. */
-.prensa .cdd-end-link { border-radius: 0; color: var(--cdd-text); border-color: var(--line-strong); }
-.prensa .cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
+.prensa .cdd-end-link { color: var(--cdd-text); border-color: var(--line-strong); }
+@media (hover: hover) {
+  .prensa .cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
+}
 /* En prensa el acento es el rojo de rotativa: es "acción/atención", que es
    justo lo que este renglón pide. Nada de oro — el oro está reservado a lo que
    vale algo (racha, victoria, podio) y una repesca todavía no se ha ganado. */
 .prensa .cdd-repesca-cta { color: var(--rojo); }
-.prensa .cdd-repesca-cta:hover { color: var(--cdd-text); }
-.prensa .cdd-reveal { border-radius: 0; background: var(--surface); border-bottom: 1px solid var(--line-strong); }
+@media (hover: hover) {
+  .prensa .cdd-repesca-cta:hover { color: var(--cdd-text); }
+}
+.prensa .cdd-reveal { background: var(--surface); border-bottom: 1px solid var(--line-strong); }
 .prensa .cdd-reveal-grad { background: linear-gradient(to top, var(--bg) 4%, transparent 55%); }
 .prensa .cdd-reveal-brand { font-family: var(--font-body); font-weight: 600; letter-spacing: .2em; color: var(--rojo); }
 .prensa .cdd-reveal-model { font-family: var(--font-display); font-weight: 900; letter-spacing: -.01em; font-size: 30px; }
 .prensa .cdd-reveal-meta { font-family: var(--font-body); letter-spacing: .12em; }
-.prensa .cdd-flag { border-radius: 0; }
 /* El sello: RESUELTO en rojo, SIN RESOLVER en tinta. Cae con overshoot un
    cuarto de segundo después de abrirse la crónica. */
 .prensa-sello {
@@ -2603,7 +2752,7 @@ body,
   color: var(--rojo); border: 3px solid var(--rojo); padding: 7px 10px 7px 14px;
   transform: rotate(-7deg);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
-  animation: prensaSellar .45s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: .25s;
+  animation: prensaSellar var(--ms-escena) var(--curva-sello) both; animation-delay: var(--ms-sello);
 }
 .prensa-sello.tinta { color: var(--cdd-text); border-color: var(--cdd-text); }
 @keyframes prensaSellar { from { opacity: 0; transform: rotate(-7deg) scale(1.7); } }
@@ -2613,9 +2762,9 @@ body,
 /* La crónica se lee como artículo: serif, cuerpo de texto, tinta plena. */
 .prensa .cdd-note { font-family: var(--font-display); font-size: 14px; line-height: 1.55; color: var(--cdd-text); }
 /* La distribución, sin marco: es una sección bajo su ladillo, no una tarjeta. */
-.prensa .cdd-dist-card { border-radius: 0; background: transparent; border: 0; padding: 0; }
-.prensa .cdd-dist-track { border-radius: 0; background: var(--surface2); }
-.prensa .cdd-dist-bar { border-radius: 0; background: var(--line-strong); box-shadow: none !important; }
+.prensa .cdd-dist-card { background: transparent; border: 0; padding: 0; }
+.prensa .cdd-dist-track { background: var(--surface2); }
+.prensa .cdd-dist-bar { background: var(--line-strong); }
 .prensa .cdd-dist-bar.me { background: var(--rojo); }
 .prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--rojo); }
 /* (`.cdd-percentile` y `.cdd-grid` se retiraron con la caja del percentil y la
@@ -2631,7 +2780,6 @@ body,
    enlace era cerrar un modal que le anunciaba el rediseño de una web que no
    conocía, y que le tranquilizaba sobre una racha y un archivo que no tenía.
    Un aviso para el que vuelve, mostrado solo al que llega.) */
-@media (prefers-reduced-motion: reduce) { .prensa-sello { animation: none !important; } }
 
 /* ── F3: Modales al sistema prensa ──
    Los modales se renderizan FUERA de .prensa (overlay a nivel de documento),
@@ -2676,12 +2824,16 @@ body,
 .pm-btn { width: 100%; border: 0; border-radius: 0; cursor: pointer; padding: 14px 12px;
   background: var(--cdd-text); color: var(--bg);
   font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 800; font-size: 13px;
-  letter-spacing: .24em; text-transform: uppercase; transition: background .18s; }
-.pm-btn:hover:not(:disabled) { background: var(--rojo); }
+  letter-spacing: .24em; text-transform: uppercase; transition: background var(--ms-roce) var(--curva-roce); }
+@media (hover: hover) {
+  .pm-btn:hover:not(:disabled) { background: var(--rojo); }
+}
 .pm-btn:active:not(:disabled) { transform: translateY(1px); }
 .pm-btn:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
 .pm-btn--ghost { background: transparent; color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--cdd-text); }
-.pm-btn--ghost:hover:not(:disabled) { background: transparent; color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }
+@media (hover: hover) {
+  .pm-btn--ghost:hover:not(:disabled) { background: transparent; color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }
+}
 
 /* ── Sello de caucho ────────────────────────────────────────────────────
    El sustituto tipográfico del icono. Donde antes había un emoji dentro de
@@ -2798,9 +2950,11 @@ body,
   font-family: var(--font-body); font-weight: 800; font-size: 10px;
   letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
   border-bottom: 2px solid transparent; margin-bottom: -1px;
-  transition: color .16s;
+  transition: color var(--ms-roce) var(--curva-roce);
 }
-.rank-tab:hover { color: var(--cdd-text); }
+@media (hover: hover) {
+  .rank-tab:hover { color: var(--cdd-text); }
+}
 .rank-tab--activa { color: var(--cdd-text); border-bottom-color: var(--rojo); }
 .rank-ayuda {
   margin-left: auto; min-height: 44px; display: inline-flex; align-items: center;
@@ -2808,7 +2962,9 @@ body,
   font-family: var(--font-body); font-weight: 700; font-size: 9px;
   letter-spacing: .1em; text-transform: uppercase; color: var(--rojo);
 }
-.rank-ayuda:hover { opacity: 0.8; }
+@media (hover: hover) {
+  .rank-ayuda:hover { opacity: 0.8; }
+}
 
 /* Cabecera de temporada: kicker, tema en Fraunces y el cierre al margen, sobre
    doble filete — una cabecera de sección de periódico.
@@ -2865,7 +3021,9 @@ body,
 }
 /* El realce al señalar una fila clicable: el mismo papel de los demás hover del
    sistema (portadillas, entradas del sumario). */
-.rank-fila-clic:hover { background: var(--surface2); }
+@media (hover: hover) {
+  .rank-fila-clic:hover { background: var(--surface2); }
+}
 
 /* El aparte de «tu posición» cuando quedas fuera del top visible. */
 .rank-tuposicion {
@@ -2921,15 +3079,19 @@ body,
   padding: 5px 9px;
   font-family: var(--font-body); font-weight: 700; font-size: 11px;
   letter-spacing: .12em; text-transform: uppercase;
-  transition: color .15s, border-color .15s, background .15s;
+  transition: color var(--ms-roce) var(--curva-roce), border-color var(--ms-roce) var(--curva-roce), background var(--ms-roce) var(--curva-roce);
 }
-.pm-chip:hover { color: var(--cdd-text); border-color: var(--cdd-text); }
+@media (hover: hover) {
+  .pm-chip:hover { color: var(--cdd-text); border-color: var(--cdd-text); }
+}
 /* Activo = tinta plena. En papel, "seleccionado" se dice invirtiendo. */
 .pm-chip.on { background: var(--cdd-text); border-color: var(--cdd-text); color: var(--bg); }
 /* Variante de CONSECUENCIA (cerrar sesión): mismo chip, pero al señalarlo se va
    al rojo en vez de a la tinta. Va después de `.pm-chip:hover` a propósito —
    misma especificidad, gana el último. */
-.pm-chip--rojo:hover { color: var(--rojo); border-color: var(--rojo); }
+@media (hover: hover) {
+  .pm-chip--rojo:hover { color: var(--rojo); border-color: var(--rojo); }
+}
 .pm-chip .cifra { font-family: var(--font-mono); letter-spacing: 0; opacity: .8; }
 .pm-chip .bandera { width: 16px; height: 11px; object-fit: cover; flex: none; }
 
@@ -2938,9 +3100,11 @@ body,
   position: relative; display: flex; flex-direction: column; width: 100%;
   border: 1px solid var(--line-strong); border-radius: 0;
   background: var(--surface); text-align: left; cursor: pointer;
-  overflow: hidden; transition: box-shadow .18s, transform .12s;
+  overflow: hidden; transition: box-shadow var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
 }
-.arch-portada:hover { box-shadow: var(--sombra-flota); }
+@media (hover: hover) {
+  .arch-portada:hover { box-shadow: var(--sombra-flota); }
+}
 .arch-portada:active { transform: translateY(1px); }
 /* Cabecera de kiosco: cabecera de la revista a la izquierda, nº de edición
    en rojo a la derecha. Es lo que convierte la foto en un objeto seriado. */
@@ -2955,9 +3119,11 @@ body,
 .arch-portada .foto { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--bg2); }
 .arch-portada .foto img {
   display: block; width: 100%; height: 100%; object-fit: cover;
-  transition: transform .5s cubic-bezier(.2, 1, .3, 1);
+  transition: transform var(--ms-escena) var(--curva-entra);
 }
-.arch-portada:hover .foto img { transform: scale(1.04); }
+@media (hover: hover) {
+  .arch-portada:hover .foto img { transform: scale(1.04); }
+}
 .arch-portada .pie { padding: 6px 7px 7px; border-top: 1px solid var(--line); }
 .arch-portada .pie .marca {
   font-family: var(--font-body); font-weight: 700; font-size: 9px;
@@ -2989,7 +3155,7 @@ body,
   border: 1.5px solid currentColor; padding: 2px 4px;
   transform: rotate(-7deg); white-space: nowrap;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
-  animation: prensaSellar .45s cubic-bezier(.2, 1.4, .4, 1) both;
+  animation: prensaSellar var(--ms-escena) var(--curva-sello) both;
 }
 .arch-sello--pleno { color: var(--rojo); }
 .arch-sello--vet { color: var(--gold); }
@@ -3021,9 +3187,11 @@ body,
   background-color: var(--bg2);
   background-image: repeating-linear-gradient(45deg,
     transparent 0 7px, rgb(var(--tinta-rgb) / .045) 7px 14px);
-  transition: border-color .18s, color .18s;
+  transition: border-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce);
 }
-.arch-hueco:hover { border-color: var(--rojo); }
+@media (hover: hover) {
+  .arch-hueco:hover { border-color: var(--rojo); }
+}
 .arch-hueco .num {
   font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em;
   color: rgb(var(--tinta-rgb) / .45);
@@ -3033,7 +3201,9 @@ body,
   letter-spacing: .18em; text-transform: uppercase; line-height: 1.5;
   color: rgb(var(--tinta-rgb) / .5);
 }
-.arch-hueco:hover .txt, .arch-hueco:hover .num { color: var(--rojo); }
+@media (hover: hover) {
+  .arch-hueco:hover .txt, .arch-hueco:hover .num { color: var(--rojo); }
+}
 
 /* ── Especial de set completo ───────────────────────────────────────── */
 /* La recompensa por completar un país: una portada que NO existe en el
@@ -3059,7 +3229,7 @@ body,
    rojo. Solo aparece en dominios ACOTADOS (un país, una marca), nunca sobre
    el catálogo entero — ahí la barra vive permanentemente vacía y desmotiva. */
 .arch-regla { height: 6px; border: 1px solid var(--line-strong); background: var(--surface); }
-.arch-regla > i { display: block; height: 100%; background: var(--rojo); transition: width .7s cubic-bezier(.2, 1, .3, 1); }
+.arch-regla > i { display: block; height: 100%; background: var(--rojo); transition: width var(--ms-escena) var(--curva-entra); }
 
 /* Paspartú: el marco donde la foto del detalle se ve ENTERA (object-contain).
    Las bandas que deja un formato que no encaja en el 4:3 son de papel, con lo
@@ -3133,15 +3303,15 @@ body,
   /* El ángulo lo fija el componente en `style` (sigue al dedo). Esta curva
      solo entra en el ASENTAMIENTO, al soltar: sale rápido y frena largo, que
      es como se para un objeto con inercia. */
-  transition: transform .5s cubic-bezier(.16, 1, .3, 1),
-              height .42s cubic-bezier(.16, 1, .3, 1);
+  transition: transform var(--ms-escena) var(--curva-entra),
+              height var(--ms-escena) var(--curva-entra);
 }
 /* Con el dedo puesto, cero transición EN EL GIRO: si no, la carta va medio
    segundo por detrás del dedo y el gesto se siente gomoso en vez de directo.
    La altura sí sigue animada: cambia al cruzar el canto (90°), donde la carta
    está de perfil y el cambio no se ve. */
 .arch-flip-inner.arrastrando {
-  transition: height .42s cubic-bezier(.16, 1, .3, 1);
+  transition: height var(--ms-escena) var(--curva-entra);
 }
 .arch-cara {
   position: absolute; top: 0; left: 0; width: 100%;
@@ -3153,9 +3323,190 @@ body,
 .arch-cara[aria-hidden="true"] { pointer-events: none; }
 .arch-cara--dorso { transform: rotateY(180deg); }
 
-@media (prefers-reduced-motion: reduce) {
-  .arch-sello { animation: none !important; }
-  .arch-flip-inner { transition: none !important; }
-  .arch-portada .foto img { transition: none !important; }
-  .arch-regla > i { transition: none !important; }
+
+/* ── EL ACUSE DE RECIBO DEL DEDO ────────────────────────────────────────────
+   La app apaga el `-webkit-tap-highlight-color` (ver «EL TACTO DE LA APP», al
+   principio del fichero) y hace bien: el rectángulo azul de Android asomando
+   por encima del papel es chrome de otra aplicación. Pero apagarlo deja una
+   deuda que nadie pagó — el resaltado del sistema ERA el acuse de recibo, y al
+   quitarlo hay que poner otro. Sin él, tocar GARAJE, un enlace del pie, una
+   pestaña del ranking, una fila de la clasificación o un chip no produce NADA
+   hasta que la pantalla siguiente termina de montar. Son entre 100 y 400 ms de
+   pantalla muerta después de cada toque, repartidos por toda la app, y es
+   probablemente lo que más contribuye a la sensación de que aquí falta oficio:
+   el ojo perdona una espera, pero no perdona no saber si le has dado.
+
+   DOS DIALECTOS, porque hay dos clases de cosa que se toca:
+
+     · UN OBJETO (botón, cromo, chip, fila, tarjeta) se HUNDE un píxel. Es el
+       gesto que ya usaban .pm-btn, la portadilla y el sumario, y ahora es el
+       único que existe: convivían cinco tamaños de encogerse, del .90 del
+       botón de cerrar al .98 del CTA, que es lo que hacía que dos botones de la
+       misma pantalla respondieran distinto al mismo dedo.
+
+     · UN RENGLÓN DE TEXTO (los enlaces de servicio, la cabecera) vira al ROJO.
+       No se mueve, y no por capricho: un renglón no es un objeto con canto, así
+       que hundirlo delata que debajo hay una caja — justo lo que el sistema se
+       pasa 3.000 líneas disimulando. El rojo ya es el color de «acción» del
+       sistema, así que el toque dice lo mismo que el color.
+
+   Va al final del fichero a propósito: `:active` tiene que ganarle a la regla
+   de reposo de cada pieza, y aquí lo hace por orden de cascada sin gastar un
+   `!important` en cada línea. */
+
+/* Objetos: el papel se hunde. */
+.rank-fila-clic:active,
+.pm-chip:active,
+.arch-hueco:active,
+.cdd-end-link:active,
+.cdd-parte-cta:active,
+.cdd-repesca-cta:active {
+  transform: translateY(1px);
+}
+
+/* Renglones: la tinta vira. */
+.prensa-topbar > span > button:active,
+.prensa-topbar > span > a:active,
+.prensa-topbar .prensa-clasif:active .pos,
+.prensa-cierre button:active,
+.prensa-cierre a:active,
+.prensa-sumario-pie a:active,
+.rank-tab:active,
+.rank-ayuda:active,
+.cdd-unlock:active .cdd-unlock-name {
+  color: var(--rojo);
+}
+
+/* ── LA ENTRADA DEL PLIEGO ──────────────────────────────────────────────────
+   El pliego aparecía DE GOLPE: cabecera, ladillo, cupón y pie encendiéndose en
+   el mismo fotograma. No está mal hecho, simplemente no está hecho — y es la
+   diferencia entre una página que se abre y una que se enciende como un cartel.
+   Aquí las cosas se imprimen en orden, de arriba abajo, que es como sale una
+   página de una rotativa y como la lee el ojo.
+
+   TRES DECISIONES, y ninguna es de gusto:
+
+   · ENTINTAR ES OPACIDAD, NUNCA TRANSFORM. Es el verbo del sistema —la tinta
+     no se desliza, aparece— y además es lo ÚNICO que se puede animar aquí sin
+     romper nada: `useEncajeEscenario` y `useEscenarioApartado` miden estas
+     mismas cajas con `getBoundingClientRect`, y un `translateY` en vuelo les
+     devolvería una posición a medio camino. La metáfora y la seguridad piden
+     lo mismo, que es la señal de que la metáfora estaba bien elegida.
+
+   · LA FOTOGRAFÍA NO ENTRA EN LA CASCADA. Dos motivos que apuntan al mismo
+     sitio: es el elemento LCP de la página —retrasarle el pintado por adorno es
+     pagar la métrica que mide si la web abre rápido— y ya TIENE su propia
+     entrada, que es el cruce esqueleto → LQIP → foto. La foto es la constante;
+     lo que se monta alrededor es la página. Que el pliego se arme en torno a
+     ella dice exactamente lo que el diseño lleva diciendo desde el principio.
+
+   · `backwards` Y NO `both`, que es donde esto se rompía en silencio. Con
+     `both`, una animación terminada RETIENE su último valor y le gana a la
+     propiedad declarada: el `opacity` con el que el cromo se apaga al abrir la
+     hoja del cupón (ver «EL ESCENARIO SE APARTA») no habría vuelto a
+     funcionar nunca más — sobre estos mismos tres selectores. Con `backwards`
+     la animación solo manda ANTES y DURANTE; al acabar, el elemento vuelve a
+     su estilo de siempre y la hoja recupera su transición.
+
+   Cuatro tiempos de 40 ms: cornisa → ladillo → cupón → pie. 320 ms de principio
+   a fin, por debajo del umbral en que una entrada empieza a sentirse como una
+   espera. */
+@keyframes pmEntintar { from { opacity: 0; } }
+
+.prensa-area-cab,
+.prensa-area-foto .prensa-ladillo,
+.prensa-area-jugar,
+.prensa-area-pie {
+  animation: pmEntintar var(--ms-hoja) var(--curva-entra) backwards;
+}
+/* (La cornisa no lleva retardo: es el primer tiempo.) */
+.prensa-area-foto .prensa-ladillo    { animation-delay: var(--ms-paso); }
+.prensa-area-jugar                   { animation-delay: calc(var(--ms-paso) * 2); }
+.prensa-area-pie                     { animation-delay: calc(var(--ms-paso) * 3); }
+
+/* ── EL CRUCE DE EDICIÓN ────────────────────────────────────────────────────
+   El fundido entre la edición de día y la de noche (lib/theme.js lo dispara con
+   la API de transiciones de vista). Por defecto el navegador cruza en 250 ms con
+   su propia curva; aquí se le pide el tempo del sistema, que es lo que hace que
+   el cambio de tema se sienta parte de la misma app y no un efecto del
+   navegador.
+
+   `--ms-escena` porque esto CAMBIA LA CARA de todo lo que hay en pantalla, que
+   es la definición del peldaño. La curva es `roce`: no hay geometría en juego
+   —nada se mueve, solo cambia de color—, así que no toca ni acelerar ni frenar,
+   toca cruzar de forma pareja.
+
+   `prefers-reduced-motion` no necesita regla aquí: la transición de vista ni
+   siquiera se pide en ese caso (ver `conCruce` en lib/movimiento.js). Es la
+   diferencia entre apagar una animación y no encenderla — lo segundo también se
+   ahorra las dos fotografías de pantalla completa que la API necesita. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--ms-escena);
+  animation-timing-function: var(--curva-roce);
+}
+
+/* ── LA COMPOSICIÓN DEL RENGLÓN ─────────────────────────────────────────────
+   Elegir tres buenas familias es la mitad del trabajo tipográfico; la otra
+   mitad es cómo caen las líneas, y esa mitad no estaba hecha. En 3.200 líneas
+   de CSS no había ni un `text-wrap`, ni un ajuste de prosa, ni tracking que
+   dependiera del cuerpo. Son exactamente los detalles que nadie sabe nombrar
+   al mirar una pantalla y que separan una composición de un volcado de texto.
+
+   · `pretty` en todo el cuerpo: el navegador mira unas líneas por delante para
+     que un párrafo no acabe con una palabra sola colgando. Es la viuda de toda
+     la vida — el defecto de maquetación más visible que existe, y el que más
+     sale en textos que cambian de largo según el idioma, que aquí son todos
+     (es/en). Coste cero donde no está soportado: se ignora.
+
+   · `balance` en los titulares: reparte las líneas para que queden parejas en
+     vez de dejar una larga y una de dos palabras. Solo tiene sentido donde el
+     texto ocupa pocas líneas y grandes, que es justo lo que es un titular; en
+     un párrafo largo el navegador ni lo intenta.
+
+   Va con `:where()` para que la especificidad sea CERO: esto es una base
+   tipográfica, no una decisión sobre ningún componente concreto, y cualquier
+   regla que quiera otra cosa tiene que poder pisarla sin pelear. */
+:where(body) { text-wrap: pretty; }
+:where(h1, h2, h3, h4, .pm-title, .pm-hoja-titulo, .cdd-reveal-model) { text-wrap: balance; }
+
+/* ── EL TRACKING SIGUE AL CUERPO ────────────────────────────────────────────
+   Una fuente display no quiere el mismo espaciado a 38px que a 15px: cuanto
+   más grande, más aire sobra entre letras, y por eso los titulares de un
+   periódico van más apretados que su pie de foto. El ordinal del puesto
+   —la cifra más grande de la app, y la que aparece en cuatro tamaños distintos—
+   llevaba `-.02em` fijo en los cuatro: apretado de más a 15px y suelto de menos
+   a 38px. Es un ajuste de dos decimales que no se ve por separado y se nota
+   entero. */
+.pm-puesto--xl .cifra { letter-spacing: -.032em; }
+.pm-puesto--l  .cifra { letter-spacing: -.026em; }
+.pm-puesto--s  .cifra { letter-spacing: -.008em; }
+
+/* ── LA ESPERA, EN LA VOZ DE LA CASA ────────────────────────────────────────
+   El esqueleto de la fotografía usaba `animate-pulse`, el "cargando" que trae
+   Tailwind de serie. Funciona, y es exactamente el problema: es el mismo gris
+   parpadeante que sale en cualquier tutorial, puesto encima del elemento con
+   más carácter de toda la app y en el primer segundo de la primera visita —el
+   único momento en que un jugador nuevo decide qué clase de sitio es este.
+
+   El sistema YA tenía su forma de decir «esto está esperando»: el entintado de
+   la fila del cupón mientras el servidor contesta. Es la misma espera y ahora
+   es el mismo gesto. Papel, no gris; respiración, no parpadeo. */
+.pm-esperando {
+  background-color: var(--surface2);
+  animation: pmRespirar var(--ms-latido) var(--curva-latido) infinite;
+}
+/* RESPIRA EN EL FONDO, NO EN LA OPACIDAD, y eso NO es un capricho de estilo.
+   Una animación de `opacity` le gana a la propiedad `opacity` declarada —
+   también a la de un `style` en línea, que es donde CarImage escribe el cruce
+   a 0 cuando la foto termina de cargar. O sea que el esqueleto no llegaba a
+   apagarse nunca: seguía respirando detrás de la fotografía el resto de la
+   sesión, invisible pero componiéndose en cada frame. Venía de fábrica con el
+   `animate-pulse` de Tailwind (que anima opacidad) y se habría heredado tal
+   cual. Animando el COLOR, la opacidad queda libre para el cruce.
+   De paso la metáfora mejora: el papel se entinta y se aclara, que es lo que
+   hace el papel, en vez de aparecer y desaparecer. */
+@keyframes pmRespirar {
+  0%, 100% { background-color: var(--surface2); }
+  50%      { background-color: var(--surface); }
 }

@@ -9,6 +9,7 @@ import { useT } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import { esApp } from "../../lib/plataforma";
+import { desplazarSuave } from "../../lib/movimiento";
 import { getCurrentSeason } from "../../lib/statsService";
 import { creditoTemporada } from "../../lib/season";
 import Header from "./Header";
@@ -208,7 +209,7 @@ export default function Configurator({
   // Tap en el recorte: cerrar el teclado y devolver el escenario al viewport.
   function volverALaFoto() {
     document.activeElement?.blur?.();
-    fotoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    desplazarSuave(fotoRef.current, { block: "start" });
   }
 
   // (Aquí se calculaba `olderGuesses`, que le quitaba al historial el intento

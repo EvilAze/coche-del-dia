@@ -118,7 +118,15 @@ export default function ZoomStage({
           }
         >
           {!soloEstado && <span className="rotulo">{t("prensa.ladilloFoto")}</span>}
-          <span className="aparte">{estado}</span>
+          {/* EL CONTADOR SE RE-ESTAMPA AL CAMBIAR DE PISTA. Es el relevo
+              tipográfico del lavado rojo que se tiraba sobre la fotografía
+              (ver CarImage): en este sistema el aviso lo da la letra, no un
+              tinte encima de la foto. El `key` es el propio texto, así que al
+              pasar de «Pista 2 de 5» a «Pista 3 de 5» React sustituye el nodo
+              y la animación del sello vuelve a arrancar — que es la única
+              forma de re-disparar una keyframe CSS sin tocarla desde JS.
+              Cae en el primer tiempo del compás, antes que la foto. */}
+          <span key={estado} className="aparte prensa-estampada">{estado}</span>
           {credito && (
             <>
               <i className="filete" aria-hidden="true" />
@@ -158,7 +166,6 @@ export default function ZoomStage({
           hintIndex={hintIndex}
           totalHints={totalHints}
           status={status}
-          showHintLabel={false}
           overlay={overlay}
           onRevealLoad={onRevealLoad}
         />

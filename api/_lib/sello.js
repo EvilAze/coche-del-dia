@@ -39,10 +39,10 @@ export async function selloDeCoche(carId, fecha) {
  * calculan y se lo pasan al resolvedor, que es puro y síncrono.
  */
 export async function sellosDe(carIds, fecha) {
-  const mapa = {};
-  for (const id of carIds || []) {
-    if (!id) continue;
-    mapa[id] = await selloDeCoche(id, fecha);
-  }
-  return mapa;
+  // Set: prev_car_ids puede traer el mismo coche dos veces (un swap A→B→A) y
+  // no vamos a firmar dos veces lo mismo. Promise.all: esto corre en el primer
+  // paint, que es el único request bloqueante del juego.
+  const unicos = [...new Set((carIds || []).filter(Boolean))];
+  const sellos = await Promise.all(unicos.map((id) => selloDeCoche(id, fecha)));
+  return Object.fromEntries(unicos.map((id, i) => [id, sellos[i]]));
 }

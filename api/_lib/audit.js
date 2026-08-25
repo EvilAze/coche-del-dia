@@ -15,13 +15,20 @@
 import crypto from "crypto";
 import { getSupabaseAdmin } from "./supabase.js";
 
-const SECRET = process.env.REPESCA_TOKEN_SECRET || "";
+// Perezoso (función, no `const` al importar): igual que la regla 2 prohíbe
+// `const supabase = createClient(...)` a nivel de módulo, leer el env aquí
+// arriba congelaría un secreto vacío si REPESCA_TOKEN_SECRET llega después
+// del import — y a partir de ahí todo hash de IP se quedaría en `null` sin
+// que nada lo explique (el log seguiría insertando filas, solo que sin poder
+// correlacionar sesiones).
+const SECRET = () => process.env.REPESCA_TOKEN_SECRET || "";
 
 // HMAC de la IP. Si no hay secreto o IP, devolvemos null (no rompemos).
 function hashIp(ip) {
-  if (!SECRET || !ip) return null;
+  const secret = SECRET();
+  if (!secret || !ip) return null;
   try {
-    return crypto.createHmac("sha256", SECRET).update(String(ip)).digest("hex").slice(0, 32);
+    return crypto.createHmac("sha256", secret).update(String(ip)).digest("hex").slice(0, 32);
   } catch {
     return null;
   }

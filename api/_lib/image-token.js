@@ -21,10 +21,19 @@
 
 import crypto from "crypto";
 
-const RAW_SECRET = process.env.REPESCA_TOKEN_SECRET || "";
-const KEY = RAW_SECRET
-  ? crypto.createHash("sha256").update(RAW_SECRET).digest()
-  : null;
+// Perezoso (función, no `const` al importar): igual que la regla 2 prohíbe
+// `const supabase = createClient(...)` a nivel de módulo, leer el env aquí
+// arriba congelaría un secreto vacío si REPESCA_TOKEN_SECRET llega después
+// del import. Aquí el riesgo es doble porque la llave AES se DERIVA del
+// secreto (SHA-256), así que no basta con hacer perezosa la lectura del env:
+// toda la derivación tiene que repetirse en cada llamada, o `KEY` se
+// quedaría congelada en `null` para siempre y cifrar/descifrar fallaría sin
+// que nada lo explique.
+const RAW_SECRET = () => process.env.REPESCA_TOKEN_SECRET || "";
+const KEY = () => {
+  const raw = RAW_SECRET();
+  return raw ? crypto.createHash("sha256").update(raw).digest() : null;
+};
 const ALGO = "aes-256-gcm";
 
 export const IMAGE_MODE_CLEAR = "c";
@@ -43,7 +52,8 @@ const VALID_MODES = new Set([
  * ruidosamente a servir tokens con clave vacía.
  */
 export function signImageToken({ carId, mode }) {
-  if (!KEY) throw new Error("REPESCA_TOKEN_SECRET not configured");
+  const key = KEY();
+  if (!key) throw new Error("REPESCA_TOKEN_SECRET not configured");
   if (!carId || !mode) throw new Error("signImageToken: missing fields");
   if (!VALID_MODES.has(mode)) {
     throw new Error(`signImageToken: invalid mode "${mode}"`);
@@ -55,7 +65,7 @@ export function signImageToken({ carId, mode }) {
     .update(`iv:${payload}`)
     .digest()
     .subarray(0, 12);
-  const cipher = crypto.createCipheriv(ALGO, KEY, iv);
+  const cipher = crypto.createCipheriv(ALGO, key, iv);
   const enc = Buffer.concat([
     cipher.update(payload, "utf8"),
     cipher.final(),
@@ -69,7 +79,8 @@ export function signImageToken({ carId, mode }) {
  * es inválido, ha sido alterado, o el secreto no está configurado.
  */
 export function verifyImageToken(token) {
-  if (!KEY) return null;
+  const key = KEY();
+  if (!key) return null;
   if (typeof token !== "string" || token.length === 0) return null;
   try {
     const buf = Buffer.from(token, "base64url");
@@ -78,7 +89,7 @@ export function verifyImageToken(token) {
     const iv = buf.subarray(0, 12);
     const tag = buf.subarray(12, 28);
     const enc = buf.subarray(28);
-    const decipher = crypto.createDecipheriv(ALGO, KEY, iv);
+    const decipher = crypto.createDecipheriv(ALGO, key, iv);
     decipher.setAuthTag(tag);
     const decoded = Buffer.concat([
       decipher.update(enc),

@@ -401,7 +401,6 @@ export default function SchedulePanel({
                     className="
                       flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.18em] text-accent
                       transition hover:bg-accent/10
-                      disabled:cursor-not-allowed disabled:opacity-40 disabled:text-muted
                     "
                   >
                     Cambiar coche
@@ -438,7 +437,9 @@ export default function SchedulePanel({
       )}
 
       {/* Montado siempre (ModalShell decide cuándo pintar) para que la
-          animación de salida no se corte. Al terminar se incrementa
+          animación de salida no se corte — y estar montado ya no cuesta una
+          descarga del catálogo: el modal pide el suyo al abrirse
+          (useFreshCatalog con auto:false). Al terminar se incrementa
           localRefresh: es el mismo contador que usan aleatorizar y liberar
           para volver a disparar el GET de /api/admin/schedule, así que la
           tarjeta de hoy se repinta ya con el coche nuevo. */}

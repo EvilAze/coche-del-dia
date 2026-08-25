@@ -116,8 +116,8 @@ describe("PLAZOS", () => {
     // cuerpo HTML que todo esto viene a eliminar.
     //
     // La cadena real, con los reintentos incluidos:
-    //   limiter  →  (auth ∥ pick_daily_car)  →  user_guesses  →  reveal
-    // auth y pick_daily_car van en paralelo (Promise.all), así que cuenta el
+    //   limiter  →  (auth ∥ coche_de_hoy)  →  user_guesses  →  reveal
+    // auth y coche_de_hoy van en paralelo (Promise.all), así que cuenta el
     // mayor de los dos. Los que llevan DOS intentos pagan el plazo dos veces.
     const DOS_INTENTOS = 2;
     const auth = PLAZOS.AUTH * DOS_INTENTOS;

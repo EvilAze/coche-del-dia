@@ -69,11 +69,23 @@ function todayInMadrid() {
 // Helper: reproduce la decisión canReveal de daily-image.js, branch por
 // branch. Si esto coincide con el código del handler (api/daily-image.js
 // líneas con "canReveal"), tenemos cobertura simbólica.
-function computeCanReveal({ tParam = null, today }) {
-  // Branch 1: ?t=<reveal token> firmado por nosotros para HOY.
+function computeCanReveal({
+  tParam = null,
+  today,
+  selloDelCoche = null,
+  hayCambioHoy = false,
+}) {
+  // Branch 1: ?t=<reveal token> firmado por nosotros para HOY y para el coche
+  // que resuelve el `v` de la URL. El sello es lo que impide que la llave de un
+  // congelado abra la foto del coche vigente; un token del formato viejo (sin
+  // sello) solo vale los días sin salientes, que es cuando «un día = un coche»
+  // seguía siendo verdad.
   if (tParam) {
-    const tokenDate = verifyRevealToken(tParam);
-    if (tokenDate === today) return true;
+    const datos = verifyRevealToken(tParam);
+    if (datos?.date === today) {
+      if (!datos.sello) return !hayCambioHoy;
+      return Boolean(selloDelCoche) && datos.sello === selloDelCoche;
+    }
   }
   // Branch 2: Bearer con user_guesses.status — no testable sin Supabase.
   // (La rama de sesión anónima por cookie se eliminó: el anónimo ganador

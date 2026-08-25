@@ -130,8 +130,13 @@ console.log("\n[reveal-token]");
 // ============================================================================
 
 {
-  const t = signRevealToken("2026-05-20");
-  eq("roundtrip reveal-token", verifyRevealToken(t), "2026-05-20");
+  // El token lleva fecha Y sello del coche (api/_lib/sello.js): la fecha sola
+  // dejó de bastar el día que un día pudo tener dos coches.
+  const t = signRevealToken("2026-05-20", "selloDelCoche01");
+  eq("roundtrip reveal-token", verifyRevealToken(t), {
+    date: "2026-05-20",
+    sello: "selloDelCoche01",
+  });
 }
 
 {
@@ -149,11 +154,16 @@ console.log("\n[reveal-token]");
 }
 
 {
-  // Día distinto: el helper solo devuelve la fecha; el caller compara. La
-  // verificación per se NO rechaza por fecha vieja — eso es responsabilidad
-  // del handler (daily-image, get-daily-car). Documentamos el contrato.
+  // Día distinto: el helper solo devuelve lo que hay firmado; el caller
+  // compara. La verificación per se NO rechaza por fecha vieja — eso es
+  // responsabilidad del handler (daily-image, get-daily-car). Y un token del
+  // formato viejo (sin sello) se devuelve con `sello: null`, que es lo que
+  // daily-image usa para decidir si lo acepta. Documentamos el contrato.
   const old = signRevealToken("2024-01-01");
-  eq("verifyRevealToken devuelve la fecha tal cual", verifyRevealToken(old), "2024-01-01");
+  eq("verifyRevealToken devuelve la fecha tal cual", verifyRevealToken(old), {
+    date: "2024-01-01",
+    sello: null,
+  });
 }
 
 

@@ -515,7 +515,14 @@ export default async function handler(request) {
     let revealToken = null;
     if (valid && (session.s === "won" || session.s === "lost")) {
       try {
-        revealToken = await signRevealToken(today);
+        // Con el sello del coche RESUELTO, no el del vigente: el token abre la
+        // foto de SU revisión. Sin esto, el congelado que terminaba su partida
+        // se llevaba una llave que también abría el coche que los demás siguen
+        // jugando (ver la nota larga de _lib/reveal-token.js).
+        revealToken = await signRevealToken(
+          today,
+          sellosPorCarId[carIdDelUsuario] || null
+        );
       } catch (err) {
         console.error("[get-daily-car] signRevealToken (anon):", err?.message || err);
       }
@@ -555,10 +562,14 @@ export default async function handler(request) {
         { data: null, error: { message: "read cars (live) sin respuesta a tiempo" } },
         { etiqueta: "read cars (live)" }
       ),
-      signRevealToken(today).catch((err) => {
-        console.error("[get-daily-car] signRevealToken:", err?.message || err);
-        return null;
-      }),
+      // Con el sello del coche RESUELTO, igual que en la rama anónima: la
+      // llave abre la foto de la revisión que este jugador se ha ganado.
+      signRevealToken(today, sellosPorCarId[carIdDelUsuario] || null).catch(
+        (err) => {
+          console.error("[get-daily-car] signRevealToken:", err?.message || err);
+          return null;
+        }
+      ),
     ]);
 
     if (liveResult.error) {

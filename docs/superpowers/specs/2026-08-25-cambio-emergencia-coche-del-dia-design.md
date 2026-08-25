@@ -173,7 +173,16 @@ logueado sin fila que reenviara un sello viejo: se le sirve el coche vigente.
   el `v` que ya lleva. Como `v` es un hash del coche, **`v` es el selector de
   revisión**: si no casa con el del coche vigente, se busca entre los salientes
   y se sirve ese. Sin cambios en el cliente y sin autenticar nada. El
-  `tryReadUserStatus` del reveal recibe el coche ya resuelto.
+  `tryReadUserStatus` del reveal recibe el coche ya resuelto. **Y el
+  `revealToken` también deja de hablar solo del día**: lleva el **sello** del
+  coche de su portador, y aquí se exige que corresponda al que resuelve el `v`.
+  Un token que solo dijera «hoy» convertía la llave del congelado en llave
+  maestra — termina su partida con el saliente, abre incógnito, pide la URL del
+  vigente con su token y se lleva la foto entera del coche que los demás están
+  jugando (regla 5). Los tokens del formato viejo, sin sello, se aceptan **solo
+  los días sin salientes**, que es cuando «un día = un coche» seguía siendo
+  verdad; y un token legítimo de otra revisión **no se registra como canario**,
+  porque no es un ataque.
 - `api/validate-guess.js` — o validaría los intentos contra el coche que no es.
 
 #### La caché del proxy de imagen no se contamina

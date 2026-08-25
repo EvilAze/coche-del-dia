@@ -39,6 +39,7 @@ import { getClientIp } from "./_lib/ratelimit.js";
 import { logCanary } from "./_lib/audit.js";
 import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
 import { versionDeImagen } from "./_lib/version-imagen.js";
+import { selloDeCoche } from "./_lib/sello.js";
 
 // Allowlists. Cambiar aquí también requiere actualizar CarImage.jsx (los
 // srcset del front), que es donde se decide qué tamaños se piden.
@@ -77,6 +78,28 @@ const ALLOWED_Z = new Set([1, 2, 3, 4, 5]);
 // reveal a su `user_guesses.status`. Es opcional: el flujo normal de
 // reveal pasa por el revealToken firmado, pero este check es defensivo
 // para clientes que aún no tengan token (cache antigua, refresh raro).
+/**
+ * ¿El revealToken que presenta este visitante abre la foto que está pidiendo?
+ *
+ * El token trae el SELLO del coche que su portador se ganó (_lib/reveal-token.js),
+ * y aquí se compara con el sello del coche que hemos resuelto por el `v` de la
+ * URL. Si no casan, el token es de otra revisión del día y no abre nada: se le
+ * sirve el recorte, como a cualquiera.
+ *
+ * COMPATIBILIDAD CON LOS TOKENS VIEJOS (sin sello), que siguen circulando en
+ * clientes que no han recargado: se aceptan SOLO si el día no tiene salientes.
+ * Ahí el razonamiento antiguo —«un día = un coche»— sigue siendo verdad y el
+ * token no puede abrir nada que su portador no se hubiera ganado ya. En cuanto
+ * hay salientes, un token sin sello no puede demostrar de qué revisión es, y el
+ * fallo seguro es no revelar: como mucho le cuesta una recarga al legítimo
+ * (get-daily-car le emite uno nuevo, ya con sello).
+ */
+async function tokenAbreEstaFoto(selloDelToken, carId, today, hayCambioHoy) {
+  if (!selloDelToken) return !hayCambioHoy;
+  const esperado = await selloDeCoche(carId, today);
+  return Boolean(esperado) && esperado === selloDelToken;
+}
+
 async function tryReadUserStatus(req, carId, today) {
   const auth = req.headers?.authorization || "";
   if (!auth.startsWith("Bearer ")) return null;
@@ -228,9 +251,12 @@ export default async function handler(req, res) {
   // DevTools, copiaba la URL, quitaba `&z=5` y veía el coche entero. Ahora
   // exigimos prueba server-verificable de que el visitante ha terminado
   // la partida. Dos vías equivalentes:
-  //   (a) ?t=<revealToken> firmado por hoy (lo emiten get-daily-car y
-  //       validate-guess cuando aplican — también al anónimo que GANÓ, así
-  //       que el incógnito ganador revela por aquí, no por su sesión).
+  //   (a) ?t=<revealToken> firmado por hoy Y PARA ESTE COCHE (lo emiten
+  //       get-daily-car y validate-guess cuando aplican — también al anónimo
+  //       que GANÓ, así que el incógnito ganador revela por aquí, no por su
+  //       sesión). El sello del token tiene que corresponder al coche que
+  //       hemos resuelto por el `v`: la fecha sola dejó de bastar el día que
+  //       un día pudo tener dos coches.
   //   (b) Bearer del usuario y user_guesses.status ∈ {won, lost}.
   // Si NINGUNA aplica, forzamos el crop más amplio que un jugador
   // legítimo podría ver durante la partida (z=5 = 55,6% central).
@@ -238,23 +264,32 @@ export default async function handler(req, res) {
 
   const tParam = typeof req.query?.t === "string" ? req.query.t : "";
   if (tParam) {
-    const tokenDate = verifyRevealToken(tParam);
-    if (tokenDate === today) {
-      canReveal = true;
-    } else {
+    const datos = verifyRevealToken(tParam);
+    if (datos?.date !== today) {
       // CANARIO: un cliente legítimo solo presenta tokens que el servidor
-      // emitió para HOY. Un token con firma inválida (tokenDate === null) es
+      // emitió para HOY. Un token con firma inválida (datos === null) es
       // forjado; uno válido pero de otra fecha es caducado/replay (puede ser
       // una pestaña vieja, señal más débil). Registramos ambos con motivo
       // distinto. Best-effort: nunca rompe la entrega de la imagen.
       await logCanary({
         req,
-        reason: tokenDate === null ? "forged_reveal_token" : "stale_reveal_token",
+        reason: datos === null ? "forged_reveal_token" : "stale_reveal_token",
         carId,
         gameDate: today,
         isAnon: !String(req.headers?.authorization || "").startsWith("Bearer "),
         ip: getClientIp(req),
       });
+    } else if (
+      await tokenAbreEstaFoto(datos.sello, carId, today, prevCarIds.length > 0)
+    ) {
+      canReveal = true;
+    } else {
+      // Token bien firmado y de hoy, pero de OTRA revisión del día. NO es un
+      // ataque: es exactamente lo que le pasa a quien terminó su partida con el
+      // coche saliente y luego carga la foto del vigente. Registrarlo como
+      // canario llenaría la auditoría anti-trampas de falsos positivos justo
+      // el día en que más falta hace poder leerla. Se le sirve el recorte y ya.
+      console.warn("[daily-image] revealToken de otra revisión: se sirve recorte");
     }
   }
 

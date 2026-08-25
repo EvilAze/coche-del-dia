@@ -474,7 +474,10 @@ export default async function handler(req, res) {
     let revealToken = null;
     if (shouldReveal) {
       try {
-        revealToken = signRevealToken(today);
+        // Con el sello del coche que ESTE jugador acaba de terminar: si es un
+        // congelado, su llave abre la foto del saliente y no la del vigente
+        // (ver la nota larga de _lib/reveal-token.js).
+        revealToken = signRevealToken(today, sellosPorCarId[todayCarId] || null);
       } catch (err) {
         console.error("[validate-guess] signRevealToken:", err?.message || err);
       }

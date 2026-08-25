@@ -7,6 +7,12 @@
 // PRINCIPIOS:
 //   - NUNCA tira: cualquier fallo se traga con un console.error. El log de
 //     auditoría jamás debe degradar la jugabilidad.
+//   - Y NUNCA ESPERA INDEFINIDAMENTE, que es la otra mitad de lo mismo: los
+//     dos handlers que llaman aquí lo hacen con `await` justo antes de
+//     responder, así que sin plazo un PostgREST atrancado convierte un intento
+//     ya validado en un 504 con HTML (regla 21). El try/catch cubría a la base
+//     que contesta mal, no a la que no contesta. Plazo corto a propósito
+//     (PLAZOS.AUDITORIA): al vencer no se pierde nada que el jugador vea.
 //   - La IP se guarda HASHEADA (HMAC con REPESCA_TOKEN_SECRET): suficiente
 //     para correlacionar sesiones sin almacenar la IP en claro.
 //   - Inserta con service_role (getSupabaseAdmin): la tabla está cerrada a
@@ -14,6 +20,19 @@
 
 import crypto from "crypto";
 import { getSupabaseAdmin } from "./supabase.js";
+import { conTimeoutOFallback, PLAZOS } from "./timeout.js";
+
+// Un insert de auditoría, acotado. Sin reintento a propósito: si la tabla
+// oculta no admite la fila a la primera, volver a intentarlo gasta presupuesto
+// de la función por una fila que nadie está esperando.
+function insertarAcotado(admin, row, etiqueta) {
+  return conTimeoutOFallback(
+    admin.from("guess_audit").insert(row),
+    PLAZOS.AUDITORIA,
+    { error: { message: `${etiqueta} sin respuesta a tiempo` } },
+    { etiqueta }
+  );
+}
 
 // Perezoso (función, no `const` al importar): igual que la regla 2 prohíbe
 // `const supabase = createClient(...)` a nivel de módulo, leer el env aquí
@@ -81,7 +100,7 @@ export async function logGuessAttempt({
       anio_status: result?.anio?.status ?? null,
       win: Boolean(result?.win),
     };
-    const { error } = await admin.from("guess_audit").insert(row);
+    const { error } = await insertarAcotado(admin, row, "guess_audit insert");
     if (error) console.error("[audit] insert:", error.message || error);
   } catch (err) {
     console.error("[audit] logGuessAttempt:", err?.message || err);
@@ -100,7 +119,7 @@ export async function logCanary({ req, reason, carId, gameDate, userId = null, i
     const admin = getSupabaseAdmin();
     if (!admin) return;
     const headers = req?.headers || {};
-    const { error } = await admin.from("guess_audit").insert({
+    const { error } = await insertarAcotado(admin, {
       mode: "canary",
       game_date: gameDate,
       car_id: carId,
@@ -113,7 +132,7 @@ export async function logCanary({ req, reason, carId, gameDate, userId = null, i
       accept_lang: clip(headers["accept-language"], 120),
       win: false,
       note: clip(reason, 200),
-    });
+    }, "canary insert");
     if (error) console.error("[audit] canary insert:", error.message || error);
   } catch (err) {
     console.error("[audit] logCanary:", err?.message || err);

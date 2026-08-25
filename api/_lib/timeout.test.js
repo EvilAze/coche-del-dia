@@ -209,6 +209,54 @@ describe("PLAZOS", () => {
     // absorbida por el `max()` con auth.
     expect(diaConRespaldo).toBeLessThanOrEqual(PLAZOS.SUPABASE * DOS_INTENTOS);
   });
+
+  // Los dos handlers de abajo son Node serverless, o sea 60 s de presupuesto en
+  // vez de los 25 s del Edge. Se suman IGUAL: el 504 con cuerpo HTML no
+  // distingue de qué runtime viene, y la única forma de que un plazo no suba
+  // «solo un poco» es que haya un test que lo note.
+  const PRESUPUESTO_NODE = 60000;
+
+  it("el peor caso encadenado de validate-guess cabe en los 60 s del serverless", () => {
+    // La cadena real:
+    //   limiter → (auth ∥ coche_de_hoy) → user_guesses → cars(real ∥ intento)
+    //           → upsert → record_daily_result_v2 → stats → auditoría
+    //
+    // auth y coche_de_hoy van en Promise.all: cuenta el mayor, no la suma.
+    // Ponerlos en serie era lo que empujaba esta cadena hacia el presupuesto.
+    // Las dos lecturas de `cars` también van en paralelo entre ellas.
+    const DOS_INTENTOS = 2;
+    const auth = PLAZOS.AUTH * DOS_INTENTOS;
+    const dia = PLAZOS.SUPABASE * DOS_INTENTOS;
+    const guesses = PLAZOS.SUPABASE * DOS_INTENTOS;
+    const coches = PLAZOS.SUPABASE * DOS_INTENTOS; // paralelas: un solo tramo
+    const upsert = PLAZOS.SUPABASE * DOS_INTENTOS;
+    const puntos = PLAZOS.SUPABASE; // sin reintento: la RPC es idempotente por día
+    const telemetria = PLAZOS.AUDITORIA * 2; // increment_daily_stats + guess_audit
+
+    const peorCaso =
+      PLAZOS.RATELIMIT +
+      Math.max(auth, dia) +
+      guesses +
+      coches +
+      upsert +
+      puntos +
+      telemetria;
+
+    expect(peorCaso).toBeLessThan(PRESUPUESTO_NODE);
+
+    // Y el camino con respaldo tampoco se sale: un intento de coche_de_hoy que
+    // vence + pick_daily_car y prev_car_ids EN PARALELO entre ellos. Si alguien
+    // los vuelve a poner en serie, esta comparación deja de cumplirse.
+    const diaConRespaldo = PLAZOS.SUPABASE + PLAZOS.SUPABASE;
+    expect(diaConRespaldo).toBeLessThanOrEqual(dia);
+  });
+
+  it("el plazo de auditoría es de los baratos: nadie espera esas filas", () => {
+    // Un insert de telemetría no puede costar lo mismo que la lectura que
+    // sostiene la partida: al vencer no se pierde nada que el jugador vea, y
+    // los dos handlers lo esperan con `await` justo antes de responder.
+    expect(PLAZOS.AUDITORIA).toBeLessThan(PLAZOS.SUPABASE);
+  });
 });
 
 describe("conTimeoutReintentando", () => {

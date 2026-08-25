@@ -10,6 +10,14 @@
 //   - Las llamadas a Supabase nunca tiran: comprobamos `error` en el tuple.
 //   - Las RPCs (record_daily_result_v2) sí pueden tirar; van en su propio
 //     try/catch para no romper el flujo principal.
+//   - Y NINGUNA espera indefinidamente (regla 21). Un `await` pelado contra
+//     PostgREST no falla cuando la base se atranca: se queda ahí hasta que
+//     Vercel mata la función a los 60 s y contesta un 504 con cuerpo HTML, que
+//     el cliente intenta parsear como JSON. Cada llamada externa de este
+//     handler lleva su plazo de _lib/timeout.js, y la decisión de si además
+//     lleva reintento está escrita al lado de cada una: reintentan las LECTURAS
+//     que sostienen la partida (sin ellas no se puede validar nada), no las
+//     escrituras de auditoría ni las de puntuación.
 
 import { readAnonToken, signAnonSession } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
@@ -25,30 +33,79 @@ import { compareGuess } from "./_lib/compare-guess.js";
 import { basePointsFor } from "./_lib/score.js";
 import { resolverCocheDelUsuario } from "./_lib/coche-de-hoy.js";
 import { sellosDe } from "./_lib/sello.js";
+import {
+  conTimeout,
+  conTimeoutOFallback,
+  conTimeoutReintentando,
+  fuePorPlazo,
+  PLAZOS,
+} from "./_lib/timeout.js";
 
 const MAX_ATTEMPTS = 5;
 
-async function fetchCarById(id) {
-  const { data, error } = await getSupabaseAdmin()
-    .from("cars")
-    // `video_id` viaja en esta query y NO en la del cliente: es una columna sin
-    // GRANT (ver scripts/2026-08-temporada-presentada-y-video.sql) porque
-    // identifica el coche del día. Aquí estamos con service_role y su salida
-    // está gateada por la política de revelado del paso 9.
-    .select("id, make, model, year, pais, description, description_en, video_id")
-    .eq("id", id)
-    .single();
-  if (error || !data) return null;
-  return data;
+/**
+ * Una fila de `cars` por id, distinguiendo «no existe» de «no he podido
+ * preguntar».
+ *
+ * ESA DISTINCIÓN ES EL PUNTO. Antes esto devolvía `null` para las dos cosas, y
+ * el handler traducía el null del coche adivinado a un 400 «Unknown guess car»:
+ * o sea, con la base atrancada le decíamos al jugador que el coche que acaba de
+ * elegir del desplegable no existe. Es exactamente el corolario de «degradar no
+ * es inventarse el estado», solo que inventándoselo en su contra. Ahora un
+ * fallo de servicio sale como 503 y el jugador entiende que hay que reintentar.
+ *
+ * `maybeSingle` y no `single`: con `single`, «cero filas» llega como error
+ * (PGRST116) y volveríamos a mezclar las dos cosas en el mismo canal.
+ *
+ * DOS INTENTOS: es la lectura sin la cual no hay comparación posible, y con un
+ * plazo pelado una lectura de 5 s —que hoy acaba llegando y sirviendo el
+ * intento— se convertiría en un error para quien no lo tenía roto.
+ *
+ * @returns {Promise<{car: object|null, fallo: boolean}>}
+ */
+async function fetchCarById(id, etiqueta) {
+  const { data, error } = await conTimeoutReintentando(
+    () =>
+      getSupabaseAdmin()
+        .from("cars")
+        // `video_id` viaja en esta query y NO en la del cliente: es una columna sin
+        // GRANT (ver scripts/2026-08-temporada-presentada-y-video.sql) porque
+        // identifica el coche del día. Aquí estamos con service_role y su salida
+        // está gateada por la política de revelado del paso 9.
+        .select("id, make, model, year, pais, description, description_en, video_id")
+        .eq("id", id)
+        .maybeSingle(),
+    PLAZOS.SUPABASE,
+    { data: null, error: { message: `${etiqueta} sin respuesta a tiempo` } },
+    { etiqueta }
+  );
+  if (error) {
+    console.error(`[validate-guess] ${etiqueta}:`, error);
+    return { car: null, fallo: true };
+  }
+  return { car: data || null, fallo: false };
 }
 
+/**
+ * Registro de puntos y racha. CON PLAZO Y SIN REINTENTO, y el motivo no es el
+ * presupuesto sino la idempotencia: `record_daily_result_v2` se protege de la
+ * doble contabilidad con `last_played_date = hoy`, así que un segundo intento
+ * lanzado detrás de un plazo agotado —cuando el primero PUDO haber
+ * commiteado— vuelve con `alreadyRecorded: true` y basePoints 0. Sería
+ * contarle al jugador que no ha puntuado justo el día que sí. El fallo de esta
+ * escritura ya está contemplado arriba (score.persisted = false).
+ */
 async function persistDailyResult({ accessToken, won, attemptNumber }) {
   const client = accessToken ? createAuthClient(accessToken) : null;
   if (!client) return null;
-  const { data, error } = await client.rpc("record_daily_result_v2", {
-    p_won: won,
-    p_attempt_number: attemptNumber,
-  });
+  const { data, error } = await conTimeout(
+    client.rpc("record_daily_result_v2", {
+      p_won: won,
+      p_attempt_number: attemptNumber,
+    }),
+    PLAZOS.SUPABASE,
+    { etiqueta: "record_daily_result_v2" }
+  );
   if (error) throw error;
   return data;
 }
@@ -102,47 +159,114 @@ export default async function handler(req, res) {
 
     const today = todayInMadrid();
     const accessToken = extractAccessToken(req);
-    const { client: authClient, user } = await authClientAndUser(accessToken);
 
     // El token anónimo se lee UNA vez, y aquí arriba: además de gobernar el
     // contador de intentos, es lo único que dice si un visitante sin sesión
     // lleva partida empezada — dato que hace falta más abajo para decidir qué
-    // hacer si no se pueden leer los salientes.
-    // SOLO cuenta sin sesión y si es de HOY (ver la nota del mismo bloque en
-    // get-daily-car: la cabecera viaja siempre y nadie la borra al registrarse).
+    // hacer si no se pueden leer los salientes. Es HMAC en local, sin red: no
+    // hay nada que acotar y por eso queda fuera de la fase paralela.
     const anonBruto = readAnonToken(req);
-    const anonEntrante = !user && anonBruto?.d === today ? anonBruto : null;
 
-    // -------- 3. Coche del día (resuelto en servidor) --------------------
+    // -------- 3. Coche del día + identidad, EN PARALELO ------------------
     // coche_de_hoy() = pick_daily_car() + los salientes del día. Los salientes
     // hacen falta para saber si este jugador está anclado a una revisión
     // anterior (cambio de emergencia del coche del día).
-    const { data: filasDia, error: pickErr } = await supabaseAdmin.rpc(
-      "coche_de_hoy",
-      { p_date: today }
-    );
+    //
+    // Las dos son independientes —una necesita el token, la otra la fecha— y
+    // van juntas por el mismo motivo que en get-daily-car: EN SERIE, sus plazos
+    // se SUMAN (10 s de auth + 8 s de la RPC), y sumar plazos en serie es la
+    // forma de acabar en el presupuesto de la función, que es el 504 con HTML
+    // que la regla 21 existe para eliminar. En paralelo cuenta el mayor.
+    //
+    // La RPC con DOS INTENTOS: sin coche del día no hay intento que validar, y
+    // es idempotente (fija el coche de la fecha y lo devuelve), así que
+    // repetirla no tiene efectos.
+    const [authResult, rpcResult] = await Promise.all([
+      authClientAndUser(accessToken),
+      conTimeoutReintentando(
+        () => supabaseAdmin.rpc("coche_de_hoy", { p_date: today }),
+        PLAZOS.SUPABASE,
+        { data: null, error: { message: "coche_de_hoy sin respuesta a tiempo" } },
+        { etiqueta: "coche_de_hoy" }
+      ),
+    ]);
+
+    // Auth atrancado CON token presente → 503. Seguir con `user: null` sería
+    // tratar a un jugador con sesión como anónimo: o le contestamos «Anon
+    // session missing» (un 400 que le suena a bug suyo), o —peor— le validamos
+    // el intento contra el contador de su token anónimo viejo, que es un
+    // tablero que no es el suyo. Inventarse el estado, otra vez. El 503 no es
+    // más ancho que el problema: solo alcanza a quien presentó un token y no se
+    // pudo comprobar; el anónimo ni entra aquí.
+    if (authResult.timedOut) {
+      console.error("[validate-guess] auth sin respuesta a tiempo");
+      res.setHeader("Retry-After", "5");
+      return res.status(503).json({ error: "Auth temporarily unavailable" });
+    }
+    const { client: authClient, user } = authResult;
+
+    // SOLO cuenta sin sesión y si es de HOY (ver la nota del mismo bloque en
+    // get-daily-car: la cabecera viaja siempre y nadie la borra al registrarse).
+    const anonEntrante = !user && anonBruto?.d === today ? anonBruto : null;
+
+    const { data: filasDia, error: pickErr } = rpcResult;
     let carIdVigente = filasDia?.[0]?.car_id || null;
     let prevCarIds = filasDia?.[0]?.prev_car_ids || [];
 
     if (pickErr || !carIdVigente) {
+      console.error("[validate-guess] coche_de_hoy:", pickErr);
+
+      // EL RESPALDO NO SE INTENTA SI EL FALLO FUE POR PLAZO. `coche_de_hoy` es
+      // un envoltorio finísimo sobre `pick_daily_car`: si el primero no
+      // contesta porque PostgREST está atrancado, el segundo tampoco. El
+      // respaldo solo compra resiliencia contra «la función todavía no está
+      // desplegada», que falla al instante (PGRST202). Detrás de una espera
+      // agotada no arregla nada y sí gasta otro plazo del presupuesto.
+      // 503 honesto y fuera — y sin haber gastado intento ni escrito nada.
+      if (fuePorPlazo(rpcResult)) {
+        res.setHeader("Retry-After", "5");
+        return res
+          .status(503)
+          .json({ error: "Daily car temporarily unavailable" });
+      }
+
       // RESPALDO: sin la envoltura desplegada se juega el coche de siempre.
       // Los salientes se leen IGUAL con un select plano: `[]` significa «hoy no
       // hubo cambio», no «no lo sé». Inventarlo aquí haría que a un congelado
       // se le validara el intento contra el coche que no es.
-      console.error("[validate-guess] coche_de_hoy:", pickErr);
-      const { data: respaldo, error: respErr } = await supabaseAdmin.rpc(
-        "pick_daily_car",
-        { p_date: today }
-      );
+      //
+      // UN SOLO INTENTO cada uno, y en paralelo entre ellos: acabamos de medir
+      // que la base responde (ha contestado al momento, mal pero al momento),
+      // así que el reintento —que existe para el tartamudeo— no tiene aquí nada
+      // que arreglar y sí sumaría plazo a un presupuesto ya contado.
+      const [respaldoRes, filaRes] = await Promise.all([
+        conTimeoutOFallback(
+          supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+          PLAZOS.SUPABASE,
+          { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
+          { etiqueta: "pick_daily_car (respaldo)" }
+        ),
+        conTimeoutOFallback(
+          supabaseAdmin
+            .from("daily_cars")
+            .select("prev_car_ids")
+            .eq("date", today)
+            .maybeSingle(),
+          PLAZOS.SUPABASE,
+          { data: null, error: { message: "prev_car_ids sin respuesta a tiempo" } },
+          { etiqueta: "read prev_car_ids" }
+        ),
+      ]);
+      const { data: respaldo, error: respErr } = respaldoRes;
       if (respErr || !respaldo) {
         console.error("[validate-guess] pick_daily_car:", respErr);
-        return res.status(500).json({ error: "Failed to resolve daily car" });
+        // 503 y no 500: sin coche del día no hay partida, pero esto no es un
+        // bug que buscar — se arregla solo en cuanto la base vuelva, y ahora
+        // además puede ser un plazo vencido, que es un temporal de manual.
+        res.setHeader("Retry-After", "5");
+        return res.status(503).json({ error: "Failed to resolve daily car" });
       }
-      const { data: fila, error: filaErr } = await supabaseAdmin
-        .from("daily_cars")
-        .select("prev_car_ids")
-        .eq("date", today)
-        .maybeSingle();
+      const { data: fila, error: filaErr } = filaRes;
       if (filaErr) {
         console.error("[validate-guess] read prev_car_ids:", filaErr);
         // El 503 solo a quien de verdad le afecta (regla 21, corolario 3: una
@@ -159,6 +283,7 @@ export default async function handler(req, res) {
           Boolean(user) ||
           (Number.isInteger(anonEntrante?.n) && anonEntrante.n > 0);
         if (leAfectan) {
+          res.setHeader("Retry-After", "5");
           return res.status(503).json({ error: "Game state temporarily unavailable" });
         }
       }
@@ -177,17 +302,35 @@ export default async function handler(req, res) {
 
     let filasUsuario = [];
     if (user) {
-      const { data: filas, error: filaErr } = await authClient
-        .from("user_guesses")
-        .select("car_id, guesses, status")
-        .eq("user_id", user.id)
-        .eq("date", today)
-        // Acotado a las revisiones del día: la partida de REPESCA de hoy vive
-        // en esta misma tabla, con esta misma fecha y otro car_id.
-        .in("car_id", [carIdVigente, ...prevCarIds]);
+      // DOS INTENTOS: esta lectura ES el contador de intentos gastados, o sea
+      // lo único que impide rejugar una partida terminada. Perderla a la
+      // primera por un plazo apretado convertiría en error un intento que iba a
+      // llegar; y no hay degradación posible al otro lado —seguir con
+      // `filasUsuario = []` sería tratar al jugador como si no hubiera jugado,
+      // regalándole intentos y dejándole repetir una partida cerrada—, así que
+      // el reintento es lo único que puede salvarla.
+      const { data: filas, error: filaErr } = await conTimeoutReintentando(
+        () =>
+          authClient
+            .from("user_guesses")
+            .select("car_id, guesses, status")
+            .eq("user_id", user.id)
+            .eq("date", today)
+            // Acotado a las revisiones del día: la partida de REPESCA de hoy vive
+            // en esta misma tabla, con esta misma fecha y otro car_id.
+            .in("car_id", [carIdVigente, ...prevCarIds]),
+        PLAZOS.SUPABASE,
+        { data: null, error: { message: "read user_guesses sin respuesta a tiempo" } },
+        { etiqueta: "read user_guesses" }
+      );
       if (filaErr) {
         console.error("[validate-guess] read user_guesses:", filaErr);
-        return res.status(500).json({ error: "Failed to read attempts" });
+        // 503 con Retry-After y no 500: el intento NO se ha gastado (no hemos
+        // contado ni escrito nada todavía), así que lo honesto es decirle que
+        // vuelva a intentarlo en unos segundos. Un 500 le invita a pensar que
+        // algo se ha roto de forma permanente.
+        res.setHeader("Retry-After", "5");
+        return res.status(503).json({ error: "Failed to read attempts" });
       }
       // Sin `.limit(1)`: si hubiera fila en el vigente y en un saliente, el
       // desempate es del resolvedor, no de Postgres.
@@ -221,10 +364,22 @@ export default async function handler(req, res) {
     // `todayCarId` es a partir de aquí el coche ANCLADO de quien pregunta, que
     // puede no ser el vigente: todo lo de abajo (ficha real, upsert, auditoría)
     // tiene que hablar de ESE y no del de daily_cars.
-    const [realRow, guessRow] = await Promise.all([
-      fetchCarById(todayCarId),
-      fetchCarById(guessCarId),
+    //
+    // Las dos van en paralelo, así que entre las dos cuestan un plazo, no dos.
+    const [real, adivinado] = await Promise.all([
+      fetchCarById(todayCarId, "read cars (del día)"),
+      fetchCarById(guessCarId, "read cars (intento)"),
     ]);
+    // «No he podido preguntar» ANTES que «no está»: son 503 y no 4xx/500. Ver
+    // la nota de fetchCarById — con la base atrancada, el 400 le decía al
+    // jugador que su coche no existe y el 500 mandaba a buscar un bug de
+    // catálogo que no había.
+    if (real.fallo || adivinado.fallo) {
+      res.setHeader("Retry-After", "5");
+      return res.status(503).json({ error: "Catalog temporarily unavailable" });
+    }
+    const realRow = real.car;
+    const guessRow = adivinado.car;
     if (!realRow) {
       console.error("[validate-guess] daily car not in catalog:", todayCarId);
       return res.status(500).json({ error: "Daily car missing in catalog" });
@@ -315,16 +470,30 @@ export default async function handler(req, res) {
     //     - DELETE de la fila tras perder + recarga → replay ilimitado.
     if (user) {
       const newGuesses = [...existingGuesses, result];
-      const { error: saveErr } = await supabaseAdmin.from("user_guesses").upsert(
-        {
-          user_id: user.id,
-          car_id: todayCarId,
-          date: today,
-          guesses: newGuesses,
-          status: newStatus,
-          car_data: isGameOver ? { ...realCar, id: todayCarId } : null,
-        },
-        { onConflict: "user_id,car_id,date" }
+      // DOS INTENTOS pese a ser una escritura, que es la excepción a la regla
+      // de «reintentan las lecturas»: esta fila ES el intento gastado, así que
+      // perderla no degrada nada, deja al jugador con una partida que el
+      // servidor no recuerda (y una partida perdida que puede volver a jugar).
+      // El reintento es seguro porque el upsert es idempotente por
+      // (user_id, car_id, date) y el cuerpo que se escribe es el mismo: si el
+      // primer intento llegó a commitear y solo se perdió la respuesta, el
+      // segundo reescribe exactamente lo mismo.
+      const { error: saveErr } = await conTimeoutReintentando(
+        () =>
+          supabaseAdmin.from("user_guesses").upsert(
+            {
+              user_id: user.id,
+              car_id: todayCarId,
+              date: today,
+              guesses: newGuesses,
+              status: newStatus,
+              car_data: isGameOver ? { ...realCar, id: todayCarId } : null,
+            },
+            { onConflict: "user_id,car_id,date" }
+          ),
+        PLAZOS.SUPABASE,
+        { error: { message: "save user_guesses sin respuesta a tiempo" } },
+        { etiqueta: "save user_guesses" }
       );
       if (saveErr) {
         console.error("[validate-guess] save user_guesses:", saveErr);
@@ -380,13 +549,24 @@ export default async function handler(req, res) {
     //   para TODOS los jugadores (logueados y anónimos) porque las stats
     //   globales necesitan representar a toda la audiencia.
     //   Best-effort: si falla, no afecta al resultado de la partida.
+    //   Con PLAZO CORTO y sin reintento (PLAZOS.AUDITORIA): es telemetría
+    //   agregada, nadie la espera y el intento del jugador ya es válido pase lo
+    //   que pase con ella. Lo único que compraría esperarla 4 s —o para
+    //   siempre, que es lo que hacía— es retrasar el resultado de una partida
+    //   que ha ido bien, y en el peor caso comerse el presupuesto de la función
+    //   DESPUÉS de haber hecho todo el trabajo.
     if (isGameOver) {
       try {
-        await supabaseAdmin.rpc("increment_daily_stats", {
-          p_date: today,
-          p_won: result.win,
-          p_attempt: attemptNumber,
-        });
+        await conTimeoutOFallback(
+          supabaseAdmin.rpc("increment_daily_stats", {
+            p_date: today,
+            p_won: result.win,
+            p_attempt: attemptNumber,
+          }),
+          PLAZOS.AUDITORIA,
+          null,
+          { etiqueta: "increment_daily_stats" }
+        );
       } catch (err) {
         console.error("[validate-guess] increment_daily_stats:", err);
       }
@@ -487,6 +667,11 @@ export default async function handler(req, res) {
     //   Registra cada intento en public.guess_audit para poder detectar el
     //   patrón de oráculo (misma IP sondeando hoy desde sesiones distintas
     //   y luego ganando a la primera). Nunca rompe la respuesta.
+    //
+    //   Se AWAITEA (en Node serverless lo que queda en vuelo tras responder no
+    //   tiene garantía de ejecutarse), así que es lo último que se interpone
+    //   entre el jugador y su resultado: el plazo corto vive dentro de audit.js
+    //   para que ese await no pueda durar más que un parpadeo.
     await logGuessAttempt({
       req,
       mode: "daily",

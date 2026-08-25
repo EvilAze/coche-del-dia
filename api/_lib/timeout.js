@@ -208,4 +208,12 @@ export const PLAZOS = {
   // pasarse de ahí devuelve el 504 con HTML que veníamos a eliminar. El test
   // de PLAZOS vigila esa suma.
   SUPABASE: 4000,
+  // Escrituras de auditoría y telemetría: guess_audit (logGuessAttempt,
+  // logCanary) e increment_daily_stats. Es el MISMO PostgREST que SUPABASE, así
+  // que el plazo corto no describe la dependencia sino lo que se pierde al
+  // vencer: nada que el jugador vea. El intento ya está validado y respondido
+  // en cuanto a contenido; lo único que compra esperar 4 s por un insert que
+  // nadie lee en caliente es retrasarle el resultado a una partida que va bien.
+  // Mismo criterio que RATELIMIT — fail-open, plazo barato.
+  AUDITORIA: 1500,
 };

@@ -18,7 +18,13 @@
 
 import crypto from "crypto";
 
-const SECRET = process.env.REPESCA_TOKEN_SECRET || "";
+// Perezoso (función, no `const` al importar): igual que la regla 2 prohíbe
+// `const supabase = createClient(...)` a nivel de módulo, leer el env aquí
+// arriba congelaría un secreto vacío si REPESCA_TOKEN_SECRET llega después del
+// import — y a partir de ahí toda firma fallaría sin que nada lo explique. La
+// réplica Edge (./edge/anon-session.js) ya resuelve el secreto por llamada;
+// tienen que comportarse igual porque una firma el token y la otra lo verifica.
+const SECRET = () => process.env.REPESCA_TOKEN_SECRET || "";
 // En Node, req.headers llega siempre en minúsculas.
 export const ANON_HEADER_NAME = "x-anon-session";
 
@@ -35,10 +41,11 @@ function b64urlDecode(str) {
  * Lanza si el secreto no está configurado.
  */
 export function signAnonSession(payload) {
-  if (!SECRET) throw new Error("REPESCA_TOKEN_SECRET not configured");
+  const secret = SECRET();
+  if (!secret) throw new Error("REPESCA_TOKEN_SECRET not configured");
   const body = b64urlEncode(JSON.stringify(payload));
   const sig = crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", secret)
     .update(body)
     .digest("base64url");
   return `${body}.${sig}`;
@@ -49,13 +56,14 @@ export function signAnonSession(payload) {
  * configurado, si el formato es inválido, o si la firma no coincide.
  */
 export function verifyAnonSession(token) {
-  if (!SECRET || typeof token !== "string") return null;
+  const secret = SECRET();
+  if (!secret || typeof token !== "string") return null;
   const dot = token.indexOf(".");
   if (dot <= 0 || dot === token.length - 1) return null;
   const body = token.slice(0, dot);
   const sig = token.slice(dot + 1);
   const expected = crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", secret)
     .update(body)
     .digest("base64url");
   // Comparación constant-time para evitar timing attacks.
@@ -79,6 +87,17 @@ export function verifyAnonSession(token) {
  * Lee y verifica el token de sesión anónima del header X-Anon-Session.
  * Devuelve el payload `{d, n, s}` o null.
  */
+// El payload es `{d, n, s, c}`:
+//   d → día (YYYY-MM-DD)
+//   n → intentos gastados
+//   s → estado de la partida
+//   c → SELLO del coche con el que venía jugando (api/_lib/sello.js). Es lo que
+//       permite congelarle la partida si el coche del día se cambia por
+//       emergencia: sin él no hay forma de saber si su tablero es de este coche
+//       o del anterior. NO es el car_id y no puede serlo — este payload es
+//       base64 legible desde el navegador (regla 5).
+//   Un token sin `c` (emitido antes de esto) es válido: se trata como «no
+//   sabemos», que es el fallo seguro — no se congela a nadie por si acaso.
 export function readAnonToken(req) {
   // El cliente envía `X-Anon-Session`; Node lo normaliza a minúsculas. Si
   // llega ausente o como array (cabecera duplicada), no es un token → null.

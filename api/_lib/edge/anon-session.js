@@ -3,6 +3,18 @@
 // Mismo formato de wire que la versión Node, así que tokens firmados por una
 // los verifica la otra. Diferencias: firma/verificación con Web Crypto
 // (asíncrono) y lectura desde `Request` (Fetch API).
+//
+// El payload es `{d, n, s, c}`:
+//   d → día (YYYY-MM-DD)
+//   n → intentos gastados
+//   s → estado de la partida
+//   c → SELLO del coche con el que venía jugando (api/_lib/sello.js). Es lo que
+//       permite congelarle la partida si el coche del día se cambia por
+//       emergencia: sin él no hay forma de saber si su tablero es de este coche
+//       o del anterior. NO es el car_id y no puede serlo — este payload es
+//       base64 legible desde el navegador (regla 5).
+//   Un token sin `c` (emitido antes de esto) es válido: se trata como «no
+//   sabemos», que es el fallo seguro — no se congela a nadie por si acaso.
 
 import {
   b64urlEncodeString,

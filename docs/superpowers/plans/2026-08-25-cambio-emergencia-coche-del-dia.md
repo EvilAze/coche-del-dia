@@ -684,6 +684,13 @@ git commit -m "feat(coche-de-hoy): resolvedor puro del coche anclado a cada juga
 
 ---
 
+> **Nota (2026-08-25, tras la revisión adversarial):** el código de esta tarea
+> se corrigió después de escribirlo. La firma real recibe `filasUsuario`
+> (array), `hayUsuario`, y `cocheCambiado` exige que HAYA salientes y que el
+> sello del vigente se conozca. Lo que manda es el fichero
+> `api/_lib/coche-de-hoy.js` en la rama, no el bloque de arriba. Las Tareas 6 y
+> 8 ya están escritas contra la firma corregida.
+
 ## Tarea 4: `version-imagen.js` — el `v` deja de estar escrito a mano
 
 **Files:**
@@ -890,20 +897,48 @@ Y justo después de desestructurar `rpcResult`, antes del `if (rpcErr || !todayC
   let rpcErr = rpcResult.error;
 
   // RESPALDO: si la envoltura no está desplegada en esta base (o falla), se
-  // sigue con el sorteo de siempre y sin salientes. Es exactamente el
-  // comportamiento anterior a las revisiones: se pierde la congelación, no el
-  // juego. El código puede llegar a producción antes que el SQL.
+  // sigue con el sorteo de siempre. El código puede llegar a producción antes
+  // que el SQL.
+  //
+  // Pero los salientes hay que leerlos IGUAL, con un select plano. `[]` no
+  // significa «no he podido averiguarlo», significa «hoy no ha habido cambio»:
+  // fabricarlo aquí haría que la lectura acotada de user_guesses no viera la
+  // fila de un congelado y le sirviéramos tablero nuevo con cinco intentos —
+  // justo la rejugada que todo esto existe para impedir. Si tampoco se puede
+  // leer, se cae al 503 de abajo: un error honesto hace mucho menos daño que
+  // un estado inventado (regla 21).
   if (rpcErr || !todayCarId) {
     console.error("[get-daily-car] coche_de_hoy:", rpcErr);
-    const respaldo = await conTimeoutReintentando(
-      () => supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
-      PLAZOS.SUPABASE,
-      { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
-      { etiqueta: "pick_daily_car (respaldo)" }
-    );
+    const [respaldo, salientes] = await Promise.all([
+      conTimeoutReintentando(
+        () => supabaseAdmin.rpc("pick_daily_car", { p_date: today }),
+        PLAZOS.SUPABASE,
+        { data: null, error: { message: "pick_daily_car sin respuesta a tiempo" } },
+        { etiqueta: "pick_daily_car (respaldo)" }
+      ),
+      conTimeoutOFallback(
+        supabaseAdmin
+          .from("daily_cars")
+          .select("prev_car_ids")
+          .eq("date", today)
+          .maybeSingle(),
+        PLAZOS.SUPABASE,
+        { data: null, error: { message: "prev_car_ids sin respuesta a tiempo" } },
+        { etiqueta: "read prev_car_ids" }
+      ),
+    ]);
     todayCarId = respaldo.data || null;
-    prevCarIds = [];
     rpcErr = respaldo.error;
+    if (salientes.error) {
+      // No sabemos si hoy hubo cambio. Antes que arriesgarnos a vaciarle el
+      // tablero a alguien, 503.
+      console.error("[get-daily-car] read prev_car_ids:", salientes.error);
+      return respond(
+        { message: "Game state temporarily unavailable" },
+        { status: 503, headers: { "Retry-After": "5" } }
+      );
+    }
+    prevCarIds = salientes.data?.prev_car_ids || [];
   }
 ```
 
@@ -927,16 +962,30 @@ que le toca depende de su propia fila, se pasa a leer por fecha **acotando a
               // Acotado a las revisiones del día: sin esto entraría también la
               // partida de REPESCA de hoy, que vive en esta misma tabla con la
               // misma fecha y otro car_id.
-              .in("car_id", [todayCarId, ...prevCarIds])
-              .limit(1),
+              .in("car_id", [todayCarId, ...prevCarIds]),
           PLAZOS.SUPABASE,
           { data: null, error: { message: "read user_guesses sin respuesta a tiempo" } },
           { etiqueta: "read user_guesses" }
         )
 ```
 
-Ojo: `.limit(1)` devuelve **array**, no objeto. Donde hoy se usa `gameRow`,
-ahora es `const gameRow = Array.isArray(gameResult.data) ? gameResult.data[0] : null;`
+Sin `.limit(1)` **a propósito**: si el usuario tuviera fila en el coche vigente
+y en un saliente, quién gana es una decisión de negocio (gana el saliente: es la
+partida que está jugando) y la toma el resolvedor, que es donde está escrita y
+probada. Un `limit(1)` sin `order` se la dejaría a Postgres.
+
+La respuesta es un **array**. Donde hoy se usa `gameRow`, ahora:
+
+```js
+  const filasUsuario = Array.isArray(gameResult.data) ? gameResult.data : [];
+```
+
+y el `gameRow` que alimenta `status`/`guesses` pasa a ser la fila del coche ya
+resuelto:
+
+```js
+  const gameRow = filasUsuario.find((f) => f.car_id === carIdDelUsuario) || null;
+```
 
 - [ ] **Step 3: Resolver el coche y sellar la respuesta**
 
@@ -946,14 +995,22 @@ imagen (porque la imagen depende del coche resuelto):
 ```js
   // ¿Qué coche le toca a QUIEN PREGUNTA? Puede no ser el vigente: si hubo
   // cambio de emergencia, quien ya estaba jugando se queda con el suyo.
+  // El token anónimo SOLO cuenta si no hay sesión y si es de HOY. El cliente
+  // manda la cabecera X-Anon-Session esté logueado o no, y nada la borra al
+  // registrarse: sin estos dos filtros, quien jugó anónimo y luego se hizo
+  // cuenta arrastraría para siempre un sello rancio que no casa con nada.
+  const anonVigente =
+    !user && tokenAnonEntrante?.d === today ? tokenAnonEntrante : null;
+
   const sellosPorCarId = await sellosDe([todayCarId, ...prevCarIds], today);
-  const { carId: carIdDelUsuario, congelado } = resolverCocheDelUsuario({
+  const { carId: carIdDelUsuario } = resolverCocheDelUsuario({
     carIdVigente: todayCarId,
     prevCarIds,
-    filaUsuario: gameRow || null,
-    selloCliente: tokenAnonEntrante?.c || null,
+    filasUsuario,
+    hayUsuario: Boolean(user),
+    selloCliente: anonVigente?.c || null,
     sellosPorCarId,
-    intentosAnon: Number.isInteger(tokenAnonEntrante?.n) ? tokenAnonEntrante.n : 0,
+    intentosAnon: Number.isInteger(anonVigente?.n) ? anonVigente.n : 0,
   });
 ```
 
@@ -1145,8 +1202,10 @@ Sustituye el bloque «3. Coche del día (resuelto en servidor)» por esto:
     let prevCarIds = filasDia?.[0]?.prev_car_ids || [];
 
     if (pickErr || !carIdVigente) {
-      // RESPALDO: sin la envoltura desplegada se juega el coche de siempre y
-      // sin revisiones. Se pierde la congelación, no la partida.
+      // RESPALDO: sin la envoltura desplegada se juega el coche de siempre.
+      // Los salientes se leen IGUAL con un select plano: `[]` significa «hoy no
+      // hubo cambio», no «no lo sé». Inventarlo aquí haría que a un congelado
+      // se le validara el intento contra el coche que no es.
       console.error("[validate-guess] coche_de_hoy:", pickErr);
       const { data: respaldo, error: respErr } = await supabaseAdmin.rpc(
         "pick_daily_car",
@@ -1156,8 +1215,17 @@ Sustituye el bloque «3. Coche del día (resuelto en servidor)» por esto:
         console.error("[validate-guess] pick_daily_car:", respErr);
         return res.status(500).json({ error: "Failed to resolve daily car" });
       }
+      const { data: fila, error: filaErr } = await supabaseAdmin
+        .from("daily_cars")
+        .select("prev_car_ids")
+        .eq("date", today)
+        .maybeSingle();
+      if (filaErr) {
+        console.error("[validate-guess] read prev_car_ids:", filaErr);
+        return res.status(503).json({ error: "Game state temporarily unavailable" });
+      }
       carIdVigente = respaldo;
-      prevCarIds = [];
+      prevCarIds = fila?.prev_car_ids || [];
     }
 ```
 
@@ -1167,12 +1235,17 @@ Y **antes** de `fetchCarById`, resuelve a quién le toca qué:
     // La partida de un anónimo va en su token firmado; la de un logueado, en su
     // fila. Los dos hay que leerlos ANTES de decidir contra qué coche se valida
     // este intento, porque puede no ser el vigente.
-    const anonEntrante = readAnonToken(req);
+    // El token anónimo SOLO cuenta sin sesión y si es de HOY (ver la nota del
+    // mismo bloque en get-daily-car: la cabecera viaja siempre y nadie la borra
+    // al registrarse). Un logueado manda su sello por el body, que es el que le
+    // acaba de dar get-daily-car.
+    const anonBruto = readAnonToken(req);
+    const anonEntrante = !user && anonBruto?.d === today ? anonBruto : null;
     const selloCliente =
       anonEntrante?.c ||
       (typeof req.body?.sello === "string" ? req.body.sello : null);
 
-    let filaUsuario = null;
+    let filasUsuario = [];
     if (user) {
       const { data: filas, error: filaErr } = await authClient
         .from("user_guesses")
@@ -1181,20 +1254,22 @@ Y **antes** de `fetchCarById`, resuelve a quién le toca qué:
         .eq("date", today)
         // Acotado a las revisiones del día: la partida de REPESCA de hoy vive
         // en esta misma tabla, con esta misma fecha y otro car_id.
-        .in("car_id", [carIdVigente, ...prevCarIds])
-        .limit(1);
+        .in("car_id", [carIdVigente, ...prevCarIds]);
       if (filaErr) {
         console.error("[validate-guess] read user_guesses:", filaErr);
         return res.status(500).json({ error: "Failed to read attempts" });
       }
-      filaUsuario = filas?.[0] || null;
+      // Sin `.limit(1)`: si hubiera fila en el vigente y en un saliente, el
+      // desempate es del resolvedor, no de Postgres.
+      filasUsuario = Array.isArray(filas) ? filas : [];
     }
 
     const sellosPorCarId = await sellosDe([carIdVigente, ...prevCarIds], today);
     const { carId: todayCarId, cocheCambiado } = resolverCocheDelUsuario({
       carIdVigente,
       prevCarIds,
-      filaUsuario,
+      filasUsuario,
+      hayUsuario: Boolean(user),
       selloCliente,
       sellosPorCarId,
       intentosAnon: Number.isInteger(anonEntrante?.n) ? anonEntrante.n : 0,
@@ -1222,10 +1297,14 @@ import { sellosDe } from "./_lib/sello.js";
 - [ ] **Step 2: Reutilizar la fila ya leída**
 
 El bloque «5. attemptNumber AUTORITATIVO» vuelve a leer `user_guesses` filtrando
-por `car_id`. Esa segunda lectura sobra: usa `filaUsuario`.
+por `car_id`. Esa segunda lectura sobra: usa la fila del coche ya resuelto.
 
 ```js
-      // Ya la leímos arriba para resolver el coche: no hace falta ir dos veces.
+      // Ya las leímos arriba para resolver el coche: no hace falta ir dos veces.
+      // Y es la fila DEL COCHE RESUELTO, no una cualquiera: un congelado tiene
+      // la suya en el saliente.
+      const filaUsuario =
+        filasUsuario.find((f) => f.car_id === todayCarId) || null;
       if (filaUsuario?.status === "won" || filaUsuario?.status === "lost") {
         return res.status(403).json({ error: "Game already finished" });
       }

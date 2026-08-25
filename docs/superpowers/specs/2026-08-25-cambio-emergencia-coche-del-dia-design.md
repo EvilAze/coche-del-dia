@@ -65,7 +65,20 @@ repesca**. La regla correcta es:
 
 > su fila de hoy **cuyo `car_id` esté en {coche vigente} ∪ {salientes de hoy}**
 
-Determinista, y las repescas quedan fuera solas.
+Determinista, y las repescas quedan fuera solas — **pero no por el motivo
+evidente**. No vale decir «los salientes son coches que fueron el coche del día,
+luego una repesca no puede estar ahí»: es justo al revés, haber sido el coche del
+día es el **requisito de entrada** al bombo de la repesca. Lo que de verdad los
+mantiene disjuntos son dos invariantes estrechas: `pick_daily_car` excluye
+cualquier coche que ya tenga fila en `daily_cars` (así que un coche tiene como
+mucho **una**), y el cambio de emergencia es un `UPDATE`, de modo que el saliente
+pierde su fila en el mismo instante en que entra en `prev_car_ids` — y con ella
+sale del bombo de la repesca.
+
+Eso es **frágil**, y conviene saberlo: el día que alguien guarde una fila de
+histórico del coche saliente (por ejemplo para arreglar la atribución de
+estadísticas de R3), la trampa vuelve por la puerta de al lado y este acotado
+deja de bastar.
 
 ### `coche_de_hoy(p_date)`: conocer los salientes sin pagar latencia
 
@@ -120,13 +133,30 @@ y por el mismo motivo: es un guard sobre datos que no se pueden deshacer, y su
 Reglas, en orden:
 
 1. Logueado con fila de hoy y `car_id ∈ {vigente} ∪ prev` → **ese** (congelado
-   si no es el vigente).
-2. Anónimo con `n > 0` y `c` ∈ sellos de `prev` → **ese** (congelado).
+   si no es el vigente). Recibe **todas** sus filas que casen, no una: si
+   hubiera fila en el vigente y en un saliente, **gana el saliente** — es la
+   partida que está jugando — y ese desempate lo hace la función, porque el
+   llamador no puede expresarlo en una consulta y un `limit(1)` sin `order` se
+   lo dejaría a Postgres.
+2. Anónimo con `n > 0` y `c` ∈ sellos de `prev` → **ese** (congelado). **Solo
+   sin sesión iniciada**: el cliente manda la cabecera `X-Anon-Session` esté
+   logueado o no y nada la borra al registrarse, así que sin ese filtro a quien
+   jugó anónimo y luego se hizo cuenta se le anclaría al coche de su partida
+   anónima.
 3. Resto → coche vigente.
 4. Cliente **sin partida** que manda un sello viejo (pestaña abierta desde
    antes del cambio, foto vieja en pantalla) → **409 `coche_cambiado`, sin
    gastar intento**, y la UI recarga. Sin esto, ese usuario responde sobre la
    foto vieja y se le puntúa contra el coche nuevo.
+
+   Ese aviso lleva **dos guardas**, y las dos existen para no dejar sin jugar a
+   quien no ha hecho nada mal: solo se avisa si **hay salientes** (sin cambio no
+   hay nada que haya cambiado, y un sello que no casa es entonces un token de
+   ayer, un secreto rotado o un cliente viejo) y si **se conoce el sello del
+   vigente** (sin secreto configurado, «no puedo comparar» no es «no coincide»).
+   Sin la primera guarda, quien jugó anónimo y luego se registró entraba en un
+   bucle de recarga permanente: su token no se refresca nunca mientras tenga
+   sesión, así que el 409 se repetía indefinidamente.
 
 El sello **no abre ningún agujero**: para logueados manda la fila, no el
 sello; y un anónimo con sello viejo lleva su `n` firmado en el mismo token, así

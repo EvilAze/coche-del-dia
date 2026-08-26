@@ -163,6 +163,7 @@ describe("auth helpers", () => {
     expect(m.updateUser).toHaveBeenCalledTimes(1);
     expect(m.signInWithOtp).toHaveBeenCalledTimes(1);
     expect(res.tipo).toBe("email");
+    expect(res.error).toBeNull();
   });
 
   it("código: el error de Supabase se devuelve, no se traga", async () => {
@@ -174,15 +175,22 @@ describe("auth helpers", () => {
     expect(res.tipo).toBe("email");
   });
 
+  // Si a verificarCodigo se le cayera el `return`, resolvería a `undefined` y
+  // esta prueba seguiría en verde mirando solo la llamada a verifyOtp: el
+  // consumidor (Task 4) hace `const { error } = (await verificarCodigo(...))
+  // || {}`, así que `undefined` se leería como «sin error», o sea como código
+  // correcto — cualquier código incorrecto dejaría entrar al jugador. Por eso
+  // aquí se comprueba también el valor de retorno, no solo la llamada.
   it("verificarCodigo pasa el tipo que recibe, sin recalcularlo", async () => {
     const m = setup({ isNative: false, emailLogin: "true", sesion: "anon" });
     const { verificarCodigo } = await import("./auth");
-    await verificarCodigo("piloto@ejemplo.com", "123456", "email_change");
+    const res = await verificarCodigo("piloto@ejemplo.com", "123456", "email_change");
     expect(m.verifyOtp).toHaveBeenCalledWith({
       email: "piloto@ejemplo.com",
       token: "123456",
       type: "email_change",
     });
+    expect(res).toEqual({ data: { session: {} }, error: null });
   });
 
   it("verificarCodigo con tipo 'email' llama a verifyOtp con ese tipo", async () => {

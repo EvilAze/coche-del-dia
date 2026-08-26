@@ -25,6 +25,7 @@ function setup({ isNative, emailLogin, sesion = null, linkFalla = false }) {
   const updateUser = vi.fn().mockResolvedValue(
     linkFalla ? { error: { message: "email taken" } } : { data: {}, error: null }
   );
+  const verifyOtp = vi.fn().mockResolvedValue({ data: { session: {} }, error: null });
 
   vi.doMock("@capacitor/core", () => ({
     Capacitor: { isNativePlatform: () => isNative },
@@ -33,7 +34,7 @@ function setup({ isNative, emailLogin, sesion = null, linkFalla = false }) {
     supabase: {
       auth: {
         signInWithOAuth, signInWithOtp, signOut: signOutSb,
-        getSession, signInAnonymously, linkIdentity, updateUser,
+        getSession, signInAnonymously, linkIdentity, updateUser, verifyOtp,
       },
     },
   }));
@@ -41,7 +42,7 @@ function setup({ isNative, emailLogin, sesion = null, linkFalla = false }) {
   vi.stubEnv("VITE_EMAIL_LOGIN", emailLogin ?? "");
   return {
     signInWithOAuth, signInWithOtp, signOutSb, nativeGoogleSignIn, nativeSignOut,
-    getSession, signInAnonymously, linkIdentity, updateUser,
+    getSession, signInAnonymously, linkIdentity, updateUser, verifyOtp,
   };
 }
 
@@ -119,28 +120,80 @@ describe("auth helpers", () => {
     expect(emailLoginDisponible()).toBe(false);
   });
 
-  it("email: signInWithEmail pide OTP creando usuario y vuelve al origen", async () => {
-    const m = setup({ isNative: false, emailLogin: "true" });
-    vi.stubGlobal("window", { location: { origin: "https://cochedeldia.com" } });
-    const { signInWithEmail } = await import("./auth");
-    await signInWithEmail("piloto@ejemplo.com");
+  // ── Código de 6 cifras ───────────────────────────────────────────────────
+  // El `tipo` que devuelve pedirCodigo NO es informativo: verifyOtp lo exige y
+  // son dos tokens distintos. Si se calculara otra vez en el paso 2, entre
+  // medias la sesión podría haber cambiado y el código válido se rechazaría.
+  it("código: sin sesión anónima pide OTP creando usuario, y el tipo es 'email'", async () => {
+    const m = setup({ isNative: false, emailLogin: "true", sesion: null });
+    const { pedirCodigo } = await import("./auth");
+    const res = await pedirCodigo("piloto@ejemplo.com");
     expect(m.signInWithOtp).toHaveBeenCalledWith({
       email: "piloto@ejemplo.com",
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: "https://cochedeldia.com",
-      },
+      options: { shouldCreateUser: true },
     });
-    vi.unstubAllGlobals();
+    expect(res).toEqual({ error: null, tipo: "email" });
   });
 
-  // Entorno sin `window` (tests en node, cualquier render fuera del navegador):
-  // no debe lanzar — Supabase cae al Site URL del proyecto.
-  it("email: sin window, el redirect queda undefined en vez de reventar", async () => {
-    const m = setup({ isNative: false, emailLogin: "true" });
-    const { signInWithEmail } = await import("./auth");
-    await expect(signInWithEmail("piloto@ejemplo.com")).resolves.toBeDefined();
-    expect(m.signInWithOtp.mock.calls[0][0].options.emailRedirectTo).toBeUndefined();
+  // Sin enlace en el correo, emailRedirectTo no tiene consumidor: mandarlo
+  // sería declarar un destino al que ya no vuelve nadie.
+  it("código: no manda emailRedirectTo (ya no hay enlace al que volver)", async () => {
+    const m = setup({ isNative: false, emailLogin: "true", sesion: null });
+    const { pedirCodigo } = await import("./auth");
+    await pedirCodigo("piloto@ejemplo.com");
+    expect(m.signInWithOtp.mock.calls[0][0].options).not.toHaveProperty("emailRedirectTo");
+  });
+
+  it("código: con sesión anónima ADJUNTA el correo y el tipo es 'email_change'", async () => {
+    const m = setup({ isNative: false, emailLogin: "true", sesion: "anon" });
+    const { pedirCodigo } = await import("./auth");
+    const res = await pedirCodigo("piloto@ejemplo.com");
+    expect(m.updateUser).toHaveBeenCalledWith({ email: "piloto@ejemplo.com" });
+    expect(m.signInWithOtp).not.toHaveBeenCalled();
+    expect(res).toEqual({ error: null, tipo: "email_change" });
+  });
+
+  // El correo ya pertenece a otra cuenta: la vinculación no tiene arreglo (son
+  // dos cuentas distintas), así que se entra a la que ya existe. Se pierde el
+  // progreso anónimo de este dispositivo, que es inevitable.
+  it("código: si adjuntar el correo falla, cae a OTP normal y el tipo cambia a 'email'", async () => {
+    const m = setup({ isNative: false, emailLogin: "true", sesion: "anon", linkFalla: true });
+    const { pedirCodigo } = await import("./auth");
+    const res = await pedirCodigo("piloto@ejemplo.com");
+    expect(m.updateUser).toHaveBeenCalledTimes(1);
+    expect(m.signInWithOtp).toHaveBeenCalledTimes(1);
+    expect(res.tipo).toBe("email");
+  });
+
+  it("código: el error de Supabase se devuelve, no se traga", async () => {
+    const m = setup({ isNative: false, emailLogin: "true", sesion: null });
+    m.signInWithOtp.mockResolvedValueOnce({ data: null, error: { status: 429, message: "rate limit" } });
+    const { pedirCodigo } = await import("./auth");
+    const res = await pedirCodigo("piloto@ejemplo.com");
+    expect(res.error).toEqual({ status: 429, message: "rate limit" });
+    expect(res.tipo).toBe("email");
+  });
+
+  it("verificarCodigo pasa el tipo que recibe, sin recalcularlo", async () => {
+    const m = setup({ isNative: false, emailLogin: "true", sesion: "anon" });
+    const { verificarCodigo } = await import("./auth");
+    await verificarCodigo("piloto@ejemplo.com", "123456", "email_change");
+    expect(m.verifyOtp).toHaveBeenCalledWith({
+      email: "piloto@ejemplo.com",
+      token: "123456",
+      type: "email_change",
+    });
+  });
+
+  it("verificarCodigo con tipo 'email' llama a verifyOtp con ese tipo", async () => {
+    const m = setup({ isNative: false, emailLogin: "true", sesion: null });
+    const { verificarCodigo } = await import("./auth");
+    await verificarCodigo("piloto@ejemplo.com", "654321", "email");
+    expect(m.verifyOtp).toHaveBeenCalledWith({
+      email: "piloto@ejemplo.com",
+      token: "654321",
+      type: "email",
+    });
   });
 
   // ── Sesión anónima ───────────────────────────────────────────────────────
@@ -220,21 +273,9 @@ describe("auth helpers", () => {
       expect(m.signInWithOAuth).toHaveBeenCalledWith({ provider: "google" });
     });
 
-    it("Correo: con sesión anónima adjunta el email a esa cuenta", async () => {
-      const m = setup({ isNative: false, emailLogin: "true", sesion: "anon" });
-      const { signInWithEmail } = await import("./auth");
-      await signInWithEmail("piloto@ejemplo.com");
-      expect(m.updateUser).toHaveBeenCalledWith({ email: "piloto@ejemplo.com" });
-      expect(m.signInWithOtp).not.toHaveBeenCalled();
-    });
-
-    it("Correo: si el email ya es de otra cuenta, cae al enlace normal", async () => {
-      const m = setup({ isNative: false, emailLogin: "true", sesion: "anon", linkFalla: true });
-      const { signInWithEmail } = await import("./auth");
-      await signInWithEmail("piloto@ejemplo.com");
-      expect(m.updateUser).toHaveBeenCalledTimes(1);
-      expect(m.signInWithOtp).toHaveBeenCalledTimes(1);
-    });
+    // Cobertura de "Correo: ... adjunta el email" / "... cae al enlace normal"
+    // ahora vive en el bloque "Código de 6 cifras" de arriba, sobre pedirCodigo
+    // (signInWithEmail ya no existe).
 
     // En nativo el login va por plugin y no pasa por la rama de vinculación.
     it("nativo: Google sigue yendo por el plugin aunque haya sesión anónima", async () => {

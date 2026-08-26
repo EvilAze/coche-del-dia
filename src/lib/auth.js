@@ -125,43 +125,50 @@ export function emailLoginDisponible() {
 }
 
 /**
- * Envía un enlace de acceso al correo. No crea sesión aquí: el jugador vuelve
- * desde su correo y `detectSessionInUrl` (activado por defecto en el cliente de
- * supabase-js) la establece al cargar la página.
+ * PASO 1 — pide un código de 6 cifras al correo.
+ *
+ * Devuelve `{ error, tipo }`. El `tipo` no es decoración: `verifyOtp` lo exige
+ * y son DOS TOKENS DISTINTOS.
+ *
+ *   - Sin sesión anónima → `signInWithOtp` → token de tipo `email`.
+ *   - Con sesión anónima → `updateUser({ email })`, que ADJUNTA el correo a la
+ *     cuenta que ya existe (mismo user id → la racha, las estadísticas y el
+ *     Archivo sobreviven) → token de tipo `email_change`.
+ *
+ * Por eso el tipo viaja hasta el paso 2 en vez de recalcularse allí: entre los
+ * dos pasos pueden pasar minutos, y si la sesión cambiara de estado por el
+ * camino recalcularlo rechazaría un código perfectamente válido.
  *
  * `shouldCreateUser: true` a propósito: para un juego diario, distinguir
  * «registro» de «acceso» es una diferencia que solo le importa a la base de
  * datos. Pones tu correo y entras.
  */
-export async function signInWithEmail(email) {
-  // Igual que con Google: con sesión anónima en curso, ADJUNTAMOS el correo a
-  // esa cuenta en vez de crear otra. Mismo user id → la racha sobrevive.
-  // updateUser manda su propio correo de confirmación, así que para el jugador
-  // el flujo se ve idéntico: le llega un enlace y al abrirlo está dentro.
+export async function pedirCodigo(email) {
   if (await sesionAnonimaVigente()) {
     const res = await supabase.auth.updateUser({ email });
-    if (!res?.error) return res;
-    // Si el correo ya pertenece a otra cuenta, updateUser falla y NO tiene
-    // arreglo por vinculación: hay que entrar a la cuenta que ya existe. El
-    // magic link normal hace justo eso (a costa del progreso anónimo, que es
-    // inevitable — son dos cuentas distintas).
-    console.warn("[auth] vincular correo falló, enviando enlace normal:", res.error.message);
+    if (!res?.error) return { error: null, tipo: "email_change" };
+    // El correo ya pertenece a otra cuenta. No tiene arreglo por vinculación:
+    // son dos cuentas distintas y hay que entrar a la que ya existe, a costa
+    // del progreso anónimo de este dispositivo.
+    console.warn("[auth] adjuntar el correo falló, pidiendo código normal:", res.error.message);
   }
 
-  return supabase.auth.signInWithOtp({
+  const res = await supabase.auth.signInWithOtp({
     email,
-    options: {
-      shouldCreateUser: true,
-      // Volver a la portada, no a la URL exacta desde la que se pidió: el
-      // enlace puede abrirse horas después y en otro dispositivo.
-      //
-      // Sin `window` (SSR, tests en entorno node) lo dejamos en undefined a
-      // propósito: Supabase cae entonces al Site URL del proyecto, que es
-      // exactamente el destino correcto. Leerlo a pelo lanzaba aquí.
-      emailRedirectTo:
-        typeof window === "undefined" ? undefined : window.location.origin,
-    },
+    options: { shouldCreateUser: true },
   });
+  return { error: res?.error ?? null, tipo: "email" };
+}
+
+/**
+ * PASO 2 — canjea el código por una sesión.
+ *
+ * No decide el `tipo`: se lo da quien llamó a `pedirCodigo`. Ver allí el
+ * porqué. Devuelve `{ data, error }` estilo Supabase; la sesión, si sale bien,
+ * la recoge `onAuthStateChange` (useAuthSession) como cualquier otra.
+ */
+export async function verificarCodigo(email, codigo, tipo) {
+  return supabase.auth.verifyOtp({ email, token: codigo, type: tipo });
 }
 
 /**

@@ -102,10 +102,19 @@ describe("auth helpers", () => {
     expect(emailLoginDisponible()).toBe(false);
   });
 
-  // En nativo el enlace abriría el navegador del sistema y la sesión nacería
-  // FUERA del WebView de la app. Apagado aunque el flag esté puesto.
-  it("email: en nativo queda apagado aunque el flag esté encendido", async () => {
+  // ANTES estaba apagado en nativo porque el enlace del correo abría el
+  // navegador del sistema y la sesión nacía FUERA del WebView. Con el código de
+  // 6 cifras no se sale de la pantalla, así que el motivo caducó: la app es
+  // justo donde más falta hace un segundo método, porque allí Google es el
+  // único que hay.
+  it("email: en nativo también está disponible (el código no sale de la app)", async () => {
     setup({ isNative: true, emailLogin: "true" });
+    const { emailLoginDisponible } = await import("./auth");
+    expect(emailLoginDisponible()).toBe(true);
+  });
+
+  it("email: en nativo sigue respetando el flag apagado", async () => {
+    setup({ isNative: true });
     const { emailLoginDisponible } = await import("./auth");
     expect(emailLoginDisponible()).toBe(false);
   });

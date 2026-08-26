@@ -107,23 +107,20 @@ export async function signInWithGoogle({ vincular = true } = {}) {
 }
 
 /**
- * ¿Está disponible la entrada por email (magic link)?
+ * ¿Está disponible la entrada por correo (código de 6 cifras)?
  *
- * Detrás de un flag A PROPÓSITO. El servicio de email integrado de Supabase
- * está limitado a **2 correos por hora en todo el proyecto** (rate limit de
- * plataforma, no por usuario): sin un SMTP propio configurado, el tercer
- * jugador que pida su enlace en una misma hora recibe un error. Una puerta de
- * entrada que falla es peor que no tenerla, así que la opción no se pinta hasta
- * que `VITE_EMAIL_LOGIN` valga "true" — lo que debe hacerse SOLO después de
- * configurar SMTP propio (Resend, SendGrid, SES…) en el dashboard.
+ * Detrás de un flag A PROPÓSITO: sin SMTP propio, el email integrado de
+ * Supabase va limitado a 2 correos/hora en TODO el proyecto, y una puerta de
+ * entrada que falla es peor que no tenerla. Se enciende solo tras configurar
+ * SMTP (hoy, Resend — ver docs/correo-magic-link.md).
  *
- * En nativo queda fuera: el enlace del correo abriría el navegador del sistema
- * y la sesión se crearía FUERA del WebView de la app, que es donde tendría que
- * estar. Eso necesita App Links resueltos (ver docs/android-build-release.md) y
- * es harina de otro costal.
+ * EN NATIVO YA NO SE EXCLUYE. Mientras el método era un enlace, en la app
+ * estaba apagado porque el enlace abría el navegador del sistema y la sesión
+ * nacía FUERA del WebView. Un código se teclea donde estás, así que ese motivo
+ * caducó — y la app es justo donde más falta hace, porque allí Google era el
+ * único camino que había.
  */
 export function emailLoginDisponible() {
-  if (Capacitor.isNativePlatform()) return false;
   return import.meta.env.VITE_EMAIL_LOGIN === "true";
 }
 

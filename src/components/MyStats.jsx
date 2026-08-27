@@ -207,6 +207,15 @@ export default function MyStats({
   // partidas.
   const ofreceApp = debeOfrecerApp();
 
+  // Denominador del embudo del perfil. El clic ya se medía; sin la impresión el
+  // número no se puede convertir en tasa y no dice si la puerta funciona o si
+  // simplemente la ve mucha gente. Ligado a `open` porque este modal se queda
+  // montado tras la primera apertura (ver `mounted.*` en App.jsx): sin esa
+  // dependencia contaría una impresión por montaje y ninguna por visita.
+  useEffect(() => {
+    if (open && ofreceApp) track("app_promo_shown", { surface: "perfil" });
+  }, [open, ofreceApp]);
+
   return (
     <>
     <ModalShell

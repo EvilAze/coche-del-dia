@@ -53,6 +53,7 @@
     "codeResendWait": "You can ask for another in {seconds}s",
     "codeChangeEmail": "Use a different email",
     "codeSpamHint": "If you don't see it, check spam. It expires in an hour.",
+    "codeLinkHint": "Reading this on a computer? The email also has a button: tap it and you're in without typing anything.",
     "footerPrivacy": "Privacy Policy",
     "dayRolloverKicker": "Press stop",
     "dayRolloverStamp": "Back issue",

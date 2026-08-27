@@ -276,7 +276,12 @@ export default function LoginModal({ open, onClose, aviso = null }) {
             {verificando ? t("app.codeVerifying") : t("app.codeCta")}
           </button>
 
-          <p className="pm-body mt-3 text-center text-xs">{t("app.codeSpamHint")}</p>
+          {/* El correo lleva las dos cosas y el modal solo pedía una. Sin este
+              renglón, quien lo lee en el ordenador teclea seis cifras sin
+              enterarse de que había un botón: el enlace existiría sin que nadie
+              lo usara, que es lo mismo que no tenerlo. */}
+          <p className="pm-body mt-3 text-center text-xs">{t("app.codeLinkHint")}</p>
+          <p className="pm-body mt-2 text-center text-xs">{t("app.codeSpamHint")}</p>
 
           <div className="mt-4 flex flex-col gap-2">
             {reenvioEn > 0 ? (

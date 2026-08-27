@@ -53,6 +53,7 @@
     "codeResendWait": "Puedes pedir otro en {seconds} s",
     "codeChangeEmail": "Usar otro correo",
     "codeSpamHint": "Si no lo ves, mira en spam. Caduca en una hora.",
+    "codeLinkHint": "¿Lo lees en el ordenador? El correo también trae un botón: púlsalo y entras sin teclear nada.",
     "footerPrivacy": "Política de Privacidad",
     "dayRolloverKicker": "Cierre de edición",
     "dayRolloverStamp": "Edición caducada",

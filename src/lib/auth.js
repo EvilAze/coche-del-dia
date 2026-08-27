@@ -160,13 +160,22 @@ export async function signInWithGoogle({ vincular = true } = {}) {
  * entrada que falla es peor que no tenerla. Se enciende solo tras configurar
  * SMTP (hoy, Resend — ver docs/correo-de-entrada.md).
  *
- * EN NATIVO YA NO SE EXCLUYE. Mientras el método era un enlace, en la app
- * estaba apagado porque el enlace abría el navegador del sistema y la sesión
- * nacía FUERA del WebView. Un código se teclea donde estás, así que ese motivo
- * caducó — y la app es justo donde más falta hace, porque allí Google era el
- * único camino que había.
+ * EN NATIVO SE EXCLUYE, y el motivo ya no es el de antes. Antes era técnico: el
+ * enlace abría el navegador del sistema y la sesión nacía FUERA del WebView. Con
+ * un código eso dejó de ser cierto — pero el correo lleva AMBAS cosas, enlace y
+ * código, para que en escritorio se pulse y en móvil se teclee. Y ahí está la
+ * trampa: los dos son EL MISMO token, así que usar uno invalida el otro. A un
+ * jugador dentro del APK que pulse el enlace por costumbre —que es lo que hace
+ * todo el mundo con un correo así— la sesión se le crea en el navegador y el
+ * código que iba a escribir en la app ya no vale. Se queda a medias, logueado
+ * donde no estaba jugando.
+ *
+ * Mientras el correo lleve enlace, la segunda puerta no puede vivir en la app.
+ * Si algún día el enlace se retira, esta exclusión se va con él (y entonces el
+ * APK gana su segunda puerta, que es lo que hoy no tiene).
  */
 export function emailLoginDisponible() {
+  if (Capacitor.isNativePlatform()) return false;
   return import.meta.env.VITE_EMAIL_LOGIN === "true";
 }
 
@@ -216,7 +225,19 @@ export async function pedirCodigo(email) {
 async function pedirOtp(email) {
   const res = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true },
+    options: {
+      shouldCreateUser: true,
+      // El correo lleva enlace ADEMÁS del código (escritorio pulsa, móvil
+      // teclea), así que el enlace necesita un destino. Vuelve a la portada y
+      // no a la URL desde la que se pidió: el correo puede abrirse horas
+      // después y en otro dispositivo.
+      //
+      // Sin `window` (SSR, tests en node) se deja undefined a propósito:
+      // Supabase cae entonces al Site URL del proyecto, que es exactamente el
+      // destino correcto. Leerlo a pelo lanzaba aquí.
+      emailRedirectTo:
+        typeof window === "undefined" ? undefined : window.location.origin,
+    },
   });
   return { error: res?.error ?? null };
 }

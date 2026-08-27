@@ -103,19 +103,13 @@ describe("auth helpers", () => {
     expect(emailLoginDisponible()).toBe(false);
   });
 
-  // ANTES estaba apagado en nativo porque el enlace del correo abría el
-  // navegador del sistema y la sesión nacía FUERA del WebView. Con el código de
-  // 6 cifras no se sale de la pantalla, así que el motivo caducó: la app es
-  // justo donde más falta hace un segundo método, porque allí Google es el
-  // único que hay.
-  it("email: en nativo también está disponible (el código no sale de la app)", async () => {
+  // En nativo se excluye, y el motivo NO es el de antes. Antes era técnico (el
+  // enlace nacía fuera del WebView). Ahora es que el correo lleva enlace Y
+  // código, y son el MISMO token: quien pulse el enlace desde el APK acaba
+  // logueado en el navegador y con el código muerto, a medias. Mientras el
+  // correo lleve enlace, la segunda puerta no puede vivir en la app.
+  it("email: en nativo queda apagado aunque el flag esté encendido", async () => {
     setup({ isNative: true, emailLogin: "true" });
-    const { emailLoginDisponible } = await import("./auth");
-    expect(emailLoginDisponible()).toBe(true);
-  });
-
-  it("email: en nativo sigue respetando el flag apagado", async () => {
-    setup({ isNative: true });
     const { emailLoginDisponible } = await import("./auth");
     expect(emailLoginDisponible()).toBe(false);
   });
@@ -130,18 +124,33 @@ describe("auth helpers", () => {
     const res = await pedirCodigo("piloto@ejemplo.com");
     expect(m.signInWithOtp).toHaveBeenCalledWith({
       email: "piloto@ejemplo.com",
-      options: { shouldCreateUser: true },
+      options: { shouldCreateUser: true, emailRedirectTo: undefined },
     });
     expect(res).toEqual({ error: null, tipo: "email", correoOcupado: false });
   });
 
-  // Sin enlace en el correo, emailRedirectTo no tiene consumidor: mandarlo
-  // sería declarar un destino al que ya no vuelve nadie.
-  it("código: no manda emailRedirectTo (ya no hay enlace al que volver)", async () => {
+  // El correo lleva enlace además del código, así que el enlace necesita
+  // destino. A la PORTADA, no a la URL desde la que se pidió: puede abrirse
+  // horas después y en otro dispositivo.
+  it("código: manda emailRedirectTo, porque el correo sí lleva enlace", async () => {
     const m = setup({ isNative: false, emailLogin: "true", sesion: null });
+    vi.stubGlobal("window", { location: { origin: "https://cochedeldia.com" } });
     const { pedirCodigo } = await import("./auth");
     await pedirCodigo("piloto@ejemplo.com");
-    expect(m.signInWithOtp.mock.calls[0][0].options).not.toHaveProperty("emailRedirectTo");
+    expect(m.signInWithOtp.mock.calls[0][0].options.emailRedirectTo).toBe(
+      "https://cochedeldia.com"
+    );
+    vi.unstubAllGlobals();
+  });
+
+  // Entorno sin `window` (tests en node, cualquier render fuera del navegador):
+  // no debe lanzar — Supabase cae entonces al Site URL del proyecto.
+  it("código: sin window, el redirect queda undefined en vez de reventar", async () => {
+    const m = setup({ isNative: false, emailLogin: "true", sesion: null });
+    await expect(
+      (await import("./auth")).pedirCodigo("piloto@ejemplo.com")
+    ).resolves.toBeDefined();
+    expect(m.signInWithOtp.mock.calls[0][0].options.emailRedirectTo).toBeUndefined();
   });
 
   it("código: con sesión anónima ADJUNTA el correo y el tipo es 'email_change'", async () => {

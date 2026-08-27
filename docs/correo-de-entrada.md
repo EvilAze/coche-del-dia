@@ -43,20 +43,27 @@ dos versiones cuesta cuatro líneas y no deja fuera a nadie. Si algún día el
 tráfico en inglés justifica separarlas, hará falta enviar el correo desde una
 Edge Function en vez de por la plantilla del dashboard.
 
-## El código, no el enlace
+## Las dos cosas: enlace Y código
 
-`{{ .Token }}` es el protagonista y **`{{ .ConfirmationURL }}` no aparece**. No
-es una preferencia estética:
+El correo lleva `{{ .ConfirmationURL }}` **y** `{{ .Token }}`, y cada uno sirve
+a un sitio distinto:
 
-- La plantilla es **una por proyecto**, así que el mismo correo lo lee quien está
-  dentro del APK. Allí el enlace o no abre nada útil, o le mete la sesión en el
-  navegador del sistema **e invalida el código** que estaba a punto de escribir
-  en la app.
-- Un correo con dos caminos donde uno rompe al otro es peor que uno con un solo
-  camino.
+- **En escritorio se pulsa el enlace.** Es un click y estás dentro; teclear seis
+  cifras ahí sería trabajo de más.
+- **En móvil se teclea el código.** El enlace en un móvil NO es un click: es
+  salir del navegador, abrir el correo, buscar el mensaje, pulsar y volver. Ahí
+  las seis cifras son menos gesto, y no se sale de la pantalla.
 
-El precio, aceptado: en escritorio hay que teclear seis cifras en vez de pulsar
-un botón.
+**Son el MISMO token, así que usar uno invalida el otro.** Eso no molesta en la
+web —quien pulsa el enlace ya está dentro y la pestaña donde pidió el código se
+cierra sola (ver el efecto de `recienEntrado` en `App.jsx`)— pero es exactamente
+por lo que **la segunda puerta está apagada dentro de la app**: un jugador del
+APK que pulse el enlace por costumbre acaba logueado en el navegador, con el
+código muerto y sin sesión donde estaba jugando. Lo decide
+`emailLoginDisponible()` en `src/lib/auth.js`; el porqué está escrito allí.
+
+Si algún día se retira el enlace y el correo se queda solo con el código, esa
+exclusión se va con él y el APK gana su segunda puerta.
 
 ## Restricciones de un correo, que no son las de la web
 
@@ -70,15 +77,15 @@ un botón.
 - **Colores literales.** No hay variables CSS: el rojo de rotativa va como
   `#b3271b` a pelo. Es la única excepción legítima a la regla 16 — no hay
   `:root` que consultar al otro lado.
-- **`{{ .Token }}`** es la única variable imprescindible: Supabase la sustituye
-  por las seis cifras. Antes lo era `{{ .ConfirmationURL }}`, el enlace firmado,
-  y ya no se usa — ver «El código, no el enlace» más arriba.
+- **Dos variables, las dos imprescindibles:** `{{ .Token }}` (las seis cifras) y
+  `{{ .ConfirmationURL }}` (el enlace firmado). Si falta una, media audiencia se
+  queda sin su camino — ver «Las dos cosas» más arriba.
 
 ## La plantilla (la MISMA en las dos)
 
 Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
 
-**Asunto:** `Tu código de acceso · Coche del Día`
+**Asunto:** `Tu entrada al Coche del Día`
 
 ```html
 <div style="margin:0;padding:24px;background:#f5f1e8;font-family:Georgia,'Times New Roman',serif;">
@@ -93,7 +100,7 @@ Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
 
     <div style="border-top:3px double #1b1712;border-bottom:3px double #1b1712;margin:20px 0 24px;padding:6px 0;">
       <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#1b1712;">
-        Tu código · Your code
+        Tu entrada · Your pass
       </p>
     </div>
 
@@ -106,16 +113,28 @@ Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
       {{ .Token }}
     </p>
 
+    <p style="margin:20px 0 12px;font-size:13px;line-height:1.5;color:#6b6355;">
+      ¿Lo estás leyendo en el ordenador? Pulsa aquí y entras directamente:
+    </p>
+
+    <a href="{{ .ConfirmationURL }}"
+       style="display:block;background:#b3271b;color:#faf7f0;text-decoration:none;text-align:center;padding:14px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;">
+      Entrar al juego
+    </a>
+
     <p style="margin:20px 0 0;font-size:13px;line-height:1.5;color:#6b6355;">
-      El código caduca en una hora y solo funciona una vez. Si no has pedido
-      entrar, ignora este correo: no pasa nada.
+      Cualquiera de los dos vale, y solo uno: al usar uno, el otro deja de
+      funcionar. Caducan en una hora. Si no has pedido entrar, ignora este
+      correo: no pasa nada.
     </p>
 
     <div style="border-top:1px solid #d8d0bf;margin:24px 0 0;padding-top:16px;">
       <p style="margin:0;font-size:13px;line-height:1.5;color:#6b6355;">
         <strong style="color:#1b1712;">In English —</strong> Type these six digits
-        where the game asks for them. No password needed. The code expires in one
-        hour and works only once. If you didn't request it, just ignore this email.
+        where the game asks for them, or tap the button above if you're on a
+        computer. No password needed. Either one works, and only one: using one
+        disables the other. Both expire in an hour. If you didn't request it,
+        just ignore this email.
       </p>
     </div>
 
@@ -181,8 +200,19 @@ powershell -Command "Resolve-DnsName resend._domainkey.cochedeldia.com -Type TXT
    correo maquetado, no el de fábrica en inglés.
 3. Los dos, a **bandeja de entrada y no a spam** (es lo que verifican DKIM y
    SPF; si cae en spam, algo del DNS no está bien).
-4. Canjea los dos códigos y confirma que en el segundo **la racha sobrevive**.
-5. Solo entonces, `VITE_EMAIL_LOGIN=true` y redeploy.
+4. Canjea con el **código** y confirma que en el caso 2 **la racha sobrevive**.
+   Es la comprobación que más importa de todas: es la razón de ser de la
+   vinculación por `updateUser`.
+5. Pídete otro y canjea con el **enlace**, que es el otro camino del mismo
+   correo. Comprueba de paso que la pestaña donde pediste el código se cierra
+   sola al entrar (lo hace el efecto de `recienEntrado` en `App.jsx`).
+6. Solo entonces, `VITE_EMAIL_LOGIN=true` y redeploy.
 
 Encender el flag antes de verificar la entrega es publicar una puerta sin saber
-si abre. Y probar solo el caso 1 es probar el camino que casi nadie recorre.
+si abre. Y probar solo el caso 1 es probar el camino que casi nadie recorre: la
+sesión anónima nace en el PRIMER INTENTO, así que quien pide entrar desde el
+final de la partida —o sea, casi todo el mundo— va por el 2.
+
+**Nada de esto hay que probarlo en la app**, porque allí la segunda puerta está
+apagada a propósito: el correo lleva enlace, y el enlace desde el APK deja al
+jugador logueado en el navegador y a medias. Ver `emailLoginDisponible()`.

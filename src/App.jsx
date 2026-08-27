@@ -353,8 +353,21 @@ export default function App() {
     // Se apaga SIEMPRE, tenga firma o no: es un disparo por entrada, y si se
     // quedara encendido volvería a abrirse en la siguiente pasada del efecto.
     setRecienEntrado(false);
-    if (necesitaNick) openNickname("registro");
-  }, [recienEntrado, checkingProfile, necesitaNick, setRecienEntrado, openNickname]);
+    if (necesitaNick) {
+      openNickname("registro");
+      return;
+    }
+    // Y si no hace falta firma, al menos QUITAR LA PUERTA DE EN MEDIO. El caso
+    // que lo pide: el correo lleva enlace y código, así que quien pulsa el
+    // enlace entra por otra pestaña — y supabase-js propaga la sesión a esta
+    // por el almacenamiento compartido del origen. Sin esto, la pestaña donde
+    // pidió el código se queda enseñándole «escribe tus seis cifras» a alguien
+    // que ya está dentro.
+    if (activeModal === "login") closeModal();
+  }, [
+    recienEntrado, checkingProfile, necesitaNick,
+    setRecienEntrado, openNickname, activeModal, closeModal,
+  ]);
 
   // Prefetch de los chunks de modales ligeros cuando el navegador está OCIOSO.
   // El bundle inicial sigue ligero (no se ejecutan al cargar), pero al pulsar

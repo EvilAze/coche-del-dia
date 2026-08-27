@@ -155,30 +155,16 @@ export async function signInWithGoogle({ vincular = true } = {}) {
 /**
  * ¿Está disponible la entrada por correo (código de 6 cifras)?
  *
- * HOY ESTÁ APAGADO, Y NO POR UN PROBLEMA TÉCNICO. El SMTP propio existe
- * (Resend, ver docs/correo-de-entrada.md) y el flujo entero está implementado y
- * probado. Está apagado por una decisión de producto: la puerta de entrada es
- * de UN SOLO TOQUE. Google presenta su selector de cuentas y estás dentro, sin
- * teclear nada y sin salir de la pantalla; enseñar debajo un segundo camino que
- * pide correo, esperar y copiar seis cifras invita a la mitad lenta de la
- * elección justo en el momento en que menos paciencia hay.
+ * Detrás de un flag A PROPÓSITO: sin SMTP propio, el email integrado de
+ * Supabase va limitado a 2 correos/hora en TODO el proyecto, y una puerta de
+ * entrada que falla es peor que no tenerla. Se enciende solo tras configurar
+ * SMTP (hoy, Resend — ver docs/correo-de-entrada.md).
  *
- * El flag es el interruptor, no un pendiente: `VITE_EMAIL_LOGIN=true` en Vercel
- * y la segunda puerta reaparece, en web y en la app, sin tocar código. Lo que
- * decidirá si merece la pena encenderla son los datos del embudo
- * (`login_prompt_shown` → `login_success`, ver lib/analytics.js), no una
- * intuición.
- *
- * ORIGEN DEL FLAG, que era otro: nació porque sin SMTP propio el email
- * integrado de Supabase va limitado a 2 correos/hora en TODO el proyecto, y una
- * puerta que falla es peor que no tenerla. Ese motivo ya no aplica; el de
- * arriba, sí.
- *
- * EN NATIVO YA NO SE EXCLUYE por plataforma. Mientras el método era un enlace,
- * en la app estaba apagado a la fuerza porque el enlace abría el navegador del
- * sistema y la sesión nacía FUERA del WebView. Un código se teclea donde estás,
- * así que ese impedimento caducó: si algún día se enciende el flag, la app
- * tendrá segunda puerta igual que la web.
+ * EN NATIVO YA NO SE EXCLUYE. Mientras el método era un enlace, en la app
+ * estaba apagado porque el enlace abría el navegador del sistema y la sesión
+ * nacía FUERA del WebView. Un código se teclea donde estás, así que ese motivo
+ * caducó — y la app es justo donde más falta hace, porque allí Google era el
+ * único camino que había.
  */
 export function emailLoginDisponible() {
   return import.meta.env.VITE_EMAIL_LOGIN === "true";

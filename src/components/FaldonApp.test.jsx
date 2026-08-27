@@ -35,18 +35,23 @@ function sembrarDias(n) {
   localStorage.setItem("cd_dias_jugados", JSON.stringify({ n, ultima: "2026-08-01" }));
 }
 
-async function montar({ nativo = false, ua = UA_ANDROID } = {}) {
+async function montar({ nativo = false, ua = UA_ANDROID, props = {} } = {}) {
   vi.resetModules();
   setUA(ua);
   vi.doMock("@capacitor/core", () => ({
     Capacitor: { isNativePlatform: () => nativo },
   }));
   // i18n real no: el faldón solo necesita que las claves se resuelvan a algo
-  // estable con lo que buscar en pantalla.
-  vi.doMock("../i18n", () => ({ useT: () => ({ t: (k) => k }) }));
+  // estable con lo que buscar en pantalla. `tn` devuelve la clave base igual
+  // que `t`, que es todo lo que hace falta para localizar el bloque.
+  vi.doMock("../i18n", () => ({
+    useT: () => ({ t: (k) => k, tn: (k) => k }),
+  }));
 
   const { default: FaldonApp } = await import("./FaldonApp.jsx");
-  return render(<FaldonApp />);
+  // CON CUENTA por defecto: los tests de la puerta (plataforma, días,
+  // instalada) se escribieron para la cara de Play y siguen midiendo eso.
+  return render(<FaldonApp user={{ id: "u1" }} streak={0} onOpenLogin={() => {}} {...props} />);
 }
 
 describe("FaldonApp", () => {
@@ -118,6 +123,67 @@ describe("FaldonApp", () => {
 
     cleanup();
     await montar();
+    expect(screen.queryByText("app.promoTitle")).toBeNull();
+  });
+
+  // ── Las dos caras ────────────────────────────────────────────────────────
+  // Un anónimo que instala la app aparece en el día 0: su racha vive en el
+  // localStorage del navegador y el WebView tiene su propio almacenamiento.
+  // Ofrecerle Play sin avisar es mandarle a perder lo que lleva.
+  it("sin cuenta pide cuenta, no Play", async () => {
+    sembrarDias(3);
+    await montar({ props: { user: null, streak: 9 } });
+    expect(screen.getByText("app.promoAccountTitle")).toBeTruthy();
+    expect(screen.queryByText("app.promoTitle")).toBeNull();
+  });
+
+  it("con cuenta ofrece Play, no la cuenta", async () => {
+    sembrarDias(3);
+    await montar({ props: { user: { id: "u1" } } });
+    expect(screen.getByText("app.promoTitle")).toBeTruthy();
+    expect(screen.queryByText("app.promoAccountTitle")).toBeNull();
+  });
+
+  it("el CTA de registro abre la puerta de entrada y NO va a Play", async () => {
+    sembrarDias(3);
+    const onOpenLogin = vi.fn();
+    await montar({ props: { user: null, streak: 4, onOpenLogin } });
+    fireEvent.click(screen.getByText("app.promoAccountCta"));
+    expect(onOpenLogin).toHaveBeenCalledWith("faldon");
+    expect(window.open).not.toHaveBeenCalled();
+  });
+
+  // La cadena: al registrarse desde el faldón, el mismo bloque pasa a ofrecer
+  // Play sin que haya que navegar a ningún sitio.
+  it("al aparecer la cuenta, el mismo faldón pasa a ofrecer Play", async () => {
+    sembrarDias(3);
+    const { rerender } = await montar({ props: { user: null, streak: 4 } });
+    expect(screen.getByText("app.promoAccountTitle")).toBeTruthy();
+
+    const { default: FaldonApp } = await import("./FaldonApp.jsx");
+    rerender(<FaldonApp user={{ id: "u1" }} streak={4} onOpenLogin={() => {}} />);
+    expect(screen.getByText("app.promoTitle")).toBeTruthy();
+  });
+
+  // Rechazar «regístrate» no puede enterrar una oferta que aún no se ha hecho.
+  it("rechazar el registro NO apaga la oferta de Play de después", async () => {
+    sembrarDias(3);
+    await montar({ props: { user: null, streak: 4 } });
+    fireEvent.click(screen.getByText("app.promoAccountDecline"));
+    expect(screen.queryByText("app.promoAccountTitle")).toBeNull();
+
+    cleanup();
+    await montar({ props: { user: { id: "u1" } } });
+    expect(screen.getByText("app.promoTitle")).toBeTruthy();
+  });
+
+  it("y al revés: rechazar Play no vuelve a pedirle cuenta a quien ya la tiene", async () => {
+    sembrarDias(3);
+    await montar({ props: { user: { id: "u1" } } });
+    fireEvent.click(screen.getByText("app.promoDecline"));
+
+    cleanup();
+    await montar({ props: { user: { id: "u1" } } });
     expect(screen.queryByText("app.promoTitle")).toBeNull();
   });
 });

@@ -61,14 +61,54 @@ export async function asegurarSesionAnonima() {
   }
 }
 
-/** ¿La sesión vigente es anónima? (Para decidir entre vincular y entrar.) */
-async function sesionAnonimaVigente() {
+/**
+ * Id de la sesión anónima vigente, o null si no hay o no es anónima.
+ *
+ * Devuelve el ID y no un booleano porque hay dos consumidores con necesidades
+ * distintas: quien solo quiere saber «¿vinculo o entro?» lo usa como condición
+ * (un id es truthy), y quien va a redirigir a Google necesita apuntar DE QUÉ
+ * cuenta venía para poder decir después si la vinculación conservó el progreso.
+ */
+async function idAnonimoVigente() {
   try {
     const { data } = await supabase.auth.getSession();
     const u = data?.session?.user;
-    return Boolean(u && u.is_anonymous === true);
+    return u && u.is_anonymous === true ? u.id : null;
   } catch {
-    return false;
+    return null;
+  }
+}
+
+// ── La nota que sobrevive al redirect ──────────────────────────────────────
+// En web, entrar con Google se lleva la página entera a otro dominio y la trae
+// de vuelta recargada. Eso hace INOBSERVABLE el éxito: al volver, la sesión ya
+// está puesta y es indistinguible de haber llegado ya logueado. Sin esta nota,
+// `login_success` mediría todos los caminos MENOS el que usa la mayoría.
+//
+// sessionStorage y no localStorage a propósito: la nota tiene que morir con la
+// pestaña. Una que sobreviviera al cierre convertiría la siguiente visita en un
+// login falso.
+const CLAVE_LOGIN = "ccd_login_en_curso";
+
+/** Apunta que ESTA pestaña se va a un redirect de login. @param {string|null} anonId */
+export function marcarLoginEnCurso(method, anonId) {
+  try {
+    sessionStorage.setItem(CLAVE_LOGIN, JSON.stringify({ method, anonId: anonId ?? null }));
+  } catch {
+    // Sin sessionStorage (modo privado, sandbox) solo se pierde la métrica. La
+    // entrada funciona igual: medir nunca puede impedir entrar (regla 9).
+  }
+}
+
+/** Lee la nota y LA CONSUME. Devuelve null si no había, o si estaba corrupta. */
+export function leerLoginEnCurso() {
+  try {
+    const raw = sessionStorage.getItem(CLAVE_LOGIN);
+    if (!raw) return null;
+    sessionStorage.removeItem(CLAVE_LOGIN);
+    return JSON.parse(raw);
+  } catch {
+    return null;
   }
 }
 
@@ -90,14 +130,20 @@ async function sesionAnonimaVigente() {
  */
 export async function signInWithGoogle({ vincular = true } = {}) {
   if (Capacitor.isNativePlatform()) {
+    // Nativo no redirige: la sesión aparece en esta misma página y
+    // useAuthSession la ve como transición. Dejar nota aquí sería dejar una que
+    // nadie va a leer y que ensuciaría el siguiente login de la pestaña.
     return nativeGoogleSignIn();
   }
+
+  const anonId = await idAnonimoVigente();
+  marcarLoginEnCurso("google", anonId);
 
   // Con sesión anónima en curso, VINCULAMOS en vez de entrar: linkIdentity
   // conserva el mismo user id, y con él la racha, las estadísticas y el
   // Archivo que el jugador acumuló como anónimo. Es la diferencia entre
   // «regístrate» y «no pierdas lo que llevas».
-  if (vincular && (await sesionAnonimaVigente())) {
+  if (vincular && anonId) {
     const res = await supabase.auth.linkIdentity({ provider: "google" });
     if (!res?.error) return res;
     console.warn("[auth] linkIdentity rechazado antes de redirigir:", res.error.message);
@@ -144,7 +190,7 @@ export function emailLoginDisponible() {
  * datos. Pones tu correo y entras.
  */
 export async function pedirCodigo(email) {
-  if (await sesionAnonimaVigente()) {
+  if (await idAnonimoVigente()) {
     const res = await supabase.auth.updateUser({ email });
     if (!res?.error) return { error: null, tipo: "email_change" };
     // El correo ya pertenece a otra cuenta. No tiene arreglo por vinculación:

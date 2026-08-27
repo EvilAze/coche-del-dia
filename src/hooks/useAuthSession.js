@@ -11,7 +11,8 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { getMyProfile, getMyStreak, getMySeasonRank } from "../lib/statsService";
-import { esCuentaReal } from "../lib/auth";
+import { esCuentaReal, leerLoginEnCurso } from "../lib/auth";
+import { track } from "../lib/analytics";
 
 export function useAuthSession() {
   const [user, setUser] = useState(null);
@@ -40,6 +41,47 @@ export function useAuthSession() {
   const lastUserIdRef = useRef(undefined);
 
   useEffect(() => {
+    /**
+     * ¿Esta sincronización es una ENTRADA? Y si lo es, ¿por qué camino y
+     * conservando el progreso anónimo o no?
+     *
+     * Dos caminos, porque el redirect de Google en web borra la evidencia:
+     *
+     *  - HIDRATACIÓN (`previo === undefined`): la sesión ya estaba al cargar.
+     *    Solo cuenta como entrada si esta pestaña dejó una nota antes de irse a
+     *    Google (ver lib/auth.js). Sin nota es alguien que ya venía logueado, y
+     *    contarlo convertiría cada recarga en un registro nuevo.
+     *  - TRANSICIÓN: la sesión cambió con la página abierta — código de 6 cifras
+     *    o Google nativo. Aquí la nota, si la hubiera, está rancia (un redirect
+     *    que no llegó a nada): se consume igual para que no contamine el
+     *    siguiente login de la pestaña.
+     */
+    function reportarLogin(sessionUser, previo) {
+      const marca = leerLoginEnCurso();
+      if (!esCuentaReal(sessionUser)) return;
+
+      if (previo === undefined) {
+        if (!marca) return;
+        track("login_success", {
+          method: marca.method,
+          vinculado: marca.anonId === sessionUser.id,
+        });
+        return;
+      }
+
+      // Ya era cuenta real antes: esto es un refresco de token, no una entrada.
+      if (typeof previo === "string" && previo.endsWith("-false")) return;
+
+      const proveedores = sessionUser.app_metadata?.providers || [];
+      track("login_success", {
+        method: proveedores.includes("google") ? "google" : "email",
+        // Mismo id que la sesión anónima anterior = conservó racha y Archivo.
+        // Es LA métrica de esta entrega: no cuánta gente entra, sino cuánta
+        // entra sin dejarse por el camino lo que ya llevaba jugado.
+        vinculado: previo === `${sessionUser.id}-true`,
+      });
+    }
+
     async function syncUser(session) {
       const sessionUser = session?.user ?? null;
       const nextId = sessionUser?.id ?? null;
@@ -47,7 +89,13 @@ export function useAuthSession() {
       const nextKey = nextId ? `${nextId}-${nextAnon}` : null;
 
       if (lastUserIdRef.current === nextKey) return;
+      // `undefined` = primera pasada de esta carga de página. Distinguirlo de
+      // `null` (sesión ya procesada, sin usuario) es lo que separa «acabo de
+      // entrar» de «llegué ya logueado», y sin esa distinción login_success
+      // contaría una entrada por cada recarga.
+      const previo = lastUserIdRef.current;
       lastUserIdRef.current = nextKey;
+      reportarLogin(sessionUser, previo);
 
       // `user` = CUENTA REAL. Una sesión anónima tiene JWT y fila en auth.users,
       // pero para la interfaz sigue siendo un visitante sin registrar: el header

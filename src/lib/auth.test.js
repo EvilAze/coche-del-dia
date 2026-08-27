@@ -294,4 +294,87 @@ describe("auth helpers", () => {
       expect(m.linkIdentity).not.toHaveBeenCalled();
     });
   });
+
+  // ── La nota que sobrevive al redirect de Google ──────────────────────────
+  // En web, entrar con Google se lleva la página a otro dominio y la trae de
+  // vuelta RECARGADA: al volver, la sesión ya está puesta y es indistinguible
+  // de haber llegado logueado. Sin esta nota, login_success mediría todos los
+  // caminos MENOS el que usa la mayoría.
+  describe("marca de login en curso", () => {
+    // sessionStorage de mentira, porque el entorno de estos tests es node.
+    function conStorage(inicial = {}) {
+      const store = { ...inicial };
+      vi.stubGlobal("sessionStorage", {
+        getItem: (k) => (k in store ? store[k] : null),
+        setItem: (k, v) => { store[k] = String(v); },
+        removeItem: (k) => { delete store[k]; },
+      });
+      return store;
+    }
+
+    it("se guarda al entrar con Google en web, con el id anónimo de origen", async () => {
+      const m = setup({ isNative: false, sesion: "anon" });
+      const store = conStorage();
+      const { signInWithGoogle } = await import("./auth");
+      await signInWithGoogle();
+      expect(JSON.parse(store.ccd_login_en_curso)).toEqual({ method: "google", anonId: "u1" });
+      expect(m.linkIdentity).toHaveBeenCalled();
+      vi.unstubAllGlobals();
+    });
+
+    it("sin sesión anónima la nota va con anonId null (no hay progreso que vincular)", async () => {
+      setup({ isNative: false, sesion: null });
+      const store = conStorage();
+      const { signInWithGoogle } = await import("./auth");
+      await signInWithGoogle();
+      expect(JSON.parse(store.ccd_login_en_curso)).toEqual({ method: "google", anonId: null });
+      vi.unstubAllGlobals();
+    });
+
+    // En nativo no hay redirect: la sesión aparece en esta misma página y
+    // useAuthSession la ve como transición. Dejar nota aquí ensuciaría el
+    // siguiente login de la pestaña con un método que no fue.
+    it("NO se guarda en nativo: allí no hay redirect y la transición se ve sola", async () => {
+      setup({ isNative: true });
+      const store = conStorage();
+      const { signInWithGoogle } = await import("./auth");
+      await signInWithGoogle();
+      expect(store.ccd_login_en_curso).toBeUndefined();
+      vi.unstubAllGlobals();
+    });
+
+    // Leerla la CONSUME: si se quedara puesta, el siguiente arranque de la
+    // pestaña volvería a contar un login que ya se contó.
+    it("leerLoginEnCurso devuelve la nota y la borra", async () => {
+      setup({ isNative: false });
+      const store = conStorage({
+        ccd_login_en_curso: JSON.stringify({ method: "google", anonId: null }),
+      });
+      const { leerLoginEnCurso } = await import("./auth");
+      expect(leerLoginEnCurso()).toEqual({ method: "google", anonId: null });
+      expect(store.ccd_login_en_curso).toBeUndefined();
+      expect(leerLoginEnCurso()).toBeNull();
+      vi.unstubAllGlobals();
+    });
+
+    // Regla 9: medir NUNCA puede impedir entrar. En modo privado o en un
+    // sandbox sin sessionStorage se pierde la métrica y nada más.
+    it("sin sessionStorage no lanza: se pierde la métrica, no la entrada", async () => {
+      setup({ isNative: false });
+      vi.stubGlobal("sessionStorage", undefined);
+      const { leerLoginEnCurso, marcarLoginEnCurso, signInWithGoogle } = await import("./auth");
+      expect(() => marcarLoginEnCurso("google", null)).not.toThrow();
+      expect(leerLoginEnCurso()).toBeNull();
+      await expect(signInWithGoogle()).resolves.toBeDefined();
+      vi.unstubAllGlobals();
+    });
+
+    it("una nota corrupta no revienta: se trata como si no hubiera", async () => {
+      setup({ isNative: false });
+      conStorage({ ccd_login_en_curso: "{esto no es json" });
+      const { leerLoginEnCurso } = await import("./auth");
+      expect(leerLoginEnCurso()).toBeNull();
+      vi.unstubAllGlobals();
+    });
+  });
 });

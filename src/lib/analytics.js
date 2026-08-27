@@ -38,6 +38,19 @@
 //        Embudo de retención Web Push: shown → optin(accept) → subscribed. El
 //        RETORNO desde una notificación se mide por UTM (?utm_source=push), que
 //        Umami atribuye solo (no hace falta evento).
+//   - login_prompt_shown  { surface }              — se abre la puerta de entrada
+//   - login_method        { method }               — google | email: qué camino elige
+//   - login_code_sent     { vinculando }           — código pedido (vinculando: adjunta el correo a un anónimo)
+//   - login_verified      { result }               — ok | bad_code | expired | error
+//   - login_success       { method, vinculado }    — sesión de CUENTA REAL creada
+//   - login_dismiss       { surface }              — cierra sin entrar
+//        Embudo de registro: prompt_shown → method → (code_sent → verified) →
+//        success. `vinculado` es lo que de verdad hay que mirar: dice si el
+//        jugador conservó su progreso anónimo o empezó de cero.
+//        login_success NO sale del modal sino de useAuthSession: en web el
+//        redirect de Google recarga la página y el modal ya no existe cuando
+//        aparece la sesión. Ver reportarLogin() allí, y la nota de
+//        sessionStorage que lib/auth.js deja antes de irse.
 //   - app_promo_shown        { surface }   — se pinta la oferta de la app Android
 //   - app_promo_click        { surface }   — clic hacia la ficha de Play
 //   - app_promo_dismiss      { surface }   — "ahora no" (cierra el faldón para siempre)

@@ -178,7 +178,10 @@ export default function LoginModal({ open, onClose, aviso = null }) {
       track("login_verified", { result: "ok" });
       // La sesión ya existe. Quien se entera es onAuthStateChange
       // (useAuthSession); aquí solo hay que quitarse de en medio.
-      onClose?.();
+      //
+      // Con bandera: este cierre es un ÉXITO, no un abandono. Sin ella, cada
+      // registro conseguido se contaría también como `login_dismiss`.
+      onClose?.({ exito: true });
     } catch {
       // Aquí NO se ha rechazado el código: no hemos llegado a preguntarlo. El
       // campo se conserva —lo tecleado sigue siendo válido— y el mensaje habla

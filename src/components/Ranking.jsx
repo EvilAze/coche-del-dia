@@ -519,7 +519,7 @@ export default function Ranking({
                   type="button"
                   onClick={() => {
                     onClose();
-                    onOpenLogin?.();
+                    onOpenLogin?.("ranking");
                   }}
                   className="pm-btn mt-3"
                 >

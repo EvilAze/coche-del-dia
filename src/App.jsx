@@ -93,12 +93,23 @@ export default function App() {
   // aviso y el enlace queda con el error pegado— y se abre el modal de login
   // con la explicación y la salida.
   const [avisoLogin, setAvisoLogin] = useState(null);
+  // De dónde viene el jugador que abre la puerta de entrada. Sin esto el embudo
+  // de registro no tiene denominador: se sabría cuánta gente entra, pero no qué
+  // puerta la trajo — que es justo lo que hace falta para arreglar la que no
+  // funciona. Se declara aquí arriba porque el efecto de la vuelta de OAuth,
+  // unas líneas más abajo, también abre el modal y también cuenta.
+  const [loginSurface, setLoginSurface] = useState(null);
   useEffect(() => {
     const err = leerErrorAuth();
     if (!err) return;
     limpiarErrorAuth();
     console.warn("[auth] vuelta con error:", err.code, err.description);
     setAvisoLogin(esIdentidadYaVinculada(err) ? "identidad-ocupada" : "generico");
+    // Esta apertura no la pidió nadie: la provoca la vuelta de un OAuth
+    // fallido. Cuenta como superficie propia porque su tasa de éxito no se
+    // parece a la de las demás — aquí el jugador ya falló una vez.
+    setLoginSurface("vuelta-error");
+    track("login_prompt_shown", { surface: "vuelta-error" });
     setActiveModal("login");
   }, [setActiveModal]);
 
@@ -278,7 +289,9 @@ export default function App() {
 
   // LoginModal NO es lazy a propósito: es la puerta de entrada y un chunk que
   // descargar en ese momento se nota. No necesita mountModal.
-  function openLogin() {
+  function openLogin(surface = "desconocida") {
+    setLoginSurface(surface);
+    track("login_prompt_shown", { surface });
     setActiveModal("login");
   }
 
@@ -564,7 +577,15 @@ export default function App() {
 
       <LoginModal
         open={activeModal === "login"}
-        onClose={() => { setAvisoLogin(null); closeModal(); }}
+        // El botón de cerrar y el backdrop pasan su evento de click, que no
+        // trae `exito`: solo lo trae el camino de verificación correcta. Sin
+        // esa distinción, cada registro conseguido se contaría ADEMÁS como un
+        // abandono y la métrica diría lo contrario de lo que pasa.
+        onClose={(res) => {
+          if (!res?.exito) track("login_dismiss", { surface: loginSurface });
+          setAvisoLogin(null);
+          closeModal();
+        }}
         aviso={avisoLogin}
       />
 

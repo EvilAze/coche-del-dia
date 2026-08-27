@@ -627,7 +627,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
               <AuthWall
                 onLogin={() => {
                   onClose();
-                  onOpenLogin?.();
+                  onOpenLogin?.("garage");
                 }}
               />
             ) : state.loading ? (

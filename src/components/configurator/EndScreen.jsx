@@ -401,7 +401,7 @@ export default function EndScreen({
               habla de algo que el jugador YA tiene y puede perder. Con racha 0
               o 1 no hay nada que presumir y se queda el genérico. */}
           {!user && (
-            <button className="cdd-submit cdd-submit--ghost" onClick={onOpenLogin}>
+            <button className="cdd-submit cdd-submit--ghost" onClick={() => onOpenLogin?.("endscreen")}>
               <span>
                 {streak > 1
                   ? tn("result.saveStreakCta", streak)

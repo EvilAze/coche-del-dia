@@ -143,7 +143,7 @@ export default function SumarioModal({
                 : t("sumario.perfilApunte")
               : t("sumario.entrarApunte")
           }
-          onClick={user ? onOpenProfile : onOpenLogin}
+          onClick={user ? onOpenProfile : () => onOpenLogin?.("sumario")}
         />
 
         <Portadilla

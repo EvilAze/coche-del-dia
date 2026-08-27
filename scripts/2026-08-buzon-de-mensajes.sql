@@ -7,7 +7,7 @@
 -- POR QUÉ NO ES «LEER EL CORREO DE soporte@»
 -- ---------------------------------------------------------------------------
 -- El correo entrante del dominio lo gobierna ImprovMX (ver
--- docs/correo-magic-link.md), y ImprovMX no es un buzón: es un REENVIADOR. Coge
+-- docs/correo-de-entrada.md), y ImprovMX no es un buzón: es un REENVIADOR. Coge
 -- lo que llega a soporte@cochedeldia.com y lo empuja a una cuenta personal, sin
 -- guardar nada. No hay ningún servidor nuestro donde esos correos existan, así
 -- que «que el panel los enseñe» habría exigido cambiar los MX del dominio,

@@ -54,7 +54,7 @@ Los ficheros que necesitan DOM llevan el pragma `// @vitest-environment jsdom` e
 | `src/components/FaldonApp.jsx` | Modificar | Dos caras según haya cuenta o no. |
 | `src/components/FaldonApp.test.jsx` | Modificar | Los tests existentes **necesitan `user`** ahora (ver tarea 8). |
 | `src/components/MyStats.jsx` | Modificar | Le falta el evento de impresión de la puerta de la app. |
-| `docs/correo-magic-link.md` | Reescribir | Las **dos** plantillas, no una. |
+| `docs/correo-de-entrada.md` | Reescribir | Las **dos** plantillas, no una. |
 | `android/app/build.gradle` | Modificar | `versionCode` 56 / `versionName` 1.10.0 (tarea 12). |
 
 ---
@@ -118,7 +118,7 @@ En `src/lib/auth.js`, sustituye la función `emailLoginDisponible()` y su bloque
  * Detrás de un flag A PROPÓSITO: sin SMTP propio, el email integrado de
  * Supabase va limitado a 2 correos/hora en TODO el proyecto, y una puerta de
  * entrada que falla es peor que no tenerla. Se enciende solo tras configurar
- * SMTP (hoy, Resend — ver docs/correo-magic-link.md).
+ * SMTP (hoy, Resend — ver docs/correo-de-entrada.md).
  *
  * EN NATIVO YA NO SE EXCLUYE. Mientras el método era un enlace, en la app
  * estaba apagado porque el enlace abría el navegador del sistema y la sesión
@@ -2086,7 +2086,7 @@ git commit -m "fix(ui): el muro del Archivo abre la puerta, no anuncia un métod
 
 ## Task 11: Las DOS plantillas de correo
 
-El hallazgo que motiva media spec. `docs/correo-magic-link.md` documenta una plantilla, pero el código dispara **dos**, y la que más se envía es la que **no** se personalizó:
+El hallazgo que motiva media spec. `docs/correo-de-entrada.md` documenta una plantilla, pero el código dispara **dos**, y la que más se envía es la que **no** se personalizó:
 
 | Plantilla de Supabase | La dispara | Quién cae ahí |
 |---|---|---|
@@ -2096,7 +2096,7 @@ El hallazgo que motiva media spec. `docs/correo-magic-link.md` documenta una pla
 `asegurarSesionAnonima()` crea la sesión en el **primer intento**, así que para cuando aparece el CTA de «guarda tu progreso» el jugador ya es anónimo y su correo sale por la segunda fila de esa tabla.
 
 **Files:**
-- Rewrite: `docs/correo-magic-link.md`
+- Rewrite: `docs/correo-de-entrada.md`
 
 - [ ] **Step 1: Comprobar el estado real antes de escribir nada**
 
@@ -2104,7 +2104,7 @@ En el dashboard de Supabase: **Authentication → Email Templates**. Mira si «C
 
 - [ ] **Step 2: Reescribir el documento**
 
-Cambia el título y la sección «Por qué se personaliza» de `docs/correo-magic-link.md` para que abran así (el resto del documento —restricciones del correo, DNS, SPF— se conserva tal cual):
+Cambia el título y la sección «Por qué se personaliza» de `docs/correo-de-entrada.md` para que abran así (el resto del documento —restricciones del correo, DNS, SPF— se conserva tal cual):
 
 ```markdown
 # Los correos de entrada
@@ -2249,7 +2249,7 @@ si abre. Y probar solo el caso 1 es probar el camino que casi nadie recorre.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add docs/correo-magic-link.md
+git add docs/correo-de-entrada.md
 git commit -m "docs(correo): son DOS plantillas, y la que más se envía no estaba personalizada"
 ```
 

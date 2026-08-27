@@ -158,7 +158,7 @@ export async function signInWithGoogle({ vincular = true } = {}) {
  * Detrás de un flag A PROPÓSITO: sin SMTP propio, el email integrado de
  * Supabase va limitado a 2 correos/hora en TODO el proyecto, y una puerta de
  * entrada que falla es peor que no tenerla. Se enciende solo tras configurar
- * SMTP (hoy, Resend — ver docs/correo-magic-link.md).
+ * SMTP (hoy, Resend — ver docs/correo-de-entrada.md).
  *
  * EN NATIVO YA NO SE EXCLUYE. Mientras el método era un enlace, en la app
  * estaba apagado porque el enlace abría el navegador del sistema y la sesión

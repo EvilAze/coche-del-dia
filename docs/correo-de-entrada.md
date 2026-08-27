@@ -1,11 +1,34 @@
-# El correo del enlace de acceso
+# Los correos de entrada
 
-Plantilla del *magic link* y notas de configuración del envío. Vive aquí y no en
-el código porque se edita en el dashboard de Supabase
-(**Authentication → Email Templates → «Magic link or OTP»**), pero se versiona
-igual que el SQL de `scripts/`: es parte del producto, no un ajuste suelto.
+Plantillas del código de acceso y notas de configuración del envío. Viven aquí y
+no en el código porque se editan en el dashboard de Supabase
+(**Authentication → Email Templates**), pero se versionan igual que el SQL de
+`scripts/`: son parte del producto, no un ajuste suelto.
 
-## Por qué se personaliza
+## SON DOS PLANTILLAS, NO UNA
+
+Es el error que estuvo en producción y que costó descubrir, porque desde el
+código no se ve: `src/lib/auth.js` llama a dos funciones distintas de Supabase
+según el estado de la sesión, y **cada una usa su propia plantilla**.
+
+| Plantilla | La dispara | Quién cae ahí |
+|---|---|---|
+| **Magic Link** | `signInWithOtp` | Quien pide entrar ANTES de su primer intento. |
+| **Change Email Address** | `updateUser({ email })` | Quien pide entrar con una sesión anónima ya viva. |
+
+Y la segunda es **la normal**. `asegurarSesionAnonima()` crea la sesión en el
+primer intento, así que para cuando el jugador ve el CTA de «guarda tu progreso»
+al final de la partida ya es anónimo: su correo sale por «Change Email Address».
+Personalizar solo «Magic Link» es maquetar con esmero el correo que casi nadie
+recibe.
+
+**Si tocas una, toca la otra.** El contenido es el mismo; lo único que cambia es
+dónde se pega.
+
+> El nombre «Magic Link» es de Supabase y no se puede cambiar. Nosotros ya no
+> mandamos ningún enlace: esa plantilla es la del código de alta. Ver abajo.
+
+## Por qué se personalizan
 
 La plantilla que trae Supabase de fábrica es un párrafo genérico **en inglés**,
 sin remitente reconocible y con el aspecto de un correo de sistema. A un jugador
@@ -20,6 +43,21 @@ dos versiones cuesta cuatro líneas y no deja fuera a nadie. Si algún día el
 tráfico en inglés justifica separarlas, hará falta enviar el correo desde una
 Edge Function en vez de por la plantilla del dashboard.
 
+## El código, no el enlace
+
+`{{ .Token }}` es el protagonista y **`{{ .ConfirmationURL }}` no aparece**. No
+es una preferencia estética:
+
+- La plantilla es **una por proyecto**, así que el mismo correo lo lee quien está
+  dentro del APK. Allí el enlace o no abre nada útil, o le mete la sesión en el
+  navegador del sistema **e invalida el código** que estaba a punto de escribir
+  en la app.
+- Un correo con dos caminos donde uno rompe al otro es peor que uno con un solo
+  camino.
+
+El precio, aceptado: en escritorio hay que teclear seis cifras en vez de pulsar
+un botón.
+
 ## Restricciones de un correo, que no son las de la web
 
 - **Sin fuentes web.** Fraunces no carga en Gmail ni en Outlook. Se usa Georgia,
@@ -32,14 +70,15 @@ Edge Function en vez de por la plantilla del dashboard.
 - **Colores literales.** No hay variables CSS: el rojo de rotativa va como
   `#b3271b` a pelo. Es la única excepción legítima a la regla 16 — no hay
   `:root` que consultar al otro lado.
-- **`{{ .ConfirmationURL }}`** es la única variable imprescindible. Supabase la
-  sustituye por el enlace firmado.
+- **`{{ .Token }}`** es la única variable imprescindible: Supabase la sustituye
+  por las seis cifras. Antes lo era `{{ .ConfirmationURL }}`, el enlace firmado,
+  y ya no se usa — ver «El código, no el enlace» más arriba.
 
-## La plantilla
+## La plantilla (la MISMA en las dos)
 
 Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
 
-**Asunto:** `Tu entrada al Coche del Día`
+**Asunto:** `Tu código de acceso · Coche del Día`
 
 ```html
 <div style="margin:0;padding:24px;background:#f5f1e8;font-family:Georgia,'Times New Roman',serif;">
@@ -54,29 +93,29 @@ Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
 
     <div style="border-top:3px double #1b1712;border-bottom:3px double #1b1712;margin:20px 0 24px;padding:6px 0;">
       <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#1b1712;">
-        Tu entrada · Your pass
+        Tu código · Your code
       </p>
     </div>
 
     <p style="margin:0 0 20px;font-size:16px;line-height:1.55;color:#1b1712;">
-      Pulsa el botón y entras. No hay contraseña que recordar.
+      Escribe estas seis cifras donde te las pide el juego. No hay contraseña
+      que recordar.
     </p>
 
-    <a href="{{ .ConfirmationURL }}"
-       style="display:block;background:#b3271b;color:#faf7f0;text-decoration:none;text-align:center;padding:14px 12px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase;">
-      Entrar al juego
-    </a>
+    <p style="margin:0;background:#1b1712;color:#faf7f0;text-align:center;padding:18px 12px;font-family:'Courier New',Courier,monospace;font-size:34px;font-weight:bold;letter-spacing:.32em;">
+      {{ .Token }}
+    </p>
 
     <p style="margin:20px 0 0;font-size:13px;line-height:1.5;color:#6b6355;">
-      El enlace caduca en una hora y solo funciona una vez. Si no has pedido
+      El código caduca en una hora y solo funciona una vez. Si no has pedido
       entrar, ignora este correo: no pasa nada.
     </p>
 
     <div style="border-top:1px solid #d8d0bf;margin:24px 0 0;padding-top:16px;">
       <p style="margin:0;font-size:13px;line-height:1.5;color:#6b6355;">
-        <strong style="color:#1b1712;">In English —</strong> Tap the button above
-        to sign in. No password needed. The link expires in one hour and works
-        only once. If you didn’t request it, just ignore this email.
+        <strong style="color:#1b1712;">In English —</strong> Type these six digits
+        where the game asks for them. No password needed. The code expires in one
+        hour and works only once. If you didn't request it, just ignore this email.
       </p>
     </div>
 
@@ -88,6 +127,10 @@ Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
 </div>
 ```
 
+**Ojo al `letter-spacing` del código.** Con `.32em` en un monoespaciado de 34px,
+seis cifras caben en los 480px de ancho. Si lo subes, en Gmail móvil el código
+parte en dos líneas y deja de poderse copiar de un gesto.
+
 ## Configuración del envío
 
 | Ajuste | Dónde | Valor |
@@ -96,6 +139,8 @@ Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
 | Remitente | `/auth/smtp` | `redaccion@cochedeldia.com` · «Coche del Día» |
 | Límite de envío | `/auth/rate-limits` | Supabase lo deja en **30/hora** al guardar el SMTP. Súbelo. |
 | Redirect URL | `/auth/url-configuration` | `https://cochedeldia.com` debe estar en la lista |
+| Plantillas | `/auth/templates` | **Magic Link** Y **Change Email Address**, las dos con el mismo HTML y el mismo asunto |
+| Secure email change | `/auth/providers` → Email | Verificar. Con un anónimo no hay correo antiguo que confirmar, así que debería mandar UN solo correo; si mandara dos, hay que desactivarlo. |
 | Interruptor de la web | Vercel env | `VITE_EMAIL_LOGIN=true` (ver `emailLoginDisponible()` en `src/lib/auth.js`) |
 
 **Dos techos independientes**, y frena el más bajo de los dos:
@@ -129,11 +174,15 @@ powershell -Command "Resolve-DnsName resend._domainkey.cochedeldia.com -Type TXT
 
 ## Antes de encender el flag
 
-1. Pídete un enlace a ti mismo.
-2. Comprueba que llega a **bandeja de entrada y no a spam** (es lo que verifican
-   DKIM y SPF; si cae en spam, algo del DNS no está bien).
-3. Ábrelo y confirma que vuelves a `cochedeldia.com` con la sesión creada.
-4. Solo entonces, `VITE_EMAIL_LOGIN=true` y redeploy.
+1. Pídete un código **sin sesión anónima** (ventana nueva, pide entrar antes de
+   jugar): comprueba que llega el de «Magic Link».
+2. Pídete otro **con sesión anónima** (juega un intento primero, luego pide
+   entrar): comprueba que llega el de «Change Email Address» y que es el mismo
+   correo maquetado, no el de fábrica en inglés.
+3. Los dos, a **bandeja de entrada y no a spam** (es lo que verifican DKIM y
+   SPF; si cae en spam, algo del DNS no está bien).
+4. Canjea los dos códigos y confirma que en el segundo **la racha sobrevive**.
+5. Solo entonces, `VITE_EMAIL_LOGIN=true` y redeploy.
 
 Encender el flag antes de verificar la entrega es publicar una puerta sin saber
-si abre.
+si abre. Y probar solo el caso 1 es probar el camino que casi nadie recorre.

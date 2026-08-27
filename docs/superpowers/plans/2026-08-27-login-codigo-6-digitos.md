@@ -177,7 +177,16 @@ Y al `return` de `setup()`:
 
 - [ ] **Step 2: Escribir los tests que fallan**
 
-En `src/lib/auth.test.js`, **borra** los dos tests de `signInWithEmail` (el de «pide OTP creando usuario y vuelve al origen» y el de «sin window, el redirect queda undefined») y pon en su lugar:
+En `src/lib/auth.test.js` hay **CUATRO** tests que llaman a `signInWithEmail`, no dos. Bórralos todos — al desaparecer la función, cualquiera que quede lanza `TypeError`:
+
+1. `"email: signInWithEmail pide OTP creando usuario y vuelve al origen"`
+2. `"email: sin window, el redirect queda undefined en vez de reventar"` — sin reemplazo a propósito: la rama de `emailRedirectTo`/`window` deja de existir.
+3. `"Correo: con sesión anónima adjunta el email a esa cuenta"` — dentro de `describe("vincular identidad sobre una sesión anónima")`. Su cobertura pasa al test 3 de abajo, que asserta lo mismo Y el `tipo`.
+4. `"Correo: si el email ya es de otra cuenta, cae al enlace normal"` — mismo `describe`. Su cobertura pasa al test 4 de abajo.
+
+Deja un comentario en el sitio de los dos últimos diciendo dónde vive ahora esa cobertura: quien lea ese `describe` buscando el caso del correo tiene que encontrarlo.
+
+En el lugar de los dos primeros, pon:
 
 ```js
   // ── Código de 6 cifras ───────────────────────────────────────────────────
@@ -438,11 +447,18 @@ git add src/i18n/locales/es.json src/i18n/locales/en.json
 git commit -m "i18n: textos del código de 6 cifras y del faldón de registro"
 ```
 
-**Estado transitorio, esperado:** entre este commit y el de la tarea 4, el modal
-todavía pide `app.emailSentTitle`, que ya no existe, y `t()` devuelve la clave
-cruda. La suite sigue en verde (`locales.test.js` solo mira paridad, y todavía no
-hay test de `LoginModal`), pero **no dejes la rama parada aquí**: la tarea 4 lo
-cierra. Si tuvieras que interrumpir, hazlo después de la 4, no entre medias.
+**Estado transitorio: LA SUITE SE QUEDA EN ROJO hasta la tarea 4.** Entre este
+commit y el siguiente, el modal todavía pide `app.emailSentTitle`, que ya no
+existe. `locales.test.js` tiene CUATRO tests, no solo el de paridad: el cuarto
+escanea todas las llamadas `t()`/`tn()` de `src/` y falla si la clave no está en
+los dos idiomas. Existe por un incidente real —`prensa.fajaLider` y compañía se
+borraron de los locales y `RankParte` siguió llamándolas, así que todo jugador
+logueado con puesto vio un literal `prensa.fajaDistancia.one` en pantalla—, y
+está haciendo exactamente su trabajo aquí.
+
+O sea que este par de tareas (3 y 4) es **atómico**: no dejes la rama parada
+entre medias, y no empujes nada al remoto hasta que la 4 esté dentro. Si tienes
+que interrumpir, hazlo después de la 4.
 
 ---
 
@@ -994,7 +1010,17 @@ export default function LoginModal({ open, onClose, aviso = null }) {
                 <i className="h-px flex-1 bg-border" aria-hidden="true" />
               </div>
 
-              <form onSubmit={enviarCodigo} className="text-left">
+              {/* `noValidate`, y el campo sigue siendo `type="email"`: son dos
+                  cosas distintas. El tipo se queda porque es lo que saca el
+                  teclado con la tecla @ en el móvil. La validación nativa se
+                  apaga porque su burbuja sale en el idioma del SISTEMA y no en
+                  el que el jugador eligió aquí — y porque es MÁS LAXA que
+                  EMAIL_RE (`a@b` la pasa), así que iban a convivir las dos: el
+                  mismo error se presentaba de dos maneras distintas según lo
+                  equivocado que estuviera. Una puerta, un mensaje, y en nuestro
+                  idioma. Sin esto, `enviarCodigo` no llega a ejecutarse con un
+                  correo sin arroba y el toast traducido es código muerto. */}
+              <form onSubmit={enviarCodigo} noValidate className="text-left">
                 <label htmlFor="login-email" className="prensa-label">
                   {t("app.emailLabel")}
                 </label>
@@ -1043,6 +1069,14 @@ Expected: PASS, los 12.
 
 Run: `npm run test:estetica`
 Expected: PASS. Si se queja de `bg-white`/`text-black` en `LoginModal.jsx`, es que se perdió la excepción de `ALLOW` en `scripts/check-estetica.mjs` — restáurala, no cambies el botón de Google.
+
+**Verificación extra de esta tarea, que no está en las demás.** Al llegar aquí
+dos cosas que estaban ROJAS desde la tarea 3 tienen que volver al verde, y son
+la señal de que el par 3+4 ha cerrado bien:
+
+- `npx vitest run src/i18n/locales.test.js` → 4/4 (estaba 3/4: el modal pedía las
+  tres claves `emailSent*` retiradas).
+- `npm run build` → compila (fallaba con `[MISSING_EXPORT] "signInWithEmail"`).
 
 - [ ] **Step 6: Commit**
 

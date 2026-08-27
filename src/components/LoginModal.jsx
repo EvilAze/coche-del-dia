@@ -41,7 +41,22 @@ import LanguageStrip from "./LanguageStrip";
 // servidor al enviar, y un regex estricto de RFC rechaza correos válidos raros.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const CIFRAS = 6;
+// Longitud del código. Lo decide Supabase en Auth → Email OTP Length, no
+// nosotros, y admite de 6 a 10. Por eso aquí NO hay una longitud exacta: hay un
+// MÍNIMO para saber cuándo tiene sentido intentarlo y un TECHO para el campo.
+//
+// La versión anterior truncaba a 6 exactas, y eso ató el cliente a un número
+// que vive en un panel de control ajeno: con el proyecto en 8, el campo mandaba
+// las seis primeras de ocho y el código no validaba JAMÁS. El jugador veía «no
+// vale» para siempre haciéndolo todo bien, y ningún test podía enterarse porque
+// el valor no está en el repositorio.
+const CIFRAS_MIN = 6;
+const CIFRAS_MAX = 10;
+
+// Espera antes de verificar sola. Se verifica al DEJAR DE TECLEAR y no al
+// llegar a la cifra N, que es lo que estaba atado a la longitud: así funciona
+// igual con 6 que con 8 que con 10, sin que el cliente tenga que saber cuál es.
+const MS_AUTOVERIFICAR = 600;
 
 // Espera antes de poder pedir otro código. Sesenta segundos y no treinta porque
 // un correo puede tardar: un botón disponible antes de que llegue el primero
@@ -82,11 +97,14 @@ export default function LoginModal({ open, onClose, aviso = null }) {
   const [correoOcupado, setCorreoOcupado] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [verificando, setVerificando] = useState(false);
-  // "codeInvalid" | "codeExpired" | "codeNetwork" | null. Son tres mensajes y
-  // no uno porque la acción que los resuelve es distinta: uno se reescribe,
-  // otro se repide y el tercero no depende del jugador. Decirle «ese código no
-  // es correcto» a quien se ha quedado sin cobertura es culparle de algo que
-  // hizo bien (regla 21: degradar no es inventarse el estado).
+  // "codeRejected" | "codeNetwork" | null. DOS y no tres: el servidor rechazó
+  // el código, o ni siquiera pudimos preguntárselo. Llegó a haber un tercero
+  // —«caducado», aparte de «incorrecto»— y hubo que quitarlo: Supabase
+  // responde a los dos casos con la MISMA frase ambigua a propósito
+  // («Token has expired or is invalid»), así que separarlos era adivinar.
+  // Lo que sí sabemos distinguir es no haber podido preguntar: decirle «ese
+  // código no es correcto» a quien se quedó sin cobertura es culparle de algo
+  // que hizo bien (regla 21: degradar no es inventarse el estado).
   const [errorCodigo, setErrorCodigo] = useState(null);
   const [reenvioEn, setReenvioEn] = useState(0);
 
@@ -108,6 +126,20 @@ export default function LoginModal({ open, onClose, aviso = null }) {
     setErrorCodigo(null);
     setReenvioEn(0);
   }, [open]);
+
+  // Se verifica sola al DEJAR DE TECLEAR, no al llegar a una cifra concreta:
+  // ver el porqué en CIFRAS_MIN. Se queda quieta mientras haya un error en
+  // pantalla para no reintentar en bucle el mismo código ya rechazado — vuelve
+  // a armarse en cuanto el jugador toca una tecla, que es lo que limpia el
+  // error. El botón sigue ahí porque pegar desde el gestor de contraseñas no
+  // siempre dispara los mismos eventos que teclear.
+  useEffect(() => {
+    if (paso !== "codigo" || errorCodigo || verificando) return undefined;
+    if (codigo.length < CIFRAS_MIN) return undefined;
+    const id = setTimeout(() => verificar(codigo), MS_AUTOVERIFICAR);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codigo, paso, errorCodigo, verificando]);
 
   // Cuenta atrás del reenvío. Un setTimeout por segundo y no un intervalo: así
   // el desmontaje lo limpia solo y no hay que acordarse de pararlo.
@@ -173,17 +205,22 @@ export default function LoginModal({ open, onClose, aviso = null }) {
 
   async function verificar(valor) {
     const cifras = valor ?? codigo;
-    if (verificando || cifras.length !== CIFRAS) return;
+    if (verificando || cifras.length < CIFRAS_MIN) return;
     setVerificando(true);
     try {
       const { error } = (await verificarCodigo(email.trim(), cifras, tipoOtp)) || {};
       if (error) {
-        const caducado = /expired/i.test(error.message || "");
-        setErrorCodigo(caducado ? "codeExpired" : "codeInvalid");
-        // Vaciar el campo: reescribir sobre seis cifras que ya se rechazaron es
-        // más trabajo que empezar de nuevo.
-        setCodigo("");
-        track("login_verified", { result: caducado ? "expired" : "bad_code" });
+        // UN SOLO MENSAJE, y no dos, porque no tenemos el dato para dos.
+        // Supabase responde «Token has expired or is invalid» — ambiguo A
+        // PROPÓSITO, para no chivar cuál de las dos cosas es. Buscar /expired/
+        // ahí dentro acierta SIEMPRE, así que la versión anterior le decía
+        // «ha caducado» a todo el mundo, incluido a quien simplemente se había
+        // equivocado de cifra. Inventarse cuál de los dos fue es exactamente lo
+        // que la regla 21 llama inventarse el estado.
+        setErrorCodigo("codeRejected");
+        // El campo NO se vacía: si fue un dedazo, lo que hay escrito es casi
+        // todo bueno, y borrárselo obliga a reteclear ocho cifras por una.
+        track("login_verified", { result: "rejected" });
         return;
       }
       track("login_verified", { result: "ok" });
@@ -208,10 +245,8 @@ export default function LoginModal({ open, onClose, aviso = null }) {
   // botón sigue ahí porque pegar desde el gestor de contraseñas no siempre
   // dispara los mismos eventos que teclear.
   function cambiarCodigo(e) {
-    const limpio = e.target.value.replace(/\D/g, "").slice(0, CIFRAS);
-    setCodigo(limpio);
+    setCodigo(e.target.value.replace(/\D/g, "").slice(0, CIFRAS_MAX));
     if (errorCodigo) setErrorCodigo(null);
-    if (limpio.length === CIFRAS) verificar(limpio);
   }
 
   return (
@@ -258,7 +293,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
               autoCorrect="off"
               spellCheck={false}
               enterKeyHint="go"
-              maxLength={CIFRAS}
+              maxLength={CIFRAS_MAX}
               className="prensa-input text-center font-mono text-2xl tracking-[0.4em]"
               placeholder={t("app.codePlaceholder")}
               value={codigo}
@@ -275,7 +310,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
             type="button"
             onClick={() => verificar()}
             className="pm-btn mt-4"
-            disabled={verificando || codigo.length !== CIFRAS}
+            disabled={verificando || codigo.length < CIFRAS_MIN}
           >
             {verificando ? t("app.codeVerifying") : t("app.codeCta")}
           </button>

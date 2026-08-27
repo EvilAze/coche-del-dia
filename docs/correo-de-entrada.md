@@ -62,7 +62,7 @@ a un sitio distinto:
   cifras ahí sería trabajo de más.
 - **En móvil se teclea el código.** El enlace en un móvil NO es un click: es
   salir del navegador, abrir el correo, buscar el mensaje, pulsar y volver. Ahí
-  las seis cifras son menos gesto, y no se sale de la pantalla.
+  el código es menos gesto, y no se sale de la pantalla.
 
 **Son el MISMO token, así que usar uno invalida el otro.** Eso no molesta en la
 web —quien pulsa el enlace ya está dentro y la pestaña donde pidió el código se
@@ -87,7 +87,7 @@ exclusión se va con él y el APK gana su segunda puerta.
 - **Colores literales.** No hay variables CSS: el rojo de rotativa va como
   `#b3271b` a pelo. Es la única excepción legítima a la regla 16 — no hay
   `:root` que consultar al otro lado.
-- **Dos variables, las dos imprescindibles:** `{{ .Token }}` (las seis cifras) y
+- **Dos variables, las dos imprescindibles:** `{{ .Token }}` (el código) y
   `{{ .ConfirmationURL }}` (el enlace firmado). Si falta una, media audiencia se
   queda sin su camino — ver «Las dos cosas» más arriba.
 
@@ -115,8 +115,8 @@ Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
     </div>
 
     <p style="margin:0 0 20px;font-size:16px;line-height:1.55;color:#1b1712;">
-      Escribe estas seis cifras donde te las pide el juego. No hay contraseña
-      que recordar.
+      Escribe este código donde te lo pide el juego. No hay contraseña que
+      recordar.
     </p>
 
     <p style="margin:0;background:#1b1712;color:#faf7f0;text-align:center;padding:18px 12px;font-family:'Courier New',Courier,monospace;font-size:34px;font-weight:bold;letter-spacing:.32em;">
@@ -140,8 +140,8 @@ Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
 
     <div style="border-top:1px solid #d8d0bf;margin:24px 0 0;padding-top:16px;">
       <p style="margin:0;font-size:13px;line-height:1.5;color:#6b6355;">
-        <strong style="color:#1b1712;">In English —</strong> Type these six digits
-        where the game asks for them, or tap the button above if you're on a
+        <strong style="color:#1b1712;">In English —</strong> Type this code where
+        the game asks for it, or tap the button above if you're on a
         computer. No password needed. Either one works, and only one: using one
         disables the other. Both expire in an hour. If you didn't request it,
         just ignore this email.
@@ -156,9 +156,18 @@ Pégala tal cual en el cuerpo del mensaje. El asunto va aparte, arriba.
 </div>
 ```
 
-**Ojo al `letter-spacing` del código.** Con `.32em` en un monoespaciado de 34px,
-seis cifras caben en los 480px de ancho. Si lo subes, en Gmail móvil el código
-parte en dos líneas y deja de poderse copiar de un gesto.
+**Ojo al `letter-spacing` del código.** Con `.32em` en un monoespaciado de 34px
+caben hasta diez cifras en los 480px de ancho. Si lo subes, en Gmail móvil el
+código parte en dos líneas y deja de poderse copiar de un gesto.
+
+**Y ojo a la LONGITUD, que no la decide esta plantilla.** Sale de
+**Auth → Email OTP Length**, admite de 6 a 10, y **no está en el repositorio**:
+por eso ni el texto del correo ni el de la web dicen ya cuántas cifras son. La
+primera versión prometía «seis» en cuatro sitios con el proyecto puesto en 8, y
+el campo de la web —que truncaba a seis— mandaba las seis primeras de ocho, así
+que el código no validaba nunca y el jugador veía «no vale» haciéndolo todo
+bien. Si algún día cambias ese número, no hay nada que tocar aquí; ese es el
+objetivo.
 
 ## Configuración del envío
 

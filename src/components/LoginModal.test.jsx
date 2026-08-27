@@ -101,7 +101,7 @@ describe("LoginModal", () => {
     );
   });
 
-  it("seis cifras verifican solas, sin pulsar el botón", async () => {
+  it("verifica sola al dejar de teclear, sin pulsar el botón", async () => {
     await montar();
     await enviarCorreo();
     fireEvent.change(screen.getByPlaceholderText("app.codePlaceholder"), {
@@ -110,34 +110,71 @@ describe("LoginModal", () => {
     await waitFor(() => expect(verificarCodigo).toHaveBeenCalledTimes(1));
   });
 
-  it("el campo del código descarta lo que no sean cifras y corta en seis", async () => {
+  it("el campo del código descarta lo que no sean cifras", async () => {
     await montar();
     await enviarCorreo();
     const campo = screen.getByPlaceholderText("app.codePlaceholder");
-    fireEvent.change(campo, { target: { value: "12a3-45 6789" } });
-    expect(campo.value).toBe("123456");
+    fireEvent.change(campo, { target: { value: "12a3-45 67" } });
+    expect(campo.value).toBe("1234567");
   });
 
-  it("un código caducado se distingue de uno incorrecto", async () => {
-    verificarCodigo.mockResolvedValue({ data: null, error: { message: "Token has expired" } });
+  // Supabase responde a «mal escrito» y a «caducado» con la MISMA frase, a
+  // propósito, para no chivar cuál es. Antes se buscaba /expired/ dentro y se
+  // encontraba siempre, así que a quien se equivocaba de cifra se le decía que
+  // su código había caducado. Un solo mensaje, que cubre los dos y dice qué
+  // hacer.
+  it("un código rechazado da UN mensaje, sin adivinar por qué", async () => {
+    verificarCodigo.mockResolvedValue({
+      data: null,
+      error: { message: "Token has expired or is invalid" },
+    });
     await montar();
     await enviarCorreo();
     fireEvent.change(screen.getByPlaceholderText("app.codePlaceholder"), {
       target: { value: "123456" },
     });
-    await screen.findByText("app.codeExpired");
-    expect(screen.queryByText("app.codeInvalid")).toBeNull();
+    await screen.findByText("app.codeRejected");
   });
 
-  it("un código incorrecto vacía el campo para volver a intentarlo", async () => {
-    verificarCodigo.mockResolvedValue({ data: null, error: { message: "Token is invalid" } });
+  // Y NO se vacía: si fue un dedazo, lo escrito es casi todo bueno y borrarlo
+  // obliga a reteclearlo entero por una cifra.
+  it("un código rechazado conserva lo tecleado", async () => {
+    verificarCodigo.mockResolvedValue({
+      data: null,
+      error: { message: "Token has expired or is invalid" },
+    });
     await montar();
     await enviarCorreo();
     fireEvent.change(screen.getByPlaceholderText("app.codePlaceholder"), {
       target: { value: "123456" },
     });
-    await screen.findByText("app.codeInvalid");
-    expect(screen.getByPlaceholderText("app.codePlaceholder").value).toBe("");
+    await screen.findByText("app.codeRejected");
+    expect(screen.getByPlaceholderText("app.codePlaceholder").value).toBe("123456");
+  });
+
+  // EL FALLO QUE COSTÓ EL PRIMER INTENTO REAL: el proyecto tenía la longitud
+  // del OTP en 8 y el campo truncaba a 6, así que se mandaban las seis
+  // primeras de ocho y no validaba nunca. Ahora el campo no trunca al mínimo
+  // y la verificación no exige una longitud exacta.
+  it("acepta códigos más largos que el mínimo, sin truncarlos", async () => {
+    await montar();
+    await enviarCorreo();
+    const campo = screen.getByPlaceholderText("app.codePlaceholder");
+    fireEvent.change(campo, { target: { value: "47385777" } });
+    expect(campo.value).toBe("47385777");
+    await waitFor(() =>
+      expect(verificarCodigo).toHaveBeenCalledWith("piloto@ejemplo.com", "47385777", "email")
+    );
+  });
+
+  it("no intenta verificar por debajo del mínimo", async () => {
+    await montar();
+    await enviarCorreo();
+    fireEvent.change(screen.getByPlaceholderText("app.codePlaceholder"), {
+      target: { value: "12345" },
+    });
+    await new Promise((r) => setTimeout(r, 900));
+    expect(verificarCodigo).not.toHaveBeenCalled();
   });
 
   it("«usar otro correo» vuelve al paso 1 conservando lo tecleado", async () => {

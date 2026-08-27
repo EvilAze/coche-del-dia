@@ -192,18 +192,33 @@ export function emailLoginDisponible() {
 export async function pedirCodigo(email) {
   if (await idAnonimoVigente()) {
     const res = await supabase.auth.updateUser({ email });
-    if (!res?.error) return { error: null, tipo: "email_change" };
+    if (!res?.error) return { error: null, tipo: "email_change", correoOcupado: false };
+
     // El correo ya pertenece a otra cuenta. No tiene arreglo por vinculación:
     // son dos cuentas distintas y hay que entrar a la que ya existe, a costa
     // del progreso anónimo de este dispositivo.
     console.warn("[auth] adjuntar el correo falló, pidiendo código normal:", res.error.message);
+    const otp = await pedirOtp(email);
+    // `correoOcupado` NO es telemetría: es lo que le debemos al jugador. Este
+    // es el mismo caso que con Google enseña `app.loginLinkTakenBody` tras el
+    // redirect, y por el camino del correo se estaba resolviendo EN SILENCIO —
+    // un anónimo con nueve días de racha tecleaba su correo, entraba, y la
+    // racha desaparecía sin que nadie le hubiera dicho que iba a pasar.
+    // Avisando antes de que gaste el código todavía puede echarse atrás.
+    return { error: otp.error, tipo: "email", correoOcupado: true };
   }
 
+  const otp = await pedirOtp(email);
+  return { error: otp.error, tipo: "email", correoOcupado: false };
+}
+
+/** El envío normal del código. Extraído porque lo piden los DOS caminos. */
+async function pedirOtp(email) {
   const res = await supabase.auth.signInWithOtp({
     email,
     options: { shouldCreateUser: true },
   });
-  return { error: res?.error ?? null, tipo: "email" };
+  return { error: res?.error ?? null };
 }
 
 /**

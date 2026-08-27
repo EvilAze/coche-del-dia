@@ -75,6 +75,11 @@ export default function LoginModal({ open, onClose, aviso = null }) {
   // El tipo de token que devolvió pedirCodigo. Se ARRASTRA hasta la
   // verificación en vez de recalcularlo: ver el porqué en lib/auth.js.
   const [tipoOtp, setTipoOtp] = useState(null);
+  // El correo tecleado ya tiene cuenta, así que entrar descartará el progreso
+  // anónimo de este dispositivo. Se avisa en el paso del código —cuando aún se
+  // puede cambiar de correo sin gastarlo— porque este es el mismo caso que con
+  // Google enseña `loginLinkTakenBody`, y por correo se resolvía en silencio.
+  const [correoOcupado, setCorreoOcupado] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [verificando, setVerificando] = useState(false);
   // "codeInvalid" | "codeExpired" | "codeNetwork" | null. Son tres mensajes y
@@ -99,6 +104,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
     setPaso("correo");
     setCodigo("");
     setTipoOtp(null);
+    setCorreoOcupado(false);
     setErrorCodigo(null);
     setReenvioEn(0);
   }, [open]);
@@ -137,7 +143,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
     setEnviando(true);
     track("login_method", { method: "email" });
     try {
-      const { error, tipo } = await pedirCodigo(limpio);
+      const { error, tipo, correoOcupado: ocupado } = await pedirCodigo(limpio);
       if (error) {
         // El error más probable en producción es el rate limit del proveedor de
         // correo. Merece su propio mensaje: «inténtalo de nuevo» no le dice al
@@ -148,6 +154,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
         return;
       }
       setTipoOtp(tipo);
+      setCorreoOcupado(Boolean(ocupado));
       setCodigo("");
       setErrorCodigo(null);
       setPaso("codigo");
@@ -222,6 +229,14 @@ export default function LoginModal({ open, onClose, aviso = null }) {
           </h2>
           <p className="pm-body">{t("app.codeBody", { email: email.trim() })}</p>
 
+          {/* Mismo filete discontinuo que el aviso de Google: es el mismo hecho
+              contado en el otro camino, y merece la misma cara. */}
+          {correoOcupado && (
+            <p className="mt-4 border border-dashed border-tinta px-3 py-2 text-left text-sm text-muted">
+              {t("app.codeEmailTakenBody")}
+            </p>
+          )}
+
           <div className="mt-5 text-left">
             <label htmlFor="login-codigo" className="prensa-label">
               {t("app.codeLabel")}
@@ -283,6 +298,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
               onClick={() => {
                 setPaso("correo");
                 setCodigo("");
+                setCorreoOcupado(false);
                 setErrorCodigo(null);
                 setReenvioEn(0);
               }}

@@ -132,7 +132,7 @@ describe("auth helpers", () => {
       email: "piloto@ejemplo.com",
       options: { shouldCreateUser: true },
     });
-    expect(res).toEqual({ error: null, tipo: "email" });
+    expect(res).toEqual({ error: null, tipo: "email", correoOcupado: false });
   });
 
   // Sin enlace en el correo, emailRedirectTo no tiene consumidor: mandarlo
@@ -150,7 +150,7 @@ describe("auth helpers", () => {
     const res = await pedirCodigo("piloto@ejemplo.com");
     expect(m.updateUser).toHaveBeenCalledWith({ email: "piloto@ejemplo.com" });
     expect(m.signInWithOtp).not.toHaveBeenCalled();
-    expect(res).toEqual({ error: null, tipo: "email_change" });
+    expect(res).toEqual({ error: null, tipo: "email_change", correoOcupado: false });
   });
 
   // El correo ya pertenece a otra cuenta: la vinculación no tiene arreglo (son
@@ -164,6 +164,23 @@ describe("auth helpers", () => {
     expect(m.signInWithOtp).toHaveBeenCalledTimes(1);
     expect(res.tipo).toBe("email");
     expect(res.error).toBeNull();
+    // Y LO DICE. Entrar a esa cuenta descarta el progreso anónimo de este
+    // dispositivo; que se pierda es inevitable, que se pierda en silencio no.
+    expect(res.correoOcupado).toBe(true);
+  });
+
+  it("código: sin conflicto, correoOcupado es false (no se avisa de lo que no pasa)", async () => {
+    setup({ isNative: false, emailLogin: "true", sesion: null });
+    const { pedirCodigo } = await import("./auth");
+    expect((await pedirCodigo("piloto@ejemplo.com")).correoOcupado).toBe(false);
+  });
+
+  it("código: vinculación limpia tampoco avisa (no se pierde nada)", async () => {
+    setup({ isNative: false, emailLogin: "true", sesion: "anon" });
+    const { pedirCodigo } = await import("./auth");
+    const res = await pedirCodigo("piloto@ejemplo.com");
+    expect(res.tipo).toBe("email_change");
+    expect(res.correoOcupado).toBe(false);
   });
 
   it("código: el error de Supabase se devuelve, no se traga", async () => {

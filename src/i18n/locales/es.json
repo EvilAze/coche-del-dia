@@ -41,6 +41,7 @@
     "emailRateLimited": "Demasiadas peticiones. Espera unos minutos y vuelve a intentarlo.",
     "codeTitle": "REVISA TU CORREO",
     "codeBody": "Te hemos enviado un código de 6 cifras a {email}.",
+    "codeEmailTakenBody": "Ese correo ya tiene una cuenta con partidas guardadas. Entrarás en ella y seguirás donde lo dejaste, pero el progreso de este dispositivo sin cuenta no se puede unir: se queda aquí. Si no era el correo que querías, cámbialo antes de escribir el código.",
     "codeLabel": "Código",
     "codePlaceholder": "000000",
     "codeCta": "Entrar",

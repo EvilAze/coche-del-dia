@@ -41,6 +41,7 @@
     "emailRateLimited": "Too many requests. Wait a few minutes and try again.",
     "codeTitle": "CHECK YOUR EMAIL",
     "codeBody": "We sent a 6-digit code to {email}.",
+    "codeEmailTakenBody": "That email already has an account with saved games. You'll go into it and pick up where you left off, but the account-less progress on this device can't be merged: it stays behind. If that wasn't the email you meant, change it before typing the code.",
     "codeLabel": "Code",
     "codePlaceholder": "000000",
     "codeCta": "Sign in",

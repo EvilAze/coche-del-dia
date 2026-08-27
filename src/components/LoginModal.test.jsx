@@ -177,4 +177,30 @@ describe("LoginModal", () => {
     expect(track).toHaveBeenCalledWith("login_method", { method: "google" });
     await waitFor(() => expect(signInWithGoogle).toHaveBeenCalled());
   });
+
+  // El agujero que esto tapa: un anónimo con racha tecleaba un correo que ya
+  // tenía cuenta, entraba, y su racha desaparecía SIN QUE NADIE SE LO DIJERA.
+  // Con Google ese mismo caso lleva aviso desde siempre (loginLinkTakenBody).
+  it("avisa cuando el correo ya tiene cuenta y el progreso se va a quedar aquí", async () => {
+    pedirCodigo.mockResolvedValue({ error: null, tipo: "email", correoOcupado: true });
+    await montar();
+    await enviarCorreo();
+    expect(screen.getByText("app.codeEmailTakenBody")).toBeTruthy();
+  });
+
+  it("y no lo enseña cuando no hay nada que perder", async () => {
+    pedirCodigo.mockResolvedValue({ error: null, tipo: "email", correoOcupado: false });
+    await montar();
+    await enviarCorreo();
+    expect(screen.queryByText("app.codeEmailTakenBody")).toBeNull();
+  });
+
+  // El aviso describe un correo CONCRETO: al cambiarlo, el diagnóstico caduca.
+  it("cambiar de correo retira el aviso", async () => {
+    pedirCodigo.mockResolvedValue({ error: null, tipo: "email", correoOcupado: true });
+    await montar();
+    await enviarCorreo();
+    fireEvent.click(screen.getByText("app.codeChangeEmail"));
+    expect(screen.queryByText("app.codeEmailTakenBody")).toBeNull();
+  });
 });

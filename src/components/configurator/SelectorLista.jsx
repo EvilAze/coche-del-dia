@@ -9,29 +9,46 @@
 //     pantallas de lista; con él son dos toques. Es el índice de la agenda del
 //     teléfono, que es donde todo el mundo lo ha aprendido.
 //
-// EL BUSCADOR SE AUTOENFOCA CUANDO LA LISTA ES LARGA, y esto es la corrección
-// de una regla mía anterior que estaba mal aplicada.
+// LA HOJA ABRE EN MODO LISTA, NUNCA EN MODO TECLADO. El buscador está —arriba,
+// visible, a un toque— pero NO se enfoca solo.
 //
-// La primera versión NO lo enfocaba nunca, razonando que el teclado se comería
-// media pantalla. Ese razonamiento era correcto para la PANTALLA DE JUEGO —ahí
-// el teclado destrozaba la maqueta y tapaba la fotografía— y no vale aquí:
-// dentro de la hoja el teclado no cuesta nada. No hay pliego que recomponer, la
-// foto ya está detrás y la hoja mide en `dvh`, así que encoge sola y se apoya
-// en el teclado.
+// Aquí vivió lo contrario, y con cuatro párrafos defendiéndolo: por encima de 12
+// opciones el campo se enfocaba al abrir, razonando que «dentro de la hoja el
+// teclado no cuesta nada». Esa premisa dejó de ser cierta el día que la hoja se
+// recortó para no tapar la fotografía (regla 18f). Hoy cuesta, y se puede medir:
 //
-// Con el campo enfocado al abrir, la hoja es un SUPERCONJUNTO de teclear:
-//   · Si sabes lo que buscas: tres letras y tocas. Menos gestos que en la web,
-//     porque no hay que apuntar primero al campo.
-//   · Si no lo sabes: bajas el teclado y tienes la lista entera con su índice.
-// Es el patrón del buscador de contactos, del conmutador de canales de Slack y
-// del «¿a dónde vamos?» de un mapa: campo enfocado ARRIBA y lista debajo, no
-// una cosa o la otra. Obligar a elegir entre las dos castiga siempre a alguien:
-// a quien sabe lo que quiere, o a quien viene a mirar qué hay.
+//   · El cromo de la hoja son 117px antes de la primera fila (tirador 11,
+//     cabecera ~49, buscador ~57), y una fila son 52.
+//   · Con el teclado arriba en un 360x780 la hoja se queda en 300px, o sea 183
+//     de lista: TRES FILAS Y MEDIA. Sobre ochenta marcas.
+//   · Y la fotografía baja de 336x252 a 232x174, porque al encoger la ventana el
+//     pliego entero se recompone (ver useEscenarioApartado).
+//
+// El índice A-Z existe precisamente para hacer navegable esa lista de ochenta, y
+// con tres filas y media a la vista no sirve de nada: apuntar a una letra de
+// 10px para ver tres marcas es peor que arrastrar. El teclado y el índice
+// compiten por el mismo hueco y el teclado gana siempre, así que la hoja abre en
+// el modo que NO se lo come.
+//
+// DE AHÍ SALE LA REGLA DE UNA FRASE: la tira A-Z vive mientras no haya teclado.
+//
+//   Sin foco, sin texto → lista agrupada por inicial + índice A-Z
+//   Con foco, sin texto → lista agrupada, sin índice
+//   Con texto          → lista plana filtrada, sin índice
+//
+// Y el foco es la señal, no `visualViewport`: en la app no hay teclado físico,
+// así que campo enfocado ≡ teclado arriba, sin medir nada. Bajar el teclado sin
+// elegir tampoco necesita nada nuestro — el IME de Android se come el «atrás»
+// mientras está subido, así que atrás baja el teclado y el siguiente atrás
+// cierra la hoja (useHistoryClose, en GuessForm).
+//
+// Lo que NO cambia: teclear sigue siendo un camino completo (flechas + Enter,
+// ver `alTeclear`). Se deja de imponer, no se retira.
 //
 // Filtrado sin tildes ni mayúsculas (lib/texto), el mismo criterio que el combo
 // de la web: "citroen" tiene que encontrar "Citroën".
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { haptic } from "../../lib/haptics";
 import { normalizar } from "../../lib/texto";
 import { useT } from "../../i18n";
@@ -42,10 +59,8 @@ import { useT } from "../../i18n";
 // cuánto queda.
 const UMBRAL_INDICE = 25;
 
-// Y a partir de aquí compensa levantar el teclado solo. Por debajo —los cinco
-// modelos de una marca— la lista entera cabe en pantalla: enfocar el buscador
-// taparía con el teclado justo lo que se venía a mirar.
-const UMBRAL_AUTOFOCO = 12;
+// (Aquí vivía UMBRAL_AUTOFOCO = 12, el número de opciones a partir del cual el
+// buscador se enfocaba solo. Se fue entero con el autofoco: ver la cabecera.)
 
 // Es el CONTENIDO de la hoja, no la hoja: el marco (título, tirador, cerrar) lo
 // pone SelectorHoja, y hay UNA sola para los tres pasos — así el teclado no baja
@@ -67,23 +82,11 @@ export default function SelectorLista({
   const listaRef = useRef(null);
   const buscarRef = useRef(null);
   const idBase = useId();
-
-  const autoFoco = opciones.length > UMBRAL_AUTOFOCO;
-
-  // El foco tiene que caer DENTRO de la tarea que nació del toque del usuario:
-  // en Android un `focus()` programático solo levanta el teclado si sigue en
-  // ella, y si se aplaza queda el campo enfocado y el teclado abajo. Es de esos
-  // fallos que en escritorio no existen y en un móvil se ven siempre.
-  //
-  // Por eso `useLayoutEffect` y no `useEffect`: este comentario decía que el
-  // efecto era síncrono, y no lo era. `useEffect` se AGENDA tras el pintado, o
-  // sea justo el aplazamiento que el párrafo de arriba dice que no se puede
-  // hacer; el que corre síncrono dentro del commit —y por tanto dentro de la
-  // tarea del toque, porque React vacía las actualizaciones de un click de forma
-  // síncrona— es `useLayoutEffect`. Funcionaba de milagro y por dispositivo.
-  useLayoutEffect(() => {
-    if (autoFoco) buscarRef.current?.focus();
-  }, [autoFoco]);
+  // ¿Hay teclado a la vista? En la app no hay teclado físico, así que el foco
+  // del buscador ES la señal, sin medir viewports ni escuchar al sistema. Es
+  // además la definición que hace falta: lo que retira el índice A-Z no es «el
+  // teclado ocupa píxeles», es «esta persona ha entrado a teclear».
+  const [tecleando, setTecleando] = useState(false);
 
   const filtradas = useMemo(() => {
     const aguja = normalizar(q).trim();
@@ -275,6 +278,11 @@ export default function SelectorLista({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={alTeclear}
+          // El cambio de modo. `onBlur` importa tanto como `onFocus`: bajar el
+          // teclado sin haber escrito nada tiene que devolver el índice, o el
+          // modo lista se perdería hasta cerrar y reabrir la hoja.
+          onFocus={() => setTecleando(true)}
+          onBlur={() => setTecleando(false)}
           placeholder={t("cdd.selectorSearch")}
           enterKeyHint="search"
           // El buscador MANDA sobre la lista, y hay que decirlo: sin esto un
@@ -309,11 +317,28 @@ export default function SelectorLista({
             : filtradas.map(opcion)}
         </ul>
 
-        {grupos && (
+        {/* LA TIRA A-Z VIVE MIENTRAS NO HAYA TECLADO. `grupos` (el dato) no
+            sabe nada de esto: sigue existiendo con la lista larga y sin filtrar,
+            y lo que se condiciona es PINTAR la tira. Así el modo teclado
+            conserva las iniciales pegajosas que dicen por dónde vas y solo
+            pierde lo que no cabe. Y que la tira desaparezca es, de paso, el
+            acuse de recibo de que has cambiado de modo. */}
+        {grupos && !tecleando && (
           <nav
             ref={indiceRef}
             className="pm-indice"
             aria-label={t("cdd.selectorIndex")}
+            // ESTA TIRA ES DUEÑA DE SU GESTO VERTICAL, y hay que decirlo hacia
+            // fuera: sus toques burbujean hasta `.pm-hoja`, donde vive el
+            // arrastre de la hoja entera (useArrastreHoja), que sin esto los
+            // daba por suyos — bajar por el índice saltaba de letra Y arrastraba
+            // la hoja, y pasado el 28% se la llevaba por delante.
+            //
+            // Un atributo y no el `touch-action: none` de aquí abajo, que dice
+            // lo mismo: leer estilos calculados en cada `touchstart` es caro y
+            // se rompe solo en cuanto alguien reorganice el CSS. Esto se lee en
+            // el JSX y sale en el inspector.
+            data-gesto-propio=""
             // El gesto vive en la TIRA, no en cada letra: al arrastrar, el dedo
             // pasa por los huecos entre botones y por fuera del borde, y ahí no
             // hay ningún botón que escuche.

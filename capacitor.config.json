@@ -16,7 +16,8 @@
       "iconColor": "#E0574A"
     },
     "SystemBars": {
-      "style": "DEFAULT"
+      "style": "DEFAULT",
+      "insetsHandling": "disable"
     },
     "SocialLogin": {
       "providers": {

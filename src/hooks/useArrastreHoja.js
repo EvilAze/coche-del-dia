@@ -27,6 +27,10 @@
 // una frase, y una regla que se explica en una frase es una que el pulgar
 // aprende solo.
 //
+// Y DE DONDE NO SE PUEDE TIRAR NUNCA: de lo que lleve `data-gesto-propio`. Hay
+// piezas dentro de la hoja que ya son dueñas de su vertical —el índice A-Z, que
+// se recorre con el dedo— y sus toques llegan hasta aquí igual. Ver `onStart`.
+//
 // LO QUE NO CRECE ES LO QUE NO TIENE NADA QUE ENSEÑAR. Si el contenido cabe
 // entero —los años de una horquilla corta— no hay gesto hacia arriba: estirar
 // solo serviría para tapar la foto con papel en blanco. El margen se recorta a
@@ -213,6 +217,24 @@ export function useArrastreHoja({
 
     function onStart(e) {
       if (e.touches.length !== 1) return;
+      // HAY GESTOS QUE NO SON NUESTROS AUNQUE PASEN POR AQUÍ. El índice A-Z de
+      // la lista se recorre con el dedo (`.pm-indice`, ver SelectorLista) y usa
+      // pointer events; `touch-action: none` le quita el scroll al navegador,
+      // pero los eventos TÁCTILES burbujean hasta la hoja igual. Y ahí
+      // `scrollerBajo` los daba por buenos, porque entre la tira y la hoja no
+      // hay ningún ancestro desplazable —la tira no scrollea, `.pm-lista-caja` y
+      // `.pm-hoja-cuerpo` son `overflow: hidden`, y `.pm-lista` es HERMANA, no
+      // ancestro—. Resultado: bajar por el índice saltaba de letra Y arrastraba
+      // la hoja, y pasado el 28% se la llevaba por delante.
+      //
+      // Va lo PRIMERO, antes incluso de cancelar la limpieza pendiente: si el
+      // gesto no es nuestro, no hay nada que preparar. Y es la misma idea que ya
+      // sigue `scrollerBajo` —«esto de aquí no es asunto de este gesto»— solo
+      // que declarada por quien lo sabe en vez de deducida de la maqueta.
+      if (e.target instanceof Element && e.target.closest("[data-gesto-propio]")) {
+        permitido = false;
+        return;
+      }
       cancelarLimpieza();
       const t = e.touches[0];
       inicioY = t.clientY;

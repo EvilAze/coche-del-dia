@@ -151,17 +151,18 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
   });
 
   // ── LA VÍA DE TECLADO DE LA HOJA ───────────────────────────────────────────
-  // El buscador se autoenfoca por encima de 12 opciones, así que teclear tiene
-  // que ser un camino COMPLETO. Antes solo atendía a Enter y elegía siempre la
-  // primera coincidencia: quien veía que la suya era la tercera no tenía forma
-  // de llegar a ella sin levantar la mano y tocarla.
+  // El teclado ya no sube solo (la hoja abre en modo lista), pero cuando el
+  // jugador lo pide tocando el buscador, teclear tiene que ser un camino
+  // COMPLETO. Antes solo atendía a Enter y elegía siempre la primera
+  // coincidencia: quien veía que la suya era la tercera no tenía forma de llegar
+  // a ella sin levantar la mano y tocarla.
   it("las flechas señalan y Enter elige la señalada, no siempre la primera", async () => {
     await montar();
     fireEvent.click(renglon("cdd.labelMarca"));
 
-    // 15 marcas (>12) → el buscador manda, y se enfoca solo.
+    // El foco lo pone el jugador tocando el campo, que es la vía nueva.
     const buscador = screen.getByRole("combobox");
-    expect(document.activeElement).toBe(buscador);
+    fireEvent.focus(buscador);
 
     // De la primera (Citroën) a la segunda (Seat).
     fireEvent.keyDown(buscador, { key: "ArrowDown" });
@@ -288,27 +289,60 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     expect(screen.getByRole("option", { name: /Ibiza/ })).toBeTruthy();
   });
 
-  it("con lista larga el buscador se autoenfoca; filtra sin tildes", async () => {
+  // ── LA HOJA ABRE EN MODO LISTA, NUNCA EN MODO TECLADO ──────────────────────
+  // Estas tres son la promesa entera del cambio, y son la ÚNICA red que la
+  // protege antes de un APK: la rama `esApp()` no se ve en el Preview de Vercel
+  // (allí siempre es web) ni en el banco de maqueta (mide CSS sobre una página
+  // estática).
+  it("la hoja abre SIN foco en el buscador, con lista larga o corta", async () => {
+    await montar();
+
+    // 15 marcas. Antes, por encima de 12 el campo se enfocaba solo y el teclado
+    // se comía la lista que el índice A-Z venía a hacer navegable.
+    fireEvent.click(renglon("cdd.labelMarca"));
+    expect(document.activeElement).not.toBe(screen.getByPlaceholderText("cdd.selectorSearch"));
+
+    // Y con lista corta tampoco, que ya era así: la comprobación se mantiene
+    // aquí para que el día que alguien reintroduzca un umbral se caiga por los
+    // dos lados a la vez.
+    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
+    expect(document.activeElement).not.toBe(screen.getByPlaceholderText("cdd.selectorSearch"));
+  });
+
+  it("el buscador sigue estando, y tocarlo filtra sin tildes", async () => {
     await montar();
     fireEvent.click(renglon("cdd.labelMarca"));
 
+    // No se autoenfoca, pero NO desaparece: es la fila que dice «también puedes
+    // escribir». Un toque y estás tecleando.
     const buscador = screen.getByPlaceholderText("cdd.selectorSearch");
-    // 15 marcas: teclear es la vía rápida, así que el teclado sube solo.
-    expect(document.activeElement).toBe(buscador);
+    fireEvent.focus(buscador);
 
     fireEvent.change(buscador, { target: { value: "citroen" } });
     expect(screen.getByRole("option", { name: /Citroën/ })).toBeTruthy();
     expect(screen.queryByRole("option", { name: /Seat/ })).toBeNull();
   });
 
-  it("con lista corta NO se autoenfoca: el teclado taparía lo que se viene a ver", async () => {
-    await montar();
+  it("el índice A-Z vive mientras no haya teclado: enfocar lo retira", async () => {
+    // Una marca por letra para cruzar el umbral del índice (>25 opciones).
+    const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => `${l}auto`);
+    await montar({ catalogo: { cars: CATALOGO.cars, marcas: ABC } });
     fireEvent.click(renglon("cdd.labelMarca"));
-    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
 
-    // Dos modelos: la lista entera cabe, levantar el teclado sería un estorbo.
+    // Modo lista: la tira está, que es el modo en el que la hoja abre.
+    const tira = () => screen.queryByRole("navigation", { name: "cdd.selectorIndex" });
+    expect(tira()).toBeTruthy();
+
+    // Modo teclado: en la app no hay teclado físico, así que campo enfocado ≡
+    // teclado arriba. Y con el teclado arriba la lista se queda en tres filas:
+    // apuntar a una letra de 10px para ver tres marcas es peor que arrastrar.
     const buscador = screen.getByPlaceholderText("cdd.selectorSearch");
-    expect(document.activeElement).not.toBe(buscador);
+    fireEvent.focus(buscador);
+    expect(tira()).toBeNull();
+
+    // Bajar el teclado sin escribir nada devuelve la lista a su modo.
+    fireEvent.blur(buscador);
+    expect(tira()).toBeTruthy();
   });
 
   it("el AÑO se elige por décadas, sin teclear", async () => {
@@ -451,6 +485,38 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
     // Y la hoja se anima de vuelta al cero, sin quedarse colgada donde el dedo.
     expect(hoja.style.transform).toBe("translateY(0px)");
+  });
+
+  // ── EL ÍNDICE A-Z NO ARRASTRA LA HOJA ──────────────────────────────────────
+  // Colisión de gestos, y el orden de los commits la explica: el índice
+  // arrastrable (4cd0ca1) es ANTERIOR al arrastre de la hoja (a522054), que se
+  // enganchó a `.pm-hoja` entera y se lo comió.
+  //
+  // La tira usa pointer events y `touch-action: none`; eso le quita el scroll al
+  // navegador, pero los eventos TÁCTILES siguen burbujeando hasta la hoja. Y ahí
+  // `scrollerBajo` no encontraba ningún ancestro desplazable —la tira no
+  // scrollea, y `.pm-lista-caja` y `.pm-hoja-cuerpo` son `overflow: hidden`;
+  // `.pm-lista` es HERMANA, no ancestro—, así que daba el gesto por bueno.
+  // Resultado: bajar el dedo por el índice saltaba de letra Y arrastraba la hoja,
+  // y pasado el 28% se la llevaba por delante.
+  it("bajar por el índice A-Z no mueve la hoja ni la cierra", async () => {
+    const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((l) => `${l}auto`);
+    await montar({ catalogo: { cars: CATALOGO.cars, marcas: ABC } });
+    fireEvent.click(renglon("cdd.labelMarca"));
+
+    const hoja = document.querySelector(".pm-hoja");
+    const tira = screen.getByRole("navigation", { name: "cdd.selectorIndex" });
+
+    // El mismo recorrido que en «arrastrar la hoja hacia abajo la cierra»: 240px
+    // sobre una hoja de 500, de sobra para el 28%. Nace en la tira, así que no
+    // es de la hoja.
+    dedo(tira, [400, 460, 540, 640]);
+
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    // Ni un píxel: no es que vuelva al cero al soltar, es que no llegó a
+    // engancharse. Un `translateY(0px)` aquí querría decir que el gesto se
+    // reclamó y se deshizo, que se ve como un tirón.
+    expect(hoja.style.transform).toBe("");
   });
 
   // Una lista que de verdad desborda. jsdom no maqueta, así que el desbordamiento

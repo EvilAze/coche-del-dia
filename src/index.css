@@ -2437,7 +2437,14 @@ body,
 }
 
 /* El buscador. NO se autoenfoca (ver SelectorLista): si lo hiciera, el teclado
-   subiría solo y habríamos vuelto al punto de partida. */
+   subiría solo y habríamos vuelto al punto de partida.
+
+   Y esta línea llegó a ser mentira durante meses, así que conviene dejar dicho
+   el número que la sostiene: con el teclado arriba, la hoja se queda en 300px en
+   un 360x780, y el cromo de aquí encima se come 117 (tirador 11, cabecera ~49,
+   este buscador ~57). Quedan tres filas y media de lista para elegir entre
+   ochenta marcas, y el índice A-Z de ahí abajo deja de servir para nada. Por eso
+   la hoja abre en modo lista y el teclado se pide, no se impone. */
 .pm-buscar { flex: none; padding: 10px 16px; border-bottom: 1px solid var(--line); }
 .pm-buscar-campo {
   width: 100%; background: transparent; border: 0; outline: 0; border-radius: 0;

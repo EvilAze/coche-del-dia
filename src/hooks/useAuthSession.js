@@ -31,6 +31,13 @@ export function useAuthSession() {
   // resultado persistido (ganar sube puntos de la temporada → puede cambiar el puesto).
   const [rank, setRank] = useState(null);
 
+  // ¿Acaba de entrar, AHORA MISMO? Lo enciende reportarLogin y lo apaga quien
+  // lo consume (App, para ofrecer la firma una sola vez). No es lo mismo que
+  // `user`: `user` está puesto en cada carga de página de alguien logueado, y
+  // esto solo en la carga o el instante en que la sesión NACIÓ. Esa diferencia
+  // es justo la que separa ofrecer la firma de volver a ser un peaje.
+  const [recienEntrado, setRecienEntrado] = useState(false);
+
   // Gate de re-sincronización: onAuthStateChange dispara TOKEN_REFRESHED
   // cada vez que el browser recupera el foco de la pestaña, con un user
   // de igual id pero referencia nueva. Sin este ref, cada vuelta a la
@@ -66,6 +73,7 @@ export function useAuthSession() {
           method: marca.method,
           vinculado: marca.anonId === sessionUser.id,
         });
+        setRecienEntrado(true);
         return;
       }
 
@@ -80,6 +88,7 @@ export function useAuthSession() {
         // entra sin dejarse por el camino lo que ya llevaba jugado.
         vinculado: previo === `${sessionUser.id}-true`,
       });
+      setRecienEntrado(true);
     }
 
     async function syncUser(session) {
@@ -171,6 +180,7 @@ export function useAuthSession() {
   // listener de arriba hará después su pasada idempotente (gate por id).
   function resetAuth() {
     lastUserIdRef.current = null;
+    setRecienEntrado(false);
     setUser(null);
     setProfile(null);
     setStreak(0);
@@ -187,6 +197,8 @@ export function useAuthSession() {
     setStreak,
     rank,
     setRank,
+    recienEntrado,
+    setRecienEntrado,
     resetAuth,
   };
 }

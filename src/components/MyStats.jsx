@@ -158,6 +158,7 @@ export default function MyStats({
 
   const cargando = state.loading;
   const stats = state.stats;
+  const sinFirma = !state.profile?.display_name;
   const nickname = state.profile?.display_name || t("myStats.noNickname");
   const email = state.user?.email || "";
 
@@ -262,10 +263,18 @@ export default function MyStats({
 
             <CarnetNombre
               nombre={nickname}
-              apunte={desde}
+              // Sin firma, el apunte deja de ser biográfico y pasa a decir lo
+              // que CUESTA no tenerla. Antes aquí solo había un relleno («Sin
+              // nickname») que nombraba la carencia sin explicar su
+              // consecuencia: quien se registra, no gana y no abre la
+              // clasificación no se enteraba nunca de que está fuera de la
+              // tabla — pagando el precio de una cuenta y recibiendo menos de
+              // lo que cree. El nombre ya era el botón; ahora además se sabe
+              // para qué sirve pulsarlo.
+              apunte={sinFirma ? t("myStats.sinFirmaApunte") : desde}
               cargando={cargando}
               onEdit={() => go(onOpenNickname)}
-              editLabel={t("myStats.changeNick")}
+              editLabel={sinFirma ? t("myStats.pickNick") : t("myStats.changeNick")}
               sello={
                 <SelloTier
                   tier={state.tier?.tier}

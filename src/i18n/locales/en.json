@@ -285,6 +285,8 @@
     "errorLoad": "Couldn't load your stats.",
     "errorSignOut": "Couldn't sign out.",
     "noNickname": "No nickname",
+    "sinFirmaApunte": "Without a signature you don't appear on the ranking.",
+    "pickNick": "Choose my signature",
     "changeNick": "Change my nick",
     "promoLogin": "Sign in to save your streaks and stats.",
     "statStreak": "Streak",

@@ -285,6 +285,8 @@
     "errorLoad": "No se pudieron cargar tus estadísticas.",
     "errorSignOut": "No se pudo cerrar sesión.",
     "noNickname": "Sin nickname",
+    "sinFirmaApunte": "Sin firma no apareces en la clasificación.",
+    "pickNick": "Elegir mi firma",
     "changeNick": "Cambiar mi nick",
     "promoLogin": "Inicia sesión para guardar tus rachas y estadísticas.",
     "statStreak": "Racha",

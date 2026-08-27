@@ -57,6 +57,8 @@ export default function App() {
     setStreak,
     rank,
     setRank,
+    recienEntrado,
+    setRecienEntrado,
     resetAuth,
   } = useAuthSession();
   // Overlays globales: modal activo + mapa de modales lazy ya montados.
@@ -329,6 +331,30 @@ export default function App() {
     },
     [openModal]
   );
+
+  // ── ...PERO SÍ SE OFRECE AL ENTRAR ────────────────────────────────────────
+  // Y esto NO es volver al peaje, aunque se le parezca de lejos. Lo que hacía
+  // insufrible la versión vieja era que se disparaba en CADA carga de página de
+  // cualquier usuario sin firma, y que no se podía cerrar. Aquí las dos cosas
+  // son al revés: `recienEntrado` solo está encendido en el instante en que la
+  // sesión NACIÓ —lo enciende reportarLogin, en useAuthSession— y NicknameModal
+  // se cierra como cualquier otro.
+  //
+  // Por qué justo aquí y no más tarde: acaba de decidir crear cuenta, que es el
+  // momento de más buena voluntad que va a tener; y sin firma no sale en la
+  // clasificación, así que la cuenta que acaba de crear todavía no hace lo que
+  // fue a buscar. Preguntárselo ahora es terminar el registro, no interrumpirlo.
+  //
+  // Se espera a `checkingProfile` porque hasta que el perfil no llega no se sabe
+  // si YA tiene firma: sin esa espera, a quien vuelve a entrar con su nick de
+  // siempre se le abriría el modal para nada.
+  useEffect(() => {
+    if (!recienEntrado || checkingProfile) return;
+    // Se apaga SIEMPRE, tenga firma o no: es un disparo por entrada, y si se
+    // quedara encendido volvería a abrirse en la siguiente pasada del efecto.
+    setRecienEntrado(false);
+    if (necesitaNick) openNickname("registro");
+  }, [recienEntrado, checkingProfile, necesitaNick, setRecienEntrado, openNickname]);
 
   // Prefetch de los chunks de modales ligeros cuando el navegador está OCIOSO.
   // El bundle inicial sigue ligero (no se ejecutan al cargar), pero al pulsar

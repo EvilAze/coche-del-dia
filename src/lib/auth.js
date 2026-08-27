@@ -198,9 +198,30 @@ export function emailLoginDisponible() {
  * «registro» de «acceso» es una diferencia que solo le importa a la base de
  * datos. Pones tu correo y entras.
  */
+/**
+ * A dónde vuelve el enlace del correo. A la PORTADA, no a la URL desde la que
+ * se pidió: el correo puede abrirse horas después y en otro dispositivo.
+ *
+ * Sin `window` (SSR, tests en node) devuelve undefined a propósito: Supabase
+ * cae entonces al Site URL del proyecto, que es el destino correcto. Leerlo a
+ * pelo lanzaba aquí.
+ *
+ * Lo usan LOS DOS caminos. Antes solo lo ponía `signInWithOtp`, y `updateUser`
+ * —por donde va la mayoría, porque la sesión anónima nace en el primer intento—
+ * se quedaba sin él: su enlace acababa igualmente en la portada, pero por el
+ * Site URL del dashboard. O sea que el destino del camino mayoritario dependía
+ * de un ajuste que no está a la vista de nadie que lea este fichero.
+ */
+function destinoDelEnlace() {
+  return typeof window === "undefined" ? undefined : window.location.origin;
+}
+
 export async function pedirCodigo(email) {
   if (await idAnonimoVigente()) {
-    const res = await supabase.auth.updateUser({ email });
+    const res = await supabase.auth.updateUser(
+      { email },
+      { emailRedirectTo: destinoDelEnlace() }
+    );
     if (!res?.error) return { error: null, tipo: "email_change", correoOcupado: false };
 
     // El correo ya pertenece a otra cuenta. No tiene arreglo por vinculación:
@@ -228,15 +249,8 @@ async function pedirOtp(email) {
     options: {
       shouldCreateUser: true,
       // El correo lleva enlace ADEMÁS del código (escritorio pulsa, móvil
-      // teclea), así que el enlace necesita un destino. Vuelve a la portada y
-      // no a la URL desde la que se pidió: el correo puede abrirse horas
-      // después y en otro dispositivo.
-      //
-      // Sin `window` (SSR, tests en node) se deja undefined a propósito:
-      // Supabase cae entonces al Site URL del proyecto, que es exactamente el
-      // destino correcto. Leerlo a pelo lanzaba aquí.
-      emailRedirectTo:
-        typeof window === "undefined" ? undefined : window.location.origin,
+      // teclea), así que el enlace necesita un destino. Ver destinoDelEnlace().
+      emailRedirectTo: destinoDelEnlace(),
     },
   });
   return { error: res?.error ?? null };

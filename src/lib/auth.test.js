@@ -157,7 +157,12 @@ describe("auth helpers", () => {
     const m = setup({ isNative: false, emailLogin: "true", sesion: "anon" });
     const { pedirCodigo } = await import("./auth");
     const res = await pedirCodigo("piloto@ejemplo.com");
-    expect(m.updateUser).toHaveBeenCalledWith({ email: "piloto@ejemplo.com" });
+    // Con destino explícito: el enlace del correo tiene que saber a dónde
+    // volver también por ESTE camino, que es por el que va la mayoría.
+    expect(m.updateUser).toHaveBeenCalledWith(
+      { email: "piloto@ejemplo.com" },
+      { emailRedirectTo: undefined }
+    );
     expect(m.signInWithOtp).not.toHaveBeenCalled();
     expect(res).toEqual({ error: null, tipo: "email_change", correoOcupado: false });
   });
@@ -402,5 +407,27 @@ describe("auth helpers", () => {
       expect(leerLoginEnCurso()).toBeNull();
       vi.unstubAllGlobals();
     });
+  });
+
+  // Los DOS caminos mandan el mismo destino. Antes solo lo hacía signInWithOtp
+  // y el de updateUser caía al Site URL del dashboard: funcionaba, pero el
+  // destino del camino mayoritario no estaba en el código.
+  it("código: los dos caminos declaran el mismo destino para el enlace", async () => {
+    vi.stubGlobal("window", { location: { origin: "https://cochedeldia.com" } });
+
+    const anon = setup({ isNative: false, emailLogin: "true", sesion: "anon" });
+    await (await import("./auth")).pedirCodigo("piloto@ejemplo.com");
+    expect(anon.updateUser.mock.calls[0][1]).toEqual({
+      emailRedirectTo: "https://cochedeldia.com",
+    });
+
+    vi.resetModules();
+    const nuevo = setup({ isNative: false, emailLogin: "true", sesion: null });
+    await (await import("./auth")).pedirCodigo("piloto@ejemplo.com");
+    expect(nuevo.signInWithOtp.mock.calls[0][0].options.emailRedirectTo).toBe(
+      "https://cochedeldia.com"
+    );
+
+    vi.unstubAllGlobals();
   });
 });

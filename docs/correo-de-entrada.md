@@ -22,8 +22,18 @@ al final de la partida ya es anónimo: su correo sale por «Change Email Address
 Personalizar solo «Magic Link» es maquetar con esmero el correo que casi nadie
 recibe.
 
-**Si tocas una, toca la otra.** El contenido es el mismo; lo único que cambia es
-dónde se pega.
+**Si tocas una, toca la otra: mismo HTML y mismo asunto.** No es pereza. Las dos
+plantillas admiten las mismas variables (`{{ .Token }}` y
+`{{ .ConfirmationURL }}`), el texto está escrito para valer en ambas —no dice
+«bienvenido» ni «confirma tu cambio de correo», dice «aquí tienes tu entrada»— y
+sobre todo: **desde el lado del jugador no hay dos casos.** Pidió entrar y le
+llega cómo entrar. Que por dentro sea `signInWithOtp` o `updateUser` es un
+detalle de nuestra base de datos, y darle un asunto distinto según el día sería
+contarle una distinción que no es suya.
+
+Los dos caminos mandan además el mismo `emailRedirectTo` desde el código (ver
+`destinoDelEnlace()` en `src/lib/auth.js`), así que el enlace vuelve al mismo
+sitio venga por donde venga, sin depender del Site URL del dashboard.
 
 > El nombre «Magic Link» es de Supabase y no se puede cambiar. Nosotros ya no
 > mandamos ningún enlace: esa plantilla es la del código de alta. Ver abajo.

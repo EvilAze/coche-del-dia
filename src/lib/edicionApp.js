@@ -36,6 +36,13 @@
 // en vez de teclear la URL, que en un juego DIARIO es el factor de verdad) y un
 // aviso que no depende de que el navegador siga vivo.
 //
+// LO QUE LA APP NO SE LLEVA: EL PROGRESO ANÓNIMO. La sesión anónima vive en el
+// localStorage del NAVEGADOR y el WebView de la app sirve desde
+// `https://localhost`, en el sandbox de la aplicación: no hay ningún camino por
+// el que esa racha pueda viajar. Por eso el faldón tiene dos caras y por eso al
+// anónimo se le pide cuenta ANTES de enseñarle Play — ofrecerle mudarse sin
+// avisarle es mandarle a empezar de cero con nueve días a la espalda.
+//
 // Todo falla en silencio (regla 9): sin localStorage, sin UA o sin nada, la
 // respuesta es "no ofrecer" y el juego sigue igual.
 
@@ -55,6 +62,11 @@ const DESCARTE_KEY = "cd_app_faldon_no";
 // es justo el salto que este componente evita. Con la respuesta del arranque
 // anterior en almacenamiento, el render sigue leyendo un booleano ya listo.
 const INSTALADA_KEY = "cd_app_instalada";
+// El faldón tiene DOS caras y cada una lleva su memoria. Con una sola clave,
+// decir «ahora no» a «créate una cuenta» apagaba también la oferta de Play para
+// cuando el jugador ya tuviera cuenta: rechazar una cosa enterraba otra que aún
+// no se le había ofrecido.
+const DESCARTE_REGISTRO_KEY = "cd_registro_faldon_no";
 
 // Tres días jugados. Es el primer número en que "vuelve cada día" ya no es
 // casualidad: con uno no hay hábito y con dos podrían ser dos tardes seguidas.
@@ -128,6 +140,22 @@ export function marcarFaldonDescartado() {
   }
 }
 
+export function faldonRegistroDescartado() {
+  try {
+    return localStorage.getItem(DESCARTE_REGISTRO_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function marcarFaldonRegistroDescartado() {
+  try {
+    localStorage.setItem(DESCARTE_REGISTRO_KEY, "1");
+  } catch {
+    /* peor caso: se lo volvemos a ofrecer otro día */
+  }
+}
+
 /**
  * ¿Sabemos ya que este jugador tiene la app instalada? Lectura síncrona de lo
  * que dejó `comprobarAppInstalada()` en el arranque. Sin dato todavía —primera
@@ -196,10 +224,20 @@ export function debeOfrecerApp() {
 }
 
 /**
- * ¿Toca ofrecer el faldón del final de partida? Síncrono a propósito: el
- * EndScreen decide en el primer render y así no aparece un bloque a mitad de
- * lectura (lo mismo que hace NotificationOptIn con `initialMode`).
+ * ¿Es buen SITIO y buen MOMENTO para un faldón? Android en navegador, sin la
+ * app instalada y con hábito (tres días). Deliberadamente NO mira los
+ * descartes: cuál de las dos caras se puede enseñar depende de si hay cuenta, y
+ * eso lo sabe el componente, no este módulo.
+ */
+export function momentoDeFaldon() {
+  return debeOfrecerApp() && diasJugados() >= DIAS_MINIMOS;
+}
+
+/**
+ * ¿Toca ofrecer el faldón de PLAY? Síncrono a propósito: el EndScreen decide en
+ * el primer render y así no aparece un bloque a mitad de lectura (lo mismo que
+ * hace NotificationOptIn con `initialMode`).
  */
 export function debeOfrecerFaldon() {
-  return debeOfrecerApp() && !faldonDescartado() && diasJugados() >= DIAS_MINIMOS;
+  return momentoDeFaldon() && !faldonDescartado();
 }

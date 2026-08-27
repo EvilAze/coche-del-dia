@@ -215,4 +215,54 @@ describe("edicionApp", () => {
     getItem.mockRestore();
     setItem.mockRestore();
   });
+
+  // ── Las dos memorias del faldón ──────────────────────────────────────────
+  // El faldón tiene dos caras (pide cuenta / ofrece Play) y cada una necesita
+  // su propio "ahora no". Con una sola clave, rechazar «regístrate» apagaba de
+  // paso una oferta de Play que todavía no se había hecho.
+  it("los dos descartes del faldón son independientes", async () => {
+    mockPlataforma(false);
+    setUA(UA_ANDROID);
+    localStorage.setItem("cd_dias_jugados", JSON.stringify({ n: 5, ultima: "2026-08-01" }));
+    const {
+      momentoDeFaldon,
+      faldonDescartado,
+      faldonRegistroDescartado,
+      marcarFaldonRegistroDescartado,
+      marcarFaldonDescartado,
+    } = await import("./edicionApp.js");
+
+    expect(momentoDeFaldon()).toBe(true);
+
+    marcarFaldonRegistroDescartado();
+    expect(faldonRegistroDescartado()).toBe(true);
+    expect(faldonDescartado()).toBe(false);
+    // La puerta común no se cierra: sigue siendo buen momento, solo cambia cuál
+    // de las dos caras se puede enseñar.
+    expect(momentoDeFaldon()).toBe(true);
+
+    marcarFaldonDescartado();
+    expect(faldonDescartado()).toBe(true);
+  });
+
+  it("momentoDeFaldon es la puerta SIN el descarte (sitio y hábito, nada más)", async () => {
+    mockPlataforma(false);
+    setUA(UA_ANDROID);
+    localStorage.setItem("cd_dias_jugados", JSON.stringify({ n: 5, ultima: "2026-08-01" }));
+    const { momentoDeFaldon, marcarFaldonDescartado, debeOfrecerFaldon } =
+      await import("./edicionApp.js");
+
+    marcarFaldonDescartado();
+    // debeOfrecerFaldon sí mira el descarte de Play; momentoDeFaldon, no.
+    expect(debeOfrecerFaldon()).toBe(false);
+    expect(momentoDeFaldon()).toBe(true);
+  });
+
+  it("sin los días mínimos, momentoDeFaldon dice que no", async () => {
+    mockPlataforma(false);
+    setUA(UA_ANDROID);
+    localStorage.setItem("cd_dias_jugados", JSON.stringify({ n: 2, ultima: "2026-08-01" }));
+    const { momentoDeFaldon } = await import("./edicionApp.js");
+    expect(momentoDeFaldon()).toBe(false);
+  });
 });

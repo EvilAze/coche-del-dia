@@ -12,7 +12,7 @@
 
 import React from "react"; // eslint-disable-line no-unused-vars
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const pedirCodigo = vi.fn();
 const verificarCodigo = vi.fn();
@@ -226,5 +226,42 @@ describe("LoginModal", () => {
       expect(track).toHaveBeenCalledWith("login_method", { method: "google" });
       await waitFor(() => expect(signInWithGoogle).toHaveBeenCalled());
     });
+  });
+
+  // Reenviar NO es volver a elegir método. Si se contara, habría más «métodos»
+  // que aperturas de la puerta y el embudo dejaría de cuadrar solo.
+  //
+  // Relojes falsos porque el reenvío nace bloqueado 60 s: sin adelantarlos, el
+  // botón no existe y el test no probaría nada. `shouldAdvanceTime` deja correr
+  // además el tiempo real, que es lo que necesitan los `findBy*` de
+  // testing-library para no colgarse esperando su propio temporizador.
+  it("el reenvío cuenta como envío, no como elegir método otra vez", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      await montar();
+      await enviarCorreo();
+      expect(track.mock.calls.filter((c) => c[0] === "login_method")).toHaveLength(1);
+
+      // Segundo a segundo, y no un salto de 60 s: la cuenta atrás es una CADENA
+      // de setTimeout de 1 s —cada uno se programa en el efecto que dispara el
+      // anterior— así que un salto grande solo dispararía el primero, porque
+      // los demás aún no existen cuando el reloj los pasa por encima.
+      for (let i = 0; i < 60; i += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await act(async () => {
+          vi.advanceTimersByTime(1000);
+        });
+      }
+      fireEvent.click(await screen.findByText("app.codeResend"));
+
+      await waitFor(() =>
+        expect(track.mock.calls.filter((c) => c[0] === "login_code_sent")).toHaveLength(2)
+      );
+      // El envío se cuenta dos veces; la elección de método, una sola.
+      expect(track.mock.calls.filter((c) => c[0] === "login_method")).toHaveLength(1);
+      expect(pedirCodigo).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

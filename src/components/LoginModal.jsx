@@ -141,7 +141,11 @@ export default function LoginModal({ open, onClose, aviso = null }) {
       return;
     }
     setEnviando(true);
-    track("login_method", { method: "email" });
+    // Solo en el PRIMER envío. Este evento mide qué camino elige el jugador, y
+    // reenviar no es volver a elegirlo: contarlo otra vez inflaría los métodos
+    // por encima de las aperturas y el embudo dejaría de cuadrar. El envío en
+    // sí sí se cuenta las veces que ocurra, abajo, con login_code_sent.
+    if (paso === "correo") track("login_method", { method: "email" });
     try {
       const { error, tipo, correoOcupado: ocupado } = await pedirCodigo(limpio);
       if (error) {

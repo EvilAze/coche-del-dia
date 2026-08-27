@@ -1,5 +1,15 @@
 # Los correos de entrada
 
+> **LA PUERTA ESTÁ CERRADA HOY.** `VITE_EMAIL_LOGIN=false`: la entrada por
+> correo no se le ofrece a nadie, así que ninguna de estas dos plantillas se
+> envía. No es un pendiente ni una avería — es una decisión de producto: la
+> puerta de entrada es de un solo toque (Google) y no se le pone al lado un
+> camino que pide teclear un correo y esperar. El flujo está implementado,
+> probado y listo; esto se lee cuando se decida encenderlo, y lo que decidirá
+> eso son los datos del embudo (`login_prompt_shown` → `login_success`), no una
+> intuición. Encender = poner el flag a `true` en Vercel, después de repasar
+> todo lo de abajo.
+
 Plantillas del código de acceso y notas de configuración del envío. Viven aquí y
 no en el código porque se editan en el dashboard de Supabase
 (**Authentication → Email Templates**), pero se versionan igual que el SQL de

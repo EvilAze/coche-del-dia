@@ -20,14 +20,14 @@ const signInWithGoogle = vi.fn().mockResolvedValue({ error: null });
 const track = vi.fn();
 const push = vi.fn();
 
-async function montar(props = {}) {
+async function montar({ conEmail = true, ...props } = {}) {
   vi.resetModules();
 
   vi.doMock("../lib/auth", () => ({
     pedirCodigo,
     verificarCodigo,
     signInWithGoogle,
-    emailLoginDisponible: () => true,
+    emailLoginDisponible: () => conEmail,
   }));
   vi.doMock("../lib/analytics", () => ({ track }));
   vi.doMock("../i18n", () => ({ useT: () => ({ t: (k) => k }) }));
@@ -202,5 +202,29 @@ describe("LoginModal", () => {
     await enviarCorreo();
     fireEvent.click(screen.getByText("app.codeChangeEmail"));
     expect(screen.queryByText("app.codeEmailTakenBody")).toBeNull();
+  });
+
+  // ── La puerta de un solo toque ───────────────────────────────────────────
+  // Esta es LA configuración de producción (`VITE_EMAIL_LOGIN=false`), así que
+  // es la que más falta hace probar: sin este bloque, lo único cubierto sería
+  // el camino apagado. Y lo que hay que vigilar no es que el formulario
+  // desaparezca —eso es un `&&`— sino que no deje muñones: el filete con la
+  // «o» en medio separa dos cosas, y con una sola cuelga de la nada.
+  describe("con la entrada por correo apagada", () => {
+    it("solo ofrece Google: ni campo, ni CTA, ni separador huérfano", async () => {
+      await montar({ conEmail: false });
+      expect(screen.getByText("common.continueWithGoogle")).toBeTruthy();
+      expect(screen.queryByPlaceholderText("app.emailPlaceholder")).toBeNull();
+      expect(screen.queryByText("app.emailCta")).toBeNull();
+      expect(screen.queryByText("app.orSeparator")).toBeNull();
+      expect(screen.queryByText("app.emailNoPassword")).toBeNull();
+    });
+
+    it("Google sigue entrando y midiéndose igual", async () => {
+      await montar({ conEmail: false });
+      fireEvent.click(screen.getByText("common.continueWithGoogle"));
+      expect(track).toHaveBeenCalledWith("login_method", { method: "google" });
+      await waitFor(() => expect(signInWithGoogle).toHaveBeenCalled());
+    });
   });
 });

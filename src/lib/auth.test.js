@@ -81,7 +81,7 @@ describe("auth helpers", () => {
     expect(m.nativeSignOut).toHaveBeenCalledTimes(1);
   });
 
-  // ── Entrada por correo (magic link) ──────────────────────────────────────
+  // ── Entrada por correo (código de 6 cifras) ─────────────────────────────
   // El flag existe porque el email integrado de Supabase va limitado a 2
   // correos/hora en TODO el proyecto: sin SMTP propio, la opción no debe
   // pintarse. Por defecto (env sin poner) tiene que estar APAGADA.

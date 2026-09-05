@@ -330,17 +330,40 @@ expectMutationBlocked(
 console.log("\n[profiles] — accesos públicos controlados");
 // ============================================================================
 
-// El esquema permite ver perfiles públicos por display_name para el ranking,
-// pero NO deberíamos exponer columnas sensibles (email, raw_user_meta_data
-// si las almacenamos). La columna real de display público es `display_name`
-// (ver src/hooks/useStats.js).
+// Este bloque venía FALLANDO desde mayo de 2026 y nadie lo miró. Lo que
+// destapó al ejecutarlo por fin, el 2026-09-05: `select * from profiles` con la
+// anon key devolvía `username` y `avatar_url` de 213 cuentas — y esas dos
+// columnas NO son del juego, las escribe el trigger handle_new_user copiando
+// `raw_user_meta_data->>'full_name'` y `->>'avatar_url'`. O sea el NOMBRE REAL
+// y la FOTO de la cuenta de Google de cada jugador, que nadie leía y cualquiera
+// podía descargarse.
 //
-// SELECT * sobre profiles debería rechazarse (o devolver 0) — si filtra
-// columnas sensibles habría leak silencioso.
+// Arreglado en scripts/2026-09-profiles-cierre-y-purga.sql: las dos columnas se
+// eliminaron, el trigger dejó de copiarlas, la policy se acotó a la fila propia
+// y el GRANT de SELECT quedó por columna (id, display_name).
+//
+// Por eso este bloque ya no se conforma con «select * falla»: comprueba una por
+// una que las columnas de la plantilla de Supabase NO han vuelto. Un
+// `create table`, una restauración de backup o volver a pegar el trigger de la
+// plantilla las traería de vuelta en silencio.
 expectSelectBlocked(
   "SELECT * FROM profiles (debería rechazar columnas no públicas)",
   await anon.from("profiles").select("*").limit(1)
 );
+
+// Las columnas de la plantilla, nombradas. Si alguna vuelve a existir Y a ser
+// legible, aquí se entera alguien el mismo día y no cuatro meses después.
+for (const col of ["username", "avatar_url"]) {
+  const { data, error } = await anon.from("profiles").select(col).limit(1);
+  if (error) {
+    pass(`profiles.${col} no es legible por anon`, `(${error.code || error.message})`);
+  } else {
+    fail(
+      `profiles.${col} legible por anon`,
+      `CRÍTICO: es dato de la cuenta de Google (full_name / foto), no del juego — ${JSON.stringify(data)}`
+    );
+  }
+}
 // La lectura mínima (id + display_name) puede o no estar permitida según
 // si el ranking lee aquí o sale ya joineado en stats. Informativo:
 {

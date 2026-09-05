@@ -30,6 +30,7 @@ import { applyCors } from "../_lib/http.js";
 import { conTimeout, TimeoutError } from "../_lib/timeout.js";
 import analytics from "../../lib/admin-handlers/analytics.js";
 import audit from "../../lib/admin-handlers/audit.js";
+import carReport from "../../lib/admin-handlers/car-report.js";
 import estado from "../../lib/admin-handlers/estado.js";
 import mensajes from "../../lib/admin-handlers/mensajes.js";
 import moderacion from "../../lib/admin-handlers/moderacion.js";
@@ -45,6 +46,9 @@ import masters from "../../lib/admin-handlers/masters.js";
 const ROUTES = {
   "analytics":     analytics,
   "audit":         audit,
+  // Ficha de rendimiento de un coche. Le vale el plazo por defecto (15 s): son
+  // dos lecturas cortas a Supabase.
+  "car-report":    carReport,
   "estado":        estado,
   "mensajes":      mensajes,
   "moderacion":    moderacion,

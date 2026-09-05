@@ -135,9 +135,13 @@ set search_path = public
 as $$
   select
     dc.car_id,
-    c.make,
-    c.model,
-    c.year,
+    -- Casts explícitos: un `returns table` exige que la estructura case EXACTA,
+    -- y no perdona un varchar donde declaró text. Si algún día cambia el tipo de
+    -- una columna de cars, esto sigue funcionando en vez de reventar con un
+    -- «structure of query does not match function result type» en producción.
+    c.make::text,
+    c.model::text,
+    c.year::int,
     min(dc.date)              as aired_on,
     sum(ds.total_games)::int  as total_games,
     sum(ds.wins)::int         as wins,

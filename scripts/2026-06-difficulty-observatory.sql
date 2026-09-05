@@ -23,8 +23,31 @@
 -- cron pasa el rango EXPLÍCITO desde esas constantes (warm-daily.js), así que
 -- estos defaults solo aplican si ejecutas la función a mano desde el editor.
 --
--- Ejecutar una vez en el SQL Editor de Supabase. Idempotente
--- (IF NOT EXISTS / CREATE OR REPLACE): re-ejecutable sin efectos colaterales.
+-- ⚠️ NO EJECUTES ESTE FICHERO SUELTO. ESTÁ SUPERSEDIDO.
+--   La versión viva de recompute_car_difficulty es la de
+--   2026-06-difficulty-significance-gate.sql, que tiene NUEVE argumentos
+--   (añade p_z_gate) y dropea la de OCHO que se crea aquí abajo.
+--
+--   Este fichero decía ser «re-ejecutable sin efectos colaterales» y no lo era:
+--   volver a lanzarlo DESPUÉS del gate recrea la sobrecarga de 8 argumentos, y
+--   entonces las dos conviven. A partir de ahí, `rpc("recompute_car_difficulty")`
+--   sin argumentos deja de poder resolverse:
+--
+--       ERROR 42725: function public.recompute_car_difficulty() is not unique
+--       HINT: Could not choose a best candidate function.
+--
+--   Eso es lo que pasó de verdad, y como el GET del panel se tragaba el error
+--   en silencio, el bloque de dificultad pasó meses diciendo «sin datos» sin
+--   que nadie pudiera relacionar el síntoma con la causa. Confirmado el
+--   2026-09-05; el arreglo está en 2026-09-arreglo-sobrecarga-dificultad.sql.
+--
+--   Si necesitas rehacer el observatorio desde cero: ejecuta ESTE fichero y
+--   DESPUÉS, siempre, el significance-gate. En ese orden y sin saltarte el
+--   segundo.
+--
+-- Ejecutar una vez en el SQL Editor de Supabase. Las columnas sí son
+-- idempotentes (IF NOT EXISTS); la función NO lo es entre ficheros, que es
+-- justo lo que costó el disgusto.
 
 -- ============================================================================
 -- 1) COLUMNAS DE OBSERVABILIDAD en public.cars

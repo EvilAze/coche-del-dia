@@ -166,8 +166,12 @@ anónimos incluidos — que es justo la población que interesa.
 
 Lo que no sale de ahí es el desglose registrados/anónimos. Eso solo lo tiene
 `user_guesses`, y allí faltan los que jugaron antes de julio-2026, cuando el
-anónimo aún no recibía sesión. **Si se muestra ese desglose, va con la asimetría
-escrita al lado**; sin la nota, miente.
+anónimo aún no recibía sesión.
+
+**Decidido: ese desglose NO entra.** Mostrarlo obliga a llevar la asimetría
+escrita al lado —sin esa nota, miente— y eso ensucia la tarjeta a cambio de muy
+poco: la cifra que se pedía («cuántos lo han jugado») ya la da `total_games`
+entera y sin asteriscos. Queda descartado a propósito, no olvidado.
 
 ## La tabla comparativa
 
@@ -212,13 +216,18 @@ fáciles / más jugados) e histórico completo en vez de solo el rango de fechas
   arreglado: el arreglo del `catch` mudo hace visible el error, pero no lo
   corrige. Si es la sobrecarga duplicada, hay que dropear la sobrante.
 
-## Cuestión abierta de entrega
+## Entrega
 
 El cambio cae a **ambos lados** de la regla 13: `api/` + `scripts/` piden PR,
 pero `src/admin/` está dentro de `src/` y por tanto viaja en el APK como chunk
 lazy. En la práctica el panel **nunca se monta en la app** (guard de hostname de
-la regla 19), así que el usuario no ve ningún cambio; pero el bundle cambia.
+la regla 19), así que el jugador no ve ningún cambio; pero el bundle cambia.
 
-Propuesta: **ir por PR** (hay Preview que mirar, y `api/`+`scripts/` es el grueso
-del cambio) y **no subir `versionCode`**, porque nada de lo que el jugador ve en
-la app cambia. Pendiente de confirmar con el usuario antes de implementar.
+**Decidido: PR** (`claude/…` → `main`), porque hay Preview que mirar y
+`api/`+`scripts/` es el grueso del cambio; y **sin subir `versionCode`**, porque
+nada de lo que el jugador ve en la app cambia y la regla 17 existe para eso.
+
+Consecuencia a no olvidar: el chunk del panel sí cambia en el bundle, así que la
+próxima vez que se compile un APK por otro motivo, el `cap:sync` de esa entrega
+se llevará también estos cambios. No hace falta hacer nada al respecto — solo
+saberlo.

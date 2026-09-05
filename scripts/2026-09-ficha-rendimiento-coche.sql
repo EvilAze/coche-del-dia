@@ -99,7 +99,16 @@ as $$
   from diario d cross join repesca r;
 $$;
 
+-- REVOKE A anon/authenticated EXPLÍCITO, no solo a PUBLIC. Supabase concede
+-- EXECUTE a esos dos roles DIRECTAMENTE (vía ALTER DEFAULT PRIVILEGES) sobre
+-- cualquier función nueva del esquema public, y revocar de PUBLIC no toca
+-- esos grants directos. Este repo ya lo aprendió dos veces —ver
+-- 2026-06-lockdown-securitydefiner-grants.sql y su v2 de agosto— y aquí se
+-- repitió: con solo el revoke a PUBLIC, list_car_reports devolvía a cualquier
+-- anónimo el CALENDARIO ENTERO (qué coche salió cada día, hoy incluido en
+-- cuanto alguien termina una partida). Eso es exactamente la regla 5.
 revoke all on function public.get_car_report(uuid) from public;
+revoke execute on function public.get_car_report(uuid) from anon, authenticated;
 grant execute on function public.get_car_report(uuid) to service_role;
 
 -- ============================================================================
@@ -161,7 +170,16 @@ as $$
   group by dc.car_id, c.make, c.model, c.year;
 $$;
 
+-- REVOKE A anon/authenticated EXPLÍCITO, no solo a PUBLIC. Supabase concede
+-- EXECUTE a esos dos roles DIRECTAMENTE (vía ALTER DEFAULT PRIVILEGES) sobre
+-- cualquier función nueva del esquema public, y revocar de PUBLIC no toca
+-- esos grants directos. Este repo ya lo aprendió dos veces —ver
+-- 2026-06-lockdown-securitydefiner-grants.sql y su v2 de agosto— y aquí se
+-- repitió: con solo el revoke a PUBLIC, list_car_reports devolvía a cualquier
+-- anónimo el CALENDARIO ENTERO (qué coche salió cada día, hoy incluido en
+-- cuanto alguien termina una partida). Eso es exactamente la regla 5.
 revoke all on function public.list_car_reports() from public;
+revoke execute on function public.list_car_reports() from anon, authenticated;
 grant execute on function public.list_car_reports() to service_role;
 
 -- ============================================================================

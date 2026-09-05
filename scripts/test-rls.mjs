@@ -427,6 +427,33 @@ console.log("\n[RPC] funciones expuestas — solo las que QUEREMOS callables");
   }
 }
 
+// La ficha de rendimiento (scripts/2026-09-ficha-rendimiento-coche.sql). Las dos
+// atan FECHA con COCHE, así que una fuga aquí es la regla 5 entera: con
+// list_car_reports abierta, cualquiera se descarga el calendario — y el coche de
+// HOY aparece en cuanto la primera persona termina su partida.
+//
+// Este test existe porque eso pasó DE VERDAD el 2026-09-05: las funciones se
+// publicaron con solo `REVOKE ALL ... FROM PUBLIC`, que es el patrón que parece
+// correcto y no lo es. Supabase concede EXECUTE a anon/authenticated
+// DIRECTAMENTE (ALTER DEFAULT PRIVILEGES) sobre cada función nueva del esquema
+// public, y revocar de PUBLIC no toca esos grants. Es la tercera vez que este
+// repo tropieza con lo mismo (junio, agosto, y esta) — la diferencia es que
+// ahora hay un test que lo dice en vez de una persona que se acuerde.
+for (const [nombre, args] of [
+  ["get_car_report", { p_car_id: NULL_UUID }],
+  ["list_car_reports", {}],
+]) {
+  const { data, error } = await anon.rpc(nombre, args);
+  if (!error) {
+    fail(
+      `${nombre} ejecutable desde anon`,
+      `CRÍTICO: filtra qué coche salió cada día — ${JSON.stringify(data).slice(0, 120)}`
+    );
+  } else {
+    pass(`${nombre} bloqueado para anon`, `(${error.code || error.message})`);
+  }
+}
+
 // ============================================================================
 console.log("\n[push_subscriptions] — admin-only: el cliente NO debe leer ni escribir");
 // ============================================================================

@@ -13,6 +13,7 @@ import { supabase } from "../supabaseClient";
 import { useFreshCatalog } from "../data/catalog";
 import DescriptionEnField from "./DescriptionEnField";
 import DescriptionEsField from "./DescriptionEsField";
+import FichaRendimiento from "./FichaRendimiento";
 import FocusPicker from "./FocusPicker";
 import ZoomBaseField from "./ZoomBaseField";
 import { DEFAULT_ZOOM_BASE } from "../lib/zoom.js";
@@ -109,6 +110,14 @@ export default function EditCarPanel({
   // Intel de dificultad observada (DDA Arquitectura A). La rellena el GET de
   // save-car desde la telemetría; null si el coche aún no tiene datos.
   const [difficulty, setDifficulty] = useState(null);
+  // Ficha de rendimiento. Va POR SEPARADO del GET del coche a propósito: la
+  // sirve /api/admin/car-report leyendo daily_stats en vivo, mientras que
+  // `difficulty` sigue saliendo de las columnas cacheadas de cars — que son las
+  // que alimentan la sugerencia de zoom. Dos fuentes porque son dos cosas, y
+  // porque así la ficha no se cae si el recálculo vuelve a romperse.
+  const [ficha, setFicha] = useState(null);
+  const [fichaCargando, setFichaCargando] = useState(false);
+  const [fichaError, setFichaError] = useState(null);
   // Análisis de imagen con IA (DDA Arquitectura B). Estado local de la llamada.
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -259,6 +268,81 @@ export default function EditCarPanel({
       cancelled = true;
     };
   }, [selectedCarId]);
+
+  // Ficha de rendimiento del coche seleccionado. Petición aparte de la del
+  // coche porque son dos fuentes distintas (ver el estado `ficha` arriba).
+  useEffect(() => {
+    if (!selectedCarId) {
+      setFicha(null);
+      setFichaError(null);
+      return;
+    }
+    let cancelado = false;
+    setFichaCargando(true);
+    setFichaError(null);
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) throw new Error("Sin sesión");
+        const res = await fetch(
+          `/api/admin/car-report?id=${encodeURIComponent(selectedCarId)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        // Mirar res.ok ANTES de parsear: un 504 de Vercel llega como respuesta
+        // correcta con HTML dentro, y el .json() reventaría con un SyntaxError
+        // que no se parece en nada a la causa (regla 21 del CLAUDE.md).
+        if (!res.ok) {
+          const cuerpo = await res.json().catch(() => ({}));
+          throw new Error(cuerpo?.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        if (!cancelado) setFicha(data);
+      } catch (err) {
+        if (!cancelado) {
+          console.error("[EditCarPanel] car-report:", err);
+          setFichaError(err?.message || "Error de red");
+          setFicha(null);
+        }
+      } finally {
+        if (!cancelado) setFichaCargando(false);
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [selectedCarId]);
+
+  // Al entrar sin coche elegido, abrir en el de HOY. Es lo que más veces se
+  // viene a mirar, y así el panel arranca enseñando algo en vez de un
+  // desplegable vacío.
+  //
+  // Se pide car-report SIN id, que ya resuelve hoy en el servidor: pedir el
+  // calendario entero para quedarnos con un campo sería traer catorce días para
+  // tirar trece. Silencioso si falla — es una comodidad, no una función: quien
+  // no la note seguirá eligiendo a mano.
+  useEffect(() => {
+    if (selectedCarId) return;
+    let cancelado = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) return;
+        const res = await fetch("/api/admin/car-report", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelado && data?.carId) onSelectCar?.(data.carId);
+      } catch {
+        // Silencio deliberado: ver arriba.
+      }
+    })();
+    return () => { cancelado = true; };
+    // Solo al montar sin selección: si se añade selectedCarId a las deps, al
+    // deseleccionar un coche volvería a saltar al de hoy y no se podría vaciar
+    // el formulario a propósito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -842,6 +926,14 @@ export default function EditCarPanel({
               />
             </Field>
 
+            <Field label="Rendimiento del coche">
+              <FichaRendimiento
+                ficha={ficha}
+                cargando={fichaCargando}
+                error={fichaError}
+              />
+            </Field>
+
             {typeof onOpenPreview === "function" && (
               <button
                 type="button"
@@ -979,95 +1071,43 @@ function Field({ label, children }) {
   );
 }
 
-// Coste objetivo del controlador de dificultad (DDA Arq. A). Réplica del default
-// p_target_cost de recompute_car_difficulty (scripts/2026-06-difficulty-observatory.sql):
-// si lo cambias allí, cámbialo aquí para que la etiqueta coincida.
-const TARGET_COST = 3.5;
-
-// Bloque de telemetría bajo el slider de zoom: muestra la dificultad REAL medida
-// del coche y, si hay sugerencia, un botón para aplicarla al slider (queda
-// "dirty" → se guarda con el botón normal). Human-in-loop: nada se aplica solo.
+// Sugerencia de zoom del bucle de telemetría (DDA Arq. A). Las MÉTRICAS ya no
+// están aquí: se las llevó FichaRendimiento, que las lee en vivo desde
+// daily_stats. Esto se queda solo con lo que sí sale de
+// cars.suggested_zoom_base, que es otra cosa — human-in-loop: nada se aplica
+// solo.
+//
+// Tener las mismas cifras en dos sitios y desde dos fuentes distintas era pedir
+// que un día dijeran cosas diferentes y nadie se enterara.
 function DifficultyIntel({ difficulty, currentZoomBase, onApply, disabled }) {
-  if (!difficulty) {
+  const suggestedZoomBase = difficulty?.suggestedZoomBase ?? null;
+  if (suggestedZoomBase == null) return null;
+
+  const canApply = Math.abs(suggestedZoomBase - currentZoomBase) >= 0.1;
+  if (!canApply) {
     return (
-      <p className="mt-2 text-[11px] leading-relaxed text-muted">
-        Sin datos de telemetría todavía. La dificultad se mide cuando el coche
-        sale como coche del día y lo juega suficiente gente.
+      <p className="mt-2 text-[11px] text-emerald-300/80">
+        La telemetría sugiere {suggestedZoomBase.toFixed(1)}×, que es el valor actual.
       </p>
     );
   }
-
-  const { n, cost, pBy3, failRate, suggestedZoomBase, computedAt } = difficulty;
-
-  // Lectura humana del coste vs objetivo (moda intento 3-4).
-  let verdict, verdictClass;
-  if (cost == null) {
-    verdict = "sin coste";
-    verdictClass = "text-muted";
-  } else if (cost < TARGET_COST - 0.5) {
-    verdict = "demasiado fácil";
-    verdictClass = "text-amber-300";
-  } else if (cost > TARGET_COST + 0.7) {
-    verdict = "demasiado difícil";
-    verdictClass = "text-red-300";
-  } else {
-    verdict = "equilibrado";
-    verdictClass = "text-green-300";
-  }
-
-  const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
-  // ¿La sugerencia difiere de forma apreciable del valor actual del slider?
-  const canApply =
-    typeof suggestedZoomBase === "number" &&
-    Math.abs(suggestedZoomBase - currentZoomBase) >= 0.1;
-
   return (
-    <div className="mt-2 flex flex-col gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-3">
-      <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted">
-        <span>Dificultad observada</span>
-        <span className={`normal-case tracking-normal ${verdictClass}`}>
-          {verdict}
-        </span>
-      </div>
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <Metric label="partidas" value={n != null ? n.toLocaleString("es") : "—"} />
-        <Metric label="coste medio" value={cost == null ? "—" : cost.toFixed(2)} />
-        <Metric label="≤3 intentos" value={pct(pBy3)} />
-      </div>
-      <div className="text-[10px] text-muted">
-        Fallo (no adivinó): <span className="text-white/80">{pct(failRate)}</span>
-        {" · "}objetivo de coste ~{TARGET_COST.toFixed(1)} (moda intento 3-4)
-      </div>
-
-      {suggestedZoomBase == null ? (
-        <p className="text-[11px] text-muted">
-          Sin sugerencia: este coche no se desvía del objetivo más allá del ruido
-          (o aún faltan partidas). Solo se sugiere ante señales claras.
-        </p>
-      ) : canApply ? (
-        <button
-          type="button"
-          onClick={() => onApply?.(suggestedZoomBase)}
-          disabled={disabled}
-          className="self-start rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-[11px] uppercase tracking-widest text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Aplicar sugerencia: {suggestedZoomBase.toFixed(1)}×
-        </button>
-      ) : (
-        <p className="text-[11px] text-green-300/80">
-          La sugerencia ({suggestedZoomBase.toFixed(1)}×) coincide con el valor actual.
-        </p>
-      )}
-
-      {computedAt && (
-        <p className="text-[10px] text-muted/70">
-          Medido: {new Date(computedAt).toLocaleDateString("es")}
-        </p>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={() => onApply?.(suggestedZoomBase)}
+      disabled={disabled}
+      className="mt-2 self-start rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-[11px] uppercase tracking-widest text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      Aplicar sugerencia: {suggestedZoomBase.toFixed(1)}×
+    </button>
   );
 }
 
+// Caja de una cifra con su rótulo. La usa AiAssistant para la iconicidad y el
+// zoom propuesto. Vivía aquí desde que la compartía con el bloque de
+// dificultad; ese bloque se fue a FichaRendimiento (que tiene su propia
+// `Cifra`, con el rótulo centrado), pero esta se queda porque el asistente de
+// IA la sigue necesitando.
 function Metric({ label, value }) {
   return (
     <div className="rounded-lg bg-white/5 px-2 py-1.5">

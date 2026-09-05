@@ -52,12 +52,19 @@ begin;
 -- ============================================================================
 -- [1] El trigger deja de copiar datos de Google
 -- ============================================================================
--- ATRIBUTOS DECLARADOS EXPLÍCITAMENTE: `create or replace function` NO conserva
--- los que no se nombren, y perder `security definer` rompería cada alta nueva
--- (el insert corre antes de que exista sesión del usuario). Se añade además
--- `set search_path = public`, que la versión de la plantilla no traía: en una
--- función security definer, dejar el search_path al gusto del llamante es un
--- vector conocido de escalada.
+-- ATRIBUTOS DECLARADOS EXPLÍCITAMENTE, Y COPIADOS DE LOS QUE YA TENÍA:
+-- `create or replace function` NO conserva los que no se nombren, así que
+-- omitir uno lo pierde. Los de la función viva, consultados antes de tocarla:
+--   language plpgsql · security definer · search_path = public, pg_temp
+--
+-- OJO CON `pg_temp`, QUE NO ES DECORACIÓN: si NO aparece en el search_path,
+-- Postgres busca el esquema temporal PRIMERO, de forma implícita. Nombrarlo al
+-- final es justamente lo que fuerza a que se busque el último, y es la
+-- protección recomendada para una función security definer — sin ella,
+-- cualquiera con permiso de crear tablas temporales puede colocar una
+-- `profiles` que enmascare a la de verdad y hacer que este insert escriba en
+-- la suya. Escribir solo `search_path = public` PARECE más restrictivo y es
+-- exactamente lo contrario.
 --
 -- `on conflict (id) do nothing`: la versión original petaba si la fila ya
 -- existía, y un error aquí aborta el ALTA DE LA CUENTA. Que un reintento de
@@ -67,7 +74,7 @@ create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 begin
   insert into public.profiles (id)
@@ -163,8 +170,14 @@ where table_schema = 'public' and table_name = 'profiles'
   and privilege_type = 'SELECT'
 order by grantee, column_name;
 
--- 4) El trigger conserva security definer (prosecdef = true) y search_path.
-select p.prosecdef as es_security_definer, p.proconfig as config
+-- 4) El trigger conserva sus atributos. Las dos columnas `ok_*` tienen que
+--    salir TRUE. Si `ok_search_path` sale false, PARA: se ha perdido el
+--    `pg_temp` final y la función quedó menos protegida que antes (ver [1]).
+select
+  p.prosecdef                                              as es_security_definer,
+  p.proconfig                                              as config,
+  p.prosecdef                                              as ok_security_definer,
+  ('search_path=public, pg_temp' = any(p.proconfig))       as ok_search_path
 from pg_proc p
 where p.pronamespace = 'public'::regnamespace
   and p.proname = 'handle_new_user';

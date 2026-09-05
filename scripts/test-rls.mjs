@@ -246,24 +246,38 @@ expectSelectBlocked(
 }
 
 // ============================================================================
-console.log("\n[stats] — SELECT permitido (ranking público), mutaciones NO");
+console.log("\n[stats] — ni una fila ajena, y mutaciones NO");
 // ============================================================================
 
-// SELECT debe ir: el ranking lo lee cualquiera (anon incluido).
+// ESTA ASERCIÓN ESTÁ INVERTIDA RESPECTO A COMO NACIÓ, y no por ablandarla: la
+// premisa que tenía escrita —«SELECT debe ir: el ranking lo lee cualquiera»—
+// caducó. Era cierta cuando la clasificación consultaba stats DIRECTAMENTE; hoy
+// todos los leaderboards son RPC SECURITY DEFINER que se saltan RLS y traen su
+// propio filtro de shadowban, y las únicas lecturas que quedan de la tabla son
+// de FILA PROPIA (src/lib/statsService.js:57 y :193, api/garage.js:237).
+//
+// O sea que la lectura pública no la usaba nadie: solo estaba expuesta. Cerrarla
+// (2026-09-stats-solo-fila-propia.sql) permitió además retirar el oráculo de
+// shadowban `esta_marcado`, que existía únicamente para que las policies de
+// stats y profiles dejaran de estar acopladas.
+//
+// Sin sesión no hay auth.uid(), así que la policy no puede casar NINGUNA fila.
+// Vale tanto 0 filas como un permiso denegado; lo que no vale es que salgan
+// datos de otra persona.
 {
   const { data, error } = await anon
     .from("stats")
     .select("user_id, total_wins")
     .limit(1);
+  const filas = data?.length ?? 0;
   if (error) {
-    fail(
-      "[stats] SELECT debería estar permitido (ranking)",
-      `error: ${error.code || error.message}`
-    );
+    pass("[stats] sin sesión no se lee nada", `(${error.code || error.message})`);
+  } else if (filas === 0) {
+    pass("[stats] sin sesión no se lee nada", "(0 filas)");
   } else {
-    pass(
-      "[stats] SELECT permitido (ranking)",
-      `(${data?.length ?? 0} filas)`
+    fail(
+      "[stats] sin sesión se leen filas ajenas",
+      `LEAK: ${filas} fila(s) — ${JSON.stringify(data)}`
     );
   }
 }

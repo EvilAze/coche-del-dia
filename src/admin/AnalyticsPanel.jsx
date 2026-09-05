@@ -371,9 +371,9 @@ export default function AnalyticsPanel() {
             </Card>
           </div>
 
-          {/* ROW 5 · Coches más fallados */}
-          <Card title="Coches con mayor tasa de fallo (min. 5 partidas)">
-            <HardestCarsTable cars={data.gameplay.hardestCars} />
+          {/* ROW 5 · Comparativa de coches */}
+          <Card title="Coches, de más difícil a más fácil">
+            <CarReportsTable cars={data.gameplay.carReports} />
           </Card>
 
           {/* ROW 6 · Usuarios registrados (directorio completo) */}
@@ -783,44 +783,99 @@ function BarChart({ data, getColor }) {
   );
 }
 
-function HardestCarsTable({ cars }) {
+// Comparativa de coches. Ordenable porque las tres preguntas son distintas:
+// «¿cuál se atragantó?» (difícil), «¿cuál se adivinó de reojo?» (fácil) y
+// «¿cuál jugó más gente?». Antes solo contestaba la primera, y encima contando
+// una población distinta a la de la ficha del coche: leía user_guesses (solo
+// quien arrastra sesión) mientras la ficha lee daily_stats (todos).
+const ORDENES = {
+  dificil: { label: "Más difíciles", cmp: (a, b) => (b.coste ?? 0) - (a.coste ?? 0) },
+  facil:   { label: "Más fáciles",   cmp: (a, b) => (a.coste ?? 0) - (b.coste ?? 0) },
+  jugados: { label: "Más jugados",   cmp: (a, b) => b.plays - a.plays },
+};
+
+const COLOR_NIVEL = {
+  facil: "text-amber-300",
+  dificil: "text-rose-300",
+  equilibrado: "text-emerald-300",
+  desconocido: "text-muted",
+};
+
+function CarReportsTable({ cars }) {
+  const [orden, setOrden] = useState("dificil");
+
   if (!cars || cars.length === 0) {
     return (
       <div className="py-6 text-center text-sm text-muted">
-        Sin partidas suficientes en el periodo (mínimo 5 jugadas por coche).
+        Todavía no hay ningún coche con partidas medidas.
       </div>
     );
   }
+
+  const ordenados = [...cars].sort(ORDENES[orden].cmp).slice(0, 25);
+
   return (
-    <TablaScroll minAncho="min-w-[480px]" pie={`${cars.length} coches medidos en el periodo.`}>
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-muted">
-            <th className="px-3 py-2">Coche</th>
-            <th className="px-3 py-2">Año</th>
-            <th className="px-3 py-2 text-right">Jugadas</th>
-            <th className="px-3 py-2 text-right">Fallos</th>
-            <th className="px-3 py-2 text-right">% fallo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cars.map((c) => (
-            <tr key={c.carId} className="border-t border-white/5 text-white/85">
-              <td className="px-3 py-2">
-                <span className="font-semibold text-white">{c.marca}</span>{" "}
-                <span className="text-white/70">{c.modelo}</span>
-              </td>
-              <td className="px-3 py-2 text-white/60">{c.anio || "—"}</td>
-              <td className="px-3 py-2 text-right font-mono">{c.plays}</td>
-              <td className="px-3 py-2 text-right font-mono text-rose-300">{c.losses}</td>
-              <td className="px-3 py-2 text-right font-mono text-rose-300">{pct(c.loseRate)}</td>
+    <>
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        {Object.entries(ORDENES).map(([clave, { label }]) => (
+          <button
+            key={clave}
+            type="button"
+            onClick={() => setOrden(clave)}
+            className={`rounded-md border px-2 py-1 text-[10px] uppercase tracking-widest transition ${
+              orden === clave
+                ? "border-accent/40 bg-accent/10 text-accent"
+                : "border-white/10 text-muted hover:border-white/20"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <TablaScroll
+        minAncho="min-w-[560px]"
+        pie={`${cars.length} coches medidos · histórico completo, no el rango de fechas.`}
+      >
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left text-[10px] uppercase tracking-[0.16em] text-muted">
+              <th className="px-3 py-2">Coche</th>
+              <th className="px-3 py-2">Año</th>
+              <th className="px-3 py-2 text-right">Jugadas</th>
+              <th className="px-3 py-2 text-right">% acierto</th>
+              <th className="px-3 py-2 text-right">Int. medio</th>
+              <th className="px-3 py-2 text-right">Coste</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </TablaScroll>
+          </thead>
+          <tbody>
+            {ordenados.map((c) => (
+              <tr key={c.carId} className="border-t border-white/5 text-white/85">
+                <td className="px-3 py-2">
+                  <span className="font-semibold text-white">{c.marca}</span>{" "}
+                  <span className="text-white/70">{c.modelo}</span>
+                </td>
+                <td className="px-3 py-2 text-white/60">{c.anio || "—"}</td>
+                <td className="px-3 py-2 text-right font-mono">{c.plays}</td>
+                <td className="px-3 py-2 text-right font-mono">{pct(c.winRate)}</td>
+                <td className="px-3 py-2 text-right font-mono">
+                  {c.intentoMedio == null ? "—" : c.intentoMedio.toFixed(1)}
+                </td>
+                <td
+                  className={`px-3 py-2 text-right font-mono ${
+                    COLOR_NIVEL[c.veredicto?.nivel] || COLOR_NIVEL.desconocido
+                  }`}
+                >
+                  {c.coste == null ? "—" : c.coste.toFixed(2)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TablaScroll>
+    </>
   );
 }
+
 
 function UsersTable({ users, selectedUserId, onSelect }) {
   // Buscador por nick o correo. El scroll acota el ALTO, pero encontrar a

@@ -311,6 +311,39 @@ export default function EditCarPanel({
     return () => { cancelado = true; };
   }, [selectedCarId]);
 
+  // Al entrar sin coche elegido, abrir en el de HOY. Es lo que más veces se
+  // viene a mirar, y así el panel arranca enseñando algo en vez de un
+  // desplegable vacío.
+  //
+  // Se pide car-report SIN id, que ya resuelve hoy en el servidor: pedir el
+  // calendario entero para quedarnos con un campo sería traer catorce días para
+  // tirar trece. Silencioso si falla — es una comodidad, no una función: quien
+  // no la note seguirá eligiendo a mano.
+  useEffect(() => {
+    if (selectedCarId) return;
+    let cancelado = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) return;
+        const res = await fetch("/api/admin/car-report", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelado && data?.carId) onSelectCar?.(data.carId);
+      } catch {
+        // Silencio deliberado: ver arriba.
+      }
+    })();
+    return () => { cancelado = true; };
+    // Solo al montar sin selección: si se añade selectedCarId a las deps, al
+    // deseleccionar un coche volvería a saltar al de hoy y no se podría vaciar
+    // el formulario a propósito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (feedback) setFeedback(null);

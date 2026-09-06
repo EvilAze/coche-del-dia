@@ -17,6 +17,7 @@
 //     romper un alta/edición de coche por un fallo de imagen upstream.
 
 import sharp from "sharp";
+import { leerImagenOrigen } from "./imagen-origen.js";
 
 const LQIP_WIDTH = 24;
 const LQIP_QUALITY = 30;
@@ -26,25 +27,23 @@ export async function generateBlurData(imageUrl) {
     return null;
   }
 
-  let upstream;
-  try {
-    upstream = await fetch(imageUrl);
-  } catch (err) {
-    console.error("[blur-data] fetch upstream:", err?.message || err);
-    return null;
-  }
-  if (!upstream.ok) {
-    console.error("[blur-data] upstream status:", upstream.status);
-    return null;
-  }
-
-  let buf;
-  try {
-    buf = Buffer.from(await upstream.arrayBuffer());
-  } catch (err) {
-    console.error("[blur-data] read buffer:", err?.message || err);
-    return null;
-  }
+  // Los bytes, por el mismo helper que el resto de rutas de imagen: prefiere
+  // el máster WebP y cae al original si no existe. Aquí el ahorro es el más
+  // pequeño de los tres —esto corre en el alta/edición de un coche, o sea una
+  // vez por foto, y encima sobre una foto RECIÉN subida, que casi nunca tendrá
+  // máster todavía— pero pasar por la misma puerta que los demás es lo que
+  // evita que dentro de un año quede un `fetch` suelto que nadie relacione con
+  // la factura. Lo que sí gana de verdad es el plazo de PLAZOS.CDN (regla 21):
+  // este fetch no tenía ninguno, y un Storage lento colgaba el guardado del
+  // coche entero, no solo el LQIP.
+  //
+  // El helper ya registra el motivo del fallo, así que aquí solo queda la
+  // decisión que este módulo tenía desde el principio: sin bytes, no hay LQIP
+  // y se devuelve null; el caller prefiere guardar el coche sin blur_data
+  // antes que romper el alta.
+  const origen = await leerImagenOrigen(imageUrl);
+  if (!origen) return null;
+  const buf = origen.buffer;
 
   try {
     const out = await sharp(buf)

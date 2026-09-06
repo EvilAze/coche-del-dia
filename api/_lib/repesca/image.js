@@ -185,6 +185,19 @@ export default async function handler(req, res) {
             .webp({ quality: 88, smartSubsample: true })
             .toBuffer();
           outContentType = "image/webp";
+        } else {
+          // SIN DIMENSIONES NO HAY RECORTE, Y SIN RECORTE NO SE SIRVE NADA.
+          // `outBuffer` nace valiendo el original, así que caerse por este `if`
+          // no dejaba una imagen a medio recortar: dejaba la foto ENTERA en
+          // manos de alguien que sigue jugando (regla 5). No romper el build ni
+          // ningún test es justamente lo que hace peligroso un hueco así.
+          //
+          // Es el mismo criterio que el `catch` de aquí abajo —ante la duda, no
+          // entregamos la imagen completa por accidente— y por eso responde
+          // igual: un 500 es visible y se arregla; una fuga silenciosa quema el
+          // coche del día y nadie se entera.
+          console.error("[repesca/image] sharp metadata sin dimensiones");
+          return res.status(500).json({ error: "Image processing failed" });
         }
       } catch (err) {
         // Si sharp falla, mejor no entregar la imagen completa por accidente.

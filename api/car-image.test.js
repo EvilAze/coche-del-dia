@@ -10,7 +10,9 @@
 // pueda cachearse en el CDN compartido. Un `res.redirect` que vuelva por
 // cualquier motivo reintroduce el problema entero sin romper nada más.
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
 import sharp from "sharp";
+import { versionDePortada } from "./_lib/version-imagen.js";
 
 const leerImagenOrigen = vi.fn();
 const verifyImageToken = vi.fn();
@@ -47,6 +49,9 @@ async function originalDePrueba(w = 2400, h = 1800) {
     .toBuffer();
 }
 
+const IMAGE_URL =
+  "https://ref.supabase.co/storage/v1/object/public/cars_images/1712345678-audi-tt.jpg";
+
 function fakeRes() {
   const res = {
     statusCode: null,
@@ -76,10 +81,7 @@ function fakeRes() {
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  maybeSingle.mockResolvedValue({
-    data: { image_url: "https://ref.supabase.co/storage/v1/object/public/cars_images/x-audi-tt.jpg" },
-    error: null,
-  });
+  maybeSingle.mockResolvedValue({ data: { image_url: IMAGE_URL }, error: null });
   const buffer = await originalDePrueba();
   leerImagenOrigen.mockResolvedValue({
     buffer,
@@ -135,20 +137,57 @@ describe("car-image, modo clear (el cromo desbloqueado)", () => {
     expect((await sharp(absurda.body).metadata()).width).toBe(1080);
   });
 
-  it("es cacheable en el CDN compartido, y NO inmutable", async () => {
+  it("con el `v` correcto se cachea eterna: es el camino normal", async () => {
+    verifyImageToken.mockReturnValue({ carId: 7, mode: IMAGE_MODE_CLEAR });
+    const v = await versionDePortada(IMAGE_URL);
+    const res = fakeRes();
+    await handler({ method: "GET", query: { t: "tok", v } }, res);
+
+    // `public` es lo que pone al CDN de Vercel delante; `immutable` es lo que
+    // hace que Supabase pague UNA descarga por coche en vez de una por PoP y
+    // semana. Es seguro porque cambiar la foto cambia image_url → cambia v.
+    expect(res.headers["cache-control"]).toMatch(/public/);
+    expect(res.headers["cache-control"]).toMatch(/immutable/);
+  });
+
+  it("el `v` lo calcula igual que garage.js, o la caché no acertaría nunca", async () => {
+    // Las dos mitades usan versionDePortada; si alguien duplicase la fórmula
+    // en un lado, el servidor no reconocería sus propias URLs y cada visita
+    // sería un fallo de caché — el gasto de vuelta, en silencio.
+    expect(await versionDePortada(IMAGE_URL)).toBe(await versionDePortada(IMAGE_URL));
+    expect(await versionDePortada(IMAGE_URL)).toMatch(/^[0-9a-f]{8}$/);
+  });
+
+  it("SIN `v` sigue funcionando, con la caché conservadora", async () => {
+    // Una URL emitida antes de este cambio, viva en el navegador de alguien o
+    // en un payload de /api/garage ya servido. Romperla dejaría el álbum sin
+    // fotos hasta recargar.
     verifyImageToken.mockReturnValue({ carId: 7, mode: IMAGE_MODE_CLEAR });
     const res = fakeRes();
     await handler({ method: "GET", query: { t: "tok" } }, res);
 
-    const cc = res.headers["cache-control"];
-    // `public` + `s-maxage` es lo que pone al CDN de Vercel delante: sin eso,
-    // Supabase vuelve a pagar una descarga por jugador.
-    expect(cc).toMatch(/public/);
-    expect(cc).toMatch(/s-maxage=\d+/);
-    // Sin `immutable`: la URL no cambia cuando el admin sustituye la foto
-    // (el token es determinista por carId+mode), así que una caché eterna
-    // dejaría la foto vieja puesta para siempre.
-    expect(cc).not.toMatch(/immutable/);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["cache-control"]).toMatch(/public/);
+    expect(res.headers["cache-control"]).toMatch(/s-maxage=\d+/);
+    // Sin `immutable`: esa URL no cambia al sustituir la foto, así que una
+    // caché eterna la dejaría clavada.
+    expect(res.headers["cache-control"]).not.toMatch(/immutable/);
+  });
+
+  it("un `v` que no cuadra SIRVE la foto buena, pero en caché privada", async () => {
+    verifyImageToken.mockReturnValue({ carId: 7, mode: IMAGE_MODE_CLEAR });
+    const res = fakeRes();
+    await handler({ method: "GET", query: { t: "tok", v: "deadbeef" } }, res);
+
+    // Nadie se queda sin cromo: puede ser simplemente un cliente con el
+    // payload viejo justo después de que el admin cambiara la foto.
+    expect(res.statusCode).toBe(200);
+    expect(Buffer.isBuffer(res.body)).toBe(true);
+    // Pero `private` para que un `v` inventado no pueda crear entradas en el
+    // CDN compartido: si pudiera, forzar fallos de caché en cadena sería
+    // trivial, que es justo el gasto que este cambio viene a cerrar.
+    expect(res.headers["cache-control"]).toMatch(/private/);
+    expect(res.headers["cache-control"]).not.toMatch(/immutable/);
   });
 
   it("no filtra la URL real del CDN por Content-Disposition", async () => {
@@ -176,6 +215,24 @@ describe("car-image, modo blurred (el cromo bloqueado)", () => {
     verifyImageToken.mockReturnValue({ carId: 7, mode: IMAGE_MODE_BLURRED });
     await handler({ method: "GET", query: { t: "tok" } }, fakeRes());
     expect(leerImagenOrigen).toHaveBeenCalledOnce();
+  });
+
+  it("nunca se cachea como inmutable, ni aunque le cuelen un `v`", async () => {
+    verifyImageToken.mockReturnValue({ carId: 7, mode: IMAGE_MODE_BLURRED });
+    const res = fakeRes();
+    const v = await versionDePortada(IMAGE_URL);
+    await handler({ method: "GET", query: { t: "tok", v } }, res);
+    expect(res.headers["cache-control"]).not.toMatch(/immutable/);
+  });
+
+  it("garage.js NO le pone `v` a la URL de un cromo bloqueado", async () => {
+    // El `v` sale de image_url, cuyo fichero lleva marca-modelo-año: en un
+    // bloqueado sería un identificador estable del coche que el jugador aún no
+    // ha ganado, justo la correlación que garage.js rompe con pseudoIdFor.
+    // Se comprueba en la fuente porque es una decisión de QUIÉN EMITE la URL,
+    // y aquí no hay nada que la impida si alguien la añade por simetría.
+    const fuente = readFileSync(new URL("./garage.js", import.meta.url), "utf8");
+    expect(fuente).toMatch(/carImageProxyUrl\(\s*c\.id,\s*IMAGE_MODE_BLURRED\s*\)/);
   });
 });
 

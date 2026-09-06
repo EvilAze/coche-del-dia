@@ -53,6 +53,7 @@ import {
 } from "./_lib/image-token.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
 import { leerImagenOrigen } from "./_lib/imagen-origen.js";
+import { versionDePortada } from "./_lib/version-imagen.js";
 import { methodGuard } from "./_lib/http.js";
 
 // Anchuras permitidas para la portada. Allowlist estricta por el mismo motivo
@@ -75,16 +76,36 @@ function anchuraPedida(query) {
   return ANCHURAS_PORTADA.has(w) ? w : ANCHURA_POR_DEFECTO;
 }
 
-// Caché de la respuesta ya procesada.
+// ── LAS TRES CACHÉS, Y POR QUÉ SON TRES ──────────────────────────────────────
 //
-// `s-maxage` de 7 días y no de un año, y sin `immutable`, a propósito: el
-// token es determinista por (carId, mode), así que la URL NO cambia cuando el
-// admin sustituye la foto de un coche desde /admin/edit-car. Con `immutable`
-// esa foto nueva no se vería nunca. Siete días ya dejan el egress de Supabase
-// en nada (una descarga por coche y PoP a la semana) sin convertir un cambio
-// del admin en algo permanente. `stale-while-revalidate` para que la
-// renovación no la pague ningún usuario esperando.
-const CACHE_PORTADA = "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400";
+// El problema de fondo: el token es determinista por (carId, mode) —tiene que
+// serlo, o el navegador no cachearía nada entre renders del Garaje— así que la
+// URL de un cromo sería la MISMA para siempre. Con una caché eterna, la foto
+// que el admin sustituye no se vería nunca más.
+//
+// Lo resuelve el `v` que emite garage.js: un hash corto de image_url. Cambiar
+// la foto cambia la ruta en el Storage (EditCarPanel sube a `${Date.now()}-…`
+// con upsert:false, nunca pisa una ruta), cambia el hash y cambia la URL. Con
+// eso `immutable` pasa a ser seguro, y el egress contra Supabase se va a cero:
+// una descarga por coche y ya, en vez de una por PoP y semana.
+//
+// ETERNA: el camino normal. Todo lo que emite garage.js hoy cae aquí.
+const CACHE_VERSIONADA = "public, max-age=31536000, immutable";
+//
+// SIN `v`: una URL emitida ANTES de este cambio y que sigue viva en el
+// navegador de alguien o en un payload de /api/garage ya servido. Se sirve
+// igual —romperlas sería dejar el álbum sin fotos hasta recargar— pero con la
+// caché conservadora de siempre, que no puede quedarse clavada.
+const CACHE_SIN_VERSION = "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400";
+//
+// `v` QUE NO CUADRA: o un cliente con el payload viejo justo después de que el
+// admin cambiara la foto, o alguien inventándose valores. En los dos casos
+// servimos la foto BUENA (nadie se queda sin cromo), pero en caché PRIVADA:
+// una respuesta con `v` arbitrario no puede crear entradas en el CDN
+// compartido, o inventarse valores sería una forma barata de forzar fallos de
+// caché en cadena — exactamente el gasto que este PR viene a cerrar. El
+// cliente se cura solo en su siguiente /api/garage.
+const CACHE_DESCUADRADA = "private, max-age=60";
 
 export default async function handler(req, res) {
   if (methodGuard(req, res, ["GET", "HEAD"])) return;
@@ -155,10 +176,18 @@ export default async function handler(req, res) {
         console.error("[car-image] sharp portada:", err?.message || err);
       }
 
+      const vPedida = req.query?.v ? String(req.query.v) : null;
+      const vEsperada = await versionDePortada(row.image_url);
+      const cache = !vPedida
+        ? CACHE_SIN_VERSION
+        : vPedida === vEsperada
+          ? CACHE_VERSIONADA
+          : CACHE_DESCUADRADA;
+
       res.setHeader("Content-Type", outContentType);
       res.setHeader("Content-Length", String(outBuffer.length));
       res.setHeader("Content-Disposition", "inline");
-      res.setHeader("Cache-Control", CACHE_PORTADA);
+      res.setHeader("Cache-Control", cache);
       if (req.method === "HEAD") return res.status(200).end();
       return res.status(200).send(outBuffer);
     }
@@ -187,10 +216,12 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "image/jpeg");
     res.setHeader("Content-Length", String(out.length));
     res.setHeader("Content-Disposition", "inline");
-    // Mismo criterio de caché que la portada, y por el mismo motivo: el output
-    // es determinista por (carId, mode), pero deja de serlo si el admin cambia
-    // la foto — de ahí que ya no sea `immutable`.
-    res.setHeader("Cache-Control", CACHE_PORTADA);
+    // El bloqueado NO lleva `v` (ver versionDePortada: sería un identificador
+    // estable del fichero real de un coche que el jugador no ha ganado), así
+    // que se queda con la caché conservadora: no puede ser eterna porque su
+    // URL no cambiaría al sustituir la foto. Da igual para la factura — son
+    // 3-5 KB de JPEG borroso, no el original.
+    res.setHeader("Cache-Control", CACHE_SIN_VERSION);
 
     if (req.method === "HEAD") return res.status(200).end();
     return res.status(200).send(out);

@@ -26,3 +26,37 @@ export async function versionDeImagen(imageUrl, zoomBase) {
   if (!imageUrl) return "0";
   return (await sha1Hex(`${imageUrl}:${zoomBase}`)).slice(0, 8);
 }
+
+/**
+ * El `v` de /api/car-image?t=…&v=… — la portada del Archivo.
+ *
+ * Mismo oficio que `versionDeImagen` pero sin `zoomBase`: la portada del
+ * garaje no se recorta, así que lo único que puede cambiar sus bytes es que
+ * el admin sustituya la foto.
+ *
+ * PARA QUÉ SIRVE, que no es solo invalidar. Sin `v`, la URL de una portada es
+ * la misma para siempre (el token es determinista por carId+mode), así que la
+ * caché del CDN no puede ser eterna: si lo fuera, una foto cambiada por el
+ * admin no se vería NUNCA. Con `v` la URL cambia sola cuando cambia la foto, y
+ * eso es lo que permite marcar la respuesta `immutable` y dejar de pagarle a
+ * Supabase una descarga por PoP y semana.
+ *
+ * Es seguro precisamente porque el admin nunca pisa una ruta: EditCarPanel
+ * sube a `${Date.now()}-${nombre}` con `upsert: false`, así que una foto nueva
+ * es SIEMPRE una image_url nueva. Si algún día eso cambiara a sobrescribir la
+ * misma ruta, este hash dejaría de moverse y la portada vieja se quedaría
+ * clavada un año.
+ *
+ * SOLO SE EMITE PARA CROMOS DESBLOQUEADOS. En uno bloqueado sería un
+ * identificador estable derivado del nombre real del fichero (que lleva
+ * marca-modelo-año), y eso es justo la correlación que garage.js se molesta en
+ * romper con `pseudoIdFor`. Además ahí no hay nada que ahorrar: el bloqueado se
+ * sirve como un JPEG borroso de 3-5 KB.
+ *
+ * @param {string|null} imageUrl
+ * @returns {Promise<string>} 8 hex, o "0" si el coche no tiene imagen.
+ */
+export async function versionDePortada(imageUrl) {
+  if (!imageUrl) return "0";
+  return (await sha1Hex(`portada:${imageUrl}`)).slice(0, 8);
+}

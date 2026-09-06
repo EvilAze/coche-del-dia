@@ -24,6 +24,7 @@ import {
   IMAGE_MODE_CLEAR,
   IMAGE_MODE_BLURRED,
 } from "./_lib/image-token.js";
+import { versionDePortada } from "./_lib/version-imagen.js";
 import { getSupabaseAdmin, getMissingAdminEnvs } from "./_lib/supabase.js";
 import { requireUser } from "./_lib/auth.js";
 import { todayInMadrid } from "./_lib/date.js";
@@ -34,8 +35,22 @@ import { captureServerError } from "./_lib/sentry.js";
 // Tanto unlocked como locked van por aquí: simetría de URLs en el front
 // y, para los bloqueados, garantía de que el image_url real NUNCA llega
 // al navegador (no se puede "abrir DevTools" para spoilear el coche).
-function carImageProxyUrl(carId, mode) {
-  return `/api/car-image?t=${signImageToken({ carId, mode })}`;
+//
+// El `version` (opcional) es lo que permite que car-image sirva la portada
+// con `immutable`: sin él la URL de un cromo sería la misma para siempre —el
+// token es determinista por carId+mode— y una caché eterna dejaría clavada la
+// foto vieja cuando el admin la sustituye. Ver versionDePortada().
+//
+// SOLO SE LE PASA A LOS DESBLOQUEADOS, a propósito: en un bloqueado sería un
+// identificador estable derivado del nombre real del fichero (que lleva
+// marca-modelo-año), justo la correlación que rompe pseudoIdFor unas líneas
+// más abajo. Y no habría nada que ahorrar: el bloqueado son 3-5 KB de JPEG
+// borroso, no el original.
+function carImageProxyUrl(carId, mode, version) {
+  const t = signImageToken({ carId, mode });
+  return version
+    ? `/api/car-image?t=${t}&v=${version}`
+    : `/api/car-image?t=${t}`;
 }
 
 // Nº de intentos con los que se ganó una partida. `guesses` es el historial
@@ -307,6 +322,19 @@ export default async function handler(req, res) {
     // perdemos esa señal sin perder la funcionalidad de la repesca.
     let repescaPoolSize = 0;
 
+    // Versiones de portada, en un solo Promise.all antes del bucle: sha1Hex es
+    // async (WebCrypto, para poder compartir el módulo con el daily-image de
+    // Edge) y encadenar un await por coche dentro del bucle serializaría
+    // cientos de hashes en el camino crítico del Archivo. Solo para los
+    // desbloqueados — ver la nota de carImageProxyUrl.
+    const versionPorCoche = new Map(
+      await Promise.all(
+        (cars || [])
+          .filter((c) => unlockedIds.has(c.id))
+          .map(async (c) => [c.id, await versionDePortada(c.image_url)])
+      )
+    );
+
     const byCountry = new Map();
     for (const c of cars || []) {
       const pais = c.pais || "Sin país";
@@ -332,7 +360,7 @@ export default async function handler(req, res) {
               // proxy: simetría de URLs y oportunidad de rotar el CDN
               // sin tocar el frontend. En modo "clear" el endpoint hace
               // 302 a la URL pública de Supabase, así que no añade peso.
-              img: carImageProxyUrl(c.id, IMAGE_MODE_CLEAR),
+              img: carImageProxyUrl(c.id, IMAGE_MODE_CLEAR, versionPorCoche.get(c.id)),
               unlocked: true,
               // wonAsVeteran: lo ganó tras haberlo fallado previamente.
               // Insignia discreta en el archivo (más mérito que ganar a la

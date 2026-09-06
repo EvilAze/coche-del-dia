@@ -15,6 +15,7 @@ import { requireUser } from "../auth.js";
 import { methodGuard, applyCors } from "../http.js";
 import { captureServerError } from "../sentry.js";
 import { clampZoomBase, cropPctForAttempt, ZOOM_ATTEMPTS } from "../zoom.js";
+import { leerImagenOrigen } from "../imagen-origen.js";
 
 // Crop durante la partida = el del ÚLTIMO intento (el más amplio que ve un
 // jugador legítimo), igual que /api/daily-image: mismo tamaño (cropPctForAttempt
@@ -126,20 +127,27 @@ export default async function handler(req, res) {
     const focusX = enRango(row.focus_x) ? row.focus_x : 0.5;
     const focusY = enRango(row.focus_y) ? row.focus_y : 0.5;
 
-    // Fetch server-side de los bytes y proxy al cliente.
-    let upstream;
-    try {
-      upstream = await fetch(row.image_url);
-    } catch (err) {
-      console.error("[repesca/image] upstream fetch:", err);
+    // Bytes de origen y proxy al cliente. Por el helper, igual que
+    // daily-image: prefiere el máster WebP (misma resolución, la mitad de peso)
+    // y cae al original si ese coche todavía no lo tiene.
+    //
+    // AQUÍ EL AHORRO SALE SOLO DEL MÁSTER, no de la caché compartida: la
+    // respuesta depende de user_guesses (recortada mientras juega, entera al
+    // terminar), así que su Cache-Control es `private` a propósito y ningún CDN
+    // la va a reutilizar entre jugadores. El `Cache-Control` de más abajo no se
+    // toca.
+    //
+    // Lo que sí gana además del formato es un plazo: esto era un `fetch` sin
+    // fecha de caducidad (regla 21), y ahora hereda PLAZOS.CDN. El helper ya
+    // distingue en los logs el master ausente del Storage caído, así que los
+    // dos 502 que había aquí se funden en uno.
+    const origen = await leerImagenOrigen(row.image_url);
+    if (!origen) {
       return res.status(502).json({ error: "Upstream image unavailable" });
     }
-    if (!upstream.ok) {
-      return res.status(502).json({ error: "Upstream image error" });
-    }
 
-    const originalContentType = upstream.headers.get("content-type") || "image/jpeg";
-    const originalBuffer = Buffer.from(await upstream.arrayBuffer());
+    const originalContentType = origen.contentType;
+    const originalBuffer = origen.buffer;
 
     let outBuffer = originalBuffer;
     let outContentType = originalContentType;

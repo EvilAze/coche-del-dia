@@ -33,6 +33,7 @@ import { methodGuard } from "./_lib/http.js";
 import { todayInMadrid } from "./_lib/date.js";
 import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
 import { componerTarjetaOG } from "./_lib/og-card.js";
+import { leerImagenOrigen } from "./_lib/imagen-origen.js";
 import { decodeResult } from "./_lib/result-code.js";
 
 // Intento cuyo encuadre se publica. 1 = el más cerrado. Ver la nota de arriba.
@@ -100,10 +101,22 @@ export default async function handler(req, res) {
     const focusX = enRango(row.focus_x) ? row.focus_x : 0.5;
     const focusY = enRango(row.focus_y) ? row.focus_y : 0.5;
 
-    // 3) Bytes originales.
-    const upstream = await fetch(row.image_url);
-    if (!upstream.ok) return caerAlRespaldo(res, `CDN status ${upstream.status}`);
-    const original = Buffer.from(await upstream.arrayBuffer());
+    // 3) Bytes de origen, por el MISMO helper que daily-image: prefiere el
+    //    máster WebP (misma resolución, la mitad de peso) y cae al original si
+    //    ese coche aún no lo tiene. El `fetch` a pelo que había aquí se traía
+    //    el ORIGINAL ENTERO (~1,3 MB) para acabar publicando una tarjeta de
+    //    1200×630, y no se paga una sola vez: cada plataforma social revalida
+    //    el preview por su cuenta, y el `?r=` de cada partida compartida es una
+    //    URL distinta que vuelve a entrar aquí en frío.
+    //
+    //    De propina entra el plazo de PLAZOS.CDN (regla 21): esto era un fetch
+    //    sin fecha de caducidad, así que un Storage atrancado se comía el
+    //    presupuesto entero de la función y acababa en un 504 en vez de en el
+    //    respaldo estático, que es justo lo que caerAlRespaldo existe para
+    //    evitar.
+    const origen = await leerImagenOrigen(row.image_url);
+    if (!origen) return caerAlRespaldo(res, "imagen de origen no disponible");
+    const original = origen.buffer;
 
     // 4) Recorte del intento 1. Calcado de daily-image.js, incluida la
     //    corrección de EXIF: sharp.metadata() da las dimensiones FÍSICAS,

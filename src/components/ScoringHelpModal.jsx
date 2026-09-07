@@ -1,7 +1,7 @@
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
-import ModalShell from "./ModalShell";
+import Superficie from "./Superficie";
 import AchievementIcon from "./AchievementIcons";
 
 const BASE_POINTS = [
@@ -29,9 +29,12 @@ export default function ScoringHelpModal({ open, onClose }) {
   ];
 
   return (
-    <ModalShell
+    <Superficie
       open={open}
       onClose={onClose}
+      // Era el único diálogo sin nombre accesible: quien usa lector de pantalla
+      // oía «diálogo» a secas. Los demás lo pasan desde siempre.
+      label={t("scoring.title")}
       // Encaje de modal alto: `safe-area-pad` en el backdrop + `max-h-full` en el
       // panel (el porqué, en index.css junto a `.safe-area-pad`). El tope era un
       // `calc(100dvh - 2rem)`: resolvía lo de la barra de URL del móvil —que es
@@ -41,8 +44,9 @@ export default function ScoringHelpModal({ open, onClose }) {
       // padding le descuenta los insets del sistema.
       // overflow-y-auto + overscroll-contain: el scroll queda aislado al modal y
       // no se propaga al body al llegar al final del contenido.
-      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[90] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[90] flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-[90] flex items-end justify-center"
+      panelWeb="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
@@ -105,6 +109,6 @@ export default function ScoringHelpModal({ open, onClose }) {
 
           <p className="pm-body mt-3 text-xs">{t("scoring.bonusFootnote")}</p>
         </section>
-    </ModalShell>
+    </Superficie>
   );
 }

@@ -162,6 +162,12 @@ const SELECTORES = [
   // El banco comprueba que deja ver la fotografía, así que si alguien renombra
   // la hoja mediría una composición que no existe.
   ".pm-hoja", ".pm-hoja-velo", ".pm-hoja-cuerpo", ".pm-lista", ".pm-opcion",
+  // La hoja de NAVEGACIÓN (clasificación, archivo, perfil, sumario, reglas en la
+  // app; ver components/Superficie.jsx). Comparte tirador y gesto con la del
+  // cupón pero tiene su propio chasis, y lo que el banco mide de ella —quién
+  // scrollea— es de lo que depende que el arrastre no le robe el gesto a la
+  // lista.
+  ".pm-hoja-nav", ".pm-hoja-cuerpo--nav", ".pm-velo-hoja",
   // La cornisa y la marca del sumario: entre las dos ponen el ALTO de la barra
   // de la app (la marca fija 34px de caja; la cornisa mide ~26,5 y cabe dentro).
   // Si alguien las renombra, la cabecera pierde su ancla y este banco seguiría
@@ -292,6 +298,40 @@ function paginaHtml(hrefCss) {
     const hoja = document.querySelector(".pm-hoja");
     hoja.style.maxHeight = "none";
     hoja.style.height = alto + "px";
+  };
+
+  // La HOJA DE NAVEGACIÓN, con el mismo DOM que monta Superficie.jsx: velo,
+  // panel, tirador y un cuerpo desplazable con contenido de sobra.
+  window.montarHojaNav = function (filas) {
+    const previo = document.getElementById("velo-nav");
+    if (previo) previo.remove();
+    const velo = document.createElement("div");
+    velo.id = "velo-nav";
+    velo.className = "pm-velo-hoja fixed inset-0 z-[80] flex items-end justify-center";
+    velo.innerHTML =
+      '<div class="pm-hoja-nav"><div class="pm-hoja-tirador"></div>' +
+      '<div class="pm-hoja-cuerpo pm-hoja-cuerpo--nav px-5 pb-4">' +
+      '<div class="prensa-modal-cab"><p class="pm-kicker">La clasificacion</p></div>' +
+      '</div></div>';
+    document.body.appendChild(velo);
+    // LAS FILAS VAN SUELTAS, COMO HIJAS DIRECTAS DEL CUERPO, y es el caso PEOR a
+    // propósito: el cuerpo es un contenedor flex en columna, así que cada hija
+    // trae flex-shrink:1 de fábrica y podría encogerse por debajo de su
+    // contenido en vez de desbordar — y entonces no habría scroll, habría
+    // recorte. Con las filas dentro de una caja (.rank-tabla) el riesgo lo
+    // absorbe la caja y el banco no vería nada. Así se mide lo que hacen el
+    // sumario y las reglas, que son secuencias de bloques sueltos.
+    const cuerpo = velo.querySelector(".pm-hoja-cuerpo--nav");
+    for (let i = 0; i < filas; i++) {
+      const f = document.createElement("div");
+      // La rejilla REAL de la tabla (Ranking.jsx), para que las filas midan lo
+      // que miden: el banco existe para medir píxeles, no aproximaciones.
+      f.className =
+        "grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] items-center gap-2 px-3 py-2";
+      f.dataset.fila = String(i);
+      f.textContent = (i + 1) + "  Jugador " + (i + 1) + "  1234";
+      cuerpo.appendChild(f);
+    }
   };
 
   // Lo que publica useEscenarioApartado en la raíz. El banco calcula los valores
@@ -661,6 +701,91 @@ async function main() {
       }
       await page2.close();
     }
+  }
+
+  // ── LA HOJA DE NAVEGACIÓN ─────────────────────────────────────────────────
+  // La clasificación, el archivo, el perfil, el sumario y las reglas dejaron de
+  // ser tarjetas centradas dentro de la app y pasaron a ser hojas
+  // (components/Superficie.jsx). Ninguna otra suite puede ver esto: `test:unit`
+  // no monta un navegador y `test:estetica` lee cadenas.
+  //
+  // LO QUE SE MIDE, y los cuatro son de comportamiento, no de gusto:
+  //
+  //   1. Está ANCLADA abajo y no pasa de 92dvh. Los 8dvh que quedan son la
+  //      franja por la que se ve que hay algo detrás — lo que distingue una hoja
+  //      de una pantalla nueva.
+  //   2. El TIRADOR se ve. Es lo que anuncia el gesto de cerrar; fuera de la
+  //      ventana, la hoja pierde su única señal de que se arrastra.
+  //   3. QUIEN SCROLLEA ES EL CUERPO, NO EL PANEL. Esto es lo importante de
+  //      todo el bloque: `useArrastreHoja` busca el primer ancestro desplazable
+  //      entre el dedo y la hoja PARÁNDOSE en la hoja, así que si el scroller
+  //      fuera el panel no lo vería, daría el gesto por suyo y arrastraría la
+  //      hoja entera cada vez que alguien intentara bajar por la clasificación.
+  //   4. Se llega al FINAL de la lista. Una hoja con contenido inalcanzable es
+  //      exactamente el fallo que este banco nació para cazar.
+  //
+  // Y de propina, el velo: tiñe cuando está a la vista y no tiñe en reposo, que
+  // es el truco del que depende que la hoja se deslice sin desvanecerse (el
+  // chasis anima la OPACIDAD del velo, y la hoja es su hija). Se comprueba aquí
+  // porque depende del orden de la cascada entre las utilidades de Tailwind y
+  // las reglas propias, que es donde este proyecto ya se ha pegado varias veces.
+  for (const p of PANTALLAS) {
+    const pg = await navegador.newPage({ viewport: { width: p.w, height: p.h } });
+    await pg.goto(url, { waitUntil: "networkidle" });
+    await pg.evaluate(() => window.montarHojaNav(40));
+    await pg.waitForTimeout(50);
+
+    const m = await pg.evaluate(() => {
+      const velo = document.getElementById("velo-nav");
+      const panel = velo.querySelector(".pm-hoja-nav");
+      const cuerpo = velo.querySelector(".pm-hoja-cuerpo--nav");
+      const tirador = velo.querySelector(".pm-hoja-tirador");
+      const r = panel.getBoundingClientRect();
+
+      // El velo, en sus dos estados. `opacity-0` es la clase que le pone el
+      // chasis en reposo y en la salida.
+      const tenido = getComputedStyle(velo).backgroundColor;
+      velo.classList.add("opacity-0");
+      const apagado = getComputedStyle(velo).backgroundColor;
+      const opacidadEnReposo = getComputedStyle(velo).opacity;
+      velo.classList.remove("opacity-0");
+
+      // Y el final de la lista, de verdad: se baja del todo y se mira si la
+      // última fila queda dentro de la ventana.
+      cuerpo.scrollTop = cuerpo.scrollHeight;
+      const ultima = cuerpo.querySelector('[data-fila="39"]').getBoundingClientRect();
+
+      return {
+        top: r.top, bottom: r.bottom, alto: r.height,
+        ventana: window.innerHeight,
+        tiradorTop: tirador.getBoundingClientRect().top,
+        panelDesborda: panel.scrollHeight - panel.clientHeight,
+        cuerpoDesborda: cuerpo.scrollHeight - cuerpo.clientHeight,
+        ultimaBottom: ultima.bottom,
+        tenido, apagado, opacidadEnReposo,
+      };
+    });
+
+    const f = [];
+    if (Math.abs(m.bottom - m.ventana) > 1) f.push(`no está anclada abajo (${Math.round(m.bottom)}≠${m.ventana})`);
+    if (m.alto > m.ventana * 0.92 + 1) f.push(`ocupa ${Math.round((m.alto / m.ventana) * 100)}dvh (tope 92)`);
+    if (m.tiradorTop < 0) f.push(`el tirador queda fuera de la ventana`);
+    if (m.panelDesborda > 1) f.push(`scrollea el PANEL (${m.panelDesborda}px): el arrastre no vería al cuerpo`);
+    if (m.cuerpoDesborda <= 0) f.push(`el cuerpo no scrollea con 40 filas`);
+    if (m.ultimaBottom > m.ventana + 1) f.push(`la última fila no se alcanza`);
+    if (m.opacidadEnReposo !== "1") f.push(`el velo se desvanece (opacity ${m.opacidadEnReposo}): la hoja se iría con él`);
+    if (!/rgba?\(.+0\.?\d*\)$/.test(m.apagado) && m.apagado !== "rgba(0, 0, 0, 0)")
+      f.push(`el velo no se apaga en reposo (${m.apagado})`);
+    if (m.tenido === m.apagado) f.push(`el velo no tiñe a la vista (${m.tenido})`);
+
+    linea(
+      f.length === 0,
+      `nav   ${p.nombre}  ${String(p.w).padStart(3)}x${String(p.h).padStart(3)}` +
+      ` · hoja ${Math.round(m.alto)}px (${Math.round((m.alto / m.ventana) * 100)}dvh)` +
+      ` · cuerpo +${m.cuerpoDesborda}px de scroll` +
+      (f.length ? `   ← ${f.join(" · ")}` : "")
+    );
+    await pg.close();
   }
 
   // Control negativo: EN WEB nada de esto aplica. El requisito es explícito —

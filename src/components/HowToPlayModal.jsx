@@ -7,7 +7,7 @@
 import { useEscape } from "../hooks/useEscape";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
-import ModalShell from "./ModalShell";
+import Superficie from "./Superficie";
 
 function Rule({ title, children }) {
   return (
@@ -26,7 +26,7 @@ export default function HowToPlayModal({ open, onClose }) {
   useEscape(open, onClose);
 
   return (
-    <ModalShell
+    <Superficie
       open={open}
       onClose={onClose}
       label={t("howto.title")}
@@ -36,8 +36,9 @@ export default function HowToPlayModal({ open, onClose }) {
       // viewport ENTERO, barras del sistema incluidas, así que en la app esta
       // hoja —la más larga del juego— se estiraba por debajo del reloj y de la
       // barra de gestos. En web las dos variables valen 0: mismo 1rem de antes.
-      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[85] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[85] flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-[85] flex items-end justify-center"
+      panelWeb="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
@@ -66,6 +67,6 @@ export default function HowToPlayModal({ open, onClose }) {
       <button type="button" onClick={onClose} className="pm-btn mt-6">
         {t("howto.cta")}
       </button>
-    </ModalShell>
+    </Superficie>
   );
 }

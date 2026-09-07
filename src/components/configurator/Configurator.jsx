@@ -10,6 +10,7 @@ import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import { esApp } from "../../lib/plataforma";
 import { desplazarSuave } from "../../lib/movimiento";
+import { MS } from "../../lib/compas";
 import { getCurrentSeason } from "../../lib/statsService";
 import { creditoTemporada } from "../../lib/season";
 import Header from "./Header";
@@ -95,7 +96,14 @@ export default function Configurator({
   const prevStatus = useRef(status);
   useEffect(() => {
     if (prevStatus.current === "playing" && ended) {
-      const id = setTimeout(() => setShowEnd(true), 900);
+      // CUÁNDO ENTRA EL REVELADO, Y POR QUÉ NO ES UN NÚMERO REDONDO. Eran 900
+      // ms escritos a mano, y caían 100 ms ANTES de que la fotografía terminara
+      // de abrirse: el overlay tapaba el final del único movimiento de la app
+      // con derecho a durar casi un segundo (regla 22). La frase del veredicto
+      // son cuatro tiempos —marca, modelo, año y la foto— y esto es el punto
+      // final, así que empieza cuando el cuarto ha acabado: el retardo de la
+      // foto (`--ms-sello`) más lo que tarda en abrirse (`--ms-revelado`).
+      const id = setTimeout(() => setShowEnd(true), MS.sello + MS.revelado);
       prevStatus.current = status;
       return () => clearTimeout(id);
     }
@@ -351,7 +359,20 @@ export default function Configurator({
             <div className="prensa-historial">
               <AttemptList
                 guesses={guesses}
-                pendingGuess={null}
+                // LA FILA ENTINTADA, RECONECTADA. Estaba construida entera
+                // —el estado en useGame, la rama `pending` de AttemptRow y su
+                // animación `.prensa-fila-pendiente` en index.css— y aquí se le
+                // pasaba `null` a pelo, así que llevaba meses sin pintarse
+                // nunca. Mientras tanto, entre pulsar ADIVINAR y la respuesta
+                // del servidor no se movía nada: el intento desaparecía y
+                // reaparecía ya juzgado.
+                //
+                // Con ella, el intento nace DONDE va a vivir y solo le falta el
+                // veredicto: el estampado deja de ser una aparición y pasa a ser
+                // lo que siempre quiso ser, la tinta cayendo sobre una fila que
+                // ya estaba ahí. Es además la mitad principal de la espera —el
+                // botón solo pone la máquina de fondo (ver `is-trabajando`).
+                pendingGuess={pendingGuess}
                 justRevealedIndex={justRevealedIndex}
                 tolerance={tolerance}
               />

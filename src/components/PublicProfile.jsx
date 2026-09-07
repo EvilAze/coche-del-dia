@@ -32,7 +32,7 @@ import { getPublicProfile } from "../lib/statsService";
 import { collectorTier } from "../lib/collectionTier";
 import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
-import ModalShell from "./ModalShell";
+import Superficie from "./Superficie";
 import PodiumMedals from "./PodiumMedals";
 import Carnet, {
   CarnetCabecera,
@@ -111,12 +111,13 @@ export default function PublicProfile({ open, onClose, userId }) {
   const selloTier = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
 
   return (
-    <ModalShell
+    <Superficie
       open={open}
       onClose={onClose}
       label={t("publicProfile.title")}
-      backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden p-5"
+      veloWeb="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-[80] flex items-end justify-center"
+      panelWeb="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden p-5"
     >
       {state.error ? (
         <>
@@ -196,25 +197,31 @@ export default function PublicProfile({ open, onClose, userId }) {
             />
           </Carnet>
 
-          {cargando ? (
-            <p className="mt-4 text-sm text-muted-foreground">{t("common.loading")}</p>
-          ) : (
-            <div className="scrollbar-premium -mx-5 min-h-0 flex-1 overflow-y-auto px-5 pt-4">
-              {/* Lo que queda bajo el carnet son los PODIOS, y solo si los
-                  tiene: el wrapper se colapsa con empty:hidden y el modal se
-                  queda en el carnet a secas. Aquí iba también la plancha de
-                  cromos con sus logros; se fue con el sistema (ver cabecera).
-                  Que un podio sí se quede y una medalla de marca no, es la
-                  distinción entera: el podio lo ganaste CONTRA alguien en un
-                  mes concreto, la medalla te la daba el propio hecho de seguir
-                  jugando. */}
+          {/* SIN RENGLÓN DE «CARGANDO». Lo que se está esperando aquí son los
+              PODIOS, y un jugador puede no tener ninguno: un esqueleto
+              prometería algo que quizá no llegue nunca, y la línea de texto que
+              había —una frase suelta bajo el carnet que aparecía y desaparecía—
+              solo añadía un salto. Quien dice que esto está en marcha es el
+              propio carnet, que ya viaja con `aria-busy` y sus cifras en «—».
+              El contenedor sí se monta siempre para que el aire bajo el carnet
+              no cambie de un estado al otro. */}
+          <div className="scrollbar-premium -mx-5 min-h-0 flex-1 overflow-y-auto px-5 pt-4">
+            {/* Lo que queda bajo el carnet son los PODIOS, y solo si los
+                tiene: el wrapper se colapsa con empty:hidden y el modal se
+                queda en el carnet a secas. Aquí iba también la plancha de
+                cromos con sus logros; se fue con el sistema (ver cabecera).
+                Que un podio sí se quede y una medalla de marca no, es la
+                distinción entera: el podio lo ganaste CONTRA alguien en un
+                mes concreto, la medalla te la daba el propio hecho de seguir
+                jugando. */}
+            {!cargando && (
               <div className="mb-4 empty:hidden">
                 <PodiumMedals userId={userId} />
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
-    </ModalShell>
+    </Superficie>
   );
 }

@@ -51,7 +51,8 @@ import { useEscape } from "../hooks/useEscape";
 import { useHistoryChain } from "../hooks/useHistoryClose";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
-import ModalShell from "./ModalShell";
+import Superficie from "./Superficie";
+import { Renglon, FilasClasificacion } from "./Esqueleto";
 import AchievementIcon from "./AchievementIcons";
 import ScoringHelpModal from "./ScoringHelpModal";
 import PublicProfile from "./PublicProfile";
@@ -334,12 +335,21 @@ export default function Ranking({
 
   return (
     <>
-    <ModalShell
+    <Superficie
       open={open}
       onClose={onClose}
       label={t("ranking.tag")}
-      backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat w-full max-w-md p-5"
+      // ENCAJE DE MODAL ALTO, que a esta le faltaba y era la única sin él. El
+      // panel no tenía tope de altura ni scroll: cabecera + pestañas + faja de
+      // temporada + tabla (22rem) + pie se acercan a 600px, así que en una
+      // pantalla corta —un 360x640— salía más alto que su velo y, con
+      // `items-center`, se recortaba por ARRIBA y por ABAJO a la vez. Lo que
+      // quedaba fuera incluía la X de cerrar, y sin scroll con el que llegar a
+      // ella. La receta es la que documenta index.css junto a `.safe-area-pad`:
+      // los insets van al velo y el panel topa contra su caja.
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[80] flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-[80] flex items-end justify-center"
+      panelWeb="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
         {/* Cabecera del modal: el MISMO objeto que abre el carnet del perfil —
             kicker a la izquierda, X a la derecha, doble filete debajo. Antes la
@@ -434,7 +444,13 @@ export default function Ranking({
         )}
 
         {state.loading ? (
-          <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
+          /* LA ESPERA CON LA FORMA DE LA TABLA. Era un renglón de texto donde
+             luego hay diez filas: el panel medía una línea y de golpe medía
+             seiscientos píxeles. El esqueleto usa LA MISMA rejilla que `Fila`,
+             así que al llegar los datos no se mueve ninguna columna. */
+          <div className="rank-tabla">
+            <FilasClasificacion n={8} texto={t("ranking.loading")} />
+          </div>
         ) : state.error ? (
           <ErrorConSalida texto={state.error} onReintentar={() => setReintento((n) => n + 1)} />
         ) : state.players.length === 0 ? (
@@ -537,7 +553,24 @@ export default function Ranking({
             que faltaba. Filas clicables al perfil igual que la temporada. */}
         {view === "campeones" &&
           (champions.loading ? (
-            <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
+            /* El palmarés no es una tabla sino varias: cada temporada es su
+               propia caja con cabecera y podio de tres. El esqueleto repite esa
+               estructura —dos cajas— en vez de fingir una lista larga que aquí
+               no existe. Anuncia UNA vez por fuera; las filas van mudas. */
+            <div role="status" aria-label={t("ranking.loading")} className="space-y-4">
+              <span className="sr-only">{t("ranking.loading")}</span>
+              {[0, 1].map((i) => (
+                <div key={i} className="rank-tabla">
+                  <div className="rank-temporada rank-temporada--palmares">
+                    <div className="min-w-0 flex flex-col gap-1.5">
+                      <Renglon w="w-16" h="h-2" />
+                      <Renglon w="w-28" h="h-3.5" />
+                    </div>
+                  </div>
+                  <FilasClasificacion n={3} />
+                </div>
+              ))}
+            </div>
           ) : champions.error ? (
             <ErrorConSalida texto={champions.error} onReintentar={cargarCampeones} />
           ) : champions.seasons.length === 0 ? (
@@ -599,7 +632,9 @@ export default function Ranking({
             </div>
 
             {legends.loading ? (
-              <p className="pm-body py-3 text-sm">{t("ranking.loading")}</p>
+              <div className="rank-tabla">
+                <FilasClasificacion n={8} texto={t("ranking.loading")} />
+              </div>
             ) : legends.error ? (
               <ErrorConSalida texto={legends.error} onReintentar={cargarLeyendas} />
             ) : legends.players.length === 0 ? (
@@ -641,7 +676,7 @@ export default function Ranking({
             )}
           </>
         )}
-    </ModalShell>
+    </Superficie>
 
     {/* Sub-modal hermano (no anidado): cada uno gestiona su propio backdrop y su
         animación de entrada/salida. */}

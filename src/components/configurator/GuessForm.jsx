@@ -52,6 +52,11 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const catalogCargando = !catalog && !catalogError;
   const catalogFallido = !catalog && Boolean(catalogError);
 
+  // ¿Hay red? Lo sabíamos y solo lo usaba el cartel de «no ha llegado el
+  // listado». Ver el corte de handleSubmit: enterarse DESPUÉS de esperar el
+  // timeout entero es enterarse tarde.
+  const online = useOnline();
+
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
@@ -329,6 +334,22 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
       return;
     }
 
+    // SIN RED, EL AVISO VA ANTES Y NO DESPUÉS. Esto ya se sabía —`useOnline`
+    // lleva aquí desde el cartel del catálogo— y sin embargo el camino era:
+    // háptico de envío, botón trabajando, el fetch agotándose contra un móvil
+    // sin cobertura y, al final, «Error de conexión». Varios segundos para
+    // decir algo que se podía decir en el primer frame, y encima con la duda de
+    // si el intento se ha gastado.
+    //
+    // Mismo trato que el año fuera de horquilla: temblor + aviso, no un botón
+    // muerto. El intento no se toca, y el texto lo dice — que es lo único que
+    // el jugador necesita saber en ese momento.
+    if (!online) {
+      haptic.warning(); triggerShake();
+      toast.push(t("guess.sinRed"), { type: "error" });
+      return;
+    }
+
     const guessCar = CARS.find((c) => c.marca === marcaFinal && c.modelo === modeloFinal);
     if (!guessCar) return;
 
@@ -527,7 +548,15 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         {!catalogFallido && (
           <button
             type="submit"
-            className={"prensa-submit mt-2" + (!canSubmit && !formDisabled ? " is-incomplete" : "")}
+            className={
+              "prensa-submit mt-2" +
+              // ENVIANDO ≠ DESHABILITADO. `disabled` sigue puesto (nadie puede
+              // disparar dos intentos), pero el ASPECTO ya no es el del control
+              // muerto: `is-trabajando` le devuelve su bloque rojo y le pone la
+              // banda de la rotativa. Ver index.css.
+              (isSubmitting ? " is-trabajando" : "") +
+              (!canSubmit && !formDisabled ? " is-incomplete" : "")
+            }
             disabled={formDisabled}
             aria-busy={isSubmitting}
           >

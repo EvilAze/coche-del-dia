@@ -43,7 +43,7 @@ import { useEscape } from "../hooks/useEscape";
 import { useHistoryChain } from "../hooks/useHistoryClose";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
-import ModalShell from "./ModalShell";
+import Superficie from "./Superficie";
 import DeleteAccountModal from "./DeleteAccountModal";
 import LanguageStrip from "./LanguageStrip";
 import PodiumMedals from "./PodiumMedals";
@@ -219,12 +219,13 @@ export default function MyStats({
 
   return (
     <>
-    <ModalShell
+    <Superficie
       open={open}
       onClose={onClose}
       label={t("myStats.title")}
-      backdropClassName="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden p-5"
+      veloWeb="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-[80] flex items-end justify-center"
+      panelWeb="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden p-5"
     >
       {state.error && !state.user ? (
         <>
@@ -440,7 +441,7 @@ export default function MyStats({
           )}
         </>
       )}
-    </ModalShell>
+    </Superficie>
 
     {/* HERMANO del carnet, no hijo: el panel de ModalShell lleva `transform`
         (la animación de entrada), y un `position: fixed` dentro de un ancestro

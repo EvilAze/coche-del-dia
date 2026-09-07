@@ -4,7 +4,6 @@
     "dateLocale": "en-US"
   },
   "common": {
-    "loading": "Loading...",
     "close": "Close",
     "cancel": "Cancel",
     "back": "Back",
@@ -82,7 +81,8 @@
     "marcaAlreadyTried": "You already tried that make",
     "missingMarca": "Pick a make from the list",
     "missingModelo": "Pick a model from the list",
-    "missingAnio": "Enter a valid year (4 digits)"
+    "missingAnio": "Enter a valid year (4 digits)",
+    "sinRed": "You're offline: the guess wasn't sent"
   },
   "howto": {
     "tag": "The game",

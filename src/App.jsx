@@ -392,6 +392,28 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
+  // ── EL ARCHIVO, CUANDO YA SE HA MOSTRADO INTERÉS ─────────────────────────
+  // Queda FUERA del prefetch ocioso de arriba, y con razón: su chunk es el más
+  // pesado de la app (framer-motion) y bajarlo al arrancar le quita ancho de
+  // banda a la fotografía del día, que es la única pieza que corre prisa.
+  //
+  // Pero «no lo bajes al arrancar» no es lo mismo que «bájalo cuando ya lo han
+  // pulsado». Sus dos puertas son el sumario y el final de partida, y las dos se
+  // ven ANTES del toque que abre el archivo: cuando el jugador está leyendo el
+  // menú o su resultado hay varios segundos de sobra y ninguna otra petición en
+  // vuelo. Con esto, el toque de GARAJE se encuentra el chunk ya en caché y
+  // abre en el mismo frame en vez de dejar la pantalla quieta mientras baja.
+  //
+  // Import idempotente: el módulo se evalúa una sola vez, así que repetirlo en
+  // cada apertura del sumario no cuesta nada.
+  useEffect(() => {
+    if (navigator.connection?.saveData) return;
+    const puertaALaVista =
+      activeModal === "menu" || activeModal === "profile" || status !== "playing";
+    if (!puertaALaVista) return;
+    import("./components/Garage");
+  }, [activeModal, status]);
+
   useEscape(activeModal === "login", closeModal);
 
   // «Atrás» de Android / gesto del navegador: cierra el overlay activo en vez
@@ -644,7 +666,7 @@ export default function App() {
           Aislando el Suspense por modal, la suspensión de uno nunca desmonta a
           otro: el que se va completa su salida limpiamente. */}
       {mounted.ranking && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<VeloDeEspera className="modal-scrim fixed inset-0 z-[80]" onClose={closeModal} />}>
           <Ranking
             open={activeModal === "ranking"}
             onClose={closeModal}
@@ -661,7 +683,7 @@ export default function App() {
       )}
 
       {mounted.garage && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<VeloDeEspera className="scrim-flat fixed inset-0 z-[85]" onClose={closeModal} />}>
           <Garage
             open={activeModal === "garage"}
             onClose={closeModal}
@@ -730,7 +752,7 @@ export default function App() {
           `activeModal` cambia y ModalShell se encarga de su animación de salida
           mientras entra la siguiente. */}
       {mounted.menu && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<VeloDeEspera className="modal-scrim fixed inset-0 z-[78]" onClose={closeModal} />}>
           <SumarioModal
             open={activeModal === "menu"}
             onClose={closeModal}
@@ -789,4 +811,23 @@ export default function App() {
       </ModalShell>
     </div>
   );
+}
+
+// ── EL VELO MIENTRAS BAJA EL CHUNK ───────────────────────────────────────────
+// Los modales son `React.lazy`, así que la PRIMERA vez que se pulsan hay que
+// descargar su código. Con `fallback={null}` eso se veía así: tocas GARAJE y no
+// pasa absolutamente nada durante lo que tarde la red. En una pantalla táctil
+// —donde el resaltado del sistema está apagado (regla 23)— un toque que no
+// produce NADA no se lee como «espera», se lee como «no me ha cogido», y el
+// jugador vuelve a tocar.
+//
+// Esto es lo mínimo que hace falta para que el toque exista: el mismo velo que
+// pondrá el modal, puesto ya. Cuando el chunk llega, el modal monta encima con
+// su propio velo y la transición es continua — el fondo ya estaba apagado.
+//
+// Y SE PUEDE CERRAR, que no es un detalle: si el chunk NO llega (se cae la red a
+// media descarga) Suspense no resuelve nunca y un velo sin salida dejaría la app
+// secuestrada. Tocándolo se vuelve al juego, igual que en cualquier otro velo.
+function VeloDeEspera({ className, onClose }) {
+  return <div className={className} onClick={onClose} aria-hidden="true" />;
 }

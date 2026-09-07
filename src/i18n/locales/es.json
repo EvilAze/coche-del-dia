@@ -4,7 +4,6 @@
     "dateLocale": "es-ES"
   },
   "common": {
-    "loading": "Cargando...",
     "close": "Cerrar",
     "cancel": "Cancelar",
     "back": "Volver",
@@ -82,7 +81,8 @@
     "marcaAlreadyTried": "Ya probaste esa marca",
     "missingMarca": "Elige una marca de la lista",
     "missingModelo": "Elige un modelo de la lista",
-    "missingAnio": "Pon un año válido (4 cifras)"
+    "missingAnio": "Pon un año válido (4 cifras)",
+    "sinRed": "Sin conexión: el intento no se ha enviado"
   },
   "howto": {
     "tag": "El juego",

@@ -35,6 +35,7 @@ import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
 import AchievementIcon from "./AchievementIcons";
+import { PortadasArchivo } from "./Esqueleto";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
 import { track, plataforma } from "../lib/analytics";
 import { captureClientError } from "../lib/sentry";
@@ -631,7 +632,16 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
                 }}
               />
             ) : state.loading ? (
-              <CenterMessage text={t("garage.loading")} pulse />
+              /* LA VITRINA ANTES DE QUE LLEGUE. Aquí había una línea de texto
+                 centrada («Abriendo el archivo…») con el `animate-pulse` de
+                 Tailwind — el mismo gris parpadeante de tutorial que index.css
+                 ya se molestó en echar de la portada por ser «el primer segundo
+                 de la primera visita». Ahora la espera tiene la forma de lo que
+                 se espera: portadas sin imprimir, con su filete, su cabecera de
+                 kiosco y su hueco de foto en 4:3, respirando en papel. */
+              <div className="safe-area-bottom flex-1 overflow-y-auto overscroll-contain">
+                <PortadasArchivo n={6} texto={t("garage.loading")} />
+              </div>
             ) : state.error ? (
               <CenterMessage
                 text={state.error}
@@ -1735,20 +1745,17 @@ function RuleRow({ icon, children, last = false }) {
   );
 }
 
-function CenterMessage({ text, pulse = false, tone = "default", onRetry = null }) {
+// (Se fue el `pulse`. Su único consumidor era la carga del archivo, que ahora
+// enseña portadas sin imprimir en vez de una línea latiendo; lo que queda aquí
+// son mensajes que se leen quietos —vitrina vacía, fallo con reintento—.)
+function CenterMessage({ text, tone = "default", onRetry = null }) {
   const { t } = useT();
   // El error usa el rojo del sistema (`accent`), no un red-400 suelto fuera
   // de paleta: en una revista impresa solo hay una tinta roja.
   const toneClass = tone === "error" ? "text-accent" : "text-muted";
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-      <p
-        className={`font-mono text-sm ${toneClass} ${
-          pulse ? "animate-pulse uppercase tracking-widest" : ""
-        }`}
-      >
-        {text}
-      </p>
+      <p className={`font-mono text-sm ${toneClass}`}>{text}</p>
       {/* UNA SALIDA, no solo un diagnóstico. Sin este botón, el Archivo caído
           dejaba al jugador ante una línea roja y nada más: la única forma de
           volver a intentarlo era cerrar el panel y abrirlo otra vez, y eso hay

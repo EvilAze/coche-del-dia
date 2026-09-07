@@ -90,6 +90,11 @@ export default function Repesca() {
   const [error, setError] = useState("");
   const [guesses, setGuesses] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // La fila entintada mientras el servidor decide, igual que en el juego diario
+  // (ver Configurator). La repesca comparte GuessForm, así que compartir también
+  // el acuse de recibo es lo que impide que las dos partidas se sientan de
+  // aplicaciones distintas.
+  const [pendingGuess, setPendingGuess] = useState(null);
   const [reveal, setReveal] = useState(null);
   const [score, setScore] = useState(null);
   // Modo de la repesca: "normal" (5 intentos, pistas progresivas) o
@@ -356,7 +361,7 @@ export default function Repesca() {
   const hasReveal = Boolean(car.marca && car.modelo && car.anio);
   const description = getCarDescription(car)?.trim();
 
-  async function submitGuess({ guessCarId, anio }) {
+  async function submitGuess({ guessCarId, anio, marca, modelo }) {
     if (phase !== "playing" || isSubmitting) return;
     if (typeof guessCarId !== "string" || !guessCarId) {
       toast.push(t("repesca.errorSelectCar"), { type: "error" });
@@ -364,6 +369,14 @@ export default function Repesca() {
     }
 
     setIsSubmitting(true);
+    // Con lo que el jugador acaba de elegir: la fila existe desde el toque, no
+    // desde la respuesta. `marca`/`modelo` los manda GuessForm aunque el
+    // servidor de la repesca solo necesite `guessCarId` — aquí es donde sirven.
+    setPendingGuess({
+      marca: { val: marca || "" },
+      modelo: { val: modelo || "" },
+      anio: { val: anio ? String(anio) : "" },
+    });
     const payload = { carId, guessCarId, anio };
 
     let response;
@@ -384,6 +397,7 @@ export default function Repesca() {
       console.error("[Repesca] fetch:", networkErr);
       haptic.error();
       toast.push(t("repesca.errorNetworkConnection"), { type: "error" });
+      setPendingGuess(null);
       setIsSubmitting(false);
       return;
     }
@@ -395,6 +409,7 @@ export default function Repesca() {
       console.error("[Repesca] non-JSON response", response.status);
       haptic.error();
       toast.push(t("repesca.errorInvalidResponse"), { type: "error" });
+      setPendingGuess(null);
       setIsSubmitting(false);
       return;
     }
@@ -406,6 +421,7 @@ export default function Repesca() {
         data?.error ? `Error: ${data.error}` : t("repesca.errorValidationFailed"),
         { type: "error" }
       );
+      setPendingGuess(null);
       setIsSubmitting(false);
       return;
     }
@@ -414,6 +430,7 @@ export default function Repesca() {
       const { result, reveal: nextReveal, score: scoreBreakdown } = data;
       if (!result) {
         toast.push(t("repesca.errorUnexpectedResponse"), { type: "error" });
+        setPendingGuess(null);
         setIsSubmitting(false);
         return;
       }
@@ -444,6 +461,7 @@ export default function Repesca() {
       haptic.error();
       toast.push(t("repesca.errorProcessingResponse"), { type: "error" });
     } finally {
+      setPendingGuess(null);
       setIsSubmitting(false);
     }
   }
@@ -646,8 +664,12 @@ export default function Repesca() {
           />
         </div>
 
-        {/* Último intento entre imagen y formulario (fila viva, como el daily). */}
-        {phase === "playing" && guesses.length > 0 && (
+        {/* Último intento entre imagen y formulario (fila viva, como el daily).
+            Mientras el servidor decide, la fila la ocupa el intento PENDIENTE
+            —entintado, sin veredicto— y al llegar la respuesta se estampa en su
+            sitio. Antes desaparecía el anterior y reaparecía el nuevo ya
+            juzgado, sin nada en medio. */}
+        {phase === "playing" && (pendingGuess || guesses.length > 0) && (
           <section
             aria-label={t("cdd.lastAttempt")}
             aria-live="polite"
@@ -656,7 +678,11 @@ export default function Repesca() {
             <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
               {t("cdd.lastAttempt")}
             </span>
-            <AttemptRow g={guesses[guesses.length - 1]} tolerance={ANIO_CORRECT_MARGIN} fresh />
+            {pendingGuess ? (
+              <AttemptRow g={pendingGuess} tolerance={ANIO_CORRECT_MARGIN} pending />
+            ) : (
+              <AttemptRow g={guesses[guesses.length - 1]} tolerance={ANIO_CORRECT_MARGIN} fresh />
+            )}
           </section>
         )}
 

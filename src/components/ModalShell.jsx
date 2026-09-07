@@ -12,6 +12,26 @@
 // Requiere que el caller pase `open` y lo renderice siempre (incluso con
 // open=false): este componente decide cuándo montar/desmontar.
 //
+// CUÁNDO SE USA ESTE Y CUÁNDO `Superficie`. Los overlays de la app son dos
+// cosas distintas y ahora se presentan distinto:
+//
+//   · DIÁLOGO DE DECISIÓN — contestas algo y vuelves de donde estabas: entrar,
+//     elegir firma, borrar la cuenta, escribir al equipo, confirmar una
+//     repesca, el aviso de cambio de día. Eso no es un sitio, es una pregunta,
+//     y una pregunta se pone DELANTE: tarjeta centrada, en web y en la app.
+//     Esos usan este chasis directamente, y así debe quedarse.
+//
+//   · SUPERFICIE DE NAVEGACIÓN — vas a un sitio: la clasificación, el archivo,
+//     el perfil, el sumario, las reglas. En la app esas son HOJAS ancladas
+//     abajo, con su tirador y su arrastre. No las montes con ModalShell a pelo:
+//     usa `components/Superficie.jsx`, que envuelve a este y decide la
+//     presentación por plataforma (en web sigue siendo la misma tarjeta de
+//     siempre).
+//
+// La distinción no es de gusto: una tarjeta centrada de 384px flotando sobre un
+// velo es el diálogo de escritorio, y dentro del APK eso se lee como una web
+// disfrazada de app.
+//
 // El click en el backdrop dispara onClose por defecto. Excepción:
 // `dismissOnBackdrop={false}` para modales obligatorios (p.ej. NicknameModal).
 //

@@ -2436,6 +2436,77 @@ body,
   overflow: hidden;
 }
 
+/* ── LA HOJA DE NAVEGACIÓN ──────────────────────────────────────────────────
+   La misma hoja, para lo OTRO: la clasificación, el archivo, el perfil, el
+   sumario y las reglas. Hasta aquí eran tarjetas centradas de 384px que entraban
+   encogiendo desde el centro sobre un velo — o sea, un diálogo de escritorio
+   dentro de una app de móvil. Y el contraste era el problema: el cupón se había
+   trabajado hasta el último frame (regla 18) mientras que abrir el Archivo
+   seguía pareciendo una web metida en un WebView. Una app no puede tener dos
+   idiomas de presentación; en la app estas superficies son hojas, en web siguen
+   siendo la tarjeta de siempre (lo decide `Superficie.jsx`).
+
+   TRES DIFERENCIAS CON LA HOJA DEL CUPÓN, y las tres salen del mismo sitio:
+   allí hay una fotografía que no se puede tapar y aquí no hay nada detrás que
+   mirar.
+
+     · El alto NO se calcula restando el hueco de la foto: 92dvh y a correr. Es
+       una superficie de lectura, no una banda que convive con la partida.
+     · El velo SÍ tiñe. En el cupón el velo es transparente porque el juego
+       está debajo; aquí lo de debajo es la pantalla de la que vienes, y
+       apagarla es lo que dice «esto de delante es lo que importa ahora».
+     · No se estira hacia arriba (`margenParaCrecer` devuelve 0 en Superficie):
+       ya abre a su altura máxima, así que el gesto hacia arriba se lo queda el
+       navegador y la lista scrollea nativa, con su inercia.
+
+   Lo que SÍ comparte, que es lo que la hace la misma cosa: papel, filete de
+   tinta arriba, la sombra del sistema, el tirador, y el arrastre hacia abajo
+   para cerrarla (useArrastreHoja). El tirador nunca se dibuja sin el gesto —
+   fue un adorno mintiendo durante meses y no vuelve a serlo. */
+.pm-hoja-nav {
+  position: relative; display: flex; flex-direction: column;
+  width: 100%; max-width: 560px;
+  /* Los 8dvh que quedan arriba no son aire decorativo: son la franja por la que
+     se ve que hay algo detrás, que es lo que distingue una hoja de una pantalla
+     nueva. Sin ella, cerrarla no se siente como volver sino como navegar. */
+  max-height: 92dvh;
+  /* El panel NO scrollea: scrollea su cuerpo. Y no es una preferencia de
+     maqueta — `useArrastreHoja` busca el primer ancestro DESPLAZABLE entre el
+     dedo y la hoja parándose en la propia hoja, así que si el scroller fuera el
+     panel no lo vería, daría el gesto por suyo y arrastraría la hoja entera
+     cada vez que alguien intentara bajar por la clasificación. */
+  overflow: hidden;
+  background: var(--surface); color: var(--cdd-text);
+  border: 0; border-top: 2px solid var(--line-strong); border-radius: 0;
+  box-shadow: var(--sombra-flota);
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  /* Misma nota que en `.pm-hoja`: se declara aquí para pisar la utilidad del
+     chasis y que el tempo salga del compás. */
+  transition: transform var(--ms-hoja) var(--curva-entra);
+}
+/* El cuerpo desplazable de la hoja de navegación. Lleva `pm-hoja-cuerpo` además
+   de esta clase porque es lo que `sobraDeContenido()` va a buscar. */
+.pm-hoja-cuerpo--nav {
+  overflow-y: auto;
+  /* Que el rebote del final de la lista no se lo lleve la pantalla de detrás. */
+  overscroll-behavior: contain;
+}
+/* EL VELO DE LA HOJA DE NAVEGACIÓN SE ENCIENDE, NO SE DESVANECE CON LA HOJA.
+   El chasis anima la OPACIDAD del velo, y la hoja es su hija: desvanecer el velo
+   desvanece también la hoja, y una hoja que se difumina es un dibujo, no un
+   objeto (misma idea que `.pm-hoja-velo`, que lo resuelve no tiñendo). Aquí sí
+   hace falta teñir, así que se separan las dos cosas: el velo se queda a
+   opacidad plena —pisando `opacity-0/100` por orden de cascada— y lo que cruza
+   es su COLOR. La hoja, debajo, solo se desliza.
+   `.opacity-0` es la clase que el chasis pone en reposo y salida; leerla aquí es
+   leer su estado sin inventar un atributo nuevo. */
+.pm-velo-hoja {
+  opacity: 1;
+  background-color: rgb(var(--velo-rgb) / .45);
+  transition-property: background-color;
+}
+.pm-velo-hoja.opacity-0 { background-color: rgb(var(--velo-rgb) / 0); }
+
 /* El buscador. NO se autoenfoca (ver SelectorLista): si lo hiciera, el teclado
    subiría solo y habríamos vuelto al punto de partida.
 
@@ -2670,6 +2741,10 @@ body,
 /* El campo Año ya no tiene steppers ni caja propia: usa .prensa-input, gemelo
    exacto de Marca/Modelo (línea base, mono, alineado a la izquierda). */
 .prensa-submit {
+  /* `relative` + `overflow` son el ancla y el recorte de la banda de la
+     rotativa (ver `.is-trabajando` más abajo); sin partida en curso no pintan
+     nada. */
+  position: relative; overflow: hidden;
   width: 100%; height: 64px; border: 0; border-radius: 0; cursor: pointer;
   background: rgb(var(--rojo-rgb)); color: var(--bg);
   font-family: var(--font-display); font-weight: 900; font-size: 24px;
@@ -2709,6 +2784,53 @@ body,
   .prensa-submit.is-incomplete:hover { 
     background: color-mix(in srgb, rgb(var(--tinta-rgb)) 80%, black);
   }
+}
+
+/* ── EL BOTÓN MIENTRAS EL SERVIDOR DECIDE ──────────────────────────────────
+   «Estoy trabajando» y «no me puedes pulsar» son estados distintos y llevaban
+   EL MISMO estilo, porque enviar ponía `disabled` y ahí acababa la historia:
+   el bloque rojo de 64px —la pieza con más peso de toda la pantalla— se
+   convertía en un contorno gris con el texto en `--faint`. O sea que en el
+   único segundo de tensión de la partida, justo después de gastar uno de cinco
+   intentos, lo que el jugador veía era su botón apagándose como si algo se
+   hubiera roto.
+
+   Un control que trabaja tiene que SEGUIR siendo el control: mismo bloque,
+   misma tinta, mismo peso. Lo que cambia es que ahora hay una máquina detrás, y
+   eso lo dice la banda de papel que recorre el pie del botón — el pliego
+   entrando en la rotativa. No es un spinner: un spinner es vocabulario de otra
+   app, y aquí ya teníamos una forma de decir «esto está en marcha».
+
+   REPARTO DE PAPELES CON LA FILA ENTINTADA, que es la otra mitad de esta espera
+   (AttemptList): la fila es DÓNDE va a aparecer la respuesta y por eso es la
+   señal principal; esto de aquí es solo la máquina, y va en voz baja —al 45% y
+   3px— para que dos cosas moviéndose a la vez no compitan.
+
+   `--ms-latido` y no un peldaño de la escala: esto no es un viaje de A a B sino
+   un pulso que no termina hasta que contesta el servidor, que es literalmente
+   la definición del latido en el compás. */
+.prensa-submit.is-trabajando,
+.prensa-submit.is-trabajando:disabled {
+  background: rgb(var(--rojo-rgb));
+  color: var(--bg);
+  box-shadow: none;
+  cursor: progress;
+}
+.prensa-submit.is-trabajando::after {
+  content: ""; position: absolute; left: 0; bottom: 0;
+  width: 32%; height: 3px;
+  background: rgb(var(--bg-rgb) / .45);
+  /* El punto de partida va en la REGLA y no solo en la keyframe: con
+     `prefers-reduced-motion` el compás apaga las animaciones (`animation: none`)
+     y sin esto la banda se quedaría clavada en la esquina como una barra de
+     progreso rota. Fuera de la caja, quien pidió no ver movimiento no ve nada —
+     y le queda el bloque rojo con su COMPROBANDO, que es lo que dice el estado. */
+  transform: translateX(-100%);
+  animation: prensaRotativa var(--ms-latido) var(--curva-latido) infinite;
+}
+@keyframes prensaRotativa {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(313%); }
 }
 
 /* ── F2: Fin de partida — la crónica con sello ──

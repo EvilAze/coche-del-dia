@@ -41,7 +41,7 @@ import { useT } from "../i18n";
 import { useTheme } from "../lib/theme";
 import { useEscape } from "../hooks/useEscape";
 import { haptic } from "../lib/haptics";
-import ModalShell from "./ModalShell";
+import Superficie from "./Superficie";
 import CloseButton from "./CloseButton";
 import LanguageStrip from "./LanguageStrip";
 import Portadilla from "./Portadilla";
@@ -77,7 +77,7 @@ export default function SumarioModal({
   }
 
   return (
-    <ModalShell
+    <Superficie
       open={open}
       onClose={onClose}
       label={t("sumario.titulo")}
@@ -91,8 +91,9 @@ export default function SumarioModal({
       // crece con las secciones que tenga disponibles el jugador, así que es de
       // los que llegan al tope; con el `calc(100dvh - 2rem)` de antes, llegar al
       // tope en la app significaba meterse bajo las barras del sistema.
-      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[78] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-5"
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[78] flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-[78] flex items-end justify-center"
+      panelWeb="modal-panel-flat w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-5"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -197,6 +198,6 @@ export default function SumarioModal({
           {t("app.footerPrivacy")}
         </a>
       </div>
-    </ModalShell>
+    </Superficie>
   );
 }

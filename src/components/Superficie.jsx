@@ -30,30 +30,25 @@
 // pecado que este proyecto ya cometió una vez («durante meses fue un adorno de
 // tres píxeles prometiendo un gesto que no existía»).
 //
-// Y NO SE ESTIRA HACIA ARRIBA: `margenParaCrecer` devuelve 0. La hoja del cupón
-// crece porque debajo hay una fotografía que proteger y un recorrido que
-// negociar con ella; aquí no hay nada detrás que mirar y la hoja ya abre a su
-// alto máximo, así que el gesto hacia arriba se lo queda el navegador y la lista
-// scrollea nativa, con su inercia. Es la misma decisión que ya toma el hook
-// cuando no hay margen, solo que aquí es constante.
+// El gesto va en UN SOLO SENTIDO, hacia abajo, igual que en la hoja del cupón:
+// hacia arriba manda el navegador y la lista scrollea nativa, con su inercia
+// (ver la cabecera de `useArrastreHoja`, donde está el porqué).
 
 import { useCallback, useState } from "react";
 import ModalShell from "./ModalShell";
 import { useArrastreHoja } from "../hooks/useArrastreHoja";
 import { esApp } from "../lib/plataforma";
 
-// Estables entre renders: si fueran flechas en línea, el hook las recibiría
-// nuevas cada vez. Da igual (las guarda en refs), pero declararlas fuera dice
-// que son constantes y no configuración.
-const SIN_MARGEN = () => 0;
+// Estable entre renders: si fuera una flecha en línea, el hook la recibiría
+// nueva cada vez. Da igual (la guarda en un ref), pero declararla fuera dice que
+// es una constante y no configuración. Aquí no hay fotografía que mover con la
+// hoja: la superficie viaja sola.
 const NADA_QUE_SEGUIR = () => {};
 
 export default function Superficie({
   open,
   onClose,
-  // Nombre accesible del diálogo. Vale además de `clave` del arrastre: cambia
-  // cuando cambia la superficie, que es justo cuando el gesto tiene que
-  // reiniciarse.
+  // Nombre accesible del diálogo.
   label,
   // Clases del VELO. El caller las escribe enteras (con su `z-[…]` literal,
   // que Tailwind necesita ver en el fuente para generarlo) porque la pila de
@@ -84,10 +79,8 @@ export default function Superficie({
   useArrastreHoja({
     hojaEl,
     activo: enApp && open,
-    clave: label,
     onCerrar: onClose,
     onDesplazar: NADA_QUE_SEGUIR,
-    margenParaCrecer: SIN_MARGEN,
   });
 
   return (

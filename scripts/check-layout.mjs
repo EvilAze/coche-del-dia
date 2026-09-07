@@ -50,9 +50,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import {
   AIRE_HOJA,
-  ALTO_MINIMO_FOTO,
   calcularApartado,
-  margenDeCrecimiento,
 } from "../src/lib/escenarioApartado.js";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -292,14 +290,6 @@ function paginaHtml(hrefCss) {
     }
   };
 
-  // Lo que hace el gesto de estirar (useArrastreHoja): suelta el techo del CSS
-  // y le pone un alto nuevo.
-  window.estirarHoja = function (alto) {
-    const hoja = document.querySelector(".pm-hoja");
-    hoja.style.maxHeight = "none";
-    hoja.style.height = alto + "px";
-  };
-
   // La HOJA DE NAVEGACIÓN, con el mismo DOM que monta Superficie.jsx: velo,
   // panel, tirador y un cuerpo desplazable con contenido de sobra.
   window.montarHojaNav = function (filas) {
@@ -324,11 +314,11 @@ function paginaHtml(hrefCss) {
     const cuerpo = velo.querySelector(".pm-hoja-cuerpo--nav");
     for (let i = 0; i < filas; i++) {
       const f = document.createElement("div");
+      f.dataset.fila = String(i);
       // La rejilla REAL de la tabla (Ranking.jsx), para que las filas midan lo
       // que miden: el banco existe para medir píxeles, no aproximaciones.
       f.className =
         "grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] items-center gap-2 px-3 py-2";
-      f.dataset.fila = String(i);
       f.textContent = (i + 1) + "  Jugador " + (i + 1) + "  1234";
       cuerpo.appendChild(f);
     }
@@ -644,61 +634,14 @@ async function main() {
         (fallo.length ? `   ← ${fallo.join(" · ")}` : "")
       );
 
-      // ── Y AHORA ESTIRADA DEL TODO ──────────────────────────────────────
-      // El otro extremo del recorrido del gesto: el jugador tira de la hoja
-      // hacia arriba para ver más lista. La promesa que hay que sostener aquí es
-      // la MISMA que en reposo —la fotografía no se pierde de vista— solo que en
-      // su versión mínima: al final del tirón la foto tiene que quedarse
-      // exactamente en el recorte flotante, entera y por encima del filete. Si
-      // esta cuenta se descuadra, el gesto premium acaba tapando el coche, que
-      // es lo que este cambio vino a impedir.
-      const margen = margenDeCrecimiento({
-        ventana: medidas.ventana,
-        alturaHoja: medidas.hojaAlto,
-        tope: medidas.tope,
-      });
-      if (margen > 0) {
-        const estirada = medidas.hojaAlto + margen;
-        await page2.evaluate((h) => window.estirarHoja(h), estirada);
-        const r2 = calcularApartado({
-          tope: medidas.tope,
-          suelo: medidas.ventana - estirada - AIRE_HOJA,
-          fotoTop: medidas.fotoTop,
-          fotoAlto: medidas.fotoAlto,
-        });
-        await page2.evaluate(([s0, e0]) => window.aplicarApartado(s0, e0), [r2.subida, r2.escala]);
-        await page2.waitForTimeout(320);
-        const v2 = await page2.evaluate(() => {
-          const marco = document.querySelector(".cdd-stage-frame").getBoundingClientRect();
-          const hoja = document.querySelector(".pm-hoja").getBoundingClientRect();
-          const lista = document.querySelector(".pm-lista").getBoundingClientRect();
-          return {
-            marcoTop: marco.top, marcoBottom: marco.bottom,
-            marcoW: marco.width, marcoH: marco.height,
-            hojaTop: hoja.top, lista: lista.height,
-          };
-        });
+      // (Aquí se medía el OTRO extremo del recorrido: la hoja estirada del todo
+      // hacia arriba, comprobando que la fotografía acababa exactamente en el
+      // recorte flotante. Ese gesto se retiró —estando la lista arriba, el
+      // empujón hacia arriba es el que baja por ella, y robárselo para agrandar
+      // la hoja hacía que el primer intento de leer nunca scrollease—, así que
+      // ya no hay nada que medir ahí. El porqué completo, en la cabecera de
+      // useArrastreHoja.)
 
-        const f2 = [];
-        if (v2.marcoBottom > v2.hojaTop + 1)
-          f2.push(`la hoja tapa ${Math.round(v2.marcoBottom - v2.hojaTop)}px de foto`);
-        if (v2.marcoTop < -1) f2.push(`la foto se sale por arriba`);
-        const r2ratio = v2.marcoW / v2.marcoH;
-        if (Math.abs(r2ratio - RATIO) > 0.01) f2.push(`ratio ${r2ratio.toFixed(3)}≠1.333`);
-        // El suelo, con un píxel de tolerancia por el redondeo de la escala.
-        if (v2.marcoH < ALTO_MINIMO_FOTO - 1)
-          f2.push(`foto de ${Math.round(v2.marcoH)}px, por debajo del recorte`);
-        // Y el tirón tiene que servir para algo: más lista de la que había.
-        if (v2.lista <= v.lista + 1) f2.push(`estirarla no enseña más lista`);
-
-        linea(
-          f2.length === 0,
-          `      ↑ estirada  hoja ${estirada}px (+${margen}) · ` +
-          `foto ${Math.round(v2.marcoW)}x${Math.round(v2.marcoH)} · ` +
-          `lista ${Math.round(v.lista)}→${Math.round(v2.lista)}px` +
-          (f2.length ? `   ← ${f2.join(" · ")}` : "")
-        );
-      }
       await page2.close();
     }
   }

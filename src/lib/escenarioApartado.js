@@ -86,22 +86,9 @@ export function calcularApartado({ tope, suelo, fotoTop, fotoAlto }) {
   };
 }
 
-/**
- * CUÁNTO PUEDE CRECER LA HOJA ANTES DE COMERSE LA FOTOGRAFÍA.
- *
- * La hoja no tiene una altura, tiene un RECORRIDO: se abre en su sitio de
- * reposo —el que deja la foto entera— y el jugador puede tirar de ella hacia
- * arriba para ver más lista. Lo que no puede es hacerla desaparecer: el tope es
- * justo donde la foto llega a los 78px del recorte flotante, así que estirando
- * del todo la fotografía se convierte EN el recorte y ni un píxel menos. Esa es
- * la frontera del diseño, y por eso vive aquí y no en un número suelto del
- * gesto: es la misma regla que impide encogerla de más al abrir.
- *
- * @returns {number} px que puede subir el borde superior de la hoja. 0 = ya no
- *          hay margen (móvil bajo, teclado abierto), y entonces no hay gesto
- *          hacia arriba que valga.
- */
-export function margenDeCrecimiento({ ventana, alturaHoja, tope }) {
-  const margen = ventana - alturaHoja - AIRE_HOJA - tope - ALTO_MINIMO_FOTO;
-  return margen > 0 ? Math.round(margen) : 0;
-}
+// (Aquí vivía `margenDeCrecimiento`, el tope del gesto que estiraba la hoja
+// hacia arriba: decía cuánto podía crecer antes de dejar la fotografía por
+// debajo de los 78px del recorte flotante. El gesto se retiró —hacia arriba
+// manda el navegador y la lista scrollea nativa; el porqué está en la cabecera
+// de `useArrastreHoja`— y con él se va su tope. `ALTO_MINIMO_FOTO` se queda:
+// lo sigue usando `calcularApartado` como suelo del encogimiento al abrir.)

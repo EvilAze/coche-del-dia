@@ -530,50 +530,41 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     return lista;
   }
 
-  it("tirar hacia arriba la estira hasta el suelo de la fotografía, y ni un píxel más", async () => {
+  it("tirar hacia arriba NO mueve la hoja: el gesto se le deja al navegador", async () => {
     await montar();
     fireEvent.click(renglon("cdd.labelMarca"));
     const hoja = document.querySelector(".pm-hoja");
     listaQueDesborda();
 
-    // El recorrido: 800 de ventana - 500 de hoja - 10 de aire - 30 de tope - 78
-    // del recorte flotante = 182px. Estirada del todo, la foto mide exactamente
-    // lo que el recorte, que es la promesa que no se rompe ni tirando fuerte.
+    // ESTE ES EL CASO QUE MOTIVÓ RETIRAR EL SEGUNDO TRAMO DEL GESTO. Con la
+    // lista arriba del todo, empujar hacia arriba es como se baja por ella. Ese
+    // mismo gesto estiraba la hoja y encogía la fotografía, así que el primer
+    // intento de leer nunca scrolleaba: había que soltar y repetir.
     dedo(hoja, [500, 440, 380, 350]);
 
-    expect(hoja.style.height).toBe("682px");
-    // Sin soltar el techo del CSS la hoja no podría pasar de su alto de reposo.
-    expect(hoja.style.maxHeight).toBe("none");
-    // Y sigue abierta: hacia arriba no se cierra nada.
+    // Ni alto en línea, ni techo levantado, ni desplazamiento: la hoja no se
+    // entera. Sin `preventDefault`, el scroll nativo de la lista es de quien
+    // tiene que ser.
+    expect(hoja.style.height).toBe("");
+    expect(hoja.style.maxHeight).toBe("");
+    expect(hoja.style.transform).toBe("");
+    // Y sigue abierta: hacia arriba tampoco se cierra nada.
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
-  it("con el contenido entero a la vista NO se estira: no hay nada que enseñar", async () => {
-    await montar();
-    fireEvent.click(renglon("cdd.labelMarca"));
-    const hoja = document.querySelector(".pm-hoja");
-    // Sin desbordamiento declarado: la lista cabe. Es el caso del año con la
-    // horquilla acotada, donde estirar solo taparía la foto con papel en blanco.
-    dedo(hoja, [500, 440, 380]);
-
-    expect(hoja.style.height).toBe("");
-  });
-
-  it("estirada, un cambio de paso la devuelve a su altura de reposo", async () => {
+  it("y la fotografía se queda donde estaba mientras se sube por la lista", async () => {
     await montar();
     fireEvent.click(renglon("cdd.labelMarca"));
     const hoja = document.querySelector(".pm-hoja");
     listaQueDesborda();
+    const raiz = document.documentElement;
+    const subidaAlAbrir = raiz.style.getPropertyValue("--cdd-escenario-subida");
+
     dedo(hoja, [500, 440, 380, 350]);
-    expect(hoja.style.height).toBe("682px");
 
-    // Elegir marca encadena al modelo: MISMA hoja, otro contenido. Una hoja de
-    // 682px para dos modelos sería papel en blanco tapando el coche.
-    fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
-
-    await waitFor(() => {
-      expect(document.querySelector(".pm-hoja").style.height).toBe("");
-    });
+    // La otra mitad del motivo: el gesto de leer no puede achicar el coche. Es
+    // el mismo agujero que la hoja recortada vino a tapar (regla 18f).
+    expect(raiz.style.getPropertyValue("--cdd-escenario-subida")).toBe(subidaAlAbrir);
   });
 
   it("al cerrar la hoja la foto vuelve a su sitio", async () => {

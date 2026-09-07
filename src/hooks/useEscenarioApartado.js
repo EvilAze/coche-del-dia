@@ -45,18 +45,14 @@ import { useCallback, useEffect, useRef } from "react";
 import {
   AIRE_HOJA,
   calcularApartado,
-  margenDeCrecimiento,
 } from "../lib/escenarioApartado";
 
 /**
  * @param {boolean} abierta ¿hay hoja de selección a la vista?
  * @param {HTMLElement|null} hojaEl el panel de la hoja, cuando ya está montado.
- * @returns {{seguir: (desplazamiento?: number) => void,
- *            margenParaCrecer: (alturaReposo: number) => number}}
- *   `seguir` recalcula la foto para una hoja desplazada N píxeles hacia abajo
- *   (el gesto de cierre) o crecida (ahí el desplazamiento es 0 y el alto nuevo
- *   ya se lee del propio nodo). `margenParaCrecer` dice cuánto puede estirarse
- *   la hoja hacia arriba antes de dejar la foto por debajo de su suelo.
+ * @returns {{seguir: (desplazamiento?: number) => void}}
+ *   `seguir` recalcula la foto para una hoja desplazada N píxeles hacia abajo,
+ *   que es el gesto de cierre y el único que hay (ver `useArrastreHoja`).
  */
 export function useEscenarioApartado(abierta, hojaEl) {
   // El puente entre el efecto (que tiene las medidas) y el arrastre (que las
@@ -64,12 +60,8 @@ export function useEscenarioApartado(abierta, hojaEl) {
   // render por frame sería justamente lo que hace que un arrastre se sienta
   // pastoso.
   const seguirRef = useRef(null);
-  const margenRef = useRef(null);
   const seguir = useCallback((desplazamiento = 0) => {
     seguirRef.current?.(desplazamiento);
-  }, []);
-  const margenParaCrecer = useCallback((alturaReposo) => {
-    return margenRef.current?.(alturaReposo) ?? 0;
   }, []);
 
   useEffect(() => {
@@ -78,8 +70,6 @@ export function useEscenarioApartado(abierta, hojaEl) {
     let pendiente = null;
 
     // El contexto de una medida: qué escenario hay y dónde empieza el pliego.
-    // Lo comparten la composición y el margen de crecimiento, que son la misma
-    // geometría mirada desde los dos extremos.
     function contexto() {
       // El escenario puede no existir: la hoja también se abre desde pantallas
       // sin fotografía (la repesca antes de sortear) y, sobre todo, en los
@@ -160,16 +150,6 @@ export function useEscenarioApartado(abierta, hojaEl) {
       const r = medir(desplazamiento);
       if (r) aplicar(r);
     };
-    margenRef.current = (alturaReposo) => {
-      const c = contexto();
-      if (!c) return 0;
-      return margenDeCrecimiento({
-        ventana: window.innerHeight,
-        alturaHoja: alturaReposo,
-        tope: c.tope,
-      });
-    };
-
     // ResizeObserver falta en algún WebView viejo y en jsdom: sin él sigue
     // habiendo composición, solo que no se refina al subir el teclado (mejora
     // progresiva, regla 9).
@@ -185,7 +165,6 @@ export function useEscenarioApartado(abierta, hojaEl) {
     return () => {
       pendiente?.();
       seguirRef.current = null;
-      margenRef.current = null;
       ro?.disconnect();
       window.removeEventListener("resize", remedir);
       window.visualViewport?.removeEventListener("resize", remedir);
@@ -199,5 +178,5 @@ export function useEscenarioApartado(abierta, hojaEl) {
     };
   }, [abierta, hojaEl]);
 
-  return { seguir, margenParaCrecer };
+  return { seguir };
 }

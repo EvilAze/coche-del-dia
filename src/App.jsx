@@ -392,28 +392,6 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
-  // ── EL ARCHIVO, CUANDO YA SE HA MOSTRADO INTERÉS ─────────────────────────
-  // Queda FUERA del prefetch ocioso de arriba, y con razón: su chunk es el más
-  // pesado de la app (framer-motion) y bajarlo al arrancar le quita ancho de
-  // banda a la fotografía del día, que es la única pieza que corre prisa.
-  //
-  // Pero «no lo bajes al arrancar» no es lo mismo que «bájalo cuando ya lo han
-  // pulsado». Sus dos puertas son el sumario y el final de partida, y las dos se
-  // ven ANTES del toque que abre el archivo: cuando el jugador está leyendo el
-  // menú o su resultado hay varios segundos de sobra y ninguna otra petición en
-  // vuelo. Con esto, el toque de GARAJE se encuentra el chunk ya en caché y
-  // abre en el mismo frame en vez de dejar la pantalla quieta mientras baja.
-  //
-  // Import idempotente: el módulo se evalúa una sola vez, así que repetirlo en
-  // cada apertura del sumario no cuesta nada.
-  useEffect(() => {
-    if (navigator.connection?.saveData) return;
-    const puertaALaVista =
-      activeModal === "menu" || activeModal === "profile" || status !== "playing";
-    if (!puertaALaVista) return;
-    import("./components/Garage");
-  }, [activeModal, status]);
-
   useEscape(activeModal === "login", closeModal);
 
   // «Atrás» de Android / gesto del navegador: cierra el overlay activo en vez
@@ -542,6 +520,37 @@ export default function App() {
   }, [status]);
 
   const dataReady = !isLoading && !!car;
+
+  // ── EL ARCHIVO, CUANDO YA SE HA MOSTRADO INTERÉS ─────────────────────────
+  // VA AQUÍ, DESPUÉS DE `useGame`, Y NO ARRIBA CON EL PREFETCH OCIOSO. Lee
+  // `status`, que es una `const` desestructurada de useGame más arriba en el
+  // fichero pero MÁS ABAJO que el otro prefetch: puesto allí, el array de
+  // dependencias se evalúa durante el render y toca la variable antes de que
+  // exista → `ReferenceError: Cannot access 'status' before initialization`, y
+  // como pasa en el cuerpo de App, se lleva por delante la app entera (el
+  // ErrorBoundary pinta «Algo falló en la rotativa»). No lo caza ni el build ni
+  // el linter: es un error de EJECUCIÓN, y hasta ahora ninguna suite montaba
+  // <App />. Ahora sí — ver App.smoke.test.jsx.
+  // Queda FUERA del prefetch ocioso de arriba, y con razón: su chunk es el más
+  // pesado de la app (framer-motion) y bajarlo al arrancar le quita ancho de
+  // banda a la fotografía del día, que es la única pieza que corre prisa.
+  //
+  // Pero «no lo bajes al arrancar» no es lo mismo que «bájalo cuando ya lo han
+  // pulsado». Sus dos puertas son el sumario y el final de partida, y las dos se
+  // ven ANTES del toque que abre el archivo: cuando el jugador está leyendo el
+  // menú o su resultado hay varios segundos de sobra y ninguna otra petición en
+  // vuelo. Con esto, el toque de GARAJE se encuentra el chunk ya en caché y
+  // abre en el mismo frame en vez de dejar la pantalla quieta mientras baja.
+  //
+  // Import idempotente: el módulo se evalúa una sola vez, así que repetirlo en
+  // cada apertura del sumario no cuesta nada.
+  useEffect(() => {
+    if (navigator.connection?.saveData) return;
+    const puertaALaVista =
+      activeModal === "menu" || activeModal === "profile" || status !== "playing";
+    if (!puertaALaVista) return;
+    import("./components/Garage");
+  }, [activeModal, status]);
 
   // El cartel de "edición no disponible" solo cuando NO hay nada que enseñar.
   // Si el snapshot local trajo la partida de hoy, `car` existe y preferimos

@@ -36,6 +36,7 @@ public class MainActivity extends BridgeActivity {
         // LocaleBridgePlugin engancha su interfaz JS. Registrarlo después
         // llegaría tarde (el WebView ya habría empezado a cargar la página).
         registerPlugin(LocaleBridgePlugin.class);
+        registerPlugin(InsetsBridgePlugin.class);
         super.onCreate(savedInstanceState);
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().setBackgroundColor(ContextCompat.getColor(this, R.color.cdd_window_bg));

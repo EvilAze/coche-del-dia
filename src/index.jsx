@@ -21,6 +21,7 @@ import { ToastProvider } from "./components/Toast";
 import { initSentry, SentryErrorBoundary } from "./lib/sentry";
 import { reportWebVitals } from "./lib/webVitals";
 import { installApiFetchShim } from "./lib/apiUrl";
+import { aplicarInsetsNativos } from "./lib/insets";
 import { Capacitor } from "@capacitor/core";
 import { rearmIfEnabled } from "./lib/notifications";
 import { initNativeAuth } from "./lib/nativeAuth";
@@ -38,6 +39,13 @@ initSentry();
 // En la app Android (Capacitor) reescribe las rutas /api relativas al dominio
 // de producción. En web es no-op.
 installApiFetchShim();
+
+// Los insets del sistema, ANTES del primer pintado. Van aquí y no dentro del
+// bloque nativo de abajo por dos motivos: son un no-op en web (no hay puente
+// que leer) y, sobre todo, lo que se decide con ellos es la MAQUETA — pedirlos
+// después del render pintaría un frame con el reloj de cierre debajo de la
+// barra de gestos. Ver lib/insets.js.
+aplicarInsetsNativos();
 
 // Solo nativo (Capacitor): re-armar el recordatorio si el permiso ya está
 // concedido, y enganchar el botón físico "atrás" de Android.

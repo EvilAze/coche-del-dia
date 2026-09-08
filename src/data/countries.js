@@ -26,6 +26,10 @@ export const COUNTRY_CODES = {
   Rusia: "RU",
   "República Checa": "CZ",
   "Países Bajos": "NL",
+  // La Isla de Man es dependencia de la Corona, no parte del Reino Unido, y
+  // tiene código ISO propio: la Peel P50 (1962) se fabricó allí. `IM` es lo que
+  // Intl.DisplayNames traduce a «Isle of Man».
+  "Isla de Man": "IM",
 };
 
 // Helpers para usar las JPGs reales de /public/flags/ — única fuente fiable

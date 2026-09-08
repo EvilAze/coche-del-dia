@@ -381,6 +381,8 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
   const FOTO_ALTO = 252;
 
   let pliego;
+
+  let marco;
   let rectOriginal;
   let innerHeightOriginal;
 
@@ -392,6 +394,14 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     pliego.style.paddingTop = "30px"; // el inset de la barra de estado + aire
     const escenario = document.createElement("div");
     escenario.setAttribute("data-escenario", "");
+    // EL MARCO, dentro del escenario: es DONDE se escriben las dos variables de
+    // la composición (ver `aplicar` en useEscenarioApartado — en la raíz costaba
+    // 2,6 ms de recálculo de estilo por frame). Sin él aquí, el hook se caería
+    // al respaldo de la raíz y estos tests estarían probando un camino que la
+    // app ya no recorre.
+    marco = document.createElement("div");
+    marco.className = "cdd-stage-frame";
+    escenario.appendChild(marco);
     pliego.appendChild(escenario);
     document.body.appendChild(pliego);
 
@@ -437,9 +447,9 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     // sobran 99px y encima hay 107 de cabecera y ladillo, así que sube los 99 y
     // NO encoge. Esa es la promesa del diseño en un móvil normal.
     await waitFor(() => {
-      expect(raiz.style.getPropertyValue("--cdd-escenario-subida")).toBe("99px");
+      expect(marco.style.getPropertyValue("--cdd-escenario-subida")).toBe("99px");
     });
-    expect(raiz.style.getPropertyValue("--cdd-escenario-escala")).toBe("1");
+    expect(marco.style.getPropertyValue("--cdd-escenario-escala")).toBe("1");
     // "apartada" es lo que apaga la cabecera y el ladillo: la foto les pisa el
     // sitio, así que se quitan de en medio.
     expect(raiz.dataset.eligiendo).toBe("apartada");
@@ -558,13 +568,13 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     const hoja = document.querySelector(".pm-hoja");
     listaQueDesborda();
     const raiz = document.documentElement;
-    const subidaAlAbrir = raiz.style.getPropertyValue("--cdd-escenario-subida");
+    const subidaAlAbrir = marco.style.getPropertyValue("--cdd-escenario-subida");
 
     dedo(hoja, [500, 440, 380, 350]);
 
     // La otra mitad del motivo: el gesto de leer no puede achicar el coche. Es
     // el mismo agujero que la hoja recortada vino a tapar (regla 18f).
-    expect(raiz.style.getPropertyValue("--cdd-escenario-subida")).toBe(subidaAlAbrir);
+    expect(marco.style.getPropertyValue("--cdd-escenario-subida")).toBe(subidaAlAbrir);
   });
 
   it("al cerrar la hoja la foto vuelve a su sitio", async () => {
@@ -581,6 +591,6 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     await waitFor(() => {
       expect(raiz.dataset.eligiendo).toBeUndefined();
     });
-    expect(raiz.style.getPropertyValue("--cdd-escenario-subida")).toBe("");
+    expect(marco.style.getPropertyValue("--cdd-escenario-subida")).toBe("");
   });
 });

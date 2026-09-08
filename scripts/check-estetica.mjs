@@ -331,6 +331,72 @@ const CURVA_SUELTA = /(?:transition|animation)[^;]*?(?:cubic-bezier\(|(?<![\w-])
   });
 }
 
+// ── 4. Lo que no para de moverse, que lo mueva el compositor ─────────────
+//
+// Una animación `infinite` corre mientras esté en pantalla: el esqueleto de la
+// fotografía durante toda la carga, la fila entintada mientras el servidor
+// contesta, el pip del último intento. Si anima una propiedad que el compositor
+// no sabe tocar —color de fondo, alto, ancho, sombra— el navegador tiene que
+// REPINTAR el elemento en cada frame, en el hilo principal, para siempre.
+//
+// Y esto se nota justo donde más cuesta verlo venir: a 60Hz el presupuesto por
+// frame es de 16,6ms y un repintado de más cabe; en un móvil de 120Hz son 8,3ms
+// y el mismo repintado empieza a comerse frames. La app se siente peor EN EL
+// MÓVIL MEJOR, que es la clase de regresión que nadie atribuye a su causa.
+//
+// La regla es la de siempre en cualquier motor de navegador: `transform`,
+// `opacity` y `filter` viajan en la GPU; el resto no. Si algo tiene que
+// respirar en color, se hace animando la opacidad de una capa encima (ver
+// `.pm-esperando`), no el color del propio nodo.
+const COMPOSITABLES = new Set(["transform", "opacity", "filter", "-webkit-filter"]);
+
+{
+  const src = sinComentariosDeBloque(readFileSync(join(ROOT, CSS_VIGILADO), "utf8"));
+
+  // Qué propiedades toca cada @keyframes.
+  // Contando llaves y no con una expresión regular perezosa: las keyframes de
+  // este fichero caben en UNA línea (`@keyframes x { 0% { … } 50% { … } }`), así
+  // que un `[\s\S]*?\n\}` se comía el bloque entero y seguía leyendo las reglas
+  // de debajo — daba por «animadas» propiedades de media hoja de estilos.
+  const keyframes = new Map();
+  for (const m of src.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+    let i = m.index + m[0].length;
+    let nivel = 1;
+    while (i < src.length && nivel > 0) {
+      if (src[i] === "{") nivel++;
+      else if (src[i] === "}") nivel--;
+      i++;
+    }
+    const cuerpo = src.slice(m.index + m[0].length, i - 1);
+    const props = new Set();
+    for (const d of cuerpo.matchAll(/([a-z-]+)\s*:/g)) {
+      // Las variables propias no animan nada por sí solas.
+      if (!d[1].startsWith("--")) props.add(d[1]);
+    }
+    keyframes.set(m[1], props);
+  }
+
+  const lineas = src.split(/\r?\n/);
+  lineas.forEach((linea, i) => {
+    if (!/\banimation\s*:/.test(linea) || !/\binfinite\b/.test(linea)) return;
+    const nombre = linea.match(/animation\s*:\s*([\w-]+)/)?.[1];
+    const props = nombre && keyframes.get(nombre);
+    if (!props) return;
+    const malas = [...props].filter((p) => !COMPOSITABLES.has(p));
+    if (malas.length === 0) return;
+    fallos.push({
+      rel: CSS_VIGILADO,
+      linea: i + 1,
+      regla: "animacion-infinita",
+      msg:
+        `@keyframes ${nombre} no para nunca y anima ${malas.join(", ")} — eso ` +
+        "repinta en el hilo principal en cada frame. Solo transform/opacity/filter: " +
+        "para respirar en color, anima la opacidad de una capa encima (ver .pm-esperando)",
+      texto: linea.trim().slice(0, 100),
+    });
+  });
+}
+
 // ── Informe ──────────────────────────────────────────────────────────────
 if (fallos.length === 0) {
   console.log("✓ estética: sin restos de temas anteriores en la web pública.");

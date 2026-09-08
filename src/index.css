@@ -2050,6 +2050,16 @@ body,
    pasar el umbral y lo apaga al soltar, justo antes de la vuelta —que entonces
    sí se anima. */
 :root[data-arrastrando] .cdd-stage-frame { transition: none; }
+/* Y LAS TRES PIEZAS DEL GESTO SE PROMOCIONAN A SU PROPIA CAPA MIENTRAS DURA.
+   Sin esto, cada frame del arrastre repinta la hoja entera (ochenta filas con
+   sus banderas) y el marco de la fotografía; con esto, mover el dedo es
+   recomponer dos texturas que ya están en la GPU. `will-change` es caro de
+   dejar puesto —cada capa ocupa memoria de vídeo— así que se enciende con el
+   gesto y se apaga al soltar, que es exactamente para lo que sirve el atributo
+   que ya publica useArrastreHoja. */
+:root[data-arrastrando] .cdd-stage-frame,
+:root[data-arrastrando] .pm-hoja,
+:root[data-arrastrando] .pm-hoja-nav { will-change: transform; }
 :root[data-plataforma="app"][data-eligiendo] .cdd-stage-frame {
   transform:
     translateY(calc(-1 * var(--cdd-escenario-subida, 0px)))
@@ -3629,8 +3639,29 @@ body,
    es el mismo gesto. Papel, no gris; respiración, no parpadeo. */
 .pm-esperando {
   background-color: var(--surface2);
+}
+/* Y RESPIRA EN UNA CAPA APARTE, que es lo que la hace gratis a 120Hz.
+   Animar `background-color` obliga a REPINTAR el elemento en cada frame, y este
+   se pone encima de la fotografía (una caja enorme) y de cada esqueleto de la
+   clasificación y del archivo, sin parar, mientras se espera. A 60Hz se
+   disimula; a 120Hz son el doble de repintados con la mitad de presupuesto por
+   frame. Animando la OPACIDAD de una capa hija, el trabajo se lo queda el
+   compositor y el hilo principal ni se entera.
+   Va en un pseudo-elemento y no en el propio nodo por el motivo de siempre:
+   una animación de `opacity` le ganaría al `opacity` que CarImage escribe en
+   línea para cruzar a la foto, y el esqueleto no se apagaría nunca. La capa
+   respira; el nodo conserva su opacidad. */
+.pm-esperando::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-color: var(--surface);
   animation: pmRespirar var(--ms-latido) var(--curva-latido) infinite;
 }
+/* El pseudo-elemento necesita un ancestro posicionado, y `.pm-esperando` se usa
+   tanto sobre cajas ya absolutas (el esqueleto de la foto) como sobre cajas de
+   flujo (los renglones de Esqueleto.jsx). `:not(.absolute)` deja en paz a las
+   primeras —declarar `relative` aquí les ganaría por orden de cascada y las
+   sacaría de su sitio— y posiciona a las segundas. */
+.pm-esperando:not(.absolute) { position: relative; }
 /* RESPIRA EN EL FONDO, NO EN LA OPACIDAD, y eso NO es un capricho de estilo.
    Una animación de `opacity` le gana a la propiedad `opacity` declarada —
    también a la de un `style` en línea, que es donde CarImage escribe el cruce
@@ -3642,6 +3673,6 @@ body,
    De paso la metáfora mejora: el papel se entinta y se aclara, que es lo que
    hace el papel, en vez de aparecer y desaparecer. */
 @keyframes pmRespirar {
-  0%, 100% { background-color: var(--surface2); }
-  50%      { background-color: var(--surface); }
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 1; }
 }

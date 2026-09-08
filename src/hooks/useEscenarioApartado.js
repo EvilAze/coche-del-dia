@@ -94,11 +94,37 @@ export function useEscenarioApartado(abierta, hojaEl) {
           (parseFloat(getComputedStyle(pliego).paddingTop) || 0)
         : fotoTop;
 
-      return { tope, fotoTop, fotoAlto: escenario.offsetHeight };
+      return {
+        tope,
+        fotoTop,
+        fotoAlto: escenario.offsetHeight,
+        // El marco, para escribirle a ÉL las variables (ver `aplicar`).
+        marco: escenario.querySelector(".cdd-stage-frame"),
+      };
     }
 
-    function medir(desplazamiento = 0) {
-      const c = contexto();
+    // LA GEOMETRÍA SE CONGELA MIENTRAS DURA UN GESTO, y esto es lo que decide si
+    // el arrastre se siente de seda o de goma.
+    //
+    // El bucle era: `useArrastreHoja` ESCRIBE el transform de la hoja y acto
+    // seguido llama aquí, que LEE `getBoundingClientRect` dos veces,
+    // `getComputedStyle` una y `offsetHeight` otra. Leer layout justo después de
+    // escribir estilo obliga al navegador a recalcularlo en el acto —layout
+    // síncrono forzado— y eso pasaba en CADA FRAME del arrastre. A 60Hz se
+    // disimula; a 120Hz el presupuesto por frame es de 8,3ms y ahí está la
+    // diferencia entre seguir al dedo y perseguirlo.
+    //
+    // Y no hacía falta ni una de esas lecturas: durante el gesto la hoja se
+    // mueve con un `transform`, que no toca el layout de nadie. El escenario
+    // sigue donde estaba, el pliego también, y el alto de la hoja es el mismo
+    // (desde que el gesto va en un solo sentido, ni siquiera cambia al
+    // estirarla, porque ya no se estira). Lo único que varía es el
+    // desplazamiento, que llega por argumento. Así que se mide UNA vez al
+    // empezar y el resto del gesto es aritmética.
+    let gesto = null;
+
+    function medir(desplazamiento = 0, congelado = null) {
+      const c = congelado ? congelado.ctx : contexto();
       if (!c) return null;
       return calcularApartado({
         tope: c.tope,
@@ -110,15 +136,33 @@ export function useEscenarioApartado(abierta, hojaEl) {
         // En los dos casos la cuenta que sale es la misma: dónde queda el borde
         // de arriba de la hoja y cuánto hueco deja.
         suelo:
-          window.innerHeight - hojaEl.offsetHeight - AIRE_HOJA + desplazamiento,
+          window.innerHeight -
+          (congelado ? congelado.alturaHoja : hojaEl.offsetHeight) -
+          AIRE_HOJA +
+          desplazamiento,
         fotoTop: c.fotoTop,
         fotoAlto: c.fotoAlto,
       });
     }
 
-    function aplicar({ subida, escala }) {
-      raiz.style.setProperty("--cdd-escenario-subida", `${subida}px`);
-      raiz.style.setProperty("--cdd-escenario-escala", String(escala));
+    // LAS DOS VARIABLES SE ESCRIBEN EN EL MARCO, NO EN LA RAÍZ, y esto es una
+    // medida y no una opinión: durante un arrastre se reescriben en cada frame,
+    // y una propiedad personalizada SE HEREDA — cambiarla en `:root` obliga al
+    // navegador a revisar el estilo de todo el documento, ochenta filas de
+    // marcas con sus banderas incluidas. Medido en el emulador con el protocolo
+    // de DevTools: 2,6 ms de recálculo de estilo por frame, que a 120Hz es un
+    // tercio del presupuesto entero (8,3 ms) gastado en repasar estilo de cosas
+    // que no se mueven.
+    //
+    // Escritas en el marco, el `var()` de la regla las resuelve desde el propio
+    // elemento y la invalidación se queda en él. La regla del CSS no cambia:
+    // sigue siendo `.cdd-stage-frame { transform: … var(--cdd-escenario-subida) }`,
+    // solo cambia de dónde saca el valor. Si el marco no existiera todavía se
+    // cae a la raíz, que es el comportamiento de siempre.
+    function aplicar({ subida, escala }, marco) {
+      const destino = marco || raiz;
+      destino.style.setProperty("--cdd-escenario-subida", `${subida}px`);
+      destino.style.setProperty("--cdd-escenario-escala", String(escala));
       // EL CROMO NO PARPADEA MIENTRAS SE ARRASTRA. Durante el gesto la subida
       // baja hasta cero, y actualizar el atributo aquí encendería la cabecera de
       // golpe a mitad de recorrido — un parpadeo justo detrás de la hoja que se
@@ -133,22 +177,46 @@ export function useEscenarioApartado(abierta, hojaEl) {
 
     // La medida de apertura se calcula ya (el nodo está montado y maquetado) y
     // se APLICA dos frames después, a la vez que ModalShell enciende la hoja.
-    const inicial = medir();
+    const ctxInicial = contexto();
+    const inicial = ctxInicial
+      ? medir(0, { ctx: ctxInicial, alturaHoja: hojaEl.offsetHeight })
+      : null;
     if (inicial) {
       const raf1 = requestAnimationFrame(() => {
-        const raf2 = requestAnimationFrame(() => aplicar(inicial));
+        const raf2 = requestAnimationFrame(() => aplicar(inicial, ctxInicial.marco));
         pendiente = () => cancelAnimationFrame(raf2);
       });
       pendiente = () => cancelAnimationFrame(raf1);
     }
 
     const remedir = () => {
-      const r = medir();
-      if (r) aplicar(r);
+      // Cambió la ventana (teclado, giro): lo congelado ya no vale.
+      gesto = null;
+      const c = contexto();
+      if (!c) return;
+      const r = medir(0, { ctx: c, alturaHoja: hojaEl.offsetHeight });
+      if (r) aplicar(r, c.marco);
     };
     seguirRef.current = (desplazamiento) => {
-      const r = medir(desplazamiento);
-      if (r) aplicar(r);
+      // `data-arrastrando` lo pone useArrastreHoja al pasar el umbral y lo quita
+      // al soltar: es la misma señal que ya usa el CSS para quitarle la
+      // transición al marco, así que no hay un estado nuevo que mantener.
+      if (!raiz.hasAttribute("data-arrastrando")) {
+        gesto = null;
+        const c = contexto();
+        if (!c) return;
+        const r = medir(desplazamiento, { ctx: c, alturaHoja: hojaEl.offsetHeight });
+        if (r) aplicar(r, c.marco);
+        return;
+      }
+      if (!gesto) {
+        const ctx = contexto();
+        if (!ctx) return;
+        // La ÚNICA lectura de layout del gesto entero, y cae en su primer frame.
+        gesto = { ctx, alturaHoja: hojaEl.offsetHeight };
+      }
+      const r = medir(desplazamiento, gesto);
+      if (r) aplicar(r, gesto.ctx.marco);
     };
     // ResizeObserver falta en algún WebView viejo y en jsdom: sin él sigue
     // habiendo composición, solo que no se refina al subir el teclado (mejora
@@ -173,8 +241,15 @@ export function useEscenarioApartado(abierta, hojaEl) {
       // la hoja se va. Son el mismo gesto, así que van al mismo tiempo.
       delete raiz.dataset.eligiendo;
       delete raiz.dataset.arrastrando;
-      raiz.style.removeProperty("--cdd-escenario-subida");
-      raiz.style.removeProperty("--cdd-escenario-escala");
+      // Se limpian los DOS sitios posibles: el marco, que es donde se escriben,
+      // y la raíz, por si alguna vez se cayó al respaldo (o por si quedan
+      // restos de una versión anterior en una pestaña que no se recargó).
+      const marcoFinal = document.querySelector(".cdd-stage-frame");
+      for (const nodo of [marcoFinal, raiz]) {
+        if (!nodo) continue;
+        nodo.style.removeProperty("--cdd-escenario-subida");
+        nodo.style.removeProperty("--cdd-escenario-escala");
+      }
     };
   }, [abierta, hojaEl]);
 

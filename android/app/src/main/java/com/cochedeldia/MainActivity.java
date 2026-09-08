@@ -1,6 +1,8 @@
 package com.cochedeldia;
 
+import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
 
@@ -40,6 +42,34 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().setBackgroundColor(ContextCompat.getColor(this, R.color.cdd_window_bg));
+            pedirFotogramasAltos(getBridge().getWebView());
+        }
+    }
+
+    /**
+     * PEDIRLE AL SISTEMA LA CADENCIA ALTA CUANDO ALGO SE MUEVE.
+     *
+     * Desde Android 15 el sistema decide a cuántos hercios refresca según lo que
+     * cada vista dice necesitar (`setRequestedFrameRate`). El valor por defecto
+     * es «lo que el framework estime», y para una vista que la mayor parte del
+     * tiempo está quieta —una fotografía y un cupón— esa estimación puede
+     * quedarse corta justo en los momentos en que sí importa: el arrastre de la
+     * hoja, el revelado de la foto, el estampado del veredicto.
+     *
+     * LO QUE ESTO NO ES: no fuerza la pantalla a 120Hz ni gasta batería con la
+     * app parada. Es una preferencia que el sistema aplica MIENTRAS la vista se
+     * redibuja; sin nada que dibujar no hay nada que acelerar. Por eso puede
+     * ponerse una vez y olvidarse.
+     *
+     * Y ES SOLO LA MITAD DEL ASUNTO: de nada sirve pedir 120Hz si una animación
+     * repinta en el hilo principal en cada frame. Esa mitad se resuelve en el
+     * CSS —solo `transform`/`opacity` en lo que no para de moverse, con su
+     * guardarraíl en `test:estetica`— y en no leer layout dentro del bucle de un
+     * gesto (ver useEscenarioApartado).
+     */
+    private void pedirFotogramasAltos(View vista) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            vista.setRequestedFrameRate(View.REQUESTED_FRAME_RATE_CATEGORY_HIGH);
         }
     }
 }

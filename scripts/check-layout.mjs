@@ -328,8 +328,14 @@ function paginaHtml(hrefCss) {
   // con la MISMA función que la app (lib/escenarioApartado) y los aplica aquí.
   window.aplicarApartado = function (subida, escala) {
     const r = document.documentElement;
-    r.style.setProperty("--cdd-escenario-subida", subida + "px");
-    r.style.setProperty("--cdd-escenario-escala", String(escala));
+    // En el MARCO y no en la raíz, igual que la app: escritas en la raíz las
+    // hereda todo el documento y obliga a repasar el estilo entero en cada frame
+    // del arrastre (medido: 2,6 ms por frame). Aquí no cambia lo que se mide,
+    // pero un banco que aplica la composición de otra forma que el jugador es un
+    // banco que un día dará verde a algo que en el móvil no pasa.
+    const marco = document.querySelector(".cdd-stage-frame");
+    (marco || r).style.setProperty("--cdd-escenario-subida", subida + "px");
+    (marco || r).style.setProperty("--cdd-escenario-escala", String(escala));
     r.dataset.eligiendo = subida > 0 ? "apartada" : "abierta";
   };
 </script></body></html>`;

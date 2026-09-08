@@ -191,7 +191,17 @@ export function useArrastreHoja({ hojaEl, activo, onCerrar, onDesplazar }) {
       inicioY = t.clientY;
       muestras = [{ y: t.clientY, t: e.timeStamp }];
       siguiendo = false;
-      base = hojaEl.offsetHeight;
+      // EL 28% SE MIDE SOBRE LO QUE SE VE, NO SOBRE LA CAJA. Con el teclado a la
+      // vista la hoja crece por debajo —se rellena el hueco que el teclado tapa,
+      // ver `.pm-hoja` en index.css— y `offsetHeight` cuenta ese relleno. Sin
+      // descontarlo, el umbral se calculaba sobre 636px de caja para 300px de
+      // hoja visible: había que arrastrarla hasta dejar a la vista menos de la
+      // mitad para que se cerrara. Una lectura, y en el primer frame del gesto.
+      base =
+        hojaEl.offsetHeight -
+        (parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue("--cdd-teclado")
+        ) || 0);
       offset = 0;
       const scroller = scrollerBajo(e.target);
       permitido = !scroller || scroller.scrollTop <= 0;

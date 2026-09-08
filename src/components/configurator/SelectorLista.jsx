@@ -19,10 +19,11 @@
 //
 //   · El cromo de la hoja son 117px antes de la primera fila (tirador 11,
 //     cabecera ~49, buscador ~57), y una fila son 52.
-//   · Con el teclado arriba en un 360x780 la hoja se queda en 300px, o sea 183
-//     de lista: TRES FILAS Y MEDIA. Sobre ochenta marcas.
-//   · Y la fotografía baja de 336x252 a 232x174, porque al encoger la ventana el
-//     pliego entero se recompone (ver useEscenarioApartado).
+//   · Con el teclado arriba en un 360x780 a la hoja le quedan 300px visibles, o
+//     sea 183 de lista: TRES FILAS Y MEDIA. Sobre ochenta marcas.
+//   · Y la fotografía baja de 336x252 a 232x174, porque el hueco que queda por
+//     encima de la hoja se reparte entre las dos (ver useEscenarioApartado).
+//     Los dos números los mide `npm run test:layout` en cada pantalla.
 //
 // El índice A-Z existe precisamente para hacer navegable esa lista de ochenta, y
 // con tres filas y media a la vista no sirve de nada: apuntar a una letra de

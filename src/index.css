@@ -2341,10 +2341,28 @@ body,
    el que cabía entero —el de la repesca— se quedaba pegado abajo con un palmo
    de pliego encima. Ver `.cdd-end` en móvil.)
 
-   `dvh` y no `svh`: si el jugador toca «buscar», Android encoge el WebView para
-   hacer sitio al teclado y la hoja tiene que encoger con él. Con `svh` se
-   quedaría midiendo la pantalla entera y la lista seguiría por debajo del
-   teclado.
+   EL TECLADO NO ENCOGE LA VENTANA, Y ESO LO PAGABA ESTA HOJA. Aquí ponía que
+   con `dvh` bastaba —«Android encoge el WebView para hacer sitio al teclado y la
+   hoja encoge con él»— y fue verdad hasta el día en que se apagó `insetsHandling`
+   para que la fotografía dejara de encogerse (regla 18h). Lo que se apagó fue
+   exactamente eso: el `padding-bottom` que Capacitor le metía al padre del
+   WebView. Desde entonces el WebView mide la pantalla entera pase lo que pase, y
+   `dvh` con él. Medido en el emulador, con el teclado subido y `mInputShown=true`:
+   `innerHeight` 997, `visualViewport.height` 997, o sea los mismos que con la
+   pantalla vacía. Ni un solo número del web se enteraba.
+
+   Lo que se veía: la hoja seguía anclada al borde de abajo con sus 604px, de los
+   cuales 336 quedaban DETRÁS del teclado — dos filas y media de lista sobre
+   ochenta marcas. Y al teclear iba a peor en vez de a mejor, porque la hoja se
+   ajusta a su contenido: filtrando por «vol» se quedaba en 266px de alto,
+   anclada abajo, o sea ENTERA por debajo del teclado. Buscador incluido. Se
+   escribía a ciegas dentro de algo que no estaba en pantalla.
+
+   La cuenta se hace ahora contra `--pm-ventana`, que es la pantalla MENOS el
+   teclado, y el número lo pone el nativo en `--cdd-teclado` (InsetsBridgePlugin,
+   ver android/). El `dvh` sigue siendo el de siempre para todo lo demás: con la
+   variable a cero —o sea en web, donde el navegador sí encoge la ventana— cada
+   una de estas reglas vale exactamente lo que valía antes.
 
    EL ALTO SALE DE RESTAR, NO DE ELEGIR UN PORCENTAJE. Aquí ponía `86dvh`, y ese
    número —con el velo al 72% que llevaba el fondo— dejaba la fotografía fuera de
@@ -2374,9 +2392,33 @@ body,
     (min(100vw, 560px) - 24px) * 0.75 +
     var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 22px
   );
+  /* LA VENTANA ÚTIL: la pantalla menos lo que tape el teclado. En web y con el
+     teclado bajado la variable no existe, el respaldo es cero y esto es `100dvh`
+     — la misma cuenta de siempre, letra por letra. */
+  --pm-ventana: calc(100dvh - var(--cdd-teclado, 0px));
+  /* Lo que se VE de la hoja, con nombre porque hay tres reglas que lo necesitan.
+     El `.72` era `72dvh` y sigue siendo el mismo techo, solo que medido contra
+     lo que se ve y no contra lo que hay. */
+  --pm-alto: min(
+    calc(var(--pm-ventana) * .72),
+    max(300px, calc(var(--pm-ventana) - var(--pm-hueco-foto)))
+  );
   position: relative; display: flex; flex-direction: column;
   width: 100%; max-width: 560px;
-  max-height: min(72dvh, max(300px, calc(100dvh - var(--pm-hueco-foto))));
+  /* LA CAJA LLEGA AL SUELO Y LO QUE TAPA EL TECLADO SE PAGA CON RELLENO. Es la
+     diferencia entre apartar la hoja y agrandarla por debajo, y se decidió
+     mirando la grabación a 60fps: subiéndola con un margen, el sistema publica
+     el inset en el PRIMER frame de la animación del teclado, así que la hoja
+     llegaba a su sitio de un salto mientras el teclado tardaba otros siete
+     frames en subir — 117ms enseñando el pliego de detrás (ADIVINAR, el
+     historial, el reloj de cierre) por la rendija entre las dos. Con el relleno
+     no hay rendija que enseñar: el papel sigue llegando al borde de la pantalla
+     y el teclado sube por encima de él. La hoja no se aparta, se le mete el
+     relleno debajo.
+     Y de paso la cuenta de useEscenarioApartado se queda como estaba: la hoja
+     sigue apoyada en el suelo, así que su borde de arriba sigue siendo
+     `innerHeight - offsetHeight` y no hay que descontarle nada. */
+  max-height: calc(var(--pm-alto) + var(--cdd-teclado, 0px));
   background: var(--surface);
   border: 0; border-top: 2px solid var(--line-strong); border-radius: 0;
   /* La sombra del sistema, la misma del recorte flotante y del desplegable del
@@ -2388,7 +2430,13 @@ body,
      `env()` vale CERO en la barra de gestos por debajo de Chromium 140, y esta
      línea a secas era la que dejaba la última marca de la lista debajo del
      sistema. La publica InsetsBridgePlugin (ver android/ y lib/insets.js). */
-  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  /* EL MAYOR DE LOS DOS HUECOS, no la suma: el teclado se dibuja ENCIMA de la
+     barra de gestos, así que cuando está subido su alto ya la incluye y sumar
+     los dos regalaría 24px de lista. Sin teclado esto es el inset de siempre. */
+  padding-bottom: max(
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)),
+    var(--cdd-teclado, 0px)
+  );
   /* LA HOJA ENTRA DESLIZÁNDOSE, Y ESTA LÍNEA ES LA MITAD DEL TRUCO. La otra
      mitad son las clases que le pasa SelectorHoja a ModalShell
      (`translate-y-full` en reposo, `translate-y-0` a la vista) en vez del
@@ -2405,6 +2453,25 @@ body,
      El arrastre pisa esto con estilos en línea mientras dura el gesto. */
   transition: transform var(--ms-hoja) var(--curva-entra);
 }
+/* EL ALTO SE CONGELA MIENTRAS HAY TECLADO, que es la otra mitad del fallo y la
+   que de verdad dejaba a ciegas.
+     La hoja se ajusta a su contenido hasta el techo, y eso está bien pensado:
+   con el año, o con los tres modelos de una marca, mide poco y el hueco de la
+   foto crece solo (ver arriba). Pero FILTRANDO, el contenido encoge mientras se
+   escribe — y la hoja está anclada abajo, así que encoger la hunde. Cada letra
+   la metía un poco más debajo del teclado; con dos coincidencias se iba entera,
+   buscador incluido. La lista se estrechaba justo cuando ya estaba a punto de
+   dar la respuesta.
+     Con el suelo puesto, mientras el teclado esté arriba la hoja mide su alto y
+   punto: filtrar cambia lo que hay DENTRO de la lista y no dónde está la lista.
+   Es `min-height` y no `height` a propósito — `height:auto` no se puede
+   interpolar, así que el día que esto se quiera animar, con `height` no habría
+   nada que animar. Y lleva sumado el relleno del teclado por lo mismo que el
+   techo de ahí arriba: la caja de la hoja incluye lo que queda detrás de él. */
+:root[data-teclado-sistema] .pm-hoja {
+  min-height: calc(var(--pm-alto) + var(--cdd-teclado, 0px));
+}
+
 /* EL VELO NO TIÑE. Un velo al 72% sobre la fotografía es exactamente el problema
    que este cambio viene a resolver: da igual dejarle hueco a la foto si luego se
    apaga. Sigue siendo una capa a pantalla completa —para eso está: recoge el

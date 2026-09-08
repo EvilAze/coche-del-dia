@@ -20,9 +20,17 @@
 // entera ni se recompone. El teclado sube contra la hoja, que es la única
 // superficie preparada para él.
 //
-// EL ALTO ES `dvh` A PROPÓSITO. Con el teclado abierto Android redimensiona el
-// WebView, así que `dvh` ya vale lo que queda libre y la hoja se ajusta sola
-// por encima del teclado. Sin medir nada y sin plugin.
+// EL TECLADO HAY QUE MEDIRLO, y durante meses aquí ponía que no. Decía que con
+// el teclado abierto Android redimensiona el WebView, que `dvh` ya vale lo que
+// queda libre y que la hoja se ajusta sola «sin medir nada y sin plugin». Era
+// verdad hasta que se apagó `insetsHandling` para que la fotografía dejara de
+// encogerse (regla 18h): lo que se apagó fue justo el redimensionado. Desde
+// entonces el teclado se SUPERPONE —`innerHeight` y `visualViewport.height`
+// siguen midiendo la pantalla entera con él subido— y esta hoja, anclada al
+// borde de abajo, se dibujaba debajo de él: dos filas y media de lista, y al
+// filtrar se hundía entera, buscador incluido. El alto lo publica ahora el
+// nativo en `--cdd-teclado` (InsetsBridgePlugin) y lo consume el CSS de
+// `.pm-hoja`. Aquí no hay nada que hacer: sigue siendo maqueta.
 //
 // Y LA HOJA NO ES UNA PANTALLA, ES UNA BANDA: deja arriba el hueco de la
 // fotografía y no lo tiñe. Eran 86dvh de lista bajo un velo al 72%, o sea que

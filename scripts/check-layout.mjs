@@ -324,6 +324,32 @@ function paginaHtml(hrefCss) {
     }
   };
 
+  // EL TECLADO, TAL Y COMO LLEGA EN LA APP: como un número que publica el nativo
+  // y una pantalla que NO cambia de tamaño. Aquí antes se simulaba encogiendo el
+  // viewport, que es lo que hacía Android hasta que se apagó insetsHandling
+  // (regla 18h) para que la fotografía dejara de encogerse. Desde entonces el
+  // WebView mide la pantalla entera con el teclado subido o bajado, así que el
+  // banco estaba midiendo un teléfono que ya no existe — y por eso daba verde a
+  // una hoja que en el móvil se dibujaba entera por debajo del teclado.
+  window.aplicarTeclado = function (px) {
+    const r = document.documentElement;
+    r.style.setProperty("--cdd-teclado", px + "px");
+    r.toggleAttribute("data-teclado-sistema", px > 0);
+  };
+
+  // Refiltrar la lista sin tocar nada más, que es lo que pasa al teclear.
+  window.filtrarHoja = function (n) {
+    const ul = document.querySelector(".pm-lista");
+    if (!ul) return;
+    ul.innerHTML = "";
+    for (let i = 0; i < n; i++) {
+      const li = document.createElement("li");
+      li.className = "pm-opcion";
+      li.textContent = "Marca " + (i + 1);
+      ul.appendChild(li);
+    }
+  };
+
   // Lo que publica useEscenarioApartado en la raíz. El banco calcula los valores
   // con la MISMA función que la app (lib/escenarioApartado) y los aplica aquí.
   window.aplicarApartado = function (subida, escala) {
@@ -513,9 +539,20 @@ async function main() {
   // solo se le sirven las medidas del navegador de verdad y se comprueba el
   // resultado en píxeles.
   //
-  // Con teclado y sin él, porque el caso apretado es el otro: al subir, Android
-  // encoge el WebView y el hueco se reparte entre tres. Se simula encogiendo el
-  // viewport, que es literalmente lo que hace el sistema.
+  // Con teclado y sin él, porque el caso apretado es el otro: al subir, el hueco
+  // se reparte entre tres.
+  //
+  // SE SIMULA SUPERPONIÉNDOLO, NO ENCOGIENDO LA VENTANA, y ese cambio es la
+  // mitad de este banco. Aquí ponía «se simula encogiendo el viewport, que es
+  // literalmente lo que hace el sistema», y era cierto hasta que se apagó
+  // `insetsHandling` para que la fotografía dejara de encogerse (regla 18h). Lo
+  // que se apagó fue justo eso. Desde entonces el WebView mide la pantalla
+  // entera con el teclado subido —medido en el emulador: `innerHeight` 997 y
+  // `visualViewport.height` 997 con el teclado a la vista— y el banco seguía
+  // midiendo un teléfono que ya no existe: por eso daba verde mientras en el
+  // móvil la hoja se dibujaba ENTERA por debajo del teclado. Un banco que
+  // simula mal no es un banco flojo, es uno que dice que no pasa nada.
+  //
   // El teclado de Android no mide lo mismo en todas partes: es ~el 42% de la
   // pantalla con un tope por arriba. Ponerlo fijo en 290 fabricaba ventanas
   // imposibles (190px de alto en el móvil patológico) y el banco acababa
@@ -535,16 +572,21 @@ async function main() {
 
   for (const p of PANTALLAS) {
     for (const conTeclado of [false, true]) {
-      const alto = conTeclado ? p.h - teclado(p.h) : p.h;
-      // Por debajo de 300px de ventana no sobrevive ninguna composición: caben
-      // la cabecera de la hoja y su buscador, y se acabó. Es el móvil patológico
-      // (o sea, un teléfono en horizontal) con el teclado encima, y ahí el banco
-      // no mide nada útil — mediría cuál de las dos piezas sacrificamos, que es
-      // una pregunta sin respuesta buena.
-      if (alto < 300) continue;
-      const page2 = await navegador.newPage({ viewport: { width: p.w, height: alto } });
+      const kb = conTeclado ? teclado(p.h) : 0;
+      // Lo que queda de pantalla por encima del teclado. La VENTANA sigue
+      // midiendo `p.h` pase lo que pase (ver arriba); esto es solo el hueco
+      // aprovechable, y es contra él contra lo que se juzga la composición.
+      const util = p.h - kb;
+      // Por debajo de 300px de hueco útil no sobrevive ninguna composición:
+      // caben la cabecera de la hoja y su buscador, y se acabó. Es el móvil
+      // patológico (o sea, un teléfono en horizontal) con el teclado encima, y
+      // ahí el banco no mide nada útil — mediría cuál de las dos piezas
+      // sacrificamos, que es una pregunta sin respuesta buena.
+      if (util < 300) continue;
+      const page2 = await navegador.newPage({ viewport: { width: p.w, height: p.h } });
       await page2.goto(url, { waitUntil: "networkidle" });
       await page2.evaluate(() => window.setIntentos(3));
+      await page2.evaluate((px) => window.aplicarTeclado(px), kb);
       await page2.waitForTimeout(50);
 
       const medidas = await page2.evaluate((n) => {
@@ -578,17 +620,35 @@ async function main() {
 
       const v = await page2.evaluate(() => {
         const marco = document.querySelector(".cdd-stage-frame").getBoundingClientRect();
-        const hoja = document.querySelector(".pm-hoja").getBoundingClientRect();
+        const hojaEl = document.querySelector(".pm-hoja");
+        const hoja = hojaEl.getBoundingClientRect();
         const lista = document.querySelector(".pm-lista").getBoundingClientRect();
         const cab = document.querySelector(".prensa-area-cab");
         return {
           marcoTop: marco.top, marcoBottom: marco.bottom,
           marcoW: marco.width, marcoH: marco.height,
           hojaTop: hoja.top,
+          // El borde de abajo del CONTENIDO de la hoja: su caja llega al suelo
+          // de la pantalla y el hueco del teclado se lo come el relleno, así que
+          // lo que hay que comprobar es dónde acaba lo que se lee, no la caja.
+          contenidoBottom:
+            hoja.bottom - (parseFloat(getComputedStyle(hojaEl).paddingBottom) || 0),
           lista: lista.height,
           cabOpacidad: getComputedStyle(cab).opacity,
         };
       });
+
+      // LA HOJA NO SE HUNDE AL FILTRAR, que es la otra mitad del fallo del
+      // teclado: la hoja se ajusta a su contenido y está anclada abajo, así que
+      // teclear la encogía hacia el suelo — con dos coincidencias se iba entera
+      // por debajo del teclado, buscador incluido, y se escribía a ciegas. Se
+      // mide con la lista filtrada a dos, que es donde estaba el fondo del
+      // agujero, y se vuelve a dejar como estaba para no ensuciar lo de abajo.
+      const alFiltrar = await page2.evaluate(() => {
+        window.filtrarHoja(2);
+        return document.querySelector(".pm-hoja").getBoundingClientRect().top;
+      });
+      await page2.evaluate((n) => window.filtrarHoja(n), OPCIONES);
 
       // Lo que de verdad se ve de la foto por encima del filete de la hoja.
       const visible = Math.min(v.marcoBottom, v.hojaTop) - Math.max(v.marcoTop, 0);
@@ -610,6 +670,14 @@ async function main() {
       const opciones = v.lista / 52;
       if (opciones < (p.corriente ? 3 : 2))
         fallo.push(`solo ${opciones.toFixed(1)} opciones a la vista`);
+      // 5) NADA DE LA HOJA SE DIBUJA DEBAJO DEL TECLADO. Es la comprobación que
+      //    faltaba: el teclado se superpone, así que esto no lo garantiza la
+      //    maqueta — lo garantiza que el alto de la hoja lo descuente.
+      if (v.contenidoBottom > util + 1)
+        fallo.push(`${Math.round(v.contenidoBottom - util)}px de hoja bajo el teclado`);
+      // 6) Y al filtrar no se mueve de sitio.
+      if (Math.abs(alFiltrar - v.hojaTop) > 1 && conTeclado)
+        fallo.push(`la hoja se hunde ${Math.round(alFiltrar - v.hojaTop)}px al filtrar`);
 
       if (p.corriente) {
         // LA PROMESA COMPLETA, y solo se exige en móviles de uso real: ni un
@@ -634,8 +702,8 @@ async function main() {
 
       linea(
         fallo.length === 0,
-        `hoja  ${p.nombre}  ${String(p.w).padStart(3)}x${String(alto).padStart(3)}` +
-        `${conTeclado ? " +teclado" : "         "} · hoja ${medidas.hojaAlto}px · ` +
+        `hoja  ${p.nombre}  ${String(p.w).padStart(3)}x${String(p.h).padStart(3)}` +
+        `${conTeclado ? ` +tec${String(kb).padStart(3)}` : "        "} · hoja ${medidas.hojaAlto}px · ` +
         `foto ${Math.round(v.marcoW)}x${Math.round(v.marcoH)} (sube ${subida}, x${escala})` +
         (fallo.length ? `   ← ${fallo.join(" · ")}` : "")
       );

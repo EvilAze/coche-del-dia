@@ -25,11 +25,16 @@
 //     evita duplicar aquí el `env(safe-area-inset-top)` (que además no se puede
 //     leer desde JS: `getPropertyValue` devuelve el literal, no los píxeles).
 //
-// SE REMIDE con el teclado, porque es el caso apretado: al subir, Android
-// encoge el WebView, la hoja encoge con él (va en `dvh`) y el hueco de arriba
-// cambia entero. Lo cazan el ResizeObserver de la hoja y el `resize` de la
-// ventana; el propio `transform` no reordena nada, así que no puede realimentar
-// al observador.
+// SE REMIDE con el teclado, porque es el caso apretado: al subir, la hoja crece
+// por debajo para reservarle sitio y su borde de arriba baja, así que el hueco
+// de la foto cambia entero. La CUENTA no cambia —la hoja sigue apoyada en el
+// suelo de la pantalla y su relleno entra en `offsetHeight`—, pero hay que
+// enterarse, y ahí está el detalle: la ventana NO se redimensiona (regla 18h),
+// así que ni `resize` ni `visualViewport` dicen nada. Quien avisa es el nativo
+// con `cdd:teclado` (InsetsBridgePlugin). El ResizeObserver de la hoja caza
+// además el caso en que la hoja cambia de alto sin que cambie nada más; el
+// propio `transform` no reordena nada, así que no puede realimentar al
+// observador.
 //
 // LA PRIMERA APLICACIÓN VA EN DOBLE rAF, y no es superstición. ModalShell monta
 // el panel y espera dos frames antes de encender su clase visible (necesita que
@@ -135,6 +140,12 @@ export function useEscenarioApartado(abierta, hojaEl) {
         //     `offsetHeight` — por eso ahí el desplazamiento es cero.
         // En los dos casos la cuenta que sale es la misma: dónde queda el borde
         // de arriba de la hoja y cuánto hueco deja.
+        // El suelo es dónde queda el filete de arriba de la hoja, y con el
+        // teclado subido esta cuenta NO cambia: la hoja sigue apoyada en el
+        // borde de abajo de la ventana y lo que tapa el teclado se lo come su
+        // propio relleno (ver `.pm-hoja` en index.css), que `offsetHeight` ya
+        // incluye por ser una medida de caja. Descontar aquí el teclado además
+        // sería contarlo dos veces.
         suelo:
           window.innerHeight -
           (congelado ? congelado.alturaHoja : hojaEl.offsetHeight) -
@@ -225,10 +236,12 @@ export function useEscenarioApartado(abierta, hojaEl) {
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(remedir);
     ro?.observe(hojaEl);
     window.addEventListener("resize", remedir);
-    // En un WebView redimensionable los dos eventos dicen lo mismo, pero no en
-    // todos: si el sistema decide superponer el teclado en vez de encoger la
-    // ventana, el único que se entera es este.
+    // En web los tres eventos dicen casi lo mismo y sobra con el primero. En la
+    // app no: ahí el teclado se superpone sin redimensionar nada, así que ni
+    // `resize` ni `visualViewport` se enteran (medido: los dos siguen dando 997
+    // con el teclado a la vista). El que avisa es el nativo.
     window.visualViewport?.addEventListener("resize", remedir);
+    window.addEventListener("cdd:teclado", remedir);
 
     return () => {
       pendiente?.();
@@ -236,6 +249,7 @@ export function useEscenarioApartado(abierta, hojaEl) {
       ro?.disconnect();
       window.removeEventListener("resize", remedir);
       window.visualViewport?.removeEventListener("resize", remedir);
+      window.removeEventListener("cdd:teclado", remedir);
       // Al cerrar se sueltan las tres cosas A LA VEZ: el `transform` calculado
       // vuelve a `none` y la transición del CSS lo devuelve a su sitio mientras
       // la hoja se va. Son el mismo gesto, así que van al mismo tiempo.

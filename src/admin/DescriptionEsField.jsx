@@ -1,8 +1,9 @@
 // src/admin/DescriptionEsField.jsx
 // Gemelo de DescriptionEnField para la descripción en español: textarea con
-// botón "Generar con IA" que llama a /api/admin/describe-car (Claude Sonnet 5
-// con búsqueda web). El admin siempre puede editar el resultado antes de
-// guardar — el botón rellena el formulario, no guarda nada.
+// botón "Generar con IA" que llama a /api/admin/describe-car (Gemini Flash
+// con búsqueda web via Google Search grounding). El admin siempre puede
+// editar el resultado antes de guardar — el botón rellena el formulario, no
+// guarda nada.
 //
 // Vive aparte (y no inline en cada panel) porque AddCarPanel y EditCarPanel
 // nombran sus campos distinto (make/model/year vs marca/modelo/anio): el

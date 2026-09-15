@@ -75,6 +75,7 @@ export default function DescriptionEsField({
         throw new Error("Respuesta vacía de la IA.");
       }
       onChange(body.descripcion);
+      if (body.warning) setError(body.warning);
     } catch (err) {
       console.error("[DescriptionEsField] generate:", err);
       setError(err?.message || "Error generando la descripción.");

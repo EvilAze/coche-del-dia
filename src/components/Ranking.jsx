@@ -45,6 +45,7 @@ import {
   getCurrentSeason,
   getChampions,
   getLeaderboard,
+  getWeekRange,
 } from "../lib/statsService";
 import { daysUntilClose } from "../lib/season";
 import { useEscape } from "../hooks/useEscape";
@@ -194,8 +195,11 @@ export default function Ranking({
     error: "",
   });
   // Temporada activa, para el banner (número + tema) y el countdown de cierre.
-  // null = sin temporada activa (hueco o aún no configurada) → no se pinta banner.
+  // null = sin temporada activa (hueco o aún no configurada) → ranking semanal.
   const [season, setSeason] = useState(null);
+  // Rango de la semana actual (para el banner semanal cuando no hay temporada).
+  // null = aún cargando o sin datos → el banner no se pinta.
+  const [weekRange, setWeekRange] = useState(null);
   // Pestaña activa: la clasificación de la temporada en curso ("temporada"), el
   // SALÓN DE CAMPEONES histórico ("campeones") o LEYENDAS, el acumulado all-time
   // ("leyendas"). Las dos históricas se cargan PEREZOSAS al abrir su pestaña por
@@ -233,19 +237,27 @@ export default function Ranking({
 
     let cancelled = false;
     setState({ loading: true, players: [], error: "" });
-    // Cada apertura arranca en la pestaña de temporada y descarta el palmarés
-    // cacheado (por si se cerró una temporada entre visitas).
+    // Cada apertura arranca en la pestaña de temporada/semanal y descarta el
+    // palmarés cacheado (por si se cerró una temporada entre visitas).
     setView("temporada");
     setChampions({ loading: false, seasons: [], error: "", loaded: false });
     setLegends({ loading: false, players: [], error: "", loaded: false });
+    setWeekRange(null);
 
-    // El leaderboard de la temporada y la temporada activa (para el banner) son
-    // independientes: los pedimos en paralelo.
+    // El leaderboard del periodo (temporada o semana) y la temporada activa
+    // (para el banner) son independientes: los pedimos en paralelo.
     Promise.all([getSeasonLeaderboard(), getCurrentSeason()])
       .then(([players, s]) => {
         if (cancelled) return;
         setSeason(s);
         setState({ loading: false, players, error: "" });
+        // Sin temporada activa → pedimos el rango de la semana para el banner.
+        // Es un fetch secundario que no bloquea la tabla (ya tiene datos).
+        if (!s) {
+          getWeekRange()
+            .then((wr) => { if (!cancelled) setWeekRange(wr); })
+            .catch(() => {});
+        }
       })
       .catch((err) => {
         // No nos tragamos el error: lo logueamos para poder diagnosticar por qué
@@ -374,7 +386,7 @@ export default function Ranking({
               botones que reemplazan el contenido. Un patrón ARIA a medias
               confunde más al lector de pantalla que no ponerlo. */}
           {[
-            ["temporada", t("ranking.tabSeason")],
+            ["temporada", season ? t("ranking.tabSeason") : t("ranking.tabWeekly")],
             ["campeones", t("ranking.tabChampions")],
             // Leyendas solo para logueados: es donde vivía antes (colgando del
             // perfil) y donde tiene sentido — al anónimo le velamos la propia
@@ -405,8 +417,8 @@ export default function Ranking({
 
         {view === "temporada" && (
         <>
-        {/* Banner de la temporada en curso: número + tema + countdown de cierre.
-            Cabecera de sección de periódico (versalitas en oro sobre doble
+        {/* Banner de la temporada en curso (o ranking semanal si no hay
+            temporada). Cabecera de sección de periódico (versalitas sobre doble
             filete), no una tarjeta con esquinas redondeadas. */}
         {season &&
           (() => {
@@ -428,6 +440,28 @@ export default function Ranking({
               </div>
             );
           })()}
+        {!season && weekRange && (() => {
+          const fmt = (iso) => {
+            try {
+              return new Date(`${iso}T00:00:00`).toLocaleDateString(
+                locale === "en" ? "en-US" : "es-ES",
+                { day: "numeric", month: "short" }
+              );
+            } catch { return iso; }
+          };
+          return (
+            <div className="rank-temporada">
+              <div className="min-w-0">
+                <p className="rank-temporada-kicker">
+                  {t("ranking.weeklyKicker")}
+                </p>
+                <p className="rank-temporada-tema">
+                  {fmt(weekRange.start)} – {fmt(weekRange.end)}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Logueado pero sin firma: aquí —y solo aquí— el nick significa algo,
             porque sin él no se sale en la tabla (las SQL de temporada filtran
@@ -454,7 +488,7 @@ export default function Ranking({
         ) : state.error ? (
           <ErrorConSalida texto={state.error} onReintentar={() => setReintento((n) => n + 1)} />
         ) : state.players.length === 0 ? (
-          <p className="pm-body py-3 text-sm">{t("ranking.emptySeason")}</p>
+          <p className="pm-body py-3 text-sm">{t(season ? "ranking.emptySeason" : "ranking.emptyWeekly")}</p>
         ) : (
           <div className="rank-tabla">
             {/* El `pr` extra cuando la tabla scrollea compensa el ancho de la

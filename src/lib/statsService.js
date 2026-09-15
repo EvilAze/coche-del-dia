@@ -413,10 +413,25 @@ async function fetchCurrentSeason(today) {
   return data;
 }
 
-// Ranking de la TEMPORADA en curso. Deriva los puntos base ganados en el rango
-// de la temporada desde user_guesses vía la RPC get_season_leaderboard (ver
-// scripts/2026-07-temporadas.sql). Mismo shape que getLeaderboard para que
-// Ranking.jsx reutilice el render de filas. p_season_id NULL → temporada actual.
+// Rango de la SEMANA actual (para el banner "Ranking semanal" cuando no hay
+// temporada activa). Devuelve { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' } o
+// null si la RPC aún no está desplegada. Nunca lanza: la UI cae con elegancia
+// sin banner (mismo criterio defensivo que getCurrentSeason).
+export async function getWeekRange() {
+  const { data, error } = await supabase.rpc("get_current_week_range");
+  if (error) {
+    console.error("[getWeekRange]", error);
+    return null;
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  return { start: row.week_start, end: row.week_end };
+}
+
+// Ranking del PERIODO en curso: temporada activa o, si no hay ninguna, la semana
+// actual (fallback calculado por la RPC get_season_leaderboard — ver
+// scripts/2026-09-ranking-semanal.sql). Mismo shape que getLeaderboard para que
+// Ranking.jsx reutilice el render de filas. p_season_id NULL → periodo actual.
 export async function getSeasonLeaderboard() {
   const { data, error } = await supabase.rpc("get_season_leaderboard", {
     p_season_id: null,

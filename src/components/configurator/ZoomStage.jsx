@@ -1,6 +1,6 @@
 // src/components/configurator/ZoomStage.jsx
-// Escenario «Prensa del motor»: ladillo editorial ("La fotografía del día" +
-// pista N de M), foto con paspartú y filete (lo pinta la capa .prensa sobre
+// Escenario «Prensa del motor»: ladillo editorial (la pregunta del juego +
+// intento N de M), foto con paspartú y filete (lo pinta la capa .prensa sobre
 // .cdd-stage-frame; el HUD/grano del sistema anterior queda oculto por CSS y
 // se retira físicamente en F5) y pie de foto en cursiva con los pips de
 // intentos a la derecha. La foto la sigue pintando CarImage en modo
@@ -8,7 +8,6 @@
 
 import CarImage from "../CarImage";
 import { useT } from "../../i18n";
-import { esApp } from "../../lib/plataforma";
 
 export default function ZoomStage({
   car,
@@ -40,42 +39,32 @@ export default function ZoomStage({
   const { t } = useT();
   const revealed = status !== "playing";
 
-  // El texto VIVO del ladillo: la pista en curso o el cierre de la edición.
+  // El texto VIVO del ladillo: el intento en curso o el cierre de la partida.
   // `hintIndex` null = modo sin pistas progresivas (Repesca veterano): no se
   // pinta contador, para no contradecir el «sin pistas» que promete ese modo.
+  // (Decía «Pista 1 de 5»: llamaba pista a la fotografía, que es el acertijo, y
+  // contaba intentos con la palabra de otra cosa.)
   const estado = revealed
     ? t("prensa.edicionCerrada")
     : hintIndex != null
       ? t("prensa.pista", { n: Math.min(hintIndex + 1, totalHints), max: totalHints })
       : null;
 
-  // ── EN LA APP EL LADILLO SE QUEDA SOLO CON EL ESTADO ──────────────────────
-  // «La fotografía del día» es un rótulo que nombra lo evidente: está encima de
-  // una fotografía. Un ladillo se gana el sitio distinguiendo UNA sección entre
-  // muchas en una página densa; en el pliego de la app no hay más que esto en
-  // pantalla, así que gastaba un renglón entero —a peso 800 y en tinta plena—
-  // para no decir nada, mientras el único dato que cambia según juegas («Pista
-  // 1 de 5») iba de nota al margen, en gris y a peso 600. Estaba invertido: el
-  // rótulo gritaba y el estado susurraba.
+  // ── EL RÓTULO ES LA PREGUNTA DEL JUEGO ────────────────────────────────────
+  // Aquí ponía «La fotografía del día», y en la app ni eso: se retiró por
+  // nombrar lo evidente —está encima de una fotografía— y la línea se quedó con
+  // el estado a secas. El diagnóstico era bueno y la conclusión, corta: el
+  // renglón no sobraba, le sobraba ESE texto. La pantalla no decía en ningún
+  // sitio qué había que hacer (el único enunciado era el h1 `sr-only` de
+  // Configurator) y los primeros cinco segundos de quien la abría por primera
+  // vez eran literalmente «¿pero qué es esto?». La pregunta cuesta el mismo
+  // renglón y es la única frase que un recién llegado necesita leer.
   //
-  // Quitado el rótulo, el estado hereda la línea y su gramaje. En WEB no se
-  // toca: allí el pliego es un documento que se lee bajando, con masthead y
-  // varias secciones, y ahí el ladillo sí hace su trabajo de siempre.
-  //
-  // Y CUANDO NO HAY ESTADO, EN LA APP NO HAY LÍNEA. El caso es Repesca
-  // Veterano, el único modo sin pista. Antes esa rama conservaba el rótulo
-  // —para no dejar una línea en blanco con su filete—, pero conservarlo es
-  // volver a poner «La fotografía del día» encima de una fotografía: el mismo
-  // renglón que se retiró aquí por no decir nada, reaparecido justo en la
-  // pantalla más desnuda de todas. Si no hay nada vivo que contar, la línea
-  // entera se va y la foto sube.
-  const enApp = esApp();
-  const soloEstado = enApp && estado != null;
-  // ...y si NO hay estado pero SÍ hay crédito, la línea se queda: el único modo
-  // sin pista es la Repesca veterano, y ahí «la línea entera se va» dejaría al
-  // patrocinador fuera justo en una de las pantallas del juego. Una atribución
-  // que aparece según en qué modo estés no es una atribución.
-  const sinLadillo = enApp && estado == null && !credito;
+  // En la misma voz que el resto de titulares (Fraunces, en caja baja), no en
+  // versalitas espaciadas: es la frase que se lee, no una etiqueta de sección.
+  // Con la partida cerrada ya no hay nada que preguntar y vuelve el rótulo de
+  // siempre.
+  const rotulo = revealed ? t("prensa.ladilloFoto") : t("prensa.pregunta");
 
   return (
     // Sin sangría horizontal propia. La tenía (`px-4 md:px-8`) y era justo lo que
@@ -91,50 +80,22 @@ export default function ZoomStage({
     // ancho del elemento: el navegador elige el MISMO recurso, así que el preload
     // del middleware sigue coincidiendo byte a byte (regla 6).
     <section ref={sectionRef} className="prensa-area-foto flex flex-col gap-3 pb-4">
-      {/* EL CRÉDITO VA AL FINAL DEL FILETE, no en un renglón propio. Esta
-          línea ya dibuja una regla que llena lo que sobra del ancho, así que el
-          rótulo de la temporada cabe en su extremo derecho sin costar un píxel
-          de alto: estado vivo a la izquierda, temporada a la derecha.
-          Darle banda propia habría sido volver a poner un rótulo fijo encima de
-          la foto — exactamente el renglón que se retiró de aquí por no decir
-          nada (ver el bloque de arriba).
-          Con `credito` el filete deja de ser el `::after` del CSS y pasa a ser
-          un elemento de verdad, porque un pseudo-elemento siempre va el último
-          y aquí necesitamos algo DESPUÉS de la regla.
-
-          El rótulo va en su propio <span> —antes era un nodo de texto suelto—
-          para que el CSS pueda retirarlo en pantalla estrecha cuando el crédito
-          ocupa el otro extremo. Sin eso, «La fotografía del día» y «Temporada ·
-          Bombas de bolsillo» no caben juntos en un móvil de 360 y la línea
-          rompía en dos renglones, que es justo el píxel de alto que este diseño
-          no quiere gastar. De los dos textos, el que cede es el que nombra lo
-          evidente. */}
-      {!sinLadillo && (
-        <div
-          className={
-            "prensa-ladillo" +
-            (soloEstado ? " solo-estado" : "") +
-            (credito ? " con-presenta" : "")
-          }
-        >
-          {!soloEstado && <span className="rotulo">{t("prensa.ladilloFoto")}</span>}
-          {/* EL CONTADOR SE RE-ESTAMPA AL CAMBIAR DE PISTA. Es el relevo
-              tipográfico del lavado rojo que se tiraba sobre la fotografía
-              (ver CarImage): en este sistema el aviso lo da la letra, no un
-              tinte encima de la foto. El `key` es el propio texto, así que al
-              pasar de «Pista 2 de 5» a «Pista 3 de 5» React sustituye el nodo
-              y la animación del sello vuelve a arrancar — que es la única
-              forma de re-disparar una keyframe CSS sin tocarla desde JS.
-              Cae en el primer tiempo del compás, antes que la foto. */}
-          <span key={estado} className="aparte prensa-estampada">{estado}</span>
-          {credito && (
-            <>
-              <i className="filete" aria-hidden="true" />
-              <span className="presenta">{credito}</span>
-            </>
-          )}
-        </div>
-      )}
+      {/* Pregunta a la izquierda, estado al final del filete. El filete es un
+          elemento de verdad y no el `::after` de siempre porque el estado va
+          DESPUÉS de la regla, y un pseudo-elemento siempre va el último. */}
+      <div className="prensa-ladillo prensa-ladillo--pregunta">
+        <span className="rotulo">{rotulo}</span>
+        <i className="filete" aria-hidden="true" />
+        {/* EL CONTADOR SE RE-ESTAMPA AL CAMBIAR DE INTENTO. Es el relevo
+            tipográfico del lavado rojo que se tiraba sobre la fotografía (ver
+            CarImage): en este sistema el aviso lo da la letra, no un tinte
+            encima de la foto. El `key` es el propio texto, así que al pasar de
+            «Intento 2 de 5» a «Intento 3 de 5» React sustituye el nodo y la
+            animación del sello vuelve a arrancar — que es la única forma de
+            re-disparar una keyframe CSS sin tocarla desde JS. Cae en el primer
+            tiempo del compás, antes que la foto. */}
+        {estado && <span key={estado} className="aparte prensa-estampada">{estado}</span>}
+      </div>
 
       {/* UN solo marco. Aquí había un segundo paspartú en utilidades (padding,
           `bg-papel-mat`, `border-border` y `shadow-sm`) montado ALREDEDOR del
@@ -171,8 +132,9 @@ export default function ZoomStage({
         />
       </div>
 
-      {/* La fila del pie ya SOLO existe para los pips, y por eso se gatea con
-          `progress` (los pasa la Repesca; el daily, no).
+      {/* La fila del pie existe para los pips (`progress`, los pasa la
+          Repesca) y para el crédito de la temporada, y solo se monta si hay
+          alguno de los dos.
           Aquí iba además un pie de foto al revelar: «El ejemplar de hoy, por fin a
           plena página». Se retira por tres motivos que se acumularon:
             · Era MENTIRA desde que la foto va enmarcada. Ese «a plena página»
@@ -186,8 +148,21 @@ export default function ZoomStage({
             · Un pie de periódico describe ESA fotografía; este describía la
               maquetación, y con las mismas palabras cada día. Era decoración
               disfrazada de contenido. Lo que dice —«ya puedes verlo entero»— ya lo
-              cuenta el zoom al abrirse, que es enseñarlo en vez de decirlo. */}
-      {progress && <div className="prensa-pie">{progress}</div>}
+              cuenta el zoom al abrirse, que es enseñarlo en vez de decirlo.
+
+          EL CRÉDITO DE LA TEMPORADA VA AL PIE DE LA FOTO. Vivía al final del
+          filete del ladillo, y ese sitio se lo ha quedado el estado ahora que el
+          rótulo es la pregunta: pregunta, estado y crédito no caben juntos en
+          360px. Debajo de la foto, además, es donde un periódico pone la firma
+          de una fotografía de agencia — que es exactamente de lo que habla: de
+          dónde salen los coches de estos días. Solo cuesta alto cuando hay
+          temporada que acreditar. */}
+      {(progress || credito) && (
+        <div className="prensa-pie">
+          {credito && <span className="presenta">{credito}</span>}
+          {progress}
+        </div>
+      )}
     </section>
   );
 }

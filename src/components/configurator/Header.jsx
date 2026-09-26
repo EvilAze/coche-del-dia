@@ -186,8 +186,9 @@ export default function Header({
     </>
   ) : enApp ? (
     // Sin puesto (anónimo, o logueado que aún no ha ganado esta temporada) el
-    // hueco lo ocupa la invitación, en ROJO: es acción, no valor, y el oro no
-    // puede prometer un puesto que no existe. Hace falta porque en la app la
+    // hueco lo ocupa la invitación, en tinta: es acción, no valor, así que ni
+    // oro (no puede prometer un puesto que no existe) ni rojo (en esta pantalla
+    // es de ADIVINAR; ver `.pos--invita` en index.css). Hace falta porque en la app la
     // etiqueta se apila SOBRE la cifra, y sola se quedaba como un renglón de
     // 8,5px flotando en una barra de 34. En web la etiqueta va en línea y a su
     // tamaño de siempre, así que allí no sobra nada y no se añade.

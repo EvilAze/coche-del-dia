@@ -475,6 +475,9 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               onClick={() => setHoja(marcaValida ? "modelo" : "marca")}
               disabled={formDisabled}
               resuelto={bloqueo.modelo}
+              // Tocable, pero con el hueco un tono más apagado: «elige marca
+              // primero» no puede tener la misma cara que un campo listo.
+              espera={!catalogCargando && !marcaValida && !bloqueo.modelo}
             />
             <CampoBoton
               label={t("cdd.labelAnio")}
@@ -484,7 +487,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               disabled={formDisabled}
               resuelto={bloqueo.anio}
               // La horquilla sigue a la vista sin abrir nada: es la pista que
-              // dice por dónde va la búsqueda del año.
+              // dice por dónde va la búsqueda del año. Vive en la línea de la
+              // etiqueta (ver CampoBoton), como el «±2 años» de la web.
               apunte={bloqueo.anio ? null : textoHorquilla(t, horquilla, tolerance)}
             />
           </>

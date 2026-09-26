@@ -1274,12 +1274,16 @@ body,
 @media (hover: hover) {
   .prensa-topbar .prensa-clasif:hover .pos { color: var(--rojo); }
 }
-/* Sin puesto: la invitación ocupa el hueco de la cifra. ROJO porque es acción
-   —el oro es «esto vale algo» y aquí todavía no vale nada—, y en la sans de la
-   interfaz, no en la serif de las cifras: no es un dato, es un botón. */
+/* Sin puesto: la invitación ocupa el hueco de la cifra, en la sans de la
+   interfaz y no en la serif de las cifras: no es un dato, es un botón. Ni oro
+   —el oro es «esto vale algo» y aquí todavía no vale nada— ni ROJO, que es lo
+   que llevaba: en la pantalla de juego el rojo es de ADIVINAR (que se enciende
+   en rojo al completar el cupón), y una invitación secundaria pintada con el
+   mismo color le disputaba el ojo al único botón que importa. Tinta plena y
+   peso 800 bastan para que se lea como algo que se toca. */
 .prensa-topbar .prensa-clasif .pos--invita {
   font-family: var(--font-body); font-weight: 800; font-size: 12px;
-  letter-spacing: .1em; text-transform: uppercase; color: var(--rojo);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-text);
 }
 /* EL SALTO DEL DÍA. Flecha de línea + número, en tinta. Sin verde ni rojo a
    propósito: en este juego esos dos colores son el veredicto de un intento
@@ -1397,42 +1401,48 @@ body,
 .prensa-ladillo::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-3px); }
 .prensa-ladillo .aparte { font-weight: 600; color: var(--cdd-muted); letter-spacing: .14em; }
 
-/* ── QUIÉN PRESENTA LA TEMPORADA, al final del filete ──────────────────────
-   Un ciclo puede venir de una colaboración y decirlo aquí («USPI · POWERART»).
-   El filete pasa de `::after` a elemento real porque un pseudo-elemento va
-   SIEMPRE el último y la atribución tiene que ir después de la regla.
+/* ── EL LADILLO DE LA FOTO ES LA PREGUNTA DEL JUEGO ─────────────────────────
+   «¿Qué coche es?» a la izquierda, el filete llenando el centro y el intento en
+   curso al final. La pregunta va en la voz de los titulares (Fraunces, caja
+   baja) y no en versalitas espaciadas porque es la frase que se LEE — la única
+   que un recién llegado necesita para entender la pantalla (ver ZoomStage). El
+   estado se queda en la voz de etiqueta, en tinta apagada: es el dato al margen.
 
-   MÁS BAJO QUE LA PISTA, Y A PROPÓSITO: 9,5px en tinta apagada contra los 11px
-   a peso 800 del estado. Quien presenta la temporada no compite con lo que
-   está pasando en la partida — es un crédito, del mismo rango que el pie de
-   una fotografía de agencia. Si algún día un acuerdo pide más presencia, el
-   sitio para negociarla es este comentario, no una banda nueva sobre la foto.
+   El filete es un elemento y no el `::after` de los demás ladillos porque el
+   estado va DESPUÉS de la regla, y un pseudo-elemento siempre va el último.
 
-   `nowrap` y a la derecha: así lo único que se mueve cuando el dato llega
-   —llega después del primer pintado, ver Configurator— es el largo del filete.
-   El texto de la pista no baila. */
-.prensa-ladillo.con-presenta::after { content: none; }
-.prensa-ladillo .filete {
-  flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-3px);
+   `nowrap` en los extremos y el filete como único elástico: en 320px la línea
+   no rompe en dos, lo que encoge es la regla (hasta su mínimo de 16px). */
+.prensa-ladillo--pregunta::after { content: none; }
+.prensa-ladillo--pregunta .rotulo {
+  flex: none; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 800; font-size: 19px;
+  line-height: 1.1; letter-spacing: -0.01em; text-transform: none;
+  color: var(--cdd-text);
 }
-.prensa-ladillo .presenta {
-  flex: none; font-weight: 600; font-size: 9.5px; letter-spacing: .16em;
+.prensa-ladillo .filete {
+  flex: 1; min-width: 16px;
+  border-top: 1px solid var(--line-strong); transform: translateY(-4px);
+}
+.prensa-ladillo--pregunta .aparte { flex: none; white-space: nowrap; }
+
+/* ── QUIÉN PRESENTA LA TEMPORADA, al pie de la foto ─────────────────────────
+   Un ciclo puede venir de una colaboración y decirlo aquí («USPI · POWERART»).
+   Vivía al final del filete del ladillo y bajó al pie cuando el rótulo pasó a
+   ser la pregunta: pregunta, estado y crédito no caben juntos en 360px, y el
+   pie de una fotografía es además donde un periódico firma la de agencia.
+
+   BAJO Y APAGADO A PROPÓSITO: 9,5px en tinta apagada. Quien presenta la
+   temporada no compite con lo que está pasando en la partida — es un crédito.
+   Si algún día un acuerdo pide más presencia, el sitio para negociarla es este
+   comentario, no una banda nueva sobre la foto. */
+.prensa-pie .presenta {
+  font-family: var(--font-body); font-style: normal; font-weight: 600;
+  font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
   color: var(--cdd-muted); white-space: nowrap;
   /* Válvula de seguridad, no maqueta: un nombre de temporada larguísimo se
-     corta con puntos suspensivos en vez de empujar el renglón a dos líneas.
-     `flex: none` sigue mandando mientras quepa; esto solo actúa cuando no. */
+     corta con puntos suspensivos en vez de empujar el pie a dos líneas. */
   min-width: 0; overflow: hidden; text-overflow: ellipsis;
-}
-
-/* EN PANTALLA ESTRECHA, EL RÓTULO CEDE. «La fotografía del día» (11px, peso 800)
-   y «Temporada · Bombas de bolsillo» no caben juntos en 360px, y el ladillo no
-   tiene flex-wrap: sin esto el texto rompería en dos renglones y se comería el
-   alto que esta línea presume de no gastar. Cede el rótulo porque nombra lo
-   evidente —está encima de una fotografía— y el crédito no: dice de dónde
-   salen los coches de esta semana. Es la misma decisión que ya se tomó para la
-   app (`solo-estado`), aplicada al ancho en vez de a la plataforma. */
-@media (max-width: 640px) {
-  .prensa-ladillo.con-presenta .rotulo { display: none; }
 }
 
 /* ── Escenario: paspartú + filete (fuera HUD/grain/viñeta del sistema previo) ── */
@@ -1608,6 +1618,56 @@ body,
 @keyframes prensaEntintado { 0%, 100% { opacity: .45; } 50% { opacity: .8; } }
 .prensa-estampada { animation: estamparFila var(--ms-sello) var(--curva-sello) both; }
 @keyframes estamparFila { from { opacity: 0; transform: scale(1.02); } }
+
+/* ── EL TABLERO: los renglones que quedan ────────────────────────────────────
+   Mientras se juega, los intentos que faltan se pintan como renglones vacíos
+   numerados, igual que las líneas en blanco de una quiniela (ver AttemptList).
+   Más bajos que un renglón con veredicto (~26px contra ~44px): son la promesa
+   de cinco oportunidades, no contenido, y en la app viven en la banda que queda
+   bajo el cupón, que es corta. Mismo filete y misma rejilla que las filas
+   llenas, así que al rellenarse el renglón crece en su sitio sin mover la
+   columna del número.
+
+   El filete de ARRIBA, en tinta plena, es la cabecera de la tabla: sin él la
+   primera fila quedaba pegada al bloque de ADIVINAR y se leía como parte del
+   botón. */
+.prensa-tablero { border-top: 1px solid var(--line-strong); }
+.prensa-fila-hueco {
+  align-items: center; min-height: 26px; padding-top: 4px; padding-bottom: 4px;
+}
+.prensa-fila-hueco .num { color: var(--faint); }
+/* El siguiente, donde va a caer el próximo intento: número en tinta plena. */
+.prensa-fila-hueco.siguiente .num { color: var(--cdd-text); }
+.prensa-fila-hueco .hueco {
+  grid-column: 2 / -1; min-width: 0;
+  font-family: var(--font-display); font-style: italic; font-size: 13px;
+  color: var(--cdd-muted);
+}
+
+/* ── LA NOTA DE LA PRIMERA PARTIDA ───────────────────────────────────────────
+   Bajo el último intento, solo mientras se juega la primera partida (ver
+   Configurator y lib/primeraPartida.js). Una frase que normaliza el fallo y
+   una línea con lo que ya se sabe, en palabras. Es una acotación del corrector
+   —cursiva de apostilla y tinta apagada—, no un aviso: nada de caja, ni color
+   de alarma, ni icono.
+
+   ENTRA DESPUÉS DEL VEREDICTO. La fila se estampa en tres golpes (0, 110 y
+   220ms, ver AttemptList) y la nota espera a que caigan: primero el resultado,
+   luego su lectura. Entinta (opacidad, regla 22), no se desliza. */
+.prensa-nota {
+  padding: 7px 2px 9px; border-bottom: 1px solid var(--line);
+  animation: notaEntinta var(--ms-escena) var(--curva-entra) calc(var(--ms-sello) + var(--ms-hoja)) both;
+}
+.prensa-nota .titulo {
+  margin: 0; font-family: var(--font-display); font-style: italic; font-weight: 600;
+  font-size: 14px; line-height: 1.25; color: var(--cdd-text); text-wrap: pretty;
+}
+.prensa-nota .pistas {
+  margin: 2px 0 0; font-family: var(--font-body); font-size: 12.5px; line-height: 1.35;
+  color: var(--cdd-muted); text-wrap: pretty;
+}
+.prensa-nota .sabes { font-weight: 700; color: var(--cdd-text); }
+@keyframes notaEntinta { from { opacity: 0; } }
 
 /* ── El cupón de respuesta ──
    El corazón del juego, tratado como un CUPÓN RECORTABLE de concurso (la
@@ -1907,9 +1967,14 @@ body,
            3/4): la sección no encoge NUNCA y el pliego scrollea en cualquier
            móvil, o sea que no hay shell.
        Así que el mínimo es explícito: el marco jugable más el ladillo con su
-       hueco (medidos: 45px). Encoge hasta ahí y ni un píxel más; a partir de ahí
-       cede el scroll del pliego, que es la válvula de arriba. */
-    min-height: calc(var(--cdd-foto-suelo) + 2.8rem);
+       hueco. Encoge hasta ahí y ni un píxel más; a partir de ahí cede el scroll
+       del pliego, que es la válvula de arriba.
+       Eran 2.8rem cuando el ladillo era una línea de versalitas de 11px; con la
+       pregunta del juego en Fraunces a 19px la línea mide ~5px más, y con el
+       suelo viejo esos píxeles salían de la FOTO en los móviles bajos (el banco
+       lo midió: 246x184 → 239x179 en un 360x640). 3.1rem devuelve el marco a su
+       medida: la pregunta se paga con alto de pliego, nunca con fotografía. */
+    min-height: calc(var(--cdd-foto-suelo) + 3.1rem);
     padding-bottom: 0;
   }
 
@@ -1991,6 +2056,14 @@ body,
     min-height: 3.5rem;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* EL CANTO SE DESVANECE: la banda casi nunca enseña el tablero entero (en
+       un 360x780 caben dos o tres renglones), y una lista cortada en seco por
+       el borde no dice que sigue. Los últimos 12px se funden con el papel, que
+       es como avisa cualquier lista de una app de que hay más debajo. Con
+       palabras clave y no con colores: la máscara solo usa el canal alfa, así
+       que vale igual en la edición de día y en la de noche. */
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 12px), transparent);
+    mask-image: linear-gradient(to bottom, black calc(100% - 12px), transparent);
   }
 
   /* EL PIE, reducido al reloj. Los enlaces de servicio se van al sumario de la
@@ -2247,13 +2320,10 @@ body,
     border-top-color: rgb(var(--line-strong-rgb) / .5);
   }
 
-  /* EL LADILLO QUE SOLO LLEVA ESTADO (ver ZoomStage.jsx). Hereda el gramaje que
-     tenía el rótulo: si el estado se queda solo en la línea pero con el gris de
-     nota al margen, la línea entera se lee como secundaria y el problema sigue
-     igual, solo que con menos texto. */
-  :root[data-plataforma="app"] .prensa-ladillo.solo-estado .aparte {
-    font-weight: 800; letter-spacing: .22em; color: var(--cdd-text);
-  }
+  /* (Aquí vivía «el ladillo que solo lleva estado»: en la app el rótulo se
+     había retirado y el estado heredaba su gramaje. Con la pregunta de vuelta
+     como rótulo, el estado recupera su voz de dato al margen en las dos
+     plataformas.) */
 }
 
 /* ══ EL CUPÓN QUE NO SE TECLEA — solo app ═══════════════════════════════════
@@ -2279,59 +2349,88 @@ body,
    LA WEB NO SE TOCA: allí se sigue tecleando con el combo de siempre. Todo lo
    de aquí abajo lo monta GuessForm solo cuando `esApp()`. */
 
-/* EL RENGLÓN, en una sola línea: etiqueta, guía de puntos, dato y chevrón.
-   Es la línea de un formulario impreso —«MARCA ·············· Volkswagen»— y
-   no una fila de ajustes de sistema: la guía de puntos es lo que la mete en el
-   idioma del periódico en vez del de una app de configuración.
+/* EL RENGLÓN, en DOS líneas: la etiqueta arriba (con la nota del campo a la
+   derecha) y el dato debajo, con el chevrón. Es el campo de formulario que todo
+   el mundo reconoce y el MISMO que teclea quien juega en la web.
 
-   ES UNA LÍNEA Y NO DOS a propósito. El cupón de la web apila etiqueta y campo,
-   y aquí eso costaba ~60px por renglón sin ganar nada: sin cursor que colocar,
-   la etiqueta puede compartir renglón con el dato. Así el cupón entero baja de
-   ~280px a ~240px y —lo que importa más— el objetivo táctil pasa a ser la
-   línea COMPLETA, 48px de alto por todo el ancho de la columna. */
+   Fue una sola línea con guía de puntos («MARCA ·········· Volkswagen»), para
+   ahorrar alto. Lo ahorraba a costa de parecer un índice: el dato empujado al
+   borde derecho en cursiva gris, lejos de su etiqueta, y un cupón que se leía
+   como la carta de un restaurante en vez de como tres controles por rellenar.
+   El alto no se pierde: sin la nota colgando bajo el año (ahora sube a la línea
+   de la etiqueta) y sin hueco entre renglones —los separa su propio filete—, el
+   cupón mide lo mismo o menos que con la versión de una línea. Y el objetivo
+   táctil sigue siendo el renglón COMPLETO: 50px por todo el ancho. */
 .prensa-renglon {
-  width: 100%; display: flex; align-items: baseline; text-align: left;
-  min-height: 48px; padding: 10px 2px; cursor: pointer;
+  width: 100%; display: flex; flex-direction: column; align-items: stretch;
+  gap: 3px; text-align: left;
+  min-height: 50px; padding: 6px 2px; cursor: pointer;
   background: transparent; border: 0; border-radius: 0;
   border-bottom: 1px solid var(--line-strong);
   transition: border-color var(--ms-roce) var(--curva-roce);
 }
 .prensa-renglon:active:not(:disabled) { border-bottom-color: var(--rojo); }
 .prensa-renglon:disabled { opacity: .45; cursor: not-allowed; }
+.prensa-renglon .cabeza {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  min-width: 0;
+}
 .prensa-renglon .etiqueta {
   flex: none;
   font-family: var(--font-body); font-weight: 600; font-size: 10px;
   letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
 }
-/* La guía se lleva TODO el espacio sobrante, así que el dato queda alineado a
-   la derecha en los tres renglones sin necesidad de una rejilla. El
-   `translateY` la baja a la altura de una línea de puntos escrita a máquina:
-   sobre la base tipográfica quedaría a media altura de las mayúsculas. */
-.prensa-renglon .guia {
-  flex: 1 1 auto; min-width: 12px; margin: 0 10px;
-  border-bottom: 1px dotted var(--line-strong); transform: translateY(-3px);
+/* La nota del campo: la horquilla del año («2001 o posterior», «±2 años») o el
+   «resuelto». En la cursiva de las apostillas, como la horquilla de la web. */
+.prensa-renglon .apunte {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
+  color: var(--cdd-muted);
+}
+.prensa-renglon .apunte.resuelta {
+  font-family: var(--font-body); font-style: normal; font-weight: 700;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--verde);
+}
+.prensa-renglon .cuerpo {
+  display: flex; align-items: center; gap: 8px; min-height: 22px;
 }
 .prensa-renglon .valor {
-  flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-mono); font-size: 16px; color: var(--cdd-text);
+  font-family: var(--font-mono); font-size: 17px; line-height: 1.2;
+  color: var(--cdd-text);
 }
 /* El hueco se lee como hueco: la misma cursiva de apostilla que el placeholder
    de los campos de la web, para que los dos cupones hablen igual. */
 .prensa-renglon .vacio {
-  flex: none;
-  font-family: var(--font-display); font-style: italic; font-size: 14px;
-  color: var(--placeholder);
+  flex: 1 1 auto; min-width: 0;
+  font-family: var(--font-display); font-style: italic; font-size: 16px;
+  line-height: 1.2; color: var(--placeholder);
 }
-.prensa-renglon .chev { flex: none; align-self: center; margin-left: 8px; color: var(--cdd-muted); }
-.prensa-renglon .marca { flex: none; margin-left: 8px; font-size: 15px; color: var(--verde); }
+.prensa-renglon .chev { flex: none; color: var(--cdd-muted); }
+.prensa-renglon .marca { flex: none; font-size: 15px; color: var(--verde); }
+/* En espera (el modelo sin marca): sigue siendo tocable —lleva al paso que
+   falta— pero su hueco va un tono más apagado, para que «elige marca primero»
+   no tenga la misma cara que un campo listo para elegir. */
+.prensa-renglon.espera .vacio,
+.prensa-renglon.espera .chev { color: var(--faint); }
 /* Resuelto: dato cerrado. Filete verde, ✓ y sin chevrón — no hay lista que
    abrir, y el botón va `disabled` para que tampoco se pueda intentar. */
 .prensa-renglon.resuelto {
   border-bottom: 2px solid var(--verde); cursor: default; opacity: 1;
 }
-.prensa-renglon.resuelto .guia { border-bottom-color: var(--verde); opacity: .5; }
 .prensa-horquilla.resuelta { color: var(--verde); font-style: normal; font-weight: 700; }
+
+/* Sin hueco entre renglones en la app: cada uno trae su filete, y los 12px del
+   `gap` del formulario (que la web sí necesita entre campos de texto) aquí
+   solo separaban tres líneas que se leen como un bloque. */
+:root[data-plataforma="app"] .prensa-cupon form { row-gap: 0; }
+/* Y el botón, 56px en vez de 64 solo en la app: sigue siendo el bloque con
+   más peso de la pantalla (el alto de un botón grande de Material), y esos 8px
+   —con los que sueltan los renglones— son los que dejan que el último intento
+   Y su lectura quepan a la vez en la banda del tablero de un móvil normal. */
+:root[data-plataforma="app"] .prensa-cupon .prensa-submit { height: 56px; margin-top: 12px; }
 
 /* ── LA HOJA ────────────────────────────────────────────────────────────────
    Anclada al borde inferior y a ancho completo. El anclaje es de esta pieza y no

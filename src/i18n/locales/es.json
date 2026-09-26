@@ -128,7 +128,8 @@
     "sameCountry": "MISMO PAÍS",
     "srCorrect": "correcto",
     "srWrong": "incorrecto",
-    "selectorPick": "Elegir…",
+    "selectorPick": "Toca para elegir",
+    "tableroHueco": "Aquí aparecerá tu intento",
     "catalogLoading": "Cargando…",
     "catalogDownTitle": "No ha llegado el listado de marcas",
     "catalogDownBody": "Sin él no se puede rellenar el cupón. Suele ser cosa de un momento.",
@@ -181,11 +182,12 @@
   },
   "prensa": {
     "ladilloFoto": "La fotografía del día",
+    "pregunta": "¿Qué coche es?",
     "temporada": "Temporada · {tema}",
-    "pista": "Pista {n} de {max}",
-    "edicionCerrada": "Edición cerrada",
+    "pista": "Intento {n} de {max}",
+    "edicionCerrada": "Partida terminada",
     "estadistica": "La estadística del día",
-    "cierre": "Cierre de edición en",
+    "cierre": "Coche nuevo en",
     "selloWin": "Resuelto",
     "selloLose": "Sin resolver",
     "garaje": "Archivo",
@@ -602,5 +604,15 @@
     "rarityBody": "La tienen el {pct} % de {collectors} coleccionistas",
     "sortRarity": "Rareza",
     "flipHint": "Desliza para darle la vuelta"
+  },
+  "primera": {
+    "titulo1": "Casi nadie lo acierta a la primera.",
+    "tituloN": "Cada fallo abre un poco más la foto.",
+    "sabes": "Ya sabes:",
+    "marcaOk": "la marca es {marca}",
+    "mismoPais": "es del mismo país que {marca}",
+    "modeloOk": "el modelo es {modelo}",
+    "anioOk": "el año es {anio}, ±{n}",
+    "anioRango": "año {rango}"
   }
 }

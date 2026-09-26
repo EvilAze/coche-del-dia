@@ -128,7 +128,8 @@
     "sameCountry": "SAME COUNTRY",
     "srCorrect": "correct",
     "srWrong": "wrong",
-    "selectorPick": "Choose…",
+    "selectorPick": "Tap to choose",
+    "tableroHueco": "Your guess will appear here",
     "catalogLoading": "Loading…",
     "catalogDownTitle": "The list of makes hasn't arrived",
     "catalogDownBody": "Without it the coupon can't be filled in. It's usually a momentary thing.",
@@ -181,11 +182,12 @@
   },
   "prensa": {
     "ladilloFoto": "Today's photograph",
+    "pregunta": "Which car is it?",
     "temporada": "Season · {tema}",
-    "pista": "Clue {n} of {max}",
-    "edicionCerrada": "Edition closed",
+    "pista": "Try {n} of {max}",
+    "edicionCerrada": "Game over",
     "estadistica": "Today's numbers",
-    "cierre": "Final edition in",
+    "cierre": "New car in",
     "selloWin": "Solved",
     "selloLose": "Unsolved",
     "garaje": "Archive",
@@ -602,5 +604,15 @@
     "rarityBody": "{pct} % of {collectors} collectors have it",
     "sortRarity": "Rarity",
     "flipHint": "Swipe to turn it over"
+  },
+  "primera": {
+    "titulo1": "Almost nobody gets it on the first try.",
+    "tituloN": "Every miss opens the photo a little more.",
+    "sabes": "You already know:",
+    "marcaOk": "the make is {marca}",
+    "mismoPais": "it's from the same country as {marca}",
+    "modeloOk": "the model is {modelo}",
+    "anioOk": "the year is {anio}, ±{n}",
+    "anioRango": "year {rango}"
   }
 }

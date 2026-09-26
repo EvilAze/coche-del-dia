@@ -156,6 +156,10 @@ const SELECTORES = [
   // El cupón de la app: tres renglones que abren una hoja de selección en vez
   // de levantar el teclado.
   ".prensa-cupon", ".prensa-renglon",
+  // La pregunta del ladillo y el tablero de cinco renglones que ocupa la banda
+  // del historial desde el primer pintado (ver AttemptList): si se renombran,
+  // el banco mediría una foto sin su renglón de encima y una banda vacía.
+  ".prensa-ladillo--pregunta", ".prensa-tablero", ".prensa-fila", ".prensa-fila-hueco",
   // La hoja de selección y su velo: la banda que se abre al tocar un renglón.
   // El banco comprueba que deja ver la fotografía, así que si alguien renombra
   // la hoja mediría una composición que no existe.
@@ -181,8 +185,8 @@ const SELECTORES = [
 // `.prensa-folio`, porque en la app esa banda no se monta — la fecha viaja en
 // la barra (ver Header.jsx). El masthead sí se deja: lo apaga el CSS
 // por `data-plataforma`, y dejarlo aquí es justo lo que comprueba que sigue
-// apagándose. Por lo mismo el ladillo va con `solo-estado`: en la app el rótulo
-// «La fotografía del día» no se pinta y la línea la ocupa la pista.
+// apagándose. El ladillo es el de la partida: la pregunta del juego a la
+// izquierda, el filete y el intento en curso al final (ver ZoomStage).
 //
 // LA MARCA DEL SUMARIO VA COMO BOTÓN DE VERDAD, y no como la palabra «SUMARIO»
 // que había aquí. No es cosmética del banco: esa palabra medía un renglón de
@@ -213,7 +217,7 @@ function paginaHtml(hrefCss) {
       <div class="prensa-masthead prensa-masthead--compacto"><p class="titulo">Coche del Día</p></div>
     </header>
     <section class="prensa-area-foto flex flex-col gap-3 pb-4">
-      <div class="prensa-ladillo solo-estado"><span class="aparte">Pista 1 de 5</span></div>
+      <div class="prensa-ladillo prensa-ladillo--pregunta"><span class="rotulo">¿Qué coche es?</span><i class="filete"></i><span class="aparte">Intento 1 de 5</span></div>
       <div class="cdd-stage"><div class="cdd-stage-frame" id="marco">
         <div style="position:absolute;inset:0;background:#888"></div>
       </div></div>
@@ -221,25 +225,18 @@ function paginaHtml(hrefCss) {
     <div class="prensa-area-jugar" id="jugar">
       <div class="prensa-cupon" id="cupon">
         <form class="flex flex-col gap-3">
-          <div>
-            <button type="button" class="prensa-renglon" id="renglon-marca">
-              <span class="etiqueta">Marca</span><span class="guia"></span>
-              <span class="vacio">Elegir…</span>
-            </button>
-          </div>
-          <div>
-            <button type="button" class="prensa-renglon">
-              <span class="etiqueta">Modelo</span><span class="guia"></span>
-              <span class="vacio">Elegir…</span>
-            </button>
-          </div>
-          <div>
-            <button type="button" class="prensa-renglon">
-              <span class="etiqueta">Año</span><span class="guia"></span>
-              <span class="vacio">Elegir…</span>
-            </button>
-            <p class="prensa-horquilla">Entre 1974 y 1989</p>
-          </div>
+          <button type="button" class="prensa-renglon" id="renglon-marca">
+            <span class="cabeza"><span class="etiqueta">Marca</span></span>
+            <span class="cuerpo"><span class="vacio">Toca para elegir</span></span>
+          </button>
+          <button type="button" class="prensa-renglon espera">
+            <span class="cabeza"><span class="etiqueta">Modelo</span></span>
+            <span class="cuerpo"><span class="vacio">Elige marca primero</span></span>
+          </button>
+          <button type="button" class="prensa-renglon">
+            <span class="cabeza"><span class="etiqueta">Año</span><span class="apunte">Entre 1974 y 1989</span></span>
+            <span class="cuerpo"><span class="vacio">Toca para elegir</span></span>
+          </button>
           <button class="prensa-submit mt-2" id="adivinar">ADIVINAR</button>
         </form>
       </div>
@@ -254,16 +251,31 @@ function paginaHtml(hrefCss) {
     </footer>
   </main></div>
 <script>
+  // EL TABLERO, con las clases reales de AttemptList: los intentos gastados
+  // como filas con veredicto y los que quedan como huecos numerados. Desde el
+  // primer pintado hay cinco renglones en la banda —antes estaba vacía hasta el
+  // primer intento—, así que la banda nunca se mide hueca.
   window.setIntentos = function (n) {
     const h = document.getElementById("historial");
     h.innerHTML = "";
-    for (let i = 0; i < n; i++) {
+    const t = document.createElement("section");
+    t.className = "prensa-tablero flex flex-col";
+    for (let i = 0; i < 5; i++) {
       const f = document.createElement("div");
-      f.style.cssText = "min-height:34px;display:flex;align-items:center;gap:8px;" +
-        "padding:6px 0;border-bottom:1px solid var(--line);font-size:12px";
-      f.textContent = "Intento " + (i + 1) + " · Marca Modelo · 2011";
-      h.appendChild(f);
+      const num = "0" + (i + 1);
+      if (i < n) {
+        f.className = "prensa-fila";
+        f.innerHTML = '<span class="num">' + num + '</span>' +
+          '<div class="prensa-dato mal"><span class="linea-nombre"><span class="palabra">Marca</span></span></div>' +
+          '<div class="prensa-dato mal"><span class="linea-nombre"><span class="palabra">Modelo</span></span></div>' +
+          '<div class="prensa-dato mal"><span class="linea-nombre"><span class="palabra">2011</span></span></div>';
+      } else {
+        f.className = "prensa-fila prensa-fila-hueco" + (i === n ? " siguiente" : "");
+        f.innerHTML = '<span class="num">' + num + '</span><span class="hueco"></span>';
+      }
+      t.appendChild(f);
     }
+    h.appendChild(t);
   };
   setIntentos(0);
 

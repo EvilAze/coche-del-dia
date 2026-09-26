@@ -13,6 +13,9 @@ import { desplazarSuave } from "../../lib/movimiento";
 import { MS } from "../../lib/compas";
 import { getCurrentSeason } from "../../lib/statsService";
 import { creditoTemporada } from "../../lib/season";
+import { getMadridDateStr } from "../../lib/dates";
+import { sinHistorialLocal } from "../../lib/primeraPartida";
+import { pistasAprendidas } from "../../lib/pistas";
 import Header from "./Header";
 import EdicionNoDisponible from "./EdicionNoDisponible";
 import ZoomStage from "./ZoomStage";
@@ -237,14 +240,56 @@ export default function Configurator({
   //
   // Reservarlo desde el principio hace que el marco valga LO MISMO en el intento
   // 0 y en el 5, que es lo que se le pide a una app: la maqueta se decide al
-  // abrir y no se recompone. La banda vacía no pinta nada (AttemptList devuelve
-  // null sin intentos), así que el precio es espacio en blanco al pie del
-  // cupón, no una caja hueca.
+  // abrir y no se recompone. (Durante un tiempo esa banda se quedaba VACÍA hasta
+  // el primer intento, y era el hueco muerto bajo ADIVINAR que hacía que la
+  // pantalla pareciera a medio hacer. Ahora la ocupa el tablero desde el primer
+  // pintado: el mismo espacio, con los cinco renglones que enseñan el juego.)
   //
   // En WEB no: allí el pliego se lee bajando, no hay presupuesto que repartir y
   // ese hueco sería un vacío gratuito. Y con la partida cerrada tampoco: el
   // shell se suelta y el historial ya tiene contenido de sobra.
   const reservaHistorial = enApp && !ended;
+
+  // ── LA PRIMERA PARTIDA ────────────────────────────────────────────────────
+  // El dispositivo se lee UNA vez al montar (ver lib/primeraPartida.js: si se
+  // releyera, la ayuda se iría sola al cerrarse la partida). La racha y el
+  // puesto llegan después, con la sesión, y por eso se miran en cada render:
+  // son lo que delata al veterano con cuenta que estrena móvil, y la ayuda se le
+  // retira en cuanto se sabe — antes de que haya jugado nada, porque la nota
+  // solo aparece tras el primer intento.
+  const [sinHistorial] = useState(() => sinHistorialLocal(getMadridDateStr()));
+  const primeraPartida = sinHistorial && !(streak > 0) && !rank;
+
+  // Qué se ve en el tablero, además de los renglones. Nada de esto toca la
+  // dificultad: ni un píxel más de foto, ni una opción menos en la lista. Es
+  // la misma partida, contada para quien no sabe todavía cómo se lee.
+  //   · Antes del primer intento, el hueco 01 dice dónde va a caer.
+  //   · Tras cada fallo, una nota que convierte los tachones en lo que ya se
+  //     sabe. Espera a que llegue el veredicto (con la fila entintándose no hay
+  //     nada nuevo que contar) y se va con la partida.
+  const verTablero = dataReady && !loadError && !ended;
+  const huecoTexto =
+    primeraPartida && verTablero && guesses.length === 0 && !pendingGuess
+      ? t("cdd.tableroHueco")
+      : null;
+  let nota = null;
+  if (primeraPartida && verTablero && guesses.length > 0 && !pendingGuess) {
+    const pistas = pistasAprendidas(guesses, tolerance, t);
+    nota = (
+      // `aria-live`: quien usa lector de pantalla recibe la pista nueva sin ir
+      // a buscarla, igual que ve la nota quien mira.
+      <div className="prensa-nota" aria-live="polite">
+        <p className="titulo">
+          {guesses.length === 1 ? t("primera.titulo1") : t("primera.tituloN")}
+        </p>
+        {pistas.length > 0 && (
+          <p className="pistas">
+            <span className="sabes">{t("primera.sabes")}</span> {pistas.join(" · ")}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   // La estadística del día como bloque de página (columna izquierda del
   // broadsheet / final en móvil). GATEADA a partida cerrada: el hook ni
@@ -355,9 +400,15 @@ export default function Configurator({
               país», la flecha del año— el historial volvió a ser el único sitio
               donde vive el acuse de recibo de cada intento. Se pinta siempre que
               haya algo que recapitular. */}
-          {(guesses.length > 0 || reservaHistorial) && (
+          {(guesses.length > 0 || reservaHistorial || verTablero) && (
             <div className="prensa-historial">
               <AttemptList
+                // Tablero mientras se juega (los cinco renglones, ver
+                // AttemptList); con la partida cerrada, la lista de siempre.
+                tablero={verTablero}
+                maxAttempts={maxAttempts}
+                nota={nota}
+                huecoTexto={huecoTexto}
                 guesses={guesses}
                 // LA FILA ENTINTADA, RECONECTADA. Estaba construida entera
                 // —el estado en useGame, la rama `pending` de AttemptRow y su
@@ -412,8 +463,12 @@ export default function Configurator({
             igual especificidad ganaban ellas, así que el `items-center` escrito
             en el JSX no llegaba a aplicarse nunca. */}
         <footer className="prensa-area-pie prensa-cierre py-6">
+          {/* El rótulo del reloj va en tinta apagada y la cifra en tinta plena.
+              Iba en ROJO, y el rojo en este sistema es «acción/atención»: un
+              contador en rojo al pie de la pantalla se leía como urgencia o como
+              error, y le disputaba el color al único botón que importa aquí. */}
           <div className="text-xs font-bold uppercase text-tinta tabular-nums tracking-wider">
-            <span className="text-rojo mr-2">{t("prensa.cierre")}</span>
+            <span className="text-muted mr-2">{t("prensa.cierre")}</span>
             {countdown.formatted}
           </div>
           {/* Los enlaces de servicio. En la app se ocultan (CSS): con el shell

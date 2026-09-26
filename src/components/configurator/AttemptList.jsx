@@ -12,7 +12,9 @@
 // marca+texto (accesible; el estado exacto va también en sr-only). Pendiente =
 // "entintado" (pulso de opacidad); recién validada = estampado.
 
+import { useEffect, useRef } from "react";
 import { useT } from "../../i18n";
+import { menosMovimiento } from "../../lib/movimiento";
 import { flagImagePath } from "../../data/countries";
 import { Icon, I } from "./icons";
 import { useFitText } from "../../hooks/useFitText";
@@ -127,8 +129,32 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
   );
 }
 
-export default function AttemptList({ guesses = [], pendingGuess = null, justRevealedIndex = -1, tolerance = 2 }) {
+export default function AttemptList({
+  guesses = [],
+  pendingGuess = null,
+  justRevealedIndex = -1,
+  tolerance = 2,
+  // Modo TABLERO (lo pide la partida diaria mientras se juega; la Repesca sigue
+  // con la lista de siempre). Ver <Tablero> más abajo.
+  tablero = false,
+  maxAttempts = 5,
+  nota = null,
+  huecoTexto = null,
+}) {
   const { t } = useT();
+  if (tablero) {
+    return (
+      <Tablero
+        guesses={guesses}
+        pendingGuess={pendingGuess}
+        justRevealedIndex={justRevealedIndex}
+        tolerance={tolerance}
+        maxAttempts={maxAttempts}
+        nota={nota}
+        huecoTexto={huecoTexto}
+      />
+    );
+  }
   if (!guesses.length && !pendingGuess) return null;
   // Cabecera de columnas alineada con la MISMA rejilla de las filas + filas
   // (más reciente primero). El estampado lo dispara justRevealedIndex.
@@ -146,6 +172,117 @@ export default function AttemptList({ guesses = [], pendingGuess = null, justRev
         .map(({ g, i }) => (
           <AttemptRow key={i} g={g} tolerance={tolerance} fresh={i === justRevealedIndex} num={i + 1} />
         ))}
+    </section>
+  );
+}
+
+// ── EL TABLERO ───────────────────────────────────────────────────────────────
+// La partida diaria, mientras se juega, pinta los CINCO renglones desde el
+// primer momento: los gastados con su veredicto y los que quedan como huecos
+// numerados. Es lo que hace que un juego de adivinar se entienda sin leer nada
+// —ves el tablero y sabes cuántas oportunidades tienes— y lo que le faltaba a
+// esta pantalla, que sin él era un formulario: tres campos y un botón de enviar.
+//
+// Y cambia cómo cae el primer fallo. Sin tablero, el intento fallado aparecía
+// solo, tachado entero, y se leía como una derrota. Con tablero cae en el
+// renglón «01» de cinco: se lee como un paso. Es justo el momento que más
+// jugadores nuevos perdía (ver lib/primeraPartida.js).
+//
+// ORDEN CRONOLÓGICO, de arriba abajo, y no «el más reciente primero» como la
+// lista de siempre: en un tablero cada intento tiene SU renglón y no se mueve.
+// El precio es que en la app, donde el tablero vive en una banda con scroll
+// propio, el último intento puede quedar por debajo del borde; por eso se trae
+// a la vista al llegar (ver el efecto de abajo).
+//
+// El hueco vive en el MISMO espacio que ya reservaba Configurator para el
+// historial (`reservaHistorial`): no se le quita un píxel a la fotografía.
+function Tablero({ guesses, pendingGuess, justRevealedIndex, tolerance, maxAttempts, nota, huecoTexto }) {
+  const { t } = useT();
+  const ref = useRef(null);
+  const usados = guesses.length + (pendingGuess ? 1 : 0);
+  const huecos = Math.max(0, maxAttempts - usados);
+  const restantes = Math.max(0, maxAttempts - guesses.length);
+  const hayNota = Boolean(nota);
+
+  // EL ÚLTIMO INTENTO, SIEMPRE A LA VISTA. Solo actúa si el contenedor tiene
+  // scroll propio (la banda del historial en la app): en la web el tablero es
+  // parte de un documento que se lee bajando y mover la página por él sería
+  // robarle el scroll al jugador.
+  //
+  // Lo ideal es enseñar el renglón recién llegado Y lo que viene detrás (la nota
+  // de la primera partida o el hueco siguiente): así el ojo encuentra a la vez
+  // qué acaba de pasar y cuánto queda. Si no caben los dos —un 360x640 deja una
+  // banda de dos dedos—, manda el intento: se alinea arriba y lo demás se
+  // desliza. Lo que no puede pasar es lo que pasaba con una cuenta ingenua, que
+  // la banda se quedara enseñando medio renglón de cada uno.
+  //
+  // La primera vez que hay intentos que enseñar va sin animación (al abrir una
+  // partida empezada —los navegadores in-app recargan al volver— no hay nada
+  // que seguir con la vista); después, suave salvo movimiento reducido. Cuenta
+  // desde el primer render CON intentos y no desde el montaje, porque en una
+  // recarga los intentos llegan del servidor un instante después.
+  const primeraVez = useRef(true);
+  useEffect(() => {
+    if (usados === 0) return;
+    const inicial = primeraVez.current;
+    primeraVez.current = false;
+    const seccion = ref.current;
+    const banda = seccion?.parentElement;
+    if (!seccion || !banda || banda.scrollHeight <= banda.clientHeight + 1) return;
+
+    // Hijos en orden: filas llenas (y la entintada), la nota, los huecos.
+    const piezas = seccion.querySelectorAll(":scope > .prensa-fila, :scope > .prensa-nota");
+    const intento = piezas[usados - 1];
+    const detras = piezas[usados] ?? null;
+    if (!intento) return;
+
+    // Posiciones en el espacio del scroll, y el alto ÚTIL: los últimos 12px
+    // los funde la máscara del canto (ver `.prensa-historial` en index.css).
+    const caja = banda.getBoundingClientRect();
+    const enScroll = (el, lado) => el.getBoundingClientRect()[lado] - caja.top + banda.scrollTop;
+    const util = banda.clientHeight - 12;
+    const arriba = enScroll(intento, "top");
+    const abajo = enScroll(detras ?? intento, "bottom");
+    const objetivo = Math.max(0, abajo - arriba <= util ? abajo - util : arriba);
+    // Si lo que importa ya está a la vista, no se toca nada: la banda solo se
+    // mueve cuando el intento (o lo que va detrás) ha quedado fuera.
+    if (objetivo > banda.scrollTop + 1 || arriba < banda.scrollTop) {
+      banda.scrollTo({ top: objetivo, behavior: inicial || menosMovimiento() ? "auto" : "smooth" });
+    }
+  // `hayNota` y no `nota`: la nota es un elemento JSX nuevo en cada render de
+  // Configurator, que se repinta cada segundo con el reloj del pie. Con el
+  // objeto como dependencia, este efecto volvería a desplazar la banda una vez
+  // por segundo y le quitaría el scroll de las manos al jugador.
+  }, [usados, hayNota]);
+
+  return (
+    <section ref={ref} aria-label={t("guessLog.label")} className="prensa-tablero flex flex-col">
+      {/* Los huecos son decorado para quien ve; quien escucha recibe la cuenta. */}
+      <p className="sr-only">{t("app.attemptsRemainingAria", { count: restantes, max: maxAttempts })}</p>
+      {guesses.map((g, i) => (
+        <AttemptRow key={i} g={g} tolerance={tolerance} fresh={i === justRevealedIndex} num={i + 1} />
+      ))}
+      {pendingGuess && (
+        <AttemptRow key="pending" g={pendingGuess} tolerance={tolerance} pending num={guesses.length + 1} />
+      )}
+      {nota}
+      {Array.from({ length: huecos }, (_, k) => {
+        const num = usados + k + 1;
+        // El SIGUIENTE hueco se distingue (número en tinta plena): es donde va a
+        // caer el próximo intento. Mientras hay uno entintándose, el siguiente
+        // es ese, y ya lleva su propia fila.
+        const siguiente = k === 0 && !pendingGuess;
+        return (
+          <div
+            key={"hueco-" + num}
+            className={"prensa-fila prensa-fila-hueco" + (siguiente ? " siguiente" : "")}
+            aria-hidden="true"
+          >
+            <span className="num">{String(num).padStart(2, "0")}</span>
+            <span className="hueco">{siguiente && huecoTexto ? huecoTexto : null}</span>
+          </div>
+        );
+      })}
     </section>
   );
 }

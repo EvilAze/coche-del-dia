@@ -76,6 +76,40 @@ describe("conTimeout", () => {
       vi.useRealTimers();
     }
   });
+
+  // Réplica mínima de un query builder de supabase-js: un thenable PEREZOSO
+  // que lanza la petición en cada `.then()`. Con una promesa normal este test
+  // pasaría siempre, que es justo por lo que el doble disparo estuvo un mes en
+  // producción duplicando `daily_stats` sin que ningún test protestara.
+  const thenablePerezoso = (valor) => {
+    const t = {
+      disparos: 0,
+      then(ok, ko) {
+        t.disparos++;
+        return Promise.resolve(valor).then(ok, ko);
+      },
+    };
+    return t;
+  };
+
+  it("dispara un thenable perezoso UNA sola vez (gane él o gane el plazo)", async () => {
+    const rapido = thenablePerezoso("ok");
+    await expect(conTimeout(rapido, 1000)).resolves.toBe("ok");
+    await new Promise((r) => setTimeout(r, 10));
+    expect(rapido.disparos).toBe(1);
+
+    const atrancado = { disparos: 0, then() { atrancado.disparos++; } };
+    await expect(conTimeout(atrancado, 20)).rejects.toBeInstanceOf(TimeoutError);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(atrancado.disparos).toBe(1);
+  });
+
+  it("conTimeoutOFallback tampoco duplica la escritura", async () => {
+    const rpc = thenablePerezoso({ data: null, error: null });
+    await conTimeoutOFallback(rpc, 1000, null);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(rpc.disparos).toBe(1);
+  });
 });
 
 describe("conTimeoutOFallback", () => {

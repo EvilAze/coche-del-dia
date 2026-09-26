@@ -85,22 +85,34 @@ export function fuePorPlazo(valor) {
  *     fallando DESPUÉS de que hayamos contestado por plazo, ese rechazo ya no
  *     lo espera nadie y saldría como unhandled rejection, que en serverless
  *     puede tumbar la invocación entera.
+ *   - `Promise.resolve(promesa)` UNA sola vez, al entrar. Lo que casi siempre
+ *     llega aquí no es una promesa sino un query builder de supabase-js, que es
+ *     un thenable PEREZOSO: cada `.then()` lanza la petición HTTP de nuevo.
+ *     La versión anterior lo pasaba crudo a `race` (primer `.then`) y otra vez
+ *     crudo a `Promise.resolve` en el finally (segundo `.then`), así que TODA
+ *     llamada con plazo salía dos veces por la red. Del 25-ago al 26-sep de
+ *     2026 eso duplicó `daily_stats` (el panel enseñaba ~65 partidas/día sobre
+ *     ~35 jugadores reales), metió filas gemelas en `guess_audit` y dobló la
+ *     carga de cada lectura del camino de juego. Resolverlo al entrar convierte
+ *     el thenable en una promesa de verdad, que se puede esperar cuantas veces
+ *     haga falta sin volver a disparar nada.
  *
  * @template T
- * @param {Promise<T>} promesa
+ * @param {PromiseLike<T>} promesa
  * @param {number} ms
  * @param {{ etiqueta?: string }} [opts]
  * @returns {Promise<T>}
  */
 export function conTimeout(promesa, ms, { etiqueta = "operación" } = {}) {
+  const trabajo = Promise.resolve(promesa);
   let timer;
   const plazo = new Promise((_, reject) => {
     timer = setTimeout(() => reject(new TimeoutError(etiqueta, ms)), ms);
   });
-  return Promise.race([promesa, plazo]).finally(() => {
+  return Promise.race([trabajo, plazo]).finally(() => {
     clearTimeout(timer);
     // La promesa original sigue viva aunque hayamos perdido interés.
-    Promise.resolve(promesa).catch(() => {});
+    trabajo.catch(() => {});
   });
 }
 

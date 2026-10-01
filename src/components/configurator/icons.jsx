@@ -53,7 +53,6 @@ export const I = {
   x: "M7 7l10 10M17 7 7 17",
   share: ["M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7", "M12 3v13", "M8 7l4-4 4 4"],
   flame: "M12 3c1.5 3 4 4 4 8a4 4 0 0 1-8 0c0-1.2.4-2 1-2.6C9 10 12 8 12 3Z",
-  crosshair: ["M12 3v3M12 18v3M3 12h3M18 12h3", "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"],
   chevD: "M6 9l6 6 6-6",
   chevR: "M9 6l6 6-6 6",
   // El espejo de chevR. Lo usa la salida de la Repesca, en el mismo sitio y con

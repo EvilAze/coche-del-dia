@@ -35,8 +35,8 @@ export default function CarImage({
   //     la pasaba explícitamente en false porque ese dato vive en el ladillo,
   //     encima del marco, desde el rediseño. La etiqueta se llevaba consigo el
   //     último cromo de blanco y negro crudo escrito a mano del componente.
-  //   · `hud` — el atrezzo de cámara del configurador Platino. El HUD que sí
-  //     existe (StageHud) lo monta el admin directamente, no por aquí.
+  //   · `hud` — el atrezzo de cámara del configurador Platino. (StageHud, el
+  //     que sobrevivió en el admin, se retiró también en oct-2026.)
   //   · `bottomBar` y `bottomCenter` — la barra de intentos y la «repisa» del
   //     mismo rediseño, con su filete `border-white/[0.06]`.
   //   · `bottomRight` — el indicador de intentos, que hoy son los pips del pie.

@@ -26,7 +26,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import ZoomStage from "../components/configurator/ZoomStage";
-import StageHud from "../components/configurator/StageHud";
 import FocusPicker from "./FocusPicker";
 import { useCatalog } from "../data/catalog";
 import { supabase } from "../supabaseClient";
@@ -303,8 +302,9 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
 
 // Replica EXACTAMENTE lo que ve el jugador con el rediseño "configurador":
 //
-//   - Steps 1-5: marco 4:3 (.cdd-stage-frame) con el HUD real (StageHud:
-//     crosshair + grano). El servidor recorta un CUADRADO, pero el marco es 4:3
+//   - Steps 1-5: marco 4:3 (.cdd-stage-frame), limpio como en el juego (aquí
+//     hubo un HUD de cámara —punto de mira y grano— que el juego había
+//     retirado en jun-2026 y el admin no). El servidor recorta un CUADRADO, pero el marco es 4:3
 //     y con object-cover el jugador ve una franja 4:3 de ese cuadrado; por eso
 //     medimos el aspecto real del contenedor (R = containerAspect). El recorte
 //     se simula server-side con background-position (misma matemática que
@@ -425,9 +425,6 @@ function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) 
                 "background-size 0.6s cubic-bezier(0.4,0,0.2,1), background-position 0.6s cubic-bezier(0.4,0,0.2,1)",
             }}
           />
-          {/* HUD real del juego (crosshair + grano). El contador de intentos ya no
-              vive sobre la foto (se movió a AttemptProgress, bajo la imagen). */}
-          <StageHud revealed={false} />
         </div>
       </div>
     </div>

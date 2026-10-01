@@ -558,13 +558,14 @@ body,
   border: 1px solid var(--line);
   background: var(--surface);
 }
-/* Viñeta inferior sutil para que la barra de progreso (dots) lea sobre
-   carrocerías claras. Sin rim especular ni fringe cromático (rediseño plano). */
-.cdd-stage-frame::after {
-  content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(to top, rgba(0,0,0,.4) 0%, transparent 24%);
-}
+/* (Purga oct-2026: la viñeta inferior `.cdd-stage-frame::after` —un degradado
+   negro para que los dots del Platino se leyeran sobre carrocerías claras— y
+   el atrezzo de cámara de StageHud —punto de mira en la esquina y grano de
+   sensor, .cdd-hud/.cdd-hud-tl/.cdd-grain— se fueron juntos. El juego y la
+   Repesca ya los apagaban desde `.prensa`, así que solo sobrevivían en la
+   vista previa del admin, que es justo la pantalla que existe para enseñar la
+   foto EXACTAMENTE como la ve el jugador: con el grano oscureciendo el
+   recorte, se calibraba la dificultad sobre una imagen que nadie juega.) */
 
 /* EL MARCO DE LO QUE VEÍAS (CarImage.jsx). Nace sobre el borde de la foto y
    se encoge con ella hasta enmarcar el encuadre anterior; lo de fuera es lo
@@ -610,15 +611,6 @@ body,
    tap-para-ampliar: ver la cabecera de CarImage.jsx. Existía para que un
    escenario pequeño se pudiera mirar a pantalla completa; con la foto ya a
    todo el ancho del pliego, abría una copia del mismo tamaño.) */
-
-.cdd-hud { position: absolute; inset: 0; pointer-events: none; z-index: 7; }
-/* Crosshair a opacidad baja: es atrezzo de cámara, no un control — a .85
-   parecía un botón tocable (es pointer-events:none). */
-.cdd-hud-tl { position: absolute; top: 11px; left: 11px; color: color-mix(in oklab, var(--accent) 75%, #fff 0%); opacity: .45; }
-.cdd-grain { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: .28; mix-blend-mode: overlay;
-  background:
-    repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.12) 2px 3px),
-    radial-gradient(120% 90% at 50% 0%, transparent 60%, rgba(0,0,0,.45)); }
 
 /* (Purga F5: la barra de dots .cdd-progress del Platino se borró —
    AttemptProgress pinta ahora los pips de negativo .prensa-pips, en el pie
@@ -1504,8 +1496,6 @@ body,
    lleva el escenario) y tenerlas separadas fue justo el error de la primera
    versión, que quedó pisada por orden de cascada. En el pliego ancho no se capa
    nada — allí el cupón vive en su propia columna, al lado de la foto. */
-.prensa .cdd-stage-frame::after { display: none; } /* viñeta: innecesaria sobre papel */
-.prensa .cdd-hud, .prensa .cdd-grain { display: none; } /* atrezzo cámara: fuera */
 /* LA FOTO VA ENMARCADA, NO A SANGRE — y la decisión merece quedar escrita,
    porque aquí hubo una regla de sangría (`margin-inline: -18px`) durante meses.
    Nunca llegó a verse: la sección de ZoomStage traía un `px-4` que devolvía

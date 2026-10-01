@@ -1,8 +1,8 @@
 // src/components/configurator/Header.jsx
 // Cabecera de periódico (rediseño «Prensa del motor»): topbar con la MARCA DEL
 // SUMARIO a la izquierda (abre el índice del ejemplar) y la CLASIFICACIÓN a la
-// derecha, masthead con el nombre del diario y folio con la fecha completa entre
-// filetes dobles.
+// derecha, masthead con el nombre del diario y, entre filetes dobles, el lema
+// que dice que esto es un juego (antes, la fecha: ver la banda del folio).
 //
 // EL SUMARIO YA NO CUELGA DE AQUÍ. Hasta ahora este archivo montaba, además de
 // la barra, un desplegable propio con las cinco entradas del menú y toda su
@@ -276,9 +276,26 @@ export default function Header({
           palmo (más el de la barra y el del ladillo, cuatro reglas en 40px).
           Ahora queda UNO, bajo la barra, justo donde separa la navegación del
           ejemplar. */}
+      {/* EN LA BANDA YA NO VA LA FECHA: VA QUÉ ES ESTO. «Coche del Día» es el
+          nombre de un diario, no de un juego, y bajo él la línea más visible de
+          la portada era «Jueves, 1 de octubre de 2026»: nada en la pantalla
+          decía que aquí se juega. La frase que lo dice (`app.tagline`) llevaba
+          meses escrita en los locales sin que la montara nadie, y el `<title>`
+          la anunciaba solo en la pestaña, que en el móvil no se ve. La señal de
+          que faltaba: de los nuevos que abandonan su primera partida, tres de
+          cada cuatro se van tras el primer intento, y quien lo ve por primera
+          vez pone cara de pregunta (oct-2026). Se prefirió un lema a cambiar de
+          nombre: el dominio, la ficha de Play y la marca se quedan.
+
+          La fecha no hace falta a la vista en un juego diario —el reloj del pie
+          ya dice que el coche cambia cada día—, así que sigue entera para quien
+          escucha y se va para quien mira. El lema mide 41 caracteres contra los
+          28-32 de una fecha larga, al mismo cuerpo fluido: cabe en un renglón
+          también en un móvil de 320 (el folio no parte línea, ver index.css). */}
       {!enApp && (
         <div className="prensa-folio">
-          <span>{dateLabel}</span>
+          <span className="sr-only">{dateLabel}</span>
+          <span>{t("app.tagline")}</span>
         </div>
       )}
 

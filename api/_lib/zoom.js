@@ -18,18 +18,32 @@
 // queda además invariante de escala: el reparto de los pasos es idéntico para
 // cualquier base, y el slider del admin ya no deforma la curva al moverse.
 //
-// ── POR QUÉ ESTA CURVA ES BACK-LOADED (EASE > 1) ──────────────────────────
-// El género (Wordle, Heardle: 1s→2s→4s→7s→11s→16s) reparte las pistas en
-// aceleración, no en desaceleración: la tensión tiene que subir hasta el
-// último intento y la pista más generosa es la que rescata al jugador que ya
-// se veía perdido. Con EASE<1 (ease-out) pasaba lo contrario — el salto grande
-// era el 1→2 y el 4→5 el más pobre, justo en el momento de máxima tensión.
+// ── POR QUÉ PASOS IGUALES (EASE = 1) ──────────────────────────────────────
+// La curva ha pasado por los dos extremos y cada uno falló por un lado.
 //
-// Con EASE 1.3 el span en log se reparte 16.5 / 24.1 / 28.2 / 31.2 % — pasos
-// monótonamente crecientes, el último ~1.9× el primero. Ojo con pasarse: un
-// EASE más alto adelgaza el paso 1→2 hasta hacerlo imperceptible ("he gastado
-// un intento para nada"). 1.3 lo deja en el 66% del geométrico, que se nota.
-// zoom.sync.test.js fija estas invariantes de forma.
+// Con EASE<1 (ease-out, hasta jun-2026) el salto grande era el 1→2 y el 4→5
+// el más pobre, justo en el momento de máxima tensión: el desenlace era un
+// anticlímax. Se corrigió a EASE 1.3 (back-loaded, como Heardle: pasos
+// crecientes, el último ~1.9× el primero), y eso le cobró la factura al otro
+// extremo. Con 1.3 el paso 1→2 era un ×1.14: la foto pasaba de enseñar el 21%
+// del crop final al 27%. Al veterano le da igual, porque ya sabe que la foto
+// se abre; al que juega su primera partida le dice que ha gastado un intento
+// para nada. Y es justo ahí donde se iba: medido en oct-2026 sobre las
+// primeras partidas de ago-sep, de los 43 nuevos que abandonaron a medias, 32
+// lo hicieron exactamente tras el intento 1 (y quien PIERDE su primera
+// partida vuelve igual que quien la gana: lo que espanta no es fallar, es no
+// ver que fallar sirve de algo).
+//
+// Con EASE 1.0 los cuatro pasos son iguales (×1.21 cada uno) y la foto va
+// 21 → 31 → 46 → 68 → 100% del crop final. El primer fallo enseña casi el
+// doble de foto nueva que antes y el último sigue siendo tan generoso como
+// cualquier otro: la tensión no crece paso a paso, pero tampoco se desinfla.
+// El precio, asumido: los intentos 2-4 son algo más fáciles para todos.
+//
+// zoom.sync.test.js lo fija con dos invariantes que se sujetan una a la otra
+// —ningún paso menor que el anterior, y el primero no por debajo del
+// geométrico—: juntas solo las cumple EASE 1. Mover el número obliga a
+// reabrir una de las dos decisiones, no a ajustar un test.
 //
 // ── EL ANCLA DE ZOOM_SPAN ─────────────────────────────────────────────────
 // SPAN = 3.7/1.7 es exactamente el span histórico del base por defecto, que es
@@ -47,7 +61,7 @@
 export const DEFAULT_ZOOM_BASE = 3.7; // intento 1 histórico (3.7×)
 export const ZOOM_SPAN = 3.7 / 1.7; // ≈2.1765 — factor total de revelado, igual para todo coche
 export const ZOOM_ATTEMPTS = 5; // nº de intentos / pistas
-export const ZOOM_EASE = 1.3; // exponente de la curva log: 1 = geométrico (pasos iguales); >1 = ease-in (back-loaded)
+export const ZOOM_EASE = 1; // exponente de la curva log: 1 = geométrico (pasos iguales); >1 = ease-in (back-loaded)
 export const ZOOM_BASE_MIN = 2.8; // intento 1 = 35.7% del lado → intento 5 = 77.7% (fácil)
 export const ZOOM_BASE_MAX = 7.5; // intento 1 = 13.3% del lado → intento 5 = 29.0% (difícil)
 

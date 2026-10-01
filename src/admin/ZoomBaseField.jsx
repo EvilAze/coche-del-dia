@@ -60,8 +60,8 @@ export default function ZoomBaseField({
           muestra por intento (% del lado)
         </span>
       </div>
-      {/* Escalera de los 5 intentos. El último va en acento porque es el paso
-          más grande de la curva (back-loaded) y el que decide la derrota. */}
+      {/* Escalera de los 5 intentos. El último va en acento porque es el que
+          decide la derrota (los pasos son iguales: ver api/_lib/zoom.js). */}
       <div className="flex justify-between font-mono text-[10px] text-muted">
         {pasos.map((pct, i) => (
           <span key={i} className={i === pasos.length - 1 ? "text-accent" : undefined}>

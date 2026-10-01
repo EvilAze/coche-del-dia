@@ -139,7 +139,7 @@ export default function AttemptList({
   tablero = false,
   maxAttempts = 5,
   nota = null,
-  huecoTexto = null,
+  huecoTextos = null,
 }) {
   const { t } = useT();
   if (tablero) {
@@ -151,7 +151,7 @@ export default function AttemptList({
         tolerance={tolerance}
         maxAttempts={maxAttempts}
         nota={nota}
-        huecoTexto={huecoTexto}
+        huecoTextos={huecoTextos}
       />
     );
   }
@@ -196,7 +196,7 @@ export default function AttemptList({
 //
 // El hueco vive en el MISMO espacio que ya reservaba Configurator para el
 // historial (`reservaHistorial`): no se le quita un píxel a la fotografía.
-function Tablero({ guesses, pendingGuess, justRevealedIndex, tolerance, maxAttempts, nota, huecoTexto }) {
+function Tablero({ guesses, pendingGuess, justRevealedIndex, tolerance, maxAttempts, nota, huecoTextos }) {
   const { t } = useT();
   const ref = useRef(null);
   const usados = guesses.length + (pendingGuess ? 1 : 0);
@@ -259,6 +259,8 @@ function Tablero({ guesses, pendingGuess, justRevealedIndex, tolerance, maxAttem
     <section ref={ref} aria-label={t("guessLog.label")} className="prensa-tablero flex flex-col">
       {/* Los huecos son decorado para quien ve; quien escucha recibe la cuenta. */}
       <p className="sr-only">{t("app.attemptsRemainingAria", { count: restantes, max: maxAttempts })}</p>
+      {/* Los huecos son `aria-hidden`, así que lo que explican se dice aquí. */}
+      {huecoTextos?.length > 0 && <p className="sr-only">{huecoTextos.join(". ")}</p>}
       {guesses.map((g, i) => (
         <AttemptRow key={i} g={g} tolerance={tolerance} fresh={i === justRevealedIndex} num={i + 1} />
       ))}
@@ -279,7 +281,11 @@ function Tablero({ guesses, pendingGuess, justRevealedIndex, tolerance, maxAttem
             aria-hidden="true"
           >
             <span className="num">{String(num).padStart(2, "0")}</span>
-            <span className="hueco">{siguiente && huecoTexto ? huecoTexto : null}</span>
+            {/* Los textos van por posición a partir del primer hueco libre (ver
+                `huecoTextos` en Configurator): el 01 dice qué es la foto y qué
+                hacer, el 02 qué pasa si fallas. Con un intento entintándose no
+                se pinta ninguno — ya no es el momento de explicar. */}
+            <span className="hueco">{!pendingGuess ? huecoTextos?.[k] ?? null : null}</span>
           </div>
         );
       })}

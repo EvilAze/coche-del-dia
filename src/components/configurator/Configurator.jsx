@@ -263,14 +263,20 @@ export default function Configurator({
   // Qué se ve en el tablero, además de los renglones. Nada de esto toca la
   // dificultad: ni un píxel más de foto, ni una opción menos en la lista. Es
   // la misma partida, contada para quien no sabe todavía cómo se lee.
-  //   · Antes del primer intento, el hueco 01 dice dónde va a caer.
+  //   · Antes del primer intento, los dos primeros huecos cuentan el juego:
+  //     el 01 qué es la foto (un detalle del coche, no una textura) y qué
+  //     hacer; el 02 qué pasa si fallas. Antes el 01 solo decía «aquí
+  //     aparecerá tu intento», y la mecánica —cada fallo abre la foto— se
+  //     explicaba DESPUÉS del primer fallo, en la nota. Llegaba tarde: tres de
+  //     cada cuatro nuevos que abandonan lo hacen justo tras el intento 1
+  //     (oct-2026), o sea sin haberla leído nunca.
   //   · Tras cada fallo, una nota que convierte los tachones en lo que ya se
   //     sabe. Espera a que llegue el veredicto (con la fila entintándose no hay
   //     nada nuevo que contar) y se va con la partida.
   const verTablero = dataReady && !loadError && !ended;
-  const huecoTexto =
+  const huecoTextos =
     primeraPartida && verTablero && guesses.length === 0 && !pendingGuess
-      ? t("cdd.tableroHueco")
+      ? [t("cdd.tableroHueco"), t("cdd.tableroHueco2")]
       : null;
   let nota = null;
   if (primeraPartida && verTablero && guesses.length > 0 && !pendingGuess) {
@@ -408,7 +414,7 @@ export default function Configurator({
                 tablero={verTablero}
                 maxAttempts={maxAttempts}
                 nota={nota}
-                huecoTexto={huecoTexto}
+                huecoTextos={huecoTextos}
                 guesses={guesses}
                 // LA FILA ENTINTADA, RECONECTADA. Estaba construida entera
                 // —el estado en useGame, la rama `pending` de AttemptRow y su

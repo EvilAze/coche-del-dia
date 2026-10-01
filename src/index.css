@@ -566,6 +566,46 @@ body,
   background: linear-gradient(to top, rgba(0,0,0,.4) 0%, transparent 24%);
 }
 
+/* EL MARCO DE LO QUE VEÍAS (CarImage.jsx). Nace sobre el borde de la foto y
+   se encoge con ella hasta enmarcar el encuadre anterior; lo de fuera es lo
+   que acaba de ganar el intento. El porqué, en CarImage.
+
+   Dos tiempos, y el primero ES la fotografía: misma duración (`revelado`),
+   misma curva (`lente`), mismo retardo (`sello`, el cuarto tiempo del compás
+   del veredicto) y mismo origen que el `transform` de la imagen, para que el
+   filete viaje pegado a ella en vez de perseguirla. El segundo es tinta que
+   se va (`escena`, `sale`) cuando la foto ya ha frenado Y el ojo ha tenido
+   una `escena` para leerlo: quieto, el marco es lo que cuenta la jugada; se
+   retira después porque uno permanente sería un segundo encuadre compitiendo
+   con el de verdad mientras se elige el siguiente intento.
+
+   El filete es DOBLE —papel dentro, a 2px, y tinta fuera, a 1— porque va
+   encima de una fotografía cualquiera: sobre una carrocería clara se lee la
+   tinta y sobre una oscura el papel. A 1+1 se perdía en una foto con textura
+   (y escalado a ×0.8 se quedaba en subpíxel). En la edición de noche se
+   invierten solos porque salen de las mismas ternas. Nada de color de acción
+   ni de halo: es una marca de corrector sobre la prueba, no un aviso.
+
+   Reposo invisible (`opacity: 0`) a propósito: con movimiento reducido la
+   regla global apaga las animaciones, y lo que queda es este estado. Solo
+   `transform` y `opacity`, que se quedan en el compositor (regla 25). */
+.cdd-marco-previo {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  border: 2px solid rgb(var(--bg-rgb));
+  outline: 1px solid rgb(var(--tinta-rgb));
+  outline-offset: 0;
+  transform-origin: center center;
+  opacity: 0;
+  animation:
+    cddMarcoLente var(--ms-revelado) var(--curva-lente) var(--ms-sello) both,
+    cddMarcoSale var(--ms-escena) var(--curva-sale) calc(var(--ms-sello) + var(--ms-revelado) + var(--ms-escena)) forwards;
+}
+@keyframes cddMarcoLente {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 1; transform: scale(var(--marco-escala, 1)); }
+}
+@keyframes cddMarcoSale { from { opacity: 1; } to { opacity: 0; } }
+
 /* (El lightbox de la foto —.cdd-lightbox-frame— se retiró con el
    tap-para-ampliar: ver la cabecera de CarImage.jsx. Existía para que un
    escenario pequeño se pudiera mirar a pantalla completa; con la foto ya a

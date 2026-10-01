@@ -4,11 +4,13 @@
 //
 // Cada coche tiene un "zoom base" (= zoom lógico del intento 1) y TODOS revelan
 // el mismo factor total: zoom_N = base / ZOOM_SPAN. Entre medias la curva es
-// log-lerp deformada por ZOOM_EASE (ease-in: los pasos crecen hacia el final).
+// log-lerp deformada por ZOOM_EASE; hoy vale 1, o sea pasos iguales (el
+// porqué, en la cabecera de api/_lib/zoom.js: el 1→2 back-loaded era tan corto
+// que los jugadores nuevos se iban justo ahí).
 // El servidor sirve SIEMPRE el crop del intento N durante la partida; el
 // cliente "cierra" el zoom con un scale CSS por intento sobre esa imagen.
 //
-// El razonamiento de diseño completo (por qué back-loaded y por qué el span es
+// El razonamiento de diseño completo (por qué pasos iguales y por qué el span es
 // un RATIO y no una resta) está en la cabecera de api/_lib/zoom.js.
 
 export const DEFAULT_ZOOM_BASE = 3.7;
@@ -17,7 +19,7 @@ export const DEFAULT_ZOOM_BASE = 3.7;
 // que es el 83% del catálogo, para que la migración solo mueva los tuneados.
 export const ZOOM_SPAN = 3.7 / 1.7;
 export const ZOOM_ATTEMPTS = 5;
-export const ZOOM_EASE = 1.3;
+export const ZOOM_EASE = 1;
 export const ZOOM_BASE_MIN = 2.8;
 export const ZOOM_BASE_MAX = 7.5;
 
@@ -59,8 +61,8 @@ export function cropPctForAttempt(z, base = DEFAULT_ZOOM_BASE) {
 // Scales CSS por intento (1..N) que el cliente aplica sobre la imagen ?z=N que
 // sirve el servidor (= crop del intento N). scale_i = zoom_i / zoom_N, así el
 // intento N queda en 1.0 (ya se ve todo el crop). Deriva de zoomForAttempt para
-// no divergir de la curva (CLAUDE.md #7). Con EASE 1.3 da
-// [2.176, 1.914, 1.587, 1.275, 1.0].
+// no divergir de la curva (CLAUDE.md #7). Con EASE 1 da
+// [2.176, 1.792, 1.475, 1.215, 1.0] — cada uno un ×1.21 sobre el siguiente.
 //
 // Desde que el span es un ratio, el `base` se CANCELA en la división y los
 // scales son los mismos para todo coche. Se mantiene el parámetro porque los

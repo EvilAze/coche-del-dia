@@ -131,6 +131,26 @@ export default function CarImage({
     }
   }, [src, loaded, status, onRevealLoad]);
 
+  // EL MARCO DE LO QUE VEÍAS. Al fallar, la foto se abre — y sola, esa
+  // apertura no se lee: el habitual sabe que el trozo nuevo es el de
+  // alrededor, pero quien juega su primera partida ve una imagen que cambia un
+  // poco y no sabe qué le ha dado el intento. Tres de cada cuatro nuevos que
+  // abandonan se van justo ahí, tras el primero (oct-2026).
+  //
+  // Así que se dibuja lo que acabas de ver: un filete que nace EXACTAMENTE
+  // sobre el borde de la foto y se encoge con ella, pegado a la imagen, hasta
+  // quedar enmarcando el trozo que había antes. Todo lo que queda fuera es lo
+  // nuevo. Se enseña en vez de decirse, en el idioma del sistema (un filete,
+  // sin redondeos ni halos), y sirve igual al veterano: le dice de un vistazo
+  // cuánto le ha dado este intento.
+  //
+  // No es un segundo consumidor de `--ms-revelado` sino la misma fotografía:
+  // escala con la MISMA duración, curva y retardo que el `transform` de la
+  // imagen y con su mismo origen (el centro), así que es literalmente el
+  // borde del encuadre anterior viajando con la lente. Si se movieran por
+  // separado se vería que uno persigue al otro. El CSS, en `.cdd-marco-previo`.
+  const [marco, setMarco] = useState(null);
+
   // EL DESTELLO ROJO SE RETIRA. Era un lavado de `bg-accent/35` a pantalla
   // completa sobre la fotografía, y es el último efecto de videojuego que
   // quedaba en un sistema que prohíbe hasta los halos: la foto es la pieza con
@@ -150,9 +170,14 @@ export default function CarImage({
   // positivo del temblor del intento fallido, y ahora cae acompasado con el
   // movimiento en vez de con un tinte.
   useEffect(() => {
-    const changed = prevZoomRef.current !== zoom;
+    const antes = prevZoomRef.current;
+    const changed = antes !== zoom;
     if (loaded && changed && status === "playing") {
       haptic.impactLight();
+      // Solo cuando la foto se ABRE (el zoom baja): es lo único que el marco
+      // sabe contar. `n` cambia en cada fallo para que React remonte el marco
+      // y la animación vuelva a empezar desde el borde.
+      if (zoom < antes) setMarco((m) => ({ n: (m?.n ?? 0) + 1, escala: zoom / antes }));
     }
     prevZoomRef.current = zoom;
   }, [zoom, status, loaded]);
@@ -387,6 +412,23 @@ export default function CarImage({
           }}
         />
       </picture>
+
+      {/* El marco de lo que veías (ver `marco`, arriba). Solo mientras se
+          juega: al ganar o perder la foto se abre entera y el marco no tendría
+          nada que señalar. Se desmonta al terminar su última animación; con
+          movimiento reducido no hay animación y su estado de reposo es
+          invisible, así que no hace falta nada más. */}
+      {marco && status === "playing" && (
+        <div
+          key={marco.n}
+          aria-hidden="true"
+          className="cdd-marco-previo"
+          style={{ "--marco-escala": marco.escala }}
+          onAnimationEnd={(e) => {
+            if (e.animationName === "cddMarcoSale") setMarco(null);
+          }}
+        />
+      )}
 
       {/* Viñeta decorativa: sólo cuando la imagen ya está visible. En modo
           configurador el diseño aporta su propio grano/HUD, así que se omite. */}

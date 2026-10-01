@@ -138,17 +138,32 @@ describe("forma de la curva de zoom", () => {
     ).toBeCloseTo(1.7, 10);
   });
 
-  // Back-loading (convención del género: Heardle 1→2→4→7→11→16). La tensión
-  // sube hasta el final y la pista más generosa es la última, la que rescata.
-  // Con pasos decrecientes el desenlace era un anticlímax: el intento 5 casi no
-  // añadía nada sobre el 4.
-  it("cada paso es mayor que el anterior y el más grande es el último", () => {
+  // LAS DOS DECISIONES QUE SUJETAN ZOOM_EASE, una por cada extremo que ya se
+  // probó y falló (el porqué completo, en la cabecera de api/_lib/zoom.js).
+  // Juntas solo las cumple EASE 1: mover el número obliga a reabrir una de las
+  // dos, no a retocar la tolerancia.
+  //
+  // 1) Ningún paso menor que el anterior. Con pasos decrecientes (ease-out, el
+  //    primer diseño) el desenlace era un anticlímax: el intento 5 casi no
+  //    añadía nada sobre el 4, justo en el momento de máxima tensión.
+  it("ningún paso es menor que el anterior", () => {
     for (const base of BASES) {
       const pasos = pasosLog(base);
       for (let i = 1; i < pasos.length; i++) {
-        expect(pasos[i]).toBeGreaterThan(pasos[i - 1]);
+        expect(pasos[i]).toBeGreaterThanOrEqual(pasos[i - 1] - 1e-12);
       }
-      expect(Math.max(...pasos)).toBeCloseTo(pasos[pasos.length - 1], 12);
+    }
+  });
+
+  // 2) El primer paso no se queda por debajo del geométrico. Con el
+  //    back-loading (EASE 1.3) el 1→2 era un ×1.14, y los datos de ago-sep 2026
+  //    dicen que es exactamente ahí donde se iban los jugadores nuevos: 32 de los
+  //    43 que abandonaron su primera partida lo hicieron tras el intento 1.
+  it("el primer fallo abre al menos lo que abriría una curva de pasos iguales", () => {
+    for (const base of BASES) {
+      const pasos = pasosLog(base);
+      const geometrico = pasos.reduce((a, b) => a + b, 0) / pasos.length;
+      expect(pasos[0]).toBeGreaterThanOrEqual(geometrico - 1e-12);
     }
   });
 

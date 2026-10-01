@@ -5,9 +5,10 @@
 // FocusPicker (que recibe el mismo zoomBase) muestra el efecto en vivo.
 //
 // OJO al balancear: los 5 intentos NO bajan "en saltos fijos de 0.5", como
-// decía aquí. La curva es LOGARÍTMICA CON EASING (ZOOM_EASE, src/lib/zoom.js) y
-// BACK-LOADED: cada paso es mayor que el anterior y el salto gordo cae en el
-// 4→5. El span es un RATIO constante (ZOOM_SPAN): el intento 5 es siempre
+// decía aquí. La curva es LOGARÍTMICA (ZOOM_EASE, src/lib/zoom.js) y desde
+// oct-2026 de PASOS IGUALES: cada intento abre la foto el mismo factor (×1.21),
+// también el primero, que con la curva back-loaded de antes casi no se notaba.
+// El span es un RATIO constante (ZOOM_SPAN): el intento 5 es siempre
 // base/2.1765, así que TODO coche revela el mismo factor total y el slider solo
 // decide cuánto se cierra el teaser inicial — mueve los cinco niveles a la vez,
 // en proporción, sin deformar la curva.

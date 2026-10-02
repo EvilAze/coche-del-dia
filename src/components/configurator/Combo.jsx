@@ -25,10 +25,6 @@ export default function Combo({
   disabled = false,
   invalid = false,
   optionFlag = null,
-  // Misma deducción que la lista de la app (lib/deduccion): "pais", "descartada"
-  // o null. En la web el desplegable se filtra tecleando, así que no se
-  // reordena: se marca, que es lo que hace el teclado de Wordle.
-  optionPista = null,
   // Cadena de foco (marca→modelo→año): el padre nos pasa un ref para poder
   // enfocar este input programáticamente, y un onCommit que disparamos al
   // elegir una opción REAL (no al teclear) para que avance al siguiente campo.
@@ -193,22 +189,16 @@ export default function Combo({
           )}
           {filtered.map((o, i) => {
             const flag = optionFlag ? optionFlag(o) : null;
-            const pista = optionPista ? optionPista(o) : null;
             return (
               <li
                 key={o}
                 role="option"
                 aria-selected={o === value}
-                className={
-                  "prensa-opt" + (i === hi ? " hi" : "") +
-                  (pista === "pais" ? " pista-pais" : pista === "descartada" ? " descartada" : "")
-                }
+                className={"prensa-opt" + (i === hi ? " hi" : "")}
                 onMouseEnter={() => setHi(i)}
                 onClick={() => choose(o)}
               >
                 <span>{o}</span>
-                {pista === "pais" && <span className="pista-pais-texto">{t("cdd.sameCountry")}</span>}
-                {pista === "descartada" && <span className="sr-only">{t("cdd.marcaDescartada")}</span>}
                 {flag && <img className="bandera" src={flag} alt="" draggable={false} loading="lazy" />}
               </li>
             );

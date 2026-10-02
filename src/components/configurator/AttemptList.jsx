@@ -1,13 +1,16 @@
 // src/components/configurator/AttemptList.jsx
-// Clasificación: cada intento es una FILA numerada (01…) de tres FICHAS de
-// color sólido, una por dato. Verde = acierto (+ ✓), ámbar = mismo país
-// (+ bandera y «mismo país»), gris = no (el estado más callado, como en
-// Wordle; el rojo queda para ADIVINAR). La flecha ↑/↓ del año va EN LÍNEA con
-// la cifra. El color vive en index.css (.prensa-dato.bien/.cerca/.mal y los
-// tokens --ficha-*), y nunca va solo: icono o texto en cada ficha, y el estado
-// exacto en sr-only. Hasta oct-2026 eran marcas de corrector sobre fondo
-// transparente, y el veredicto se leía apagado. Pendiente = "entintado" (pulso
-// de opacidad); recién validada = las fichas se dan la vuelta una a una.
+// Clasificación «Prensa del motor»: cada intento es una FILA numerada (01…)
+// con tres datos en Fraunces y veredictos como MARCAS DE CORRECTOR.
+// Verde = correcto, rojo = incorrecto (la convención universal y lo que promete
+// el modal «Cómo se juega»):
+//   acierto → subrayado VERDE firme + ✓ · cerca → subrayado ÁMBAR discontinuo +
+//   apostilla "mismo país" (bandera) · fallo → tachado a pluma ROJA. La flecha
+//   ↑/↓ del año (más nuevo/antiguo) va EN LÍNEA con la cifra, no en apostilla.
+// (El color vive en index.css: .prensa-dato.bien/.cerca/.mal.)
+// Fondos transparentes: la fila es tipografía + filete, no un chip. Feedback
+// REAL del servidor (correct/partial/wrong + dirección), doble codificación
+// marca+texto (accesible; el estado exacto va también en sr-only). Pendiente =
+// "entintado" (pulso de opacidad); recién validada = estampado.
 
 import { useEffect, useRef } from "react";
 import { useT } from "../../i18n";
@@ -39,7 +42,7 @@ function Dato({ estado, pending, value, apostilla, hint, srStatus, fresh, delay,
       className={
         "prensa-dato " +
         (pending ? "" : estado) +
-        (fresh ? " prensa-volteada" : "")
+        (fresh ? " prensa-estampada" : "")
       }
       style={fresh ? { animationDelay: delay } : undefined}
     >

@@ -15,6 +15,7 @@ import { desplazarSuave } from "../../lib/movimiento";
 import { flagImagePath } from "../../data/countries";
 import { resolver } from "../../lib/resolver";
 import { yearRange } from "../../lib/yearRange";
+import { deducirPais } from "../../lib/deduccion";
 import { esApp } from "../../lib/plataforma";
 import { useHistoryClose } from "../../hooks/useHistoryClose";
 import Combo from "./Combo";
@@ -178,6 +179,10 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     for (const c of CARS) if (c.marca && c.pais && !m[c.marca]) m[c.marca] = c.pais;
     return m;
   }, [CARS]);
+
+  // Lo que los intentos dicen del país del coche (lib/deduccion): las dos listas
+  // de marcas lo pintan, apagando lo descartado y adelantando lo del mismo país.
+  const deduccion = useMemo(() => deducirPais(guesses, marcaPais), [guesses, marcaPais]);
 
   const marcaValida = MARCAS.includes(marca);
   const marcaInvalida = marca.trim().length > 0 && !marcaValida;
@@ -505,6 +510,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           disabled={formDisabled}
           invalid={marcaInvalida}
           optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
+          optionPista={deduccion.pista}
           enterKeyHint="next"
           bloqueado={bloqueo.marca}
           estado={bloqueo.marca ? "resuelto" : null}
@@ -594,6 +600,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               opciones={availableMarcas}
               valor={marca}
               optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
+              optionPista={deduccion.pista}
               onElegir={elegirMarca}
             />
           )}

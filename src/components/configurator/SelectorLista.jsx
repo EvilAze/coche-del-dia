@@ -60,6 +60,12 @@ import { useT } from "../../i18n";
 // cuánto queda.
 const UMBRAL_INDICE = 25;
 
+// Clave del grupo «del mismo país», el que se adelanta al abecedario cuando un
+// intento ya ha fijado el país (ver lib/deduccion). No es una letra, así que no
+// entra en la tira A-Z: la tira dice dónde está cada inicial y este grupo ya
+// está donde se mira primero, arriba del todo.
+const LLAVE_PAIS = "__pais__";
+
 // (Aquí vivía UMBRAL_AUTOFOCO = 12, el número de opciones a partir del cual el
 // buscador se enfocaba solo. Se fue entero con el autofoco: ver la cabecera.)
 
@@ -74,6 +80,10 @@ export default function SelectorLista({
   // Bandera del país de la marca, si el consumidor la sabe. Mismo dato que ya
   // enseñaba el combo de la web.
   optionFlag = null,
+  // Lo que los intentos ya dicen de cada opción: "pais" (es del país del coche),
+  // "descartada" (su país ya no puede ser) o null. Lo calcula lib/deduccion;
+  // aquí solo se pinta. Es el teclado de Wordle aplicado a ochenta marcas.
+  optionPista = null,
 }) {
   const { t } = useT();
   const [q, setQ] = useState("");
@@ -101,7 +111,14 @@ export default function SelectorLista({
   const grupos = useMemo(() => {
     if (q || opciones.length <= UMBRAL_INDICE) return null;
     const mapa = new Map();
+    // Sabido el país, sus marcas se ADELANTAN en un grupo propio: son las únicas
+    // que pueden ser y, repartidas por el abecedario, había que buscarlas una a
+    // una entre setenta apagadas. Se mueven, no se duplican: cada marca vive en
+    // un solo sitio de la lista, que es lo que mantiene a `indiceDe` honrado.
+    const delPais = optionPista ? filtradas.filter((o) => optionPista(o) === "pais") : [];
+    if (delPais.length) mapa.set(LLAVE_PAIS, delPais);
     for (const o of filtradas) {
+      if (delPais.includes(o)) continue;
       // La inicial se toma NORMALIZADA: así "Škoda" cae en la S, que es donde
       // la busca cualquiera. Con la inicial cruda tendría letra propia al final
       // del índice y nadie la encontraría.
@@ -110,7 +127,15 @@ export default function SelectorLista({
       mapa.get(letra).push(o);
     }
     return [...mapa.entries()];
-  }, [filtradas, q, opciones.length]);
+  }, [filtradas, q, opciones.length, optionPista]);
+
+  // Las letras de la tira A-Z: todos los grupos menos el del país, que no tiene
+  // inicial. La tira y su gesto (letraEnY) usan ESTA lista, para que la
+  // proporción del dedo caiga sobre las mismas letras que se ven.
+  const gruposIndice = useMemo(
+    () => (grupos ? grupos.filter(([l]) => l !== LLAVE_PAIS) : null),
+    [grupos]
+  );
 
   // Las opciones EN EL ORDEN EN QUE SE VEN. Agrupada, la lista se pinta por
   // letras, así que recorrerla con las flechas siguiendo `filtradas` bajaría en
@@ -180,11 +205,11 @@ export default function SelectorLista({
   // proporción, lo único que importa es a qué ALTURA está.
   function letraEnY(y) {
     const nav = indiceRef.current;
-    if (!nav || !grupos?.length) return null;
+    if (!nav || !gruposIndice?.length) return null;
     const r = nav.getBoundingClientRect();
     if (!r.height) return null;
-    const i = Math.floor(((y - r.top) / r.height) * grupos.length);
-    return grupos[Math.min(Math.max(i, 0), grupos.length - 1)][0];
+    const i = Math.floor(((y - r.top) / r.height) * gruposIndice.length);
+    return gruposIndice[Math.min(Math.max(i, 0), gruposIndice.length - 1)][0];
   }
 
   function recorrer(y) {
@@ -248,13 +273,17 @@ export default function SelectorLista({
 
   const opcion = (o) => {
     const i = indiceDe.get(o);
+    const pista = optionPista ? optionPista(o) : null;
     return (
       <li
         key={o}
         id={`${idBase}-o${i}`}
         role="option"
         aria-selected={o === valor}
-        className={"pm-opcion" + (o === valor ? " elegida" : "") + (i === hi ? " hi" : "")}
+        className={
+          "pm-opcion" + (o === valor ? " elegida" : "") + (i === hi ? " hi" : "") +
+          (pista === "pais" ? " pista-pais" : pista === "descartada" ? " descartada" : "")
+        }
         onClick={() => elegir(o)}
         // Con el ratón, señalar lo que hay debajo del cursor mantiene una sola
         // idea de "la que está a punto de elegirse" — si no, el teclado señala
@@ -262,6 +291,8 @@ export default function SelectorLista({
         onMouseEnter={() => setHi(i)}
       >
         <span className="pm-opcion-texto">{o}</span>
+        {/* Apagada no se lee solo con la vista: quien escucha recibe el porqué. */}
+        {pista === "descartada" && <span className="sr-only">{t("cdd.marcaDescartada")}</span>}
         {optionFlag?.(o) && (
           <img className="bandera" src={optionFlag(o)} alt="" draggable={false} loading="lazy" />
         )}
@@ -310,9 +341,11 @@ export default function SelectorLista({
 
           {grupos
             ? grupos.map(([letra, items]) => (
-                <li key={letra} className="pm-grupo">
-                  <p className="pm-grupo-letra" data-letra={letra}>{letra}</p>
-                  <ul role="group" aria-label={letra}>{items.map(opcion)}</ul>
+                <li key={letra} className={"pm-grupo" + (letra === LLAVE_PAIS ? " pm-grupo-pais" : "")}>
+                  <p className="pm-grupo-letra" data-letra={letra}>
+                    {letra === LLAVE_PAIS ? t("cdd.grupoMismoPais") : letra}
+                  </p>
+                  <ul role="group" aria-label={letra === LLAVE_PAIS ? t("cdd.grupoMismoPais") : letra}>{items.map(opcion)}</ul>
                 </li>
               ))
             : filtradas.map(opcion)}
@@ -348,7 +381,7 @@ export default function SelectorLista({
             onPointerUp={alSoltarIndice}
             onPointerCancel={alSoltarIndice}
           >
-            {grupos.map(([letra]) => (
+            {gruposIndice.map(([letra]) => (
               <button
                 key={letra}
                 type="button"

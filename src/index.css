@@ -179,6 +179,16 @@
      del share (✅/❌). Verde: tinta de "visto bueno" (AA 5.4:1 sobre el crema).
      Ámbar: ocre de "parcial", ni acierto ni fallo (AA 4.9:1). */
   --verde-rgb: 20 110 51; --ambar-rgb: 154 85 16;
+  /* LAS FICHAS DEL TABLERO (ver .prensa-dato): relleno + tinta de encima. El
+     ámbar de relleno NO es el --ambar de texto: aquel es oscuro porque se pinta
+     SOBRE el papel; este lleva la tinta encima y tiene que ser vivo para que la
+     ficha no se lea apagada (AA: tinta sobre 232 154 22, 7.7:1). Verde y gris
+     llevan papel encima (5.4:1 y 4.9:1). El gris es la tinta secundaria: el
+     fallo es el estado más callado del tablero, como en Wordle. */
+  --ficha-cerca-rgb: 232 154 22;
+  --ficha-bien: rgb(var(--verde-rgb)); --ficha-bien-texto: rgb(var(--bg-rgb));
+  --ficha-cerca: rgb(var(--ficha-cerca-rgb)); --ficha-cerca-texto: rgb(var(--tinta-rgb));
+  --ficha-mal: rgb(var(--tinta2-rgb)); --ficha-mal-texto: rgb(var(--bg-rgb));
   /* Podio: plata y bronce. Existen como token porque el oro ya lo era y sus dos
      hermanos se estaban pintando con paleta cruda de Tailwind (zinc-300 /
      amber-700), que NO sigue al tema: sobre el papel crema el zinc-300 quedaba
@@ -374,6 +384,10 @@
   --gold-rgb: 217 184 119; --gold-dark-rgb: 185 151 90;
   /* Verde y ámbar del veredicto, subidos para contraste AA sobre el grafito. */
   --verde-rgb: 107 191 136; --ambar-rgb: 224 160 74;
+  /* Fichas de noche: los tres rellenos son claros sobre el grafito, así que los
+     tres llevan encima el fondo oscuro (AA: 8.4, 7.4 y 5.7:1). */
+  --ficha-cerca-rgb: 224 160 74;
+  --ficha-cerca-texto: rgb(var(--bg-rgb));
   /* Plata y bronce del podio, subidos igual (AA sobre el grafito: 9.7:1 y 6.1:1). */
   --plata-rgb: 186 190 199; --bronce-rgb: 205 133 90;
   /* El velo se va casi al negro y la sombra gana peso: sobre grafito un roce
@@ -1600,52 +1614,74 @@ body,
 @media (min-width: 1100px) { .cdd-peek { display: none; } }
 @keyframes cddPeekIn { from { opacity: 0; transform: translateY(-6px) scale(.92); } }
 
-/* ── Clasificación: marcas de corrector de pruebas ──
-   Verde = correcto, rojo = incorrecto: la convención universal, la que promete
-   el modal «Cómo se juega» y la que usa la rejilla del share (✅/❌). Acierto →
-   subrayado VERDE firme + ✓; cerca (mismo país) → subrayado ÁMBAR discontinuo +
-   bandera; fallo → tachado a pluma ROJA. (Antes el acierto iba en rojo, la marca
-   del corrector; pero un ✓ rojo se lee como error de un vistazo — el feedback del
-   usuario que motivó este cambio.) Fondos transparentes: la fila es tipografía +
-   filete, no un chip. */
+/* ── Clasificación: FICHAS de color, una por dato ──
+   Hasta oct-2026 esto eran marcas de corrector sobre tipografía: subrayado
+   verde, subrayado ámbar discontinuo y tachado rojo, con el fondo transparente.
+   Bonito de cerca y apagado de lejos: el veredicto, que es lo más importante
+   que pasa en la partida, se leía como una línea fina bajo una palabra. Ahora
+   cada dato es una ficha de color sólido, la lección de Wordle: el tablero se
+   lee de un vistazo y desde lejos, y el color lo pone el jugador con sus
+   intentos.
+
+   Y EL FALLO ES GRIS, NO ROJO. También de Wordle: un tablero de fallos en rojo
+   se lee como un castigo, uno en gris como información; y el rojo queda libre
+   para ADIVINAR, que es el único rojo de esta pantalla. Verde = acierto, ámbar
+   = mismo país, gris = no. El color nunca va solo: cada ficha lleva su ✓, su
+   bandera con «mismo país» o su flecha, y el estado exacto en sr-only.
+
+   Los colores salen de --ficha-* (ver :root y la edición de noche): el ámbar
+   de relleno es más vivo que el --ambar de texto porque aquí lleva la tinta
+   ENCIMA, no al revés, y el contraste se calcula al revés. */
 .prensa-fila {
-  display: grid; grid-template-columns: 26px 1.05fr 1.3fr .8fr; gap: 10px;
-  padding: 11px 2px; border-bottom: 1px solid var(--line);
-  align-items: baseline;
+  display: grid; grid-template-columns: 26px 1.05fr 1.3fr .8fr; gap: 6px;
+  padding: 3px 0; align-items: stretch;
+  /* La profundidad del giro de las fichas al llegar el veredicto. */
+  perspective: 700px;
 }
-.prensa-fila .num { font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--cdd-muted); }
+.prensa-fila .num { align-self: center; font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--cdd-muted); }
 /* (La cabecera de columnas —MARCA · MODELO · AÑO sobre la rejilla— se retiró:
    el propio dato ya se lee sin etiqueta y gastaba un renglón en cada pliego.) */
-/* Wrapper de nombre: da a useFitText el ancho de la celda; la .palabra inline
-   conserva el subrayado/tachado AL ANCHO DE LA PALABRA. */
+/* Wrapper de nombre: da a useFitText el ancho de la celda. */
 .prensa-dato .linea-nombre { display: block; width: 100%; white-space: nowrap; overflow: hidden; }
-.prensa-dato { min-width: 0; font-family: var(--font-display); font-size: 16px; line-height: 1.25; }
+.prensa-dato {
+  min-width: 0; min-height: 44px; box-sizing: border-box; padding: 5px 8px;
+  display: flex; flex-direction: column; justify-content: center; gap: 1px;
+  font-family: var(--font-body); font-weight: 700; font-size: 15px; line-height: 1.15;
+}
 .prensa-dato .palabra { display: inline; }
-.prensa-dato.bien .palabra { border-bottom: 2px solid var(--verde); font-weight: 600; }
-.prensa-dato.bien .marca-v { color: var(--verde); font-weight: 700; }
-.prensa-dato.cerca .palabra { border-bottom: 2px dashed var(--ambar); }
-/* Fallo = tachado a pluma ROJA sobre palabra apagada: el rojo dice "no", pero el
-   término recede (tinta muted) para no llenar la rejilla de alarma — quien lidera
-   la jerarquía visual es el verde de los aciertos (como en Wordle, el "ausente"
-   es el estado más callado). */
-.prensa-dato.mal .palabra { text-decoration: line-through; text-decoration-color: var(--rojo); text-decoration-thickness: 2px; color: var(--cdd-muted); }
+.prensa-dato.bien { background: var(--ficha-bien); color: var(--ficha-bien-texto); }
+.prensa-dato.cerca { background: var(--ficha-cerca); color: var(--ficha-cerca-texto); }
+.prensa-dato.mal { background: var(--ficha-mal); color: var(--ficha-mal-texto); }
+.prensa-dato .marca-v { font-weight: 700; }
 .prensa-apostilla {
-  display: flex; align-items: center; gap: 5px; margin-top: 2px;
-  /* Ámbar de PISTA (no de fallo): la bandera "mismo país" es una ayuda, no un
-     error; por eso lleva el ámbar del estado "casi" y no el rojo. */
-  font-family: var(--font-display); font-style: italic; font-size: 11.5px; color: var(--ambar);
-  text-transform: lowercase; /* "MISMO PAÍS" (i18n) se lee "mismo país" en cursiva */
+  /* Un solo renglón siempre: partida en dos, la apostilla estiraba la fila
+     entera y el tablero dejaba de caber sin desplazar. Si no cabe, se corta. */
+  display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden;
+  font-family: var(--font-body); font-size: 11px; font-weight: 600; color: inherit;
+  text-transform: lowercase; /* "MISMO PAÍS" (i18n) se lee "mismo país" */
 }
 /* Apostilla neutra (p.ej. el "±2" del año acertado): informa, no corrige. */
-.prensa-apostilla.neutra { color: var(--cdd-muted); }
+.prensa-apostilla.neutra { opacity: .85; }
 .prensa-apostilla .bandera { width: 18px; height: 12px; object-fit: cover; flex: none; }
-/* Flecha de dirección del año, EN LÍNEA con la cifra (no en apostilla debajo):
-   ahorra un renglón por fila. Ámbar de pista; el icono (11px) alinea su base con
-   los dígitos (16px) → mismo centro óptico, sin tocar la altura de la línea. */
-.prensa-dato .prensa-dir { color: var(--ambar); margin-left: 4px; }
+/* Flecha de dirección del año, EN LÍNEA con la cifra: hereda el color de la
+   ficha, que es lo que la hace legible sobre cualquiera de los tres fondos. */
+.prensa-dato .prensa-dir { color: inherit; margin-left: 4px; }
 .prensa-dato .prensa-dir svg { display: inline-block; vertical-align: baseline; }
+/* La fila entintada mientras responde el servidor: fichas aún sin color, solo
+   el filete, para que el veredicto caiga sobre algo que ya estaba (regla 24). */
 .prensa-fila-pendiente { animation: prensaEntintado var(--ms-latido) var(--curva-latido) infinite; }
+.prensa-fila-pendiente .prensa-dato { border: 2px solid var(--line-strong); background: var(--surface); color: var(--cdd-text); }
 @keyframes prensaEntintado { 0%, 100% { opacity: .45; } 50% { opacity: .8; } }
+/* EL GIRO DEL VEREDICTO, el momento de Wordle: cada ficha se da la vuelta y
+   enseña su color, una detrás de otra (0, 110 y 220ms, ver AttemptList). Dura
+   un `sello` y entra con la curva de entrada, sin rebote: es una ficha que
+   gira, no un tampón. Lo de la regla 22 —entintar es opacidad, nunca
+   transform— protege las cajas que miden los hooks del pliego; una ficha
+   dentro del tablero no la mide nadie y un `transform` no le cambia la caja a
+   nadie más. Con movimiento reducido la regla global apaga la animación y la
+   ficha aparece ya en su color. */
+.prensa-volteada { animation: voltearFicha var(--ms-sello) var(--curva-entra) both; backface-visibility: hidden; }
+@keyframes voltearFicha { from { opacity: 0; transform: rotateX(-90deg); } }
 .prensa-estampada { animation: estamparFila var(--ms-sello) var(--curva-sello) both; }
 @keyframes estamparFila { from { opacity: 0; transform: scale(1.02); } }
 
@@ -1662,14 +1698,20 @@ body,
    primera fila quedaba pegada al bloque de ADIVINAR y se leía como parte del
    botón. */
 .prensa-tablero { border-top: 1px solid var(--line-strong); }
-.prensa-fila-hueco {
-  align-items: center; min-height: 26px; padding-top: 4px; padding-bottom: 4px;
-}
+.prensa-fila-hueco { align-items: center; }
 .prensa-fila-hueco .num { color: var(--faint); }
 /* El siguiente, donde va a caer el próximo intento: número en tinta plena. */
 .prensa-fila-hueco.siguiente .num { color: var(--cdd-text); }
+.prensa-fila-hueco.siguiente .hueco { border-color: var(--line-strong); }
+/* El hueco es una ficha VACÍA a lo ancho de las tres columnas: el mismo
+   rectángulo que va a ocupar el intento, en filete, como las casillas en
+   blanco de Wordle. Más bajo que una ficha llena (30px contra 44): son la
+   promesa de cinco oportunidades, no contenido, y la pantalla entera tiene que
+   caber sin desplazar. Lleva dentro el texto de la primera partida. */
 .prensa-fila-hueco .hueco {
-  grid-column: 2 / -1; min-width: 0;
+  grid-column: 2 / -1; min-width: 0; min-height: 30px; box-sizing: border-box;
+  display: flex; align-items: center; padding: 3px 8px;
+  border: 2px solid var(--line);
   font-family: var(--font-display); font-style: italic; font-size: 13px;
   color: var(--cdd-muted);
 }
@@ -2765,6 +2807,22 @@ body,
 .pm-opcion.hi { background: rgb(var(--rojo-rgb) / .08); }
 .pm-opcion.vacia { min-height: 44px; cursor: default; color: var(--faint); font-style: italic; }
 .pm-opcion .bandera { width: 20px; height: 14px; object-fit: cover; flex: none; }
+/* LO QUE YA SE SABE DEL PAÍS (lib/deduccion), en las dos listas de marcas: la
+   de la app (.pm-opcion) y el desplegable de la web (.prensa-opt). Es el
+   teclado de Wordle: lo confirmado se pinta y lo descartado se apaga, pero no
+   se retira — una marca apagada se sigue pudiendo elegir, igual que una letra
+   gris se puede volver a teclear. Pintar con el ámbar del «mismo país» porque
+   es exactamente esa pista, ahora aplicada a toda la lista. */
+.pm-opcion.pista-pais, .prensa-opt.pista-pais { background: rgb(var(--ambar-rgb) / .12); font-weight: 700; }
+.pm-opcion.descartada, .prensa-opt.descartada { color: var(--faint); }
+.pm-opcion.descartada .bandera, .prensa-opt.descartada .bandera { opacity: .45; }
+/* El grupo adelantado lleva la cabecera en ámbar: dice por qué esas marcas
+   están arriba sin un renglón más de explicación. */
+.pm-grupo-pais > .pm-grupo-letra { color: var(--ambar); }
+.prensa-opt .pista-pais-texto {
+  margin-left: auto; font-family: var(--font-display); font-style: italic;
+  font-size: 12px; font-weight: 400; color: var(--ambar);
+}
 .pm-grupo { list-style: none; }
 .pm-grupo > ul { margin: 0; padding: 0; list-style: none; }
 /* La inicial se queda pegada arriba mientras se recorre su tramo: es lo que

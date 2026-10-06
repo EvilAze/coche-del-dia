@@ -829,19 +829,6 @@ body,
 @media (hover: hover) {
   .cdd-unlock:hover .cdd-unlock-name { color: var(--gold); }
 }
-
-/* EL PIE DE TU PARTIDA: el renglón que resume el resultado, en la voz de los pies
-   de foto (Fraunces cursiva). Sustituye a la etiqueta «TU PARTIDA» + la caja con
-   la rejilla de emoji + la frase del percentil: tres bloques apilados para una
-   sola idea. `flex-wrap` porque en inglés y con percentil de tres cifras la línea
-   llega justa en un móvil estrecho — antes que desbordar, baja el percentil. */
-.cdd-partida {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px;
-  padding: 9px 18px; border-bottom: 1px solid var(--line);
-  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
-  color: color-mix(in oklab, var(--cdd-text) 78%, var(--bg));
-}
-.cdd-partida-pct { color: var(--cdd-muted); }
 /* El pip del intento que acertó, en el verde del veredicto: el mismo verde que
    subraya los aciertos en el historial. Los demás quedan en tinta gastada. */
 .prensa-pips .pip.acierto { border-color: var(--verde); background: var(--verde); }
@@ -860,16 +847,6 @@ body,
   font-family: var(--font-body); font-weight: 600; font-size: 9px;
   letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
 }
-
-/* (Purga: `.cdd-end-tabs`, `.cdd-tab` y `.cdd-tab.on` eran la barra de pestañas
-   COMPARTIR/FICHA del panel de fin de partida. Se retiró entera: el contenido de
-   las dos pestañas no era paralelo —una era tu resultado y la acción, la otra la
-   historia del coche— así que el segmentado escondía media recompensa detrás de
-   una elección en el pico de la partida. Hoy es una columna en orden de lectura y
-   el pliegue hace de jerarquía. Con ellas se van `.cdd-sheet` y `.cdd-stat*`, las
-   dos fichas en rejilla de ORIGEN y AÑO: eran dos palabras ocupando media
-   pantalla en cajas, y ahora son un renglón, `.cdd-ficha-datos`.) */
-.cdd-end-body { padding: 14px 18px 4px; display: flex; flex-direction: column; gap: 14px; }
 .cdd-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--cdd-muted); }
 
 /* Distribución de intentos (datos reales). El título ya no vive dentro
@@ -896,53 +873,6 @@ body,
    más saturado de la web, justo al lado del botón que tenía que llevarse el ojo.) */
 .cdd-share-btn { height: 56px; }
 
-/* ── «El parte de la clasificación» (RankParte, final de partida) ──
-   Bloque editorial de doble filete: puesto en oro viejo (momento «valioso»),
-   movimiento vs ayer y acceso al ranking. Secundario a Compartir. Tokenizado,
-   así que sigue el tema día/noche como el resto del sistema prensa. */
-/* El parte es una SECCIÓN del pliego, no una caja. Tenía filete + outline a 3px
-   (doble marco) y era el único objeto enmarcado del panel: en un sistema plano el
-   marco es el recurso más ruidoso que hay, así que el bloque secundario acababa
-   pesando más que el CTA. Ahora comparte la anatomía de la crónica y del mundo:
-   ladillo con su filete, contenido debajo, separador arriba. */
-.cdd-parte {
-  border: 0; outline: 0; border-radius: 0;
-  padding: 12px 18px 2px; margin: 0;
-  border-top: 1px solid var(--line);
-  background: transparent;
-}
-.cdd-parte-lad {
-  display: flex; align-items: baseline; gap: 10px;
-  font-family: var(--font-body); font-weight: 800; font-size: 11px;
-  letter-spacing: .22em; text-transform: uppercase; color: var(--cdd-text);
-}
-.cdd-parte-lad::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-2px); }
-/* La cifra la pone PuestoCifra (.pm-puesto), compartida con la faja de portada
-   y el modal — antes se redibujaba aquí a mano y era un tercer dialecto del
-   mismo dato. */
-.cdd-parte-row { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; }
-.cdd-parte-mov { font-family: var(--font-display); font-size: 14px; margin-top: 6px; }
-/* La distancia al de arriba: dato de acción, en la voz de pie de foto. */
-.cdd-parte-dist {
-  font-family: var(--font-display); font-style: italic; font-size: 13px;
-  color: var(--cdd-muted); margin-top: 3px;
-}
-.cdd-parte-mov--up   { color: var(--gold); font-weight: 600; }   /* subir = premium */
-.cdd-parte-mov--down { color: var(--rojo); font-weight: 600; }   /* bajar = urgencia */
-.cdd-parte-mov--hold,
-.cdd-parte-mov--new  { color: var(--cdd-muted); font-style: italic; }
-.cdd-parte-nudge { font-family: var(--font-display); font-style: italic; font-size: 14px; color: var(--cdd-muted); margin-top: 8px; }
-.cdd-parte-cta {
-  display: inline-flex; align-items: center; gap: 4px; margin-top: 10px;
-  background: none; border: 0; cursor: pointer; padding: 0;
-  font-family: var(--font-body); font-weight: 700; font-size: 10px;
-  letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-text);
-  border-bottom: 2px solid var(--rojo);
-}
-@media (hover: hover) {
-  .cdd-parte-cta:hover { color: var(--rojo); }
-}
-
 .cdd-next { display: flex; align-items: center; justify-content: space-between; margin: 8px 18px 0;
   padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); }
 .cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
@@ -953,19 +883,6 @@ body,
    líneas — que es exactamente lo que son. Solo se separa en el remate: donde
    el reloj tiene una cifra, este tiene algo que pulsar. */
 .cdd-repesca { margin-top: 6px; }
-.cdd-repesca-cta {
-  background: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-  /* 44px de área táctil, como .cdd-end-link: es un objetivo de pulgar, no un
-     enlace de 10px. Los márgenes negativos se comen ese alto extra para que la
-     caja no crezca respecto a la del reloj y las dos sigan pareciendo gemelas. */
-  min-height: 44px; margin: -12px 0; padding: 12px 0;
-  font-family: var(--font-body); font-weight: 700; font-size: 11.5px; letter-spacing: .16em;
-  text-transform: uppercase; color: var(--accent);
-  border: none; transition: color var(--ms-roce) var(--curva-roce);
-}
-@media (hover: hover) {
-  .cdd-repesca-cta:hover { color: var(--cdd-text); }
-}
 /* "Ver mi partida" como botón secundario (ghost) de área táctil cómoda (≥44px),
    no un enlace de 10px imposible de acertar con el pulgar. Sigue por DEBAJO de
    Compartir (relleno = primario) y de la X de cerrar: es la salida etiquetada
@@ -991,7 +908,6 @@ body,
    aprieta su ritmo vertical para no necesitar scroll interno. */
 @media (max-height: 720px) {
   .cdd-reveal { height: clamp(120px, 20svh, 170px); }
-  .cdd-end-body { padding-top: 10px; gap: 10px; }
   .cdd-next { margin-top: 6px; }
 }
 
@@ -1123,92 +1039,6 @@ body,
 .prensa-sumario-boton .aviso {
   position: absolute; top: -3px; right: -3px;
   width: 6px; height: 6px; background: var(--rojo);
-}
-
-/* ── LA REJILLA DE PORTADILLAS ────────────────────────────────────────────
-   La forma común de «aquí se elige adónde ir»: la usan el sumario (secciones
-   del ejemplar) y el carnet del perfil (tus secciones). Una sola gramática
-   para el mismo gesto en dos pantallas — antes el perfil resolvía esto con
-   renglones de icono + texto + chevron, o sea con el menú de ajustes de
-   Android, que es justo el lenguaje que el resto del juego evita.
-
-   Los filetes interiores son el `gap` sobre fondo de línea, no bordes de cada
-   caja: así la cuadrícula se dibuja sola sea cual sea el número de entradas,
-   sin reglas de `nth-child` que rehacer cada vez que se añade una. Y cuando el
-   número es IMPAR, la última ocupa el ancho entero, así que nunca queda un
-   hueco enseñando el fondo. */
-.prensa-rejilla {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 1px; background: var(--line);
-  border: 1px solid var(--line-strong);
-}
-.prensa-rejilla > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
-.prensa-portadilla {
-  position: relative; display: flex; flex-direction: column; align-items: flex-start;
-  gap: 5px; min-height: 98px; padding: 13px 12px 14px; text-align: left;
-  background: var(--surface); border: 0; cursor: pointer; color: var(--cdd-text);
-  transition: color var(--ms-roce) var(--curva-roce), background var(--ms-roce) var(--curva-roce);
-}
-.prensa-portadilla:focus-visible {
-  background: var(--surface2); color: var(--rojo);
-}
-@media (hover: hover) {
-  .prensa-portadilla:hover { background: var(--surface2); color: var(--rojo); }
-}
-.prensa-portadilla:active { transform: translateY(1px); }
-.prensa-portadilla .marca { color: var(--cdd-muted); transition: color var(--ms-roce) var(--curva-roce); }
-.prensa-portadilla:focus-visible .marca { color: var(--rojo); }
-@media (hover: hover) { .prensa-portadilla:hover .marca { color: var(--rojo); } }
-.prensa-portadilla .nombre {
-  font-family: var(--font-body); font-weight: 800; font-size: 10px;
-  letter-spacing: .18em; text-transform: uppercase; line-height: 1.2;
-}
-/* La corrección al margen del nombre de la sección. */
-.prensa-portadilla .aviso { color: var(--rojo); font-weight: 800; margin-left: 3px; letter-spacing: 0; }
-/* El apunte: lo que hay dentro, o lo que llevas tú dentro. En Fraunces cursiva
-   (la voz del pie de foto del sistema) y SIEMPRE en tinta apagada, también al
-   señalar: si se pusiera rojo con el nombre, la portadilla entera gritaría. */
-.prensa-portadilla .apunte {
-  font-family: var(--font-display); font-style: italic; font-size: 12px;
-  line-height: 1.3; color: var(--cdd-muted);
-}
-.prensa-portadilla:focus-visible .apunte { color: var(--cdd-muted); }
-@media (hover: hover) { .prensa-portadilla:hover .apunte { color: var(--cdd-muted); } }
-/* Tu ordinal dentro del apunte: el oro de PuestoCifra, la firma de la sección
-   (CLAUDE.md reserva el oro a lo premium, y el puesto lo es). */
-.prensa-portadilla .apunte .oro {
-  font-style: normal; font-weight: 700; color: var(--gold);
-}
-
-/* Los ajustes: renglones dentro de un marco de filete, cada uno con su control
-   a la derecha. El padding lo pone el contenedor a sus hijos directos, así el
-   selector de idioma (LanguageStrip, compartido con el perfil y el login) entra
-   tal cual, sin una variante propia para este sitio. Compartido con el carnet:
-   idioma, sesión y borrado son ajustes con la misma forma que la tinta. */
-.prensa-ajustes { border: 1px solid var(--line-strong); }
-.prensa-ajustes > * { padding: 11px 12px; }
-.prensa-ajustes > * + * { border-top: 1px solid var(--line); }
-/* La etiqueta de la izquierda de cada renglón: las escribe cada consumidor
-   (LanguageStrip la trae puesta), así que se normalizan aquí para que la tinta
-   y la sesión no discutan con el idioma por un píxel de cuerpo. */
-.prensa-ajustes .et {
-  font-family: var(--font-body); font-weight: 600; font-size: 9px;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
-}
-
-/* El pie del sumario: la letra pequeña, separada por doble filete. */
-.prensa-sumario-pie {
-  display: flex; justify-content: center;
-  margin-top: 18px; padding-top: 12px; border-top: 3px double var(--line);
-}
-.prensa-sumario-pie a {
-  font-family: var(--font-body); font-weight: 700; font-size: 9.5px;
-  letter-spacing: .18em; text-transform: uppercase;
-  color: var(--cdd-muted); text-decoration: none;
-  transition: color var(--ms-roce) var(--curva-roce);
-}
-@media (hover: hover) {
-  .prensa-sumario-pie a:hover { color: var(--rojo); }
 }
 
 /* ── EL CARNET DE LECTOR ──────────────────────────────────────────────────
@@ -1398,20 +1228,6 @@ body,
   /* La fecha COMPLETA debe caber en UN renglón, también en móviles estrechos:
      escala fluida y letter-spacing contenido evitan el salto de línea. */
   font-size: clamp(8px, 2.4vw, 10px); letter-spacing: .1em; text-transform: uppercase;
-}
-
-/* EL FOLIO DE LA APP: la misma fecha, pero dentro de la barra y en corto (ver
-   Header.jsx). Va en `--cdd-muted` y un punto por debajo del resto de la barra
-   a propósito: es la fecha del ejemplar, no una acción. Si compitiera en tinta
-   plena con CLASIFICACIÓN volveríamos al problema de partida — dos elementos
-   del mismo peso peleando en la misma línea.
-   `nowrap` porque un folio partido en dos renglones deja de ser un folio.
-   Fuera de la media query de la app: solo lo renderiza la app, pero la
-   tipografía de una pieza no debe depender del ancho de la ventana. */
-.prensa-folio-barra {
-  font-family: var(--font-body); font-weight: 600;
-  font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--cdd-muted); white-space: nowrap;
 }
 
 /* ── LA CORNISA (la cabecera de la app; Header.jsx la monta) ───────────────
@@ -3105,13 +2921,6 @@ body,
 @media (hover: hover) {
   .prensa .cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
 }
-/* En prensa el acento es el rojo de rotativa: es "acción/atención", que es
-   justo lo que este renglón pide. Nada de oro — el oro está reservado a lo que
-   vale algo (racha, victoria, podio) y una repesca todavía no se ha ganado. */
-.prensa .cdd-repesca-cta { color: var(--rojo); }
-@media (hover: hover) {
-  .prensa .cdd-repesca-cta:hover { color: var(--cdd-text); }
-}
 .prensa .cdd-reveal { background: var(--surface); border-bottom: 1px solid var(--line-strong); }
 .prensa .cdd-reveal-grad { background: linear-gradient(to top, var(--bg) 4%, transparent 55%); }
 .prensa .cdd-reveal-brand { font-family: var(--font-body); font-weight: 600; letter-spacing: .2em; color: var(--rojo); }
@@ -3278,138 +3087,6 @@ body,
 .pm-puesto--bronce .cifra { color: var(--bronce); }
 .pm-puesto--tinta  .cifra { color: var(--cdd-muted); }
 
-/* ── El modal de la clasificación (Ranking.jsx) ───────────────────────────
-   Recuadro de resultados de periódico. Todo lo de aquí existe para que el
-   destino se parezca a la puerta: quien toca la clasificación en la barra tiene
-   que reconocer al instante que ha llegado al mismo sitio, no a otra pantalla —
-   y por eso el ordinal es el mismo glifo (.pm-puesto) en las dos superficies.
-
-   (La cabecera «Tu puesto» —.rank-tuyo y familia— se retiró al simplificar el
-   modal: repetía en grande el dato que la fila destacada del jugador ya da, y
-   empujaba la tabla fuera de la primera pantalla.) */
-
-/* La CABECERA DEL MODAL: kicker a la izquierda, X a la derecha, doble filete
-   debajo. Es la misma banda que abre el carnet del perfil (.prensa-carnet-cab),
-   y existe por lo mismo: la X flotaba en posición absoluta sobre la esquina del
-   panel y el título de al lado necesitaba un `pr-10` a mano para no meterse
-   debajo. Un botón que flota sobre el contenido obliga a que TODO lo de esa
-   línea sepa que está ahí; una banda propia no le pide nada a nadie.
-
-   No sangra hasta el borde del panel a propósito: `.modal-panel-flat` dibuja su
-   segundo filete a 4px por dentro (dos capas `inset` del box-shadow), y una
-   banda a sangre lo cruzaría por la mitad. El alto lo pone la X (44px, mínimo
-   táctil), como en el carnet. */
-.prensa-modal-cab {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  min-height: 42px; margin: -6px -8px 12px 0;
-  border-bottom: 3px double var(--line-strong);
-}
-
-/* Pestañas: versalitas con filete rojo bajo la activa. El segmentado con fondo
-   gris y esquinas redondeadas era vocabulario de app. «Cómo se puntúa» viaja en
-   la misma fila, al margen derecho, hoy como interrogante en un filete redondo
-   (el rótulo entero apretaba demasiado la fila en móvil); su texto sigue vivo
-   en `aria-label`/`title`, que es lo que necesitan lector de pantalla y ratón.
-
-   `flex-wrap` como red de seguridad: en español la fila llega JUSTO al borde en
-   un móvil de 412px. Si no cabe, la ayuda baja de línea en vez de desbordar el
-   panel (regla: nunca scroll horizontal). Objetivos táctiles de 44px. */
-.rank-tabs {
-  display: flex; align-items: stretch; flex-wrap: wrap; gap: 0 16px;
-  margin: 12px 0; border-bottom: 1px solid var(--line);
-}
-.rank-tab {
-  min-height: 44px; display: inline-flex; align-items: center;
-  background: none; border: 0; padding: 0; cursor: pointer;
-  font-family: var(--font-body); font-weight: 800; font-size: 10px;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
-  border-bottom: 2px solid transparent; margin-bottom: -1px;
-  transition: color var(--ms-roce) var(--curva-roce);
-}
-@media (hover: hover) {
-  .rank-tab:hover { color: var(--cdd-text); }
-}
-.rank-tab--activa { color: var(--cdd-text); border-bottom-color: var(--rojo); }
-.rank-ayuda {
-  margin-left: auto; min-height: 44px; display: inline-flex; align-items: center;
-  background: none; border: 0; padding: 0; cursor: pointer;
-  font-family: var(--font-body); font-weight: 700; font-size: 9px;
-  letter-spacing: .1em; text-transform: uppercase; color: var(--rojo);
-}
-@media (hover: hover) {
-  .rank-ayuda:hover { opacity: 0.8; }
-}
-
-/* Cabecera de temporada: kicker, tema en Fraunces y el cierre al margen, sobre
-   doble filete — una cabecera de sección de periódico.
-
-   EL ORO SE FUE DE AQUÍ, y es la corrección que más se nota en el modal. Esta
-   banda lo llevaba por triplicado (doble filete dorado, kicker dorado y el
-   contador con filete dorado) y competía con los tres sitios donde el oro está
-   GANADO: el ordinal del podio, los puntos del primero y el bonus de racha. Con
-   cinco oros en una pantalla, el oro deja de decir «esto vale algo» y pasa a
-   decir «esto es la clasificación» — que es justo lo que CLAUDE.md reserva. La
-   temporada es CONTEXTO (en qué número y con qué tema se juega), así que habla
-   con la voz de contexto del sistema: kicker rojo y tinta. */
-.rank-temporada {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 9px 0 10px; margin-bottom: 10px;
-  border-top: 3px double var(--line-strong); border-bottom: 1px solid var(--line);
-}
-.rank-temporada--palmares { margin: 0; padding: 8px 12px; border-top: 0; }
-.rank-temporada-kicker {
-  font-family: var(--font-mono); font-weight: 700; font-size: 9.5px;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--rojo);
-}
-.rank-temporada-tema {
-  font-family: var(--font-display); font-weight: 700; font-size: 16px;
-  line-height: 1.2; color: var(--cdd-text);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.rank-temporada-cierre {
-  flex: none; font-family: var(--font-body); font-weight: 800; font-size: 9.5px;
-  letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-muted);
-  border: 1px solid var(--line-strong); padding: 4px 8px;
-}
-.rank-temporada-fecha {
-  flex: none; font-family: var(--font-display); font-style: italic; font-size: 11px;
-  color: var(--cdd-muted);
-}
-
-/* La tabla: filete alrededor, sin redondeos. */
-.rank-tabla { border: 1px solid var(--line-strong); }
-.rank-cabecera {
-  border-bottom: 3px double var(--line-strong);
-  font-family: var(--font-body); font-weight: 800; font-size: 9px;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
-}
-/* TU FILA, señalada con la marca del corrector: el filete rojo al margen
-   izquierdo, el mismo objeto que señala la opción elegida en el cupón
-   (.pm-opcion.elegida) y la entrada activa del sumario. Antes era un fondo de
-   tinta al 5% — sobre papel crema, un gris que apenas se ve y que además no
-   quiere decir nada en este sistema: aquí lo que señala es un filete.
-   El fondo se queda, pero como refuerzo, no como única señal. */
-.rank-fila-yo {
-  background: var(--surface2);
-  box-shadow: inset 3px 0 0 0 var(--rojo);
-}
-/* El realce al señalar una fila clicable: el mismo papel de los demás hover del
-   sistema (portadillas, entradas del sumario). */
-@media (hover: hover) {
-  .rank-fila-clic:hover { background: var(--surface2); }
-}
-
-/* El aparte de «tu posición» cuando quedas fuera del top visible. */
-.rank-tuposicion {
-  padding: 7px 12px 0; text-align: center;
-  font-family: var(--font-body); font-weight: 800; font-size: 9px;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
-}
-/* El sello «TÚ» de una fila: el sello de siempre, pero derecho. Inclinado se
-   comía el nombre de al lado en una línea de 24px. */
-.pm-sello--plano { transform: none; }
-.rank-yo { padding: 2px 5px; font-size: 8px; border-width: 2px; }
-
 /* ═══════════════════════════════════════════════════════════════════════
    EL ARCHIVO — la colección de portadas (antes «Garaje»)
    -----------------------------------------------------------------------
@@ -3424,10 +3101,6 @@ body,
    fuera de .prensa, pero las variables son de :root y siguen al tema solas.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* Doble raya de folio: el separador editorial por excelencia. `double` de CSS
-   nos da las dos rayas con un solo borde. */
-.arch-filete { border-top: 3px double var(--line-strong); }
-
 /* (Aquí vivieron `.arch-cabecera` y `.arch-cuerpo`, que apartaban la cabecera y
    el cuerpo del Archivo de las barras del sistema. El mismo fallo apareció en la
    Repesca —otra pantalla completa con cabecera propia— y a la segunda vez tocaba
@@ -3438,114 +3111,6 @@ body,
    barra tapa los chips; el desbordamiento ya se insinúa con el corte). */
 .arch-tira { scrollbar-width: none; -ms-overflow-style: none; }
 .arch-tira::-webkit-scrollbar { display: none; }
-
-/* ── EL CHIP del sistema ──────────────────────────────────────────────────
-   Nació aquí como `.arch-chip`, el filtro de país del Archivo, y se renombró a
-   `.pm-` al ser el ÚNICO chip de la app: el selector de idioma tenía el suyo
-   propio en utilidades (filete blanco al 10%, fondo blanco al 2% y `rounded-md`
-   — invisible sobre el papel del modo día y con esquina de otro tema). Un solo
-   chip: filete de tinta, esquina viva y, al seleccionar, se INVIERTE. Vive en el
-   bloque del Archivo por historia, no por pertenencia. */
-.pm-chip {
-  flex: none; display: inline-flex; align-items: center; gap: 7px;
-  border: 1px solid var(--line); border-radius: 0; background: transparent;
-  color: var(--cdd-muted); cursor: pointer; white-space: nowrap;
-  padding: 5px 9px;
-  font-family: var(--font-body); font-weight: 700; font-size: 11px;
-  letter-spacing: .12em; text-transform: uppercase;
-  transition: color var(--ms-roce) var(--curva-roce), border-color var(--ms-roce) var(--curva-roce), background var(--ms-roce) var(--curva-roce);
-}
-@media (hover: hover) {
-  .pm-chip:hover { color: var(--cdd-text); border-color: var(--cdd-text); }
-}
-/* Activo = tinta plena. En papel, "seleccionado" se dice invirtiendo. */
-.pm-chip.on { background: var(--cdd-text); border-color: var(--cdd-text); color: var(--bg); }
-/* Variante de CONSECUENCIA (cerrar sesión): mismo chip, pero al señalarlo se va
-   al rojo en vez de a la tinta. Va después de `.pm-chip:hover` a propósito —
-   misma especificidad, gana el último. */
-@media (hover: hover) {
-  .pm-chip--rojo:hover { color: var(--rojo); border-color: var(--rojo); }
-}
-.pm-chip .cifra { font-family: var(--font-mono); letter-spacing: 0; opacity: .8; }
-.pm-chip .bandera { width: 16px; height: 11px; object-fit: cover; flex: none; }
-
-/* ── La portada (el cromo) ──────────────────────────────────────────── */
-.arch-portada {
-  position: relative; display: flex; flex-direction: column; width: 100%;
-  border: 1px solid var(--line-strong); border-radius: 0;
-  background: var(--surface); text-align: left; cursor: pointer;
-  overflow: hidden; transition: box-shadow var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
-}
-@media (hover: hover) {
-  .arch-portada:hover { box-shadow: var(--sombra-flota); }
-}
-.arch-portada:active { transform: translateY(1px); }
-/* Cabecera de kiosco: cabecera de la revista a la izquierda, nº de edición
-   en rojo a la derecha. Es lo que convierte la foto en un objeto seriado. */
-.arch-portada .cab {
-  display: flex; align-items: center; justify-content: space-between; gap: 6px;
-  padding: 4px 6px; border-bottom: 1px solid var(--line);
-  font-family: var(--font-mono); font-size: 8px; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--cdd-muted);
-}
-.arch-portada .cab .cabecera { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.arch-portada .cab .num { flex: none; color: var(--rojo); font-weight: 700; letter-spacing: .04em; }
-.arch-portada .foto { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--bg2); }
-.arch-portada .foto img {
-  display: block; width: 100%; height: 100%; object-fit: cover;
-  transition: transform var(--ms-escena) var(--curva-entra);
-}
-@media (hover: hover) {
-  .arch-portada:hover .foto img { transform: scale(1.04); }
-}
-.arch-portada .pie { padding: 6px 7px 7px; border-top: 1px solid var(--line); }
-.arch-portada .pie .marca {
-  font-family: var(--font-body); font-weight: 700; font-size: 9px;
-  letter-spacing: .16em; text-transform: uppercase; color: var(--rojo);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-/* El modelo es el TITULAR de la portada: Fraunces, dos líneas máximo. */
-.arch-portada .pie .modelo {
-  margin-top: 1px; font-family: var(--font-display); font-weight: 800;
-  font-size: 14px; line-height: 1.12; color: var(--cdd-text);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.arch-portada .pie .anio {
-  margin-top: 2px; font-family: var(--font-mono); font-size: 10px;
-  color: var(--cdd-muted); font-variant-numeric: tabular-nums;
-}
-
-/* Sellos: caen estampados sobre la foto, con la misma física que el sello de
-   fin de partida (.prensa-sello). Apilados en columna para que PLENO y VET
-   puedan convivir sin solaparse. */
-.arch-sellos {
-  position: absolute; top: 26px; right: 6px; z-index: 3;
-  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
-}
-.arch-sello {
-  font-family: var(--font-body); font-weight: 800; font-size: 8px;
-  letter-spacing: .18em; text-transform: uppercase;
-  border: 1.5px solid currentColor; padding: 2px 4px;
-  transform: rotate(-7deg); white-space: nowrap;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  animation: prensaSellar var(--ms-escena) var(--curva-sello) both;
-}
-.arch-sello--pleno { color: var(--rojo); }
-.arch-sello--vet { color: var(--gold); }
-/* El origen no es un mérito: rescatar un número atrasado dice de DÓNDE salió
-   la portada, no lo bien que jugaste. Por eso va en tinta apagada y no en
-   rojo (acción) ni en oro (esto vale algo) — es una anotación de archivero. */
-.arch-sello--repesca { color: var(--cdd-muted); }
-
-/* Cinta «nuevo»: solo hasta la siguiente visita. Es el único elemento del
-   archivo que grita, y por eso tiene que ser efímero. */
-.arch-cinta {
-  position: absolute; top: 26px; left: 0; z-index: 3;
-  background: var(--rojo); color: var(--bg);
-  font-family: var(--font-body); font-weight: 800; font-size: 8px;
-  letter-spacing: .2em; text-transform: uppercase; padding: 3px 7px;
-}
 
 /* ── El hueco (número que aún te falta) ─────────────────────────────── */
 /* Papel en blanco con trama de imprenta. NO carga imagen: antes cada hueco
@@ -3604,12 +3169,6 @@ body,
    el catálogo entero — ahí la barra vive permanentemente vacía y desmotiva. */
 .arch-regla { height: 6px; border: 1px solid var(--line-strong); background: var(--surface); }
 .arch-regla > i { display: block; height: 100%; background: var(--rojo); transition: width var(--ms-escena) var(--curva-entra); }
-
-/* Paspartú: el marco donde la foto del detalle se ve ENTERA (object-contain).
-   Las bandas que deja un formato que no encaja en el 4:3 son de papel, con lo
-   que leen como el margen de una foto montada —el mismo gesto que el marco de
-   la pantalla de juego (.cdd-stage-frame)— y no como un hueco por rellenar. */
-.arch-paspartu { background: var(--surface); }
 
 /* ── Tirada (rareza) ────────────────────────────────────────────────── */
 /* El dato que hace que tu portada y la mía no valgan lo mismo, así que se
@@ -3729,12 +3288,8 @@ body,
    `!important` en cada línea. */
 
 /* Objetos: el papel se hunde. */
-.rank-fila-clic:active,
-.pm-chip:active,
 .arch-hueco:active,
-.cdd-end-link:active,
-.cdd-parte-cta:active,
-.cdd-repesca-cta:active {
+.cdd-end-link:active {
   transform: translateY(1px);
 }
 
@@ -3744,9 +3299,6 @@ body,
 .prensa-topbar .prensa-clasif:active .pos,
 .prensa-cierre button:active,
 .prensa-cierre a:active,
-.prensa-sumario-pie a:active,
-.rank-tab:active,
-.rank-ayuda:active,
 .cdd-unlock:active .cdd-unlock-name {
   color: var(--rojo);
 }
@@ -4357,11 +3909,6 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   box-shadow: 0 10px 24px -8px rgb(var(--velo-rgb) / .5);
 }
 .prensa-sello.tinta { background: var(--surface); color: var(--cdd-text); border: 1px solid var(--line-strong); }
-
-.cdd-partida {
-  border-bottom: 1px solid var(--line);
-  font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted);
-}
 .cdd-end-sec { border-top: 1px solid var(--line); padding: 16px 18px 6px; gap: 10px; }
 .prensa .cdd-note { font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
 .cdd-ficha-datos { font-family: var(--font-mono); }
@@ -4386,8 +3933,6 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   border-radius: var(--radio-boton); border-color: var(--line-strong);
   font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em;
 }
-/* La repesca, en el ámbar de «disponible». */
-.prensa .cdd-repesca-cta { color: var(--ambar); }
 
 /* La cuenta atrás: una caja con canto, etiqueta a un lado y reloj al otro. */
 .prensa .cdd-next {
@@ -4403,22 +3948,6 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa .cdd-dist-bar { background: rgb(var(--tinta-rgb) / .22); border-radius: 5px; }
 .prensa .cdd-dist-bar.me { background: var(--cdd-text); }
 .prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--cdd-text); }
-
-/* El parte de la clasificación: subir es buena noticia (verde), bajar es
-   aviso (rojo). El oro sigue siendo del puesto, que es lo que vale algo. */
-.cdd-parte { border-top: 1px solid var(--line); padding: 16px 18px 6px; }
-.cdd-parte-lad {
-  font-family: var(--font-display); font-weight: 700; font-size: 19px;
-  letter-spacing: .005em; text-transform: none;
-}
-.cdd-parte-lad::after { content: none; }
-.cdd-parte-mov { font-family: var(--font-body); }
-.cdd-parte-mov--up { color: var(--verde); }
-.cdd-parte-dist, .cdd-parte-nudge { font-family: var(--font-body); }
-.cdd-parte-cta {
-  border-bottom: 0; color: var(--cdd-text);
-  font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em;
-}
 .cdd-unlock-kicker { font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em; }
 .cdd-unlock-name { font-family: var(--font-body); font-weight: 600; }
 .pm-puesto .cifra { font-weight: 700; letter-spacing: 0; }
@@ -4492,13 +4021,6 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   }
   .prensa-area-clas { border-right: 0; padding-right: 0; margin-right: 0; gap: 16px; }
   .prensa-area-jugar { border-left: 0; padding-left: 0; margin-left: 0; }
-}
-
-/* Los avisos del final de partida (el aviso diario y la edición Android): una
-   tarjeta con canto, como el resto del panel, en vez de la caja de filete negro
-   de la prensa. Gana a las utilidades `border-tinta` del JSX por orden. */
-.pm-aviso {
-  border-color: var(--line); border-radius: var(--radio-tarjeta); background: var(--surface);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -4651,7 +4173,6 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 }
 .fin-extra { display: flex; flex-direction: column; gap: 10px; }
 .fin-extra:empty { display: none; }
-.fin-extra .pm-aviso { margin-bottom: 0; }
 .fin-pie { margin: 12px 0 0; font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text); }
 .fin .cdd-end-links { margin: 2px 0 6px; }
 .fin .cdd-dist-bar.perdidas { background: rgb(var(--tinta-rgb) / .14); }

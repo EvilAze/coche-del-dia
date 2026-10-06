@@ -96,6 +96,11 @@ export default function Configurator({
   // (transición playing → ended). Si el usuario llega con la partida ya cerrada,
   // mostramos el botón "VER REVELADO/RESPUESTA" en vez de saltar el overlay.
   const [showEnd, setShowEnd] = useState(false);
+  // ¿Se ha abierto SOLO, al acabar la partida ahora mismo? Es lo que decide si
+  // el sello del EndScreen hace sentir el final (acierto o derrota). Abrirlo a
+  // mano con «Ver resultado» lo apaga: se vuelve a ver el sello, pero el final
+  // ya se sintió una vez, cuando ocurrió.
+  const [finalRecien, setFinalRecien] = useState(false);
   const prevStatus = useRef(status);
   useEffect(() => {
     if (prevStatus.current === "playing" && ended) {
@@ -106,7 +111,10 @@ export default function Configurator({
       // son cuatro tiempos —marca, modelo, año y la foto— y esto es el punto
       // final, así que empieza cuando el cuarto ha acabado: el retardo de la
       // foto (`--ms-sello`) más lo que tarda en abrirse (`--ms-revelado`).
-      const id = setTimeout(() => setShowEnd(true), MS.sello + MS.revelado);
+      const id = setTimeout(() => {
+        setFinalRecien(true);
+        setShowEnd(true);
+      }, MS.sello + MS.revelado);
       prevStatus.current = status;
       return () => clearTimeout(id);
     }
@@ -457,7 +465,7 @@ export default function Configurator({
                 maxAttempts={maxAttempts}
               />
             ) : (
-              <button className="prensa-submit" onClick={() => setShowEnd(true)}>
+              <button className="prensa-submit" onClick={() => { setFinalRecien(false); setShowEnd(true); }}>
                 {t("cdd.viewResult")}
               </button>
             ))}
@@ -521,6 +529,7 @@ export default function Configurator({
           onOpenLogin={onOpenLogin}
           onOpenGarage={onOpenGarage}
           onOpenRanking={onOpenRanking}
+          sentirSello={finalRecien}
           onClose={() => setShowEnd(false)}
         />
       )}

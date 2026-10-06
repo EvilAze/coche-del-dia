@@ -46,6 +46,7 @@ import ScoreBreakdown from "./components/ScoreBreakdown";
 // manera (aquí, una píldora de texto sobre la foto y una rejilla de emoji).
 import { PiePartida } from "./components/configurator/EndScreen";
 import { useToast } from "./components/Toast";
+import { useSelloSentido } from "./hooks/useSelloSentido";
 import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
 import { flagImagePath } from "./data/countries";
 import { track, plataforma } from "./lib/analytics";
@@ -123,11 +124,23 @@ export default function Repesca() {
   // usuario recarga con la partida ya cerrada, NO se auto-abre: mostramos el
   // botón "VER RESULTADO" (como el daily), no saltamos el overlay de golpe.
   const [showEnd, setShowEnd] = useState(false);
+  // ¿Se ha abierto solo, al acabar ahora? Decide si el sello hace sentir el
+  // final; reabrirlo con «Ver resultado» lo apaga (mismo trato que el daily).
+  const [finalRecien, setFinalRecien] = useState(false);
+  // ¿La partida ha terminado EN ESTA SESIÓN? Con ella cerrada, el último intento
+  // deja la fila viva y pasa a la lista; sin esto pasaba sin estampar, y la
+  // frase háptica del veredicto sonaba sobre una fila que ya estaba quieta. Se
+  // enciende en submitGuess, en el MISMO lote que `setPhase`: desde un efecto
+  // llegaría un frame tarde y la fila se vería un instante antes de entintarse.
+  const [terminadaAqui, setTerminadaAqui] = useState(false);
   const prevPhaseRef = useRef(phase);
   useEffect(() => {
     const isEnded = phase === "won" || phase === "lost";
     if (prevPhaseRef.current === "playing" && isEnded) {
-      const id = setTimeout(() => setShowEnd(true), 900);
+      const id = setTimeout(() => {
+        setFinalRecien(true);
+        setShowEnd(true);
+      }, 900);
       prevPhaseRef.current = phase;
       return () => clearTimeout(id);
     }
@@ -323,6 +336,7 @@ export default function Repesca() {
   const attempts = guesses.length;
   const ended = phase === "won" || phase === "lost";
   const won = phase === "won";
+  const alEstamparSello = useSelloSentido({ won, activo: finalRecien });
   const zoomIndex = Math.min(attempts, ZOOM_ATTEMPTS - 1);
   // Scales CSS por intento derivados del zoom_base del coche (mismo sistema que
   // el juego diario). El último vale 1.0 (ya se ve todo el crop servido).
@@ -440,11 +454,14 @@ export default function Repesca() {
       if (result.win) newPhase = "won";
       else if (newGuesses.length >= effectiveMaxAttempts) newPhase = "lost";
 
-      if (newPhase === "won") haptic.success();
-      else if (newPhase === "lost") haptic.warning();
+      // La misma frase que en la partida diaria (ver useGame.js): un golpe por
+      // celda con la tinta, y el cierre —acierto o derrota— cuando el sello
+      // del revelado toca el papel, no al llegar la respuesta.
+      haptic.veredicto(result);
 
       setGuesses(newGuesses);
       setPhase(newPhase);
+      if (newPhase !== "playing") setTerminadaAqui(true);
       if (nextReveal) setReveal(nextReveal);
       if (scoreBreakdown && newPhase !== "playing") setScore(scoreBreakdown);
 
@@ -695,7 +712,7 @@ export default function Repesca() {
             tolerance={ANIO_CORRECT_MARGIN}
           />
         ) : (
-          <button className="prensa-submit" onClick={() => setShowEnd(true)}>
+          <button className="prensa-submit" onClick={() => { setFinalRecien(false); setShowEnd(true); }}>
             {t("cdd.viewResult")}
           </button>
         )}
@@ -706,7 +723,9 @@ export default function Repesca() {
           <AttemptList
             guesses={ended ? guesses : guesses.slice(0, -1)}
             pendingGuess={null}
-            justRevealedIndex={-1}
+            // El último intento se estampa al cerrar la partida aquí mismo: es
+            // el que la frase háptica está marcando (ver `terminadaAqui`).
+            justRevealedIndex={ended && terminadaAqui ? guesses.length - 1 : -1}
             tolerance={ANIO_CORRECT_MARGIN}
           />
         )}
@@ -731,7 +750,7 @@ export default function Repesca() {
               {/* El sello del veredicto, igual que en el fin de partida del daily:
                   los dos paneles son el mismo objeto y hasta ahora la repesca no
                   tenía celebración — solo una píldora de texto sobre la foto. */}
-              <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true">
+              <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true" onAnimationStart={alEstamparSello}>
                 {won ? t("prensa.selloWin") : t("prensa.selloLose")}
               </div>
               <div className="cdd-reveal-grad" />

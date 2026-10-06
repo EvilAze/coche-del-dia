@@ -591,11 +591,18 @@ export function useGame() {
       if (result.win) newStatus = "won";
       else if (newGuesses.length >= maxAttempts) newStatus = "lost";
 
-      if (newStatus === "won") {
-        haptic.success();
-      } else if (newStatus === "lost") {
-        haptic.warning();
-      }
+      // LA FRASE DEL VEREDICTO, en TODOS los intentos —también los que no
+      // acaban la partida, que hasta ahora no vibraban nada—: un golpe por
+      // celda al compás de la tinta (lib/veredicto.js). Va en este tick, junto
+      // al setState que pinta la fila, y no en un efecto: el motor tarda en
+      // arrancar más o menos lo que tarda el frame en pintarse, así que llegan
+      // juntos.
+      //
+      // Aquí sonaban `success` al ganar y `warning` al perder, en el instante
+      // de la respuesta: un segundo antes de que hubiera nada que ver, y con la
+      // derrota sintiéndose igual que un error de validación. El cierre ahora
+      // lo pone el SELLO del EndScreen cuando toca el papel (useSelloSentido).
+      haptic.veredicto(result);
 
       setGuesses(newGuesses);
       setStatus(newStatus);

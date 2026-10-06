@@ -42,6 +42,7 @@
 // repo que la hacía: los tres desplazamientos suaves de la app la ignoraban. Se
 // ha mudado a lib/movimiento.js, que es ahora lo que sabe de esto en JS.
 import { menosMovimiento } from "./movimiento";
+import { fraseVeredicto } from "./veredicto";
 
 // Patrones (ms). Single number = pulso simple. Array = pulso/pausa/pulso/...
 //
@@ -57,6 +58,13 @@ import { menosMovimiento } from "./movimiento";
 //     repetido, validación lado cliente).
 //   - error: 3 toques iguales rápidos. Más insistente; reservado para
 //     fallos reales (red, servidor, no se pudo procesar).
+//   - derrota: un golpe sordo y otro que se apaga. Es el final de una partida
+//     perdida, y antes sonaba `warning` —el mismo patrón que «ese coche ya lo
+//     probaste»—, o sea que perder se sentía como un error de validación. Esto
+//     no avisa de nada: cierra. Largo-pausa-corto, descendente, para que se lea
+//     como un punto final y no como una alarma; nunca se parece a `error`.
+//   - veredicto: no tiene patrón fijo. Lo construye `fraseVeredicto()` a partir
+//     del resultado de cada intento (ver lib/veredicto.js).
 const PATTERNS = {
   selection: 8,
   impactLight: 10,
@@ -65,6 +73,7 @@ const PATTERNS = {
   success: [12, 60, 18, 40, 25],
   warning: [18, 60, 18],
   error: [22, 40, 22, 40, 22],
+  derrota: [24, 140, 12],
 };
 
 function canVibrate() {
@@ -76,14 +85,19 @@ function canVibrate() {
 // PESO de cada intención. No es intensidad de vibración (eso lo decide el
 // patrón): es cuánto IMPORTA el mensaje, y sirve para resolver los empates de
 // la ventana de abajo.
+// `veredicto` pesa 4: por encima del `impactMedium` con el que GuessForm acusa
+// el envío, porque si el servidor contesta muy rápido la frase cae dentro de
+// su ventana y es ella la que lleva la información.
 const PESOS = {
   selection: 1,
   impactLight: 2,
   impactMedium: 3,
   impactHeavy: 4,
   warning: 4,
+  veredicto: 4,
   success: 5,
   error: 5,
+  derrota: 5,
 };
 
 // LA VENTANA DE COALESCENCIA. Aquí había un throttle de 30 ms con la regla
@@ -120,12 +134,14 @@ function debeSonar(peso) {
   return true;
 }
 
-function fire(nombre) {
+// `patron` solo lo pasa quien construye el suyo (el veredicto); el resto de
+// intenciones usan el de la tabla.
+function fire(nombre, patron = PATTERNS[nombre]) {
   if (!canVibrate()) return;
   if (menosMovimiento()) return;
   if (!debeSonar(PESOS[nombre] ?? 1)) return;
   try {
-    navigator.vibrate(PATTERNS[nombre]);
+    navigator.vibrate(patron);
   } catch {
     // Algunos navegadores tiran si el patrón es inválido — silencioso.
   }
@@ -141,4 +157,8 @@ export const haptic = {
   success: () => fire("success"),
   warning: () => fire("warning"),
   error: () => fire("error"),
+  derrota: () => fire("derrota"),
+  // La frase del veredicto: un golpe por celda, al compás de la tinta. Se llama
+  // con el `result` del servidor en el mismo tick en que se pinta la fila.
+  veredicto: (result) => fire("veredicto", fraseVeredicto(result)),
 };

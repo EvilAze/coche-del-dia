@@ -29,6 +29,7 @@ import { useCountdown } from "../../hooks/useCountdown";
 import { useEscape } from "../../hooks/useEscape";
 import { useScrollLock } from "../../hooks/useScrollLock";
 import { useHistoryClose } from "../../hooks/useHistoryClose";
+import { useSelloSentido } from "../../hooks/useSelloSentido";
 import { useT, getCarDescription, getLocalizedCountry } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { esApp } from "../../lib/plataforma";
@@ -130,11 +131,15 @@ export default function EndScreen({
   onOpenLogin,
   onOpenGarage,
   onOpenRanking,
+  // true solo cuando el panel se abre SOLO al terminar la partida: entonces el
+  // sello, al caer, hace sentir el acierto o la derrota (useSelloSentido).
+  sentirSello = false,
 }) {
   const { t, tn } = useT();
   const toast = useToast();
   const countdown = useCountdown();
   const [copied, setCopied] = useState(false);
+  const alEstamparSello = useSelloSentido({ won, activo: sentirSello });
 
   // ── EL VÍDEO DEL COCHE (temporadas presentadas) ───────────────────────────
   // Llega en el `reveal`, o sea solo con la partida cerrada (regla 5: antes de
@@ -272,7 +277,7 @@ export default function EndScreen({
 
         {/* Banda de revelado con el sello del veredicto */}
         <div className={"cdd-reveal" + (videoAbierto ? " reproduciendo" : "")}>
-          <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true">
+          <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true" onAnimationStart={alEstamparSello}>
             {won ? t("prensa.selloWin") : t("prensa.selloLose")}
           </div>
           {car?.img && (

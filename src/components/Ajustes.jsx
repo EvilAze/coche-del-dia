@@ -7,6 +7,8 @@
 import { useT, listLocales } from "../i18n";
 import { useTheme } from "../lib/theme";
 import { haptic } from "../lib/haptics";
+import { isNative, REMINDER_HOUR } from "../lib/notifications";
+import { useAvisoDiario } from "../hooks/useAvisoDiario";
 
 // La opción elegida, levantada sobre el hueco. `aria-pressed` en cada botón,
 // que es lo que son: conmutadores. Tocar la que ya está no hace nada (ni vibra:
@@ -70,6 +72,41 @@ export function FilaIdioma() {
         onCambio={setLocale}
         opciones={listLocales().map((o) => [o.code, o.name])}
       />
+    </div>
+  );
+}
+
+// El aviso diario, con su interruptor. En la app es el recordatorio local de
+// las 20:00 (REMINDER_HOUR) si aún no has jugado; en la web, el push de las 16:00
+// (la hora que promete notif.webOptInBody). Sin forma de avisar aquí —un
+// navegador sin push—, la fila no existe: un interruptor muerto no explica nada.
+export function FilaAviso({ abierto = true }) {
+  const { t } = useT();
+  const { disponible, activo, ocupado, bloqueado, cambiar } = useAvisoDiario(abierto);
+  if (!disponible) return null;
+  const nota = bloqueado
+    ? t("perfil.avisoBloqueado")
+    : t("perfil.avisoHora", { hora: isNative() ? `${REMINDER_HOUR}:00` : "16:00" });
+  return (
+    <div className="grupo-fila">
+      <span className="grupo-fila-texto">
+        <b>{t("perfil.aviso")}</b>
+        <span>{nota}</span>
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={Boolean(activo)}
+        aria-label={t("perfil.aviso")}
+        className={"interruptor" + (activo ? " on" : "")}
+        disabled={activo === null || ocupado || (bloqueado && !activo)}
+        onClick={() => {
+          haptic.selection();
+          cambiar(!activo);
+        }}
+      >
+        <span aria-hidden="true" />
+      </button>
     </div>
   );
 }

@@ -235,4 +235,37 @@ describe("notifications", () => {
     await n.rearmIfEnabled({ title: "t", body: "b" });
     expect(schedule).not.toHaveBeenCalled();
   });
+
+  it("apagado desde el perfil: rearmIfEnabled NO programa aunque haya permiso, y encender lo devuelve", async () => {
+    const almacen = new Map();
+    vi.stubGlobal("localStorage", {
+      getItem: (k) => (almacen.has(k) ? almacen.get(k) : null),
+      setItem: (k, v) => almacen.set(k, String(v)),
+      removeItem: (k) => almacen.delete(k),
+    });
+    const schedule = vi.fn().mockResolvedValue();
+    const cancel = vi.fn().mockResolvedValue();
+    vi.doMock("@capacitor/core", () => ({
+      Capacitor: { isNativePlatform: () => true },
+    }));
+    vi.doMock("@capacitor/local-notifications", () => ({
+      LocalNotifications: {
+        checkPermissions: vi.fn().mockResolvedValue({ display: "granted" }),
+        requestPermissions: vi.fn(),
+        schedule,
+        cancel,
+      },
+    }));
+    const n = await import("./notifications");
+    await n.apagarAvisos();
+    expect(cancel).toHaveBeenCalled();
+    expect(await n.avisosActivos()).toBe(false);
+    await n.rearmIfEnabled({ title: "t", body: "b" });
+    expect(schedule).not.toHaveBeenCalled();
+
+    expect(await n.encenderAvisos({ title: "t", body: "b" })).toBe(true);
+    expect(schedule).toHaveBeenCalledTimes(1);
+    expect(await n.avisosActivos()).toBe(true);
+    vi.unstubAllGlobals();
+  });
 });

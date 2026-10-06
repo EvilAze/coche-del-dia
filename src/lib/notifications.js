@@ -193,14 +193,57 @@ export async function scheduleDailyReminder({
   });
 }
 
-// (Había también un `cancelDailyReminder()` público. Nadie lo llamaba: apagar
-// el recordatorio se hace desde los ajustes de notificaciones de Android, y
-// rearmIfEnabled ya respeta esa decisión al no reprogramar sin permiso. El
-// cancel que sí hace falta —el de "no acumules duplicados"— lo hace
-// scheduleDailyReminder justo antes de programar.)
+// EL INTERRUPTOR DEL PERFIL. Hasta el rediseño, apagar el recordatorio solo se
+// podía desde los ajustes de notificaciones de Android, y eso es esconderlo:
+// quien quiere silenciar un aviso lo busca donde lo vio ofrecido, no tres
+// pantallas dentro del sistema. Apagarlo aquí NO revoca el permiso (eso sigue
+// siendo del sistema): deja una marca local que `rearmIfEnabled` respeta y
+// cancela lo ya programado. Encenderlo quita la marca y programa la ventana.
+const OFF_KEY = "cd_notif_off";
 
-// Re-arma en cada arranque SI el permiso ya está concedido. Si el usuario lo
-// revocó en los ajustes de Android, no reprogramamos (el SO "manda").
+export function avisosApagados() {
+  try {
+    return localStorage.getItem(OFF_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+// ¿Está el recordatorio en marcha? Permiso concedido y sin la marca de apagado.
+export async function avisosActivos() {
+  if (!isNative()) return false;
+  if (avisosApagados()) return false;
+  return isPermissionGranted();
+}
+
+export async function apagarAvisos() {
+  if (!isNative()) return;
+  try {
+    localStorage.setItem(OFF_KEY, "1");
+  } catch {
+    /* sin storage la marca no sobrevive al reinicio: peor caso, vuelve a sonar */
+  }
+  const { LocalNotifications: LN } = await loadLN();
+  await LN.cancel({ notifications: REMINDER_IDS.map((id) => ({ id })) });
+}
+
+// Devuelve si quedó encendido (puede no hacerlo: el sistema puede negar el
+// permiso, y entonces el interruptor vuelve solo a su sitio).
+export async function encenderAvisos(copy) {
+  if (!isNative()) return false;
+  try {
+    localStorage.removeItem(OFF_KEY);
+  } catch {
+    /* ver apagarAvisos */
+  }
+  const granted = await ensurePermission();
+  if (granted) await scheduleDailyReminder(copy);
+  return granted;
+}
+
+// Re-arma en cada arranque SI el permiso ya está concedido y el jugador no lo
+// apagó desde el perfil. Si lo revocó en los ajustes de Android, no
+// reprogramamos (el SO "manda").
 export async function rearmIfEnabled({
   title,
   body,
@@ -210,6 +253,7 @@ export async function rearmIfEnabled({
   yaJugoHoy = false,
 }) {
   if (!isNative()) return;
+  if (avisosApagados()) return;
   if (await isPermissionGranted()) {
     await scheduleDailyReminder({
       title,

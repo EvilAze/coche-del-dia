@@ -36,7 +36,7 @@ import CloseButton from "./CloseButton";
 import Superficie from "./Superficie";
 import DeleteAccountModal from "./DeleteAccountModal";
 import PodiumMedals from "./PodiumMedals";
-import { FilaTema, FilaIdioma } from "./Ajustes";
+import { FilaTema, FilaIdioma, FilaAviso } from "./Ajustes";
 import { Icon, I } from "./configurator/icons";
 import { ordinal } from "./PuestoCifra";
 import { debeOfrecerApp, urlPlay } from "../lib/edicionApp";
@@ -321,6 +321,7 @@ export default function MyStats({
             <div className="grupo-lista">
               <FilaTema />
               <FilaIdioma />
+              <FilaAviso abierto={open} />
               {/* La edición Android, permanente y sin caducidad: aquí no molesta
                   a nadie y recoge al que la busca a propósito. */}
               {ofreceApp && (

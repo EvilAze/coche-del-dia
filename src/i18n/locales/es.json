@@ -727,6 +727,9 @@
     "tema": "Tema",
     "temaNoche": "Noche",
     "temaDia": "Día",
-    "temaAuto": "Auto"
+    "temaAuto": "Auto",
+    "aviso": "Aviso del coche nuevo",
+    "avisoHora": "Uno al día, a las {hora}",
+    "avisoBloqueado": "Bloqueado en los ajustes del navegador"
   }
 }

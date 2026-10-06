@@ -5448,7 +5448,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 @media (hover: hover) {
   .htp-saltar:hover { color: var(--cdd-text); }
 }
-.htp-cuerpo { min-height: min(470px, 62dvh); overflow: hidden; }
+.htp-cuerpo { min-height: min(420px, 62dvh); overflow: hidden; }
 @keyframes htpEntra { from { opacity: 0; transform: translateX(14px); } }
 @keyframes htpEntraAtras { from { opacity: 0; transform: translateX(-14px); } }
 .htp-paso { display: flex; flex-direction: column; gap: 10px; animation: htpEntra var(--ms-sello) var(--curva-entra) both; }
@@ -5906,3 +5906,20 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 @media (max-width: 374px) {
   .pm-opcion-pais-texto { display: none; }
 }
+
+/* El interruptor (role=switch): la pista en verde cuando está encendido —el
+   verde es «correcto / en marcha» en todo el juego— y la bola que se desliza.
+   Solo transform y color. */
+.interruptor {
+  position: relative; flex: none; width: 48px; height: 28px; padding: 0; border: 0; border-radius: 14px; cursor: pointer;
+  background: var(--line-strong);
+  transition: background-color var(--ms-roce) var(--curva-roce);
+}
+.interruptor > span {
+  position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--surface); box-shadow: 0 1px 2px rgb(var(--velo-rgb) / .25);
+  transition: transform var(--ms-hoja) var(--curva-entra);
+}
+.interruptor.on { background: var(--verde); }
+.interruptor.on > span { transform: translateX(20px); }
+.interruptor:disabled { opacity: .5; cursor: default; }

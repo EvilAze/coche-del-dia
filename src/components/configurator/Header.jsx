@@ -101,6 +101,7 @@ export default function Header({
   streak = 0,
   onOpenMenu,
   onOpenRanking,
+  onOpenHowTo,
 }) {
   const { t, tn, dateLocale, locale } = useT();
 
@@ -241,6 +242,16 @@ export default function Header({
               <span aria-hidden="true">{streak}</span>
             </span>
           )}
+          {/* Cómo se juega: el «?» del diseño. En el móvil sustituye a la ficha
+              de la clasificación, que pasa a la barra de pestañas (CSS). */}
+          <button
+            type="button"
+            className="prensa-ayuda"
+            aria-label={t("cdd.helpAria")}
+            onClick={() => { haptic.impactLight(); onOpenHowTo?.(); }}
+          >
+            <Icon d={I.help} size={20} />
+          </button>
           {/* La clasificación: el trofeo y el puesto (o la invitación a
               competir). La palabra «Clasificación» va en el aria-label, no a la
               vista: en un marcador el número es el mensaje. */}

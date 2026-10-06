@@ -4665,3 +4665,69 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin > .fin-entra:nth-child(4) { animation-delay: calc(var(--ms-paso) * 4); }
 .fin > .fin-entra:nth-child(5) { animation-delay: calc(var(--ms-paso) * 6); }
 .fin > .fin-entra:nth-child(n+6) { animation-delay: calc(var(--ms-paso) * 8); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LA BARRA DE PESTAÑAS (BarraSecciones) — solo por debajo de 1100px
+   -----------------------------------------------------------------------
+   Fija abajo, con el aire de la barra de gestos debajo. Las hojas de las
+   secciones (z 80+), el panel final (z 60) y el recorte (z 50) van por encima:
+   la barra es el suelo de la pantalla de juego, no una capa más.
+
+   EL PRESUPUESTO DE ALTO DE LA APP. La barra le quita 62px al pliego fijo, y
+   se pagan así: el cupón en casillas ya devolvió ~90 (tres renglones → una
+   fila) y el reloj del pie se retira durante la partida (lo enseña el panel
+   final). Lo mide test:layout en las seis pantallas.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root { --barra-alto: 62px; }
+.barra-secciones { display: none; }
+.prensa-topbar > span > .prensa-ayuda {
+  width: 34px; height: 34px; padding: 0; margin: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radio-boton); background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
+}
+@media (max-width: 1099px) {
+  .barra-secciones {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    height: calc(var(--barra-alto) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    background: var(--bg); border-top: 1px solid var(--line);
+  }
+  .barra-pestana {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    padding: 0; background: none; border: 0; cursor: pointer; font: inherit; color: var(--cdd-muted);
+    transition: color var(--ms-roce) var(--curva-roce);
+  }
+  .barra-pestana.activa { color: var(--cdd-text); }
+  /* La pestaña activa lleva la raya roja de la marca en su borde de arriba. */
+  .barra-pestana.activa::before {
+    content: ""; position: absolute; top: -1px; left: 50%; width: 24px; height: 2px;
+    margin-left: -12px; border-radius: 1px; background: var(--rojo);
+  }
+  .barra-icono { position: relative; display: flex; transition: transform var(--ms-pulso) var(--curva-roce); }
+  .barra-pestana:active .barra-icono { transform: translateY(1px); }
+  .barra-aviso {
+    position: absolute; top: -1px; right: -4px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ambar); box-shadow: 0 0 0 2px var(--bg);
+  }
+  .barra-texto { font-family: var(--font-body); font-weight: 600; font-size: 11.5px; line-height: 1; }
+  @media (hover: hover) {
+    .barra-pestana:hover { color: var(--cdd-text); }
+  }
+
+  /* El pliego deja sitio a la barra (web, y la app al terminar la partida). */
+  .prensa-hoja {
+    padding-bottom: calc(var(--barra-alto) + 32px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla {
+    padding-bottom: calc(var(--barra-alto) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+  /* En la app, durante la partida, el reloj del pie se retira: el suelo es de
+     la barra y la cuenta atrás la enseña el panel final. */
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-area-pie { display: none; }
+  /* La ficha de la clasificación de la cabecera pasa a la barra. */
+  .prensa-topbar > span > .prensa-clasif { display: none; }
+  /* Con el teclado arriba (la web teclea en el cupón) la barra se aparta: en
+     Android subiría pegada al teclado, tapando los campos. */
+  :root:has(.prensa-cupon input:focus) .barra-secciones { display: none; }
+}

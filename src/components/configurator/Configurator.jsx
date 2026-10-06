@@ -24,6 +24,7 @@ import AttemptList from "./AttemptList";
 
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
+import BarraSecciones from "./BarraSecciones";
 import { useDailyStats, Distribution } from "./dailyStats";
 
 // Dirección visual «Prensa del motor»: papel + tinta + rojo de rotativa. El
@@ -78,6 +79,7 @@ export default function Configurator({
   onOpenLogin,
   onOpenRanking,
   onOpenGarage,
+  onOpenProfile,
   onOpenHowTo,
   howtoPulse = false,
   theme = DEFAULT_THEME,
@@ -380,6 +382,7 @@ export default function Configurator({
           streak={streak}
           onOpenMenu={onOpenMenu}
           onOpenRanking={onOpenRanking}
+          onOpenHowTo={onOpenHowTo}
         />
 
         {/* H1 real solo para lectores de pantalla/SEO (v0 no lo pinta). */}
@@ -521,6 +524,16 @@ export default function Configurator({
           </div>
         </footer>
       </main>
+
+      {/* La barra de pestañas (solo en el móvil; ver BarraSecciones). «Jugar»
+          devuelve la vista a la foto, como el recorte flotante. */}
+      <BarraSecciones
+        repescaAlert={repescaAlert}
+        onJugar={volverALaFoto}
+        onOpenRanking={onOpenRanking}
+        onOpenGarage={onOpenGarage}
+        onOpenProfile={onOpenProfile}
+      />
 
       {showEnd && ended && (
         <EndScreen

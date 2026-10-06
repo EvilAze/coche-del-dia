@@ -645,5 +645,8 @@
     "vuelveCuerpo": "Queda en tu Archivo como pendiente. Si te toca, será en Modo Veterano: un intento, sin pistas.",
     "noEresElUnico": "No eres el único: {n} de cada 10 tampoco lo sacaron.",
     "ficha": "La ficha"
+  },
+  "barra": {
+    "jugar": "Jugar"
   }
 }

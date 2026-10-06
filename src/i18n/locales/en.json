@@ -645,5 +645,8 @@
     "vuelveCuerpo": "It stays pending in your Archive. If you draw it, it'll be in Veteran Mode: one attempt, no hints.",
     "noEresElUnico": "You're not alone: {n} in 10 didn't get it either.",
     "ficha": "The spec sheet"
+  },
+  "barra": {
+    "jugar": "Play"
   }
 }

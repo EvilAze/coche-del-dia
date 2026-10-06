@@ -643,6 +643,7 @@ export default function App() {
         onOpenLogin={openLogin}
         onOpenRanking={openRanking}
         onOpenGarage={openGarage}
+        onOpenProfile={openProfile}
         onOpenHowTo={openHowTo}
         howtoPulse={howtoPulse}
       />

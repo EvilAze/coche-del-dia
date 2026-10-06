@@ -255,29 +255,28 @@ export default function LoginModal({ open, onClose, aviso = null }) {
       onClose={onClose}
       label={t("app.loginModalTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[100] flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
+      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
-      <div className="absolute right-4 top-4 z-10">
-        <CloseButton onClick={onClose} />
-      </div>
-
+      {/* Un diálogo de DECISIÓN (regla 24): tarjeta centrada en las dos
+          plataformas, con el texto alineado a la izquierda — el centrado en
+          bloque de antes es lo que convierte cualquier formulario en un cartel. */}
+      <div className="dlg">
       {paso === "codigo" ? (
         <>
-          <h2 className="mb-4 font-display text-2xl tracking-widest text-accent">
-            {t("app.codeTitle")}
-          </h2>
-          <p className="pm-body">{t("app.codeBody", { email: email.trim() })}</p>
+          <div className="dlg-cab">
+            <h2 className="dlg-titulo">{t("app.codeTitle")}</h2>
+            <CloseButton onClick={onClose} />
+          </div>
+          <p className="dlg-texto">{t("app.codeBody", { email: email.trim() })}</p>
 
           {/* Mismo filete discontinuo que el aviso de Google: es el mismo hecho
               contado en el otro camino, y merece la misma cara. */}
           {correoOcupado && (
-            <p className="mt-4 border border-dashed border-tinta px-3 py-2 text-left text-sm text-muted">
-              {t("app.codeEmailTakenBody")}
-            </p>
+            <p className="dlg-aviso">{t("app.codeEmailTakenBody")}</p>
           )}
 
-          <div className="mt-5 text-left">
-            <label htmlFor="login-codigo" className="prensa-label">
+          <div className="dlg-campo">
+            <label htmlFor="login-codigo" className="dlg-etiqueta">
               {t("app.codeLabel")}
             </label>
             <input
@@ -294,7 +293,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
               spellCheck={false}
               enterKeyHint="go"
               maxLength={CIFRAS_MAX}
-              className="prensa-input text-center font-mono text-2xl tracking-[0.4em]"
+              className="dlg-input dlg-codigo"
               placeholder={t("app.codePlaceholder")}
               value={codigo}
               onChange={cambiarCodigo}
@@ -302,14 +301,14 @@ export default function LoginModal({ open, onClose, aviso = null }) {
               autoFocus
             />
             {errorCodigo && (
-              <p className="mt-2 text-sm text-rojo">{t(`app.${errorCodigo}`)}</p>
+              <p className="dlg-error">{t(`app.${errorCodigo}`)}</p>
             )}
           </div>
 
           <button
             type="button"
             onClick={() => verificar()}
-            className="pm-btn mt-4"
+            className="pm-btn"
             disabled={verificando || codigo.length < CIFRAS_MIN}
           >
             {verificando ? t("app.codeVerifying") : t("app.codeCta")}
@@ -319,19 +318,20 @@ export default function LoginModal({ open, onClose, aviso = null }) {
               renglón, quien lo lee en el ordenador teclea seis cifras sin
               enterarse de que había un botón: el enlace existiría sin que nadie
               lo usara, que es lo mismo que no tenerlo. */}
-          <p className="pm-body mt-3 text-center text-xs">{t("app.codeLinkHint")}</p>
-          <p className="pm-body mt-2 text-center text-xs">{t("app.codeSpamHint")}</p>
+          <p className="dlg-nota">
+            {t("app.codeLinkHint")} {t("app.codeSpamHint")}
+          </p>
 
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="dlg-pie">
             {reenvioEn > 0 ? (
-              <span className="pm-label !text-[10px]">
+              <span className="dlg-espera">
                 {t("app.codeResendWait", { seconds: reenvioEn })}
               </span>
             ) : (
               <button
                 type="button"
                 onClick={() => enviarCodigo()}
-                className="pm-btn pm-btn--ghost !py-2 !text-xs"
+                className="dlg-enlace"
                 disabled={enviando}
               >
                 {enviando ? t("app.emailSending") : t("app.codeResend")}
@@ -346,7 +346,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
                 setErrorCodigo(null);
                 setReenvioEn(0);
               }}
-              className="pm-label !text-[10px] underline"
+              className="dlg-enlace"
             >
               {t("app.codeChangeEmail")}
             </button>
@@ -354,24 +354,21 @@ export default function LoginModal({ open, onClose, aviso = null }) {
         </>
       ) : (
         <>
-          <h2 className="mb-4 font-display text-2xl tracking-widest text-accent">
-            {t("app.loginModalTitle")}
-          </h2>
+          <div className="dlg-cab">
+            <h2 className="dlg-titulo">{t("app.loginModalTitle")}</h2>
+            <CloseButton onClick={onClose} />
+          </div>
 
           {/* Vuelta de un intento fallido. Antes de esto, ese caso era una
               pantalla idéntica a la normal: el jugador volvía de Google sin
               sesión y sin ninguna explicación, y solo podía volver a pulsar el
               mismo botón para repetir el mismo fallo. */}
           {aviso === "identidad-ocupada" ? (
-            <p className="mb-6 border border-dashed border-tinta px-3 py-2 text-left text-sm text-muted">
-              {t("app.loginLinkTakenBody")}
-            </p>
+            <p className="dlg-aviso">{t("app.loginLinkTakenBody")}</p>
           ) : aviso ? (
-            <p className="mb-6 border border-dashed border-tinta px-3 py-2 text-left text-sm text-muted">
-              {t("app.loginFailedBody")}
-            </p>
+            <p className="dlg-aviso">{t("app.loginFailedBody")}</p>
           ) : (
-            <p className="mb-8 text-sm text-muted">{t("app.loginModalDescription")}</p>
+            <p className="dlg-texto">{t("app.loginModalDescription")}</p>
           )}
 
           <button
@@ -384,9 +381,9 @@ export default function LoginModal({ open, onClose, aviso = null }) {
             // Blanco sobre negro es la CHAPA DE MARCA de Google (su logo va sobre
             // fondo blanco por sus propias directrices), así que ese par se queda
             // aunque no sea del tema; es el único sitio de la web donde el color
-            // no lo elegimos nosotros. La forma sí es nuestra: esquina viva y el
-            // papel se hunde 1px al pulsar.
-            className="flex w-full items-center justify-center gap-3 rounded-none bg-white px-4 py-3 font-semibold text-black transition-transform active:translate-y-px disabled:opacity-60"
+            // no lo elegimos nosotros. La forma sí es nuestra: el canto de los
+            // botones del sistema y el hundido de 1px al pulsar.
+            className="dlg-google"
           >
             <GoogleGlyph />
             {t("common.continueWithGoogle")}
@@ -396,10 +393,10 @@ export default function LoginModal({ open, onClose, aviso = null }) {
             <>
               {/* Filete con la conjunción centrada: el separador del sistema
                   prensa, no una línea suelta. */}
-              <div className="my-5 flex items-center gap-3">
-                <i className="h-px flex-1 bg-border" aria-hidden="true" />
-                <span className="pm-label !text-[10px]">{t("app.orSeparator")}</span>
-                <i className="h-px flex-1 bg-border" aria-hidden="true" />
+              <div className="dlg-o">
+                <i aria-hidden="true" />
+                <span>{t("app.orSeparator")}</span>
+                <i aria-hidden="true" />
               </div>
 
               {/* `type="email"` SE QUEDA —es lo que saca el teclado con la @ a
@@ -412,8 +409,8 @@ export default function LoginModal({ open, onClose, aviso = null }) {
                   pasa y aquí no), así que dejarla puesta parte el mismo error en
                   dos avisos distintos según lo equivocado que esté lo tecleado.
                   Una sola puerta y un solo mensaje, que encima es el nuestro. */}
-              <form onSubmit={enviarCodigo} noValidate className="text-left">
-                <label htmlFor="login-email" className="prensa-label">
+              <form onSubmit={enviarCodigo} noValidate className="dlg-campo">
+                <label htmlFor="login-email" className="dlg-etiqueta">
                   {t("app.emailLabel")}
                 </label>
                 <input
@@ -425,16 +422,16 @@ export default function LoginModal({ open, onClose, aviso = null }) {
                   autoCorrect="off"
                   spellCheck={false}
                   enterKeyHint="go"
-                  className="prensa-input"
+                  className="dlg-input"
                   placeholder={t("app.emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={enviando}
                 />
-                <button type="submit" className="pm-btn mt-4" disabled={enviando}>
+                <button type="submit" className="pm-btn" disabled={enviando}>
                   {enviando ? t("app.emailSending") : t("app.emailCta")}
                 </button>
-                <p className="pm-body mt-2 text-center text-xs">{t("app.emailNoPassword")}</p>
+                <p className="dlg-nota">{t("app.emailNoPassword")}</p>
               </form>
             </>
           )}
@@ -442,11 +439,12 @@ export default function LoginModal({ open, onClose, aviso = null }) {
           {/* Selector de idioma para usuarios anónimos. Antes vivía en el
               popover del header; al quitarlo, este modal (al que llega el
               anónimo desde el icono de perfil) es su nuevo hogar. */}
-          <div className="mt-6 border-t border-border pt-4 text-left">
+          <div className="dlg-idioma">
             <LanguageStrip />
           </div>
         </>
       )}
+      </div>
     </ModalShell>
   );
 }

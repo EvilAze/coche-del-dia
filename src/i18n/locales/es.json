@@ -24,7 +24,7 @@
     "howToPlayAria": "Cómo se juega",
     "attempts": "intentos",
     "attemptsRemainingAria": "{count} de {max} intentos restantes",
-    "loginModalTitle": "INICIAR SESIÓN",
+    "loginModalTitle": "Inicia sesión",
     "loginModalDescription": "Guarda tus estadísticas en la nube, compite en el ranking global y juega desde cualquier dispositivo.",
     "loginError": "No se pudo iniciar sesión. Inténtalo de nuevo.",
     "loginLinkTakenBody": "Esa cuenta de Google ya tiene partidas guardadas. Entra con ella y seguirás donde lo dejaste — el progreso de este dispositivo sin cuenta no se puede unir a otra que ya existe.",
@@ -38,7 +38,7 @@
     "emailInvalid": "Revisa el correo, no parece válido.",
     "emailError": "No se pudo enviar el código. Inténtalo de nuevo.",
     "emailRateLimited": "Demasiadas peticiones. Espera unos minutos y vuelve a intentarlo.",
-    "codeTitle": "REVISA TU CORREO",
+    "codeTitle": "Revisa tu correo",
     "codeBody": "Te hemos enviado un código de 6 cifras a {email}.",
     "codeEmailTakenBody": "Ese correo ya tiene una cuenta con partidas guardadas. Entrarás en ella y seguirás donde lo dejaste, pero el progreso de este dispositivo sin cuenta no se puede unir: se queda aquí. Si no era el correo que querías, cámbialo antes de escribir el código.",
     "codeLabel": "Código",
@@ -191,23 +191,19 @@
     "eligeAnio": "Elige el año"
   },
   "sumario": {
-    "kicker": "Índice de la edición",
-    "titulo": "El sumario",
     "garajeApunte": "Tu colección de portadas",
     "garajeRepesca": "Tienes una repesca esperando",
     "clasificacionApunte": "La tabla de la temporada",
-    "clasificacionPuesto": "de la temporada",
-    "perfilApunte": "Tu carnet y tus estadísticas",
+    "perfilApunte": "Tus cifras y tus ajustes",
     "perfilRacha": {
       "one": "Racha de {count} día",
       "other": "Racha de {count} días"
     },
-    "entrarApunte": "Guarda tu progreso en la nube",
+    "entrarApunte": "Entra y tu racha, tus puntos y tu Archivo viajan contigo.",
     "comoApunte": "Las reglas, en un minuto",
-    "ejemplar": "El ejemplar",
-    "tinta": "Tinta",
-    "tintaDia": "Día",
-    "tintaNoche": "Noche"
+    "menu": "Menú",
+    "entrarTitulo": "Guarda tu racha",
+    "puestoTemporada": "{pos} de la temporada"
   },
   "prensa": {
     "ladilloFoto": "La fotografía del día",
@@ -367,7 +363,8 @@
     "errorEmail": "Ese correo no parece válido.",
     "errorCuota": "Has enviado varios mensajes hoy. Prueba mañana.",
     "errorSesion": "No se pudo identificar tu sesión. Recarga la página.",
-    "errorGenerico": "No se pudo enviar. Inténtalo otra vez."
+    "errorGenerico": "No se pudo enviar. Inténtalo otra vez.",
+    "tipoAria": "De qué va"
   },
   "publicProfile": {
     "portadas": {

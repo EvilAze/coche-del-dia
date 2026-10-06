@@ -72,63 +72,62 @@ export default function DeleteAccountModal({ open, onClose }) {
       // el botón de borrar, y con el aviso de error desplegado es justo lo que se
       // iba bajo la barra de gestos en la app.
       backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[130] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-6"
+      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <p className="pm-kicker">{t("deleteAccount.tag")}</p>
-          <h2 className="pm-title mt-1">{t("deleteAccount.title")}</h2>
-        </div>
+      <div className="dlg">
+      <div className="dlg-cab">
+        <h2 className="dlg-titulo">{t("deleteAccount.title")}</h2>
         {!borrando && <CloseButton onClick={cerrar} />}
       </div>
 
       {paso === "aviso" ? (
         <>
-          <p className="pm-body">{t("deleteAccount.intro")}</p>
+          <p className="dlg-texto">{t("deleteAccount.intro")}</p>
 
-          {/* Las dos columnas del trato, cada una con su ladillo. Se lee antes
-              que un párrafo corrido y deja claro que NO es "se borra todo". */}
-          <div className="arch-filete mt-4 pt-4">
-            <p className="pm-label">{t("deleteAccount.goneLabel")}</p>
-            <p className="pm-body mt-1.5 text-sm">{t("deleteAccount.goneBody")}</p>
-          </div>
-          <div className="mt-4 border-t border-border-strong/60 pt-4">
-            <p className="pm-label">{t("deleteAccount.staysLabel")}</p>
-            <p className="pm-body mt-1.5 text-sm">{t("deleteAccount.staysBody")}</p>
-          </div>
+          {/* Las dos mitades del trato, cada una con su título. Se lee antes
+              que un párrafo corrido y deja claro que NO es «se borra todo». */}
+          <dl className="dlg-trato">
+            <div>
+              <dt>{t("deleteAccount.goneLabel")}</dt>
+              <dd>{t("deleteAccount.goneBody")}</dd>
+            </div>
+            <div>
+              <dt>{t("deleteAccount.staysLabel")}</dt>
+              <dd>{t("deleteAccount.staysBody")}</dd>
+            </div>
+          </dl>
 
-          <p className="pm-body mt-4 text-sm text-muted-foreground">
-            {t("deleteAccount.irreversible")}
-          </p>
+          <p className="dlg-nota">{t("deleteAccount.irreversible")}</p>
 
-          <div className="mt-6 flex flex-col gap-2">
+          <div className="dlg-botones">
             <button
               type="button"
               onClick={() => {
                 haptic.impactLight();
                 setPaso("confirmar");
               }}
-              className="pm-btn pm-btn--ghost !text-xs"
+              className="pm-btn pm-btn--ghost"
             >
               {t("deleteAccount.continue")}
             </button>
-            <button type="button" onClick={cerrar} className="pm-btn !text-xs">
+            <button type="button" onClick={cerrar} className="pm-btn">
               {t("common.cancel")}
             </button>
           </div>
         </>
       ) : (
         <>
-          <p className="pm-body">{t("deleteAccount.confirmBody")}</p>
+          <p className="dlg-texto">{t("deleteAccount.confirmBody")}</p>
 
-          <div className="mt-6 flex flex-col gap-2">
+          <div className="dlg-botones">
             <button
               type="button"
               onClick={confirmar}
               disabled={borrando}
-              // El único botón rojo destructivo de la app. Misma geometría de
-              // chip que el resto de acciones con consecuencia del carnet.
-              className="focus-ring w-full border border-rojo px-3 py-2.5 font-body text-xs font-bold uppercase tracking-[0.12em] text-rojo transition-colors hover:bg-rojo hover:text-papel disabled:opacity-60"
+              // El único botón rojo LLENO de la app: es la única acción que no
+              // tiene vuelta atrás. El rojo ya significa «gastado / atención»
+              // en todo el juego; aquí lo significa del todo.
+              className="pm-btn dlg-destructivo"
             >
               {borrando ? t("deleteAccount.deleting") : t("deleteAccount.confirmCta")}
             </button>
@@ -136,7 +135,7 @@ export default function DeleteAccountModal({ open, onClose }) {
               type="button"
               onClick={cerrar}
               disabled={borrando}
-              className="pm-btn !text-xs disabled:opacity-60"
+              className="pm-btn pm-btn--ghost"
             >
               {t("common.cancel")}
             </button>
@@ -144,7 +143,8 @@ export default function DeleteAccountModal({ open, onClose }) {
         </>
       )}
 
-      {error && <p className="pm-body mt-4 text-center text-sm text-rojo">{error}</p>}
+      {error && <p className="dlg-error">{error}</p>}
+      </div>
     </ModalShell>
   );
 }

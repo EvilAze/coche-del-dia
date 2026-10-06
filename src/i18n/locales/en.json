@@ -24,7 +24,7 @@
     "howToPlayAria": "How to play",
     "attempts": "attempts",
     "attemptsRemainingAria": "{count} of {max} attempts left",
-    "loginModalTitle": "SIGN IN",
+    "loginModalTitle": "Sign in",
     "loginModalDescription": "Save your stats in the cloud, compete on the global ranking and play from any device.",
     "loginError": "Couldn't sign in. Please try again.",
     "loginLinkTakenBody": "That Google account already has saved games. Sign in with it and you'll pick up where you left off — progress from this device can't be merged into an account that already exists.",
@@ -38,7 +38,7 @@
     "emailInvalid": "That email doesn't look right.",
     "emailError": "Couldn't send the code. Please try again.",
     "emailRateLimited": "Too many requests. Wait a few minutes and try again.",
-    "codeTitle": "CHECK YOUR EMAIL",
+    "codeTitle": "Check your email",
     "codeBody": "We sent a 6-digit code to {email}.",
     "codeEmailTakenBody": "That email already has an account with saved games. You'll go into it and pick up where you left off, but the account-less progress on this device can't be merged: it stays behind. If that wasn't the email you meant, change it before typing the code.",
     "codeLabel": "Code",
@@ -191,23 +191,19 @@
     "eligeAnio": "Pick the year"
   },
   "sumario": {
-    "kicker": "In this edition",
-    "titulo": "Contents",
     "garajeApunte": "Your collection of covers",
     "garajeRepesca": "You have a rescue waiting",
     "clasificacionApunte": "The season table",
-    "clasificacionPuesto": "this season",
-    "perfilApunte": "Your card and your stats",
+    "perfilApunte": "Your numbers and settings",
     "perfilRacha": {
       "one": "{count}-day streak",
       "other": "{count}-day streak"
     },
-    "entrarApunte": "Save your progress to the cloud",
+    "entrarApunte": "Sign in and your streak, points and Archive go with you.",
     "comoApunte": "The rules, in a minute",
-    "ejemplar": "This edition",
-    "tinta": "Ink",
-    "tintaDia": "Day",
-    "tintaNoche": "Night"
+    "menu": "Menu",
+    "entrarTitulo": "Keep your streak",
+    "puestoTemporada": "{pos} this season"
   },
   "prensa": {
     "ladilloFoto": "Today's photograph",
@@ -367,7 +363,8 @@
     "errorEmail": "That email doesn't look valid.",
     "errorCuota": "You've sent several messages today. Try again tomorrow.",
     "errorSesion": "We couldn't identify your session. Reload the page.",
-    "errorGenerico": "Couldn't send. Please try again."
+    "errorGenerico": "Couldn't send. Please try again.",
+    "tipoAria": "What it is about"
   },
   "publicProfile": {
     "portadas": {

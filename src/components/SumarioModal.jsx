@@ -1,52 +1,55 @@
 // src/components/SumarioModal.jsx
-// EL SUMARIO: el índice del ejemplar, en un diálogo centrado.
+// EL MENÚ (sistema «Asfalto») — lo que hay detrás del botón de las tres rayas.
 //
-// DE DÓNDE VIENE. Antes esto era un desplegable colgado de la esquina superior
-// izquierda (.prensa-menu): cinco renglones idénticos —Archivo, Perfil, Cómo se
-// juega, el tema y la privacidad— dentro de una caja de 234px. Tres problemas
-// que no se arreglaban moviendo píxeles:
+// En el móvil las cuatro secciones ya están en la barra de pestañas, así que el
+// menú deja de ser una portada de secciones (la rejilla 2×2 de portadillas que
+// componía la prensa) y pasa a ser lo que es en cualquier app: una lista
+// agrupada. Arriba, si no has entrado, la única invitación que importa; luego
+// las secciones, cada una con el dato que te interesa de ella (tu puesto, tu
+// racha, la repesca pendiente); y debajo, los ajustes que se cambian viendo el
+// efecto —tema e idioma—, los mismos dos renglones que el Perfil (Ajustes.jsx).
 //
-//   1. MEZCLABA DOS COSAS. Navegar a una sección (el Archivo, tu perfil) y
-//      cambiar un ajuste del ejemplar (la tinta) son gestos distintos, y ahí se
-//      leían iguales. Peor: elegir el tema CERRABA el menú, así que el jugador
-//      no veía el resultado de lo que acababa de elegir.
-//   2. EL ANCLAJE ERA DE ESCRITORIO. Un popover pegado arriba a la izquierda
-//      cae justo donde el pulgar no llega, y en móvil se abría ENCIMA de la
-//      fotografía, que es el juego.
-//   3. NO DECÍA NADA DE TI. Cinco palabras sueltas: ni tu puesto, ni tu racha,
-//      ni si habías iniciado sesión.
+// En el escritorio no hay barra de pestañas y este menú es la puerta a todo,
+// por eso conserva las cuatro secciones aunque en el móvil repitan la barra.
 //
-// QUÉ ES AHORA. Un sumario de periódico de verdad, en dos bloques:
-//   · LAS SECCIONES, como cuatro portadillas en rejilla (icono + nombre +
-//     apunte). Bloques grandes, con sitio para decir qué hay dentro y para que
-//     el dedo no falle — y con el dato del jugador en el apunte (tu ordinal en
-//     oro, tu racha), que es lo que convierte una lista en un panel.
-//   · EL EJEMPLAR: los ajustes que NO navegan a ningún sitio (la tinta y el
-//     idioma) con su control al lado. Se cambian aquí dentro, viendo el efecto,
-//     sin que el sumario se cierre.
-//
-// UNA SOLA PIEZA PARA WEB Y APP, a propósito: el catálogo de opciones es el
-// mismo en las dos y un menú que se comporta distinto en cada una es un menú que
-// hay que aprender dos veces. Va sobre ModalShell —el mismo chasis que el resto
-// de modales del juego, también dentro del APK— así que hereda foco, trampa de
-// tabulador, bloqueo de scroll y, en la app, el «atrás» de Android (lo cubre el
-// useHistoryClose único de App.jsx, porque esto es un modal más del slot).
-//
-// La privacidad vive aquí por lo que pasa en la app: allí el pliego no scrollea
-// (shell fijo) y el pie queda fuera de la pantalla, así que un enlace que solo
-// existiera abajo sería inalcanzable — y Play exige que la política se alcance
-// desde dentro. En web sigue además en el pie, igual que «Cómo se juega».
+// Sin iconos dentro de cuadritos de color: el icono va suelto, en el gris del
+// texto secundario, y lo que tiene que llamar la atención (la repesca) lo dice
+// un punto ámbar, que es lo que significa ese color en todo el juego.
 
 import { useT } from "../i18n";
-import { useTheme } from "../lib/theme";
 import { useEscape } from "../hooks/useEscape";
 import { haptic } from "../lib/haptics";
 import Superficie from "./Superficie";
 import CloseButton from "./CloseButton";
-import LanguageStrip from "./LanguageStrip";
-import Portadilla from "./Portadilla";
+import { FilaTema, FilaIdioma } from "./Ajustes";
 import { Icon, I } from "./configurator/icons";
 import { ordinal } from "./PuestoCifra";
+
+function Seccion({ icono, nombre, apunte, aviso = false, onClick }) {
+  return (
+    <button
+      type="button"
+      className="grupo-fila"
+      onClick={() => {
+        haptic.impactLight();
+        onClick?.();
+      }}
+    >
+      <span className="grupo-icono" aria-hidden="true">
+        <Icon d={icono} size={21} />
+      </span>
+      <span className="grupo-fila-texto">
+        <b>{nombre}</b>
+        {apunte && <span className={aviso ? "ambar" : undefined}>{apunte}</span>}
+      </span>
+      {aviso ? (
+        <span className="grupo-aviso" aria-hidden="true" />
+      ) : (
+        <Icon d={I.chevR} size={18} className="grupo-chev" />
+      )}
+    </button>
+  );
+}
 
 export default function SumarioModal({
   open,
@@ -63,137 +66,86 @@ export default function SumarioModal({
   onOpenHowTo,
 }) {
   const { t, tn, locale } = useT();
-  const { tema, setTheme } = useTheme();
   useEscape(open, onClose);
 
-  // El puesto solo existe con cuenta real: un anónimo no tiene fila en la tabla.
-  // Mientras `rankCargando`, el apunte se queda en el genérico: preferimos no
-  // decir nada a prometer «únete a la tabla» a quien ya está en ella.
-  const puesto = user && rank ? rank.rank : null;
-
-  function elegirTinta(destino) {
-    haptic.selection();
-    setTheme(destino);
-  }
+  // El puesto solo se enseña cuando hay uno: un «—º» no le dice nada a nadie.
+  const puesto = user && rank && !rankCargando ? rank.rank : null;
 
   return (
     <Superficie
       open={open}
       onClose={onClose}
-      label={t("sumario.titulo")}
-      // z POR DEBAJO de los modales a los que lleva (80 el ranking y el perfil,
-      // 85 el Archivo): el sumario es el lanzador, así que cuando el jugador
-      // elige una sección tiene que salir POR DEBAJO de la que entra. Con un z
-      // mayor, su velo al 72% se quedaba 220 ms encima del panel nuevo — un
-      // fogonazo oscuro justo al aterrizar.
-      // Encaje de modal alto: `safe-area-pad` en el backdrop + `max-h-full` en el
-      // panel (el porqué, en index.css junto a `.safe-area-pad`). El sumario
-      // crece con las secciones que tenga disponibles el jugador, así que es de
-      // los que llegan al tope; con el `calc(100dvh - 2rem)` de antes, llegar al
-      // tope en la app significaba meterse bajo las barras del sistema.
+      label={t("sumario.menu")}
       veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[78] flex items-center justify-center px-4"
       veloApp="pm-velo-hoja fixed inset-0 z-[78] flex items-end justify-center"
-      panelWeb="modal-panel-flat w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-5"
+      panelWeb="modal-panel-flat panel-seccion w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-5"
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="pm-kicker">{t("sumario.kicker")}</p>
-          <h2 className="pm-title mt-1">{t("sumario.titulo")}</h2>
-        </div>
+      <div className="clas-cab">
+        <h2 className="clas-titulo">{t("sumario.menu")}</h2>
         <CloseButton onClick={onClose} label={t("common.close")} />
       </div>
 
-      {/* LAS SECCIONES. Cuatro y solo cuatro: la rejilla de 2×2 es lo que hace
-          que se lean de un vistazo, y la quinta entrada obligaría a una fila
-          coja. La quinta candidata era la puerta de los Logros, que ya no
-          existe — el sumario cierra en 2×2 sin deberle un hueco a nadie. */}
-      <div className="prensa-rejilla">
-        <Portadilla
-          icono={<Icon d={I.garage} size={20} />}
+      {/* Sin sesión, lo primero es la puerta: guardar la racha es la razón por
+          la que alguien abre este menú sin saber muy bien qué busca. */}
+      {!user && (
+        <div className="sum-entrar">
+          <p>
+            <b>{t("sumario.entrarTitulo")}</b>
+            <span>{t("sumario.entrarApunte")}</span>
+          </p>
+          <button type="button" className="pm-btn" onClick={() => onOpenLogin?.("sumario")}>
+            {t("common.signIn")}
+          </button>
+        </div>
+      )}
+
+      <div className="grupo-lista">
+        <Seccion
+          icono={I.rejilla}
           nombre={t("prensa.garaje")}
           aviso={repescaAlert}
           apunte={repescaAlert ? t("sumario.garajeRepesca") : t("sumario.garajeApunte")}
           onClick={onOpenGarage}
         />
-
-        <Portadilla
-          icono={<Icon d={I.trophy} size={20} />}
+        <Seccion
+          icono={I.trophy}
           nombre={t("prensa.clasificacion")}
           apunte={
-            puesto != null && !rankCargando ? (
-              <>
-                <span className="oro">{ordinal(puesto, locale)}</span>{" "}
-                {t("sumario.clasificacionPuesto")}
-              </>
-            ) : (
-              t("sumario.clasificacionApunte")
-            )
+            puesto != null
+              ? t("sumario.puestoTemporada", { pos: ordinal(puesto, locale) })
+              : t("sumario.clasificacionApunte")
           }
-          // "sumario" como origen: el panel de analítica necesita distinguir
-          // esta puerta de la de la barra ("cabecera") y la del final de partida.
           onClick={() => onOpenRanking?.("sumario")}
         />
-
-        <Portadilla
-          icono={<Icon d={I.user} size={20} />}
-          nombre={user ? t("prensa.perfil") : t("prensa.entrar")}
-          apunte={
-            user
-              ? streak > 0
+        {user && (
+          <Seccion
+            icono={I.user}
+            nombre={t("prensa.perfil")}
+            apunte={
+              streak > 0
                 ? tn("sumario.perfilRacha", streak, { count: streak })
                 : t("sumario.perfilApunte")
-              : t("sumario.entrarApunte")
-          }
-          onClick={user ? onOpenProfile : () => onOpenLogin?.("sumario")}
-        />
-
-        <Portadilla
-          icono={<Icon d={I.help} size={20} />}
+            }
+            onClick={onOpenProfile}
+          />
+        )}
+        <Seccion
+          icono={I.ayuda}
           nombre={t("cdd.helpAria")}
           apunte={t("sumario.comoApunte")}
           onClick={onOpenHowTo}
         />
       </div>
 
-      {/* EL EJEMPLAR: lo que se ajusta, no lo que se visita. Ninguno de estos
-          dos controles cierra el sumario — se eligen viendo el efecto. */}
-      <p className="prensa-ladillo mb-2.5 mt-5">{t("sumario.ejemplar")}</p>
-
-      <div className="prensa-ajustes">
-        <div className="flex items-center justify-between gap-3">
-          <span className="et">{t("sumario.tinta")}</span>
-          {/* Conmutador de DOS estados explícitos en vez del botón «cambiar a
-              edición de noche» de antes: con un solo botón, el jugador tenía que
-              deducir en qué tinta estaba leyendo a partir del nombre de la otra.
-              El chip del sistema (pm-chip), el mismo del idioma y de los filtros
-              del Archivo. */}
-          <div className="flex gap-1">
-            <button
-              type="button"
-              className={`focus-ring pm-chip ${tema === "dia" ? "on" : ""}`}
-              aria-pressed={tema === "dia"}
-              onClick={() => elegirTinta("dia")}
-            >
-              {t("sumario.tintaDia")}
-            </button>
-            <button
-              type="button"
-              className={`focus-ring pm-chip ${tema === "noche" ? "on" : ""}`}
-              aria-pressed={tema === "noche"}
-              onClick={() => elegirTinta("noche")}
-            >
-              {t("sumario.tintaNoche")}
-            </button>
-          </div>
-        </div>
-
-        {/* La ÚNICA superficie de idioma del juego, reutilizada tal cual (vive
-            también en el perfil y en el login). Aquí es donde la busca quien no
-            ha iniciado sesión. */}
-        <LanguageStrip />
+      {/* Lo que se ajusta, no lo que se visita: ninguno de los dos cierra el
+          menú, se eligen viendo el efecto. */}
+      <h3 className="grupo-titulo">{t("myStats.settings")}</h3>
+      <div className="grupo-lista">
+        <FilaTema />
+        <FilaIdioma />
       </div>
 
-      <div className="prensa-sumario-pie">
+      <div className="sum-pie">
         <a href="/privacidad" onClick={() => haptic.impactLight()}>
           {t("app.footerPrivacy")}
         </a>

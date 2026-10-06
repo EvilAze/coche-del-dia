@@ -29,43 +29,18 @@
 import { useEffect, useState } from "react";
 import { getProfileSummary, getMyDistribution, getCurrentSeason } from "../lib/statsService";
 import { signOut } from "../lib/auth";
-import { useTheme } from "../lib/theme";
 import { useEscape } from "../hooks/useEscape";
 import { useHistoryChain } from "../hooks/useHistoryClose";
-import { useT, listLocales } from "../i18n";
-import { haptic } from "../lib/haptics";
+import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import Superficie from "./Superficie";
 import DeleteAccountModal from "./DeleteAccountModal";
 import PodiumMedals from "./PodiumMedals";
+import { FilaTema, FilaIdioma } from "./Ajustes";
 import { Icon, I } from "./configurator/icons";
 import { ordinal } from "./PuestoCifra";
 import { debeOfrecerApp, urlPlay } from "../lib/edicionApp";
 import { track } from "../lib/analytics";
-
-// Un conmutador segmentado (tema, idioma): la opción elegida, levantada sobre
-// el hueco. `aria-pressed` en cada botón, que es lo que son: conmutadores.
-function Segmentado({ opciones, valor, onCambio, etiqueta }) {
-  return (
-    <div className="perf-segmentado" role="group" aria-label={etiqueta}>
-      {opciones.map(([id, texto]) => (
-        <button
-          key={id}
-          type="button"
-          aria-pressed={valor === id}
-          className={valor === id ? "on" : undefined}
-          onClick={() => {
-            if (valor === id) return;
-            haptic.selection();
-            onCambio(id);
-          }}
-        >
-          {texto}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // La tarjeta «Intentos para acertar». La barra más larga va en tinta (es tu
 // número), el resto en gris, y las perdidas al final, más apagadas.
@@ -117,8 +92,7 @@ export default function MyStats({
   onOpenNickname,
   onOpenContacto,
 }) {
-  const { t, tn, locale, setLocale, dateLocale } = useT();
-  const { modo, setModo } = useTheme();
+  const { t, tn, locale, dateLocale } = useT();
   const [borrarAbierto, setBorrarAbierto] = useState(false);
   const [reintento, setReintento] = useState(0);
   const [state, setState] = useState({
@@ -343,70 +317,46 @@ export default function MyStats({
 
           {/* ── Ajustes ── */}
           <section className="perf-ajustes" aria-label={t("myStats.settings")}>
-            <h3 className="perf-ajustes-titulo">{t("myStats.settings")}</h3>
-            <div className="perf-lista">
-              <div className="perf-fila">
-                <span className="perf-fila-texto">
-                  <b>{t("perfil.tema")}</b>
-                </span>
-                <Segmentado
-                  etiqueta={t("perfil.tema")}
-                  valor={modo}
-                  onCambio={setModo}
-                  opciones={[
-                    ["noche", t("perfil.temaNoche")],
-                    ["dia", t("perfil.temaDia")],
-                    ["auto", t("perfil.temaAuto")],
-                  ]}
-                />
-              </div>
-              <div className="perf-fila">
-                <span className="perf-fila-texto">
-                  <b>{t("header.language")}</b>
-                </span>
-                <Segmentado
-                  etiqueta={t("header.language")}
-                  valor={locale}
-                  onCambio={setLocale}
-                  opciones={listLocales().map((o) => [o.code, o.name])}
-                />
-              </div>
+            <h3 className="grupo-titulo">{t("myStats.settings")}</h3>
+            <div className="grupo-lista">
+              <FilaTema />
+              <FilaIdioma />
               {/* La edición Android, permanente y sin caducidad: aquí no molesta
                   a nadie y recoge al que la busca a propósito. */}
               {ofreceApp && (
                 <button
                   type="button"
-                  className="perf-fila"
+                  className="grupo-fila"
                   onClick={() => {
                     track("app_promo_click", { surface: "perfil" });
                     window.open(urlPlay("perfil"), "_blank", "noopener,noreferrer");
                   }}
                 >
-                  <span className="perf-fila-texto">
+                  <span className="grupo-fila-texto">
                     <b>{t("app.promoDoor")}</b>
                     <span>{t("myStats.appApunte")}</span>
                   </span>
-                  <Icon d={I.chevR} size={18} className="perf-chev" />
+                  <Icon d={I.chevR} size={18} className="grupo-chev" />
                 </button>
               )}
               {/* Escribir al equipo, ANTES que cerrar sesión: quien baja hasta
                   aquí buscando «cómo aviso de esto» no quiere irse, quiere que
                   alguien lo lea. */}
-              <button type="button" className="perf-fila" onClick={() => onOpenContacto?.()}>
-                <span className="perf-fila-texto">
+              <button type="button" className="grupo-fila" onClick={() => onOpenContacto?.()}>
+                <span className="grupo-fila-texto">
                   <b>{t("contacto.ajusteTitulo")}</b>
                   <span>{t("contacto.ajusteApunte")}</span>
                 </span>
-                <Icon d={I.chevR} size={18} className="perf-chev" />
+                <Icon d={I.chevR} size={18} className="grupo-chev" />
               </button>
               {/* El correo va aquí y no arriba: nadie abre su perfil para ver su
                   propio correo, pero al cerrar sesión sí importa cuál se cierra. */}
-              <button type="button" className="perf-fila" onClick={handleSignOut}>
-                <span className="perf-fila-texto">
+              <button type="button" className="grupo-fila" onClick={handleSignOut}>
+                <span className="grupo-fila-texto">
                   <b>{t("common.signOut")}</b>
                   <span title={email}>{email || t("myStats.sessionAnon")}</span>
                 </span>
-                <Icon d={I.arrowR} size={18} className="perf-chev" />
+                <Icon d={I.arrowR} size={18} className="grupo-chev" />
               </button>
             </div>
 

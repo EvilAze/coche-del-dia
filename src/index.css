@@ -5391,36 +5391,36 @@ button.perf-cifra:active { transform: translateY(1px); }
 
 /* Los ajustes: una lista con canto, filas de 58px. */
 .perf-ajustes { display: flex; flex-direction: column; margin-top: 8px; }
-.perf-ajustes-titulo {
+.grupo-titulo {
   margin: 0 0 8px 4px; font-family: var(--font-mono); font-weight: 500; font-size: 11px;
   letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
 }
-.perf-lista { overflow: hidden; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line); }
-.perf-fila {
+.grupo-lista { overflow: hidden; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line); }
+.grupo-fila {
   width: 100%; min-height: 58px; box-sizing: border-box; padding: 8px 12px 8px 16px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   border: 0; background: none; color: inherit; font: inherit; text-align: left;
 }
-.perf-fila + .perf-fila { border-top: 1px solid var(--line-2); }
-button.perf-fila { cursor: pointer; transition: background-color var(--ms-roce) var(--curva-roce); }
-button.perf-fila:active { background: rgb(var(--tinta-rgb) / .04); }
+.grupo-fila + .grupo-fila { border-top: 1px solid var(--line-2); }
+button.grupo-fila { cursor: pointer; transition: background-color var(--ms-roce) var(--curva-roce); }
+button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 @media (hover: hover) {
-  button.perf-fila:hover { background: rgb(var(--tinta-rgb) / .03); }
+  button.grupo-fila:hover { background: rgb(var(--tinta-rgb) / .03); }
 }
-.perf-fila-texto { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.perf-fila-texto b { font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--cdd-text); }
-.perf-fila-texto span {
+.grupo-fila-texto { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.grupo-fila-texto b { font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--cdd-text); }
+.grupo-fila-texto span {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted);
 }
-.perf-chev { flex: none; color: var(--cdd-muted); }
-.perf-segmentado { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--bg); }
-.perf-segmentado button {
+.grupo-chev { flex: none; color: var(--cdd-muted); }
+.segmentado { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--bg); }
+.segmentado button {
   height: 32px; padding: 0 11px; border: 0; border-radius: 8px; background: none; cursor: pointer;
   font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-muted);
   transition: background-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce);
 }
-.perf-segmentado button.on { background: var(--surface2); color: var(--cdd-text); font-weight: 700; box-shadow: inset 0 0 0 1px var(--line); }
+.segmentado button.on { background: var(--surface2); color: var(--cdd-text); font-weight: 700; box-shadow: inset 0 0 0 1px var(--line); }
 .perf-borrar {
   align-self: center; margin-top: 10px; height: 44px; padding: 0 12px; border: 0; background: none; cursor: pointer;
   font-family: var(--font-body); font-weight: 600; font-size: 13.5px; color: var(--rojo);
@@ -5745,3 +5745,113 @@ button.perf-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   font-family: var(--font-body); font-weight: 500; font-size: 13px; color: var(--cdd-muted);
 }
 .pm-opcion-pais .bandera { width: 18px; height: 12px; border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LAS LISTAS AGRUPADAS (Perfil, Menú) y EL MENÚ «ASFALTO» (sum-*)
+   Una lista con canto, filas de 58px separadas por un filete tenue. El icono
+   de una fila va SUELTO, en el gris del texto secundario: los cuadritos de
+   color detrás de cada icono son el tic de plantilla que más delata una
+   interfaz hecha en serie, y aquí no distinguían nada.
+   ═══════════════════════════════════════════════════════════════════════ */
+.grupo-lista + .grupo-titulo, .sum-entrar + .grupo-lista { margin-top: 18px; }
+.grupo-titulo { margin-top: 20px; }
+.grupo-icono { flex: none; display: flex; color: var(--cdd-muted); margin-right: -2px; }
+button.grupo-fila { justify-content: flex-start; }
+button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
+.grupo-fila-texto span.ambar { color: var(--ambar); }
+.grupo-aviso { flex: none; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: var(--ambar); }
+
+.sum-entrar {
+  display: flex; flex-direction: column; gap: 14px; padding: 18px 16px 16px;
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+.sum-entrar p { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.sum-entrar b { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.05; color: var(--cdd-text); }
+.sum-entrar span { font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-muted); }
+.sum-pie { display: flex; justify-content: center; margin-top: 18px; }
+.sum-pie a {
+  padding: 12px; font-family: var(--font-body); font-weight: 600; font-size: 13px;
+  color: var(--cdd-muted); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
+}
+@media (hover: hover) {
+  .sum-pie a:hover { color: var(--cdd-text); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LOS DIÁLOGOS «ASFALTO» (dlg-*): entrar, la firma, escribir al equipo y
+   borrar la cuenta. Tarjeta centrada (regla 24: una pregunta se pone
+   delante), texto alineado a la izquierda, el título en la letra de los
+   titulares y la X en su fila, no flotando sobre la esquina. Los campos son
+   cajas con canto, como las casillas del cupón: el subrayado de imprenta era
+   de la prensa y aquí no hay papel que subrayar.
+   ═══════════════════════════════════════════════════════════════════════ */
+.dlg { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 20px; text-align: left; }
+.dlg-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin: -6px -12px -4px 0; }
+.dlg-titulo {
+  margin: 6px 0 0; font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1.02;
+  letter-spacing: .003em; color: var(--cdd-text);
+}
+.dlg-texto { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.5; color: var(--cdd-muted); }
+.dlg-nota { margin: -6px 0 0; font-family: var(--font-body); font-size: 13px; line-height: 1.45; color: var(--cdd-muted); }
+.dlg-contador { text-align: right; font-family: var(--font-mono); font-size: 12px; }
+.dlg-error { margin: -4px 0 0; font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--rojo); }
+.dlg-aviso {
+  margin: 0; padding: 12px 14px; border-radius: var(--radio-boton); background: rgb(var(--ambar-rgb) / .1);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.45; color: var(--cdd-text);
+}
+.dlg-campo { display: flex; flex-direction: column; gap: 8px; }
+.dlg-etiqueta { font-family: var(--font-body); font-weight: 600; font-size: 13.5px; color: var(--cdd-text); }
+.dlg-input {
+  width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px;
+  border: 1px solid var(--line-strong); border-radius: var(--radio-boton); background: var(--surface2);
+  font-family: var(--font-body); font-weight: 500; font-size: 16px; color: var(--cdd-text); outline: none;
+  transition: border-color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce);
+}
+.dlg-input::placeholder { color: var(--placeholder); font-weight: 500; }
+.dlg-input:focus { border-color: var(--cdd-text); box-shadow: 0 0 0 1px var(--cdd-text); }
+.dlg-input[aria-invalid="true"] { border-color: var(--rojo); box-shadow: 0 0 0 1px var(--rojo); }
+.dlg-input:disabled { opacity: .5; }
+.dlg-codigo { height: 60px; text-align: center; font-family: var(--font-mono); font-weight: 600; font-size: 26px; letter-spacing: .4em; padding-left: calc(14px + .4em); }
+.dlg-firma { height: 56px; font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: .04em; text-transform: uppercase; }
+.dlg-area { height: auto; min-height: 128px; padding: 12px 14px; resize: none; line-height: 1.45; }
+.dlg .pm-btn { width: 100%; }
+.dlg .segmentado { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.dlg .segmentado button { padding: 0 6px; }
+.dlg-botones { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.pm-btn.dlg-destructivo { background: var(--rojo); color: rgb(255 255 255); }
+@media (hover: hover) {
+  .pm-btn.dlg-destructivo:hover:not(:disabled) { background: rgb(var(--rojo-rgb) / .88); }
+}
+.dlg-trato { margin: 0; display: flex; flex-direction: column; gap: 0; border-radius: var(--radio-boton); background: var(--surface2); }
+.dlg-trato > div { padding: 12px 14px; }
+.dlg-trato > div + div { border-top: 1px solid var(--line); }
+.dlg-trato dt { font-family: var(--font-body); font-weight: 700; font-size: 14px; color: var(--cdd-text); }
+.dlg-trato dd { margin: 4px 0 0; font-family: var(--font-body); font-size: 13.5px; line-height: 1.45; color: var(--cdd-muted); }
+
+/* Google: su chapa de marca (logo sobre blanco, por sus directrices) con la
+   forma de nuestros botones. De día, el canto le hace falta para no fundirse
+   con la tarjeta blanca. */
+.dlg-google {
+  width: 100%; height: 52px; display: flex; align-items: center; justify-content: center; gap: 12px;
+  border: 1px solid var(--line-strong); border-radius: var(--radio-boton); background: rgb(255 255 255); cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 15.5px; color: rgb(31 31 31);
+  transition: transform var(--ms-pulso) var(--curva-roce);
+}
+.dlg-google:active { transform: translateY(1px); }
+.dlg-google:disabled { opacity: .6; }
+.dlg-o { display: flex; align-items: center; gap: 12px; margin: 2px 0; }
+.dlg-o i { flex: 1; height: 1px; background: var(--line); }
+.dlg-o span { font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.dlg-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dlg-enlace {
+  padding: 10px 0; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text);
+  text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
+}
+.dlg-enlace:disabled { opacity: .5; cursor: default; }
+.dlg-espera { font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted); }
+.dlg-idioma { padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* El idioma suelto (LanguageStrip), al pie del diálogo de entrar. */
+.idioma-tira { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.idioma-tira > span { font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text); }

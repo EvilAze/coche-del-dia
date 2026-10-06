@@ -26,6 +26,7 @@ import {
 } from "../lib/mensajes";
 import ModalShell from "./ModalShell";
 import CloseButton from "./CloseButton";
+import { Segmentado } from "./Ajustes";
 import { useToast } from "./Toast";
 
 export default function ContactoModal({ open, onClose, user }) {
@@ -93,34 +94,23 @@ export default function ContactoModal({ open, onClose, user }) {
       onClose={onClose}
       label={t("contacto.titulo")}
       backdropClassName="modal-scrim fixed inset-0 z-[120] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm p-6"
+      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
-      <div className="absolute right-4 top-4 z-10">
-        <CloseButton onClick={onClose} label={t("common.close")} />
-      </div>
-
-      <form onSubmit={handleSubmit}>
-        <p className="pm-kicker">{t("contacto.kicker")}</p>
-        <h2 className="pm-title mt-2">{t("contacto.titulo")}</h2>
-        <p className="pm-body mt-3">{t("contacto.descripcion")}</p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {TIPOS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTipo(id)}
-              aria-pressed={tipo === id}
-              className={`border px-3 py-1.5 text-[11px] uppercase tracking-[0.14em] ${
-                tipo === id
-                  ? "border-rojo text-rojo"
-                  : "border-tinta-2/40 text-tinta-2"
-              }`}
-            >
-              {t(`contacto.tipo_${id}`)}
-            </button>
-          ))}
+      <form onSubmit={handleSubmit} className="dlg">
+        <div className="dlg-cab">
+          <h2 className="dlg-titulo">{t("contacto.titulo")}</h2>
+          <CloseButton onClick={onClose} label={t("common.close")} />
         </div>
+        <p className="dlg-texto">{t("contacto.descripcion")}</p>
+
+        {/* De qué va: el mismo conmutador segmentado que el tema y el idioma.
+            Cambia el texto de ayuda del campo, no lo que se envía. */}
+        <Segmentado
+          etiqueta={t("contacto.tipoAria")}
+          valor={tipo}
+          onCambio={setTipo}
+          opciones={TIPOS.map((id) => [id, t(`contacto.tipo_${id}`)])}
+        />
 
         <textarea
           value={cuerpo}
@@ -130,17 +120,13 @@ export default function ContactoModal({ open, onClose, user }) {
           placeholder={t(`contacto.placeholder_${tipo}`)}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "contacto-error" : undefined}
-          className="
-            mt-4 w-full resize-none rounded-none border border-tinta-2/40
-            bg-transparent p-3 font-body text-sm text-tinta outline-none
-            placeholder:text-tinta-2/50 focus:border-rojo
-          "
+          className="dlg-input dlg-area"
         />
 
         {/* Solo cuando de verdad queda poco: un contador siempre visible es
             ruido, y contando hacia atrás desde 4000 no le dice nada a nadie. */}
         {restantes < 200 && (
-          <div className="pm-label mt-1 !text-[10px]">{restantes}</div>
+          <p className="dlg-nota dlg-contador">{restantes}</p>
         )}
 
         {/* El correo solo se pide a quien no tiene cuenta: del registrado ya lo
@@ -152,16 +138,12 @@ export default function ContactoModal({ open, onClose, user }) {
             onChange={(e) => { setEmail(e.target.value); setError(""); }}
             maxLength={254}
             placeholder={t("contacto.emailPlaceholder")}
-            className="
-              mt-3 h-11 w-full rounded-none border-b border-tinta-2/40
-              bg-transparent px-2 font-body text-sm text-tinta outline-none
-              placeholder:text-tinta-2/50 focus:border-rojo
-            "
+            className="dlg-input"
           />
         )}
 
         {error && (
-          <p id="contacto-error" role="alert" className="pm-body mt-3 text-sm text-rojo">
+          <p id="contacto-error" role="alert" className="dlg-error">
             {error}
           </p>
         )}
@@ -169,7 +151,7 @@ export default function ContactoModal({ open, onClose, user }) {
         <button
           type="submit"
           disabled={enviando || !cuerpo.trim()}
-          className="pm-btn mt-5 w-full"
+          className="pm-btn"
         >
           {enviando ? t("contacto.enviando") : t("contacto.enviar")}
         </button>

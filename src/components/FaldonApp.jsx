@@ -101,11 +101,11 @@ export default function FaldonApp({ user = null, streak = 0, onOpenLogin }) {
   }
 
   return (
-    <div className="pm-aviso mb-4 border border-tinta p-4 text-left">
-      <p className="pm-kicker">
+    <section className="oferta">
+      <h3 className="oferta-titulo">
         {pideCuenta ? t("app.promoAccountTitle") : t("app.promoTitle")}
-      </p>
-      <p className="pm-body mt-2 text-sm">
+      </h3>
+      <p className="oferta-texto">
         {pideCuenta
           ? // Con racha, se la nombramos: «tu racha de 9 días» pesa lo que no
             // pesa «tu progreso», porque habla de algo concreto que YA tiene.
@@ -116,22 +116,17 @@ export default function FaldonApp({ user = null, streak = 0, onOpenLogin }) {
             : t("app.promoAccountBodyPlain")
           : t("app.promoBody")}
       </p>
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={pideCuenta ? crearCuenta : irAPlay}
-          className="pm-btn flex-1 !py-2.5 !text-xs"
-        >
+      {/* El «no» es un renglón y no un segundo botón: dos botones del mismo
+          tamaño piden una decisión a ciegas; uno grande y un «ahora no» al
+          lado dicen cuál es la propuesta y dejan la salida a mano. */}
+      <div className="oferta-botones">
+        <button type="button" onClick={pideCuenta ? crearCuenta : irAPlay} className="pm-btn">
           {pideCuenta ? t("app.promoAccountCta") : t("app.promoCta")}
         </button>
-        <button
-          type="button"
-          onClick={descartar}
-          className="pm-btn pm-btn--ghost !w-auto !py-2.5 !text-xs"
-        >
+        <button type="button" onClick={descartar} className="oferta-no">
           {pideCuenta ? t("app.promoAccountDecline") : t("app.promoDecline")}
         </button>
       </div>
-    </div>
+    </section>
   );
 }

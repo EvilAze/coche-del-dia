@@ -5923,3 +5923,22 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .interruptor.on { background: var(--verde); }
 .interruptor.on > span { transform: translateX(20px); }
 .interruptor:disabled { opacity: .5; cursor: default; }
+
+/* LAS OFERTAS del final de partida (avisos, edición Android, crear cuenta):
+   una tarjeta más del panel, con la pregunta en titular, el «sí» como botón
+   y el «ahora no» como renglón al lado. */
+.oferta {
+  display: flex; flex-direction: column; gap: 8px; padding: 16px;
+  border-radius: 18px; background: var(--surface); border: 1px solid var(--line);
+}
+.oferta-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.1; color: var(--cdd-text); }
+.oferta-texto { margin: 0; font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-muted); }
+.oferta-botones { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+.oferta-botones .pm-btn { flex: 1 1 auto; width: auto; }
+.oferta-no {
+  flex: none; padding: 10px 4px; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
+}
+@media (hover: hover) {
+  .oferta-no:hover { color: var(--cdd-text); }
+}

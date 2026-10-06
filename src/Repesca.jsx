@@ -48,6 +48,7 @@ import { track, plataforma } from "./lib/analytics";
 import { captureClientError } from "./lib/sentry";
 import { haptic } from "./lib/haptics";
 import { cssZoomLevels, ZOOM_ATTEMPTS, DEFAULT_ZOOM_BASE } from "./lib/zoom.js";
+import { zoomRepesca } from "./lib/zoomRepesca";
 
 const MAX_ATTEMPTS = 5;
 const MAX_ATTEMPTS_VETERAN = 1;
@@ -336,14 +337,11 @@ export default function Repesca() {
   // Scales CSS por intento derivados del zoom_base del coche (mismo sistema que
   // el juego diario). El último vale 1.0 (ya se ve todo el crop servido).
   const zoomLevels = cssZoomLevels(zoomBase);
-  // En Veterano no hay pistas progresivas: zoom fijo en el nivel menos cerrado
-  // (el del último intento = scale 1.0). En normal, sigue el patrón habitual.
-  const zoom =
-    phase === "playing"
-      ? isVeteran
-        ? zoomLevels[zoomLevels.length - 1]
-        : zoomLevels[zoomIndex]
-      : 1.0;
+  // La escala de cada fase (lib/zoomRepesca.js). En Veterano no hay pistas
+  // progresivas: zoom fijo en el nivel menos cerrado (el del último intento =
+  // scale 1.0). Y mientras CARGA, ya la del intento 1: arrancar en 1.0 hacía
+  // un zoom-in al confirmarse la partida que dejaba ver el coche un instante.
+  const zoom = zoomRepesca({ phase, veterano: isVeteran, intentos: zoomIndex, niveles: zoomLevels });
   // En Veterano no hay pistas progresivas: hintIndex null → ZoomStage no pinta
   // el contador "PISTA n de m" (coherente con el badge "1 intento, sin pistas").
   const hintIndex = phase === "playing" && !isVeteran ? zoomIndex : null;

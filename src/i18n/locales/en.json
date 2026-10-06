@@ -608,7 +608,27 @@
     "rarity_soldout": "Sold out",
     "rarityBody": "{pct} % of {collectors} collectors have it",
     "sortRarity": "Rarity",
-    "flipHint": "Swipe to turn it over"
+    "flipHint": "Swipe to turn it over",
+    "deCatalogo": {
+      "one": "of {count} cover",
+      "other": "of {count} covers"
+    },
+    "rango": "{tier} collector",
+    "pendientes": {
+      "one": "{count} missing",
+      "other": "{count} missing"
+    },
+    "repescaDisponible": "Rescue available",
+    "repescaACurso": "You have a rescue in progress",
+    "repescaJugada": "Today's rescue, played",
+    "repescaAlDia": "Archive up to date",
+    "repescaResumen": "{pendientes} · half points, streak untouched",
+    "repescaManana": "{pendientes} · come back tomorrow for another",
+    "holeSub": "Win it back in a rescue",
+    "reglaUnaAlDia": "One a day",
+    "reglaMitad": "Half points",
+    "reglaRacha": "Your streak stays safe",
+    "ahoraNo": "Not now"
   },
   "primera": {
     "titulo1": "Almost nobody gets it on the first try.",

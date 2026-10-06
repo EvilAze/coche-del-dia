@@ -90,4 +90,8 @@ export const I = {
   // «Cómo se puntúa»: el interrogante dentro de su círculo, para cuando va
   // suelto en una cabecera y no dentro de una tecla que ya le pone la caja.
   ayuda: ["M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Z", "M9.7 9.4a2.4 2.4 0 0 1 4.6.9c0 1.6-2.3 2.1-2.3 3.6", "M12 16.9h.01"],
+  // El calendario de «una al día» y el escudo de «tu racha no se toca»: las
+  // reglas de la repesca, con el mismo trazo que el resto del juego.
+  calendario: ["M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z", "M4 9.5h16M8 3v4M16 3v4"],
+  escudo: ["M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z", "M9 12l2 2 4-4.2"],
 };

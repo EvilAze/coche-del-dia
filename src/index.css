@@ -4938,3 +4938,353 @@ button.clas-fila { cursor: pointer; transition: background-color var(--ms-roce) 
 .clas-palmares { display: flex; flex-direction: column; gap: 12px; }
 .clas-palmares .clas-periodo { margin-bottom: 0; padding-bottom: 6px; }
 .clas-palmares .clas-lista { margin-top: -2px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL ARCHIVO «ASFALTO» (Garage, clases arch-*)
+   -----------------------------------------------------------------------
+   De arriba abajo: el nombre de la sección, la tarjeta de tu colección, la
+   de la repesca (ámbar cuando se puede jugar), el filtro por país y la
+   vitrina — la última portada en grande con su foto y el resto en fichas con
+   el logotipo de la marca. Los huecos de la página de un país, rayados y con
+   el canto en discontinua. Todo sobre el suelo de la app (`--bg`) y en
+   tarjetas con canto, como el resto de secciones.
+   ═══════════════════════════════════════════════════════════════════════ */
+.arch-panel { background: var(--bg); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+.arch-cab {
+  flex: none; display: flex; align-items: center; gap: 2px;
+  padding-left: 16px; padding-right: 6px; padding-bottom: 6px; min-height: 52px;
+}
+.arch-orden {
+  flex: none; height: 44px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
+  border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
+  transition: color var(--ms-roce) var(--curva-roce);
+}
+@media (hover: hover) {
+  .arch-orden:hover { color: var(--cdd-text); }
+}
+
+/* Tu colección: la cifra en grande, la barra del catálogo y el rango. */
+.arch-resumen {
+  display: flex; flex-direction: column; gap: 12px; margin: 0 16px 12px; padding: 16px;
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-color: transparent; }
+.arch-resumen-cifra { margin: 0; display: flex; align-items: baseline; gap: 8px; }
+.arch-resumen-cifra b {
+  font-family: var(--font-display); font-weight: 700; font-size: 52px; line-height: .9;
+  color: var(--cdd-text); font-variant-numeric: tabular-nums;
+}
+.arch-resumen-cifra span { font-family: var(--font-body); font-weight: 500; font-size: 15px; color: var(--cdd-muted); }
+.arch-barra { display: block; height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; }
+.arch-barra > i {
+  display: block; height: 100%; border-radius: 3px; background: var(--cdd-text);
+  transition: width var(--ms-escena) var(--curva-entra);
+}
+.arch-resumen-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.arch-rango { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-body); font-weight: 600; color: var(--cdd-text); }
+.arch-siguiente { font-family: var(--font-body); color: var(--cdd-muted); text-align: right; }
+.arch-medalla { flex: none; }
+.arch-medalla.tier-gold, .arch-rango.tier-gold { color: var(--gold); }
+.arch-medalla.tier-silver, .arch-rango.tier-silver { color: var(--plata); }
+.arch-medalla.tier-bronze, .arch-rango.tier-bronze { color: var(--bronce); }
+
+/* La repesca. Neutra por defecto; ÁMBAR solo cuando se puede jugar. */
+.arch-repesca {
+  display: flex; align-items: center; gap: 14px; margin: 0 16px; padding: 14px 14px 14px 16px;
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+.arch-repesca.activa { background: rgb(var(--ambar-rgb) / .07); border-color: rgb(var(--ambar-rgb) / .35); }
+.arch-repesca-icono {
+  flex: none; width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-muted);
+}
+.arch-repesca.activa .arch-repesca-icono { background: rgb(var(--ambar-rgb) / .16); color: var(--ambar); }
+.arch-repesca-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.arch-repesca-texto b { font-family: var(--font-body); font-weight: 700; font-size: 16px; color: var(--cdd-text); }
+.arch-repesca-texto > span { font-family: var(--font-body); font-size: 13px; line-height: 1.35; color: var(--cdd-muted); }
+.arch-repesca-ayuda {
+  margin-top: 2px; padding: 0; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 12.5px; color: var(--cdd-muted);
+  text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--line-strong);
+}
+@media (hover: hover) {
+  .arch-repesca-ayuda:hover { color: var(--cdd-text); }
+}
+.arch-repesca-boton {
+  flex: none; height: 40px; padding: 0 14px; border: 0; border-radius: 10px; cursor: pointer;
+  background: var(--ambar); color: rgb(var(--velo-rgb));
+  font-family: var(--font-body); font-weight: 700; font-size: 14px;
+  transition: transform var(--ms-pulso) var(--curva-roce), opacity var(--ms-roce) var(--curva-roce);
+}
+.arch-repesca-boton:active { transform: translateY(1px); }
+.arch-repesca-boton:disabled { opacity: .6; cursor: default; }
+
+/* El filtro por país: chips con bandera, la tira se pega arriba al bajar. */
+.arch-filtros { position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 14px 0 10px; }
+.arch-tira { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px; scrollbar-width: none; }
+.arch-tira::-webkit-scrollbar { display: none; }
+.arch-chip {
+  flex: none; height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px;
+  border: 0; border-radius: 10px; background: var(--surface2); cursor: pointer; white-space: nowrap;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text);
+  transition: background-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
+}
+.arch-chip:active { transform: translateY(1px); }
+.arch-chip.on { background: var(--cdd-text); color: var(--bg); font-weight: 700; }
+.arch-chip .cifra { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--cdd-muted); }
+.arch-chip.on .cifra { color: inherit; opacity: .6; }
+.arch-chip .bandera { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+
+/* La vitrina. */
+.arch-vitrina { display: flex; flex-direction: column; gap: 10px; padding: 4px 16px 20px; }
+.arch-rejilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 560px) {
+  .arch-rejilla { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* La portada destacada: la foto y, debajo, quién es. */
+.arch-destacada {
+  display: flex; flex-direction: column; overflow: hidden; padding: 0; text-align: left; cursor: pointer;
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+  color: inherit; font: inherit;
+  transition: border-color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
+}
+.arch-destacada:active, .arch-ficha:active, .arch-hueco:active { transform: translateY(1px); }
+.arch-destacada-foto { position: relative; display: block; height: 168px; background: var(--surface2); }
+.arch-destacada-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; }
+.arch-chip-foto {
+  position: absolute; top: 10px; height: 24px; padding: 0 8px; display: inline-flex; align-items: center;
+  border-radius: var(--radio-sello); font-family: var(--font-mono); font-weight: 600; font-size: 11.5px;
+}
+.arch-chip-foto.num { right: 10px; background: rgb(var(--velo-rgb) / .78); color: rgb(242 240 235); }
+.arch-chip-foto.nueva {
+  left: 10px; background: var(--rojo); color: rgb(255 255 255);
+  font-family: var(--font-body); font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+}
+.arch-destacada-pie { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding: 12px 14px 14px; }
+.arch-destacada-datos { flex: none; display: inline-flex; align-items: center; gap: 8px; }
+.arch-destacada-datos .bandera { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+
+/* Las fichas: logotipo y número arriba, marca, modelo y año abajo. */
+.arch-ficha, .arch-hueco {
+  min-height: 168px; box-sizing: border-box; padding: 12px; width: 100%;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+  border-radius: var(--radio-tarjeta); text-align: left; color: inherit; font: inherit;
+}
+.arch-ficha {
+  cursor: pointer; background: var(--surface); border: 1px solid var(--line);
+  transition: border-color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
+}
+div.arch-ficha { cursor: default; }
+@media (hover: hover) {
+  button.arch-ficha:hover, .arch-destacada:hover { border-color: var(--line-strong); }
+}
+.arch-ficha-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.arch-ficha-num {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted);
+}
+.arch-nuevo {
+  height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border-radius: 5px;
+  background: var(--rojo); color: rgb(255 255 255);
+  font-family: var(--font-body); font-weight: 700; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
+}
+.arch-ficha-nombre { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.arch-marca {
+  margin: 0; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--cdd-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.arch-modelo {
+  font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.05; color: var(--cdd-text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.arch-modelo.grande { font-size: 23px; line-height: 1; }
+.arch-ficha-pie { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-top: 6px; }
+.arch-anio { font-family: var(--font-mono); font-size: 12.5px; color: var(--cdd-muted); }
+.arch-distintivos { display: inline-flex; gap: 4px; min-width: 0; }
+.arch-distintivo {
+  flex: none; height: 22px; padding: 0 7px; display: inline-flex; align-items: center; gap: 4px;
+  border-radius: var(--radio-sello); font-family: var(--font-body); font-weight: 700; font-size: 11.5px;
+  background: rgb(var(--gold-rgb) / .14); color: var(--gold);
+}
+.arch-distintivo.repesca { background: rgb(var(--ambar-rgb) / .13); color: var(--ambar); }
+
+/* El logotipo, sobre su azulejo blanco (los PNG se dibujaron para fondo claro). */
+.arch-logo {
+  flex: none; width: 32px; height: 32px; border-radius: 9px; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgb(255 255 255); color: rgb(19 20 22);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.arch-logo img { width: 24px; height: 24px; object-fit: contain; }
+.arch-logo b { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.arch-logo.pequeno { width: 26px; height: 26px; border-radius: 7px; }
+.arch-logo.pequeno img { width: 19px; height: 19px; }
+.arch-logo.apagado img { opacity: .4; filter: grayscale(1); }
+.arch-logo.cerrado { background: var(--surface2); color: var(--cdd-muted); box-shadow: none; }
+.arch-logo.grande { width: 56px; height: 56px; border-radius: 16px; }
+span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
+
+/* El hueco: rayado, canto en discontinua, sin número. */
+.arch-hueco {
+  position: static; align-items: stretch; cursor: pointer;
+  border: 1px dashed var(--line-strong);
+  background-color: var(--bg);
+  background-image: repeating-linear-gradient(135deg, transparent 0 9px, rgb(var(--tinta-rgb) / .035) 9px 18px);
+}
+@media (hover: hover) {
+  .arch-hueco:hover { border-color: var(--cdd-muted); }
+}
+.arch-hueco .arch-modelo { font-weight: 600; font-size: 20px; color: var(--cdd-muted); }
+.arch-hueco-sub { font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted); }
+
+/* La página de un país. */
+.arch-pais {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+.arch-pais-cab { display: flex; align-items: center; gap: 10px; }
+.arch-pais-cab .bandera { flex: none; width: 27px; height: 18px; border-radius: 3px; object-fit: cover; }
+.arch-pais-cab h3 {
+  flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1; color: var(--cdd-text);
+}
+.arch-pais-cab .cifra, .arch-marca-cab .cifra {
+  flex: none; font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted); font-variant-numeric: tabular-nums;
+}
+.arch-marca-seccion { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.arch-marca-cab { display: flex; align-items: center; gap: 10px; }
+.arch-marca-cab .nombre {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-body); font-weight: 700; font-size: 16px; color: var(--cdd-text);
+}
+
+/* El set completo: la única tarjeta en oro. */
+.arch-especial {
+  flex-direction: row; align-items: center; justify-content: flex-start; gap: 14px;
+  min-height: 0; margin-top: 10px; padding: 16px; text-align: left;
+  border: 1px solid rgb(var(--gold-rgb) / .45); border-radius: var(--radio-tarjeta);
+  background: rgb(var(--gold-rgb) / .08);
+}
+.arch-especial-icono {
+  flex: none; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--gold-rgb) / .16); color: var(--gold);
+}
+.arch-especial-icono svg { fill: currentColor; }
+.arch-especial-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.arch-especial .kicker { font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .1em; }
+.arch-especial .titulo { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.05; }
+.arch-especial .sub { font-family: var(--font-body); font-size: 13px; }
+
+/* Vacío, muro de entrada y fallo: una tarjeta centrada. */
+.arch-mensaje {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 24px 16px; text-align: center;
+}
+.arch-mensaje > p { margin: 0; font-family: var(--font-body); font-size: 15px; color: var(--cdd-muted); }
+.arch-mensaje > p.rojo { color: var(--rojo); font-weight: 600; }
+.arch-mensaje .pm-btn { width: auto; padding-left: 24px; padding-right: 24px; }
+.arch-muro, .arch-vacio {
+  width: 100%; max-width: 360px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 24px 20px; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+.arch-vacio { max-width: none; margin-top: 6px; }
+.arch-muro .pm-btn { width: 100%; margin-top: 8px; }
+.arch-vacio-titulo { margin: 4px 0 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--cdd-text); }
+.arch-vacio-texto { margin: 0; max-width: 36ch; font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-muted); }
+
+/* EL DETALLE: la portada que se voltea. */
+.arch-detalle { display: flex; flex-direction: column; padding: 0 16px 16px; }
+.arch-detalle-foto {
+  position: relative; aspect-ratio: 4 / 3; overflow: hidden;
+  border-radius: var(--radio-foto); background: var(--surface2);
+}
+.arch-detalle-foto > img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.arch-detalle-sellos { position: absolute; left: 10px; top: 10px; display: flex; gap: 4px; }
+.arch-detalle-sellos .arch-distintivo { background: rgb(var(--velo-rgb) / .78); }
+.arch-detalle-velo {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  background: rgb(var(--bg-rgb) / .62); color: var(--cdd-text);
+}
+.arch-detalle-velo p {
+  margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+}
+.arch-detalle > .arch-marca { margin-top: 16px; }
+.arch-detalle-modelo {
+  margin: 4px 0 0; font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; color: var(--cdd-text);
+}
+.arch-detalle-chapas { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.arch-detalle-texto { margin: 6px 0 0; font-family: var(--font-body); font-size: 15px; line-height: 1.5; color: var(--cdd-text); }
+.arch-detalle > .pm-btn { margin-top: 18px; }
+.arch-pista {
+  margin: 8px 0 0; text-align: center; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--cdd-muted);
+}
+.arch-dorso-cab {
+  display: flex; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.arch-dorso-cab .num { flex: none; color: var(--cdd-text); font-weight: 600; }
+.arch-etiqueta {
+  margin: 16px 0 0; font-family: var(--font-mono); font-weight: 600; font-size: 10.5px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.arch-tirada { margin-top: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radio-boton); background: var(--surface2); }
+.arch-tirada .arch-etiqueta { margin-top: 0; }
+.arch-tirada .etiqueta { margin: 4px 0 0; font-weight: 700; font-size: 19px; }
+.arch-tirada .apoyo { margin: 2px 0 0; font-size: 11.5px; }
+.arch-tirada.t-soldout { border-color: rgb(var(--gold-rgb) / .45); background: rgb(var(--gold-rgb) / .08); }
+.arch-datos { margin-top: 4px; }
+.arch-dato { padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+.arch-dato .k { font-family: var(--font-body); font-weight: 500; font-size: 14px; letter-spacing: 0; text-transform: none; }
+.arch-dato .v { font-size: 13.5px; font-weight: 600; }
+
+/* Los diálogos del archivo (¿sortear?, cómo funciona la repesca). */
+.arch-dialogo { display: flex; flex-direction: column; gap: 14px; padding: 24px 22px 14px; text-align: left; }
+.arch-dialogo-fila { display: flex; align-items: flex-start; justify-content: space-between; margin: -8px -14px 0 0; }
+.arch-dialogo-fila .arch-dialogo-icono { margin-top: 8px; }
+.arch-dialogo-icono {
+  flex: none; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--ambar-rgb) / .15); color: var(--ambar);
+}
+.arch-dialogo-cab { display: flex; flex-direction: column; gap: 6px; }
+.arch-kicker {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.arch-kicker.ambar { color: var(--ambar); }
+.arch-dialogo-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; color: var(--cdd-text); }
+.arch-dialogo-texto { margin: 0; font-family: var(--font-body); font-size: 15.5px; line-height: 1.5; color: var(--cdd-muted); }
+.arch-reglas {
+  margin: 0; padding: 4px 0; list-style: none; display: flex; flex-direction: column; gap: 10px;
+  font-family: var(--font-body); font-weight: 600; font-size: 14.5px; color: var(--cdd-text);
+}
+.arch-reglas li { display: flex; align-items: center; gap: 10px; }
+.arch-reglas svg { flex: none; color: var(--cdd-muted); }
+.medio {
+  flex: none; width: 18px; text-align: center;
+  font-family: var(--font-mono); font-weight: 600; font-size: 13px; color: var(--cdd-muted);
+}
+.pm-btn.arch-boton-ambar { background: var(--ambar); color: rgb(var(--velo-rgb)); }
+@media (hover: hover) {
+  .pm-btn.arch-boton-ambar:hover:not(:disabled) { background: rgb(var(--ambar-rgb) / .88); }
+}
+.arch-ahora-no {
+  height: 44px; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 14.5px; color: var(--cdd-muted);
+}
+.arch-ahora-no:disabled { opacity: .5; cursor: default; }
+.arch-ayuda-lista { display: flex; flex-direction: column; gap: 8px; }
+.arch-ayuda-fila {
+  display: flex; gap: 12px; padding: 12px; border-radius: var(--radio-boton);
+  background: var(--surface2);
+}
+.arch-ayuda-icono {
+  flex: none; width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--ambar-rgb) / .15); color: var(--ambar);
+}
+.arch-ayuda-icono .medio { color: var(--ambar); }
+.arch-ayuda-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.arch-ayuda-texto b { font-family: var(--font-body); font-weight: 700; font-size: 14.5px; color: var(--cdd-text); }
+.arch-ayuda-texto span { font-family: var(--font-body); font-size: 13.5px; line-height: 1.45; color: var(--cdd-muted); }
+.arch-dialogo > .pm-btn { margin-top: 4px; }

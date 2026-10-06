@@ -34,25 +34,25 @@ export function Renglon({ w = "w-full", h = "h-3", className = "" }) {
   );
 }
 
-// La vitrina del archivo antes de que llegue: la portada es el objeto, así que
-// el esqueleto es la portada SIN imprimir — su filete, su cabecera de kiosco, su
-// hueco de foto en 4:3 y su pie. La rejilla es la de `Showcase`.
+// La vitrina del archivo antes de que llegue: la tarjeta de la colección, la
+// de la repesca y las fichas de la rejilla, con las MISMAS cajas que
+// Showcase (ver .arch-ficha), para que al llegar no se mueva nada.
 export function PortadasArchivo({ n = 6, texto }) {
   return (
-    <div role="status" aria-label={texto} className="px-4 pb-4 pt-3">
+    <div role="status" aria-label={texto} className="arch-vitrina">
       <span className="sr-only">{texto}</span>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+      <div className="arch-resumen pm-esperando" aria-hidden="true" />
+      <div className="arch-rejilla">
         {Array.from({ length: n }, (_, i) => (
-          <div key={i} className="border border-border-strong" aria-hidden="true">
-            <div className="flex items-center justify-between gap-1.5 border-b border-border px-1.5 py-1">
+          <div key={i} className="arch-ficha" aria-hidden="true">
+            <span className="arch-ficha-cab">
+              <span className="arch-logo pm-esperando" />
+              <Renglon w="w-8" h="h-2.5" />
+            </span>
+            <span className="arch-ficha-nombre">
               <Renglon w="w-12" h="h-2" />
-              <Renglon w="w-5" h="h-2" />
-            </div>
-            <div className="pm-esperando aspect-[4/3] w-full" />
-            <div className="flex flex-col gap-1 border-t border-border px-1.5 py-1.5">
-              <Renglon w="w-10" h="h-2" />
-              <Renglon w="w-16" h="h-2.5" />
-            </div>
+              <Renglon w={["w-24", "w-16", "w-20"][i % 3]} h="h-4" />
+            </span>
           </div>
         ))}
       </div>

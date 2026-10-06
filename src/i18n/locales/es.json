@@ -608,7 +608,27 @@
     "rarity_soldout": "Número agotado",
     "rarityBody": "La tienen el {pct} % de {collectors} coleccionistas",
     "sortRarity": "Rareza",
-    "flipHint": "Desliza para darle la vuelta"
+    "flipHint": "Desliza para darle la vuelta",
+    "deCatalogo": {
+      "one": "de {count} portada",
+      "other": "de {count} portadas"
+    },
+    "rango": "Coleccionista {tier}",
+    "pendientes": {
+      "one": "{count} pendiente",
+      "other": "{count} pendientes"
+    },
+    "repescaDisponible": "Repesca disponible",
+    "repescaACurso": "Tienes una repesca a medias",
+    "repescaJugada": "Repesca de hoy, jugada",
+    "repescaAlDia": "Archivo al día",
+    "repescaResumen": "{pendientes} · mitad de puntos, sin tocar tu racha",
+    "repescaManana": "{pendientes} · vuelve mañana a por otra",
+    "holeSub": "Recupérala en la repesca",
+    "reglaUnaAlDia": "Una al día",
+    "reglaMitad": "Mitad de puntos",
+    "reglaRacha": "Tu racha no se toca",
+    "ahoraNo": "Ahora no"
   },
   "primera": {
     "titulo1": "Casi nadie lo acierta a la primera.",

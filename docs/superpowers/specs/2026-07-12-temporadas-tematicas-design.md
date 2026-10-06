@@ -25,9 +25,12 @@ temporada es lo mismo con límites arbitrarios (`starts_at`/`ends_at`) en vez de
 mes natural. Lo que ya existe y se reutiliza casi tal cual:
 
 - `get_monthly_leaderboard(p_month, p_limit)` — deriva puntos base del periodo
-  desde `user_guesses` (10/6/4/3/2/1 por intento; repesca a la mitad; sin bonus
-  de racha, para que sea limpio y alcanzable). Solo cambia el `WHERE` de "mes" a
-  "rango de la temporada". Ver `scripts/supabase-monthly-ranking.sql`.
+  desde `user_guesses` (10/6/4/3/2/1 por intento; repesca a la mitad). Solo
+  cambia el `WHERE` de "mes" a "rango de la temporada". Ver
+  `scripts/supabase-monthly-ranking.sql`. *(Nació sin bonus de racha, «para que
+  sea limpio y alcanzable»; se revirtió en octubre de 2026 porque el perfil lo
+  sumaba y la ayuda de puntuación lo promete: ver
+  `scripts/2026-10-bonus-racha-en-clasificacion.sql`.)*
 - `monthly_podium` + `compute_monthly_podium` + `snapshot_previous_month_podium`
   — snapshot congelado del top-3 de cada periodo cerrado, con umbral anti-periodo
   vacío (5 jugadores). Se clona a `season_podium`.

@@ -23,6 +23,15 @@ import { useFitText } from "../../hooks/useFitText";
 // 110 —y su relación con el retardo de la foto en CarImage— está allí.
 import { PASO_VEREDICTO_MS as STAGGER_MS } from "../../lib/veredicto";
 
+// Las notas de las celdas van en caja de frase («Más antiguo», «Mismo país»):
+// las cadenas de i18n están en versalitas porque así se pintaban en la prensa,
+// y en una celda estrecha las mayúsculas no caben. Se respeta el idioma.
+function enFrase(texto, locale) {
+  if (!texto) return texto;
+  const bajo = texto.toLocaleLowerCase(locale);
+  return bajo.charAt(0).toLocaleUpperCase(locale) + bajo.slice(1);
+}
+
 function Dato({ estado, pending, value, apostilla, nota, tipo, hint, srStatus, fresh, delay, fitKey }) {
   // Auto-ajuste del nombre a una línea: el wrapper bloque da el ancho de la
   // celda al hook; la .palabra inline mantiene el subrayado/tachado AL ANCHO
@@ -59,7 +68,7 @@ function Dato({ estado, pending, value, apostilla, nota, tipo, hint, srStatus, f
 // Exportada: el Configurator la reusa para la "fila viva" del último intento.
 // `num` es el ordinal 1-based del intento (para el 01… de la izquierda).
 export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const d = (i) => (fresh ? i * STAGGER_MS + "ms" : undefined);
   const numLabel = num ? String(num).padStart(2, "0") : "";
 
@@ -81,7 +90,7 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
     mSt === "partial" ? (
       <span className="prensa-apostilla">
         {g.marca?.pais && <img className="bandera" src={flagImagePath(g.marca.pais)} alt="" draggable={false} />}
-        {t("cdd.sameCountry")}
+        {enFrase(t("cdd.sameCountry"), locale)}
       </span>
     ) : null;
   // Sin sr-only cuando la apostilla ya es texto visible (el lector la lee).
@@ -116,7 +125,7 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
       );
     }
     anioSr = dir ? t(dir === "up" ? "cdd.yearNewer" : "cdd.yearOlder") : t("cdd.srWrong");
-    anioNota = dir ? anioSr : t("cdd.notaMal");
+    anioNota = dir ? enFrase(anioSr, locale) : t("cdd.notaMal");
   }
 
   return (

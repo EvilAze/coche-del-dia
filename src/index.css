@@ -3936,7 +3936,7 @@ body,
    fase 1 quedan muchos en las pantallas de la fase 2) se dibujaría como una
    oblicua SINTÉTICA, la versión torcida a máquina de la redonda, que es lo
    peor que se le puede hacer a una tipografía. */
-html *, html *::before, html *::after { font-style: normal !important; }
+html *, html *::before, html *::after, html *::placeholder { font-style: normal !important; }
 
 /* ── LA CABECERA ──────────────────────────────────────────────────────────── */
 .prensa-topbar {
@@ -3969,7 +3969,7 @@ html *, html *::before, html *::after { font-style: normal !important; }
   flex: none; width: 30px;
 }
 .prensa-marca .coche {
-  display: block; height: 13px; background: var(--cdd-text);
+  display: block; height: 11px; background: var(--cdd-text);
   -webkit-mask: url(/marca-coche.png) center / contain no-repeat;
   mask: url(/marca-coche.png) center / contain no-repeat;
 }
@@ -3978,7 +3978,7 @@ html *, html *::before, html *::after { font-style: normal !important; }
   border-top: 2px solid var(--rojo); border-bottom: 1px solid var(--rojo);
 }
 .prensa-marca--grande { width: 1.3em; gap: .07em; }
-.prensa-marca--grande .coche { height: .56em; }
+.prensa-marca--grande .coche { height: .45em; }
 .prensa-marca--grande::after { height: .17em; border-top-width: .085em; border-bottom-width: .045em; }
 
 /* La cornisa de la app: el nombre en la voz de los titulares y la fecha en la
@@ -3992,7 +3992,34 @@ html *, html *::before, html *::after { font-style: normal !important; }
   font-family: var(--font-mono); font-weight: 400; font-size: 10.5px;
   letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted); line-height: 1;
 }
-.prensa-topbar .prensa-clasif .pos { font-family: var(--font-display); font-weight: 700; }
+/* La barra, en una fila: identidad a la izquierda, acciones a la derecha. */
+.prensa-topbar { padding: 10px 0; }
+.prensa-topbar > span.prensa-identidad { gap: 9px; min-width: 0; }
+.prensa-topbar > span.prensa-acciones { gap: 6px; flex: none; }
+/* Racha y clasificación son FICHAS de 34px, el mismo alto que la tecla del
+   sumario: la barra no engorda. */
+.prensa-racha {
+  display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px 0 8px;
+  border-radius: var(--radio-boton); background: rgb(var(--gold-rgb) / .14); color: var(--gold);
+  font-family: var(--font-mono); font-weight: 600; font-size: 14px; letter-spacing: 0;
+}
+.prensa-racha svg { fill: currentColor; }
+.prensa-topbar > span > .prensa-clasif {
+  height: 34px; padding: 0 10px; margin: 0; gap: 6px;
+  border-radius: var(--radio-boton); background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
+}
+.prensa-topbar .prensa-clasif .lad { display: none; }
+.prensa-topbar .prensa-clasif .pos {
+  font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1; color: var(--gold);
+}
+.prensa-topbar .prensa-clasif .pos--invita {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .06em; color: var(--cdd-text);
+}
+/* El subtítulo de la web: qué es esto, en una frase (ver Header.jsx). */
+.prensa-lema {
+  margin: 2px 0 14px; font-family: var(--font-body); font-weight: 500; font-size: 14px;
+  line-height: 1.4; color: var(--cdd-muted);
+}
 
 /* La cabecera de la web: el nombre con su marca, sin filetes dobles. */
 .prensa-masthead .titulo {
@@ -4012,9 +4039,13 @@ html *, html *::before, html *::after { font-style: normal !important; }
   :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton {
     background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
   }
-  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .lad {
-    font-family: var(--font-mono); font-weight: 600; font-size: 9.5px; letter-spacing: .06em;
+  /* La ficha de la clasificación en la app era una etiqueta apilada sobre la
+     cifra; aquí vuelve a ser una fila (trofeo + puesto), como en la web. */
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif {
+    flex-direction: row; align-items: center; gap: 6px;
   }
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos { font-size: 17px; }
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos--invita { font-size: 11px; }
 }
 
 /* ── LOS TITULARES DE SECCIÓN ──────────────────────────────────────────────
@@ -4131,37 +4162,66 @@ html *, html *::before, html *::after { font-style: normal !important; }
 .prensa-tablero { border-top: 0; }
 .prensa-fila-hueco { min-height: 0; padding: 3px 0; }
 .prensa-fila-hueco .num { align-self: center; }
+/* Los cinco intentos ya los cuenta el medidor de la pregunta, así que el
+   tablero deja de dibujar renglones vacíos: solo quedan los que llevan algo
+   que explicar (las pistas de la primera partida, ver Configurator). */
+.prensa-fila-hueco:has(.hueco:empty) { display: none; }
 .prensa-fila-hueco .hueco {
-  display: flex; align-items: center; min-height: 34px; padding: 0 12px;
-  border: 1px dashed var(--line-strong); border-radius: var(--radio-celda);
-  font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted);
+  display: flex; align-items: center; min-height: 30px; padding: 0 2px;
+  font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted);
 }
 .prensa-nota { border-bottom: 0; padding: 8px 2px 10px; }
 .prensa-nota .titulo { font-family: var(--font-body); font-weight: 600; font-size: 14px; }
 
-/* ── EL CUPÓN ──────────────────────────────────────────────────────────────
-   App: los tres renglones agrupados en UNA tarjeta, separados por su filete
-   (GuessForm los envuelve en `.prensa-renglones`). Al tocar, el renglón se
-   ilumina — ya no se tiñe de rojo el filete, que en Asfalto significaría
-   «gastado». Resuelto: superficie verde y su ✓, sin chevrón. */
+/* ── EL CUPÓN: TRES CASILLAS EN FILA ───────────────────────────────────────
+   Marca, modelo y año como un solo control de tres partes, igual en las dos
+   plataformas. Las columnas no son iguales: el modelo es el nombre más largo
+   y el año, cuatro cifras.
+
+   App (`.prensa-renglones`): cada renglón es una casilla con su etiqueta
+   arriba, el valor en medio y la nota (la horquilla del año, «resuelta»)
+   debajo. La `.cabeza` que en el renglón apilaba etiqueta y nota se disuelve
+   (display: contents) para poder ordenarlas alrededor del valor. Los filetes
+   entre casillas son el `gap` sobre el fondo de la tarjeta, así que se dibujan
+   solos. Al tocar, la casilla se ilumina — no se tiñe de rojo, que en Asfalto
+   significaría «gastado». Resuelta: superficie verde y su ✓, sin chevrón.
+   Mide una casilla de alto (~72px) en vez de tres renglones (~160): ese alto
+   se lo queda el historial, que en la app es la banda elástica. */
 .prensa-renglones {
-  display: flex; flex-direction: column; overflow: hidden;
-  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, .85fr); gap: 1px;
+  overflow: hidden; border-radius: var(--radio-tarjeta);
+  background: var(--line); border: 1px solid var(--line);
 }
-.prensa-renglon {
-  min-height: 54px; padding: 8px 14px; border-radius: 0;
-  border-bottom: 1px solid var(--line);
+.prensa-renglones > .prensa-renglon {
+  min-height: 72px; padding: 10px 11px 9px; gap: 3px; justify-content: flex-start;
+  border: 0; border-radius: 0; background: var(--surface);
   transition: background-color var(--ms-roce) var(--curva-roce);
 }
-.prensa-renglones > .prensa-renglon:last-child { border-bottom: 0; }
-.prensa-renglon:active:not(:disabled) { border-bottom-color: var(--line); background: var(--surface2); }
-.prensa-renglon.resuelto { border-bottom: 1px solid var(--line); background: rgb(var(--verde-rgb) / .08); }
-.prensa-renglones > .prensa-renglon.resuelto:last-child { border-bottom: 0; }
-.prensa-renglon .etiqueta { font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .08em; }
-.prensa-renglon .apunte { font-family: var(--font-body); font-size: 12.5px; }
+.prensa-renglones > .prensa-renglon:active:not(:disabled) { background: var(--surface2); }
+.prensa-renglones > .prensa-renglon.resuelto { border: 0; background: rgb(var(--verde-rgb) / .1); }
+.prensa-renglon .cabeza { display: contents; }
+.prensa-renglon .etiqueta {
+  order: 1; font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .08em;
+}
+.prensa-renglon .cuerpo { order: 2; min-height: 22px; gap: 4px; }
+.prensa-renglon .apunte {
+  order: 3; white-space: normal; overflow: visible; line-height: 1.2;
+  font-family: var(--font-body); font-weight: 500; font-size: 11.5px;
+}
 .prensa-renglon .apunte.resuelta { font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .06em; }
-.prensa-renglon .valor { font-family: var(--font-body); font-weight: 600; font-size: 17px; }
-.prensa-renglon .vacio { font-family: var(--font-body); font-weight: 500; font-size: 16px; }
+.prensa-renglon .valor { font-family: var(--font-body); font-weight: 600; font-size: 16px; }
+.prensa-renglon .vacio { font-family: var(--font-body); font-weight: 500; font-size: 15px; line-height: 1.15; white-space: normal; }
+.prensa-renglon .chev { width: 13px; height: 13px; }
+
+/* Web (`.prensa-casillas`): la misma fila de tres, con campos de texto. Los
+   desplegables cuelgan de su campo pero más anchos que la casilla: una lista de
+   marcas no se lee en 100px. El de la casilla del medio se alinea a la
+   izquierda de su campo; el año no tiene lista. */
+.prensa-casillas {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: 6px; align-items: start;
+}
+.prensa-casillas .prensa-listbox { right: auto; min-width: 100%; width: 240px; max-width: 72vw; }
 
 /* Web: campos con canto en vez de línea base. El foco abraza el campo en tinta
    (el rojo queda para el campo inválido). El ✓ del campo resuelto entra DENTRO
@@ -4169,22 +4229,23 @@ html *, html *::before, html *::after { font-style: normal !important; }
 .prensa-label { font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .08em; }
 .prensa-label .pista-label { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; }
 .prensa-input {
-  padding: 11px 13px; border: 1px solid var(--line-strong); border-radius: var(--radio-celda);
+  padding: 11px 11px; border: 1px solid var(--line-strong); border-radius: var(--radio-celda);
   background: var(--surface);
   font-family: var(--font-body); font-weight: 600; font-size: 16px;
   transition: border-color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce);
 }
 .prensa-input:focus { border: 1px solid var(--cdd-text); padding-bottom: 11px; box-shadow: 0 0 0 1px var(--cdd-text); }
+.prensa-casillas .prensa-input::placeholder { font-size: 14px; }
 .prensa-input.invalida { border: 1px solid var(--rojo); box-shadow: 0 0 0 1px var(--rojo); }
 .prensa-input.veredicto-resuelto {
-  border: 1px solid rgb(var(--verde-rgb) / .5); padding-bottom: 11px; padding-right: 38px;
+  border: 1px solid rgb(var(--verde-rgb) / .5); padding-bottom: 11px; padding-right: 30px;
   background: rgb(var(--verde-rgb) / .08);
 }
 .prensa-input.veredicto-resuelto:focus { border-color: rgb(var(--verde-rgb) / .5); box-shadow: none; }
 .prensa-input::placeholder { font-family: var(--font-body); font-weight: 500; font-size: 15px; }
 .prensa-campo { align-items: center; }
-.prensa-campo-marca { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); }
-.prensa-horquilla { font-family: var(--font-body); font-size: 12.5px; margin-top: 5px; }
+.prensa-campo-marca { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+.prensa-horquilla { font-family: var(--font-body); font-size: 11.5px; line-height: 1.25; margin-top: 5px; }
 .prensa-listbox { padding: 6px; border-radius: var(--radio-boton); border: 1px solid var(--line-strong); }
 .prensa-opt { border-radius: 8px; font-family: var(--font-body); font-weight: 500; font-size: 15px; }
 .prensa-opt.hi { background: var(--surface2); box-shadow: none; }
@@ -4204,11 +4265,13 @@ html *, html *::before, html *::after { font-style: normal !important; }
   .prensa-submit:hover:not(:disabled):not(.is-incomplete) {
     transform: none; box-shadow: none; background: rgb(var(--tinta-rgb) / .86);
   }
-  .prensa-submit.is-incomplete:hover { background: rgb(var(--tinta-rgb) / .11); }
+  .prensa-submit.is-incomplete:hover { background: rgb(var(--tinta-rgb) / .6); }
 }
+/* Incompleto: el MISMO bloque de tinta, un paso más apagado — sigue siendo el
+   botón de jugar, esperando datos; un gris de control muerto se leía como
+   «esto no funciona». Tocable igual (el temblor dice qué falta). */
 .prensa-submit.is-incomplete {
-  background: rgb(var(--tinta-rgb) / .07); color: var(--cdd-muted);
-  box-shadow: inset 0 0 0 1px var(--line);
+  background: rgb(var(--tinta-rgb) / .5); color: var(--bg); box-shadow: none;
 }
 .prensa-submit.is-trabajando,
 .prensa-submit.is-trabajando:disabled { background: var(--cdd-text); color: var(--bg); }
@@ -4391,3 +4454,15 @@ html *, html *::before, html *::after { font-style: normal !important; }
 }
 .pm-sello { border-radius: var(--radio-sello); }
 .scrollbar-premium::-webkit-scrollbar-thumb { border-radius: 3px; }
+
+/* ── EL ORDEN DE LA APP: foto, historial y, abajo, el cupón ─────────────────
+   Durante la partida en la app el historial —la banda elástica con scroll
+   propio— pasa ENTRE la foto y el cupón. El cupón y ADIVINAR quedan anclados
+   abajo, al alcance del pulgar, y siguen en la MISMA \`y\` todo el juego: todo
+   lo que tienen debajo (el reloj del pie) mide siempre lo mismo, y lo que
+   crece intento a intento es la lista, que ya absorbe su propia sobra. En la
+   web no se toca: allí el pliego es un documento y un historial que crece por
+   encima del cupón lo iría empujando fuera de la pantalla. */
+@media (max-width: 1099px) {
+  :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-historial { order: 3; }
+}

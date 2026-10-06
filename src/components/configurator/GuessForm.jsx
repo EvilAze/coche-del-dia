@@ -430,10 +430,10 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         {catalogFallido ? (
           <CatalogoCaido onRetry={recargarCatalogo} />
         ) : enApp ? (
-          // Los tres renglones van en UNA tarjeta (sistema «Asfalto»): se leen
-          // como un solo control con tres partes, separadas por su filete, en vez
-          // de tres líneas sueltas sobre el fondo. La tarjeta no añade alto: el
-          // borde es de 1px y el aire de dentro es el mismo que ya llevaban.
+          // Los tres renglones van en UNA tarjeta de tres casillas en fila
+          // (sistema «Asfalto»): se leen como un solo control con tres partes
+          // y el cupón mide una casilla de alto en vez de tres renglones — alto
+          // que se queda el historial (ver .prensa-renglones en index.css).
           <div className="prensa-renglones">
             <CampoBoton
               label={t("cdd.labelMarca")}
@@ -497,7 +497,11 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
             />
           </div>
         ) : (
-        <>
+        // Las tres casillas EN FILA (sistema «Asfalto»), como el cupón de la
+        // app: marca, modelo y año se leen como un solo control de tres partes
+        // y el bloque mide un renglón en vez de tres. Los desplegables siguen
+        // colgando de su campo, más anchos que la casilla (ver .prensa-casillas).
+        <div className="prensa-casillas">
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
@@ -542,7 +546,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           estado={bloqueo.anio ? "resuelto" : null}
           horquilla={horquilla}
         />
-        </>
+        </div>
         )}
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
             Con campos incompletos el botón queda tocable con aspecto apagado

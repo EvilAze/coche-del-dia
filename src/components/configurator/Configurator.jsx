@@ -367,6 +367,7 @@ export default function Configurator({
           rankCargando={rankCargando}
           user={user}
           repescaAlert={repescaAlert}
+          streak={streak}
           onOpenMenu={onOpenMenu}
           onOpenRanking={onOpenRanking}
         />

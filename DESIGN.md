@@ -315,10 +315,42 @@ silencer, where `1ms` is a zero and not a tempo.
   invalid.
 
 ### End-of-game panel
-Rounded floating panel (8px air on phones), the photograph band, the verdict
-seal as a chip («Resuelto» on green, «Sin resolver» on a neutral surface —
-losing is told, not painted red), points and streak, share in ink, the
-countdown in a rounded box, the day's distribution with your bar in ink.
+A column of **cards** that enter one step after another (`fin-*`): the
+photograph with the verdict chip («Resuelto en 3 de 5» on green, «Sin
+resolver» on a neutral surface — losing is told, not painted red), the car in
+a headline with its country and year as plates, what you did (the points with
+the attempt grid when you win; your game line by line and one sentence on what
+was missing when you lose), share in ink and the countdown, and below it what
+is read if you stay: the broken streak, the rescue, your standing, the world's
+distribution and the spec sheet. The rescue's own end panel is the same object.
+
+### Navigation and sections
+- **Tab bar** (`BarraSecciones`, phones only): Jugar · Clasificación · Archivo ·
+  Perfil, with a red 2px line over the active tab and an amber dot on Archivo
+  when a rescue is waiting. It is a door, not a router: the sections still open
+  as sheets over the game (CLAUDE.md rule 24).
+- **Section screens** (Clasificación, Archivo, Perfil, Menú): the floor is
+  `--bg` and everything on it is a card on `--surface` with a 1px seam. The
+  section name is a 30px Barlow Condensed headline with the close button in its
+  row — no kicker above it.
+- **Grouped lists** (`grupo-lista` / `grupo-fila`): settings and the menu.
+  58px rows, hairline separators, a plain line icon in the secondary grey when
+  the row needs one, a chevron or a control at the end.
+- **Segmented control** (`Segmentado`, `components/Ajustes.jsx`): theme
+  (Noche · Día · Auto), language, contact type. **Switch** (`.interruptor`):
+  green when on.
+
+### Dialogs
+Decision dialogs (`dlg-*`: sign in, nickname, contact, delete account, the
+rescue draw) are centred cards on both platforms. Text is **left-aligned**, the
+title is a 28px headline sharing its row with the close button, fields are
+boxes with a seam (`dlg-input`, ink focus ring), the primary action is the ink
+button and «Ahora no» is a text line, not a second button of the same weight.
+The only filled red button in the product is «Eliminar mi cuenta».
+
+### Offers
+The end-of-game offers (daily reminder, Android edition, create an account) are
+cards with the question as a headline, one ink button and an «Ahora no» line.
 
 ### Icons
 Line icons (`components/configurator/icons.jsx`, 1.6 stroke on a 24 box;
@@ -350,10 +382,20 @@ in the UI entirely** (§9).
 
 ### Don't
 - **Don't** put **emoji** in JSX or in UI strings.
+- **Don't** put icons inside tinted squares. It is the most recognisable tic
+  of mass-produced interfaces and here it never distinguished anything the
+  text or the card colour did not already say. Icons go loose, in their
+  colour, aligned to the first line — or not at all.
+- **Don't** centre forms or paragraphs in a block; centre a single line at
+  most.
+- **Don't** stack a mono uppercase kicker over every title. Kickers label
+  **data** (`TEMPORADA 5`, `PUNTOS SEGÚN EL INTENTO`); a section name or a
+  dialog title stands on its own.
 - **Don't** use the raw Tailwind palette or Tailwind `rounded-*` utilities.
 - **Don't** add **glows** (`shadow-[0_0_…]`) or loose hex values in classes.
-- **Don't** use red as a fill for anything but a real error, or for the primary
-  button.
+- **Don't** use red as a fill for anything but an irreversible action
+  (deleting the account). The primary button is ink; red marks what is spent
+  or needs attention, and a «new» badge is neither.
 - **Don't** spend gold on anything that is not a reward.
 - **Don't** set anything in italic.
 

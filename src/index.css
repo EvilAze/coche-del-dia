@@ -5059,8 +5059,10 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
   border-radius: var(--radio-sello); font-family: var(--font-mono); font-weight: 600; font-size: 11.5px;
 }
 .arch-chip-foto.num { right: 10px; background: rgb(var(--velo-rgb) / .78); color: rgb(242 240 235); }
+/* «Nueva» en la tinta del sistema, como el chip «Tú»: el rojo es «gastado /
+   atención», y una portada recién ganada no es ninguna de las dos cosas. */
 .arch-chip-foto.nueva {
-  left: 10px; background: var(--rojo); color: rgb(255 255 255);
+  left: 10px; background: rgb(242 240 235); color: rgb(12 13 15);
   font-family: var(--font-body); font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
 }
 .arch-destacada-pie { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding: 12px 14px 14px; }
@@ -5088,7 +5090,7 @@ div.arch-ficha { cursor: default; }
 }
 .arch-nuevo {
   height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border-radius: 5px;
-  background: var(--rojo); color: rgb(255 255 255);
+  background: var(--cdd-text); color: var(--bg);
   font-family: var(--font-body); font-weight: 700; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
 }
 .arch-ficha-nombre { display: flex; flex-direction: column; gap: 3px; min-width: 0; }

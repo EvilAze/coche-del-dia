@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalog } from "../../data/catalog";
-import { useT, getLocalizedCountry } from "../../i18n";
+import { useT } from "../../i18n";
 import { useToast } from "../Toast";
 import { useOnline } from "../../hooks/useOnline";
 import { haptic } from "../../lib/haptics";
@@ -619,7 +619,6 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               valor={marca}
               optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
               optionLogo={logoMarca}
-              optionNota={(m) => (marcaPais[m] ? getLocalizedCountry(marcaPais[m]) : null)}
               onElegir={elegirMarca}
             />
           )}

@@ -264,7 +264,11 @@ describe("PLAZOS", () => {
     const guesses = PLAZOS.SUPABASE * DOS_INTENTOS;
     const coches = PLAZOS.SUPABASE * DOS_INTENTOS; // paralelas: un solo tramo
     const upsert = PLAZOS.SUPABASE * DOS_INTENTOS;
-    const puntos = PLAZOS.SUPABASE; // sin reintento: la RPC es idempotente por día
+    // Dos intentos (registro-puntos.js: el segundo, si el primero sí se guardó,
+    // reconstruye la puntuación en vez de contar un «ya registrado» a cero) más
+    // el flush de Sentry del catch, que espera hasta 2 s si se agotan.
+    const FLUSH_SENTRY = 2000;
+    const puntos = PLAZOS.SUPABASE * DOS_INTENTOS + FLUSH_SENTRY;
     const telemetria = PLAZOS.AUDITORIA * 2; // increment_daily_stats + guess_audit
 
     const peorCaso =

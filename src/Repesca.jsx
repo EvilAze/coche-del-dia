@@ -37,14 +37,9 @@ import AttemptList, { AttemptRow } from "./components/configurator/AttemptList";
 // Misma lógica anti-cheat y mismo contrato onSubmit({ guessCarId, anio, ... });
 // submitGuess de aquí solo consume { guessCarId, anio }.
 import GuessForm from "./components/configurator/GuessForm";
-// Desglose de puntos: pieza PROPIA de la repesca (el daily no lo muestra; su
-// EndScreen habla de racha/percentil). En la repesca los puntos van a la mitad
-// y no afectan a la racha, así que este bloque es la recompensa visible.
-import ScoreBreakdown from "./components/ScoreBreakdown";
-// El pie de la partida es un componente compartido con el fin de partida del
-// daily: los dos paneles resumen lo mismo y antes cada uno lo dibujaba a su
-// manera (aquí, una píldora de texto sobre la foto y una rejilla de emoji).
-import { PiePartida } from "./components/configurator/EndScreen";
+// La rejilla de la partida es la del panel final del juego diario: los dos
+// paneles resumen lo mismo y con el mismo dibujo.
+import { Rejilla } from "./components/configurator/EndScreen";
 import { useToast } from "./components/Toast";
 import { useSelloSentido } from "./hooks/useSelloSentido";
 import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
@@ -534,77 +529,43 @@ export default function Repesca() {
     // Mismo shell visual que el juego diario (Configurator): tema
     // .prensa con el acento rojo inyectado en --accent — de él beben las cdd-*.
     <div className="cdd-app prensa" style={{ "--accent": ACCENT }}>
-      {/* ── LA CABECERA ES LA DEL PERIÓDICO, NO UNA BARRA PROPIA ─────────────
-          Aquí había una barra escrita en utilidades sueltas —chip enmarcado de
-          SALIR a la izquierda, «REPESCA» en Fraunces centrado, y un spacer
-          fantasma de 68px a la derecha para fingir el centrado—. Tres problemas
-          en tres líneas de JSX:
+      {/* ── LA CABECERA DE LA REPESCA ────────────────────────────────────────
+          Tres huecos, como en el diseño: la vuelta al Archivo a la izquierda
+          (con su nombre: «Salir» no decía adónde), «Repesca» con su icono en el
+          centro y, a la derecha, el modo cuando hay algo que declarar — el
+          Veterano, en oro. En modo normal ese hueco va vacío: no hay nada que
+          decir que no diga la tira de reglas de debajo.
 
-            · La app tenía TRES gramáticas de barra superior (esta, la del juego
-              y la del Archivo). Nada hace que una app parezca tres apps más
-              rápido que cambiar de objeto en la esquina por la que entra el ojo.
-            · El chip era lo más pesado de la pantalla —marco, borde, chevrón y
-              palabra: tres señales— para la acción MENOS usada de la página.
-            · El centrado era falso: dependía de que «SALIR» midiera 68px. En
-              inglés («Exit») el chip encoge y el título se desplaza solo.
-
-          Ahora es `.prensa-topbar`, la misma barra del juego, con la misma
-          gramática de tres huecos: [salida] [titulillo de sección] … [estado].
-          La salida ocupa el sitio y la medida exactos de la marca del sumario
-          —34px, área táctil de 50, sin marco— así que la esquina superior
-          izquierda es UN solo objeto en toda la app: en el juego abre el
-          ejemplar, aquí vuelve al Archivo.
-
-          El titulillo NO lleva fecha, a diferencia del folio del juego: lo que
-          se juega en la repesca es un coche de OTRO día, y ponerle la fecha de
-          hoy sería mentir sobre qué ejemplar es este.
-
-          A la derecha, el hueco que en el juego ocupa la clasificación se lo
-          queda el modo: VETERANO estampado en oro (`pm-sello--oro`, el sello
-          que el sistema ya reserva a lo premium). Con eso desaparece el kicker
-          rojo centrado que decía lo mismo 40px más abajo. En modo normal el
-          hueco va vacío a propósito: no hay nada que declarar, y el ladillo de
-          la foto ya lleva la pista.
+          No lleva fecha: lo que se juega aquí es un coche de OTRO día, y
+          ponerle la de hoy sería mentir sobre qué número es este.
 
           `safe-area-top`: la repesca ocupa la pantalla entera con cabecera
-          propia, así que esta barra empieza en y=0 y en la app —edge-to-edge—
-          se dibujaba BAJO la barra de estado. Los 6px de extra son el mismo
-          aire que se le da al pliego del juego bajo el reloj del sistema. */}
-      <header className="safe-area-top" style={{ "--safe-area-extra-top": "0.375rem" }}>
-        {/* El margen horizontal va en este envoltorio y no en la barra: la
-            regla `.prensa-topbar` fija `padding` en shorthand y, como vive
-            después de `@tailwind utilities`, se comería cualquier `px-4`. */}
-        <div className="mx-auto w-full max-w-md px-4">
-          <nav className="prensa-topbar" aria-label={t("prensa.navAria")}>
-            <span>
-              <button
-                type="button"
-                className="prensa-sumario-boton"
-                aria-label={t("repesca.buttonExit")}
-                onClick={() => {
-                  haptic.impactLight();
-                  window.location.href = "/?garage=true";
-                }}
-              >
-                <Icon d={I.chevL} size={18} />
-              </button>
-              <span className="prensa-folio-barra">{t("repesca.headerTitle")}</span>
+          propia, así que en la app —edge-to-edge— sin el inset se dibujaría
+          bajo la barra de estado. */}
+      <header className="rep-cab safe-area-top" style={{ "--safe-area-extra-top": "0.25rem" }}>
+        <button
+          type="button"
+          className="rep-volver"
+          onClick={() => {
+            haptic.impactLight();
+            window.location.href = "/?garage=true";
+          }}
+        >
+          <Icon d={I.chevL} size={20} />
+          {t("prensa.garaje")}
+        </button>
+        <span className="rep-titulo">
+          <Icon d={I.shuffle} size={19} />
+          {t("repesca.titulo")}
+        </span>
+        <span className="rep-modo">
+          {isVeteran && (
+            <span className="rep-modo-chip">
+              <Icon d={I.galones} size={14} strokeWidth="2" />
+              {t("repesca.veteranSello")}
             </span>
-
-            <span>
-              {/* UNA palabra, no «Modo Veterano»: el sello va inclinado, así
-                  que su caja crece con el largo del texto por los dos ejes a la
-                  vez. Con las dos palabras ocupaba casi la mitad de la barra y
-                  su esquina bajaba a rozar el doble filete — dejaba de leerse
-                  como un sello estampado y pasaba a pegatina. «Veterano» junto
-                  a «REPESCA» dice sección y modo en el mismo golpe de vista, y
-                  el matiz completo lo da la nota de abajo. */}
-              {isVeteran && (
-                <span className="pm-sello pm-sello--oro">{t("repesca.veteranSello")}</span>
-              )}
-            </span>
-          </nav>
-        </div>
+          )}
+        </span>
       </header>
 
       {/* El h1 de verdad (SEO y lectores de pantalla), como en el juego: el
@@ -626,45 +587,45 @@ export default function Repesca() {
         className="safe-area-bottom mx-auto flex w-full max-w-md min-w-0 flex-col gap-5 px-4 pt-4"
         style={{ "--safe-area-extra-bottom": "1rem" }}
       >
-        {/* LA NOTA DE LA SECCIÓN: qué cuesta esta partida, y nada más.
-            Aquí vivía además un kicker centrado en rojo que repetía el modo
-            («MODO VETERANO» / «Modo Repesca · una al día») justo debajo de una
-            cabecera que ya lo decía. Con el sello en la barra, el kicker era la
-            tercera vez que se nombraba lo mismo en 40px. En modo normal se
-            conserva lo único que el jugador no puede deducir: que los puntos
-            van a la mitad. */}
+        {/* LO QUE CUESTA ESTA PARTIDA, en una tira ámbar (el color de la
+            repesca): la mitad de puntos, la racha a salvo y que es una al día.
+            Lo único que el jugador no puede deducir mirando la pantalla. */}
         {!isVeteran && (
-          <p className="text-center text-xs text-muted/80">
-            {t("repesca.gameRulesNote")}
-          </p>
+          <div className="rep-reglas" role="note">
+            <span><span className="medio" aria-hidden="true">½</span>{t("repesca.reglaPuntos")}</span>
+            <i aria-hidden="true" />
+            <span><Icon d={I.escudo} size={14} />{t("repesca.reglaRacha")}</span>
+            <i aria-hidden="true" />
+            <span>{t("garage.reglaUnaAlDia")}</span>
+          </div>
         )}
 
-        {/* Nota veterano: reglas más duras (1 intento, sin pistas). */}
+        {/* EL MODO VETERANO: las reglas duras, en oro (es una condición que se
+            gana, no un aviso). */}
         {isVeteran && phase === "playing" && (
-          // Recuadro de aviso editorial: filete grueso a la izquierda (el
-          // "destacado" de una columna de periódico) sobre papel, en vez de la
-          // caja ámbar redondeada con icono que había antes — ámbar crudo de
-          // Tailwind del tema anterior, que sobre papel se leía como un post-it.
-          // El oro marca que esto es una condición premium, no una advertencia.
-          <div
-            className="
-              border-l-2 border-oro-viejo bg-papel-2 px-3 py-2
-              font-serif text-[12px] leading-snug text-tinta
-            "
-            role="note"
-          >
-            {/* Sin etiqueta propia: el kicker de arriba ya dice "Modo
-                Veterano" y repetirlo aquí sonaba a tartamudeo. El filete de
-                oro es la etiqueta. */}
-            {t("repesca.veteranExplain")}
-          </div>
+          <section className="rep-veterano" role="note" aria-label={t("repesca.veteranBadge")}>
+            <div className="rep-veterano-cab">
+              <span className="rep-veterano-icono" aria-hidden="true">
+                <Icon d={I.galones} size={22} strokeWidth="2" />
+              </span>
+              <span className="rep-veterano-texto">
+                <b>{t("repesca.veteranBadge")}</b>
+                <span>{t("repesca.veteranSub")}</span>
+              </span>
+            </div>
+            <div className="rep-veterano-chips">
+              <span>{t("repesca.chipIntento")}</span>
+              <span>{t("repesca.chipPistas")}</span>
+              <span>{t("repesca.chipAnio")}</span>
+            </div>
+          </section>
         )}
 
         {/* Escenario con ladillo/pie editorial, como el daily. Envuelto en un
             div para neutralizar el order:2 de .prensa-area-foto en esta columna
             flex (el order solo aplica entre hermanos flex, y aquí el <section>
             es hijo único del div). */}
-        <div>
+        <div className={"rep-foto" + (isVeteran ? " veterano" : "")}>
           <ZoomStage
             car={car}
             zoom={zoom}
@@ -705,12 +666,16 @@ export default function Repesca() {
 
         {/* Zona de acción: formulario (jugando) o botón de revelado (terminado). */}
         {phase === "loading" ? null : phase === "playing" ? (
-          <GuessForm
-            onSubmit={submitGuess}
-            isSubmitting={isSubmitting}
-            guesses={guesses}
-            tolerance={ANIO_CORRECT_MARGIN}
-          />
+          <>
+            <GuessForm
+              onSubmit={submitGuess}
+              isSubmitting={isSubmitting}
+              guesses={guesses}
+              tolerance={ANIO_CORRECT_MARGIN}
+              mantener={isVeteran}
+            />
+            {isVeteran && <p className="rep-mantener-nota">{t("repesca.mantenNota")}</p>}
+          </>
         ) : (
           <button className="prensa-submit" onClick={() => { setFinalRecien(false); setShowEnd(true); }}>
             {t("cdd.viewResult")}
@@ -731,67 +696,101 @@ export default function Repesca() {
         )}
       </main>
 
-      {/* Revelado final: mismas clases cdd-end del daily (banda con foto +
-          veredicto + identidad), con el desglose de puntos de la repesca y el
-          CTA de vuelta al garaje en el cuerpo. */}
+      {/* EL PANEL FINAL de la repesca: el mismo objeto que el del juego diario
+          (clases fin-*), con lo que es propio de aquí — los puntos a la mitad,
+          sin racha, y la vuelta al Archivo como acción principal. */}
       {showEnd && ended && (
-        <div className="cdd-end" role="dialog" aria-modal="true">
+        <div className="cdd-end" role="dialog" aria-modal="true" aria-label={t("cdd.endScreenAria")}>
           <div className="cdd-end-scrim" onClick={() => setShowEnd(false)} />
-          <div className="cdd-end-card">
-            <div className="cdd-reveal">
-              {car.img && (
-                <img
-                  src={car.img}
-                  alt=""
-                  draggable={false}
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                />
-              )}
-              {/* El sello del veredicto, igual que en el fin de partida del daily:
-                  los dos paneles son el mismo objeto y hasta ahora la repesca no
-                  tenía celebración — solo una píldora de texto sobre la foto. */}
+          <div className="cdd-end-card fin">
+            <div className="cdd-end-topbar">
+              <button
+                type="button"
+                className="cdd-end-close"
+                aria-label={t("cdd.seeGame")}
+                onClick={() => { haptic.impactLight(); setShowEnd(false); }}
+              >
+                <Icon d={I.x} size={20} />
+              </button>
+            </div>
+
+            <div className="fin-foto">
+              {car.img && <img src={car.img} alt="" draggable={false} className="fin-foto-img" />}
               <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true" onAnimationStart={alEstamparSello}>
-                {won ? t("prensa.selloWin") : t("prensa.selloLose")}
-              </div>
-              <div className="cdd-reveal-grad" />
-              <div className="cdd-reveal-head">
-                {hasReveal ? (
+                {won ? (
                   <>
-                    <div className="cdd-reveal-name">
-                      <span className="cdd-reveal-brand">{car.marca}</span>
-                      <span className="cdd-reveal-model">{car.modelo}</span>
-                    </div>
-                    <div className="cdd-reveal-meta cdd-mono">
-                      {car.pais && <img className="cdd-flag" src={flagImagePath(car.pais)} alt="" />}
-                      {car.pais ? getLocalizedCountry(car.pais) : ""} · {car.anio}
-                    </div>
+                    <Icon d={I.check} size={15} />
+                    {t("fin.resueltoEn", { n: attempts, max: effectiveMaxAttempts })}
                   </>
                 ) : (
-                  <div className="cdd-reveal-meta cdd-mono">{t("cdd.revealUnavailable")}</div>
+                  <>
+                    <Icon d={I.x} size={14} />
+                    {t("prensa.selloLose")}
+                  </>
                 )}
               </div>
             </div>
 
-            {/* El pie de la partida, el mismo componente que el fin de partida del
-                daily. Sin percentil: la repesca no tiene estadística del día. */}
-            <PiePartida won={won} attempts={attempts} max={effectiveMaxAttempts} />
+            <header className="fin-titulo fin-entra">
+              <span className="fin-kicker">{isVeteran ? t("repesca.veteranBadge") : t("repesca.titulo")}</span>
+              {hasReveal ? (
+                <>
+                  <h2 className="fin-coche">{car.marca} {car.modelo}</h2>
+                  <div className="fin-chapas">
+                    {car.pais && (
+                      <span className="fin-chapa">
+                        <img className="bandera" src={flagImagePath(car.pais)} alt="" />
+                        {getLocalizedCountry(car.pais)}
+                      </span>
+                    )}
+                    <span className="fin-chapa mono">{car.anio}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="fin-sin-ficha">{t("cdd.revealUnavailable")}</p>
+              )}
+            </header>
 
-            <div className="cdd-end-body">
-              {/* Desglose de puntos (propio de la repesca: la mitad, sin racha).
-                  Devuelve null si el server no mandó score (p.ej. al recargar
-                  una partida ya cerrada). */}
-              <ScoreBreakdown score={score} won={won} />
+            {won ? (
+              <section className="fin-tarjeta fin-entra" aria-label={t("score.yourScore")}>
+                <div className="fin-marcador">
+                  <div className="fin-marcador-cifra">
+                    <span className="fin-etiqueta">{t("repesca.puntos")}</span>
+                    {score ? (
+                      <span className="fin-puntos">
+                        {score.totalPoints}
+                        <small>{t("score.points")}</small>
+                      </span>
+                    ) : (
+                      <span className="fin-puntos fin-puntos--sin">—</span>
+                    )}
+                  </div>
+                  <Rejilla guesses={guesses} />
+                </div>
+                <p className="rep-fin-nota">
+                  {isVeteran ? t("repesca.finVeterano") : t("repesca.finMitad")}
+                </p>
+              </section>
+            ) : (
+              <section className="fin-tarjeta fin-fila fin-entra">
+                <span className="fin-icono ambar" aria-hidden="true">
+                  <Icon d={I.shuffle} size={19} />
+                </span>
+                <span className="fin-fila-texto">
+                  <b>{t("repesca.finPerdidaTitulo")}</b>
+                  <span>{t("repesca.finPerdidaTexto")}</span>
+                </span>
+              </section>
+            )}
 
-              {/* (Aquí se pintaba la rejilla ✅/❌ con `shareGrid`, y era el caso
-                  más flagrante de los dos paneles: su propio comentario decía «la
-                  repesca no se comparte», así que esos cuadros de emoji dibujados
-                  por el sistema operativo no tenían ni la excusa del portapapeles
-                  — eran decoración pura, y la más ruidosa de la pantalla. El
-                  recuento vive en el pie de arriba y los intentos, uno a uno, en
-                  el historial que queda detrás del panel.) */}
+            {won && hasReveal && description && (
+              <section className="fin-tarjeta fin-entra">
+                <h3 className="fin-tarjeta-titulo">{t("fin.ficha")}</h3>
+                <p className="cdd-note">{description}</p>
+              </section>
+            )}
 
-              {description && <p className="cdd-note">{description}</p>}
-
+            <div className="fin-acciones fin-entra">
               <button
                 className="cdd-submit"
                 onClick={() => {
@@ -802,14 +801,8 @@ export default function Repesca() {
               </button>
             </div>
 
-            {/* Cerrar el revelado y volver a ver la partida (mismo enlace
-                discreto que el EndScreen del daily). */}
             <div className="cdd-end-links">
-              <button
-                type="button"
-                className="cdd-end-link cdd-mono"
-                onClick={() => setShowEnd(false)}
-              >
+              <button type="button" className="cdd-end-link" onClick={() => setShowEnd(false)}>
                 {t("cdd.seeGame")}
               </button>
             </div>

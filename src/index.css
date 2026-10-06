@@ -5578,3 +5578,140 @@ button.perf-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .pun-peldano b { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: rgb(var(--gold-rgb) / .6); }
 .pun-peldano.p2 b { color: rgb(var(--gold-rgb) / .8); }
 .pun-peldano.p3 b, .pun-peldano.p3 .pun-dias { color: var(--gold); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL SORTEO DE LA REPESCA «ASFALTO» (RepescaDrawAnimation, rep-*)
+   El dorso, rayado con las rayas rojas de la marca; el anverso, en la tinta
+   del sistema (o en oro, si toca Modo Veterano). El velo es oscuro en los dos
+   temas: el rótulo va en claro fijo.
+   ═══════════════════════════════════════════════════════════════════════ */
+.rep-carta {
+  position: absolute; inset: 0; box-sizing: border-box; overflow: hidden;
+  display: flex; flex-direction: column; border-radius: var(--radio-tarjeta);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.rep-carta-dorso {
+  align-items: center; justify-content: center; gap: 12px;
+  background-color: rgb(27 30 34);
+  background-image: repeating-linear-gradient(135deg, transparent 0 7px, rgb(255 255 255 / .035) 7px 14px);
+  border: 1px solid rgb(58 63 70);
+  box-shadow: 0 14px 30px rgb(0 0 0 / .45);
+}
+.rep-rayas { display: flex; flex-direction: column; gap: 4px; width: 64px; }
+.rep-rayas i { display: block; height: 5px; border-radius: 1px; background: var(--rojo); }
+.rep-rayas i + i { height: 2.5px; }
+.rep-num { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; color: rgb(167 172 180); }
+.rep-carta-cara {
+  transform: rotateY(180deg); justify-content: space-between; padding: 14px;
+  background: rgb(242 240 235); color: rgb(12 13 15);
+  box-shadow: 0 22px 44px rgb(0 0 0 / .55);
+}
+.rep-cara-kicker { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: rgb(91 96 104); }
+.rep-cara-centro { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.rep-cara-centro b {
+  font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: .95;
+  letter-spacing: .02em; text-transform: uppercase;
+}
+.rep-carta-cara .rep-rayas { width: 100%; }
+.rep-carta-cara .rep-rayas i { height: 4px; }
+.rep-carta-cara .rep-rayas i + i { height: 2px; }
+.rep-carta-cara.veterano { background: rgb(227 194 122); }
+.rep-carta-cara.veterano .rep-rayas i { background: rgb(12 13 15); }
+.rep-estado { min-height: 64px; margin-top: 22px; padding: 0 24px; text-align: center; }
+.rep-estado p {
+  margin: 0; font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  color: rgb(167 172 180);
+}
+.rep-estado p.grande {
+  font-family: var(--font-display); font-weight: 700; font-size: 30px; letter-spacing: 0; text-transform: none;
+  color: rgb(242 240 235);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LA PARTIDA DE REPESCA «ASFALTO» (Repesca.jsx, rep-*)
+   La cabecera de tres huecos, la tira ámbar de lo que cuesta, la tarjeta del
+   Modo Veterano en oro y el marco de la foto con su canto del mismo color:
+   que se vea de un vistazo que esto no es la partida de hoy.
+   ═══════════════════════════════════════════════════════════════════════ */
+.rep-cab {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center;
+  width: 100%; max-width: 28rem; margin: 0 auto; box-sizing: border-box;
+  padding-left: 4px; padding-right: 12px; min-height: 56px;
+}
+.rep-volver {
+  justify-self: start; height: 44px; padding: 0 8px; display: inline-flex; align-items: center; gap: 2px;
+  border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--cdd-muted);
+  transition: color var(--ms-roce) var(--curva-roce);
+}
+@media (hover: hover) {
+  .rep-volver:hover { color: var(--cdd-text); }
+}
+.rep-titulo {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 700; font-size: 21px; color: var(--cdd-text);
+}
+.rep-titulo svg { color: var(--ambar); }
+.rep-modo { justify-self: end; }
+.rep-modo-chip {
+  height: 30px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 8px; background: rgb(var(--gold-rgb) / .14); color: var(--gold);
+  font-family: var(--font-body); font-weight: 700; font-size: 12.5px;
+}
+
+.rep-reglas {
+  height: 36px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border-radius: 10px; background: rgb(var(--ambar-rgb) / .08); border: 1px solid rgb(var(--ambar-rgb) / .28);
+  font-family: var(--font-body); font-weight: 600; font-size: 12.5px; color: var(--ambar);
+}
+.rep-reglas > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.rep-reglas .medio { width: auto; color: inherit; }
+.rep-reglas > i { width: 3px; height: 3px; border-radius: 50%; background: rgb(var(--ambar-rgb) / .5); }
+
+.rep-veterano {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  border-radius: 18px; background: var(--surface); border: 1px solid rgb(var(--gold-rgb) / .35);
+}
+.rep-veterano-cab { display: flex; align-items: center; gap: 12px; }
+.rep-veterano-icono {
+  flex: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  background: rgb(var(--gold-rgb) / .14); color: var(--gold);
+}
+.rep-veterano-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rep-veterano-texto b { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; color: var(--gold); }
+.rep-veterano-texto span { font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted); }
+.rep-veterano-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rep-veterano-chips span {
+  height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 7px;
+  background: var(--surface2); font-family: var(--font-body); font-weight: 700; font-size: 12.5px; color: var(--cdd-text);
+}
+
+/* El canto del marco de la foto: ámbar en la repesca, oro en el Veterano. Va
+   en un pseudo-elemento ENCIMA de la foto (un `inset` en el propio marco
+   quedaría debajo de la imagen). */
+.rep-foto .cdd-stage-frame::after {
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  border-radius: inherit; box-shadow: inset 0 0 0 1.5px rgb(var(--ambar-rgb) / .55);
+}
+.rep-foto.veterano .cdd-stage-frame::after { box-shadow: inset 0 0 0 1.5px rgb(var(--gold-rgb) / .6); }
+
+/* MANTÉN PARA ADIVINAR. El oro llena el botón de izquierda a derecha en lo
+   que dura la pulsación (`--mantener-ms`, que escribe BotonMantener) y, si se
+   suelta antes, se vacía de golpe. Solo `transform`: el relleno es una capa. */
+.boton-mantener {
+  position: relative; overflow: hidden; isolation: isolate;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+}
+.mantener-relleno {
+  position: absolute; inset: 0; z-index: -1; background: var(--gold);
+  transform: scaleX(0); transform-origin: left center;
+  transition: transform var(--ms-roce) var(--curva-sale);
+}
+.boton-mantener.manteniendo .mantener-relleno {
+  transform: scaleX(1);
+  transition: transform var(--mantener-ms) var(--curva-roce);
+}
+.boton-mantener.manteniendo { transform: scale(.985); }
+.mantener-texto { position: relative; }
+.rep-mantener-nota { margin: -4px 0 0; text-align: center; font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.rep-fin-nota { margin: 12px 0 0; font-family: var(--font-body); font-size: 14px; line-height: 1.45; color: var(--cdd-muted); }

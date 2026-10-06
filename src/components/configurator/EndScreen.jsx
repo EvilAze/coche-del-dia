@@ -77,45 +77,6 @@ function legacyCopy(text) {
   }
 }
 
-// EL PIE DE TU PARTIDA: una sola línea, en la voz de los pies de foto.
-// Sustituye a tres elementos que decían lo mismo por separado —la etiqueta «TU
-// PARTIDA», la caja con la rejilla de emoji y la frase del percentil— más el
-// «ACERTADO · 1/5» que iba estampado sobre la fotografía y era redundante con el
-// sello RESUELTO de la esquina. Un renglón: qué hiciste, en cuántos, y cómo te
-// deja eso frente al resto.
-// Exportado porque la Repesca monta su propio panel de fin con las mismas clases
-// `cdd-end`, y tenía su propia copia de estas piezas (la píldora del veredicto
-// sobre la foto y la rejilla de emoji). Dos paneles con el mismo trabajo deben
-// usar el mismo objeto: es la razón por la que el marcador de puesto también es
-// un solo componente en las cinco superficies donde aparece.
-export function PiePartida({ won, attempts, max, pct = 0 }) {
-  const { t } = useT();
-  return (
-    <div className="cdd-partida">
-      <span className="cdd-partida-txt">
-        {won ? t("cdd.pieSolved", { n: attempts, max }) : t("cdd.pieUnsolved", { max })}
-      </span>
-      {/* Los pips del pie de foto: un cuadradito por intento, gastados en tinta y
-          el que acertó en verde. Mismo objeto que la tira del escenario. */}
-      <span className="prensa-pips" aria-hidden="true">
-        {Array.from({ length: max }).map((_, i) => (
-          <i
-            key={i}
-            className={
-              "pip" +
-              (i < attempts ? " gastado" : "") +
-              (won && i === attempts - 1 ? " acierto" : "")
-            }
-          />
-        ))}
-      </span>
-      {pct > 0 && (
-        <span className="cdd-partida-pct">{t("dailyStats.betterThanShare", { pct })}</span>
-      )}
-    </div>
-  );
-}
-
 // ── LAS PIEZAS DEL PANEL «ASFALTO» ───────────────────────────────────────────
 // El panel se compone de tarjetas, en el orden del diseño: la foto con su
 // chapa, el coche, lo que hiciste (el marcador si ganas, tu partida si no),
@@ -147,7 +108,7 @@ function useCuenta(objetivo, ms = 700) {
 function cuadro(status) {
   return status === "correct" ? "bien" : status === "partial" ? "cerca" : "mal";
 }
-function Rejilla({ guesses }) {
+export function Rejilla({ guesses }) {
   return (
     <span className="fin-rejilla" aria-hidden="true">
       {guesses.map((g, i) => (

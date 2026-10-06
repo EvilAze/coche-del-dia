@@ -23,6 +23,7 @@ import CampoBoton from "./CampoBoton";
 import SelectorHoja from "./SelectorHoja";
 import SelectorLista from "./SelectorLista";
 import SelectorAnio, { textoHorquilla } from "./SelectorAnio";
+import BotonMantener from "./BotonMantener";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
@@ -31,10 +32,15 @@ const MIN_YEAR = 1886;
 // sobre el campo. El flash se retiró al simplificar el cupón: el acuse de recibo
 // lo da ahora el historial, que desde entonces también se pinta en móvil.)
 
-export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5 }) {
+// `mantener`: el envío se confirma manteniendo el botón (Modo Veterano, un
+// solo intento; ver BotonMantener). El resto del formulario no cambia.
+export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5, mantener = false }) {
   const { t } = useT();
   const toast = useToast();
   const { data: catalog, error: catalogError, reload: recargarCatalogo } = useCatalog();
+  // El formulario, para que el botón de mantener lo envíe por el mismo camino
+  // (handleSubmit, con su validación) que el ADIVINAR de siempre.
+  const formRef = useRef(null);
   const CARS = catalog?.cars ?? [];
   const MARCAS = catalog?.marcas ?? [];
 
@@ -421,7 +427,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           index.css las reglas propias van después de `@tailwind utilities`, así
           que `.prensa-cupon { border:0; padding:0; background:transparent }` las
           pisaba a igual especificidad. Si algún día vuelve el marco, va al CSS. */}
-      <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
+      <form ref={formRef} className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
         {/* Tres renglones apilados a ancho completo: marca, modelo y año. Cada
             campo ocupa toda la fila (target grande, nombres largos legibles) en
             vez del par marca|modelo comprimido de antes. El campo ACERTADO se
@@ -557,7 +563,15 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         {/* Con el catálogo caído el botón no se pinta: debajo del cartel de
             «no ha llegado el listado» un ADIVINAR muerto no añade nada, y el
             único gesto útil que queda ahí es Reintentar. */}
-        {!catalogFallido && (
+        {!catalogFallido && mantener && (
+          <BotonMantener
+            listo={canSubmit}
+            enviando={isSubmitting}
+            deshabilitado={formDisabled}
+            onConfirmar={() => formRef.current?.requestSubmit()}
+          />
+        )}
+        {!catalogFallido && !mantener && (
           <button
             type="submit"
             className={

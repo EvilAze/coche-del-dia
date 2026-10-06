@@ -522,7 +522,23 @@
     "gameRulesNote": "Puntos a la mitad · no afecta a tu racha",
     "veteranBadge": "Modo Veterano",
     "veteranSello": "Veterano",
-    "veteranExplain": "Ya viste este coche al fallarlo. Tienes 1 intento y sin pistas: marca, modelo y año exactos."
+    "veteranExplain": "Ya viste este coche al fallarlo. Tienes 1 intento y sin pistas: marca, modelo y año exactos.",
+    "titulo": "Repesca",
+    "reglaPuntos": "puntos",
+    "reglaRacha": "Racha intacta",
+    "veteranSub": "Ya viste este coche al fallarlo",
+    "chipIntento": "1 intento",
+    "chipPistas": "Sin pistas",
+    "chipAnio": "Año exacto",
+    "mantenAdivinar": "Mantén para adivinar",
+    "mantenSigue": "Sigue…",
+    "mantenAria": "Mantén pulsado para adivinar",
+    "mantenNota": "Un solo intento: por eso se confirma manteniendo.",
+    "puntos": "Puntos de la repesca",
+    "finMitad": "La mitad que en el juego diario, y tu racha intacta.",
+    "finVeterano": "Ganada en Modo Veterano: la portada lleva su distintivo.",
+    "finPerdidaTitulo": "Sigue en el Archivo",
+    "finPerdidaTexto": "Este número vuelve al bombo: mañana puedes sortear otra repesca."
   },
   "garage": {
     "errorNoSession": "Sin sesión",
@@ -651,7 +667,11 @@
     "reglaUnaAlDia": "Una al día",
     "reglaMitad": "Mitad de puntos",
     "reglaRacha": "Tu racha no se toca",
-    "ahoraNo": "Ahora no"
+    "ahoraNo": "Ahora no",
+    "drawBarajando": {
+      "one": "Barajando {count} número…",
+      "other": "Barajando {count} números…"
+    }
   },
   "primera": {
     "titulo1": "Casi nadie lo acierta a la primera.",

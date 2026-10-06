@@ -749,6 +749,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       {drawAnim && (
         <RepescaDrawAnimation
           veteran={drawAnim.veteran}
+          pendientes={repescaPoolSize}
         />
       )}
     </AnimatePresence>

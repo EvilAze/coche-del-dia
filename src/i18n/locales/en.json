@@ -522,7 +522,23 @@
     "gameRulesNote": "Half points · doesn't affect your streak",
     "veteranBadge": "Veteran Mode",
     "veteranSello": "Veteran",
-    "veteranExplain": "You already saw this car when you failed it. You get 1 attempt and no hints: exact make, model and year."
+    "veteranExplain": "You already saw this car when you failed it. You get 1 attempt and no hints: exact make, model and year.",
+    "titulo": "Rescue",
+    "reglaPuntos": "points",
+    "reglaRacha": "Streak safe",
+    "veteranSub": "You saw this car when you missed it",
+    "chipIntento": "1 try",
+    "chipPistas": "No clues",
+    "chipAnio": "Exact year",
+    "mantenAdivinar": "Hold to guess",
+    "mantenSigue": "Keep holding…",
+    "mantenAria": "Press and hold to guess",
+    "mantenNota": "Just one try: that is why you confirm by holding.",
+    "puntos": "Rescue points",
+    "finMitad": "Half of a daily game, and your streak untouched.",
+    "finVeterano": "Won in Veteran Mode: the cover gets its badge.",
+    "finPerdidaTitulo": "Still in the Archive",
+    "finPerdidaTexto": "This issue goes back in the draw: tomorrow you can draw another rescue."
   },
   "garage": {
     "errorNoSession": "Not signed in",
@@ -651,7 +667,11 @@
     "reglaUnaAlDia": "One a day",
     "reglaMitad": "Half points",
     "reglaRacha": "Your streak stays safe",
-    "ahoraNo": "Not now"
+    "ahoraNo": "Not now",
+    "drawBarajando": {
+      "one": "Shuffling {count} issue…",
+      "other": "Shuffling {count} issues…"
+    }
   },
   "primera": {
     "titulo1": "Almost nobody gets it on the first try.",

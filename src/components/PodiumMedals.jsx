@@ -106,11 +106,11 @@ export default function PodiumMedals({ userId }) {
   if (season.length === 0 && monthly.length === 0) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="podios">
       {season.length > 0 && (
         <section>
-          <h4 className="pm-label mb-2">{t("podium.titleSeason")}</h4>
-          <div className="flex flex-wrap gap-2">
+          <h4 className="podios-titulo">{t("podium.titleSeason")}</h4>
+          <div className="podios-fila">
             {season.map((m) => {
               const place = t(`podium.rank${m.rank}`);
               const label = (locale === "en" ? m.labelEn : m.labelEs) || "";
@@ -130,8 +130,8 @@ export default function PodiumMedals({ userId }) {
 
       {monthly.length > 0 && (
         <section>
-          <h4 className="pm-label mb-2">{t("podium.titleLegacy")}</h4>
-          <div className="flex flex-wrap gap-2">
+          <h4 className="podios-titulo">{t("podium.titleLegacy")}</h4>
+          <div className="podios-fila">
             {monthly.map((m) => {
               const place = t(`podium.rank${m.rank}`);
               const monthLabel = formatMonth(m.month, dateLocale);

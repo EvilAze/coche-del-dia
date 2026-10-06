@@ -5426,3 +5426,155 @@ button.perf-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   font-family: var(--font-body); font-weight: 600; font-size: 13.5px; color: var(--rojo);
 }
 .perf-error { margin: 10px 0 0; text-align: center; font-family: var(--font-body); font-size: 14px; color: var(--rojo); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CÓMO SE JUEGA y CÓMO SE PUNTÚA «ASFALTO» (htp-*, pun-*)
+   -----------------------------------------------------------------------
+   Tres pasos con su demostración. El paso entra deslizándose desde el lado
+   hacia el que se avanza; la foto del primero se aleja en bucle (6 s, cinco
+   tiempos de `--ms-latido`); las celdas del segundo se entintan una tras otra
+   y las barras del tercero crecen desde la izquierda. Los bucles solo mueven
+   `transform` y `opacity` (regla 25).
+   ═══════════════════════════════════════════════════════════════════════ */
+.htp-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin: -6px -10px 4px 0; }
+.htp-kicker {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--cdd-muted);
+}
+.htp-saltar {
+  height: 44px; padding: 0 12px; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
+}
+@media (hover: hover) {
+  .htp-saltar:hover { color: var(--cdd-text); }
+}
+.htp-cuerpo { min-height: min(470px, 62dvh); overflow: hidden; }
+@keyframes htpEntra { from { opacity: 0; transform: translateX(14px); } }
+@keyframes htpEntraAtras { from { opacity: 0; transform: translateX(-14px); } }
+.htp-paso { display: flex; flex-direction: column; gap: 10px; animation: htpEntra var(--ms-sello) var(--curva-entra) both; }
+.htp-paso.atras { animation-name: htpEntraAtras; }
+.htp-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; color: var(--cdd-text); }
+.htp-texto { margin: 0; font-family: var(--font-body); font-size: 16px; line-height: 1.5; color: var(--cdd-muted); }
+
+/* Paso 1: la foto que se aleja. */
+.htp-foto {
+  position: relative; margin-top: 14px; height: 214px; overflow: hidden;
+  border-radius: var(--radio-foto); background: var(--surface2);
+}
+.htp-lente {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transform-origin: 46% 66%; transform: scale(3);
+  animation: htpLente calc(var(--ms-latido) * 5) var(--curva-lente) infinite;
+}
+@keyframes htpLente {
+  0%, 16% { transform: scale(3); }
+  20%, 36% { transform: scale(2.5); }
+  40%, 56% { transform: scale(2); }
+  60%, 76% { transform: scale(1.5); }
+  80%, 95% { transform: scale(1); }
+  100% { transform: scale(3); }
+}
+.htp-chip {
+  position: absolute; left: 20px; bottom: 18px; z-index: 4; width: 58px; height: 24px; border-radius: 7px;
+  background: rgb(12 13 15 / .74); color: rgb(242 240 235);
+  font-family: var(--font-mono); font-weight: 600; font-size: 11.5px; font-variant-numeric: tabular-nums;
+}
+.htp-chip span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; }
+.htp-chip .l1 { opacity: 1; animation: htpL1 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+.htp-chip .l2 { animation: htpL2 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+.htp-chip .l3 { animation: htpL3 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+.htp-chip .l4 { animation: htpL4 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+.htp-chip .l5 { animation: htpL5 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+@keyframes htpL1 { 0%, 17% { opacity: 1; } 18%, 99% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes htpL2 { 0%, 17% { opacity: 0; } 18%, 37% { opacity: 1; } 38%, 100% { opacity: 0; } }
+@keyframes htpL3 { 0%, 37% { opacity: 0; } 38%, 57% { opacity: 1; } 58%, 100% { opacity: 0; } }
+@keyframes htpL4 { 0%, 57% { opacity: 0; } 58%, 77% { opacity: 1; } 78%, 100% { opacity: 0; } }
+@keyframes htpL5 { 0%, 77% { opacity: 0; } 78%, 97% { opacity: 1; } 98%, 100% { opacity: 0; } }
+.htp-medidor { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding-top: 6px; }
+.htp-medidor > span { position: relative; height: 4px; border-radius: 2px; overflow: hidden; background: var(--surface2); }
+.htp-medidor i { position: absolute; inset: 0; background: var(--rojo); opacity: 0; }
+.htp-medidor .s1 { animation: htpS1 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+.htp-medidor .s2 { animation: htpS2 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+.htp-medidor .s3 { animation: htpS3 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+.htp-medidor .s4 { animation: htpS4 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
+@keyframes htpS1 { 0%, 17% { opacity: 0; } 18%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes htpS2 { 0%, 37% { opacity: 0; } 38%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes htpS3 { 0%, 57% { opacity: 0; } 58%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes htpS4 { 0%, 77% { opacity: 0; } 78%, 96% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Paso 2: las cuatro respuestas de una celda. */
+.htp-ejemplos { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+@keyframes htpTinta { from { opacity: 0; transform: scale(.96); } }
+.htp-ej {
+  display: grid; grid-template-columns: 138px minmax(0, 1fr); gap: 14px; align-items: center;
+  animation: htpTinta var(--ms-sello) var(--curva-sello) both;
+}
+.htp-ej.e1 { animation-delay: calc(var(--ms-paso) * 3); }
+.htp-ej.e2 { animation-delay: calc(var(--ms-paso) * 6); }
+.htp-ej.e3 { animation-delay: calc(var(--ms-paso) * 9); }
+.htp-ej.e4 { animation-delay: calc(var(--ms-paso) * 12); }
+.htp-celda {
+  height: 50px; box-sizing: border-box; padding: 0 10px; display: flex; align-items: center; gap: 8px;
+  border-radius: var(--radio-celda); background: var(--surface); border: 1px solid var(--line-strong); color: var(--cdd-muted);
+}
+.htp-celda .bandera { flex: none; width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+.htp-celda svg { flex: none; }
+.htp-celda-texto { display: flex; flex-direction: column; min-width: 0; }
+.htp-celda-texto b { font-family: var(--font-body); font-weight: 600; font-size: 15px; line-height: 1.2; color: var(--cdd-text); }
+.htp-celda-texto b.mono { font-family: var(--font-mono); font-size: 14px; }
+.htp-celda-texto b.tachado { color: var(--cdd-muted); text-decoration: line-through; }
+.htp-celda-texto span { font-family: var(--font-body); font-weight: 600; font-size: 11.5px; }
+.htp-celda.bien { background: rgb(var(--verde-rgb) / .11); border-color: rgb(var(--verde-rgb) / .38); color: var(--verde); }
+.htp-celda.cerca { background: rgb(var(--ambar-rgb) / .11); border-color: rgb(var(--ambar-rgb) / .38); color: var(--ambar); }
+.htp-celda.mal { color: var(--rojo); }
+.htp-ej-texto { font-family: var(--font-body); font-size: 14.5px; line-height: 1.4; color: var(--cdd-text); }
+
+/* El pie: los puntos de paso y el botón. */
+.htp-pie { display: flex; align-items: center; gap: 12px; padding-top: 14px; }
+.htp-puntos { flex: none; display: flex; align-items: center; }
+.htp-puntos button { width: 28px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.htp-puntos span {
+  display: block; width: 8px; height: 8px; border-radius: 4px; background: var(--line-strong);
+  transition: width var(--ms-hoja) var(--curva-entra), background-color var(--ms-roce) var(--curva-roce);
+}
+.htp-puntos span.on { width: 22px; background: var(--cdd-text); }
+.pm-btn.htp-siguiente { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+
+/* LA PUNTUACIÓN (Puntuacion.jsx): la curva de puntos y la escalera de racha. */
+.pun-seccion { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.pun-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--cdd-text); }
+.pun-texto { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.45; color: var(--cdd-muted); }
+.pun-nota { margin: 0; font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.pun-tabla {
+  display: flex; flex-direction: column; gap: 8px; padding: 16px; margin-top: 4px;
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+.pun-kicker {
+  padding-bottom: 2px; font-family: var(--font-mono); font-weight: 600; font-size: 10.5px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.pun-fila { display: grid; grid-template-columns: 16px minmax(0, 1fr) 44px; gap: 10px; align-items: center; }
+.pun-k { font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted); }
+.pun-v { text-align: right; font-family: var(--font-mono); font-weight: 600; font-size: 13px; color: var(--cdd-text); }
+.pun-barra { display: block; height: 14px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.pun-barra i { display: block; height: 100%; border-radius: 4px; background: rgb(var(--tinta2-rgb) / .5); transform-origin: left center; }
+.pun-fila.n1 .pun-barra i { background: var(--cdd-text); }
+.pun-fila.n2 .pun-barra i { background: var(--cdd-muted); }
+.pun-fila.n3 .pun-barra i { background: rgb(var(--tinta2-rgb) / .75); }
+@keyframes punBarra { from { transform: scaleX(0); } }
+.pun-tabla.animada .pun-barra i { animation: punBarra var(--ms-escena) var(--curva-entra) both; }
+.pun-tabla.animada .n1 .pun-barra i { animation-delay: calc(var(--ms-paso) * 3); }
+.pun-tabla.animada .n2 .pun-barra i { animation-delay: calc(var(--ms-paso) * 4); }
+.pun-tabla.animada .n3 .pun-barra i { animation-delay: calc(var(--ms-paso) * 5); }
+.pun-tabla.animada .n4 .pun-barra i { animation-delay: calc(var(--ms-paso) * 6); }
+.pun-tabla.animada .n5 .pun-barra i { animation-delay: calc(var(--ms-paso) * 7); }
+.pun-racha {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px 16px;
+  border-radius: var(--radio-tarjeta); background: rgb(var(--gold-rgb) / .08); border: 1px solid rgb(var(--gold-rgb) / .3);
+}
+.pun-peldano { display: flex; flex-direction: column; gap: 3px; }
+.pun-dias { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted); }
+.pun-dias svg { fill: currentColor; stroke: none; }
+.pun-peldano b { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: rgb(var(--gold-rgb) / .6); }
+.pun-peldano.p2 b { color: rgb(var(--gold-rgb) / .8); }
+.pun-peldano.p3 b, .pun-peldano.p3 .pun-dias { color: var(--gold); }

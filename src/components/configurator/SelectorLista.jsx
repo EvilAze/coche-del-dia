@@ -288,7 +288,7 @@ export default function SelectorLista({
             {optionFlag?.(o) && (
               <img className="bandera" src={optionFlag(o)} alt="" draggable={false} loading="lazy" />
             )}
-            {optionNota?.(o)}
+            {optionNota?.(o) && <span className="pm-opcion-pais-texto">{optionNota(o)}</span>}
           </span>
         )}
       </li>

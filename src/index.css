@@ -5900,3 +5900,9 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .rep-veterano-texto b { display: inline-flex; align-items: center; gap: 8px; }
 .arch-dialogo-fila { margin: -8px -14px 0 0; }
 .arch-dialogo-fila .arch-dialogo-cab { padding-top: 8px; }
+
+/* En un móvil estrecho el nombre de la marca manda: el país se queda en su
+   bandera para que «Mercedes-Benz» no acabe en puntos suspensivos. */
+@media (max-width: 374px) {
+  .pm-opcion-pais-texto { display: none; }
+}

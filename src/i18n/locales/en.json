@@ -670,5 +670,20 @@
   },
   "barra": {
     "jugar": "Play"
+  },
+  "perfil": {
+    "cifras": "Your numbers",
+    "dias": {
+      "one": "day",
+      "other": "days"
+    },
+    "deN": "of {n}",
+    "distribucion": "Guesses to win",
+    "porcentaje": "{pct}% win rate",
+    "perdidas": "Lost",
+    "tema": "Theme",
+    "temaNoche": "Night",
+    "temaDia": "Day",
+    "temaAuto": "Auto"
   }
 }

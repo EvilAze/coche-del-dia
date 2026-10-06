@@ -5288,3 +5288,141 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 .arch-ayuda-texto b { font-family: var(--font-body); font-weight: 700; font-size: 14.5px; color: var(--cdd-text); }
 .arch-ayuda-texto span { font-family: var(--font-body); font-size: 13.5px; line-height: 1.45; color: var(--cdd-muted); }
 .arch-dialogo > .pm-btn { margin-top: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL PERFIL «ASFALTO» (MyStats, clases perf-*)
+   -----------------------------------------------------------------------
+   Tú arriba (monograma, firma, desde cuándo y tu rango), cuatro cifras en
+   tarjetas —la racha viva en oro—, la distribución de tus partidas y los
+   ajustes como una lista con canto. «Eliminar cuenta» va suelto debajo.
+   ═══════════════════════════════════════════════════════════════════════ */
+.perf-id { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.perf-avatar {
+  flex: none; width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cdd-text); color: var(--bg);
+  font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1;
+}
+.perf-id-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.perf-nick {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; color: var(--cdd-text);
+}
+.perf-nick.sin { color: var(--cdd-muted); }
+.perf-desde { font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.perf-rango {
+  margin-top: 2px; height: 24px; padding: 0 8px; display: inline-flex; align-items: center; gap: 5px;
+  border-radius: var(--radio-sello); font-family: var(--font-body); font-weight: 700; font-size: 12px;
+}
+.perf-rango svg { fill: currentColor; }
+.perf-rango.tier-gold { background: rgb(var(--gold-rgb) / .14); color: var(--gold); }
+.perf-rango.tier-silver { background: rgb(var(--plata-rgb) / .14); color: var(--plata); }
+.perf-rango.tier-bronze { background: rgb(var(--bronce-rgb) / .14); color: var(--bronce); }
+.perf-editar {
+  flex: none; width: 44px; height: 44px; border: 0; border-radius: var(--radio-boton); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); color: var(--cdd-muted);
+  transition: color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
+}
+.perf-editar:active { transform: translateY(1px); }
+@media (hover: hover) {
+  .perf-editar:hover { color: var(--cdd-text); }
+}
+
+/* Las cuatro cifras. */
+.perf-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.perf-cifra {
+  display: flex; flex-direction: column; gap: 6px; padding: 14px; min-width: 0; text-align: left;
+  border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  color: var(--cdd-text); font: inherit;
+}
+button.perf-cifra { cursor: pointer; transition: border-color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce); }
+button.perf-cifra:active { transform: translateY(1px); }
+@media (hover: hover) {
+  button.perf-cifra:hover { border-color: var(--line-strong); }
+}
+.perf-cifra .k {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-weight: 600; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--cdd-muted);
+}
+.perf-cifra.clic .k { justify-content: space-between; }
+.perf-cifra .v {
+  display: flex; align-items: baseline; gap: 6px; min-width: 0;
+  font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: .95; color: var(--cdd-text);
+  font-variant-numeric: tabular-nums;
+}
+.perf-cifra .v small {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 17px; font-weight: 600; color: var(--cdd-muted);
+}
+.perf-cifra.oro { background: rgb(var(--gold-rgb) / .09); border-color: rgb(var(--gold-rgb) / .3); }
+.perf-cifra.oro .k, .perf-cifra.oro .v, .perf-cifra.oro .v small { color: var(--gold); }
+.perf-cifra.oro .k svg { fill: currentColor; stroke: none; }
+
+/* Una tarjeta de la sección (la distribución). */
+.perf-tarjeta {
+  display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; padding: 16px;
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+.perf-tarjeta-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.perf-tarjeta-cab h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 19px; color: var(--cdd-text); }
+.perf-tarjeta-cab span { font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.perf-dist { display: flex; flex-direction: column; gap: 6px; }
+.perf-dist-fila { display: grid; grid-template-columns: 16px minmax(0, 1fr) 28px; align-items: center; gap: 10px; }
+.perf-dist-k, .perf-dist-n {
+  display: flex; align-items: center; font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted);
+}
+.perf-dist-n { justify-content: flex-end; }
+.perf-dist-barra { display: block; height: 16px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.perf-dist-barra i {
+  display: block; height: 100%; min-width: 4px; border-radius: 4px; background: rgb(var(--tinta2-rgb) / .7);
+  transition: width var(--ms-escena) var(--curva-entra);
+}
+.perf-dist-fila.fuerte .perf-dist-k, .perf-dist-fila.fuerte .perf-dist-n { color: var(--cdd-text); font-weight: 600; }
+.perf-dist-fila.fuerte .perf-dist-barra i { background: var(--cdd-text); }
+.perf-dist-fila.perdidas .perf-dist-barra i { background: rgb(var(--tinta-rgb) / .16); }
+
+.perf-podios { margin-bottom: 12px; }
+.perf-nota {
+  margin: 0 0 12px; padding: 14px 16px; border-radius: var(--radio-tarjeta); background: var(--surface2);
+  font-family: var(--font-body); font-size: 14px; line-height: 1.45; color: var(--cdd-muted);
+}
+
+/* Los ajustes: una lista con canto, filas de 58px. */
+.perf-ajustes { display: flex; flex-direction: column; margin-top: 8px; }
+.perf-ajustes-titulo {
+  margin: 0 0 8px 4px; font-family: var(--font-mono); font-weight: 500; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.perf-lista { overflow: hidden; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line); }
+.perf-fila {
+  width: 100%; min-height: 58px; box-sizing: border-box; padding: 8px 12px 8px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border: 0; background: none; color: inherit; font: inherit; text-align: left;
+}
+.perf-fila + .perf-fila { border-top: 1px solid var(--line-2); }
+button.perf-fila { cursor: pointer; transition: background-color var(--ms-roce) var(--curva-roce); }
+button.perf-fila:active { background: rgb(var(--tinta-rgb) / .04); }
+@media (hover: hover) {
+  button.perf-fila:hover { background: rgb(var(--tinta-rgb) / .03); }
+}
+.perf-fila-texto { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.perf-fila-texto b { font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--cdd-text); }
+.perf-fila-texto span {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted);
+}
+.perf-chev { flex: none; color: var(--cdd-muted); }
+.perf-segmentado { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--bg); }
+.perf-segmentado button {
+  height: 32px; padding: 0 11px; border: 0; border-radius: 8px; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-muted);
+  transition: background-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce);
+}
+.perf-segmentado button.on { background: var(--surface2); color: var(--cdd-text); font-weight: 700; box-shadow: inset 0 0 0 1px var(--line); }
+.perf-borrar {
+  align-self: center; margin-top: 10px; height: 44px; padding: 0 12px; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 13.5px; color: var(--rojo);
+}
+.perf-error { margin: 10px 0 0; text-align: center; font-family: var(--font-body); font-size: 14px; color: var(--rojo); }

@@ -2,6 +2,7 @@ import { supabase } from "../supabaseClient";
 import { isStreakAlive } from "../lib/dates";
 import { collectorTier } from "./collectionTier";
 import { limpiarNick, nickValido } from "./nickname";
+import { contarDistribucion } from "./distribucion";
 
 const EMPTY_STATS = {
   current_streak: 0,
@@ -273,6 +274,26 @@ export async function getProfileSummary() {
     collection: { unlocked: wonCount, total: catalogTotal },
     tier: collectorTier(wonCount),
   };
+}
+
+// LA DISTRIBUCIÓN DE TUS PARTIDAS: en cuántos intentos ganas y cuántas pierdes,
+// para la tarjeta «Intentos para acertar» del perfil. Sin RPC nueva: se lee de
+// user_guesses (RLS: solo las filas propias) pidiendo, de cada partida, si
+// EXISTEN los intentos 2 a 5 — un escalar por intento (`->marca->>status`) en
+// vez del array entero de intentos, que con un año de partidas serían cientos
+// de KB para contar longitudes. Las partidas a medias no cuentan.
+export async function getMyDistribution() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("user_guesses")
+    .select(
+      "status, i2:guesses->1->marca->>status, i3:guesses->2->marca->>status, i4:guesses->3->marca->>status, i5:guesses->4->marca->>status"
+    )
+    .eq("user_id", user.id)
+    .in("status", ["won", "lost"]);
+  if (error) throw error;
+  return contarDistribucion(data || []);
 }
 
 export async function getMyWonCarIds() {

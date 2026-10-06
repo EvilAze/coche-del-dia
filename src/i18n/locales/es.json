@@ -670,5 +670,20 @@
   },
   "barra": {
     "jugar": "Jugar"
+  },
+  "perfil": {
+    "cifras": "Tus cifras",
+    "dias": {
+      "one": "día",
+      "other": "días"
+    },
+    "deN": "de {n}",
+    "distribucion": "Intentos para acertar",
+    "porcentaje": "{pct} % de acierto",
+    "perdidas": "Perdidas",
+    "tema": "Tema",
+    "temaNoche": "Noche",
+    "temaDia": "Día",
+    "temaAuto": "Auto"
   }
 }

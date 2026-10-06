@@ -14,7 +14,7 @@ import { conCruce } from "./movimiento";
 
 const STORAGE_KEY = "cdd-tema";
 // Debe coincidir con --bg de cada tema (index.css) y con el <meta theme-color>.
-const THEME_COLOR = { dia: "#f3eee1", noche: "#17130d" };
+const THEME_COLOR = { dia: "#f4f3ef", noche: "#0c0d0f" };
 const listeners = new Set();
 
 // ── Lógica pura (testeable en node, sin DOM) ──

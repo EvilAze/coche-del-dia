@@ -430,7 +430,11 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         {catalogFallido ? (
           <CatalogoCaido onRetry={recargarCatalogo} />
         ) : enApp ? (
-          <>
+          // Los tres renglones van en UNA tarjeta (sistema «Asfalto»): se leen
+          // como un solo control con tres partes, separadas por su filete, en vez
+          // de tres líneas sueltas sobre el fondo. La tarjeta no añade alto: el
+          // borde es de 1px y el aire de dentro es el mismo que ya llevaban.
+          <div className="prensa-renglones">
             <CampoBoton
               label={t("cdd.labelMarca")}
               valor={marca}
@@ -491,7 +495,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               // etiqueta (ver CampoBoton), como el «±2 años» de la web.
               apunte={bloqueo.anio ? null : textoHorquilla(t, horquilla, tolerance)}
             />
-          </>
+          </div>
         ) : (
         <>
         <Combo

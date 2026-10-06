@@ -19,7 +19,7 @@ import { useT } from "../i18n";
 // scales son los MISMOS para todo coche (el base se cancela en la división).
 // Cada fallo abre lo mismo, también el primero, que es el que decide si un
 // jugador nuevo sigue (ver la cabecera de api/_lib/zoom.js).
-import { cssZoomLevels, ZOOM_ATTEMPTS } from "../lib/zoom.js";
+import { cssZoomLevels, zoomForAttempt, ZOOM_ATTEMPTS } from "../lib/zoom.js";
 import { anonHeaders, setAnonToken } from "../lib/anonSession";
 import { haySesionLocal, esCuentaReal, asegurarSesionAnonima } from "../lib/auth";
 // "Hoy" en zona Madrid: helper único compartido con dates.js / useDayRollover
@@ -397,6 +397,13 @@ export function useGame() {
   const zoom = status === "playing" ? zoomLevels[zoomIndex] : 1.0;
   const hintIndex = status === "playing" ? zoomIndex : null;
   const totalHints = ZOOM_ATTEMPTS;
+  // EL AUMENTO DE VERDAD, para la lectura del visor. `zoom` no sirve para eso:
+  // es el scale CSS SOBRE el recorte del servidor, así que en el intento 5 vale
+  // 1.0 aunque la foto siga ampliada, y un «1,0×» ahí mentiría. Esto es lo que
+  // amplía la foto ENTERA en este intento, con la misma fórmula que recorta el
+  // servidor (zoomForAttempt, réplica de api/_lib/zoom.js). No filtra nada: el
+  // zoom_base ya viaja al cliente para calcular los scales.
+  const aumento = status === "playing" ? zoomForAttempt(zoomIndex + 1, car?.zoomBase) : null;
 
   // Durante la partida pedimos siempre el crop más amplio (z=5). El cliente
   // termina de "cerrar" el zoom con CSS. Cuando el juego termina añadimos
@@ -689,6 +696,7 @@ export function useGame() {
     attempts,
     status,
     zoom,
+    aumento,
     hintIndex,
     totalHints,
     score,

@@ -112,7 +112,7 @@
        cubre gaps/overscroll para que no asome grafito. */
     background-color: var(--bg);
     color: var(--cdd-text);
-    font-family: 'Libre Franklin', Arial, sans-serif;
+    font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -168,17 +168,26 @@
      (bg-accent/15, border-accent/40…). El modo noche SOLO cambia estas ternas;
      los colores completos de abajo (que usa el CSS .cdd-, .prensa- y .pm-) se
      derivan de ellas y siguen al tema solos. */
-  --bg-rgb: 243 238 225; --bg2-rgb: 233 226 207; --surface-rgb: 251 247 236;
-  --tinta-rgb: 27 23 18; --tinta2-rgb: 110 101 83;
-  --line-strong-rgb: 27 23 18;
-  --rojo-rgb: 179 39 27; --rojo-dark-rgb: 143 31 22;
-  --gold-rgb: 122 92 16; --gold-dark-rgb: 95 71 12;
+  /* «ASFALTO», EDICIÓN DE DÍA. Un gris cálido casi blanco como suelo, blanco
+     para lo que se levanta (tarjetas, campos, la foto) y una tinta casi negra
+     sin matiz. Sustituye al papel crema de «Prensa del motor»: el juego ya no
+     se presenta como un periódico sino como un salpicadero que enmarca la foto.
+     `--line-strong` deja de ser tinta plena y pasa a ser un filete claro: en
+     este sistema separan el aire y las superficies, no las reglas. Los valores
+     de texto están medidos sobre --bg (AA 4.5:1 o más). */
+  --bg-rgb: 244 243 239; --bg2-rgb: 235 234 229; --surface-rgb: 255 255 255;
+  --tinta-rgb: 19 20 22; --tinta2-rgb: 91 96 104;
+  --line-strong-rgb: 205 203 196;
+  /* El rojo de la marca (las dos rayas del logotipo): intento gastado, sección
+     activa, aviso. Ya no es el color del botón principal — ese es la tinta. */
+  --rojo-rgb: 201 50 28; --rojo-dark-rgb: 168 40 22;
+  --gold-rgb: 133 99 26; --gold-dark-rgb: 105 78 20;
   /* Veredicto de la clasificación: VERDE = acierto, ÁMBAR = "casi" (mismo país).
      El rojo queda para el FALLO — verde=correcto/rojo=incorrecto es la convención
      universal, la que promete el modal «Cómo se juega» y la que ya usa la rejilla
      del share (✅/❌). Verde: tinta de "visto bueno" (AA 5.4:1 sobre el crema).
      Ámbar: ocre de "parcial", ni acierto ni fallo (AA 4.9:1). */
-  --verde-rgb: 20 110 51; --ambar-rgb: 154 85 16;
+  --verde-rgb: 17 117 72; --ambar-rgb: 154 86 0;
   /* Podio: plata y bronce. Existen como token porque el oro ya lo era y sus dos
      hermanos se estaban pintando con paleta cruda de Tailwind (zinc-300 /
      amber-700), que NO sigue al tema: sobre el papel crema el zinc-300 quedaba
@@ -196,7 +205,7 @@
      panel de modal, portada al pasar): si algo despega del papel, despega igual.
      El alfa va aparte porque sobre papel basta un roce y sobre grafito hace
      falta peso. */
-  --velo-rgb: 20 16 11; --sombra-alfa: .18;
+  --velo-rgb: 12 13 15; --sombra-alfa: .16;
 
   /* Colores completos derivados (día y noche comparten estas fórmulas). */
   --bg: rgb(var(--bg-rgb)); --bg2: rgb(var(--bg2-rgb));
@@ -210,7 +219,8 @@
      siendo "pista" en cursiva, pero ya legible. Un solo token y ambos temas lo
      heredan (muted se deriva de --tinta2-rgb, que el modo noche reescribe). */
   --placeholder: var(--cdd-muted);
-  --line: rgb(var(--tinta-rgb) / .25); --line-2: rgb(var(--tinta-rgb) / .15);
+  /* Filetes más suaves que en la prensa (.25/.15): aquí separan sin dibujar. */
+  --line: rgb(var(--tinta-rgb) / .14); --line-2: rgb(var(--tinta-rgb) / .08);
   --line-strong: rgb(var(--line-strong-rgb));
   --rojo: rgb(var(--rojo-rgb)); --rojo-dark: rgb(var(--rojo-dark-rgb));
   --gold: rgb(var(--gold-rgb)); --gold-dark: rgb(var(--gold-dark-rgb));
@@ -235,9 +245,9 @@
      juego. Las familias se autoalojan en fonts.css, así que ya estaban cargadas —
      solo faltaba poder nombrarlas desde aquí. `.prensa` las repite (inofensivo) y
      `.theme-platino` las sigue pisando para sus previews. */
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Libre Franklin', Arial, sans-serif;
-  --font-mono: 'Courier Prime', monospace;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   --gold-ink: rgb(var(--bg-rgb)); --gold-glow: transparent;
   --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
@@ -311,6 +321,27 @@
      tampón con peso, no cuatro renglones encendiéndose. */
   --ms-paso: 40ms;
 
+  /* ── LA FORMA (sistema «Asfalto») ─────────────────────────────────────────
+     La prensa era de esquinas vivas: filetes y nada más. Asfalto separa por
+     superficies, y una superficie que se levanta tiene canto. Seis radios, uno
+     por TAMAÑO de objeto y no por gusto — cuanto más grande el objeto, más
+     redondo, para que el canto se perciba igual en un sello de 20px que en una
+     hoja de pantalla entera:
+       · sello   — chips y sellos pequeños.
+       · celda   — las celdas del veredicto, los campos de la web, huecos.
+       · boton   — botones, opciones, el aviso flotante, la cuenta atrás.
+       · tarjeta — el cupón agrupado y las tarjetas de contenido.
+       · foto    — el marco de la fotografía.
+       · hoja    — las esquinas de arriba de las hojas inferiores de la app.
+     En JSX la regla sigue siendo la de test:estetica: nada de `rounded-*` de
+     Tailwind sueltos. La forma vive aquí, como el color y el compás. */
+  --radio-sello: 6px;
+  --radio-celda: 10px;
+  --radio-boton: 12px;
+  --radio-tarjeta: 16px;
+  --radio-foto: 18px;
+  --radio-hoja: 24px;
+
   --curva-entra: cubic-bezier(.16, 1, .3, 1);
   --curva-sale: cubic-bezier(.4, 0, 1, 1);
   --curva-roce: cubic-bezier(.4, 0, .2, 1);
@@ -362,24 +393,26 @@
     scroll-behavior: auto !important;
   }
 }
-/* «Edición de noche» — grafito cálido. Rojo y oro subidos para leer sobre
-   fondo oscuro (contraste AA); filete fuerte en un beige apagado, no blanco
-   puro, para que las dobles rayas del folio no deslumbren. Solo ternas RGB. */
+/* «Asfalto», edición de noche — grafito frío, casi negro, y tinta color hueso.
+   Es donde mejor se ve una fotografía de coche (un configurador la enseña
+   sobre oscuro por eso mismo). Las superficies suben un escalón cada una
+   (fondo → superficie → elevada) en vez de separarse con filetes. Rojo, verde,
+   ámbar y oro subidos para AA sobre el grafito. Solo ternas RGB. */
 :root[data-tema="noche"] {
   color-scheme: dark;
-  --bg-rgb: 23 19 13; --bg2-rgb: 33 27 18; --surface-rgb: 30 26 19;
-  --tinta-rgb: 236 225 207; --tinta2-rgb: 154 141 118;
-  --line-strong-rgb: 185 173 151;
-  --rojo-rgb: 224 87 74; --rojo-dark-rgb: 194 68 55;
-  --gold-rgb: 217 184 119; --gold-dark-rgb: 185 151 90;
+  --bg-rgb: 12 13 15; --bg2-rgb: 27 30 34; --surface-rgb: 20 22 25;
+  --tinta-rgb: 242 240 235; --tinta2-rgb: 167 172 180;
+  --line-strong-rgb: 58 63 70;
+  --rojo-rgb: 229 64 42; --rojo-dark-rgb: 200 52 34;
+  --gold-rgb: 227 194 122; --gold-dark-rgb: 196 164 98;
   /* Verde y ámbar del veredicto, subidos para contraste AA sobre el grafito. */
-  --verde-rgb: 107 191 136; --ambar-rgb: 224 160 74;
-  /* Plata y bronce del podio, subidos igual (AA sobre el grafito: 9.7:1 y 6.1:1). */
-  --plata-rgb: 186 190 199; --bronce-rgb: 205 133 90;
+  --verde-rgb: 63 207 142; --ambar-rgb: 245 165 36;
+  /* Plata y bronce del podio (AA sobre el grafito). */
+  --plata-rgb: 195 200 207; --bronce-rgb: 201 138 94;
   /* El velo se va casi al negro y la sombra gana peso: sobre grafito un roce
      del 18% no separa nada. Todo lo que flota lo hereda solo (--sombra-flota
      se declara una vez arriba y resuelve estas ternas en el punto de uso). */
-  --velo-rgb: 8 6 4; --sombra-alfa: .55;
+  --velo-rgb: 0 0 0; --sombra-alfa: .5;
 }
 
 @layer utilities {
@@ -389,14 +422,14 @@
      (datos/cifras). La pantalla de juego y los modales usan sus propias
      familias en `.cdd-*`/`.prensa-*`/`.pm-*`, así que no dependen de esto. */
   .font-display {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
     font-weight: 700;
   }
   .font-body {
-    font-family: 'Libre Franklin', Arial, sans-serif;
+    font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
   }
   .font-mono {
-    font-family: 'Courier Prime', monospace;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
   }
 
   /*
@@ -1013,9 +1046,9 @@ body,
      (noche) — más abajo en este archivo. .prensa ya NO los fija localmente,
      para que el modo oscuro pueda sobreescribirlos por herencia. Aquí solo
      quedan la tipografía editorial y el lienzo (que consumen los tokens). */
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Libre Franklin', Arial, sans-serif;
-  --font-mono: 'Courier Prime', monospace;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --ambient: none;
   background: var(--bg); color: var(--cdd-text);
   font-family: var(--font-body);
@@ -3152,19 +3185,19 @@ body,
 .modal-scrim, .scrim-flat { background: rgb(var(--velo-rgb) / .72); }
 
 /* Utilidades de contenido de modal (concretas, reutilizables en F3-F4) */
-.pm-kicker { font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 800; font-size: 10px;
+.pm-kicker { font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif; font-weight: 800; font-size: 10px;
   letter-spacing: .24em; text-transform: uppercase; color: var(--rojo); }
-.pm-title { font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-size: 26px;
+.pm-title { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 900; font-size: 26px;
   letter-spacing: -.01em; line-height: 1.05; color: var(--cdd-text); }
-.pm-body { font-family: 'Fraunces', Georgia, serif; font-size: 14px; line-height: 1.55; color: var(--cdd-muted); }
+.pm-body { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-size: 14px; line-height: 1.55; color: var(--cdd-muted); }
 .pm-strong { color: var(--cdd-text); font-weight: 600; }
-.pm-label { font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 600; font-size: 10px;
+.pm-label { font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 10px;
   letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted); }
 /* Marcador de lista: cuadradito de tinta (fuera el punto menta con glow) */
 .pm-dot { width: 6px; height: 6px; flex: none; background: var(--cdd-text); border-radius: 0; margin-top: 7px; }
 .pm-btn { width: 100%; border: 0; border-radius: 0; cursor: pointer; padding: 14px 12px;
   background: var(--cdd-text); color: var(--bg);
-  font-family: 'Libre Franklin', Arial, sans-serif; font-weight: 800; font-size: 13px;
+  font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif; font-weight: 800; font-size: 13px;
   letter-spacing: .24em; text-transform: uppercase; transition: background var(--ms-roce) var(--curva-roce); }
 @media (hover: hover) {
   .pm-btn:hover:not(:disabled) { background: var(--rojo); }
@@ -3872,3 +3905,489 @@ body,
   0%, 100% { opacity: 0; }
   50%      { opacity: 1; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PIEL «ASFALTO» — FASE 1: el sistema y la pantalla de juego
+   -----------------------------------------------------------------------
+   El juego deja de vestirse de periódico y se viste de salpicadero: grafito
+   y hueso (o blanco y tinta de día), superficies que se levantan con canto
+   en vez de filetes, Barlow para leer, Barlow Condensed para los titulares y
+   las cifras grandes, IBM Plex Mono para todo lo que es un dato (etiquetas,
+   años, puntos, el reloj). El rojo de la marca deja de ser el botón: pasa a
+   decir «gastado / atención»; el botón principal es la tinta.
+
+   POR QUÉ UNA CAPA AL FINAL Y NO REESCRIBIR CADA REGLA EN SU SITIO. La
+   pantalla de juego de la app es una composición MEDIDA (reglas 18, 24 y 25
+   de CLAUDE.md, y `npm run test:layout`): alturas, suelos de la foto, la hoja
+   que aparta el escenario. Esta capa cambia color, tipografía, forma y relleno
+   de las piezas, pero NO toca ninguna de las reglas que reparten el alto de la
+   pantalla — por eso puede vivir aparte, ganando por cascada (misma
+   especificidad que la regla original, declarada después). Lo que la fase 2
+   rehaga (la navegación por pestañas, Clasificación, Archivo, Perfil y la
+   Repesca) irá consolidando el resto en su sitio.
+
+   Fuente de verdad visual: el lienzo de diseño «Coche del Día — Rediseño».
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* SIN CURSIVAS, EN NINGÚN SITIO. El sistema no compone nada en cursiva —las
+   apostillas, pies y huecos que la prensa ponía en Fraunces itálica son aquí
+   texto corriente en tinta apagada— y por eso no se cargan caras itálicas. Sin
+   esta regla, cualquier `font-style: italic` que quede por la app (y en la
+   fase 1 quedan muchos en las pantallas de la fase 2) se dibujaría como una
+   oblicua SINTÉTICA, la versión torcida a máquina de la redonda, que es lo
+   peor que se le puede hacer a una tipografía. */
+html *, html *::before, html *::after { font-style: normal !important; }
+
+/* ── LA CABECERA ──────────────────────────────────────────────────────────── */
+.prensa-topbar {
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono); font-weight: 600; font-size: 10.5px; letter-spacing: .06em;
+}
+/* El botón del sumario: una tecla con canto, no un marco de lámina. Mismos
+   34px de caja que fijan el alto de la barra. */
+.prensa-topbar > span > .prensa-sumario-boton {
+  border: 0; border-radius: var(--radio-boton);
+  background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
+}
+@media (hover: hover) {
+  .prensa-topbar > span > .prensa-sumario-boton:hover {
+    background: rgb(var(--tinta-rgb) / .1); color: var(--cdd-text); border-color: transparent;
+  }
+}
+/* La repesca pendiente: un punto ÁMBAR, que en Asfalto es el color de «hay
+   algo disponible» (el mismo de la tarjeta de repesca del Archivo). Redondo:
+   es una señal, no una esquina de papel. */
+.prensa-sumario-boton .aviso {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ambar); box-shadow: 0 0 0 2px var(--bg);
+}
+
+/* LA MARCA. El coche del logotipo (máscara, así sigue la tinta del tema) sobre
+   sus dos rayas rojas, que se dibujan aquí: la gruesa y la fina. */
+.prensa-marca {
+  display: inline-flex; flex-direction: column; justify-content: center; gap: 2px;
+  flex: none; width: 30px;
+}
+.prensa-marca .coche {
+  display: block; height: 13px; background: var(--cdd-text);
+  -webkit-mask: url(/marca-coche.png) center / contain no-repeat;
+  mask: url(/marca-coche.png) center / contain no-repeat;
+}
+.prensa-marca::after {
+  content: ""; display: block; height: 4px; box-sizing: border-box;
+  border-top: 2px solid var(--rojo); border-bottom: 1px solid var(--rojo);
+}
+.prensa-marca--grande { width: 1.3em; gap: .07em; }
+.prensa-marca--grande .coche { height: .56em; }
+.prensa-marca--grande::after { height: .17em; border-top-width: .085em; border-bottom-width: .045em; }
+
+/* La cornisa de la app: el nombre en la voz de los titulares y la fecha en la
+   de los datos. 17 + 4 + 10,5 = 31,5px: sigue dentro de los 34 de la barra. */
+.prensa-cornisa { gap: 4px; }
+.prensa-cornisa .cabeza {
+  font-family: var(--font-display); font-weight: 700; font-size: 17px;
+  letter-spacing: .005em; text-transform: none; color: var(--cdd-text); line-height: 1;
+}
+.prensa-cornisa .fecha {
+  font-family: var(--font-mono); font-weight: 400; font-size: 10.5px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted); line-height: 1;
+}
+.prensa-topbar .prensa-clasif .pos { font-family: var(--font-display); font-weight: 700; }
+
+/* La cabecera de la web: el nombre con su marca, sin filetes dobles. */
+.prensa-masthead .titulo {
+  display: inline-flex; align-items: center; gap: .32em;
+  font-weight: 700; letter-spacing: .005em;
+}
+.prensa-masthead--compacto .titulo { font-size: clamp(28px, 5.4vw, 42px); }
+.prensa-folio {
+  border-top: 0; border-bottom: 1px solid var(--line); padding: 2px 0 12px;
+  font-family: var(--font-mono); font-weight: 400; letter-spacing: .06em; color: var(--cdd-muted);
+}
+
+@media (max-width: 1099px) {
+  /* La barra de la app pierde su doble filete: separa el aire. Son 3px menos
+     de cabecera, que se lleva el historial (la foto se mide por el ancho). */
+  :root[data-plataforma="app"] .prensa-topbar { border-bottom: 0; }
+  :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton {
+    background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
+  }
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .lad {
+    font-family: var(--font-mono); font-weight: 600; font-size: 9.5px; letter-spacing: .06em;
+  }
+}
+
+/* ── LOS TITULARES DE SECCIÓN ──────────────────────────────────────────────
+   El ladillo de la prensa era versalita espaciada con su filete hasta el
+   margen. Aquí es un titular corto en Barlow Condensed, sin regla: el aire de
+   encima ya dice que empieza otra cosa. */
+.prensa-ladillo {
+  font-family: var(--font-display); font-weight: 700; font-size: 19px;
+  letter-spacing: .005em; text-transform: none; color: var(--cdd-text);
+}
+.prensa-ladillo::after { content: none; }
+.prensa-ladillo .aparte {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted);
+}
+
+/* LA PREGUNTA DEL JUEGO y, en el hueco del filete, EL MEDIDOR DE INTENTOS
+   (ZoomStage): gastados en el rojo de la marca, el actual en tinta, los que
+   quedan en filete. El cambio de color espera al cuarto tiempo del veredicto
+   (`--ms-sello`), cuando la lente empieza a abrirse: el segmento se gasta a la
+   vez que la foto se aleja, no antes. */
+.prensa-ladillo--pregunta { align-items: center; }
+.prensa-ladillo--pregunta .rotulo {
+  font-family: var(--font-display); font-weight: 700; font-size: 21px;
+  letter-spacing: .005em; line-height: 1.05;
+}
+.prensa-ladillo .filete { border-top: 1px solid var(--line); transform: none; align-self: center; }
+.prensa-ladillo .filete.medidor {
+  border-top: 0; height: 4px; min-width: 44px;
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px;
+}
+.prensa-ladillo .filete .seg {
+  border-radius: 2px; background: var(--line-strong);
+  transition: background-color var(--ms-sello) var(--curva-roce) var(--ms-sello);
+}
+.prensa-ladillo .filete .seg.gastado { background: var(--rojo); }
+.prensa-ladillo .filete .seg.actual { background: var(--cdd-text); }
+
+/* ── LA FOTOGRAFÍA ─────────────────────────────────────────────────────────
+   Sin paspartú ni filete: la foto llena su marco y el marco tiene canto. Lo
+   que la prensa decía con la raya («esto es una ventana») lo dice ahora el
+   VISOR: las cuatro esquinas de cámara y la lectura del aumento (CarImage). */
+.prensa .cdd-stage-frame {
+  border: 0; padding: 0; border-radius: var(--radio-foto); background: var(--surface2);
+}
+.cdd-marco-previo { border-radius: var(--radio-foto); }
+.cdd-visor {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  transition: opacity var(--ms-sello) var(--curva-roce) var(--ms-sello);
+}
+.cdd-visor.fuera { opacity: 0; }
+/* Las esquinas van en blanco con una sombra de un píxel: viven ENCIMA de una
+   fotografía cualquiera (la misma excepción que el botón de vídeo), y así se
+   leen igual sobre una carrocería blanca que sobre un fondo negro. */
+.cdd-visor .esq {
+  position: absolute; width: 18px; height: 18px;
+  border: 0 solid rgb(255 255 255 / .92);
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / .55));
+}
+.cdd-visor .arr-izq { left: 12px; top: 12px; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: 5px; }
+.cdd-visor .arr-der { right: 12px; top: 12px; border-right-width: 2px; border-top-width: 2px; border-top-right-radius: 5px; }
+.cdd-visor .aba-izq { left: 12px; bottom: 12px; border-left-width: 2px; border-bottom-width: 2px; border-bottom-left-radius: 5px; }
+.cdd-visor .aba-der { right: 12px; bottom: 12px; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: 5px; }
+/* La lectura del aumento. Se re-estampa (`.prensa-estampada`) cuando cambia
+   de intento, pero en el CUARTO tiempo del veredicto: la cifra nueva aparece
+   cuando la lente empieza a moverse, no cuando cae la tinta de las celdas. */
+.cdd-lente {
+  position: absolute; left: 20px; bottom: 18px;
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 8px; border-radius: 7px;
+  background: rgb(12 13 15 / .74); color: rgb(242 240 235);
+  font-family: var(--font-mono); font-weight: 600; font-size: 11.5px;
+  letter-spacing: .02em; font-variant-numeric: tabular-nums;
+  animation-delay: var(--ms-sello);
+}
+.cdd-peek { border-radius: var(--radio-boton); border: 1px solid var(--line-strong); }
+
+/* ── EL HISTORIAL: celdas, no marcas de corrector ──────────────────────────
+   Cada dato es una celda con su superficie: verde si se acertó, ámbar si es
+   del mismo país, neutra si no — con el valor tachado y su nota escrita
+   debajo (AttemptList). La rejilla conserva el número a la izquierda y la
+   proporción de las tres columnas (el modelo, la más ancha). */
+.prensa-fila {
+  grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, .85fr);
+  gap: 6px; padding: 3px 0; border-bottom: 0; align-items: stretch;
+}
+.prensa-fila .num { align-self: center; font-family: var(--font-mono); font-weight: 600; font-size: 11px; }
+.prensa-dato {
+  display: flex; flex-direction: column; justify-content: center;
+  min-height: 46px; padding: 6px 9px; box-sizing: border-box;
+  border-radius: var(--radio-celda); background: var(--surface); border: 1px solid var(--line);
+  font-family: var(--font-body); font-weight: 600; font-size: 15px; line-height: 1.2;
+}
+.prensa-dato.bien { background: rgb(var(--verde-rgb) / .1); border-color: rgb(var(--verde-rgb) / .38); }
+.prensa-dato.cerca { background: rgb(var(--ambar-rgb) / .1); border-color: rgb(var(--ambar-rgb) / .4); }
+.prensa-dato.bien .palabra, .prensa-dato.cerca .palabra { border-bottom: 0; }
+.prensa-dato.mal .palabra { text-decoration-color: rgb(var(--tinta2-rgb) / .6); text-decoration-thickness: 1.5px; }
+.prensa-dato.anio .palabra { font-family: var(--font-mono); font-size: 14px; }
+.prensa-dato .prensa-dir { color: var(--cdd-text); }
+.prensa-apostilla {
+  margin-top: 3px; white-space: nowrap; overflow: hidden;
+  font-family: var(--font-mono); font-weight: 600; font-size: 9.5px;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.prensa-apostilla .bandera { width: 16px; height: 11px; border-radius: 2px; }
+.prensa-dato.bien .nota { color: var(--verde); }
+.prensa-dato.mal .nota { color: var(--rojo); }
+/* La dirección del año informa, no corrige: va en tinta apagada, como su flecha. */
+.prensa-dato.anio.mal .nota { color: var(--cdd-muted); }
+/* La fila que espera al servidor: la celda dibujada a trazos, entintándose. */
+.prensa-fila-pendiente .prensa-dato {
+  background: transparent; border-style: dashed; border-color: var(--line-strong);
+}
+.prensa-tablero { border-top: 0; }
+.prensa-fila-hueco { min-height: 0; padding: 3px 0; }
+.prensa-fila-hueco .num { align-self: center; }
+.prensa-fila-hueco .hueco {
+  display: flex; align-items: center; min-height: 34px; padding: 0 12px;
+  border: 1px dashed var(--line-strong); border-radius: var(--radio-celda);
+  font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted);
+}
+.prensa-nota { border-bottom: 0; padding: 8px 2px 10px; }
+.prensa-nota .titulo { font-family: var(--font-body); font-weight: 600; font-size: 14px; }
+
+/* ── EL CUPÓN ──────────────────────────────────────────────────────────────
+   App: los tres renglones agrupados en UNA tarjeta, separados por su filete
+   (GuessForm los envuelve en `.prensa-renglones`). Al tocar, el renglón se
+   ilumina — ya no se tiñe de rojo el filete, que en Asfalto significaría
+   «gastado». Resuelto: superficie verde y su ✓, sin chevrón. */
+.prensa-renglones {
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+.prensa-renglon {
+  min-height: 54px; padding: 8px 14px; border-radius: 0;
+  border-bottom: 1px solid var(--line);
+  transition: background-color var(--ms-roce) var(--curva-roce);
+}
+.prensa-renglones > .prensa-renglon:last-child { border-bottom: 0; }
+.prensa-renglon:active:not(:disabled) { border-bottom-color: var(--line); background: var(--surface2); }
+.prensa-renglon.resuelto { border-bottom: 1px solid var(--line); background: rgb(var(--verde-rgb) / .08); }
+.prensa-renglones > .prensa-renglon.resuelto:last-child { border-bottom: 0; }
+.prensa-renglon .etiqueta { font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .08em; }
+.prensa-renglon .apunte { font-family: var(--font-body); font-size: 12.5px; }
+.prensa-renglon .apunte.resuelta { font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .06em; }
+.prensa-renglon .valor { font-family: var(--font-body); font-weight: 600; font-size: 17px; }
+.prensa-renglon .vacio { font-family: var(--font-body); font-weight: 500; font-size: 16px; }
+
+/* Web: campos con canto en vez de línea base. El foco abraza el campo en tinta
+   (el rojo queda para el campo inválido). El ✓ del campo resuelto entra DENTRO
+   de la caja, a la derecha, en vez de colgar fuera. */
+.prensa-label { font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .08em; }
+.prensa-label .pista-label { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; }
+.prensa-input {
+  padding: 11px 13px; border: 1px solid var(--line-strong); border-radius: var(--radio-celda);
+  background: var(--surface);
+  font-family: var(--font-body); font-weight: 600; font-size: 16px;
+  transition: border-color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce);
+}
+.prensa-input:focus { border: 1px solid var(--cdd-text); padding-bottom: 11px; box-shadow: 0 0 0 1px var(--cdd-text); }
+.prensa-input.invalida { border: 1px solid var(--rojo); box-shadow: 0 0 0 1px var(--rojo); }
+.prensa-input.veredicto-resuelto {
+  border: 1px solid rgb(var(--verde-rgb) / .5); padding-bottom: 11px; padding-right: 38px;
+  background: rgb(var(--verde-rgb) / .08);
+}
+.prensa-input.veredicto-resuelto:focus { border-color: rgb(var(--verde-rgb) / .5); box-shadow: none; }
+.prensa-input::placeholder { font-family: var(--font-body); font-weight: 500; font-size: 15px; }
+.prensa-campo { align-items: center; }
+.prensa-campo-marca { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); }
+.prensa-horquilla { font-family: var(--font-body); font-size: 12.5px; margin-top: 5px; }
+.prensa-listbox { padding: 6px; border-radius: var(--radio-boton); border: 1px solid var(--line-strong); }
+.prensa-opt { border-radius: 8px; font-family: var(--font-body); font-weight: 500; font-size: 15px; }
+.prensa-opt.hi { background: var(--surface2); box-shadow: none; }
+.prensa-opt .bandera { border-radius: 2px; }
+
+/* EL BOTÓN PRINCIPAL ES LA TINTA. Hueso sobre grafito de noche, casi negro
+   sobre claro de día: el mayor contraste de la pantalla para la única acción
+   que importa. Sin la sombra dura que lo levantaba al pasar (era la firma del
+   tipo de imprenta): aquí solo baja un punto de tono. Pulsado, se hunde un
+   píxel, como todo lo demás. Incompleto sigue siendo tocable, apagado. */
+.prensa-submit {
+  height: 60px; border-radius: var(--radio-boton);
+  background: var(--cdd-text); color: var(--bg);
+  font-family: var(--font-display); font-weight: 700; font-size: 21px; letter-spacing: .08em;
+}
+@media (hover: hover) {
+  .prensa-submit:hover:not(:disabled):not(.is-incomplete) {
+    transform: none; box-shadow: none; background: rgb(var(--tinta-rgb) / .86);
+  }
+  .prensa-submit.is-incomplete:hover { background: rgb(var(--tinta-rgb) / .11); }
+}
+.prensa-submit.is-incomplete {
+  background: rgb(var(--tinta-rgb) / .07); color: var(--cdd-muted);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.prensa-submit.is-trabajando,
+.prensa-submit.is-trabajando:disabled { background: var(--cdd-text); color: var(--bg); }
+.prensa-submit.is-trabajando::after { background: rgb(var(--bg-rgb) / .4); }
+
+/* El pie del juego, en la voz de los datos. */
+.prensa-cierre {
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono); font-weight: 600; font-size: 10.5px; letter-spacing: .06em;
+}
+
+/* ── LA HOJA DE SELECCIÓN (app) ────────────────────────────────────────────
+   Esquinas de arriba redondeadas y un tirador de verdad. Solo forma, color y
+   letra: el alto, el anclaje y el arrastre son los de siempre — y la cabecera
+   y el buscador NO crecen ni un píxel. En un 320x568 con el teclado arriba la
+   lista vive al límite de las dos opciones a la vista que exige test:layout;
+   un título a 24px y un buscador con más relleno la dejaban en 1,9. */
+.pm-hoja, .pm-hoja-nav {
+  border-top: 0;
+  border-top-left-radius: var(--radio-hoja); border-top-right-radius: var(--radio-hoja);
+}
+.pm-hoja-tirador { width: 38px; border-radius: 2px; opacity: .8; }
+.pm-hoja-titulo { font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.15; }
+.pm-hoja-apunte { font-family: var(--font-body); font-size: 13px; }
+.pm-buscar-campo {
+  padding: 7px 12px; border: 1px solid var(--line-strong); border-radius: var(--radio-boton);
+  background: var(--surface2); font-family: var(--font-body); font-weight: 500;
+}
+.pm-buscar-campo:focus { border: 1px solid var(--cdd-text); padding-bottom: 7px; }
+.pm-buscar-campo::placeholder { font-family: var(--font-body); font-size: 15px; }
+.pm-opcion { font-weight: 600; font-size: 17px; }
+.pm-opcion:active, .pm-opcion.hi { background: var(--surface2); }
+/* La ya elegida: tinta plena y un tinte, sin el filete rojo al margen (en
+   Asfalto el rojo significa «gastado», no «elegido»). */
+.pm-opcion.elegida { box-shadow: inset 3px 0 0 0 var(--cdd-text); background: rgb(var(--tinta-rgb) / .05); }
+.pm-grupo-letra { font-weight: 600; letter-spacing: .1em; }
+.pm-indice-letra { font-weight: 600; }
+.pm-indice-letra:active, .pm-indice-letra.activa { color: var(--cdd-text); }
+.pm-decada, .pm-anio { border-radius: var(--radio-boton); border-color: var(--line-strong); }
+.pm-decada.activa { background: var(--cdd-text); border-color: var(--cdd-text); color: var(--bg); }
+.pm-anio:active:not(:disabled) { background: var(--surface2); }
+.pm-anio.elegido { border-color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--cdd-text); }
+
+/* ── EL PANEL DEL FINAL (EndScreen): victoria y derrota ────────────────────── */
+.prensa .cdd-end-scrim { background: rgb(var(--velo-rgb) / .55); }
+.prensa .cdd-end-card {
+  background: var(--bg); border: 1px solid var(--line); outline: 0;
+  border-radius: 22px; box-shadow: 0 30px 70px -24px rgb(var(--velo-rgb) / .65);
+}
+.prensa .cdd-end-close {
+  color: rgb(255 255 255); background: rgb(12 13 15 / .6);
+  border: 0; border-radius: var(--radio-boton);
+}
+@media (hover: hover) {
+  .prensa .cdd-end-close:hover { color: rgb(255 255 255); background: rgb(12 13 15 / .78); border-color: transparent; }
+}
+.prensa .cdd-reveal { border-bottom: 0; }
+.prensa .cdd-reveal-brand {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .08em; color: var(--cdd-muted);
+}
+.prensa .cdd-reveal-model {
+  font-family: var(--font-display); font-weight: 700; font-size: 34px; letter-spacing: .002em; line-height: .95;
+}
+.prensa .cdd-reveal-meta { font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; }
+
+/* EL SELLO DEL VEREDICTO, convertido en chapa: «Resuelto» sobre el verde del
+   acierto, «Sin resolver» sobre superficie neutra — perder no se pinta de rojo,
+   se cuenta. Sigue cayendo con su rebote (`prensaSellar`, la misma duración de
+   la que cuelga el golpe háptico de useSelloSentido): solo cambian la forma y
+   la inclinación final, más contenida. */
+.prensa-sello {
+  padding: 6px 12px; border: 0; border-radius: 9px; transform: rotate(-4deg);
+  background: var(--verde); color: var(--bg);
+  font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: .08em;
+  box-shadow: 0 10px 24px -8px rgb(var(--velo-rgb) / .5);
+}
+.prensa-sello.tinta { background: var(--surface); color: var(--cdd-text); border: 1px solid var(--line-strong); }
+
+.cdd-partida {
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted);
+}
+.cdd-end-sec { border-top: 1px solid var(--line); padding: 16px 18px 6px; gap: 10px; }
+.prensa .cdd-note { font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.cdd-ficha-datos { font-family: var(--font-mono); }
+.cdd-ficha-datos .k { font-family: var(--font-mono); letter-spacing: .08em; }
+
+/* El botón de compartir: el mismo bloque de tinta que ADIVINAR. */
+.prensa .cdd-submit {
+  border-radius: var(--radio-boton); background: var(--cdd-text); color: var(--bg);
+  font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .08em;
+}
+@media (hover: hover) {
+  .prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: rgb(var(--tinta-rgb) / .86); }
+  .prensa .cdd-submit--ghost:hover:not(:disabled) {
+    color: var(--cdd-text); background: rgb(var(--tinta-rgb) / .05); box-shadow: inset 0 0 0 1px var(--cdd-muted);
+  }
+}
+.prensa .cdd-submit--ghost {
+  background: transparent; color: var(--cdd-text);
+  box-shadow: inset 0 0 0 1px var(--line-strong); font-size: 17px;
+}
+.prensa .cdd-end-link {
+  border-radius: var(--radio-boton); border-color: var(--line-strong);
+  font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em;
+}
+/* La repesca, en el ámbar de «disponible». */
+.prensa .cdd-repesca-cta { color: var(--ambar); }
+
+/* La cuenta atrás: una caja con canto, etiqueta a un lado y reloj al otro. */
+.prensa .cdd-next {
+  margin: 8px 18px 0; padding: 12px 16px; justify-content: space-between;
+  border: 1px solid var(--line); border-radius: var(--radio-boton);
+}
+.prensa .cdd-next-k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; }
+.prensa .cdd-next-clock { font-family: var(--font-mono); font-weight: 600; font-size: 20px; }
+
+/* La distribución del día: barras con canto, la tuya en tinta plena. */
+.cdd-dist-track { height: 18px; }
+.prensa .cdd-dist-track { background: var(--surface2); border-radius: 5px; }
+.prensa .cdd-dist-bar { background: rgb(var(--tinta-rgb) / .22); border-radius: 5px; }
+.prensa .cdd-dist-bar.me { background: var(--cdd-text); }
+.prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--cdd-text); }
+
+/* El parte de la clasificación: subir es buena noticia (verde), bajar es
+   aviso (rojo). El oro sigue siendo del puesto, que es lo que vale algo. */
+.cdd-parte { border-top: 1px solid var(--line); padding: 16px 18px 6px; }
+.cdd-parte-lad {
+  font-family: var(--font-display); font-weight: 700; font-size: 19px;
+  letter-spacing: .005em; text-transform: none;
+}
+.cdd-parte-lad::after { content: none; }
+.cdd-parte-mov { font-family: var(--font-body); }
+.cdd-parte-mov--up { color: var(--verde); }
+.cdd-parte-dist, .cdd-parte-nudge { font-family: var(--font-body); }
+.cdd-parte-cta {
+  border-bottom: 0; color: var(--cdd-text);
+  font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em;
+}
+.cdd-unlock-kicker { font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em; }
+.cdd-unlock-name { font-family: var(--font-body); font-weight: 600; }
+.pm-puesto .cifra { font-weight: 700; letter-spacing: 0; }
+.pm-puesto .de { font-family: var(--font-body); }
+
+@media (max-width: 640px) {
+  /* En el móvil el panel flota con 8px de aire y canto, en vez de ir a sangre
+     con filetes arriba y abajo (eso era una banda del pliego). El aire de
+     arriba y de abajo respeta las barras del sistema. */
+  .cdd-end {
+    padding: max(8px, var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) 8px
+             max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+  .prensa .cdd-end-card { border: 1px solid var(--line); border-radius: 20px; max-height: 100%; }
+}
+
+/* ── LAS PRIMITIVAS DE LOS MODALES (lo que el sistema le da a la fase 2) ───
+   Las pantallas de detrás (sumario, clasificación, archivo, perfil) se
+   rediseñan en la fase 2, pero sus piezas comunes ya hablan Asfalto: el panel
+   con canto y una sombra de verdad en vez del doble filete de lámina, y los
+   botones y rótulos con la letra nueva. */
+.modal-panel-flat {
+  border: 1px solid var(--line-strong); border-radius: 20px;
+  box-shadow: 0 30px 70px -24px rgb(var(--velo-rgb) / .6);
+}
+.pm-kicker { font-family: var(--font-mono); font-weight: 600; letter-spacing: .08em; }
+.pm-title { font-family: var(--font-display); font-weight: 700; letter-spacing: .005em; }
+.pm-body { font-family: var(--font-body); font-size: 15px; }
+.pm-label { font-family: var(--font-mono); letter-spacing: .08em; }
+.pm-dot { border-radius: 50%; }
+.pm-btn {
+  border-radius: var(--radio-boton);
+  font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .08em;
+}
+.pm-btn--ghost { box-shadow: inset 0 0 0 1px var(--line-strong); }
+@media (hover: hover) {
+  .pm-btn:hover:not(:disabled) { background: rgb(var(--tinta-rgb) / .86); }
+  .pm-btn--ghost:hover:not(:disabled) {
+    color: var(--cdd-text); background: rgb(var(--tinta-rgb) / .05); box-shadow: inset 0 0 0 1px var(--cdd-muted);
+  }
+}
+.pm-sello { border-radius: var(--radio-sello); }
+.scrollbar-premium::-webkit-scrollbar-thumb { border-radius: 3px; }

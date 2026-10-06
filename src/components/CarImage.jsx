@@ -55,6 +55,10 @@ export default function CarImage({
   // el zoom/crop (coherencia de seguridad con el servidor) quedan intactos.
   // Desactiva la viñeta propia del diseño anterior.
   configurator = false,
+  // Cuánto amplía la foto ENTERA este intento (lo calcula useGame con la misma
+  // fórmula que recorta el servidor). Solo alimenta la lectura del visor; el
+  // zoom que se pinta sigue siendo `zoom`. null = sin lectura.
+  aumento = null,
 }) {
   const [loaded, setLoaded] = useState(false);
   // Cuando el <source> AVIF/WebP falla o tarda demasiado, marcamos fallback:
@@ -199,7 +203,13 @@ export default function CarImage({
   // zoom CSS activo (p.ej. 1.667 si ganó en el 2º intento). Sin esto, la
   // animación arrancaría desde scale=1 y el "pop" no tendría amplitud.
   const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
-  const { t } = useT();
+  const { t, locale } = useT();
+  // La lectura del visor: «3,7×» y bajando. Con una cifra decimal y en el
+  // formato del idioma (coma en español): es un instrumento, no un adorno.
+  const lecturaAumento =
+    configurator && status === "playing" && Number.isFinite(aumento) && aumento > 0
+      ? `${aumento.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×`
+      : null;
 
   function handleImageLoad(e) {
     const img = e.currentTarget;
@@ -430,6 +440,30 @@ export default function CarImage({
         />
       )}
 
+      {/* EL VISOR (sistema «Asfalto»): cuatro esquinas de cámara y la lectura
+          del aumento. Dicen lo mismo que el filete de la prensa decía con una
+          raya —«esto es una ventana, no la foto»— y además CUÁNTO de ventana.
+          Solo mientras se juega: al revelar, las esquinas se apagan con la foto
+          abriéndose (mismo retardo que la lente) y la lectura desaparece, porque
+          ya no hay aumento que leer. La cifra se re-estampa al cambiar de intento
+          en el cuarto tiempo del veredicto, cuando la lente empieza a moverse. */}
+      {configurator && (
+        <div className={"cdd-visor" + (status === "playing" ? "" : " fuera")} aria-hidden="true">
+          <span className="esq arr-izq" />
+          <span className="esq arr-der" />
+          <span className="esq aba-izq" />
+          <span className="esq aba-der" />
+          {lecturaAumento && (
+            <span key={lecturaAumento} className="cdd-lente prensa-estampada">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="M20 20l-4.2-4.2M8.5 11h5" />
+              </svg>
+              {lecturaAumento}
+            </span>
+          )}
+        </div>
+      )}
       {/* Viñeta decorativa: sólo cuando la imagen ya está visible. En modo
           configurador el diseño aporta su propio grano/HUD, así que se omite. */}
       {loaded && !configurator && (

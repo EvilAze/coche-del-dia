@@ -24,10 +24,13 @@
  *      desaparecer sobre el papel crema de la de día. Todo color va por token.
  *   3. GLOWS (`shadow-[0_0_…]`). Sobre papel un halo no existe; ensucia.
  *   4. HEX SUELTOS en className. Son siempre un color de un tema anterior.
- *   5. REDONDEOS (`rounded-sm` … `rounded-3xl`). La forma es la mitad de la
- *      identidad: el sistema es de filetes, doble filete y esquinas VIVAS. Cada
- *      piel anterior tenía su radio (12px en el plano, 16-24px en el de cristal)
- *      y sobrevivían mezclados: el mismo marco de foto redondeado en el lightbox
+ *   5. REDONDEOS SUELTOS (`rounded-sm` … `rounded-3xl`). La forma es la mitad
+ *      de la identidad, y en «Asfalto» las esquinas tienen radio — pero el radio
+ *      vive en los tokens `--radio-*` de index.css, elegido por tamaño de objeto
+ *      (celda 10, botón 12, tarjeta 16, foto 18, hoja 24), y no en utilidades de
+ *      Tailwind escritas a mano en cada componente. Cada piel anterior tenía su
+ *      radio (12px en el plano, 16-24px en el de cristal, cero en la prensa) y
+ *      sobrevivían mezclados: el mismo marco de foto redondeado en el lightbox
  *      y a escuadra en el escenario, tarjetas de 16px al lado de filetes rectos.
  *      `rounded-none` sí se permite —es la forma de decirlo en voz alta— y
  *      `rounded-full` también, porque un CÍRCULO no es una esquina blanda: es un
@@ -129,7 +132,7 @@ const REGLAS = [
   {
     id: "redondeo",
     re: REDONDEO,
-    msg: "esquina blanda — el sistema es de filetes y esquinas vivas; usa rounded-none (rounded-full solo para un círculo de verdad, como el glifo de ayuda)",
+    msg: "radio suelto — la forma vive en los tokens --radio-* de index.css (por tamaño de objeto); en JSX, rounded-none o rounded-full para un círculo de verdad",
   },
   {
     id: "sombra-blanda",

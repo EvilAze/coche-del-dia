@@ -81,6 +81,17 @@ import { esApp } from "../../lib/plataforma";
 import { rankMovement } from "../../lib/rankMovement";
 import { ordinal } from "../PuestoCifra";
 
+// La marca del logotipo: el coche (máscara de /marca-coche.png, en la tinta del
+// tema) sobre las dos rayas rojas, que pinta el CSS. Sin texto: va aria-hidden
+// porque siempre acompaña al nombre escrito.
+function Marca({ grande = false }) {
+  return (
+    <span className={"prensa-marca" + (grande ? " prensa-marca--grande" : "")} aria-hidden="true">
+      <span className="coche" />
+    </span>
+  );
+}
+
 export default function Header({
   rank = null, // { rank, total, delta } | null — puesto de temporada del logueado
   rankCargando = false, // aún no sabemos el puesto (≠ "no tiene puesto")
@@ -118,7 +129,7 @@ export default function Header({
   //
   // AHORA ES UNA CORNISA, que es como se llama en tipografía el rótulo que en
   // las páginas interiores dice qué diario y qué día estás leyendo: el nombre
-  // en versalitas diminutas y, debajo, la fecha en Fraunces. Eso responde de
+  // en versalitas diminutas y, debajo, la fecha. Eso responde de
   // paso a la objeción de «una app dice su nombre una vez»: una cornisa no es
   // el nombre presentándose otra vez, es la página identificándose. Y le
   // devuelve a la izquierda de la barra un motivo para existir más allá de
@@ -231,6 +242,10 @@ export default function Header({
               La fecha larga viaja `sr-only` y lo visual va `aria-hidden`: quien
               escucha oye «Jueves, 13 de agosto de 2026» en vez de una fecha sin
               año, y no se le repite el nombre de la app en cada pantalla. */}
+          {/* LA MARCA (sistema «Asfalto»): la silueta del logotipo sobre sus dos
+              rayas rojas, dibujada con una máscara para que la tinta siga al
+              tema. Es decoración: el nombre lo dice la cornisa de al lado. */}
+          {fechaCorta && <Marca />}
           {fechaCorta && (
             <span className="prensa-cornisa">
               <span className="sr-only">{dateLabel}</span>
@@ -265,7 +280,7 @@ export default function Header({
       <div className="prensa-masthead prensa-masthead--compacto">
         {/* El h1 real (SEO/lectores) vive sr-only en Configurator; este es el
             wordmark visual del masthead. */}
-        <p className="titulo">{t("app.title")}</p>
+        <p className="titulo"><Marca grande />{t("app.title")}</p>
       </div>
 
       {/* La banda del folio es cosa de la WEB. En la app la fecha ya viaja en

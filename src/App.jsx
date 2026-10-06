@@ -447,6 +447,7 @@ export default function App() {
     attempts,
     status,
     zoom,
+    aumento,
     hintIndex,
     totalHints,
     score,
@@ -608,6 +609,7 @@ export default function App() {
         car={car}
         status={status}
         zoom={zoom}
+        aumento={aumento}
         hintIndex={hintIndex}
         totalHints={totalHints}
         guesses={guesses}

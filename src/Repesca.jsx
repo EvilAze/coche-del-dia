@@ -64,7 +64,7 @@ const ANIO_CORRECT_MARGIN = 2;
 // Dirección visual: misma que el juego diario (Configurator.jsx, «Prensa del
 // motor», rojo de rotativa). La repesca hereda las variables de .prensa vía las clases
 // .cdd-*/.prensa-* que usa; --accent apunta al rojo (focus-ring y piezas cdd).
-const ACCENT = "#b3271b";
+const ACCENT = "var(--rojo)";
 // El zoom escalonado es el MISMO sistema que el juego diario y POR COCHE: los
 // scales CSS se derivan del zoom_base del coche (cssZoomLevels, src/lib/zoom.js)
 // y se aplican sobre el crop del último intento que sirve api/repesca/image.js.

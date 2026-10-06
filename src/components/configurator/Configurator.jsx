@@ -30,7 +30,7 @@ import { useDailyStats, Distribution } from "./dailyStats";
 // tema/acento dejan de ser configurables (el periódico tiene UNA identidad);
 // las props theme/accent se ignoran y se retiran del todo en F5.
 const DEFAULT_THEME = "prensa";
-const DEFAULT_ACCENT = "#b3271b";
+const DEFAULT_ACCENT = "#c9321c";
 
 export default function Configurator({
   dataReady = true,
@@ -46,6 +46,7 @@ export default function Configurator({
   car,
   status,
   zoom,
+  aumento = null,
   hintIndex,
   totalHints,
   guesses,
@@ -386,6 +387,7 @@ export default function Configurator({
           <ZoomStage
             car={car}
             zoom={zoom}
+            aumento={aumento}
             status={status}
             hintIndex={hintIndex}
             totalHints={totalHints}

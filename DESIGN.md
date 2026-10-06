@@ -1,122 +1,123 @@
 ---
 name: Coche del Día
-description: Daily car-guessing game styled as a motoring newspaper — ink on paper, rules instead of shadows.
-theme: Prensa del motor
+description: Daily car-guessing game styled as an instrument panel — graphite and bone, surfaces instead of rules, the photograph framed like a viewfinder.
+theme: Asfalto
 colors:
-  primary: "#b3271b"
-  secondary: "#7a5c10"
-  neutral-bg: "#f3eee1"
-  neutral-surface: "#fbf7ec"
-  neutral-surface2: "#e9e2cf"
-  neutral-text: "#1b1712"
-  neutral-muted: "#6e6553"
-  good: "#146e33"
-  warn: "#9a5510"
-  bad: "#b3271b"
+  primary: "#131416"
+  signal: "#c9321c"
+  reward: "#85631a"
+  neutral-bg: "#f4f3ef"
+  neutral-surface: "#ffffff"
+  neutral-surface2: "#ebeae5"
+  neutral-text: "#131416"
+  neutral-muted: "#5b6068"
+  good: "#117548"
+  warn: "#9a5600"
+  bad: "#c9321c"
 typography:
   display:
-    fontFamily: "Fraunces, Georgia, serif"
-    fontSize: "clamp(28px, 9vw, 44px)"
-    fontWeight: 900
-    lineHeight: 0.95
-    letterSpacing: "-0.02em"
+    fontFamily: "Barlow Condensed, 'Arial Narrow', sans-serif"
+    fontSize: "21px"
+    fontWeight: 700
+    lineHeight: 1.05
+    letterSpacing: "0.005em"
   body:
-    fontFamily: "Libre Franklin, Arial, sans-serif"
-    fontSize: "14px"
-    fontWeight: 600
-    lineHeight: 1.35
+    fontFamily: "Barlow, 'Helvetica Neue', Arial, sans-serif"
+    fontSize: "15px"
+    fontWeight: 500
+    lineHeight: 1.45
   label:
-    fontFamily: "Courier Prime, monospace"
-    fontSize: "10px"
-    fontWeight: 400
+    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
+    fontSize: "10.5px"
+    fontWeight: 600
     lineHeight: 1
-    letterSpacing: "0.22em"
+    letterSpacing: "0.06em"
 rounded:
-  sm: "0"
-  md: "0"
-  lg: "0"
+  sello: "6px"
+  celda: "10px"
+  boton: "12px"
+  tarjeta: "16px"
+  foto: "18px"
+  hoja: "24px"
 spacing:
   sm: "8px"
-  md: "14px"
-  lg: "26px"
+  md: "12px"
+  lg: "16px"
+  xl: "24px"
 components:
   button-primary:
-    backgroundColor: "{colors.primary}"
+    backgroundColor: "{colors.neutral-text}"
     textColor: "{colors.neutral-bg}"
-    rounded: "0"
-    padding: "14px 16px"
-  button-primary-hover:
-    backgroundColor: "#8f1f16"
-  input-flat:
-    backgroundColor: "{colors.neutral-surface}"
-    textColor: "{colors.neutral-text}"
-    rounded: "0"
-    padding: "14px 14px"
-    borderBottom: "2px solid {colors.primary} on focus"
+    rounded: "{rounded.boton}"
+    height: "56px (app) / 60px (web)"
+  verdict-cell:
+    rounded: "{rounded.celda}"
+    padding: "6px 9px"
+    states: "correct = green tint · same country = amber tint · wrong = neutral surface, value struck through"
 ---
 
 # Design System: Coche del Día
 
-> **Nota de mantenimiento.** Este documento describe la piel **viva**, «Prensa
-> del motor». La web ha pasado por tres: neón menta sobre grafito → plano ámbar
-> → prensa. Si encuentras menta (`#7af0c8`), `Archivo`, `Space Mono` o esquinas
-> redondeadas en código o en un documento, es sedimento de una migración
-> anterior, no el sistema. La fuente de verdad ejecutable son las ternas RGB de
-> `:root` en `src/index.css` y los tokens de `tailwind.config.js`, que apuntan a
-> ellas.
+> **Maintenance note.** This document describes the **live** skin, «Asfalto».
+> The site has been through four: mint neon on graphite → flat amber → «Prensa
+> del motor» (a motoring newspaper: cream paper, Fraunces, square corners,
+> rules and rubber stamps) → Asfalto. Asfalto ships in **phases**: phase 1
+> (this one) changes the whole system — color, type, shape — and redesigns the
+> game screen and the end-of-game panel; phase 2 brings tab navigation and
+> redesigns Ranking, Archive, Profile and Repesca, which today wear the new
+> system on their old layouts. If you find Fraunces, Libre Franklin, Courier
+> Prime, `3px double` rules or rubber-stamp borders in code, it is sediment
+> from Prensa. The executable source of truth is the RGB triplets and the
+> `--radio-*` / `--ms-*` tokens in `:root` of `src/index.css`, plus the
+> «PIEL ASFALTO» layer at the end of that file.
 
 ## 1. Overview
 
-**Creative North Star: "La prensa del motor"**
+**Creative North Star: "the instrument panel that frames the photograph"**
 
-The interface is a motoring newspaper, not an app chrome. Ink printed on paper:
-rules and rifling instead of shadows, rubber stamps instead of icons, a masthead
-and a folio instead of a navbar. The daily car is the front-page photograph, and
-everything around it behaves like the page that frames it — captions, kickers,
-a closing time at the foot.
-
-This is deliberately **not** a dashboard, not a casual mobile game, and not a
-Wordle clone with a dark mode. It rejects glassmorphism, neon gradients, glows,
-and pill-shaped everything.
+The daily car is the only thing the player really looks at, so everything else
+behaves like the dashboard around it: quiet surfaces, data set in mono, one
+high-contrast control. A car configurator shows the car on dark for a reason,
+and the night edition is where this skin is most at home.
 
 **Key characteristics**
 
-- **Print, not screen.** Every separation is a rule (`border`) or a double rule
-  (`arch-filete`). Nothing floats without reason; what floats does so with one
-  single shadow recipe.
-- **Typography does the decorating.** Where another system reaches for an icon
-  or a colored badge, this one reaches for a stamp, a kicker, or a caption.
-- **The photograph rules the page.** Layout, cropping, and fitting all serve
-  keeping the car visible and the primary action reachable.
+- **Surfaces, not rules.** Things separate by stepping up a surface (ground →
+  surface → raised) and by air. A hairline exists, but it is a seam, not a
+  drawing.
+- **The photograph is a viewfinder.** Four camera corners and a magnification
+  readout («3,7×» going down) say "this is a window, and this is how much of
+  one" — the game's mechanic, made visible.
+- **One primary action, in ink.** The guess button is the highest-contrast
+  object on the screen: bone on graphite at night, near-black on light by day.
+- **Data looks like data.** Years, points, counters, labels and the clock are
+  IBM Plex Mono, tabular.
 
 ## 2. Themes
 
-Two editions, one system: **día** (default, paper) and **edición de noche**
-(warm graphite). The night edition is not a second design — it **only rewrites
-the RGB triplets** in `:root[data-tema="noche"]`. Every derived color, border,
-and shadow follows automatically.
-
-That is why a hard-coded hex or a raw Tailwind color (`amber-400`, `zinc-300`)
-is a bug and not a shortcut: it looks fine in the edition you were testing and
-disappears in the other. A silver medal written as `zinc-300` scored 1.4:1 on
-cream paper — invisible.
+Two editions, one system: **día** (light) and **noche** (graphite). The night
+edition only rewrites the RGB triplets in `:root[data-tema="noche"]`; every
+derived color, border, and shadow follows. A hard-coded hex or a raw Tailwind
+color is therefore a bug: it looks right in the edition you tested and
+disappears in the other. The default follows the system preference
+(`index.html` sets `data-tema` before first paint; `src/lib/theme.js` keeps the
+override).
 
 | Token | Día | Noche |
 |---|---|---|
-| `papel` (bg) | `#f3eee1` | `#17130d` |
-| `papel-2` | `#e9e2cf` | `#211b12` |
-| `papel-mat` (surface) | `#fbf7ec` | `#1e1a13` |
-| `tinta` (text) | `#1b1712` | `#ece1cf` |
-| `tinta-2` (muted) | `#6e6553` | `#9a8d76` |
-| `rojo` / `accent` | `#b3271b` | `#e0574a` |
-| `oro-viejo` / `gold` | `#7a5c10` | `#d9b877` |
-| `verde` | `#146e33` | `#6bbf88` |
-| `ámbar` | `#9a5510` | `#e0a04a` |
-| `plata` | `#5f636a` | `#babec7` |
-| `bronce` | `#8c522d` | `#cd855a` |
+| `bg` | `#f4f3ef` | `#0c0d0f` |
+| `surface` | `#ffffff` | `#141619` |
+| `bg2` / raised | `#ebeae5` | `#1b1e22` |
+| `line-strong` (seam) | `#cdcbc4` | `#3a3f46` |
+| `tinta` (text, primary fill) | `#131416` | `#f2f0eb` |
+| `tinta-2` (muted) | `#5b6068` | `#a7acb4` |
+| `rojo` (signal) | `#c9321c` | `#e5402a` |
+| `verde` (correct) | `#117548` | `#3fcf8e` |
+| `ámbar` (same country / available) | `#9a5600` | `#f5a524` |
+| `oro` (reward) | `#85631a` | `#e3c27a` |
+| `plata` | `#5f636a` | `#c3c8cf` |
+| `bronce` | `#8c522d` | `#c98a5e` |
 
-The theme is stamped on `<html data-tema>` by an inline script in `index.html`
-(before first paint, so there is no flash) and toggled by `src/lib/theme.js`.
 The platform is stamped the same way on `<html data-plataforma="app">` from
 `src/index.jsx` when running inside the APK.
 
@@ -124,93 +125,90 @@ The platform is stamped the same way on `<html data-plataforma="app">` from
 
 ### Named rules
 
-**The two-currency rule.** Red and gold are not interchangeable accents; they
-say different things.
+**Every accent means one thing.**
 
-- **Rojo de rotativa** (`rojo`, aliased `accent`) means **action and
-  attention**: the ADIVINAR button, the active link, the season kicker, the
-  first-visit nudge on the rules link.
-- **Oro viejo** (`gold` / `oro-viejo`) means **this is worth something**, and is
-  reserved for the premium moments: streak, victory, podium, achievements. Gold
-  spent on ordinary chrome stops reading as a reward.
+- **Rojo** (`rojo`, aliased `accent`) is the brand's red — the two stripes of
+  the logo — and in the UI it means **spent / attention**: a used attempt in the
+  meter, the active section, an invalid field, a real error. It is **no longer
+  the primary button** (that is ink). A wrong verdict uses it only for its ✕
+  and its note, never as a fill.
+- **Oro** (`gold`) means **this is worth something**: streak, victory points,
+  podium, collection. Gold on ordinary chrome stops reading as a reward.
+- **Ámbar** means **available / partial**: the "same country" hint, and a
+  pending repesca. It is never a warning.
 
 `plata` and `bronce` exist so the podium has three real metals that follow the
 theme.
 
 **The verdict rule.** Guess feedback uses the universal convention, and never
-color alone — every hint carries text or shape as well (see §8).
+color alone — every cell carries its written note and a glyph (§8).
 
-- **Verde** — correct.
+- **Verde** — correct: green-tinted cell, ✓, note «Correcto».
 - **Ámbar** — partial, and it means exactly one thing: the guessed brand is
-  **from the same country** as the real one. It is not a general "close".
-- **Rojo** — wrong.
+  **from the same country** as the real one. Amber-tinted cell with the flag
+  and «Mismo país».
+- **Wrong** — neutral surface, the value struck through, note «No es» in red.
 
-The year has no partial state: it is correct within a tolerance of ±2 and wrong
-otherwise, and a wrong year carries a **direction arrow** (up/down) instead of a
-color of its own.
+The year has no partial state: correct within ±2, wrong otherwise, and a wrong
+year carries a **direction arrow** and «Más nuevo / Más antiguo» in muted ink
+instead of red — it informs, it does not scold.
 
-**The one-saturated-fill rule.** On any given screen exactly one element may
-carry a saturated fill, and it is the primary action. Everything else is
-typography and rules. The end-of-game screen is the canonical example: it once
-had three green emoji, a gold box, and a double-ruled frame competing with the
-share button, which made the CTA the fifth most eye-catching object on a screen
-with one job.
+**The one-high-contrast-fill rule.** On any screen exactly one element carries
+the full-contrast fill, and it is the primary action (ADIVINAR, COMPARTIR).
+The verdict tints are low-alpha washes, not fills.
 
-**Contrast floor.** AA (4.5:1) for body and interactive text, in **both**
-editions. Placeholders included — they were at 2.4:1 as a `.62`-alpha tint until
-they were moved onto the muted ink token.
+**Contrast floor.** AA (4.5:1) for body and interactive text in **both**
+editions; the light-edition red, green, amber and gold were darkened until
+they passed on `bg`.
 
 ## 4. Typography
 
-Three voices, and they never collapse into one.
+Three voices.
 
 | Voice | Family | Used for |
 |---|---|---|
-| `font-display` | **Fraunces** (Georgia, serif) | Mastheads, headlines, ordinals, car names |
-| `font-body` | **Libre Franklin** (Arial, sans) | All UI: buttons, labels, running text |
-| `font-mono` | **Courier Prime** (monospace) | Technical labels, kickers, counters, stamps, the closing clock |
+| `font-display` | **Barlow Condensed** 600/700 | The game question, section titles, car names, big numbers, the primary button (uppercase, +0.08em) |
+| `font-body` | **Barlow** 400–700 | All running text and UI: values in cells and fields, notes, body copy |
+| `font-mono` | **IBM Plex Mono** 400/600 | Labels, kickers, years, points, counters, the magnification readout, the clock |
 
-All three are self-hosted in `src/fonts.css`. The families are declared on
-`:root`, not only inside `.prensa` — modals, the archive, and the leaderboard
-render *outside* that root, and when the variables were scoped to `.prensa`
-their `font-family: var(--font-display)` silently resolved to nothing and fell
-back to the body sans. Three voices became one everywhere except the game
-screen.
+All three are static families, self-hosted from `public/fonts/` via
+`src/fonts.css` (generated by `scripts/gen-local-fonts.mjs`), latin and
+latin-ext only: 274 KB in total, down from 424 KB for the Prensa trio. The two
+faces visible on first paint are preloaded in `index.html`.
 
-### Named rules
-
-**The kicker rule.** Metadata, section labels, and counters are set in Courier
-Prime, uppercase, tracking ≥ 0.2em (`pm-kicker`). It is the typographic
-equivalent of a caption in a newspaper — small, technical, and never competing
-with the headline.
-
-**The stamp rule.** Verdicts and status are **rubber stamps** (`pm-sello`,
-`prensa-sello`): a rotated rectangle with a ruled border and mono type. This is
-the system's answer to badges and emoji.
+**No italics, anywhere.** No italic faces are loaded, and a single rule in the
+Asfalto layer neutralizes `font-style: italic` across the app: a synthesized
+oblique is the worst thing you can do to a typeface. What Prensa set as an
+italic caption is here plain text in muted ink.
 
 ## 5. Shape and elevation
 
-**No rounding. No glows.** Both are absolute in this skin.
+**Corners have a radius, chosen by object size**, never ad hoc. Six tokens in
+`:root`:
 
-- Corners are square (`rounded-none`). Any `border-radius` still present in base
-  CSS is legacy from the previous skin and is explicitly neutralized under
-  `.prensa` — e.g. `.prensa .cdd-stage-frame { border-radius: 0 }` overrides the
-  16px left over from the flat-amber era.
-- Separation is a **filete**: `1px solid` in ink. Section breaks use the
-  **doble filete** `arch-filete` (`3px double`).
-- Depth, when something genuinely floats (dropdown, modal panel, toast, a cover
-  lifting on hover), is one single recipe: `--sombra-flota`. It is defined once
-  per edition — a light touch on paper (18% alpha), real weight on graphite
-  (55%) — because a shadow tuned for cream paper is invisible on graphite, and
-  a shadow derived from *ink* inverts into a pale halo at night, which is
-  precisely the glow the system forbids.
-- Photographs are mounted, not bled: `arch-paspartu` gives them a paper mat, so
-  leftover space reads as mounting board rather than as a gap.
+| Token | Value | Used for |
+|---|---|---|
+| `--radio-sello` | 6px | chips, small seals |
+| `--radio-celda` | 10px | verdict cells, web fields, empty slots |
+| `--radio-boton` | 12px | buttons, options, the floating peek, the countdown |
+| `--radio-tarjeta` | 16px | the grouped coupon and content cards |
+| `--radio-foto` | 18px | the photograph frame |
+| `--radio-hoja` | 24px | top corners of the app's bottom sheets |
+
+In JSX the rule stays what `test:estetica` enforces: **no Tailwind
+`rounded-*` utilities**. Shape lives in tokens, like color and motion.
+
+- Separation is surface and air; a `1px` seam in `--line` where two surfaces
+  meet (e.g. the three rows of the app coupon card).
+- Depth, when something genuinely floats (dropdown, modal panel, end panel,
+  peek), is a real shadow derived from `--velo-rgb`, never from ink — a shadow
+  from bone ink would be a pale halo at night.
+- **No glows**, no glass, no gradient washes.
 
 ## 6. Motion — "el compás"
 
 Motion is the fourth half of the system, and the last one to get written down.
-Color had its RGB triplets, shape had its rule, typography had its three
+Color had its RGB triplets, shape had its tokens, typography had its three
 voices; motion had fourteen ad-hoc durations scattered across `index.css` and,
 in most of them, no easing at all — that is, the browser's default `ease`, the
 very curve `tailwind.config.js` described as *"too weak, no punch"* two lines
@@ -222,27 +220,25 @@ with a job:
 
 | Step | Value | Job |
 |---|---|---|
-| `--ms-pulso` | 90ms | the paper sinks under a finger and comes back. One pixel. |
-| `--ms-roce` | 160ms | a color or a rule changes; geometry never notices. |
+| `--ms-pulso` | 90ms | something sinks under a finger and comes back. One pixel. |
+| `--ms-roce` | 160ms | a color or a seam changes; geometry never notices. |
 | `--ms-hoja` | 200ms | a panel enters or leaves. **Contractual** — see below. |
-| `--ms-sello` | 280ms | the rubber stamp. |
+| `--ms-sello` | 280ms | the stamp: verdict cells, seals, the attempt meter. |
 | `--ms-escena` | 460ms | something changes shape or face: a card flips, a bar fills. |
 | `--ms-revelado` | 720ms | **the photograph, and nothing else.** |
 
 `--ms-latido` (1.2s) sits outside the scale on purpose: it is not a journey
-from A to B but an ambient pulse that never ends (the inked row waiting on the
+from A to B but an ambient pulse that never ends (the dashed row waiting on the
 server). And `--ms-paso` (40ms) is not a duration either — it is the *distance
 in time* between pieces in a cascade.
 
 **`--ms-revelado` has exactly one consumer and stays that way.** The photograph
 is the only thing in the app the player is actually watching while it moves, so
-it is the only thing allowed to take most of a second. A second consumer is
-either a photo or a bug.
+it is the only thing allowed to take most of a second.
 
-**The step beats the name.** The big end-of-game seal falls from `scale(1.7)`
-rotating seven degrees, so it *travels* like a scene even though it is called a
-stamp, and it carries `--ms-escena`. The alternative — steps that lie about how
-long they last so the name matches the object — is worse.
+**The step beats the name.** The end-of-game seal falls from `scale(1.7)`
+rotating, so it *travels* like a scene even though it is called a stamp, and it
+carries `--ms-escena`.
 
 ### The five curves
 
@@ -256,41 +252,36 @@ long they last so the name matches the object — is worse.
 
 ### Named rules
 
-**Exits are quicker than entrances.** Opening presents something worth watching
-arrive; closing is the user already having decided. `ModalShell` leaves in
-`--ms-roce` with `--curva-sale` and enters in `--ms-hoja` with `--curva-entra`.
-The one exception is the coupon sheet (`salidaRapida={false}`), because sheet,
-photo frame and the chrome above it are one choreography (CLAUDE.md #18).
+**Exits are quicker than entrances.** `ModalShell` leaves in `--ms-roce` with
+`--curva-sale` and enters in `--ms-hoja` with `--curva-entra`. The one
+exception is the coupon sheet (`salidaRapida={false}`), because sheet, photo
+frame and the chrome above it are one choreography (CLAUDE.md #18).
 
-**The verdict is a four-beat phrase.** Make → model → year stamp at 0/110/220ms
-(`STAGGER_MS` in `AttemptList.jsx`), and the photograph opens on the fourth beat
-at 280ms (the transition delay in `CarImage.jsx`). They used to fire together,
-with opposite curves. The delay does not make it slower, it makes it *legible*:
-verdict first, consequence second.
+**The verdict is a four-beat phrase — seen and felt.** Make → model → year
+stamp at 0/110/220ms (`PASO_VEREDICTO_MS` in `lib/veredicto.js`), and the
+photograph opens on the fourth beat at 280ms (the transition delay in
+`CarImage.jsx`). The attempt meter spends its segment and the magnification
+readout re-stamps on that same fourth beat. The haptic phrase
+(`haptic.veredicto`) taps on the same three beats, weighted by result; the end
+of the game is felt when the end seal lands (`useSelloSentido`).
 
-**Ink appears; it never slides.** Entrances animate opacity, not `transform` —
-both because that is what ink does and because `useEncajeEscenario` and
-`useEscenarioApartado` measure those same boxes with `getBoundingClientRect`.
-The metaphor and the safety constraint want the same thing.
+**Stamps fade in; they never slide.** Entrances animate opacity (and a 0.94 →
+1 scale for cells), not position — `useEncajeEscenario` and
+`useEscenarioApartado` measure those boxes with `getBoundingClientRect`.
 
 **Hover is gated.** Every `:hover` rule lives inside `@media (hover: hover)`,
 and Tailwind's `hover:` utilities compile the same way via
 `future.hoverOnlyWhenSupported`. On a touch screen the browser applies hover on
-*tap* and leaves it stuck: the guess button used to stay lifted with its hard
-shadow after every attempt.
+*tap* and leaves it stuck.
 
 **Every tap target answers the finger.** The app switches off
-`-webkit-tap-highlight-color`, and that highlight *was* the acknowledgement. Two
-dialects replace it: an **object** (button, card, chip, row) sinks one pixel; a
-**line of text** (service links, masthead) turns red. Plus a delegated
-`pointerdown` listener (`lib/tacto.js`) that fires a selection tick on anything
-tappable, so the modals are no longer mute while the game screen buzzes.
+`-webkit-tap-highlight-color`; an **object** (button, card, chip, row) sinks one
+pixel and a delegated `pointerdown` listener (`lib/tacto.js`) fires a selection
+tick on anything tappable.
 
-**Reduced motion is one rule, not a list.** There used to be eight
-`prefers-reduced-motion` blocks each naming its own selectors, and two had
-already fallen behind. Now a single universal rule kills `animation` and drops
-`transition-duration` to 1ms — 1ms rather than `none` because `transitionend`
-still has to fire for the sheet's settle cleanup.
+**Reduced motion is one rule, not a list.** A single universal rule kills
+`animation` and drops `transition-duration` to 1ms — 1ms rather than `none`
+because `transitionend` still has to fire for the sheet's settle cleanup.
 
 ### The guardrail is automated
 
@@ -302,70 +293,79 @@ silencer, where `1ms` is a zero and not a tempo.
 ## 7. Components
 
 ### Buttons
-- **Primary** (`prensa-submit`, `cdd-submit`): square, red fill, paper-colored
-  ink, 14–16px padding. Presses down (scale ~0.98) — mechanical, not springy.
-- **Ghost / service links**: no fill, muted ink, red on hover.
-- **Close**: a ruled square with a stroked ✕ glyph, never a circle.
+- **Primary** (`prensa-submit`, `cdd-submit`, `pm-btn`): ink fill, background
+  colored text, Barlow Condensed 700 uppercase +0.08em, `--radio-boton`, 56px
+  in the app and 60px on the web. Hover lowers the fill a step; press sinks one
+  pixel. **Incomplete** stays tappable, as a pale raised fill with muted text;
+  **working** keeps the ink fill with a sweeping band (`is-trabajando`).
+- **Ghost**: transparent with a 1px seam ring.
+- **Close** on photographs: a dark translucent rounded square with a white ✕.
 
-### Inputs
-- Flat surface, square, with a **2px red underline on focus** rather than a
-  ring — a form filled in by hand, not a control panel. Native focus rings are
-  suppressed only where the editorial indicator replaces them.
-- Keyboard focus elsewhere is a uniform red `focus-ring`, `:focus-visible` only.
+### The game screen
+- **Question + meter**: «¿Qué coche es?» on the left, «Intento 3 de 5» on the
+  right, and between them the five-segment attempt meter (spent = red, current
+  = ink, remaining = seam).
+- **Photograph**: `--radio-foto`, no mat, the viewfinder corners and the
+  magnification readout (`useGame` computes the real magnification over the
+  full photo with the same formula as the server crop — the CSS scale alone
+  would read 1,0× on the last attempt while the photo is still cropped).
+- **History**: numbered rows of three verdict cells (§3).
+- **Coupon** — app: the three selector rows grouped in one card
+  (`prensa-renglones`); web: three rounded fields, ink focus ring, red only when
+  invalid.
 
-### Cards and containers
-- Surface `papel-mat`, `1px` ink rule, square corners, 16px padding.
-- The archive covers are **magazine covers**: masthead strip, issue number,
-  4:3 photo in a paspartú, headline in Fraunces.
+### End-of-game panel
+Rounded floating panel (8px air on phones), the photograph band, the verdict
+seal as a chip («Resuelto» on green, «Sin resolver» on a neutral surface —
+losing is told, not painted red), points and streak, share in ink, the
+countdown in a rounded box, the day's distribution with your bar in ink.
 
 ### Icons
-There is a line-icon set (`components/configurator/icons.jsx`, 1.6 stroke on a
-24 box; `AchievementIcons.jsx` for achievements). Prefer typography over icons,
-and icons over emoji — **emoji are banned in the UI entirely** (§9).
+Line icons (`components/configurator/icons.jsx`, 1.6 stroke on a 24 box;
+`AchievementIcons.jsx` for achievements). The brand mark is the logo's car as a
+CSS mask (`public/marca-coche.png`) over its two red stripes. **Emoji are banned
+in the UI entirely** (§9).
 
 ## 8. Accessibility
 
 - AA contrast minimum for text and interactive states, verified in both
   editions.
-- **Color is never the sole carrier.** Verdict hints always pair color with text
-  or shape; the attempt pips are ruled squares, not just colored dots.
-- `prefers-reduced-motion` is honoured by **one** universal rule rather than a
-  list of selectors to keep up to date (§6): animations off, transitions down to
-  1ms, smooth scrolling down to instant, haptics silent, and the day/night
-  crossfade never requested in the first place.
+- **Color is never the sole carrier.** Every verdict cell has a written note and
+  a glyph; the attempt meter is backed by the written «Intento n de 5».
+- `prefers-reduced-motion` is honoured by **one** universal rule (§6), and
+  haptics go silent with it.
 - Keyboard navigation with a visible focus indicator on every interactive
   element.
-- The game photo carries a localized `alt`; decorative flags and rules are
-  `aria-hidden`.
+- The game photo carries a localized `alt`; decorative flags, marks, viewfinder
+  corners and verdict notes are `aria-hidden` (the exact verdict travels in
+  `sr-only`).
 
 ## 9. Do's and Don'ts
 
 ### Do
-- **Do** take every color from the theme tokens (`papel`, `tinta`, `rojo`,
-  `gold`, `plata`, `bronce`, `muted`), so both editions follow.
-- **Do** reach for typography first: a kicker, a caption, or a stamp usually
-  replaces the badge you were about to draw.
-- **Do** keep rules at 1px ink, and use `arch-filete` when a section genuinely
-  ends.
+- **Do** take every color from the theme tokens, so both editions follow.
+- **Do** take every radius from `--radio-*`, by object size.
+- **Do** set data (years, points, counters, labels) in mono.
 - **Do** let the component supply the ornament, never the string.
 
 ### Don't
 - **Don't** put **emoji** in JSX or in UI strings.
-- **Don't** use the raw Tailwind palette (`amber-400`, `zinc-300`, `slate-…`).
+- **Don't** use the raw Tailwind palette or Tailwind `rounded-*` utilities.
 - **Don't** add **glows** (`shadow-[0_0_…]`) or loose hex values in classes.
-- **Don't** round corners, and don't reintroduce blur/glass as decoration.
+- **Don't** use red as a fill for anything but a real error, or for the primary
+  button.
 - **Don't** spend gold on anything that is not a reward.
+- **Don't** set anything in italic.
 
 ### The guardrail is automated
 
 `npm run test:estetica` (`scripts/check-estetica.mjs`, included in `npm test`)
-fails the build on emoji in UI, raw Tailwind palette, glows, and loose hex in
-classes. It exists because none of those break the build or the tests on their
-own — they just make the site look like three different apps stitched together,
-which is exactly what happened across the three skins.
+fails the build on emoji in UI, raw Tailwind palette, Tailwind `rounded-*`,
+glows, and loose hex in classes. `npm run test:layout` measures the app game
+screen in six phones, both editions, with and without the keyboard: run it
+whenever a change touches heights in the game screen or the sheets.
 
-Three exceptions are encoded in the script **with their reason**, and all three
-share it: they are painted outside our canvas — the plain-text share string
-(where emoji is the lingua franca of Wordle results and the destination app
-draws them), the push notification title (drawn by Android), and the flag map.
-`src/admin/` is exempt as an internal tool.
+Three exceptions are encoded in the estética script **with their reason**, and
+all three share it: they are painted outside our canvas — the plain-text share
+string, the push notification title, and the flag map. `src/admin/` is exempt
+as an internal tool.

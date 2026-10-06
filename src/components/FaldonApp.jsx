@@ -101,7 +101,7 @@ export default function FaldonApp({ user = null, streak = 0, onOpenLogin }) {
   }
 
   return (
-    <div className="mb-4 border border-tinta p-4 text-left">
+    <div className="pm-aviso mb-4 border border-tinta p-4 text-left">
       <p className="pm-kicker">
         {pideCuenta ? t("app.promoAccountTitle") : t("app.promoTitle")}
       </p>

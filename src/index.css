@@ -4493,3 +4493,10 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   .prensa-area-clas { border-right: 0; padding-right: 0; margin-right: 0; gap: 16px; }
   .prensa-area-jugar { border-left: 0; padding-left: 0; margin-left: 0; }
 }
+
+/* Los avisos del final de partida (el aviso diario y la edición Android): una
+   tarjeta con canto, como el resto del panel, en vez de la caja de filete negro
+   de la prensa. Gana a las utilidades `border-tinta` del JSX por orden. */
+.pm-aviso {
+  border-color: var(--line); border-radius: var(--radio-tarjeta); background: var(--surface);
+}

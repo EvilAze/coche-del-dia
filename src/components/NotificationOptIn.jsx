@@ -105,7 +105,7 @@ export default function NotificationOptIn() {
       // acento y las esquinas redondeadas del rediseño plano, y su cuerpo iba en
       // `text-white/90` — blanco sobre papel crema, ilegible en el modo día. Un
       // aviso que no se puede leer no es un aviso.
-      <div className="mb-4 border border-tinta p-4 text-left">
+      <div className="pm-aviso mb-4 border border-tinta p-4 text-left">
         <p className="pm-kicker">{t("notif.iosHintTitle")}</p>
         <p className="pm-body mt-2 text-sm">{t("notif.iosHintBody")}</p>
         <div className="mt-4">
@@ -127,7 +127,7 @@ export default function NotificationOptIn() {
   return (
     // Recuadro de "suscripción al boletín": filete de tinta, sin tinte de
     // color. Los textos varían según el canal (web push vs. nativo).
-    <div className="mb-4 border border-tinta p-4 text-left">
+    <div className="pm-aviso mb-4 border border-tinta p-4 text-left">
       <p className="pm-kicker">{t("notif.optInTitle")}</p>
       <p className="pm-body mt-2 text-sm">
         {isWeb ? t("notif.webOptInBody") : t("notif.optInBody")}

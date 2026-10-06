@@ -56,7 +56,7 @@ export default function Privacidad() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-papel font-serif text-tinta">
+    <div className="min-h-screen w-full bg-papel font-body text-tinta">
       <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
         <header className="border-b border-border pb-6">
           <p className="pm-kicker">Documento legal</p>

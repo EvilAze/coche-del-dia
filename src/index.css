@@ -5942,3 +5942,17 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 @media (hover: hover) {
   .oferta-no:hover { color: var(--cdd-text); }
 }
+
+/* EL AVISO FLOTANTE (Toast): una tarjeta con canto y su sombra, en la letra de
+   la interfaz. La acción, un renglón en tinta subrayado — no versalitas rojas,
+   que en este sistema significan «gastado», no «pulsa aquí». */
+.cdd-toast {
+  padding: 12px 14px 12px 16px; border-radius: var(--radio-boton);
+  background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--sombra-flota);
+  font-family: var(--font-body); font-weight: 500; font-size: 14.5px; color: var(--cdd-text);
+}
+.cdd-toast-accion {
+  flex: none; padding: 6px 2px; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 700; font-size: 14px; color: var(--cdd-text);
+  text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
+}

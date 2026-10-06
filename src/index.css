@@ -5479,3 +5479,16 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   font-family: var(--font-body); font-weight: 700; font-size: 14px; color: var(--cdd-text);
   text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
 }
+
+/* La repesca que no se puede jugar: la tarjeta de decisión, centrada en la
+   pantalla vacía, con el kicker ámbar de la repesca. */
+.rep-error {
+  min-height: 100svh; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  padding-left: 16px; padding-right: 16px; background: var(--bg); color: var(--cdd-text);
+}
+.rep-error-tarjeta {
+  width: 100%; max-width: 24rem; box-sizing: border-box;
+  border-radius: 20px; background: var(--surface); border: 1px solid var(--line-strong);
+  box-shadow: var(--sombra-flota);
+}
+.rep-error-tarjeta .dlg-titulo { margin-top: -4px; }

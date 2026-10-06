@@ -489,34 +489,20 @@ export default function Repesca() {
   }
 
   if (phase === "error") {
-    // Tarjeta de error centrada (tono rojo): papel + filete rojo + CTA de
-    // tinta. Fuera del shell .prensa porque no usa piezas .cdd-*/.prensa-*;
-    // las fuentes (Fraunces/Franklin) ya son globales.
+    // Una tarjeta de decisión centrada (las mismas piezas que los diálogos,
+    // dlg-*): qué ha pasado, por qué, y la única salida, de vuelta al juego.
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg-primary px-4 font-body text-tinta">
-        {/* Esquina viva y filete de rojo, sin `shadow-2xl`: es un recuadro de
-            errata impreso en el papel, no una tarjeta flotante. */}
-        <div className="w-full max-w-sm rounded-none border border-rojo/40 bg-papel-2 p-6 text-center">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-rojo">
-            {t("repesca.errorUnavailable")}
-          </p>
-          <h1 className="mt-2 font-display text-2xl tracking-widest text-tinta">
-            {t("repesca.errorMismatchTitle")}
-          </h1>
-          <p className="mt-3 text-sm text-muted">{error}</p>
+      <div className="rep-error safe-area-pad">
+        <div className="rep-error-tarjeta dlg">
+          <span className="arch-kicker ambar">{t("repesca.errorUnavailable")}</span>
+          <h1 className="dlg-titulo">{t("repesca.errorMismatchTitle")}</h1>
+          <p className="dlg-texto">{error}</p>
           <button
             type="button"
+            className="pm-btn"
             onClick={() => {
               window.location.href = "/";
             }}
-            // Mismo botón de tinta que el resto del sistema: esquina viva, vuelco
-            // a rojo al pasar (no `brightness-110`, que aclara el color en vez de
-            // cambiarlo) y hundido de 1px al pulsar.
-            className="
-              mt-5 h-11 w-full rounded-none bg-tinta
-              font-display tracking-widest text-papel
-              transition-colors hover:bg-rojo active:translate-y-px
-            "
           >
             {t("repesca.buttonBackToGame")}
           </button>

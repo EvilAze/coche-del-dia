@@ -4474,3 +4474,22 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 @media (max-width: 1099px) {
   :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla .prensa-historial { order: 3; }
 }
+
+/* ── EL ESCRITORIO: DOS COLUMNAS ────────────────────────────────────────────
+   La prensa repartía el pliego ancho en tres columnas con filetes (historial |
+   foto | cupón), y en Asfalto eso dejaba el cupón de tres casillas y las celdas
+   del historial apretadas en un tercio de pantalla. Aquí son dos: la foto
+   grande a la izquierda, ocupando el alto, y a la derecha el historial con el
+   cupón debajo — la tabla de intentos y la fila que se está rellenando, una
+   encima de otra, como en el diseño. Sin filetes verticales: separa el aire. */
+@media (min-width: 1100px) {
+  .prensa-hoja { max-width: 1240px; }
+  .prensa-pliego {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas: "cab cab" "foto clas" "foto jugar" "pie pie";
+    column-gap: 40px; row-gap: 18px;
+  }
+  .prensa-area-clas { border-right: 0; padding-right: 0; margin-right: 0; gap: 16px; }
+  .prensa-area-jugar { border-left: 0; padding-left: 0; margin-left: 0; }
+}

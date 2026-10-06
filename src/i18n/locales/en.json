@@ -185,7 +185,10 @@
     "carImageAlt": "Car of the day",
     "pieSolved": "Solved in {n} of {max}",
     "pieUnsolved": "Unsolved in {max} tries",
-    "ladilloCronica": "The story of the car"
+    "ladilloCronica": "The story of the car",
+    "eligeMarca": "Pick the make",
+    "eligeModelo": "Pick the model",
+    "eligeAnio": "Pick the year"
   },
   "sumario": {
     "kicker": "In this edition",

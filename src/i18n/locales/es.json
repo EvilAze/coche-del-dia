@@ -185,7 +185,10 @@
     "carImageAlt": "Coche del día",
     "pieSolved": "Acertado en {n} de {max}",
     "pieUnsolved": "Sin resolver en {max} intentos",
-    "ladilloCronica": "La crónica del coche"
+    "ladilloCronica": "La crónica del coche",
+    "eligeMarca": "Elige la marca",
+    "eligeModelo": "Elige el modelo",
+    "eligeAnio": "Elige el año"
   },
   "sumario": {
     "kicker": "Índice de la edición",

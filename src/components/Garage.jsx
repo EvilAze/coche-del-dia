@@ -42,6 +42,7 @@ import { flagImagePath } from "../data/countries";
 import { apiUrl } from "../lib/apiUrl";
 import { countryTier, brandTier, collectorTier } from "../lib/collectionTier";
 import { Icon, I } from "./configurator/icons";
+import { logoMarca } from "../lib/logoMarca";
 import {
   collectCovers,
   sortCovers,
@@ -164,15 +165,9 @@ const swapTransition = {
   opacity: { duration: 0.16 },
 };
 
-// Slug de marca según especificación del usuario: simple lowercase + spaces→-.
-// No quitamos acentos a propósito (es como el usuario nombra los .png).
-function brandSlug(marca) {
-  return String(marca || "").toLowerCase().replace(/\s+/g, "-");
-}
-
-function brandLogoPath(marca) {
-  return `/brands/${brandSlug(marca)}.png`;
-}
+// El logotipo de la marca: src/lib/logoMarca.js (lo comparte la hoja de
+// selección de la app).
+const brandLogoPath = logoMarca;
 
 export default function Garage({ open, onClose, user, onOpenLogin }) {
   const { t } = useT();

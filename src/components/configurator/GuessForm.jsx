@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalog } from "../../data/catalog";
-import { useT } from "../../i18n";
+import { useT, getLocalizedCountry } from "../../i18n";
 import { useToast } from "../Toast";
 import { useOnline } from "../../hooks/useOnline";
 import { haptic } from "../../lib/haptics";
@@ -24,6 +24,7 @@ import SelectorHoja from "./SelectorHoja";
 import SelectorLista from "./SelectorLista";
 import SelectorAnio, { textoHorquilla } from "./SelectorAnio";
 import BotonMantener from "./BotonMantener";
+import { logoMarca } from "../../lib/logoMarca";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
@@ -602,7 +603,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         <SelectorHoja
           open={hoja !== null}
           onClose={cerrarHoja}
-          titulo={t(`cdd.label${paso === "anio" ? "Anio" : paso === "modelo" ? "Modelo" : "Marca"}`)}
+          titulo={t(`cdd.elige${paso === "anio" ? "Anio" : paso === "modelo" ? "Modelo" : "Marca"}`)}
+          paso={paso === "anio" ? 2 : paso === "modelo" ? 1 : 0}
           apunte={
             paso === "anio" ? textoHorquilla(t, horquilla, tolerance)
             : paso === "modelo" ? marca
@@ -616,6 +618,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               opciones={availableMarcas}
               valor={marca}
               optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
+              optionLogo={logoMarca}
+              optionNota={(m) => (marcaPais[m] ? getLocalizedCountry(marcaPais[m]) : null)}
               onElegir={elegirMarca}
             />
           )}

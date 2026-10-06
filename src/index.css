@@ -5715,3 +5715,33 @@ button.perf-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .mantener-texto { position: relative; }
 .rep-mantener-nota { margin: -4px 0 0; text-align: center; font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
 .rep-fin-nota { margin: 12px 0 0; font-family: var(--font-body); font-size: 14px; line-height: 1.45; color: var(--cdd-muted); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LA HOJA DE SELECCIÓN «ASFALTO» (SelectorHoja / SelectorLista)
+   El diseño la quiere con su paso a la vista y cada marca con su logotipo y
+   su país, y todo eso entra SIN que la hoja crezca: los puntos del paso van
+   en la fila del título y el azulejo del logotipo cabe en los 52px de una
+   fila (le quita 2px de relleno arriba y abajo). Lo vigila test:layout.
+   ═══════════════════════════════════════════════════════════════════════ */
+.pm-hoja-cab > .min-w-0 { flex: 1 1 auto; }
+.pm-hoja-pasos { flex: none; display: flex; align-items: center; gap: 4px; margin-top: 9px; }
+.pm-hoja-pasos i {
+  display: block; width: 6px; height: 6px; border-radius: 3px; background: var(--line-strong);
+  transition: width var(--ms-hoja) var(--curva-entra), background-color var(--ms-roce) var(--curva-roce);
+}
+.pm-hoja-pasos i.hecho { background: var(--cdd-muted); }
+.pm-hoja-pasos i.on { width: 18px; background: var(--cdd-text); }
+.pm-opcion.con-logo { justify-content: flex-start; gap: 12px; padding-top: 10px; padding-bottom: 10px; }
+.pm-opcion.con-logo .pm-opcion-texto { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-opcion-logo {
+  flex: none; width: 32px; height: 32px; border-radius: 9px; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgb(255 255 255); color: rgb(19 20 22); box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.pm-opcion-logo img { width: 24px; height: 24px; object-fit: contain; }
+.pm-opcion-logo b { font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.pm-opcion-pais {
+  flex: none; display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-body); font-weight: 500; font-size: 13px; color: var(--cdd-muted);
+}
+.pm-opcion-pais .bandera { width: 18px; height: 12px; border-radius: 2px; }

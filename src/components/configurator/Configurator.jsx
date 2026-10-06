@@ -66,6 +66,9 @@ export default function Configurator({
   onOpenNickname,
   repescaAlert,
   shareText,
+  // La puntuación del servidor al cerrar la partida: la pinta el marcador del
+  // panel final (base, bonus de racha, mejor racha).
+  score = null,
   revealReady, // eslint-disable-line no-unused-vars -- reservado
   onRevealLoad,
   // El sumario (el menú) es un modal del slot de App.jsx: la cabecera solo pide
@@ -97,6 +100,13 @@ export default function Configurator({
   // (transición playing → ended). Si el usuario llega con la partida ya cerrada,
   // mostramos el botón "VER REVELADO/RESPUESTA" en vez de saltar el overlay.
   const [showEnd, setShowEnd] = useState(false);
+  // LA RACHA DE ANTES DE ESTA PARTIDA. Al perder, el servidor la deja en 0 y
+  // `streak` se actualiza con ella; el panel final necesita la de antes para
+  // poder decir qué racha se acaba de cortar. Se congela mientras se juega.
+  const rachaAntes = useRef(streak);
+  useEffect(() => {
+    if (status === "playing") rachaAntes.current = streak;
+  }, [status, streak]);
   // ¿Se ha abierto SOLO, al acabar la partida ahora mismo? Es lo que decide si
   // el sello del EndScreen hace sentir el final (acierto o derrota). Abrirlo a
   // mano con «Ver resultado» lo apaga: se vuelve a ver el sello, pero el final
@@ -520,6 +530,8 @@ export default function Configurator({
           max={maxAttempts}
           streak={streak}
           shareText={shareText}
+          score={score}
+          rachaPrevia={rachaAntes.current}
           user={user}
           rank={rank}
           // El mismo booleano que enciende el punto de la campana en la

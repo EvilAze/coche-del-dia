@@ -378,14 +378,14 @@
   },
   "parte": {
     "kicker": "El parte de la clasificación",
-    "of": "de {total} lectores",
+    "of": "de {total}",
     "up": {
-      "one": "Hoy has subido {count} puesto",
-      "other": "Hoy has subido {count} puestos"
+      "one": "Subes {count} puesto",
+      "other": "Subes {count} puestos"
     },
     "down": {
-      "one": "Hoy bajas {count} puesto · defiende el tuyo",
-      "other": "Hoy bajas {count} puestos · defiende el tuyo"
+      "one": "Bajas {count} puesto",
+      "other": "Bajas {count} puestos"
     },
     "hold": "Mantienes tu puesto",
     "new": "Estrenas puesto esta temporada",
@@ -617,5 +617,33 @@
     "modeloOk": "el modelo es {modelo}",
     "anioOk": "el año es {anio}, ±{n}",
     "anioRango": "año {rango}"
+  },
+  "fin": {
+    "kickerWin": "El coche de hoy",
+    "kickerLose": "Era el coche de hoy",
+    "resueltoEn": "Resuelto en {n} de {max}",
+    "puntosHoy": "Puntos de hoy",
+    "base": "Base · acierto en el intento {n}",
+    "bonusRacha": "Bonus de racha",
+    "diasSeguidos": {
+      "one": "{count} día seguido",
+      "other": "{count} días seguidos"
+    },
+    "mejorRacha": "Tu mejor racha: {n}",
+    "revancha": "Revancha en",
+    "tuPartida": "Tu partida",
+    "faltoModelo": "Te faltó solo el modelo: era el {modelo}. Marca y año, clavados.",
+    "faltoAnio": "Te faltó solo el año: era de {anio}.",
+    "soloMarca": "La marca la tenías; el modelo y el año se resistieron.",
+    "nada": "Esta vez se resistió entero. Mañana, otro coche.",
+    "rachaCortada": {
+      "one": "Tu racha de {count} día se corta hoy",
+      "other": "Tu racha de {count} días se corta hoy"
+    },
+    "mejorSigue": "La mejor sigue siendo tuya: {n}",
+    "vuelveTitulo": "Este coche vuelve en la repesca",
+    "vuelveCuerpo": "Queda en tu Archivo como pendiente. Si te toca, será en Modo Veterano: un intento, sin pistas.",
+    "noEresElUnico": "No eres el único: {n} de cada 10 tampoco lo sacaron.",
+    "ficha": "La ficha"
   }
 }

@@ -378,14 +378,14 @@
   },
   "parte": {
     "kicker": "The standings report",
-    "of": "of {total} readers",
+    "of": "of {total}",
     "up": {
-      "one": "You climbed {count} spot today",
-      "other": "You climbed {count} spots today"
+      "one": "Up {count} place",
+      "other": "Up {count} places"
     },
     "down": {
-      "one": "You dropped {count} spot today · defend it",
-      "other": "You dropped {count} spots today · defend it"
+      "one": "Down {count} place",
+      "other": "Down {count} places"
     },
     "hold": "You held your spot",
     "new": "You're on the board this season",
@@ -617,5 +617,33 @@
     "modeloOk": "the model is {modelo}",
     "anioOk": "the year is {anio}, ±{n}",
     "anioRango": "year {rango}"
+  },
+  "fin": {
+    "kickerWin": "Today's car",
+    "kickerLose": "Today's car was",
+    "resueltoEn": "Solved in {n} of {max}",
+    "puntosHoy": "Today's points",
+    "base": "Base · solved on attempt {n}",
+    "bonusRacha": "Streak bonus",
+    "diasSeguidos": {
+      "one": "{count} day in a row",
+      "other": "{count} days in a row"
+    },
+    "mejorRacha": "Your best streak: {n}",
+    "revancha": "Rematch in",
+    "tuPartida": "Your game",
+    "faltoModelo": "Only the model got away: it was the {modelo}. Make and year, spot on.",
+    "faltoAnio": "Only the year got away: it was from {anio}.",
+    "soloMarca": "You had the make; the model and year held out.",
+    "nada": "This one held out entirely. Tomorrow, another car.",
+    "rachaCortada": {
+      "one": "Your {count}-day streak ends today",
+      "other": "Your {count}-day streak ends today"
+    },
+    "mejorSigue": "Your best is still yours: {n}",
+    "vuelveTitulo": "This car comes back in the repesca",
+    "vuelveCuerpo": "It stays pending in your Archive. If you draw it, it'll be in Veteran Mode: one attempt, no hints.",
+    "noEresElUnico": "You're not alone: {n} in 10 didn't get it either.",
+    "ficha": "The spec sheet"
   }
 }

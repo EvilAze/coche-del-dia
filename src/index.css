@@ -4500,3 +4500,168 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .pm-aviso {
   border-color: var(--line); border-radius: var(--radio-tarjeta); background: var(--surface);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL PANEL DEL FINAL «ASFALTO» (EndScreen, clases fin-*)
+   -----------------------------------------------------------------------
+   Una columna de TARJETAS, en el orden del diseño: la foto con su chapa, el
+   coche, lo que hiciste (el marcador al ganar, tu partida al perder),
+   compartir y el reloj, y debajo lo que se lee si te quedas — la racha
+   cortada, la repesca, la clasificación, el mundo y la ficha. Cada tarjeta
+   entra un paso después de la anterior (opacidad y 10px, `--ms-escena`), una
+   sola vez: el panel se compone delante del jugador, no aparece de golpe.
+   ═══════════════════════════════════════════════════════════════════════ */
+.cdd-end-card.fin { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
+.fin > .cdd-end-topbar { margin-bottom: -10px; }
+
+.fin-foto {
+  position: relative; flex: none; overflow: hidden;
+  height: clamp(170px, 30svh, 240px); border-radius: var(--radio-tarjeta);
+  background: var(--surface2);
+}
+.fin-foto-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.fin-foto .prensa-sello { display: inline-flex; align-items: center; gap: 6px; }
+.fin-foto.reproduciendo { height: auto; aspect-ratio: 16 / 9; }
+.fin-foto.reproduciendo .prensa-sello { display: none; }
+
+.fin-titulo { display: flex; flex-direction: column; gap: 6px; padding: 8px 6px 4px; }
+.fin-kicker {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.fin-coche {
+  margin: 0; font-family: var(--font-display); font-weight: 700;
+  font-size: 34px; line-height: .98; letter-spacing: .002em; color: var(--cdd-text);
+}
+.fin-sin-ficha { margin: 0; font-family: var(--font-body); font-size: 14px; color: var(--cdd-muted); }
+.fin-chapas { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 6px; }
+.fin-chapa {
+  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px;
+  border-radius: 8px; background: var(--surface2);
+  font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-text);
+}
+.fin-chapa.mono { font-family: var(--font-mono); }
+.fin-chapa .bandera { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+
+/* La tarjeta: superficie con canto. Si es un botón (la clasificación, la
+   repesca), toda ella es el objetivo táctil: se hunde un píxel al tocarla. */
+.fin-tarjeta {
+  display: block; width: 100%; box-sizing: border-box; padding: 16px;
+  border-radius: 18px; background: var(--surface); border: 1px solid var(--line);
+  color: var(--cdd-text); font: inherit; text-align: left;
+}
+button.fin-tarjeta { cursor: pointer; transition: border-color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce); }
+button.fin-tarjeta:active { transform: translateY(1px); }
+@media (hover: hover) {
+  button.fin-tarjeta:hover { border-color: var(--line-strong); }
+}
+.fin-tarjeta-titulo {
+  margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px;
+  letter-spacing: .005em; color: var(--cdd-text);
+}
+.fin-tarjeta-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.fin-tarjeta-cabeza span { font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); text-align: right; }
+
+/* El marcador: los puntos del día en grande y, a su lado, la rejilla. */
+.fin-marcador { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.fin-marcador-cifra { display: flex; flex-direction: column; gap: 2px; }
+.fin-etiqueta {
+  font-family: var(--font-mono); font-weight: 600; font-size: 10.5px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.fin-puntos {
+  font-family: var(--font-display); font-weight: 700; font-size: 64px; line-height: .9;
+  color: var(--cdd-text); font-variant-numeric: tabular-nums;
+}
+.fin-puntos small { font-size: 22px; font-weight: 600; color: var(--cdd-muted); padding-left: 4px; }
+.fin-puntos--sin { color: var(--cdd-muted); }
+
+.fin-rejilla { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
+.fin-rejilla .fila, .fin-partida .cuadros { display: flex; gap: 4px; }
+.fin-rejilla i, .fin-partida .cuadros i {
+  display: block; width: 13px; height: 13px; border-radius: 3px; background: var(--line-strong);
+}
+.fin-rejilla i.bien, .fin-partida .cuadros i.bien { background: var(--verde); }
+.fin-rejilla i.cerca, .fin-partida .cuadros i.cerca { background: var(--ambar); }
+
+.fin-desglose { margin: 14px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.fin-desglose div { display: flex; justify-content: space-between; gap: 12px; }
+.fin-desglose dt { font-family: var(--font-body); font-size: 14px; color: var(--cdd-muted); }
+.fin-desglose dd { margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: 14px; color: var(--cdd-text); }
+.fin .oro { color: var(--gold); }
+.fin-racha {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line);
+}
+
+/* La fila de icono + texto + flecha: la racha, la repesca, la clasificación. */
+.fin-fila { display: flex; align-items: center; gap: 14px; }
+.fin-icono {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 12px;
+  background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-muted);
+}
+.fin-icono.oro { background: rgb(var(--gold-rgb) / .14); color: var(--gold); }
+.fin-icono.oro svg { fill: currentColor; }
+.fin-icono.ambar { background: rgb(var(--ambar-rgb) / .15); color: var(--ambar); }
+.fin-icono.verde { background: rgb(var(--verde-rgb) / .14); color: var(--verde); }
+.fin-icono.rojo { background: rgb(var(--rojo-rgb) / .12); color: var(--rojo); }
+.fin-fila-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fin-fila-texto b { font-family: var(--font-body); font-weight: 700; font-size: 16px; color: var(--cdd-text); }
+.fin-fila-texto b.oro { color: var(--gold); }
+.fin-fila-texto span { font-family: var(--font-body); font-size: 13px; line-height: 1.4; color: var(--cdd-muted); }
+.fin-chev { flex: none; color: var(--cdd-muted); }
+.fin-salto {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 14px; color: var(--cdd-muted);
+}
+.fin-salto b { color: var(--cdd-text); font-weight: 600; }
+.fin-repesca { background: rgb(var(--ambar-rgb) / .07); border-color: rgb(var(--ambar-rgb) / .35); }
+@media (hover: hover) {
+  button.fin-repesca:hover { border-color: rgb(var(--ambar-rgb) / .6); }
+}
+
+/* Tu partida (al perder): un renglón por intento, con su rejilla. */
+.fin-partida { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.fin-partida li {
+  display: flex; align-items: center; gap: 12px;
+  animation: finEntra var(--ms-escena) var(--curva-entra) both;
+}
+.fin-partida .cuadros i { width: 14px; height: 14px; }
+.fin-partida .texto {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted);
+}
+.fin-lectura {
+  margin: 14px 0 0; padding: 12px 14px; border-radius: var(--radio-boton);
+  background: var(--surface2);
+  font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-text);
+}
+
+/* Compartir y el reloj. */
+.fin-acciones { display: flex; flex-direction: column; gap: 10px; }
+.fin-reloj {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 60px; padding: 0 16px; border-radius: var(--radio-boton); border: 1px solid var(--line);
+}
+.fin-reloj-k { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font-body); font-size: 14px; color: var(--cdd-muted); }
+.fin-reloj-cifra {
+  font-family: var(--font-mono); font-weight: 600; font-size: 22px; letter-spacing: .02em;
+  color: var(--cdd-text); font-variant-numeric: tabular-nums;
+}
+.fin-extra { display: flex; flex-direction: column; gap: 10px; }
+.fin-extra:empty { display: none; }
+.fin-extra .pm-aviso { margin-bottom: 0; }
+.fin-pie { margin: 12px 0 0; font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text); }
+.fin .cdd-end-links { margin: 2px 0 6px; }
+.fin .cdd-dist-bar.perdidas { background: rgb(var(--tinta-rgb) / .14); }
+.fin .cdd-dist-bar.perdidas.me { background: var(--cdd-text); }
+
+/* LA ENTRADA ESCALONADA. Cada tarjeta, un paso después de la anterior; las de
+   más abajo, ya fuera de la vista al abrir, entran todas en el último paso. */
+@keyframes finEntra { from { opacity: 0; transform: translateY(10px); } }
+.fin > .fin-entra { animation: finEntra var(--ms-escena) var(--curva-entra) both; }
+.fin > .fin-entra:nth-child(3) { animation-delay: calc(var(--ms-paso) * 2); }
+.fin > .fin-entra:nth-child(4) { animation-delay: calc(var(--ms-paso) * 4); }
+.fin > .fin-entra:nth-child(5) { animation-delay: calc(var(--ms-paso) * 6); }
+.fin > .fin-entra:nth-child(n+6) { animation-delay: calc(var(--ms-paso) * 8); }

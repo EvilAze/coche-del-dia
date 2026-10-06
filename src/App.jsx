@@ -636,6 +636,7 @@ export default function App() {
         onOpenNickname={openNickname}
         repescaAlert={repescaAlert}
         shareText={buildShareText(streak)}
+        score={score}
         revealReady={revealReady}
         onRevealLoad={handleRevealLoad}
         onOpenMenu={openMenu}

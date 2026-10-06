@@ -24,13 +24,14 @@ import AttemptList from "./AttemptList";
 
 import GuessForm from "./GuessForm";
 import EndScreen from "./EndScreen";
+import BarraSecciones from "./BarraSecciones";
 import { useDailyStats, Distribution } from "./dailyStats";
 
 // Dirección visual «Prensa del motor»: papel + tinta + rojo de rotativa. El
 // tema/acento dejan de ser configurables (el periódico tiene UNA identidad);
 // las props theme/accent se ignoran y se retiran del todo en F5.
 const DEFAULT_THEME = "prensa";
-const DEFAULT_ACCENT = "#b3271b";
+const DEFAULT_ACCENT = "#c9321c";
 
 export default function Configurator({
   dataReady = true,
@@ -46,6 +47,7 @@ export default function Configurator({
   car,
   status,
   zoom,
+  aumento = null,
   hintIndex,
   totalHints,
   guesses,
@@ -65,6 +67,9 @@ export default function Configurator({
   onOpenNickname,
   repescaAlert,
   shareText,
+  // La puntuación del servidor al cerrar la partida: la pinta el marcador del
+  // panel final (base, bonus de racha, mejor racha).
+  score = null,
   revealReady, // eslint-disable-line no-unused-vars -- reservado
   onRevealLoad,
   // El sumario (el menú) es un modal del slot de App.jsx: la cabecera solo pide
@@ -74,6 +79,7 @@ export default function Configurator({
   onOpenLogin,
   onOpenRanking,
   onOpenGarage,
+  onOpenProfile,
   onOpenHowTo,
   howtoPulse = false,
   theme = DEFAULT_THEME,
@@ -96,6 +102,13 @@ export default function Configurator({
   // (transición playing → ended). Si el usuario llega con la partida ya cerrada,
   // mostramos el botón "VER REVELADO/RESPUESTA" en vez de saltar el overlay.
   const [showEnd, setShowEnd] = useState(false);
+  // LA RACHA DE ANTES DE ESTA PARTIDA. Al perder, el servidor la deja en 0 y
+  // `streak` se actualiza con ella; el panel final necesita la de antes para
+  // poder decir qué racha se acaba de cortar. Se congela mientras se juega.
+  const rachaAntes = useRef(streak);
+  useEffect(() => {
+    if (status === "playing") rachaAntes.current = streak;
+  }, [status, streak]);
   // ¿Se ha abierto SOLO, al acabar la partida ahora mismo? Es lo que decide si
   // el sello del EndScreen hace sentir el final (acierto o derrota). Abrirlo a
   // mano con «Ver resultado» lo apaga: se vuelve a ver el sello, pero el final
@@ -366,8 +379,10 @@ export default function Configurator({
           rankCargando={rankCargando}
           user={user}
           repescaAlert={repescaAlert}
+          streak={streak}
           onOpenMenu={onOpenMenu}
           onOpenRanking={onOpenRanking}
+          onOpenHowTo={onOpenHowTo}
         />
 
         {/* H1 real solo para lectores de pantalla/SEO (v0 no lo pinta). */}
@@ -386,6 +401,7 @@ export default function Configurator({
           <ZoomStage
             car={car}
             zoom={zoom}
+            aumento={aumento}
             status={status}
             hintIndex={hintIndex}
             totalHints={totalHints}
@@ -509,6 +525,16 @@ export default function Configurator({
         </footer>
       </main>
 
+      {/* La barra de pestañas (solo en el móvil; ver BarraSecciones). «Jugar»
+          devuelve la vista a la foto, como el recorte flotante. */}
+      <BarraSecciones
+        repescaAlert={repescaAlert}
+        onJugar={volverALaFoto}
+        onOpenRanking={onOpenRanking}
+        onOpenGarage={onOpenGarage}
+        onOpenProfile={onOpenProfile}
+      />
+
       {showEnd && ended && (
         <EndScreen
           won={won}
@@ -517,6 +543,8 @@ export default function Configurator({
           max={maxAttempts}
           streak={streak}
           shareText={shareText}
+          score={score}
+          rachaPrevia={rachaAntes.current}
           user={user}
           rank={rank}
           // El mismo booleano que enciende el punto de la campana en la

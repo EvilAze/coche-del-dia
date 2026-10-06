@@ -447,6 +447,7 @@ export default function App() {
     attempts,
     status,
     zoom,
+    aumento,
     hintIndex,
     totalHints,
     score,
@@ -608,6 +609,7 @@ export default function App() {
         car={car}
         status={status}
         zoom={zoom}
+        aumento={aumento}
         hintIndex={hintIndex}
         totalHints={totalHints}
         guesses={guesses}
@@ -634,12 +636,14 @@ export default function App() {
         onOpenNickname={openNickname}
         repescaAlert={repescaAlert}
         shareText={buildShareText(streak)}
+        score={score}
         revealReady={revealReady}
         onRevealLoad={handleRevealLoad}
         onOpenMenu={openMenu}
         onOpenLogin={openLogin}
         onOpenRanking={openRanking}
         onOpenGarage={openGarage}
+        onOpenProfile={openProfile}
         onOpenHowTo={openHowTo}
         howtoPulse={howtoPulse}
       />
@@ -680,8 +684,9 @@ export default function App() {
             open={activeModal === "ranking"}
             onClose={closeModal}
             user={user}
-            // Sin `rank`: la cabecera «Tu puesto» del modal se retiró y el dato
-            // se lee ya de la propia tabla (la fila del jugador va destacada).
+            // El puesto con su movimiento del día: lo dice el apunte de tu fila
+            // («Subes 4 puestos · a 3 puntos del 17º»).
+            rank={rank}
             onOpenLogin={openLogin}
             // Aquí es donde el nick significa algo: sin firma no se sale en la
             // tabla. Se ofrece dentro del ranking, no como puerta para entrar.

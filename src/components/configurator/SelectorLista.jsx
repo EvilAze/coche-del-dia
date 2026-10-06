@@ -66,6 +66,21 @@ const UMBRAL_INDICE = 25;
 // Es el CONTENIDO de la hoja, no la hoja: el marco (título, tirador, cerrar) lo
 // pone SelectorHoja, y hay UNA sola para los tres pasos — así el teclado no baja
 // y sube entre marca y modelo. Ver GuessForm.
+// El azulejo del logotipo. Si el PNG no existe, la inicial: un hueco roto en
+// mitad de la lista delata el catálogo a medio hacer.
+function LogoOpcion({ src, nombre }) {
+  const [fallo, setFallo] = useState(false);
+  return (
+    <span className="pm-opcion-logo" aria-hidden="true">
+      {fallo || !src ? (
+        <b>{(Array.from(String(nombre).trim())[0] || "·").toLocaleUpperCase()}</b>
+      ) : (
+        <img src={src} alt="" draggable={false} loading="lazy" onError={() => setFallo(true)} />
+      )}
+    </span>
+  );
+}
+
 export default function SelectorLista({
   opciones,
   valor,
@@ -74,6 +89,11 @@ export default function SelectorLista({
   // Bandera del país de la marca, si el consumidor la sabe. Mismo dato que ya
   // enseñaba el combo de la web.
   optionFlag = null,
+  // El logotipo de la marca (en su azulejo blanco, como en el Archivo) y una
+  // nota a la derecha junto a la bandera (el país). Solo los usa la lista de
+  // marcas.
+  optionLogo = null,
+  optionNota = null,
 }) {
   const { t } = useT();
   const [q, setQ] = useState("");
@@ -254,16 +274,22 @@ export default function SelectorLista({
         id={`${idBase}-o${i}`}
         role="option"
         aria-selected={o === valor}
-        className={"pm-opcion" + (o === valor ? " elegida" : "") + (i === hi ? " hi" : "")}
+        className={"pm-opcion" + (optionLogo ? " con-logo" : "") + (o === valor ? " elegida" : "") + (i === hi ? " hi" : "")}
         onClick={() => elegir(o)}
         // Con el ratón, señalar lo que hay debajo del cursor mantiene una sola
         // idea de "la que está a punto de elegirse" — si no, el teclado señala
         // una y el clic cae en otra.
         onMouseEnter={() => setHi(i)}
       >
+        {optionLogo && <LogoOpcion src={optionLogo(o)} nombre={o} />}
         <span className="pm-opcion-texto">{o}</span>
-        {optionFlag?.(o) && (
-          <img className="bandera" src={optionFlag(o)} alt="" draggable={false} loading="lazy" />
+        {(optionFlag?.(o) || optionNota?.(o)) && (
+          <span className="pm-opcion-pais">
+            {optionFlag?.(o) && (
+              <img className="bandera" src={optionFlag(o)} alt="" draggable={false} loading="lazy" />
+            )}
+            {optionNota?.(o) && <span className="pm-opcion-pais-texto">{optionNota(o)}</span>}
+          </span>
         )}
       </li>
     );

@@ -69,10 +69,7 @@ function ToastItem({ toast, onDismiss }) {
       // después de que el telegrama ya se hubiera retirado solo.
       role={toast.type === "error" ? "alert" : "status"}
       className={`
-        pointer-events-auto flex w-full max-w-sm items-center gap-3
-        rounded-none border border-tinta bg-papel
-        px-4 py-3 font-serif text-sm text-tinta
-        shadow-[shadow:var(--sombra-flota)]
+        cdd-toast pointer-events-auto flex w-full max-w-sm items-center gap-3
         animate-toast-in
       `}
     >
@@ -90,10 +87,7 @@ function ToastItem({ toast, onDismiss }) {
             toast.action.onClick?.();
             onDismiss(toast.id);
           }}
-          className="
-            shrink-0 rounded-none px-2 py-1 text-xs font-semibold
-            uppercase tracking-widest text-rojo hover:underline
-          "
+          className="cdd-toast-accion"
         >
           {toast.action.label}
         </button>

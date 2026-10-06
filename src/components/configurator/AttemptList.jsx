@@ -1,16 +1,14 @@
 // src/components/configurator/AttemptList.jsx
-// Clasificación «Prensa del motor»: cada intento es una FILA numerada (01…)
-// con tres datos en Fraunces y veredictos como MARCAS DE CORRECTOR.
-// Verde = correcto, rojo = incorrecto (la convención universal y lo que promete
-// el modal «Cómo se juega»):
-//   acierto → subrayado VERDE firme + ✓ · cerca → subrayado ÁMBAR discontinuo +
-//   apostilla "mismo país" (bandera) · fallo → tachado a pluma ROJA. La flecha
-//   ↑/↓ del año (más nuevo/antiguo) va EN LÍNEA con la cifra, no en apostilla.
-// (El color vive en index.css: .prensa-dato.bien/.cerca/.mal.)
-// Fondos transparentes: la fila es tipografía + filete, no un chip. Feedback
-// REAL del servidor (correct/partial/wrong + dirección), doble codificación
-// marca+texto (accesible; el estado exacto va también en sr-only). Pendiente =
-// "entintado" (pulso de opacidad); recién validada = estampado.
+// El historial «Asfalto»: cada intento es una FILA numerada con tres CELDAS
+// (marca, modelo, año). Verde = correcto, ámbar = mismo país, el fallo en
+// superficie neutra con el valor tachado: la convención universal, la que
+// promete «Cómo se juega». NUNCA SOLO COLOR: cada celda lleva además su nota
+// escrita debajo («Correcto», «No es», «Mismo país» con la bandera, «Más
+// nuevo»…) y el ✓ o la flecha en línea con el valor. (El color vive en
+// index.css: .prensa-dato.bien/.cerca/.mal.) Feedback REAL del servidor
+// (correct/partial/wrong + dirección); la nota visible va aria-hidden porque el
+// estado exacto ya viaja en sr-only. Pendiente = "entintado" (pulso de
+// opacidad); recién validada = estampado.
 
 import { useEffect, useRef } from "react";
 import { useT } from "../../i18n";
@@ -25,7 +23,16 @@ import { useFitText } from "../../hooks/useFitText";
 // 110 —y su relación con el retardo de la foto en CarImage— está allí.
 import { PASO_VEREDICTO_MS as STAGGER_MS } from "../../lib/veredicto";
 
-function Dato({ estado, pending, value, apostilla, hint, srStatus, fresh, delay, fitKey }) {
+// Las notas de las celdas van en caja de frase («Más antiguo», «Mismo país»):
+// las cadenas de i18n están en versalitas porque así se pintaban en la prensa,
+// y en una celda estrecha las mayúsculas no caben. Se respeta el idioma.
+function enFrase(texto, locale) {
+  if (!texto) return texto;
+  const bajo = texto.toLocaleLowerCase(locale);
+  return bajo.charAt(0).toLocaleUpperCase(locale) + bajo.slice(1);
+}
+
+function Dato({ estado, pending, value, apostilla, nota, tipo, hint, srStatus, fresh, delay, fitKey }) {
   // Auto-ajuste del nombre a una línea: el wrapper bloque da el ancho de la
   // celda al hook; la .palabra inline mantiene el subrayado/tachado AL ANCHO
   // DE LA PALABRA (es una marca de corrector, no un borde de caja).
@@ -35,6 +42,7 @@ function Dato({ estado, pending, value, apostilla, hint, srStatus, fresh, delay,
       className={
         "prensa-dato " +
         (pending ? "" : estado) +
+        (tipo ? " " + tipo : "") +
         (fresh ? " prensa-estampada" : "")
       }
       style={fresh ? { animationDelay: delay } : undefined}
@@ -48,6 +56,11 @@ function Dato({ estado, pending, value, apostilla, hint, srStatus, fresh, delay,
       </span>
       {srStatus && <span className="sr-only">{srStatus}</span>}
       {!pending && apostilla}
+      {/* La nota del veredicto, cuando no hay apostilla que ya lo diga: así
+          cada celda se entiende sin distinguir colores. */}
+      {!pending && !apostilla && nota && (
+        <span className="prensa-apostilla nota" aria-hidden="true">{nota}</span>
+      )}
     </div>
   );
 }
@@ -55,7 +68,7 @@ function Dato({ estado, pending, value, apostilla, hint, srStatus, fresh, delay,
 // Exportada: el Configurator la reusa para la "fila viva" del último intento.
 // `num` es el ordinal 1-based del intento (para el 01… de la izquierda).
 export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const d = (i) => (fresh ? i * STAGGER_MS + "ms" : undefined);
   const numLabel = num ? String(num).padStart(2, "0") : "";
 
@@ -65,7 +78,7 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
         <span className="num">{numLabel}</span>
         <Dato pending value={g.marca?.val} fitKey={g.marca?.val} />
         <Dato pending value={g.modelo?.val} fitKey={g.modelo?.val} />
-        <Dato pending value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} />
+        <Dato pending tipo="anio" value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} />
       </div>
     );
   }
@@ -77,21 +90,23 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
     mSt === "partial" ? (
       <span className="prensa-apostilla">
         {g.marca?.pais && <img className="bandera" src={flagImagePath(g.marca.pais)} alt="" draggable={false} />}
-        {t("cdd.sameCountry")}
+        {enFrase(t("cdd.sameCountry"), locale)}
       </span>
     ) : null;
   // Sin sr-only cuando la apostilla ya es texto visible (el lector la lee).
   const marcaSr = mSt === "correct" ? t("cdd.srCorrect") : mSt === "partial" ? null : t("cdd.srWrong");
+  const marcaNota = mSt === "correct" ? t("cdd.notaBien") : mSt === "partial" ? null : t("cdd.notaMal");
 
   // modelo — binario.
   const moSt = g.modelo?.status;
   const modeloEstado = moSt === "correct" ? "bien" : "mal";
   const modeloSr = moSt === "correct" ? t("cdd.srCorrect") : t("cdd.srWrong");
+  const modeloNota = moSt === "correct" ? t("cdd.notaBien") : t("cdd.notaMal");
 
   // año — correct → bien + "±tol" (apostilla neutra debajo); wrong → flecha EN
   // LÍNEA con la cifra (↑ más nuevo, ↓ más antiguo: hacia dónde está el real).
   const aSt = g.anio?.status;
-  let anioEstado, anioApostilla = null, anioHint = null, anioSr;
+  let anioEstado, anioApostilla = null, anioHint = null, anioSr, anioNota = null;
   if (aSt === "correct") {
     anioEstado = "bien";
     anioApostilla = <span className="prensa-apostilla neutra">±{tolerance}</span>;
@@ -110,14 +125,15 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
       );
     }
     anioSr = dir ? t(dir === "up" ? "cdd.yearNewer" : "cdd.yearOlder") : t("cdd.srWrong");
+    anioNota = dir ? enFrase(anioSr, locale) : t("cdd.notaMal");
   }
 
   return (
     <div className="prensa-fila">
       <span className="num">{numLabel}</span>
-      <Dato estado={marcaEstado} value={g.marca?.val} fitKey={g.marca?.val} apostilla={marcaApostilla} srStatus={marcaSr} fresh={fresh} delay={d(0)} />
-      <Dato estado={modeloEstado} value={g.modelo?.val} fitKey={g.modelo?.val} srStatus={modeloSr} fresh={fresh} delay={d(1)} />
-      <Dato estado={anioEstado} value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} apostilla={anioApostilla} hint={anioHint} srStatus={anioSr} fresh={fresh} delay={d(2)} />
+      <Dato estado={marcaEstado} value={g.marca?.val} fitKey={g.marca?.val} apostilla={marcaApostilla} nota={marcaNota} srStatus={marcaSr} fresh={fresh} delay={d(0)} />
+      <Dato estado={modeloEstado} value={g.modelo?.val} fitKey={g.modelo?.val} nota={modeloNota} srStatus={modeloSr} fresh={fresh} delay={d(1)} />
+      <Dato estado={anioEstado} tipo="anio" value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} apostilla={anioApostilla} nota={anioNota} hint={anioHint} srStatus={anioSr} fresh={fresh} delay={d(2)} />
     </div>
   );
 }

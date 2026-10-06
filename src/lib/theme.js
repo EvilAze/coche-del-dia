@@ -14,7 +14,7 @@ import { conCruce } from "./movimiento";
 
 const STORAGE_KEY = "cdd-tema";
 // Debe coincidir con --bg de cada tema (index.css) y con el <meta theme-color>.
-const THEME_COLOR = { dia: "#f3eee1", noche: "#17130d" };
+const THEME_COLOR = { dia: "#f4f3ef", noche: "#0c0d0f" };
 const listeners = new Set();
 
 // ── Lógica pura (testeable en node, sin DOM) ──
@@ -24,6 +24,12 @@ export function resolveTheme(stored, prefersDark) {
 }
 export function nextTheme(tema) {
   return tema === "noche" ? "dia" : "noche";
+}
+// El MODO elegido, que no es lo mismo que el tema pintado: «auto» es no haber
+// elegido (no hay override guardado) y pinta lo que diga el sistema. El
+// conmutador del perfil enseña el modo; el resto de la app solo ve el tema.
+export function modoTema(stored) {
+  return stored === "dia" || stored === "noche" ? stored : "auto";
 }
 
 // ── Lecturas del entorno (protegidas: el módulo se importa también en node) ──
@@ -138,6 +144,27 @@ function setTheme(tema) {
   });
 }
 
+// Volver a «auto»: se borra el override y se pinta lo que pida el sistema.
+// A partir de ahí el oyente de `prefers-color-scheme` vuelve a mandar, porque
+// solo actúa mientras no hay nada guardado.
+function setModo(modo) {
+  if (modo !== "auto") {
+    setTheme(modo);
+    return;
+  }
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // storage bloqueado: el tema de esta sesión cambia igual
+  }
+  const tema = systemPrefersDark() ? "noche" : "dia";
+  current = tema;
+  conCruce(() => {
+    applyTheme(tema);
+    listeners.forEach((fn) => fn());
+  });
+}
+
 function toggleTheme() {
   setTheme(nextTheme(current));
 }
@@ -166,5 +193,5 @@ export function useTheme() {
       listeners.delete(listener);
     };
   }, []);
-  return { tema: current, toggle: toggleTheme, setTheme };
+  return { tema: current, modo: modoTema(readStored()), toggle: toggleTheme, setTheme, setModo };
 }

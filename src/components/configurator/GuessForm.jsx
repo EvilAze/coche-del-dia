@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCatalog } from "../../data/catalog";
-import { useT } from "../../i18n";
+import { useT, getLocalizedCountry } from "../../i18n";
 import { useToast } from "../Toast";
 import { useOnline } from "../../hooks/useOnline";
 import { haptic } from "../../lib/haptics";
@@ -23,6 +23,8 @@ import CampoBoton from "./CampoBoton";
 import SelectorHoja from "./SelectorHoja";
 import SelectorLista from "./SelectorLista";
 import SelectorAnio, { textoHorquilla } from "./SelectorAnio";
+import BotonMantener from "./BotonMantener";
+import { logoMarca } from "../../lib/logoMarca";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1886;
@@ -31,10 +33,15 @@ const MIN_YEAR = 1886;
 // sobre el campo. El flash se retiró al simplificar el cupón: el acuse de recibo
 // lo da ahora el historial, que desde entonces también se pinta en móvil.)
 
-export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5 }) {
+// `mantener`: el envío se confirma manteniendo el botón (Modo Veterano, un
+// solo intento; ver BotonMantener). El resto del formulario no cambia.
+export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5, mantener = false }) {
   const { t } = useT();
   const toast = useToast();
   const { data: catalog, error: catalogError, reload: recargarCatalogo } = useCatalog();
+  // El formulario, para que el botón de mantener lo envíe por el mismo camino
+  // (handleSubmit, con su validación) que el ADIVINAR de siempre.
+  const formRef = useRef(null);
   const CARS = catalog?.cars ?? [];
   const MARCAS = catalog?.marcas ?? [];
 
@@ -421,7 +428,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           index.css las reglas propias van después de `@tailwind utilities`, así
           que `.prensa-cupon { border:0; padding:0; background:transparent }` las
           pisaba a igual especificidad. Si algún día vuelve el marco, va al CSS. */}
-      <form className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
+      <form ref={formRef} className="flex flex-col gap-3" onSubmit={handleSubmit} autoComplete="off">
         {/* Tres renglones apilados a ancho completo: marca, modelo y año. Cada
             campo ocupa toda la fila (target grande, nombres largos legibles) en
             vez del par marca|modelo comprimido de antes. El campo ACERTADO se
@@ -430,7 +437,11 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         {catalogFallido ? (
           <CatalogoCaido onRetry={recargarCatalogo} />
         ) : enApp ? (
-          <>
+          // Los tres renglones van en UNA tarjeta de tres casillas en fila
+          // (sistema «Asfalto»): se leen como un solo control con tres partes
+          // y el cupón mide una casilla de alto en vez de tres renglones — alto
+          // que se queda el historial (ver .prensa-renglones en index.css).
+          <div className="prensa-renglones">
             <CampoBoton
               label={t("cdd.labelMarca")}
               valor={marca}
@@ -491,9 +502,13 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               // etiqueta (ver CampoBoton), como el «±2 años» de la web.
               apunte={bloqueo.anio ? null : textoHorquilla(t, horquilla, tolerance)}
             />
-          </>
+          </div>
         ) : (
-        <>
+        // Las tres casillas EN FILA (sistema «Asfalto»), como el cupón de la
+        // app: marca, modelo y año se leen como un solo control de tres partes
+        // y el bloque mide un renglón en vez de tres. Los desplegables siguen
+        // colgando de su campo, más anchos que la casilla (ver .prensa-casillas).
+        <div className="prensa-casillas">
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
@@ -538,7 +553,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           estado={bloqueo.anio ? "resuelto" : null}
           horquilla={horquilla}
         />
-        </>
+        </div>
         )}
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
             Con campos incompletos el botón queda tocable con aspecto apagado
@@ -549,7 +564,15 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         {/* Con el catálogo caído el botón no se pinta: debajo del cartel de
             «no ha llegado el listado» un ADIVINAR muerto no añade nada, y el
             único gesto útil que queda ahí es Reintentar. */}
-        {!catalogFallido && (
+        {!catalogFallido && mantener && (
+          <BotonMantener
+            listo={canSubmit}
+            enviando={isSubmitting}
+            deshabilitado={formDisabled}
+            onConfirmar={() => formRef.current?.requestSubmit()}
+          />
+        )}
+        {!catalogFallido && !mantener && (
           <button
             type="submit"
             className={
@@ -580,7 +603,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         <SelectorHoja
           open={hoja !== null}
           onClose={cerrarHoja}
-          titulo={t(`cdd.label${paso === "anio" ? "Anio" : paso === "modelo" ? "Modelo" : "Marca"}`)}
+          titulo={t(`cdd.elige${paso === "anio" ? "Anio" : paso === "modelo" ? "Modelo" : "Marca"}`)}
+          paso={paso === "anio" ? 2 : paso === "modelo" ? 1 : 0}
           apunte={
             paso === "anio" ? textoHorquilla(t, horquilla, tolerance)
             : paso === "modelo" ? marca
@@ -594,6 +618,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               opciones={availableMarcas}
               valor={marca}
               optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
+              optionLogo={logoMarca}
+              optionNota={(m) => (marcaPais[m] ? getLocalizedCountry(marcaPais[m]) : null)}
               onElegir={elegirMarca}
             />
           )}

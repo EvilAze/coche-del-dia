@@ -43,7 +43,10 @@ export function useDailyStats(attempts, won, enabled = true) {
   if (!stats || stats.totalGames < MIN_GAMES) return { ready: false };
 
   const { distribution, totalGames, winRate } = stats;
-  const maxCount = Math.max(...distribution, 1);
+  const losses = stats.losses ?? 0;
+  // La fila de «sin resolver» entra en la escala: si no, en un día difícil su
+  // barra desbordaría a todas las demás.
+  const maxCount = Math.max(...distribution, losses, 1);
 
   // Percentil = % de jugadores que lo hicieron PEOR. Solo para ganadores.
   let betterThanPct = 0;
@@ -54,7 +57,7 @@ export function useDailyStats(attempts, won, enabled = true) {
     betterThanPct = Math.round((worse / totalGames) * 100);
   }
 
-  return { ready: true, distribution, totalGames, winRate, maxCount, betterThanPct, revealed };
+  return { ready: true, distribution, losses, totalGames, winRate, maxCount, betterThanPct, revealed };
 }
 
 // Barras de distribución de intentos (1–5) con la fila del jugador resaltada.
@@ -62,10 +65,14 @@ export function useDailyStats(attempts, won, enabled = true) {
 // dentro («Hoy en el mundo») y en el Configurator caía justo debajo de otro
 // encabezado —«La estadística del día»—, así que la sección se anunciaba dos
 // veces seguidas con dos frases distintas para el mismo bloque.
-export function Distribution({ data, attempts, won }) {
+// `sinPie`: el panel final pone el recuento de partidas en la cabecera de su
+// tarjeta, así que allí el pie de la distribución sobraría.
+export function Distribution({ data, attempts, won, sinPie = false }) {
   const { t } = useT();
   if (!data.ready) return null;
-  const { distribution, totalGames, winRate, maxCount, revealed } = data;
+  const { distribution, losses = 0, totalGames, winRate, maxCount, revealed } = data;
+  const perdidas = totalGames > 0 ? Math.round((losses / totalGames) * 100) : 0;
+  const meX = !won && attempts > 0;
   return (
     <div className="cdd-dist-card">
       <div className="cdd-dist">
@@ -87,11 +94,25 @@ export function Distribution({ data, attempts, won }) {
             </div>
           );
         })}
+        {/* SIN RESOLVER: la fila que faltaba. Quien pierde también tiene su
+            barra, y verla junto a las demás es lo que dice que no está solo. */}
+        <div className="cdd-dist-row">
+          <span className={"cdd-dist-n" + (meX ? " me" : "")} aria-label={t("prensa.selloLose")}>✕</span>
+          <div className="cdd-dist-track">
+            <div
+              className={"cdd-dist-bar perdidas" + (meX ? " me" : "")}
+              style={{ width: Math.max((losses / maxCount) * 100, 6) + "%", transform: revealed ? "scaleX(1)" : "scaleX(0)", transformOrigin: "left", transitionDelay: 120 + distribution.length * 60 + "ms" }}
+            />
+          </div>
+          <span className={"cdd-dist-pct" + (meX ? " me" : "")}>{perdidas}%</span>
+        </div>
       </div>
-      <div className="cdd-dist-foot">
-        <span>{t("dailyStats.gamesPlayed", { count: totalGames })}</span>
-        <span>{t("dailyStats.winRate", { pct: winRate })}</span>
-      </div>
+      {!sinPie && (
+        <div className="cdd-dist-foot">
+          <span>{t("dailyStats.gamesPlayed", { count: totalGames })}</span>
+          <span>{t("dailyStats.winRate", { pct: winRate })}</span>
+        </div>
+      )}
     </div>
   );
 }

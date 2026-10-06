@@ -97,20 +97,17 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
       onClose={onClose}
       label={editando ? t("nickname.titleChange") : t("nickname.title")}
       backdropClassName="modal-scrim fixed inset-0 z-[120] flex items-center justify-center px-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm p-6 text-center"
+      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
-      <div className="absolute right-4 top-4 z-10">
-        <CloseButton onClick={onClose} />
-      </div>
+      <form onSubmit={handleSubmit} className="dlg">
+        <div className="dlg-cab">
+          <h2 className="dlg-titulo">
+            {editando ? t("nickname.titleChange") : t("nickname.title")}
+          </h2>
+          <CloseButton onClick={onClose} />
+        </div>
 
-      <form onSubmit={handleSubmit}>
-        <p className="pm-kicker">{t("nickname.tag")}</p>
-
-        <h2 className="pm-title mt-2">
-          {editando ? t("nickname.titleChange") : t("nickname.title")}
-        </h2>
-
-        <p className="pm-body mt-3">{t("nickname.description")}</p>
+        <p className="dlg-texto">{t("nickname.description")}</p>
 
         <input
           autoFocus
@@ -127,20 +124,17 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
           // decía que hubiera pasado nada.
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "nickname-error" : undefined}
-          className="
-            mt-5 h-12 w-full rounded-none border-b border-tinta
-            bg-transparent px-2 text-center font-courier text-2xl
-            uppercase tracking-widest text-tinta outline-none
-            placeholder:text-tinta-2/50 focus:border-rojo
-          "
+          // La firma se escribe en la letra en la que se va a LEER: la de los
+          // nombres de la clasificación, en mayúsculas.
+          className="dlg-input dlg-firma"
         />
 
-        <div className="pm-label mt-2 !text-[10px]">{t("nickname.rules")}</div>
+        <p className="dlg-nota">{t("nickname.rules")}</p>
 
         {/* `role="alert"` para que se anuncie al aparecer: es la respuesta al
             envío, y llega cuando el foco ya no se mueve de sitio. */}
         {error && (
-          <p id="nickname-error" role="alert" className="pm-body mt-3 text-sm text-rojo">
+          <p id="nickname-error" role="alert" className="dlg-error">
             {error}
           </p>
         )}
@@ -148,7 +142,7 @@ export default function NicknameModal({ open, onClose, onSaved, valorActual = nu
         <button
           type="submit"
           disabled={saving || !displayName.trim()}
-          className="pm-btn mt-5"
+          className="pm-btn"
         >
           {saving ? t("nickname.saving") : editando ? t("nickname.submitChange") : t("nickname.submit")}
         </button>

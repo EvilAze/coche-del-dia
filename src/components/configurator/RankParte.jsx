@@ -1,97 +1,53 @@
 // src/components/configurator/RankParte.jsx
-// «El parte de la clasificación» del final de partida: el puesto del jugador en la
-// TEMPORADA en curso + su movimiento vs ayer, como palanca de retorno (aversión a
-// la pérdida). Solo para logueados con datos; el anónimo ya tiene su propio CTA de
-// registro en el EndScreen, así que aquí devolvemos null y no duplicamos.
+// EL PARTE DE LA CLASIFICACIÓN, en el panel del final de partida.
 //
-// Compartir sigue siendo el CTA principal del EndScreen: esto es un bloque
-// secundario de tinta + oro viejo (el puesto es «valioso»), nunca un botón que
-// compita con el de compartir.
+// Sistema «Asfalto»: una TARJETA entera que lleva a la tabla, no una sección
+// con ladillo y un enlace al pie. Lo que importa al cerrar la partida es la
+// noticia —«Subes 4 puestos»— y, debajo, dónde te deja: el puesto sobre el
+// total y a cuánto estás del de arriba. El icono de la izquierda dice el
+// sentido sin leer: tendencia en verde si subes, en rojo si bajas, el trofeo
+// si te mantienes o estrenas puesto.
 //
-// El countdown de cierre vive en el banner del modal de ranking (al que apunta el
-// CTA), no aquí: el parte es un empujón compacto y no queremos duplicar la cuenta.
+// La temporada ya no se anuncia aquí (antes iba en el ladillo y costaba una
+// petición): la tabla, que es adonde lleva la tarjeta, la enseña en grande.
+//
+// Solo para cuentas: un anónimo no tiene fila en la tabla.
 
-import { useEffect, useState } from "react";
 import { useT } from "../../i18n";
 import { haptic } from "../../lib/haptics";
 import { rankMovement } from "../../lib/rankMovement";
-import { getCurrentSeason } from "../../lib/statsService";
-import PuestoCifra, { ordinal } from "../PuestoCifra";
+import { ordinal } from "../PuestoCifra";
 import { Icon, I } from "./icons";
 
 export default function RankParte({ rank, user, onOpenRanking }) {
   const { t, tn, locale } = useT();
-  // Temporada activa para el ladillo (tema). La pedimos aquí para no arrastrar el
-  // prop por EndScreen; es una lectura barata de la tabla pública `seasons`.
-  const [season, setSeason] = useState(null);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    getCurrentSeason()
-      .then((s) => {
-        if (!cancelled) setSeason(s);
-      })
-      .catch(() => {
-        if (!cancelled) setSeason(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  // Solo logueados: al anónimo no le pintamos puesto (no tiene) y ya tiene el CTA
-  // "guarda tu progreso" un poco más abajo.
   if (!user) return null;
 
   const mv = rankMovement(rank);
-
-  // Ladillo: el tema de la temporada (o solo el kicker mientras carga / sin
-  // temporada). Sustituye al mes que se mostraba antes.
-  const label = season ? (locale === "en" ? season.label_en : season.label_es) : null;
-  const lad = label ? `${t("parte.kicker")} · ${label}` : t("parte.kicker");
-
-  const openRanking = () => {
+  const abrir = () => {
     haptic.impactLight();
-    // El `source` lo emite el ÚNICO track de openRanking (App.jsx). Antes se
-    // disparaba también aquí, así que cada apertura desde el final de partida
-    // contaba dos veces y la comparación entre orígenes salía sesgada.
     onOpenRanking?.("end_screen");
   };
 
-  const Cta = (
-    <button type="button" className="cdd-parte-cta" onClick={openRanking}>
-      {t("parte.cta")} <Icon d={I.chevR} size={13} />
-    </button>
-  );
-
-  // Logueado pero sin puesto esta temporada (0 victorias) → empujón a competir.
+  // Sin puesto todavía esta temporada: la invitación, con el mismo objeto.
   if (mv.kind === "unranked") {
     return (
-      <div className="cdd-parte">
-        <div className="cdd-parte-lad">{lad}</div>
-        <p className="cdd-parte-nudge">{t("parte.unranked")}</p>
-        {Cta}
-      </div>
+      <button type="button" className="fin-tarjeta fin-fila fin-entra" onClick={abrir}>
+        <span className="fin-icono"><Icon d={I.trophy} size={19} /></span>
+        <span className="fin-fila-texto">
+          <b>{t("parte.cta")}</b>
+          <span>{t("parte.unranked")}</span>
+        </span>
+        <Icon d={I.chevR} size={17} className="fin-chev" />
+      </button>
     );
   }
 
-  const movText =
+  const titulo =
     mv.kind === "up" ? tn("parte.up", mv.n)
     : mv.kind === "down" ? tn("parte.down", mv.n)
     : mv.kind === "hold" ? t("parte.hold")
     : t("parte.new");
-
-  // La distancia al de arriba: el movimiento cuenta lo que YA pasó, esto cuenta
-  // lo que falta. Es el gancho de vuelta — «a 3 puntos del 6º» son dos partidas.
-  // Llega null contra una base de datos sin la migración de la distancia, y
-  // entonces el parte se queda como estaba.
-  // OJO: estas tres claves vivían como `prensa.faja*` y NO EXISTÍAN. Se borraron
-  // de los locales al retirar la faja de clasificación de la portada, pero este
-  // componente siguió llamándolas, y `t()` devuelve la clave cuando falta: todo
-  // jugador logueado con puesto veía un literal «prensa.fajaDistancia.one» en su
-  // pantalla de resultado. Ahora viven en `parte.*`, que es donde vive el bloque,
-  // y `locales.test.js` comprueba que toda clave usada en código exista.
   const arriba = ordinal(mv.pos - 1, locale);
   const distancia =
     mv.pos === 1
@@ -101,18 +57,19 @@ export default function RankParte({ rank, user, onOpenRanking }) {
       : rank?.gap > 0
       ? tn("parte.distancia", rank.gap, { pos: arriba })
       : null;
+  const puesto = `${ordinal(mv.pos, locale)} ${t("parte.of", { total: mv.total })}`;
+  const icono = mv.kind === "up" ? I.trendUp : mv.kind === "down" ? I.trendDown : I.trophy;
 
   return (
-    <div className="cdd-parte">
-      <div className="cdd-parte-lad">{lad}</div>
-      <div className="cdd-parte-row">
-        {/* El mismo marcador que la faja de portada: al cerrar el periódico se
-            ve exactamente el objeto que se vio al abrirlo. */}
-        <PuestoCifra pos={mv.pos} total={mv.total} size="xl" />
-      </div>
-      <p className={"cdd-parte-mov cdd-parte-mov--" + mv.kind}>{movText}</p>
-      {distancia && <p className="cdd-parte-dist">{distancia}</p>}
-      {Cta}
-    </div>
+    <button type="button" className="fin-tarjeta fin-fila fin-entra" onClick={abrir} aria-label={`${titulo}. ${puesto}${distancia ? `. ${distancia}` : ""}. ${t("parte.cta")}`}>
+      <span className={"fin-icono" + (mv.kind === "up" ? " verde" : mv.kind === "down" ? " rojo" : "")}>
+        <Icon d={icono} size={19} />
+      </span>
+      <span className="fin-fila-texto">
+        <b>{titulo}</b>
+        <span>{distancia ? `${puesto} · ${distancia}` : puesto}</span>
+      </span>
+      <Icon d={I.chevR} size={17} className="fin-chev" />
+    </button>
   );
 }

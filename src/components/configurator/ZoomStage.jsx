@@ -12,6 +12,7 @@ import { useT } from "../../i18n";
 export default function ZoomStage({
   car,
   zoom,
+  aumento = null,
   status,
   hintIndex,
   totalHints,
@@ -60,11 +61,25 @@ export default function ZoomStage({
   // vez eran literalmente «¿pero qué es esto?». La pregunta cuesta el mismo
   // renglón y es la única frase que un recién llegado necesita leer.
   //
-  // En la misma voz que el resto de titulares (Fraunces, en caja baja), no en
+  // En la misma voz que el resto de titulares (Barlow Condensed), no en
   // versalitas espaciadas: es la frase que se lee, no una etiqueta de sección.
   // Con la partida cerrada ya no hay nada que preguntar y vuelve el rótulo de
   // siempre.
   const rotulo = revealed ? t("prensa.ladilloFoto") : t("prensa.pregunta");
+
+  // EL MEDIDOR DE INTENTOS VIVE EN EL HUECO DEL FILETE. Entre la pregunta y el
+  // «Intento 3 de 5» ya había un elemento elástico —la regla del ladillo—, así
+  // que el medidor ocupa ESE sitio y no añade un renglón: en la app el alto de
+  // esta sección es parte del presupuesto que reparte el pliego (ver
+  // `--cdd-foto-suelo`) y un renglón más se lo habría cobrado a la foto.
+  // Gastado = rojo de la marca, el actual = tinta, los que quedan = filete. Al
+  // terminar la partida vuelve a ser una regla lisa: ya no hay nada que contar.
+  const medidor =
+    !revealed && hintIndex != null && totalHints
+      ? Array.from({ length: totalHints }, (_, i) =>
+          i < hintIndex ? "gastado" : i === hintIndex ? "actual" : "libre"
+        )
+      : null;
 
   return (
     // Sin sangría horizontal propia. La tenía (`px-4 md:px-8`) y era justo lo que
@@ -85,7 +100,9 @@ export default function ZoomStage({
           DESPUÉS de la regla, y un pseudo-elemento siempre va el último. */}
       <div className="prensa-ladillo prensa-ladillo--pregunta">
         <span className="rotulo">{rotulo}</span>
-        <i className="filete" aria-hidden="true" />
+        <i className={"filete" + (medidor ? " medidor" : "")} aria-hidden="true">
+          {medidor && medidor.map((estado, i) => <span key={i} className={"seg " + estado} />)}
+        </i>
         {/* EL CONTADOR SE RE-ESTAMPA AL CAMBIAR DE INTENTO. Es el relevo
             tipográfico del lavado rojo que se tiraba sobre la fotografía (ver
             CarImage): en este sistema el aviso lo da la letra, no un tinte
@@ -124,6 +141,7 @@ export default function ZoomStage({
           src={car?.img ?? null}
           blurData={car?.blurData ?? null}
           zoom={zoom}
+          aumento={aumento}
           hintIndex={hintIndex}
           totalHints={totalHints}
           status={status}

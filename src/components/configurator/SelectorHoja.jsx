@@ -57,6 +57,9 @@ export default function SelectorHoja({
   // Línea de apoyo bajo el título (la horquilla del año, el «elige marca
   // primero»…). Opcional: sin ella el encabezado es solo el título.
   apunte = null,
+  // En qué paso del cupón estamos (0 marca, 1 modelo, 2 año), para los puntos
+  // de la cabecera. Sin él, no se pintan.
+  paso = null,
   children,
 }) {
   const { t } = useT();
@@ -126,6 +129,18 @@ export default function SelectorHoja({
           <h2 className="pm-hoja-titulo">{titulo}</h2>
           {apunte && <p className="pm-hoja-apunte">{apunte}</p>}
         </div>
+        {/* En qué paso vas (marca, modelo, año), como los puntos de «Cómo se
+            juega». Va en la MISMA fila que el título y no encima: la cabecera
+            no puede crecer ni un píxel (ver el alto de la hoja en la regla 18 y
+            test:layout), y un renglón más dejaba la lista por debajo de las dos
+            opciones a la vista con el teclado arriba. */}
+        {Number.isInteger(paso) && (
+          <span className="pm-hoja-pasos" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <i key={i} className={i === paso ? "on" : i < paso ? "hecho" : undefined} />
+            ))}
+          </span>
+        )}
         <button
           type="button"
           className="pm-hoja-cerrar"

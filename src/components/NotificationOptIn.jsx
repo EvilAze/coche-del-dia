@@ -105,19 +105,15 @@ export default function NotificationOptIn() {
       // acento y las esquinas redondeadas del rediseño plano, y su cuerpo iba en
       // `text-white/90` — blanco sobre papel crema, ilegible en el modo día. Un
       // aviso que no se puede leer no es un aviso.
-      <div className="mb-4 border border-tinta p-4 text-left">
-        <p className="pm-kicker">{t("notif.iosHintTitle")}</p>
-        <p className="pm-body mt-2 text-sm">{t("notif.iosHintBody")}</p>
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={dismissHint}
-            className="pm-btn pm-btn--ghost !w-auto !py-2.5 !text-xs"
-          >
+      <section className="oferta">
+        <h3 className="oferta-titulo">{t("notif.iosHintTitle")}</h3>
+        <p className="oferta-texto">{t("notif.iosHintBody")}</p>
+        <div className="oferta-botones">
+          <button type="button" onClick={dismissHint} className="oferta-no">
             {t("notif.webOptInDecline")}
           </button>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -125,21 +121,21 @@ export default function NotificationOptIn() {
   const accept = isWeb ? acceptWeb : acceptNative;
 
   return (
-    // Recuadro de "suscripción al boletín": filete de tinta, sin tinte de
-    // color. Los textos varían según el canal (web push vs. nativo).
-    <div className="mb-4 border border-tinta p-4 text-left">
-      <p className="pm-kicker">{t("notif.optInTitle")}</p>
-      <p className="pm-body mt-2 text-sm">
+    // Una tarjeta más del panel, con su pregunta en titular. Los textos varían
+    // según el canal (web push vs. nativo).
+    <section className="oferta">
+      <h3 className="oferta-titulo">{t("notif.optInTitle")}</h3>
+      <p className="oferta-texto">
         {isWeb ? t("notif.webOptInBody") : t("notif.optInBody")}
       </p>
-      <div className="mt-4 flex gap-2">
-        <button type="button" onClick={accept} className="pm-btn flex-1 !py-2.5 !text-xs">
+      <div className="oferta-botones">
+        <button type="button" onClick={accept} className="pm-btn">
           {isWeb ? t("notif.webOptInAccept") : t("notif.optInAccept")}
         </button>
-        <button type="button" onClick={decline} className="pm-btn pm-btn--ghost !w-auto !py-2.5 !text-xs">
+        <button type="button" onClick={decline} className="oferta-no">
           {isWeb ? t("notif.webOptInDecline") : t("notif.optInDecline")}
         </button>
       </div>
-    </div>
+    </section>
   );
 }

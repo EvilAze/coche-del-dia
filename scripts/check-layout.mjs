@@ -327,10 +327,9 @@ function paginaHtml(hrefCss) {
     for (let i = 0; i < filas; i++) {
       const f = document.createElement("div");
       f.dataset.fila = String(i);
-      // La rejilla REAL de la tabla (Ranking.jsx), para que las filas midan lo
+      // La fila REAL de la tabla (.clas-fila, Ranking.jsx), para que midan lo
       // que miden: el banco existe para medir píxeles, no aproximaciones.
-      f.className =
-        "grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] items-center gap-2 px-3 py-2";
+      f.className = "clas-fila";
       f.textContent = (i + 1) + "  Jugador " + (i + 1) + "  1234";
       cuerpo.appendChild(f);
     }

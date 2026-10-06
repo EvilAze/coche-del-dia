@@ -80,14 +80,28 @@ import { haptic } from "../../lib/haptics";
 import { esApp } from "../../lib/plataforma";
 import { rankMovement } from "../../lib/rankMovement";
 import { ordinal } from "../PuestoCifra";
+import { Icon, I } from "./icons";
+
+// La marca del logotipo: el coche (máscara de /marca-coche.png, en la tinta del
+// tema) sobre las dos rayas rojas, que pinta el CSS. Sin texto: va aria-hidden
+// porque siempre acompaña al nombre escrito.
+function Marca({ grande = false }) {
+  return (
+    <span className={"prensa-marca" + (grande ? " prensa-marca--grande" : "")} aria-hidden="true">
+      <span className="coche" />
+    </span>
+  );
+}
 
 export default function Header({
   rank = null, // { rank, total, delta } | null — puesto de temporada del logueado
   rankCargando = false, // aún no sabemos el puesto (≠ "no tiene puesto")
   user,
   repescaAlert = false,
+  streak = 0,
   onOpenMenu,
   onOpenRanking,
+  onOpenHowTo,
 }) {
   const { t, tn, dateLocale, locale } = useT();
 
@@ -118,7 +132,7 @@ export default function Header({
   //
   // AHORA ES UNA CORNISA, que es como se llama en tipografía el rótulo que en
   // las páginas interiores dice qué diario y qué día estás leyendo: el nombre
-  // en versalitas diminutas y, debajo, la fecha en Fraunces. Eso responde de
+  // en versalitas diminutas y, debajo, la fecha. Eso responde de
   // paso a la objeción de «una app dice su nombre una vez»: una cornisa no es
   // el nombre presentándose otra vez, es la página identificándose. Y le
   // devuelve a la izquierda de la barra un motivo para existir más allá de
@@ -139,9 +153,9 @@ export default function Header({
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
   const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
-  const fechaCorta = enApp
-    ? ahora.toLocaleDateString(dateLocale, { day: "numeric", month: "long" })
-    : null;
+  // Asfalto: la cornisa (nombre + fecha corta) es LA cabecera en las dos
+  // plataformas; el masthead centrado de la web se retiró (ver el JSX).
+  const fechaCorta = ahora.toLocaleDateString(dateLocale, { day: "numeric", month: "long" });
 
   // El movimiento del día, solo en la app y solo cuando de verdad lo hay: con
   // `hold` (mantienes) o `new` (estrenas) no se pinta nada. `rankMovement`
@@ -195,19 +209,67 @@ export default function Header({
     <span className="pos pos--invita">{t("prensa.competir")}</span>
   ) : null;
 
+  // ── LA CABECERA «ASFALTO» ───────────────────────────────────────────────────
+  // Una sola fila, igual en web y en la app: a la izquierda QUIÉN es (la marca
+  // del logotipo y el nombre, con la fecha debajo); a la derecha lo que se
+  // puede hacer o mirar (la racha, la clasificación y el sumario). Es la
+  // cabecera de una app, no el cabecero de un diario: el masthead centrado de la
+  // web y su banda de folio se retiran — lo que decían lo dice la cornisa.
+  //
+  // EL LEMA SE QUEDA EN LA WEB. Se puso porque nada en la portada decía que
+  // aquí se juega y tres de cada cuatro nuevos se iban tras el primer intento
+  // (oct-2026). En la web el visitante puede llegar de Google sin saber dónde
+  // ha caído, así que la frase sigue a la vista, como subtítulo bajo la barra.
+  // En la app no: quien la abre ya sabe a qué viene.
   return (
     <header className="prensa-area-cab">
-      {/* `aria-label` de navegación a secas: el reclamo («únete al ranking»)
-          vive en el propio botón de la clasificación, que es quien lo cumple. */}
       <nav className="prensa-topbar" aria-label={t("prensa.navAria")}>
-        {/* IZQUIERDA: la marca del sumario. */}
-        <span>
+        <span className="prensa-identidad">
+          <Marca />
+          <span className="prensa-cornisa">
+            <span className="sr-only">{dateLabel}</span>
+            <span className="cabeza" aria-hidden="true">{t("app.title")}</span>
+            <span className="fecha" aria-hidden="true">{fechaCorta}</span>
+          </span>
+        </span>
+
+        <span className="prensa-acciones">
+          {/* La racha, en oro: es lo que vale algo. Solo existe con racha viva;
+              sin ella no hay nada que proteger y la barra no la anuncia. */}
+          {streak > 0 && (
+            <span className="prensa-racha" role="img" aria-label={tn("sumario.perfilRacha", streak)}>
+              <Icon d={I.flame} size={16} />
+              <span aria-hidden="true">{streak}</span>
+            </span>
+          )}
+          {/* Cómo se juega: el «?» del diseño. En el móvil sustituye a la ficha
+              de la clasificación, que pasa a la barra de pestañas (CSS). */}
+          <button
+            type="button"
+            className="prensa-ayuda"
+            aria-label={t("cdd.helpAria")}
+            onClick={() => { haptic.impactLight(); onOpenHowTo?.(); }}
+          >
+            <Icon d={I.help} size={20} />
+          </button>
+          {/* La clasificación: el trofeo y el puesto (o la invitación a
+              competir). La palabra «Clasificación» va en el aria-label, no a la
+              vista: en un marcador el número es el mensaje. */}
+          <button
+            type="button"
+            className="prensa-clasif"
+            aria-label={clasifAria}
+            onClick={() => { haptic.impactLight(); onOpenRanking?.("cabecera"); }}
+          >
+            <Icon d={I.trophy} size={16} />
+            <span className="lad">{t("prensa.clasificacion")}</span>
+            {cifra && <span className="cifra">{cifra}</span>}
+          </button>
           <button
             type="button"
             // `aria-haspopup="dialog"` y sin `aria-expanded`: lo que abre es un
             // diálogo modal que se anuncia solo al recibir el foco, no un menú
-            // desplegado dentro de la barra. Anunciar "expandido" sobre algo que
-            // ya no vive aquí sería mentirle al lector de pantalla.
+            // desplegado dentro de la barra.
             aria-haspopup="dialog"
             aria-label={repescaAlert ? t("header.menuOpenWithRepesca") : t("header.menuOpen")}
             onClick={() => { haptic.impactLight(); onOpenMenu?.(); }}
@@ -216,89 +278,13 @@ export default function Header({
             <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
               <path d="M1 1h14M1 6h14M1 11h14" />
             </svg>
-            {/* Repesca pendiente: cuadradito de tinta roja en la esquina, como
-                la marca del corrector. Plegado el sumario, el "(1)" con el
-                nombre de la sección se repite dentro, en la portadilla del
-                Archivo — aquí fuera solo cabe el aviso de que hay algo. */}
+            {/* Repesca pendiente: el punto ámbar de «hay algo disponible». */}
             {repescaAlert && <span className="aviso" aria-hidden="true" />}
-          </button>
-          {/* La cornisa, solo en la app. Va DESPUÉS de la marca y no centrada
-              en la barra a propósito: centrarla la pondría a competir con la
-              clasificación por el eje óptico, y en 360px además bailaría según
-              lo largo que sea el mes. Agrupada a la izquierda, la barra se lee
-              en dos bloques limpios — «qué ejemplar es» y «qué puedo hacer».
-
-              La fecha larga viaja `sr-only` y lo visual va `aria-hidden`: quien
-              escucha oye «Jueves, 13 de agosto de 2026» en vez de una fecha sin
-              año, y no se le repite el nombre de la app en cada pantalla. */}
-          {fechaCorta && (
-            <span className="prensa-cornisa">
-              <span className="sr-only">{dateLabel}</span>
-              <span className="cabeza" aria-hidden="true">{t("app.title")}</span>
-              <span className="fecha" aria-hidden="true">{fechaCorta}</span>
-            </span>
-          )}
-        </span>
-
-        {/* DERECHA: la clasificación. Con puesto, el ordinal en oro (mismo
-            glifo que la tabla) y su movimiento del día; sin él, la invitación
-            a competir. */}
-        <span>
-          <button
-            type="button"
-            className="prensa-clasif"
-            aria-label={clasifAria}
-            onClick={() => { haptic.impactLight(); onOpenRanking?.("cabecera"); }}
-          >
-            <span className="lad">{t("prensa.clasificacion")}</span>
-            {/* La cifra y su movimiento van juntos en un contenedor propio para
-                que en la app puedan apilarse BAJO la etiqueta sin que el chip
-                se despegue del ordinal. En web este envoltorio es transparente:
-                la barra sigue siendo una fila de etiqueta + cifra. Y cuando no
-                hay nada que meter dentro NO se monta, porque un hijo vacío en un
-                flex con `gap` deja 7px de aire colgando tras la palabra. */}
-            {cifra && <span className="cifra">{cifra}</span>}
           </button>
         </span>
       </nav>
 
-      <div className="prensa-masthead prensa-masthead--compacto">
-        {/* El h1 real (SEO/lectores) vive sr-only en Configurator; este es el
-            wordmark visual del masthead. */}
-        <p className="titulo">{t("app.title")}</p>
-      </div>
-
-      {/* La banda del folio es cosa de la WEB. En la app la fecha ya viaja en
-          la barra de arriba, y montarla también aquí sería decir la misma cosa
-          dos veces —y, peor, repetírsela a quien use lector de pantalla—. Con
-          esta banda se van sus DOS filetes dobles, que era el otro problema:
-          el filete doble significa «división mayor» y había dos seguidos en un
-          palmo (más el de la barra y el del ladillo, cuatro reglas en 40px).
-          Ahora queda UNO, bajo la barra, justo donde separa la navegación del
-          ejemplar. */}
-      {/* EN LA BANDA YA NO VA LA FECHA: VA QUÉ ES ESTO. «Coche del Día» es el
-          nombre de un diario, no de un juego, y bajo él la línea más visible de
-          la portada era «Jueves, 1 de octubre de 2026»: nada en la pantalla
-          decía que aquí se juega. La frase que lo dice (`app.tagline`) llevaba
-          meses escrita en los locales sin que la montara nadie, y el `<title>`
-          la anunciaba solo en la pestaña, que en el móvil no se ve. La señal de
-          que faltaba: de los nuevos que abandonan su primera partida, tres de
-          cada cuatro se van tras el primer intento, y quien lo ve por primera
-          vez pone cara de pregunta (oct-2026). Se prefirió un lema a cambiar de
-          nombre: el dominio, la ficha de Play y la marca se quedan.
-
-          La fecha no hace falta a la vista en un juego diario —el reloj del pie
-          ya dice que el coche cambia cada día—, así que sigue entera para quien
-          escucha y se va para quien mira. El lema mide 41 caracteres contra los
-          28-32 de una fecha larga, al mismo cuerpo fluido: cabe en un renglón
-          también en un móvil de 320 (el folio no parte línea, ver index.css). */}
-      {!enApp && (
-        <div className="prensa-folio">
-          <span className="sr-only">{dateLabel}</span>
-          <span>{t("app.tagline")}</span>
-        </div>
-      )}
-
+      {!enApp && <p className="prensa-lema">{t("app.tagline")}</p>}
     </header>
   );
 }

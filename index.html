@@ -14,11 +14,11 @@
          siendo escalable por la vía correcta —tamaño de fuente del sistema, que
          el WebView respeta— y las áreas táctiles no dependen del zoom. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f3eee1" />
+    <meta name="theme-color" content="#f4f3ef" />
 
     <!--
       Anti-FOUC del tema: fija data-tema en <html> ANTES del primer paint, para
-      que la página no cargue en papel y salte a grafito (o viceversa). Misma
+      que la página no cargue en claro y salte a grafito (o viceversa). Misma
       lógica que src/lib/theme.js (override en localStorage → si no, el sistema).
       Silencioso: cualquier fallo deja el día por defecto.
     -->
@@ -34,15 +34,16 @@
           el.dataset.tema = noche ? "noche" : "dia";
           el.style.colorScheme = noche ? "dark" : "light";
           var m = document.querySelector('meta[name="theme-color"]');
-          if (m) m.setAttribute("content", noche ? "#17130d" : "#f3eee1");
+          if (m) m.setAttribute("content", noche ? "#0c0d0f" : "#f4f3ef");
         } catch (e) {}
       })();
     </script>
 
     <!--
-      Sistema «Prensa del motor»: Fraunces (display editorial, con itálica),
-      Libre Franklin (UI/labels) y Courier Prime (cupón/datos). (F5: retiradas
-      Archivo + Space Mono, ya sin uso tras portar todas las pantallas.)
+      Sistema «Asfalto»: Barlow (texto e interfaz), Barlow Condensed
+      (titulares, cifras grandes y el botón principal) e IBM Plex Mono
+      (etiquetas, años, puntos y reloj). Sustituye al trío de «Prensa del
+      motor» (Fraunces, Libre Franklin y Courier Prime).
 
       Las fuentes están AUTO-HOSPEDADAS en /fonts/ desde que la app Android
       existe: el APK empaqueta todo el HTML/JS/CSS y luego pedía la tipografía
@@ -55,8 +56,8 @@
       cierto.
 
       Los dos preload de abajo son las caras que se ven SÍ o SÍ en el primer
-      paint: Fraunces para la cabecera (el elemento LCP) y Libre Franklin para
-      los labels de UI. Sin ellos el navegador no descubre la fuente hasta
+      paint: Barlow Condensed para la pregunta y el botón principal, y Barlow
+      para el texto de la interfaz. Sin ellos el navegador no descubre la fuente hasta
       haber parseado el CSS, y se pierde un viaje. Solo el subset `latin`: el
       `latin-ext` (Škoda y compañía) lo pide el navegador si hace falta, que
       para eso está el unicode-range.
@@ -70,14 +71,14 @@
       rel="preload"
       as="font"
       type="font/woff2"
-      href="/fonts/fraunces-normal-400-900-latin.woff2"
+      href="/fonts/barlow-condensed-normal-700-latin.woff2"
       crossorigin
     />
     <link
       rel="preload"
       as="font"
       type="font/woff2"
-      href="/fonts/libre-franklin-normal-400-800-latin.woff2"
+      href="/fonts/barlow-normal-500-latin.woff2"
       crossorigin
     />
 
@@ -228,8 +229,8 @@
          igual. Ver index.css. -->
 
     <noscript>
-      <div style="padding:2rem;text-align:center;color:#1b1712;background:#f3eee1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
-        <h1 style="font-size:1.5rem;color:#b3271b">El Coche del Día</h1>
+      <div style="padding:2rem;text-align:center;color:#131416;background:#f4f3ef;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <h1 style="font-size:1.5rem;color:#c9321c">El Coche del Día</h1>
         <p style="margin-top:1rem;max-width:400px">Adivina la marca, modelo y año del coche del día en 5 intentos. Un nuevo reto automovilístico cada 24 horas. Activa JavaScript para jugar.</p>
       </div>
     </noscript>

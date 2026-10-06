@@ -1,17 +1,15 @@
 // src/components/PublicProfile.jsx
 // Modal read-only con el perfil de OTRO usuario (no el actual).
-// Es el GEMELO de MyStats: el mismo carnet (cabecera, nombre con sello y banda
-// de datos), pero adaptado a "ver a otro":
+// Es el GEMELO de MyStats, adaptado a "ver a otro":
 //   - Sin email (privado, no se expone).
 //   - Sin botón Sign out, sin idioma, sin "puertas" a Archivo/Ranking
 //     (esas navegan a TUS secciones; en un perfil ajeno no aplican).
 //
-// El carnet ya NO se dibuja aquí: vive en components/carnet/, compartido con
-// MyStats. Los dos perfiles se despegaron una vez (este se quedó con el avatar
-// de degradado menta del tema anterior mientras el propio migraba a papel) y la
-// causa era tener dos copias del mismo objeto. Ahora es una: el mismo documento
-// con otras cuatro casillas en la banda —aquí no hay puesto (la RPC pública no
-// expone posición), hay aciertos—.
+// Con «Asfalto» comparte con MyStats las mismas piezas (perf-*): la identidad
+// con su monograma y su rango, y las cifras en tarjetas. Los dos perfiles se
+// despegaron una vez por tener dos copias del mismo objeto; ahora son la misma
+// pantalla con otras casillas —aquí no hay puesto (la RPC pública no expone
+// posición), hay puntos—.
 //
 // AQUÍ HUBO UNA PLANCHA DE CROMOS con los logros conseguidos, y se retiró con el
 // sistema entero. El motivo no fue estético: los logros de marca y de país
@@ -19,8 +17,8 @@
 // catálogo), así que eran el álbum contado por segunda vez y peor — el Archivo
 // lleva nº de edición, rareza, cuándo lo ganaste y en cuántos intentos. Dos
 // superficies para un trabajo, y la buena es la otra. De aquel sistema
-// sobrevive el sello del tier, que sí resume algo de un vistazo y sigue en el
-// carnet (lib/collectionTier.js).
+// sobrevive el rango de coleccionista, que sí resume algo de un vistazo
+// (lib/collectionTier.js).
 //
 // Datos vienen de la RPC `get_public_profile` (ver scripts/supabase-
 // public-profile-rpc.sql). Solo expone campos que ya son públicos en
@@ -34,12 +32,7 @@ import { useEscape } from "../hooks/useEscape";
 import CloseButton from "./CloseButton";
 import Superficie from "./Superficie";
 import PodiumMedals from "./PodiumMedals";
-import Carnet, {
-  CarnetCabecera,
-  CarnetNombre,
-  CarnetCifras,
-  SelloTier,
-} from "./carnet/Carnet";
+import { Icon, I } from "./configurator/icons";
 
 export default function PublicProfile({ open, onClose, userId }) {
   const { t, tn, locale } = useT();
@@ -110,116 +103,105 @@ export default function PublicProfile({ open, onClose, userId }) {
   const tier = collectorTier(portadas);
   const selloTier = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
 
+  // El monograma, como en la clasificación de la que se viene: la misma
+  // inicial en el mismo disco, para que se reconozca a quien se ha tocado.
+  const inicial = state.data?.profile?.display_name
+    ? Array.from(nickname.trim())[0]?.toLocaleUpperCase() || "·"
+    : "·";
+  const guion = "—";
+
   return (
     <Superficie
       open={open}
       onClose={onClose}
       label={t("publicProfile.title")}
-      veloWeb="modal-scrim fixed inset-0 z-[80] flex items-center justify-center px-4"
-      veloApp="pm-velo-hoja fixed inset-0 z-[80] flex items-end justify-center"
-      panelWeb="modal-panel-flat flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden p-5"
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[82] flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-[82] flex items-end justify-center"
+      panelWeb="modal-panel-flat panel-seccion w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-5"
     >
+      {/* La X en su fila: el perfil ajeno se abre ENCIMA de la clasificación y
+          cerrarlo te devuelve a ella, así que no lleva el nombre de sección en
+          grande — el titular es el jugador. */}
+      <div className="pub-cab">
+        <span className="pub-kicker">{t("publicProfile.publicLabel")}</span>
+        <CloseButton onClick={onClose} label={t("common.close")} />
+      </div>
+
       {state.error ? (
-        <>
-          <div className="mb-3 flex items-start justify-between gap-2">
-            <p className="pm-kicker">{t("publicProfile.publicLabel")}</p>
-            <CloseButton onClick={onClose} className="-mr-2 -mt-2" />
-          </div>
-          <p className="text-sm text-rojo">{state.error}</p>
-          {/* Misma salida que el resto de superficies con datos. Aquí importa
-              incluso más: al perfil ajeno se llega desde la tabla, así que un
-              fallo sin reintento obliga a cerrar, volver a buscar la fila y
-              tocarla otra vez. */}
-          <button
-            type="button"
-            onClick={() => setReintento((n) => n + 1)}
-            className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-[11px]"
-          >
+        /* Misma salida que el resto de superficies con datos. Aquí importa
+           incluso más: al perfil ajeno se llega desde la tabla, así que un
+           fallo sin reintento obliga a cerrar, volver a buscar la fila y
+           tocarla otra vez. */
+        <div className="clas-aviso">
+          <p className="clas-aviso-texto rojo">{state.error}</p>
+          <button type="button" onClick={() => setReintento((n) => n + 1)} className="pm-btn pm-btn--ghost">
             {t("offline.retry")}
           </button>
-        </>
+        </div>
       ) : (
         <>
-          {/* El carnet hace de cabecera del modal, igual que en MyStats: el
-              título «Perfil» que había encima repetía lo que dice el propio
-              carnet y se comía 60px de alto. */}
-          <Carnet className="shrink-0" aria-busy={cargando}>
-            <CarnetCabecera
-              kicker={t("publicProfile.publicLabel")}
-              trailing={<CloseButton onClick={onClose} />}
-            />
+          <section className="perf-id" aria-busy={cargando}>
+            <span className="perf-avatar" aria-hidden="true">{cargando ? "" : inicial}</span>
+            <span className="perf-id-texto">
+              <b className="perf-nick">{cargando ? guion : nickname}</b>
+              {!cargando && (
+                <span className="perf-desde">
+                  {tn("publicProfile.portadas", portadas, { count: portadas })}
+                </span>
+              )}
+              {selloTier && (
+                <span className={`perf-rango tier-${tier.tier}`} title={t("myStats.tierLabel")}>
+                  <Icon d={I.estrella} size={13} />
+                  {t("garage.rango", { tier: selloTier })}
+                </span>
+              )}
+            </span>
+          </section>
 
-            <CarnetNombre
-              nombre={nickname}
-              cargando={cargando}
-              // La antigüedad («Lector desde…») es del carnet PROPIO: la RPC
-              // pública no expone la fecha de alta, y tampoco debería. Aquí el
-              // renglón de acreditación lo llena lo único público que dice algo
-              // de esta persona como lectora: su archivo.
-              apunte={tn("publicProfile.portadas", portadas, { count: portadas })}
-              sello={
-                <SelloTier
-                  tier={tier.tier}
-                  label={selloTier}
-                  title={t("myStats.tierLabel")}
-                />
-              }
-            />
+          {/* Sus cifras: las mismas tarjetas que las tuyas, sin puesto — la
+              RPC pública no expone la posición en la clasificación. */}
+          <section className="perf-cifras" aria-label={t("perfil.cifras")}>
+            <div className={"perf-cifra" + (onStreak ? " oro" : "")}>
+              <span className="k">
+                <Icon d={I.flame} size={13} />
+                {t("myStats.statStreak")}
+              </span>
+              <span className="v">
+                {cargando ? guion : stats?.current_streak ?? 0}
+                {!cargando && <small>{tn("perfil.dias", stats?.current_streak ?? 0)}</small>}
+              </span>
+            </div>
+            <div className="perf-cifra">
+              <span className="k">{t("myStats.streakBest")}</span>
+              <span className="v">
+                {cargando ? guion : maxStreak}
+                {!cargando && <small>{tn("perfil.dias", maxStreak)}</small>}
+              </span>
+            </div>
+            <div className="perf-cifra">
+              <span className="k">{t("myStats.statWins")}</span>
+              <span className="v">{cargando ? guion : stats?.total_wins ?? 0}</span>
+              {!cargando && repescaWins > 0 && (
+                <span className="perf-cifra-nota">
+                  {tn("publicProfile.winsFromRepesca", repescaWins, { count: repescaWins })}
+                </span>
+              )}
+            </div>
+            <div className="perf-cifra">
+              <span className="k">{t("publicProfile.statPoints")}</span>
+              <span className="v">{cargando ? guion : stats?.total_points ?? 0}</span>
+            </div>
+          </section>
 
-            {/* La banda: puntos · aciertos · racha · máxima. Sin puesto — la RPC
-                pública no expone posición en la clasificación. */}
-            <CarnetCifras
-              items={[
-                {
-                  label: t("publicProfile.statPoints"),
-                  value: cargando ? "—" : (stats?.total_points ?? 0),
-                },
-                {
-                  label: t("myStats.statWins"),
-                  value: cargando ? "—" : (stats?.total_wins ?? 0),
-                  apunte:
-                    !cargando && repescaWins > 0
-                      ? tn("publicProfile.winsFromRepesca", repescaWins, {
-                          count: repescaWins,
-                        })
-                      : null,
-                },
-                {
-                  label: t("myStats.statStreak"),
-                  value: cargando ? "—" : (stats?.current_streak ?? 0),
-                  tono: onStreak ? "oro" : "",
-                },
-                {
-                  label: t("myStats.statMaxStreak"),
-                  value: cargando ? "—" : maxStreak,
-                },
-              ]}
-            />
-          </Carnet>
-
-          {/* SIN RENGLÓN DE «CARGANDO». Lo que se está esperando aquí son los
-              PODIOS, y un jugador puede no tener ninguno: un esqueleto
-              prometería algo que quizá no llegue nunca, y la línea de texto que
-              había —una frase suelta bajo el carnet que aparecía y desaparecía—
-              solo añadía un salto. Quien dice que esto está en marcha es el
-              propio carnet, que ya viaja con `aria-busy` y sus cifras en «—».
-              El contenedor sí se monta siempre para que el aire bajo el carnet
-              no cambie de un estado al otro. */}
-          <div className="scrollbar-premium -mx-5 min-h-0 flex-1 overflow-y-auto px-5 pt-4">
-            {/* Lo que queda bajo el carnet son los PODIOS, y solo si los
-                tiene: el wrapper se colapsa con empty:hidden y el modal se
-                queda en el carnet a secas. Aquí iba también la plancha de
-                cromos con sus logros; se fue con el sistema (ver cabecera).
-                Que un podio sí se quede y una medalla de marca no, es la
-                distinción entera: el podio lo ganaste CONTRA alguien en un
-                mes concreto, la medalla te la daba el propio hecho de seguir
-                jugando. */}
-            {!cargando && (
-              <div className="mb-4 empty:hidden">
-                <PodiumMedals userId={userId} />
-              </div>
-            )}
-          </div>
+          {/* Los PODIOS, y solo si los tiene: el envoltorio se colapsa con
+              empty:hidden. Un podio se ganó CONTRA alguien un mes o una
+              temporada concretos: es lo único del perfil ajeno que cuenta una
+              historia y no un total. */}
+          {!cargando && (
+            <div className="perf-podios empty:hidden">
+              <PodiumMedals userId={userId} />
+            </div>
+          )}
         </>
       )}
     </Superficie>

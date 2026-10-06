@@ -55,6 +55,8 @@ async function montar({ guesses = [], catalogo = CATALOGO, error = null, reload 
         vars ? `${clave}:${Object.values(vars).join(",")}` : clave,
       locale: "es",
     }),
+    // El país de cada marca, junto a su bandera en la hoja de selección.
+    getLocalizedCountry: (pais) => pais,
   }));
 
   const { default: GuessForm } = await import("./GuessForm");

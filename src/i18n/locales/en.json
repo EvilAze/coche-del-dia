@@ -24,7 +24,7 @@
     "howToPlayAria": "How to play",
     "attempts": "attempts",
     "attemptsRemainingAria": "{count} of {max} attempts left",
-    "loginModalTitle": "SIGN IN",
+    "loginModalTitle": "Sign in",
     "loginModalDescription": "Save your stats in the cloud, compete on the global ranking and play from any device.",
     "loginError": "Couldn't sign in. Please try again.",
     "loginLinkTakenBody": "That Google account already has saved games. Sign in with it and you'll pick up where you left off — progress from this device can't be merged into an account that already exists.",
@@ -38,7 +38,7 @@
     "emailInvalid": "That email doesn't look right.",
     "emailError": "Couldn't send the code. Please try again.",
     "emailRateLimited": "Too many requests. Wait a few minutes and try again.",
-    "codeTitle": "CHECK YOUR EMAIL",
+    "codeTitle": "Check your email",
     "codeBody": "We sent a 6-digit code to {email}.",
     "codeEmailTakenBody": "That email already has an account with saved games. You'll go into it and pick up where you left off, but the account-less progress on this device can't be merged: it stays behind. If that wasn't the email you meant, change it before typing the code.",
     "codeLabel": "Code",
@@ -98,7 +98,30 @@
     "rule4": "It counts as correct within ±2 years.",
     "rule5Title": "A car every day",
     "rule5": "Come back every 24h for a new car and keep your streak.",
-    "cta": "Let's play!"
+    "cta": "Let's play!",
+    "paso": "{n} of {total}",
+    "pasosAria": "Steps",
+    "saltar": "Skip",
+    "siguiente": "Next",
+    "aJugar": "Let's play",
+    "p1Titulo": "Every miss opens the photo",
+    "p1Texto": "Five tries to get the make, model and year. You start right up against the car and, with every miss, the camera pulls back.",
+    "p1Alt": "A sample photo, pulling back try by try",
+    "p2Titulo": "Every field is a clue",
+    "p2Texto": "After each try, make, model and year tell you how you're doing. Always with an icon and a word, never colour alone.",
+    "ejCorrecta": "Correct",
+    "ejCorrectaTexto": "Spot on. That field is solved.",
+    "ejPais": "Same country",
+    "ejPaisTexto": "Not the make, but the same country.",
+    "ejNo": "Not it",
+    "ejNoTexto": "A miss. Try another one next time.",
+    "ejAnio": "Newer",
+    "ejAnioTexto": "The real year is later. Within ±2 years counts.",
+    "p3Titulo": "One car a day",
+    "p3Texto": "A new one arrives every midnight (Spanish time). The sooner you get it, the more points; and win days in a row for a separate streak bonus.",
+    "puntosKicker": "Points by try",
+    "diasN": "{n} days",
+    "diasOMas": "{n} or more"
   },
   "guessLog": {
     "label": "Guess history"
@@ -111,8 +134,8 @@
     "wordAnio": "year",
     "submit": "GUESS",
     "submitting": "CHECKING",
-    "comboPlaceholder": "Type or pick…",
-    "comboModeloDisabled": "Pick a make first",
+    "comboPlaceholder": "Type…",
+    "comboModeloDisabled": "Make first",
     "noMatches": "No matches",
     "yearPlaceholder": "YYYY",
     "yearTolerance": "±{n} years",
@@ -128,7 +151,9 @@
     "sameCountry": "SAME COUNTRY",
     "srCorrect": "correct",
     "srWrong": "wrong",
-    "selectorPick": "Tap to choose",
+    "notaBien": "Right",
+    "notaMal": "Not it",
+    "selectorPick": "Choose",
     "tableroHueco": "It’s a close-up of the car: try a make",
     "tableroHueco2": "Every miss zooms the photo out",
     "catalogLoading": "Loading…",
@@ -160,26 +185,25 @@
     "carImageAlt": "Car of the day",
     "pieSolved": "Solved in {n} of {max}",
     "pieUnsolved": "Unsolved in {max} tries",
-    "ladilloCronica": "The story of the car"
+    "ladilloCronica": "The story of the car",
+    "eligeMarca": "Pick the make",
+    "eligeModelo": "Pick the model",
+    "eligeAnio": "Pick the year"
   },
   "sumario": {
-    "kicker": "In this edition",
-    "titulo": "Contents",
     "garajeApunte": "Your collection of covers",
     "garajeRepesca": "You have a rescue waiting",
     "clasificacionApunte": "The season table",
-    "clasificacionPuesto": "this season",
-    "perfilApunte": "Your card and your stats",
+    "perfilApunte": "Your numbers and settings",
     "perfilRacha": {
       "one": "{count}-day streak",
       "other": "{count}-day streak"
     },
-    "entrarApunte": "Save your progress to the cloud",
+    "entrarApunte": "Sign in and your streak, points and Archive go with you.",
     "comoApunte": "The rules, in a minute",
-    "ejemplar": "This edition",
-    "tinta": "Ink",
-    "tintaDia": "Day",
-    "tintaNoche": "Night"
+    "menu": "Menu",
+    "entrarTitulo": "Keep your streak",
+    "puestoTemporada": "{pos} this season"
   },
   "prensa": {
     "ladilloFoto": "Today's photograph",
@@ -339,7 +363,8 @@
     "errorEmail": "That email doesn't look valid.",
     "errorCuota": "You've sent several messages today. Try again tomorrow.",
     "errorSesion": "We couldn't identify your session. Reload the page.",
-    "errorGenerico": "Couldn't send. Please try again."
+    "errorGenerico": "Couldn't send. Please try again.",
+    "tipoAria": "What it is about"
   },
   "publicProfile": {
     "portadas": {
@@ -376,14 +401,14 @@
   },
   "parte": {
     "kicker": "The standings report",
-    "of": "of {total} readers",
+    "of": "of {total}",
     "up": {
-      "one": "You climbed {count} spot today",
-      "other": "You climbed {count} spots today"
+      "one": "Up {count} place",
+      "other": "Up {count} places"
     },
     "down": {
-      "one": "You dropped {count} spot today · defend it",
-      "other": "You dropped {count} spots today · defend it"
+      "one": "Down {count} place",
+      "other": "Down {count} places"
     },
     "hold": "You held your spot",
     "new": "You're on the board this season",
@@ -430,7 +455,9 @@
     "streakAria": "Streak of {count} days, bonus {bonus}",
     "streakTitle": "Streak of {count} days",
     "legends": "Legends",
-    "legendsSubtitle": "All-time ranking"
+    "legendsSubtitle": "All-time ranking",
+    "podio": "Podium",
+    "diaDe": "Day {n}/{total}"
   },
   "podium": {
     "title": "Monthly podiums",
@@ -495,7 +522,23 @@
     "gameRulesNote": "Half points · doesn't affect your streak",
     "veteranBadge": "Veteran Mode",
     "veteranSello": "Veteran",
-    "veteranExplain": "You already saw this car when you failed it. You get 1 attempt and no hints: exact make, model and year."
+    "veteranExplain": "You already saw this car when you failed it. You get 1 attempt and no hints: exact make, model and year.",
+    "titulo": "Rescue",
+    "reglaPuntos": "points",
+    "reglaRacha": "Streak safe",
+    "veteranSub": "You saw this car when you missed it",
+    "chipIntento": "1 try",
+    "chipPistas": "No clues",
+    "chipAnio": "Exact year",
+    "mantenAdivinar": "Hold to guess",
+    "mantenSigue": "Keep holding…",
+    "mantenAria": "Press and hold to guess",
+    "mantenNota": "Just one try: that is why you confirm by holding.",
+    "puntos": "Rescue points",
+    "finMitad": "Half of a daily game, and your streak untouched.",
+    "finVeterano": "Won in Veteran Mode: the cover gets its badge.",
+    "finPerdidaTitulo": "Still in the Archive",
+    "finPerdidaTexto": "This issue goes back in the draw: tomorrow you can draw another rescue."
   },
   "garage": {
     "errorNoSession": "Not signed in",
@@ -604,7 +647,31 @@
     "rarity_soldout": "Sold out",
     "rarityBody": "{pct} % of {collectors} collectors have it",
     "sortRarity": "Rarity",
-    "flipHint": "Swipe to turn it over"
+    "flipHint": "Swipe to turn it over",
+    "deCatalogo": {
+      "one": "of {count} cover",
+      "other": "of {count} covers"
+    },
+    "rango": "{tier} collector",
+    "pendientes": {
+      "one": "{count} missing",
+      "other": "{count} missing"
+    },
+    "repescaDisponible": "Rescue available",
+    "repescaACurso": "You have a rescue in progress",
+    "repescaJugada": "Today's rescue, played",
+    "repescaAlDia": "Archive up to date",
+    "repescaResumen": "{pendientes} · half points, streak untouched",
+    "repescaManana": "{pendientes} · come back tomorrow for another",
+    "holeSub": "Win it back in a rescue",
+    "reglaUnaAlDia": "One a day",
+    "reglaMitad": "Half points",
+    "reglaRacha": "Your streak stays safe",
+    "ahoraNo": "Not now",
+    "drawBarajando": {
+      "one": "Shuffling {count} issue…",
+      "other": "Shuffling {count} issues…"
+    }
   },
   "primera": {
     "titulo1": "Almost nobody gets it on the first try.",
@@ -615,5 +682,54 @@
     "modeloOk": "the model is {modelo}",
     "anioOk": "the year is {anio}, ±{n}",
     "anioRango": "year {rango}"
+  },
+  "fin": {
+    "kickerWin": "Today's car",
+    "kickerLose": "Today's car was",
+    "resueltoEn": "Solved in {n} of {max}",
+    "puntosHoy": "Today's points",
+    "base": "Base · solved on attempt {n}",
+    "bonusRacha": "Streak bonus",
+    "diasSeguidos": {
+      "one": "{count} day in a row",
+      "other": "{count} days in a row"
+    },
+    "mejorRacha": "Your best streak: {n}",
+    "revancha": "Rematch in",
+    "tuPartida": "Your game",
+    "faltoModelo": "Only the model got away: it was the {modelo}. Make and year, spot on.",
+    "faltoAnio": "Only the year got away: it was from {anio}.",
+    "soloMarca": "You had the make; the model and year held out.",
+    "nada": "This one held out entirely. Tomorrow, another car.",
+    "rachaCortada": {
+      "one": "Your {count}-day streak ends today",
+      "other": "Your {count}-day streak ends today"
+    },
+    "mejorSigue": "Your best is still yours: {n}",
+    "vuelveTitulo": "This car comes back in the repesca",
+    "vuelveCuerpo": "It stays pending in your Archive. If you draw it, it'll be in Veteran Mode: one attempt, no hints.",
+    "noEresElUnico": "You are not alone: {pct}% did not get it either.",
+    "ficha": "The spec sheet"
+  },
+  "barra": {
+    "jugar": "Play"
+  },
+  "perfil": {
+    "cifras": "Your numbers",
+    "dias": {
+      "one": "day",
+      "other": "days"
+    },
+    "deN": "of {n}",
+    "distribucion": "Guesses to win",
+    "porcentaje": "{pct}% win rate",
+    "perdidas": "Lost",
+    "tema": "Theme",
+    "temaNoche": "Night",
+    "temaDia": "Day",
+    "temaAuto": "Auto",
+    "aviso": "New car reminder",
+    "avisoHora": "One a day, at {hora}",
+    "avisoBloqueado": "Blocked in your browser settings"
   }
 }

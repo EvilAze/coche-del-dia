@@ -25,6 +25,7 @@
 // (compartir nativo/clipboard, CTA de registro para anónimos) se conservan.
 
 import { useEffect, useRef, useState } from "react";
+import { menosMovimiento } from "../../lib/movimiento";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEscape } from "../../hooks/useEscape";
 import { useScrollLock } from "../../hooks/useScrollLock";
@@ -76,43 +77,62 @@ function legacyCopy(text) {
   }
 }
 
-// EL PIE DE TU PARTIDA: una sola línea, en la voz de los pies de foto.
-// Sustituye a tres elementos que decían lo mismo por separado —la etiqueta «TU
-// PARTIDA», la caja con la rejilla de emoji y la frase del percentil— más el
-// «ACERTADO · 1/5» que iba estampado sobre la fotografía y era redundante con el
-// sello RESUELTO de la esquina. Un renglón: qué hiciste, en cuántos, y cómo te
-// deja eso frente al resto.
-// Exportado porque la Repesca monta su propio panel de fin con las mismas clases
-// `cdd-end`, y tenía su propia copia de estas piezas (la píldora del veredicto
-// sobre la foto y la rejilla de emoji). Dos paneles con el mismo trabajo deben
-// usar el mismo objeto: es la razón por la que el marcador de puesto también es
-// un solo componente en las cinco superficies donde aparece.
-export function PiePartida({ won, attempts, max, pct = 0 }) {
-  const { t } = useT();
+// ── LAS PIEZAS DEL PANEL «ASFALTO» ───────────────────────────────────────────
+// El panel se compone de tarjetas, en el orden del diseño: la foto con su
+// chapa, el coche, lo que hiciste (el marcador si ganas, tu partida si no),
+// compartir y el reloj, y debajo lo que se lee si te quedas (la racha, la
+// repesca, la clasificación, el mundo y la ficha).
+
+// La cifra que sube de 0 a su valor al abrirse el panel. Con movimiento
+// reducido salta directamente: el número es el dato, la subida es adorno.
+function useCuenta(objetivo, ms = 700) {
+  const [valor, setValor] = useState(() => (menosMovimiento() ? objetivo : 0));
+  useEffect(() => {
+    if (!objetivo || menosMovimiento()) { setValor(objetivo || 0); return undefined; }
+    let raf;
+    const inicio = performance.now();
+    const paso = (ahora) => {
+      const t = Math.min(1, (ahora - inicio) / ms);
+      setValor(Math.round(objetivo * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+    return () => cancelAnimationFrame(raf);
+  }, [objetivo, ms]);
+  return valor;
+}
+
+// La rejilla de la partida: tres cuadros por intento (marca, modelo, año) en
+// el color de su veredicto. Es la misma rejilla que viaja en el texto de
+// compartir, pero dibujada por nosotros, no con emoji del sistema.
+function cuadro(status) {
+  return status === "correct" ? "bien" : status === "partial" ? "cerca" : "mal";
+}
+export function Rejilla({ guesses }) {
   return (
-    <div className="cdd-partida">
-      <span className="cdd-partida-txt">
-        {won ? t("cdd.pieSolved", { n: attempts, max }) : t("cdd.pieUnsolved", { max })}
-      </span>
-      {/* Los pips del pie de foto: un cuadradito por intento, gastados en tinta y
-          el que acertó en verde. Mismo objeto que la tira del escenario. */}
-      <span className="prensa-pips" aria-hidden="true">
-        {Array.from({ length: max }).map((_, i) => (
-          <i
-            key={i}
-            className={
-              "pip" +
-              (i < attempts ? " gastado" : "") +
-              (won && i === attempts - 1 ? " acierto" : "")
-            }
-          />
-        ))}
-      </span>
-      {pct > 0 && (
-        <span className="cdd-partida-pct">{t("dailyStats.betterThanShare", { pct })}</span>
-      )}
-    </div>
+    <span className="fin-rejilla" aria-hidden="true">
+      {guesses.map((g, i) => (
+        <span key={i} className="fila">
+          <i className={cuadro(g.marca?.status)} />
+          <i className={cuadro(g.modelo?.status)} />
+          <i className={cuadro(g.anio?.status)} />
+        </span>
+      ))}
+    </span>
   );
+}
+
+// Lo que se puede decir de una partida perdida mirando qué campos llegaron a
+// acertarse. Una frase, sin consuelo impostado: qué faltó.
+function lecturaDerrota(guesses, car, t) {
+  const tuvo = (campo) => guesses.some((g) => g[campo]?.status === "correct");
+  const marca = tuvo("marca"), modelo = tuvo("modelo"), anio = tuvo("anio");
+  if (!car?.modelo) return null;
+  if (marca && anio && !modelo) return t("fin.faltoModelo", { modelo: car.modelo });
+  if (marca && modelo && !anio) return t("fin.faltoAnio", { anio: car.anio });
+  if (marca && !modelo && !anio) return t("fin.soloMarca");
+  if (!marca) return t("fin.nada");
+  return null;
 }
 
 export default function EndScreen({
@@ -134,6 +154,13 @@ export default function EndScreen({
   // true solo cuando el panel se abre SOLO al terminar la partida: entonces el
   // sello, al caer, hace sentir el acierto o la derrota (useSelloSentido).
   sentirSello = false,
+  // La puntuación que devolvió el servidor al cerrar la partida (base, bonus de
+  // racha, racha actual y mejor racha). Solo existe en la sesión en que se
+  // terminó: al reabrir tras recargar, el marcador enseña lo que sabe.
+  score = null,
+  // La racha que había ANTES de esta partida. Al perder, `streak` ya vale 0 y
+  // sin esto no se podría decir qué racha se acaba de cortar.
+  rachaPrevia = 0,
 }) {
   const { t, tn } = useT();
   const toast = useToast();
@@ -238,29 +265,25 @@ export default function EndScreen({
     }
   }
 
+  const puntos = useCuenta(score?.totalPoints ?? 0);
+  const lectura = !won && hasReveal ? lecturaDerrota(guesses, car, t) : null;
+  const mejorRacha = score?.maxStreak ?? null;
+  // «No eres el único»: qué parte del mundo tampoco lo sacó hoy. En tanto por
+  // ciento y no en «N de cada 10»: con 4 derrotas de 32, redondear a décimos
+  // decía «1 de cada 10» al lado de una barra que marcaba un 13 %.
+  const pctPerdidas =
+    !won && daily.ready && daily.totalGames > 0
+      ? Math.round((daily.losses / daily.totalGames) * 100)
+      : 0;
+
   return (
     // `aria-modal="true"` promete que lo de fuera NO existe para un lector de
-    // pantalla, y esa promesa hay que sostenerla con dos cosas que faltaban.
-    //
-    //   · UN NOMBRE. Sin `aria-label` esto se anunciaba solo como «diálogo»:
-    //     el jugador acaba de ganar o perder la partida del día y lo que oye no
-    //     dice de qué va la pantalla que le ha aparecido delante.
-    //   · EL FOCO DENTRO. Este panel no usa ModalShell (es un modal a medida),
-    //     así que nadie movía el foco al abrirlo: se quedaba en el botón del
-    //     cupón de debajo, o sea en un elemento que `aria-modal` acaba de
-    //     ESCONDER. Quien navega con lector o con teclado quedaba anclado a la
-    //     nada, sin forma de alcanzar ni Compartir ni la X.
+    // pantalla: por eso el panel lleva nombre y recibe el foco al abrirse.
     <div className="cdd-end" role="dialog" aria-modal="true" aria-label={t("cdd.endScreenAria")}>
       <div className="cdd-end-scrim" onClick={onClose} />
-      {/* `outline-none` como en ModalShell: el panel recibe el foco para abrir
-          la lectura, no para dibujarse un aro alrededor. */}
-      <div className="cdd-end-card outline-none" ref={cardRef} tabIndex={-1}>
-        {/* Cerrar SIEMPRE a la vista: botón fijo (sticky) arriba a la IZQUIERDA
-            —la derecha la ocupa el sello del veredicto— con área táctil de 44px.
-            Antes el único cierre era un enlace diminuto al final del panel, que
-            obligaba a scrollear hasta abajo para salir. La barra sticky es de
-            alto 0 (no empuja la banda de revelado); el botón flota sobre ella y
-            se queda a la vista aunque el cuerpo del panel scrollee. */}
+      <div className="cdd-end-card fin outline-none" ref={cardRef} tabIndex={-1}>
+        {/* Cerrar SIEMPRE a la vista: barra sticky de alto 0 con la ✕ flotando
+            arriba a la izquierda (la derecha es de la chapa del veredicto). */}
         <div className="cdd-end-topbar">
           <button
             type="button"
@@ -272,34 +295,30 @@ export default function EndScreen({
           </button>
         </div>
 
-        {/* (Confetti retirado: en el lenguaje prensa la celebración es el
-            SELLO estampándose — spec §2 del rediseño.) */}
-
-        {/* Banda de revelado con el sello del veredicto */}
-        <div className={"cdd-reveal" + (videoAbierto ? " reproduciendo" : "")}>
-          <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true" onAnimationStart={alEstamparSello}>
-            {won ? t("prensa.selloWin") : t("prensa.selloLose")}
-          </div>
+        {/* LA FOTO, ya entera, con la chapa del veredicto: «Resuelto en 3 de 5»
+            en verde o «Sin resolver» en neutro. La chapa cae con su rebote y su
+            golpe háptico (useSelloSentido). */}
+        <div className={"fin-foto" + (videoAbierto ? " reproduciendo" : "")}>
           {car?.img && (
-            <img
-              // apiUrl(): `car.img` es la ruta RELATIVA del proxy
-              // (/api/daily-image?…). En la app el WebView sirve desde
-              // https://localhost, donde esa ruta no existe → la foto del
-              // revelado salía rota justo en el momento del premio. El <img>
-              // no pasa por el shim de fetch, así que hay que absolutizar a
-              // mano, igual que hacen CarImage y PhotoPeek.
-              src={apiUrl(car.img)}
-              alt=""
-              draggable={false}
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-            />
+            // apiUrl(): `car.img` es la ruta RELATIVA del proxy; en la app el
+            // WebView sirve desde https://localhost y hay que absolutizarla.
+            <img src={apiUrl(car.img)} alt="" draggable={false} className="fin-foto-img" />
           )}
-          {/* EL SELLO DE REPRODUCIR. Va sobre la foto, no debajo del panel: lo
-              que el jugador acaba de descubrir es ESTE coche, y el vídeo es de
-              ese coche — pedirlo en otro sitio sería romper el momento en dos.
-              Cubre la banda entera porque a estas alturas la foto ya no tiene
-              más trabajo que hacer: la partida terminó y el nombre está escrito
-              debajo. */}
+          <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true" onAnimationStart={alEstamparSello}>
+            {won ? (
+              <>
+                <Icon d={I.check} size={15} />
+                {t("fin.resueltoEn", { n: attempts, max })}
+              </>
+            ) : (
+              <>
+                <Icon d={I.x} size={14} />
+                {t("prensa.selloLose")}
+              </>
+            )}
+          </div>
+          {/* El vídeo del coche (temporadas presentadas): fachada con la misma
+              foto y un botón; el iframe solo existe a partir del toque. */}
           {videoId && !videoAbierto && (
             <button
               type="button"
@@ -313,13 +332,6 @@ export default function EndScreen({
               </span>
             </button>
           )}
-
-          {/* El iframe solo existe a partir del toque. `title` es obligatorio
-              para lectores de pantalla en un iframe; `playsinline` evita que
-              Android se lo lleve a pantalla completa nada más arrancar, que en
-              un WebView deja al jugador fuera de la app. Si el canal tiene el
-              embebido desactivado, YouTube pinta su propio aviso aquí dentro y
-              el resto del panel sigue funcionando. */}
           {videoAbierto && (
             <iframe
               className="cdd-reveal-video"
@@ -330,55 +342,108 @@ export default function EndScreen({
               referrerPolicy="strict-origin-when-cross-origin"
             />
           )}
-
-          <div className="cdd-reveal-grad" />
-          <div className="cdd-reveal-head">
-            {/* (Aquí iba `.cdd-verdict`: «ACERTADO · 1/5» sobre la fotografía. Lo
-                decía ya el sello RESUELTO de la esquina, y el recuento de
-                intentos lo dice mejor el pie de la partida, justo debajo, donde
-                además puede acompañarse del percentil. Sobre la foto quedaba una
-                tercera etiqueta pisando la carrocería.) */}
-            {hasReveal ? (
-              <>
-                <div className="cdd-reveal-name">
-                  <span className="cdd-reveal-brand">{car.marca}</span>
-                  <span className="cdd-reveal-model">{car.modelo}</span>
-                </div>
-                <div className="cdd-reveal-meta cdd-mono">
-                  {car.pais && <img className="cdd-flag" src={flagImagePath(car.pais)} alt="" />}
-                  {car.pais ? getLocalizedCountry(car.pais) : ""} · {car.anio}
-                </div>
-              </>
-            ) : (
-              <div className="cdd-reveal-meta cdd-mono">{t("cdd.revealUnavailable")}</div>
-            )}
-          </div>
         </div>
 
-        {/* EL PIE DE TU PARTIDA: el renglón que resume el resultado. Va pegado a
-            la fotografía porque es su pie, y por encima del CTA porque es lo que
-            le da sentido a compartir. */}
-        <PiePartida won={won} attempts={attempts} max={max} pct={pct} />
+        {/* EL COCHE: quién era, en grande, y su ficha corta en chapas. */}
+        <header className="fin-titulo fin-entra">
+          <span className="fin-kicker">{won ? t("fin.kickerWin") : t("fin.kickerLose")}</span>
+          {hasReveal ? (
+            <>
+              <h2 className="fin-coche">{car.marca} {car.modelo}</h2>
+              <div className="fin-chapas">
+                {car.pais && (
+                  <span className="fin-chapa">
+                    <img className="bandera" src={flagImagePath(car.pais)} alt="" />
+                    {getLocalizedCountry(car.pais)}
+                  </span>
+                )}
+                <span className="fin-chapa mono">{car.anio}</span>
+              </div>
+            </>
+          ) : (
+            <p className="fin-sin-ficha">{t("cdd.revealUnavailable")}</p>
+          )}
+        </header>
 
-        <div className="cdd-end-body">
-          {/* EL CTA. Único relleno saturado de la pantalla: rojo de rotativa, el
-              mismo color de acción que ADIVINAR. Antes era un bloque de tinta que
-              competía con tres emoji verdes, una caja de oro y un marco doble. */}
+        {/* LO QUE HICISTE. Ganando, el marcador: los puntos del día, de dónde
+            salen y la racha. Perdiendo, tu partida intento a intento y lo que
+            faltó, en una frase. */}
+        {won ? (
+          <section className="fin-tarjeta fin-entra" aria-label={t("score.yourScore")}>
+            <div className="fin-marcador">
+              <div className="fin-marcador-cifra">
+                <span className="fin-etiqueta">{t("fin.puntosHoy")}</span>
+                {score ? (
+                  <span className="fin-puntos">
+                    {puntos}
+                    <small>{t("score.points")}</small>
+                  </span>
+                ) : (
+                  <span className="fin-puntos fin-puntos--sin">—</span>
+                )}
+              </div>
+              <Rejilla guesses={guesses} />
+            </div>
+            {score && (
+              <dl className="fin-desglose">
+                <div>
+                  <dt>{t("fin.base", { n: attempts })}</dt>
+                  <dd>+{score.basePoints}</dd>
+                </div>
+                {score.streakBonus > 0 && (
+                  <div>
+                    <dt>{t("fin.bonusRacha")}</dt>
+                    <dd className="oro">+{score.streakBonus}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
+            {streak > 0 && (
+              <div className="fin-racha">
+                <span className="fin-icono oro"><Icon d={I.flame} size={18} /></span>
+                <span className="fin-fila-texto">
+                  <b className="oro">{tn("fin.diasSeguidos", streak)}</b>
+                  {mejorRacha ? <span>{t("fin.mejorRacha", { n: mejorRacha })}</span> : null}
+                </span>
+              </div>
+            )}
+          </section>
+        ) : (
+          <section className="fin-tarjeta fin-entra">
+            <h3 className="fin-tarjeta-titulo">{t("fin.tuPartida")}</h3>
+            <ol className="fin-partida">
+              {guesses.map((g, i) => (
+                <li key={i} style={{ animationDelay: `calc(var(--ms-hoja) + ${i} * var(--ms-paso) * 2)` }}>
+                  <span className="cuadros" aria-hidden="true">
+                    <i className={cuadro(g.marca?.status)} />
+                    <i className={cuadro(g.modelo?.status)} />
+                    <i className={cuadro(g.anio?.status)} />
+                  </span>
+                  <span className="texto">{[g.marca?.val, g.modelo?.val, g.anio?.val].filter(Boolean).join(" · ")}</span>
+                </li>
+              ))}
+            </ol>
+            {lectura && <p className="fin-lectura">{lectura}</p>}
+          </section>
+        )}
+
+        {/* COMPARTIR y EL RELOJ: la acción y su respuesta («vuelve mañana»). */}
+        <div className="fin-acciones fin-entra">
           <button className="cdd-submit cdd-share-btn" onClick={copyShare}>
             <Icon d={I.share} size={17} /> <span>{copied ? t("cdd.copied") : t("cdd.copyResult")}</span>
           </button>
+          <div className="fin-reloj">
+            <span className="fin-reloj-k">
+              <Icon d={I.reloj} size={17} />
+              {won ? t("result.nextCar") : t("fin.revancha")}
+            </span>
+            <span className="fin-reloj-cifra">{countdown.formatted}</span>
+          </div>
+        </div>
 
-          {/* Desbloqueo de cromo: cierra el bucle juego→colección JUSTO en el
-              pico de dopamina (ganar). Antes el desbloqueo ocurría en silencio
-              en el servidor y nada en la victoria apuntaba al garaje — la
-              colección era un huérfano. Solo logueado (el anónimo no persiste
-              colección; a ese ya le habla el CTA de "guardar progreso").
-              DELIBERADAMENTE subordinado a COMPARTIR, y desde este rediseño de
-              verdad: es UN RENGLÓN con su chevrón, por DEBAJO del botón. Era una
-              caja de oro por encima, o sea lo primero que veía el ojo al salir de
-              la foto — el objeto que más gritaba de la pantalla para la acción
-              menos importante. Tappable → abre el archivo (+ evento para medir si
-              el bucle realmente tira). */}
+        <div className="fin-extra">
+          {/* Nueva portada en el Archivo: un renglón, no una caja (es la acción
+              menos importante y no debe competir con compartir). */}
           {won && user && hasReveal && (
             <button
               type="button"
@@ -391,142 +456,98 @@ export default function EndScreen({
               <Icon d={I.chevR} size={15} className="cdd-unlock-chev" />
             </button>
           )}
-
-          {/* CTA de registro para CUALQUIER anónimo que termina, gane o
-              pierda. Antes solo se ofrecía al que ganaba, porque al que perdía
-              ya se le empujaba a la cuenta con un muro ("inicia sesión para
-              ver la respuesta"). Retirado el muro, la invitación se hace aquí
-              y en su forma sana: el jugador ya tiene su coche revelado y lo
-              que se le ofrece es CONSERVAR lo jugado, no comprar el desenlace.
-              Estilo SECUNDARIO (ghost): es otra clase de acción y no debe
-              competir con compartir. */}
-          {/* Sin cuenta. Si ya lleva racha —la sesión anónima se la guarda de
-              verdad desde su primer intento—, se la nombramos: «no pierdas tu
-              racha de 5 días» pesa lo que no pesa «guarda tu progreso», porque
-              habla de algo que el jugador YA tiene y puede perder. Con racha 0
-              o 1 no hay nada que presumir y se queda el genérico. */}
+          {/* Sin cuenta: conservar lo jugado (con la racha nombrada si la hay). */}
           {!user && (
             <button className="cdd-submit cdd-submit--ghost" onClick={() => onOpenLogin?.("endscreen")}>
               <span>
-                {streak > 1
-                  ? tn("result.saveStreakCta", streak)
-                  : t("result.saveProgressCta")}
+                {streak > 1 ? tn("result.saveStreakCta", streak) : t("result.saveProgressCta")}
               </span>
             </button>
           )}
-
-          {/* Logueado, ha GANADO y aún no tiene firma: su resultado de hoy
-              puntúa pero no sale en la tabla. Este es el único momento en que
-              elegir nick tiene una consecuencia inmediata y visible, así que
-              es aquí donde se pide — no en un modal obligatorio al registrarse.
-              Solo en victoria: al que acaba de perder, ofrecerle entrar en una
-              clasificación es sordera. Mismo estilo ghost que el CTA anónimo:
-              compartir sigue siendo el único bloque relleno de la pantalla. */}
+          {/* Ganó, tiene cuenta y le falta firma: el único momento en que elegir
+              nick tiene una consecuencia visible (salir en la tabla). */}
           {won && user && necesitaNick && (
             <button className="cdd-submit cdd-submit--ghost" onClick={onOpenNickname}>
               <span>{t("result.pickNickCta")}</span>
             </button>
           )}
-
-          {/* Recordatorio diario: se ofrece UNA vez (persiste la decisión).
-            En web pide Web Push; en nativo, notif local; en iOS-no-instalado,
-            el hint de "añadir a inicio". Devuelve null si ya se preguntó o no
-            hay soporte, así que no molesta en cada apertura del EndScreen. */}
+          {/* Recordatorio diario: se ofrece UNA vez y devuelve null si ya se
+              preguntó o no hay soporte. */}
           <NotificationOptIn />
         </div>
 
-        {/* ── DEBAJO DEL PLIEGUE: para quien quiera quedarse ──────────────────
-            Esto era la pestaña FICHA. Ahora son secciones del pliego, cada una
-            con su ladillo, en el orden en que se leerían en papel: la crónica del
-            coche, el parte de la clasificación y el mundo. Nadie tiene que elegir
-            entre esto y compartir; basta con bajar (o no bajar). */}
-        {hasReveal && description && (
-          <section className="cdd-end-sec">
-            <div className="prensa-ladillo">{t("cdd.ladilloCronica")}</div>
-            <p className="cdd-note">{description}</p>
-            {/* Origen y año como UN renglón de datos, no dos fichas en rejilla:
-                son dos palabras y ocupaban media pantalla en cajas. */}
-            <p className="cdd-ficha-datos">
-              {car.pais && (
-                <>
-                  <span className="k">{t("cdd.labelOrigin")}</span> {getLocalizedCountry(car.pais)}
-                  {" · "}
-                </>
-              )}
-              <span className="k">{t("cdd.labelAnio")}</span> {car.anio}
-            </p>
+        {/* LA RACHA CORTADA, solo al perder y si había racha. Sin rojo: perder
+            se cuenta, no se castiga. */}
+        {!won && rachaPrevia > 0 && (
+          <section className="fin-tarjeta fin-fila fin-entra">
+            <span className="fin-icono"><Icon d={I.flame} size={19} /></span>
+            <span className="fin-fila-texto">
+              <b>{tn("fin.rachaCortada", rachaPrevia)}</b>
+              {mejorRacha ? <span>{t("fin.mejorSigue", { n: mejorRacha })}</span> : null}
+            </span>
+            <span className="fin-salto mono" aria-hidden="true">
+              <s>{rachaPrevia}</s>
+              <Icon d={I.arrowR} size={13} />
+              <b>0</b>
+            </span>
           </section>
         )}
 
-        {/* El parte de la clasificación: puesto + movimiento vs ayer (palanca de
-            retorno). Ya no es la única "caja" de la pantalla: es una sección más,
-            con su ladillo, como la crónica y el mundo. */}
+        {/* LA REPESCA. Al perder con cuenta, este coche se queda pendiente en el
+            Archivo y vuelve en la repesca (en Modo Veterano). Al ganar, la
+            tarjeta solo sale si hay una repesca esperando hoy. Ámbar: «hay algo
+            disponible», nunca aviso. */}
+        {((!won && user) || repescaAlert) && (
+          <button
+            type="button"
+            className="fin-tarjeta fin-fila fin-repesca fin-entra"
+            onClick={() => {
+              haptic.impactLight();
+              track("repesca_from_endscreen");
+              onOpenGarage?.();
+            }}
+          >
+            <span className="fin-icono ambar"><Icon d={I.shuffle} size={19} /></span>
+            <span className="fin-fila-texto">
+              <b>{!won && user ? t("fin.vuelveTitulo") : t("cdd.repescaKicker")}</b>
+              <span>{!won && user ? t("fin.vuelveCuerpo") : t("cdd.repescaCta")}</span>
+            </span>
+            <Icon d={I.chevR} size={17} className="fin-chev" />
+          </button>
+        )}
+
+        {/* El parte de la clasificación: cuánto subes o bajas, y a cuánto estás
+            del de arriba. Toda la tarjeta lleva a la tabla. */}
         <RankParte rank={rank} user={user} onOpenRanking={onOpenRanking} />
 
+        {/* HOY EN EL MUNDO: la distribución del día, con tu barra en tinta (la
+            de ✕ si perdiste) y una frase que la lee. */}
         {daily.ready && (
-          <section className="cdd-end-sec">
-            {/* El ladillo lo pone el llamante: `Distribution` ya no trae título
-                propio, porque donde la monta el Configurator convivían dos
-                encabezados seguidos («La estadística del día» + «Hoy en el
-                mundo») diciendo lo mismo. */}
-            <div className="prensa-ladillo">{t("dailyStats.title")}</div>
-            <Distribution data={daily} attempts={attempts} won={won} />
+          <section className="fin-tarjeta fin-entra">
+            <div className="fin-tarjeta-cabeza">
+              <h3 className="fin-tarjeta-titulo">{t("dailyStats.title")}</h3>
+              <span>{t("dailyStats.gamesPlayed", { count: daily.totalGames })} · {t("dailyStats.winRate", { pct: daily.winRate })}</span>
+            </div>
+            <Distribution data={daily} attempts={attempts} won={won} sinPie />
+            {won && pct > 0 && <p className="fin-pie">{t("dailyStats.betterThanShare", { pct })}</p>}
+            {!won && pctPerdidas >= 1 && <p className="fin-pie">{t("fin.noEresElUnico", { pct: pctPerdidas })}</p>}
           </section>
         )}
 
-        {/* Cuenta atrás: el cierre de edición, la última línea del pliego. */}
-        <div className="cdd-next">
-          <div className="cdd-mono cdd-next-k">{t("cdd.nextCar")}</div>
-          <div className="cdd-next-clock cdd-mono">{countdown.formatted}</div>
-        </div>
-
-        {/* LA REPESCA, PEGADA A LA CUENTA ATRÁS Y ANTES QUE NADA MÁS.
-            La segunda partida del día existe desde hace meses y esta pantalla
-            —la única que ve el 100% de los jugadores, en el momento exacto en
-            que están decidiendo si cierran la pestaña— no la mencionaba. Vivía
-            detrás del Sumario y dentro del Archivo, que para un recién llegado
-            es una estantería vacía: la puerta menos probable de todas.
-
-            Va JUSTO debajo del reloj porque es la respuesta literal a lo que el
-            reloj acaba de decir. «Próximo coche en 14 h» invita a irse; si hay
-            una repesca esperando, irse es la decisión equivocada y el jugador
-            no tenía forma de saberlo.
-
-            Y va ANTES que el faldón de Android, que dice lo mismo con menos
-            fuerza: la app es una comodidad para mañana; la repesca es una
-            partida ahora, y además vale en todas las plataformas.
-
-            Tipografía y filete, sin relleno saturado: la regla de atención de
-            esta pantalla (ver la cabecera del fichero) es que solo COMPARTIR
-            lleva relleno, y esto no viene a discutirle el sitio. */}
-        {repescaAlert && (
-          <div className="cdd-next cdd-repesca">
-            <div className="cdd-mono cdd-next-k">{t("cdd.repescaKicker")}</div>
-            <button
-              type="button"
-              className="cdd-repesca-cta cdd-mono"
-              onClick={() => {
-                haptic.impactLight();
-                track("repesca_from_endscreen");
-                onOpenGarage?.();
-              }}
-            >
-              {t("cdd.repescaCta")}
-              <Icon d={I.chevR} size={14} />
-            </button>
-          </div>
+        {/* LA FICHA: la crónica del coche, que solo se revela al acertar. */}
+        {won && hasReveal && description && (
+          <section className="fin-tarjeta fin-entra">
+            <h3 className="fin-tarjeta-titulo">{t("fin.ficha")}</h3>
+            <p className="cdd-note">{description}</p>
+          </section>
         )}
 
-        {/* La edición Android, JUSTO después de la cuenta atrás: el renglón de
-            arriba acaba de decir "vuelve mañana", y esta es la respuesta a eso.
-            Se pinta solo para Android-en-navegador con tres días jugados; en
-            todo lo demás devuelve null y aquí no hay nada. */}
+        {/* La edición Android: devuelve null salvo Android-en-navegador con días
+            jugados. */}
         <FaldonApp user={user} streak={streak} onOpenLogin={onOpenLogin} />
 
-        {/* Cerrar el revelado y volver a la partida: enlace discreto (Compartir
-            sigue siendo el único CTA primario de la pantalla). */}
         <div className="cdd-end-links">
-          <button type="button" className="cdd-end-link cdd-mono" onClick={onClose}>
+          <button type="button" className="cdd-end-link" onClick={onClose}>
             {t("cdd.seeGame")}
           </button>
         </div>

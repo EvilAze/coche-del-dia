@@ -6,7 +6,7 @@
  *
  * Por qué auto-hospedarlas:
  *   La app Android empaqueta TODO el HTML/JS/CSS… y luego pedía la tipografía
- *   por red. Primer arranque sin cobertura = Fraunces/Franklin/Courier caen a
+ *   por red. Primer arranque sin cobertura = Barlow/Plex Mono caen a
  *   la serif del sistema y la identidad «Prensa del motor» desaparece justo en
  *   la primera impresión. En web tampoco salía gratis: dos conexiones extra
  *   (googleapis + gstatic) en la ruta crítica del render, y desde que Chrome
@@ -19,7 +19,7 @@
  *   2. Se queda solo con los subsets `latin` y `latin-ext`. La app habla es/en
  *      (i18n) y el CSS traía además cyrillic, cyrillic-ext y vietnamese: 14 de
  *      los 36 bloques eran peso muerto.
- *   3. Deduplica por URL. Fraunces y Libre Franklin son VARIABLES: Google emite
+ *   3. Deduplica por URL. Si una familia es VARIABLE, Google emite
  *      un @font-face por cada peso pedido pero todos apuntan al mismo fichero.
  *      Aquí se colapsan a uno solo con `font-weight: <min> <max>`, que es la
  *      forma correcta de declarar una variable y evita descargar lo mismo N
@@ -44,9 +44,13 @@ const CSS_SALIDA = resolve(ROOT, "src/fonts.css");
 // cámbiala aquí y vuelve a ejecutar el script.
 const URL_CSS =
   "https://fonts.googleapis.com/css2" +
-  "?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600" +
-  "&family=Libre+Franklin:wght@400;600;800" +
-  "&family=Courier+Prime:ital,wght@0,400;0,700;1,400" +
+  // Sistema «Asfalto»: Barlow (texto e interfaz), Barlow Condensed (titulares
+  // y cifras grandes) e IBM Plex Mono (etiquetas, años, puntos y reloj). Las
+  // tres son ESTÁTICAS: cada peso es un fichero, así que se piden solo los que
+  // el CSS usa de verdad. Sin cursivas: el sistema no compone nada en cursiva.
+  "?family=Barlow:wght@400;500;600;700" +
+  "&family=Barlow+Condensed:wght@600;700" +
+  "&family=IBM+Plex+Mono:wght@400;600" +
   "&display=swap";
 
 // Sin esto Google sirve TTF. No es una preferencia: es la diferencia entre
@@ -110,10 +114,10 @@ for (const [, subset, cuerpo] of bloques) {
 // El nombre del fichero se calcula AQUÍ y no al insertar, porque incluye el
 // peso y el rango no se conoce hasta haber recorrido todos los bloques.
 //
-// El peso tiene que ir en el nombre: Courier Prime es ESTÁTICA, así que su 400
+// El peso tiene que ir en el nombre: las familias ESTÁTICAS dan un fichero por peso, y su 400
 // y su 700 son ficheros distintos con la misma familia, estilo y subset. Sin el
 // peso ambos se llamaban igual, el segundo pisaba al primero en disco y los dos
-// @font-face acababan apuntando al mismo woff2 — la Courier regular se habría
+// @font-face acababan apuntando al mismo woff2 — la regular se habría
 // renderizado en negrita en todo el cupón.
 for (const info of porFichero.values()) {
   const peso =
@@ -205,12 +209,10 @@ writeFileSync(
     "Las tres familias se distribuyen bajo la SIL Open Font License 1.1,",
     "que permite expresamente el uso incrustado y la redistribución:",
     "",
-    "  Fraunces        © The Fraunces Project Authors",
-    "                  https://github.com/undercasetype/Fraunces",
-    "  Libre Franklin  © The Libre Franklin Project Authors",
-    "                  https://github.com/impallari/Libre-Franklin",
-    "  Courier Prime   © The Courier Prime Project Authors",
-    "                  https://github.com/quoteunquoteapps/CourierPrime",
+    "  Barlow            © The Barlow Project Authors",
+    "  Barlow Condensed  https://github.com/jpt/barlow",
+    "  IBM Plex Mono     © IBM Corp.",
+    "                    https://github.com/IBM/plex",
     "",
     "Texto completo de la licencia: https://openfontlicense.org",
     "",

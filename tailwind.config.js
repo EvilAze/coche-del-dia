@@ -16,17 +16,17 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        // Sistema «Prensa del motor» (reasignados en F5): display = Fraunces,
-        // body = Libre Franklin, mono = Courier Prime. Archivo/Space Mono
-        // retirados del bundle de fuentes (index.html).
-        display: ["'Fraunces'", "Georgia", "serif"],
-        body: ["'Libre Franklin'", "Arial", "sans-serif"],
-        mono: ["'Courier Prime'", "monospace"],
+        // Sistema «Asfalto»: display = Barlow Condensed (titulares y cifras
+        // grandes), body = Barlow (interfaz), mono = IBM Plex Mono (etiquetas,
+        // años, puntos, reloj). Autoalojadas en public/fonts (src/fonts.css).
+        display: ["'Barlow Condensed'", "'Arial Narrow'", "sans-serif"],
+        body: ["'Barlow'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        mono: ["'IBM Plex Mono'", "ui-monospace", "monospace"],
         // Alias explícitos (usados por .prensa-*/.pm-* y disponibles como
         // utilidades font-serif/font-franklin/font-courier).
-        serif: ["'Fraunces'", "Georgia", "serif"],
-        franklin: ["'Libre Franklin'", "Arial", "sans-serif"],
-        courier: ["'Courier Prime'", "monospace"],
+        serif: ["'Barlow Condensed'", "'Arial Narrow'", "sans-serif"],
+        franklin: ["'Barlow'", "'Helvetica Neue'", "Arial", "sans-serif"],
+        courier: ["'IBM Plex Mono'", "ui-monospace", "monospace"],
       },
       colors: {
         // ── Sistema «Prensa del motor» — canales RGB temáticos ──

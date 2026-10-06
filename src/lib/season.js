@@ -23,6 +23,31 @@ export function daysUntilClose(endsAt, today = new Date()) {
 }
 
 /**
+ * En qué día del periodo estamos: «Día 10/14» y la regla de segmentos de la
+ * tarjeta de temporada de la clasificación. Sirve igual para una temporada
+ * (starts_at/ends_at) que para la semana del ranking semanal.
+ *
+ * Los dos extremos CUENTAN (una temporada del 1 al 14 dura 14 días, no 13) y
+ * el día se acota a [1, total]: la temporada se lee de la base de datos con la
+ * fecha de Madrid, pero el reloj del dispositivo puede ir un día por delante o
+ * por detrás, y «Día 15/14» o «Día 0/14» delatarían el desfase en vez de
+ * absorberlo.
+ *
+ * @returns {{ dia: number, total: number } | null} null si las fechas no valen.
+ */
+export function progresoPeriodo(desde, hasta, today = new Date()) {
+  if (!desde || !hasta || typeof desde !== "string" || typeof hasta !== "string") return null;
+  const ini = Date.parse(`${desde}T00:00:00Z`);
+  const fin = Date.parse(`${hasta}T00:00:00Z`);
+  if (Number.isNaN(ini) || Number.isNaN(fin) || fin < ini) return null;
+  const quedan = daysUntilClose(hasta, today);
+  if (quedan == null) return null;
+  const total = Math.round((fin - ini) / 86400000) + 1;
+  const dia = Math.min(total, Math.max(1, total - quedan));
+  return { dia, total };
+}
+
+/**
  * El texto del crédito que ZoomStage pinta al final del filete, encima de la
  * foto: quién presenta la temporada o, si no hay colaboración, la temporada en
  * curso.

@@ -104,6 +104,29 @@ export async function subscribe(locale = "es") {
 }
 
 // Cancela la suscripción local y avisa al servidor para borrar la fila.
+// ¿Hay suscripción viva en este navegador? Para el interruptor del perfil: sin
+// permiso concedido no la hay, aunque quede un registro viejo del SW.
+export async function estaSuscrito() {
+  if (!isPushSupported()) return false;
+  try {
+    if (Notification.permission !== "granted") return false;
+    const reg = await navigator.serviceWorker.getRegistration();
+    return Boolean(reg && (await reg.pushManager.getSubscription()));
+  } catch {
+    return false;
+  }
+}
+
+// El permiso del navegador, tal cual: con «denied» el interruptor no puede
+// encender nada y lo tiene que decir.
+export function permisoNavegador() {
+  try {
+    return typeof Notification !== "undefined" ? Notification.permission : "default";
+  } catch {
+    return "default";
+  }
+}
+
 export async function unsubscribe() {
   if (!isPushSupported()) return false;
   try {

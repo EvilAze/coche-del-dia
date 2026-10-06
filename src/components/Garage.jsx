@@ -34,14 +34,15 @@ import { useT, getCarDescription, getLocalizedCountry } from "../i18n";
 import { useToast } from "./Toast";
 import CloseButton from "./CloseButton";
 import ModalShell from "./ModalShell";
-import AchievementIcon from "./AchievementIcons";
 import { PortadasArchivo } from "./Esqueleto";
 import RepescaDrawAnimation from "./RepescaDrawAnimation";
 import { track, plataforma } from "../lib/analytics";
 import { captureClientError } from "../lib/sentry";
 import { flagImagePath } from "../data/countries";
 import { apiUrl } from "../lib/apiUrl";
-import { countryTier, brandTier, collectorTier, TIER_HEX } from "../lib/collectionTier";
+import { countryTier, brandTier, collectorTier } from "../lib/collectionTier";
+import { Icon, I } from "./configurator/icons";
+import { logoMarca } from "../lib/logoMarca";
 import {
   collectCovers,
   sortCovers,
@@ -164,15 +165,9 @@ const swapTransition = {
   opacity: { duration: 0.16 },
 };
 
-// Slug de marca según especificación del usuario: simple lowercase + spaces→-.
-// No quitamos acentos a propósito (es como el usuario nombra los .png).
-function brandSlug(marca) {
-  return String(marca || "").toLowerCase().replace(/\s+/g, "-");
-}
-
-function brandLogoPath(marca) {
-  return `/brands/${brandSlug(marca)}.png`;
-}
+// El logotipo de la marca: src/lib/logoMarca.js (lo comparte la hoja de
+// selección de la app).
+const brandLogoPath = logoMarca;
 
 export default function Garage({ open, onClose, user, onOpenLogin }) {
   const { t } = useT();
@@ -359,13 +354,6 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     [state.data, order]
   );
 
-  // La última portada conseguida, para el titular del masthead. Se calcula
-  // SIEMPRE por recencia, independientemente del orden que elija el usuario.
-  const lastCover = useMemo(() => {
-    const byDate = sortCovers(collectCovers(state.data?.countries), "recent");
-    return byDate[0] || null;
-  }, [state.data]);
-
   // Tamaño de la pool de repesca: cuántos coches ya fueron daily y el
   // usuario aún no los ha ganado. Lo calcula el servidor en /api/garage
   // (`repescaPoolSize`) — antes lo derivábamos en cliente con `wasDaily`
@@ -374,6 +362,15 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   // el agregado. El servidor también es quien elige el coche concreto en
   // /api/repesca/start (CSPRNG), así que el cliente nunca necesita los ids.
   const repescaPoolSize = state.data?.repescaPoolSize ?? 0;
+
+  // La rueda de órdenes de la tecla de la cabecera.
+  const ordenes = ["recent", "year", ...((state.data?.rarityCollectors || 0) > 0 ? ["rarity"] : [])];
+  const etiquetaOrden = t(
+    order === "year" ? "garage.sortYear" : order === "rarity" ? "garage.sortRarity" : "garage.sortRecent"
+  );
+  function siguienteOrden() {
+    setOrder(ordenes[(ordenes.indexOf(order) + 1) % ordenes.length]);
+  }
 
   // Al cambiar de sección, el scroll vuelve arriba: si no, entras a Italia
   // y apareces a media página por donde estabas en la vitrina.
@@ -564,8 +561,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
           <motion.div
             key="garage-panel"
             className="
-              relative flex w-full max-w-md flex-col overflow-hidden
-              border-x border-border bg-papel
+              arch-panel relative flex w-full max-w-md flex-col overflow-hidden
             "
             onClick={(e) => e.stopPropagation()}
             initial={{ y: 24, opacity: 0, scale: 0.98 }}
@@ -597,30 +593,32 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
               style={{ touchAction: "pan-y" }}
             />
 
-            {/* Cabecera fija: la cabecera del periódico. No cambia al filtrar
-                —el archivo es el mismo— así el usuario nunca se pierde.
-                `safe-area-top` le suma el inset de la barra de estado: este
-                panel va a pantalla completa y sin eso el titular se dibuja bajo
-                el reloj del sistema. El aire propio (los 0.75rem del antiguo
-                py-3) viaja en la variable y no en un `pt-3`, porque la clase
-                pisaría la utilidad — ver el comentario de index.css. */}
-            <div
-              className="safe-area-top flex items-center justify-between gap-3 border-b border-border px-4 pb-3"
-              style={{ "--safe-area-extra-top": "0.75rem" }}
-            >
-              <div className="min-w-0">
-                <p className="pm-kicker">{t("garage.headerCollection")}</p>
-                <h2 className="truncate font-display text-[26px] font-black leading-none tracking-tight text-tinta">
-                  {t("garage.headerTitle")}
-                </h2>
-              </div>
-              {/* Solo el cierre. Al lado iba el atajo a los Logros, que se
-                  retiró con el sistema: sus medallas de marca y país salían de
-                  estos mismos cromos, así que era un botón para ver el Archivo
-                  otra vez desde dentro del Archivo. */}
-              <div className="flex flex-none items-center gap-1">
-                <CloseButton onClick={onClose} />
-              </div>
+            {/* La cabecera: el nombre de la sección en grande, como el de una
+                pantalla, el orden de la vitrina y cerrar. `safe-area-top` le
+                suma el inset de la barra de estado: este panel va a pantalla
+                completa y sin eso el titular se dibuja bajo el reloj del
+                sistema. El aire propio viaja en la variable y no en un `pt-*`,
+                porque la clase pisaría la utilidad (ver index.css). */}
+            <div className="arch-cab safe-area-top" style={{ "--safe-area-extra-top": "0.5rem" }}>
+              <h2 className="clas-titulo">{t("prensa.garaje")}</h2>
+              {/* El orden, como UNA tecla que rota entre los disponibles: tres
+                  palabras sueltas en una fila aparte eran una línea entera para
+                  algo que se toca una vez. «Rareza» solo entra en la rueda
+                  cuando el servidor publica el dato — un orden que no ordena
+                  nada es peor que no ofrecerlo. Solo en la vitrina: la página
+                  de un país va por marcas. */}
+              {user && state.data && !currentCountry && covers.length > 1 && (
+                <button
+                  type="button"
+                  className="arch-orden"
+                  onClick={siguienteOrden}
+                  aria-label={`${t("garage.sortAria")}: ${etiquetaOrden}`}
+                >
+                  {etiquetaOrden}
+                  <Icon d={I.chevD} size={15} />
+                </button>
+              )}
+              <CloseButton onClick={onClose} />
             </div>
 
             {/* Cuerpo */}
@@ -662,7 +660,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
                   <>
                     <Masthead
                       total={state.data.totalUnlocked}
-                      lastCover={lastCover}
+                      catalog={state.data.totalCatalog || 0}
                     />
                     <BackIssuesBand
                       poolSize={repescaPoolSize}
@@ -702,9 +700,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
                         covers={covers}
                         newIds={newIds}
                         order={order}
-                        onChangeOrder={setOrder}
                         onSelectCar={setDetailCar}
-                        hasRarity={(state.data?.rarityCollectors || 0) > 0}
                       />
                     )}
                   </motion.div>
@@ -748,6 +744,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       {drawAnim && (
         <RepescaDrawAnimation
           veteran={drawAnim.veteran}
+          pendientes={repescaPoolSize}
         />
       )}
     </AnimatePresence>
@@ -755,65 +752,57 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
 }
 
 // ============================================================================
-// Masthead: el titular del archivo
+// La tarjeta de la colección
 // ============================================================================
 //
-// Sustituye a la barra de progreso global + "47 / 1200". Sobre un catálogo
-// grande ese porcentaje vive permanentemente cerca de cero: una barra vacía
-// que solo comunica lo lejos que estás. Aquí el titular es lo que TIENES, y
-// el hilo de nivel (tier de coleccionista, compartido con el carnet del
-// Perfil) baja a una línea de pie, no a un chip que compite con el número.
+// Lo que TIENES en grande («86 de 247 portadas»), la barra del catálogo y,
+// debajo, el rango de coleccionista con el siguiente a la vista. La prensa
+// había retirado la barra global porque sobre un catálogo enorme vivía casi
+// vacía; con el catálogo actual (unos centenares) se llena a un ritmo que se
+// nota, y el diseño de «Asfalto» la quiere ahí: es lo que da sentido al número.
 
-function Masthead({ total, lastCover }) {
+function Masthead({ total, catalog }) {
   const { t, tn, locale } = useT();
   const tier = collectorTier(total);
   const tierLabel = tier.tier ? tier.label?.[locale] || tier.label?.es : null;
   const nextLabel = tier.next ? tier.next.label?.[locale] || tier.next.label?.es : null;
+  const pct = catalog > 0 ? Math.min(100, (total / catalog) * 100) : 0;
 
   return (
-    <div className="px-4 pb-3 pt-4">
-      <p className="pm-label">{t("garage.mastheadKicker")}</p>
-      <h3 className="mt-1 font-display text-[34px] font-black leading-none tracking-tight text-tinta">
-        <span className="tabular-nums">{total}</span>{" "}
-        <span className="text-[19px] font-bold">{tn("garage.covers", total)}</span>
-      </h3>
-
-      {lastCover && (
-        <p className="mt-1.5 truncate font-mono text-[11px] text-muted">
-          {t("garage.lastIssue", {
-            issue: issueLabel(lastCover.issue),
-            model: `${lastCover.marca} ${lastCover.modelo}`,
-          })}
-        </p>
+    <section className="arch-resumen" aria-label={t("garage.mastheadKicker")}>
+      <p className="arch-resumen-cifra">
+        <b>{total}</b>
+        <span>{catalog > 0 ? tn("garage.deCatalogo", catalog) : tn("garage.covers", total)}</span>
+      </p>
+      {catalog > 0 && (
+        <span className="arch-barra" aria-hidden="true">
+          <i style={{ width: `${pct}%` }} />
+        </span>
       )}
-
-      <div className="arch-filete mt-3 flex items-center justify-between gap-3 pt-2">
-        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider">
-          <CollectionIcon className="h-3.5 w-3.5 text-gold" />
-          <span className="text-muted">{t("garage.collector")}</span>
-          {tierLabel && <span className="font-bold text-gold">{tierLabel}</span>}
+      <div className="arch-resumen-pie">
+        <span className={"arch-rango" + (tier.tier ? ` tier-${tier.tier}` : "")}>
+          {tier.tier && <TierMedal tier={tier.tier} size={15} />}
+          {tierLabel ? t("garage.rango", { tier: tierLabel }) : t("garage.collector")}
         </span>
         {nextLabel && (
-          <span className="truncate font-mono text-[10px] text-muted">
-            {t("garage.nextTierAt", {
-              label: nextLabel,
-              count: tier.next.required,
-            })}
+          <span className="arch-siguiente">
+            {t("garage.nextTierAt", { label: nextLabel, count: tier.next.required })}
           </span>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
 // ============================================================================
-// Números atrasados (repesca)
+// La repesca
 // ============================================================================
 //
-// El mismo motor de siempre, reencuadrado: deja de ser "un botón de app" y
-// pasa a ser la sección del archivo donde se piden los números que faltan.
-// La narrativa es gratis y hace que el modo Repesca deje de parecer un
-// añadido para parecer parte de la revista.
+// La tarjeta ÁMBAR, que en «Asfalto» es el color de «hay algo disponible»: el
+// mismo del punto de la pestaña Archivo y de la tarjeta del final de partida.
+// Solo es ámbar cuando se puede hacer algo (sortear o continuar); jugada la de
+// hoy, o sin pendientes, pasa a tarjeta neutra y sin botón — un CTA apagado
+// que no lleva a ningún sitio es ruido.
 
 function BackIssuesBand({
   poolSize,
@@ -824,86 +813,70 @@ function BackIssuesBand({
   onOpenHelp,
 }) {
   const { t, tn } = useT();
+  const pendientes = tn("garage.pendientes", poolSize);
 
-  // Cuatro estados, mismo orden de prioridad que el CTA anterior.
+  let titulo = t("garage.repescaDisponible");
+  let cuerpo = t("garage.repescaResumen", { pendientes });
   let cta = t("garage.repescaPlay");
-  let body = tn("garage.backIssuesPending", poolSize);
-  let disabled = false;
+  let activa = true;
   if (starting) {
     cta = t("garage.repescaStarting");
-    disabled = true;
   } else if (hasActive) {
+    titulo = t("garage.repescaACurso");
     cta = t("garage.repescaContinue");
   } else if (poolSize === 0) {
-    cta = t("garage.repescaComplete");
-    body = t("garage.backIssuesNone");
-    disabled = true;
+    titulo = t("garage.repescaAlDia");
+    cuerpo = t("garage.backIssuesNone");
+    cta = null;
+    activa = false;
   } else if (!available) {
-    cta = t("garage.repescaNoneToday");
-    // Un botón apagado sin explicación se lee como avería. La línea dice qué
-    // ha pasado y cuándo vuelve a haber: es el estado en el que MÁS falta hace
-    // hablar, porque el jugador acaba de terminar su repesca del día.
-    body = t("garage.backIssuesTomorrow");
-    disabled = true;
+    titulo = t("garage.repescaJugada");
+    cuerpo = t("garage.repescaManana", { pendientes });
+    cta = null;
+    activa = false;
   }
 
   return (
-    <div className="mx-4 mb-3 border border-border bg-papel-mat px-3 py-2.5">
-      <div className="flex items-center gap-3">
-        <DiceIcon className="h-5 w-5 flex-none text-accent" />
-        <div className="min-w-0 flex-1">
-          <p className="pm-label">{t("garage.backIssuesTitle")}</p>
-          <p className="mt-0.5 truncate font-mono text-[11px] text-tinta">{body}</p>
-        </div>
+    <section className={"arch-repesca" + (activa ? " activa" : "")}>
+      <span className="arch-repesca-icono" aria-hidden="true">
+        <Icon d={I.shuffle} size={22} />
+      </span>
+      <span className="arch-repesca-texto">
+        <b>{titulo}</b>
+        <span>{cuerpo}</span>
+        <button type="button" className="arch-repesca-ayuda" onClick={onOpenHelp}>
+          {t("garage.helpRepesca")}
+        </button>
+      </span>
+      {cta && (
         <button
           type="button"
+          className="arch-repesca-boton"
           onClick={onClick}
-          disabled={disabled}
+          disabled={starting}
           aria-busy={starting}
-          className="
-            flex-none border border-tinta bg-tinta px-3 py-1.5
-            font-body text-[10px] font-extrabold uppercase tracking-[0.18em] text-papel
-            transition-colors hover:bg-accent hover:border-accent
-            disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent
-            disabled:text-muted
-          "
         >
           {cta}
         </button>
-      </div>
-      <button
-        type="button"
-        onClick={onOpenHelp}
-        className="mt-1.5 font-mono text-[10px] text-muted underline underline-offset-2 transition-colors hover:text-accent"
-      >
-        {t("garage.helpRepesca")}
-      </button>
-    </div>
+      )}
+    </section>
   );
 }
 
 // ============================================================================
-// Tira de filtros de país
+// Filtro por país
 // ============================================================================
-//
-// Antes esto era una VISTA entera (lista de países) y una segunda vista de
-// marcas encima. Al bajarlo a chips, ver un cromo pasa de tres taps a cero, y
-// saltar de Italia a Alemania de "atrás + entrar" a un solo toque.
 
 function FilterStrip({ countries, total, active, onSelect }) {
   const { t } = useT();
   return (
-    <div className="sticky top-0 z-10 border-y border-border bg-papel">
-      <div
-        className="arch-tira flex gap-1.5 overflow-x-auto px-4 py-2"
-        role="group"
-        aria-label={t("garage.filterAria")}
-      >
+    <div className="arch-filtros">
+      <div className="arch-tira" role="group" aria-label={t("garage.filterAria")}>
         <button
           type="button"
           onClick={() => onSelect(null)}
           aria-pressed={!active}
-          className={`pm-chip ${!active ? "on" : ""}`}
+          className={"arch-chip" + (!active ? " on" : "")}
         >
           {t("garage.filterAll")}
           <span className="cifra">{total}</span>
@@ -918,7 +891,7 @@ function FilterStrip({ countries, total, active, onSelect }) {
               type="button"
               onClick={() => onSelect(c.pais)}
               aria-pressed={on}
-              className={`pm-chip ${on ? "on" : ""}`}
+              className={"arch-chip" + (on ? " on" : "")}
             >
               <img
                 src={flagImagePath(c.pais)}
@@ -929,10 +902,8 @@ function FilterStrip({ countries, total, active, onSelect }) {
                 className="bandera"
               />
               {getLocalizedCountry(c.pais)}
-              <span className="cifra">
-                {c.unlocked}/{c.total}
-              </span>
-              {tier && <TierMedal tier={tier} className="h-3 w-3" />}
+              <span className="cifra">{c.unlocked}</span>
+              {tier && <TierMedal tier={tier} size={12} />}
             </button>
           );
         })}
@@ -942,90 +913,63 @@ function FilterStrip({ countries, total, active, onSelect }) {
 }
 
 // ============================================================================
-// Vitrina: TODAS tus portadas
+// La vitrina: la última portada en grande y el resto en fichas
 // ============================================================================
+//
+// La portada MÁS RECIENTE abre la vitrina con su fotografía: es la que el
+// jugador acaba de ganar y la que viene a ver. El resto va en FICHAS con el
+// logotipo de la marca — una pared de ochenta fotos a 170px no se lee como
+// colección sino como ruido, y cada foto sigue a un toque, en el detalle.
+// Solo en orden «recientes»: por año o por rareza, «la última» no significa
+// nada y la vitrina es una rejilla sin más.
 
-function Showcase({ covers, newIds, order, onChangeOrder, onSelectCar, hasRarity }) {
+function Showcase({ covers, newIds, order, onSelectCar }) {
   const { t } = useT();
 
   if (covers.length === 0) {
     return (
-      <div className="px-6 py-12 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center border border-border">
-          <CollectionIcon className="h-7 w-7 text-muted" />
+      <div className="arch-vitrina">
+        <div className="arch-vacio">
+          <p className="arch-vacio-titulo">{t("garage.emptyTitle")}</p>
+          <p className="arch-vacio-texto">{t("garage.emptyBody")}</p>
         </div>
-        <p className="font-display text-xl font-black text-tinta">
-          {t("garage.emptyTitle")}
-        </p>
-        <p className="pm-body mx-auto mt-2 max-w-[36ch]">{t("garage.emptyBody")}</p>
       </div>
     );
   }
 
-  return (
-    <div className="px-4 py-3">
-      {/* Selector de orden: palabras sueltas, sin caja. "Rareza" solo aparece
-          cuando el servidor publica el dato — un orden que no ordena nada es
-          peor que no ofrecerlo. */}
-      <div className="mb-2.5 flex items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wider">
-        <span className="text-muted">{t("garage.sortAria")}</span>
-        <OrderButton on={order === "recent"} onClick={() => onChangeOrder("recent")}>
-          {t("garage.sortRecent")}
-        </OrderButton>
-        <span className="text-muted/50" aria-hidden="true">·</span>
-        <OrderButton on={order === "year"} onClick={() => onChangeOrder("year")}>
-          {t("garage.sortYear")}
-        </OrderButton>
-        {hasRarity && (
-          <>
-            <span className="text-muted/50" aria-hidden="true">·</span>
-            <OrderButton on={order === "rarity"} onClick={() => onChangeOrder("rarity")}>
-              {t("garage.sortRarity")}
-            </OrderButton>
-          </>
-        )}
-      </div>
+  const destacada = order === "recent" ? covers[0] : null;
+  const resto = destacada ? covers.slice(1) : covers;
 
-      <div className="grid grid-cols-2 gap-2.5 pb-4 sm:grid-cols-3">
-        {covers.map((car) => (
-          <Cover
-            key={car.id}
-            car={car}
-            isNew={newIds.has(car.id)}
-            onClick={() => onSelectCar(car)}
-          />
-        ))}
-      </div>
+  return (
+    <div className="arch-vitrina">
+      {destacada && (
+        <Destacada
+          car={destacada}
+          isNew={newIds.has(destacada.id)}
+          onClick={() => onSelectCar(destacada)}
+        />
+      )}
+      {resto.length > 0 && (
+        <div className="arch-rejilla">
+          {resto.map((car) => (
+            <Ficha
+              key={car.id}
+              car={car}
+              isNew={newIds.has(car.id)}
+              onClick={() => onSelectCar(car)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function OrderButton({ on, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={on}
-      className={`transition-colors ${
-        on ? "font-bold text-tinta underline underline-offset-2" : "text-muted hover:text-tinta"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
 // ============================================================================
-// Página de país: el álbum abierto por esa sección
+// La página de un país: sus marcas, con sus portadas y sus huecos
 // ============================================================================
-//
-// Aquí SÍ se pintan los huecos, y es deliberado: en un dominio acotado ("me
-// faltan 2 Ferrari") el hueco es un objetivo; en el catálogo entero ("te
-// faltan 340") es una factura. Esa es toda la diferencia entre un álbum de
-// cromos y una lista de tareas.
 
 function CountryPage({ country, newIds, onSelectCar }) {
-  const { t } = useT();
   const brands = useMemo(() => groupByBrand(country.cars), [country]);
   const pct = country.total
     ? Math.min(100, Math.round((country.unlocked / country.total) * 100))
@@ -1033,89 +977,58 @@ function CountryPage({ country, newIds, onSelectCar }) {
   const complete = country.total > 0 && country.unlocked >= country.total;
 
   return (
-    <div className="px-4 py-3">
-      {/* Cabecera de sección. La bandera es una VIÑETA, no un banderón a
-          pantalla completa oscurecido con negro: sobre papel, aquel bloque
-          oscuro era un agujero en mitad de la revista. */}
-      <div className="mb-3">
-        <div className="flex items-center gap-2.5">
+    <div className="arch-vitrina">
+      <section className="arch-pais">
+        <div className="arch-pais-cab">
           <img
             src={flagImagePath(country.pais)}
             alt=""
             aria-hidden="true"
             draggable={false}
-            className="h-[15px] w-[22px] flex-none border border-border object-cover"
+            className="bandera"
           />
-          <h3 className="min-w-0 flex-1 truncate font-display text-2xl font-black leading-none tracking-tight text-tinta">
-            {getLocalizedCountry(country.pais)}
-          </h3>
-          <span className="flex-none font-mono text-[11px] tabular-nums text-muted">
+          <h3>{getLocalizedCountry(country.pais)}</h3>
+          <span className="cifra">
             {country.unlocked}/{country.total}
           </span>
         </div>
-        <div className="arch-regla mt-2">
+        <span className="arch-barra" aria-hidden="true">
           <i style={{ width: `${pct}%` }} />
-        </div>
-      </div>
+        </span>
+      </section>
 
       {brands.map((brand) => (
         <BrandSection
           key={brand.marca}
           brand={brand}
           newIds={newIds}
-          // El país se anota al abrir el detalle porque los coches vienen
-          // agrupados por país y no lo llevan dentro (en la vitrina lo añade
-          // collectCovers). Sin esto, el dorso perdería la línea de país solo
-          // cuando se entra por la página de un país — justo al revés.
           onSelectCar={(car) => onSelectCar({ ...car, pais: country.pais })}
         />
       ))}
 
       {complete && <SpecialCard country={country} />}
-
-      <div className="h-4" aria-hidden="true" />
     </div>
   );
 }
 
-// Cada marca es una PÁGINA del álbum: ladillo con su emblema y su rejilla,
-// portadas primero y huecos después (el servidor ya devuelve los cromos en
-// ese orden dentro de cada país).
 function BrandSection({ brand, newIds, onSelectCar }) {
-  const [logoFailed, setLogoFailed] = useState(false);
   const tier = brandTier(brand.unlocked, brand.total);
 
   return (
-    <section className="mb-5">
-      {/* Ladillo de marca. Mismo gramaje que .prensa-ladillo, pero con el
-          filete ENTRE el nombre y el contador (el ::after del ladillo lo
-          empujaría al final, detrás de la cifra). */}
-      <div className="mb-2 flex items-center gap-2.5 font-body text-[11px] font-extrabold uppercase tracking-[0.22em] text-tinta">
-        {!logoFailed ? (
-          <img
-            src={brandLogoPath(brand.marca)}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            loading="lazy"
-            onError={() => setLogoFailed(true)}
-            className={`h-4 w-4 flex-none object-contain ${
-              brand.unlocked > 0 ? "" : "opacity-40 grayscale"
-            }`}
-          />
-        ) : null}
-        <span className="min-w-0 truncate">{brand.marca}</span>
-        {tier && <TierMedal tier={tier} className="h-3.5 w-3.5 flex-none" />}
-        <span className="h-px flex-1 bg-tinta/25" aria-hidden="true" />
-        <span className="flex-none font-mono text-[10px] font-normal tracking-normal tabular-nums text-muted">
+    <section className="arch-marca-seccion">
+      <div className="arch-marca-cab">
+        <LogoMarca marca={brand.marca} apagado={brand.unlocked === 0} pequeno />
+        <span className="nombre">{brand.marca}</span>
+        {tier && <TierMedal tier={tier} size={14} />}
+        <span className="cifra">
           {brand.unlocked}/{brand.total}
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+      <div className="arch-rejilla">
         {brand.cars.map((car) =>
           car.unlocked ? (
-            <Cover
+            <Ficha
               key={car.id}
               car={car}
               isNew={newIds.has(car.id)}
@@ -1133,80 +1046,144 @@ function BrandSection({ brand, newIds, onSelectCar }) {
   );
 }
 
-// Recompensa por completar un país: una portada que no está en el catálogo,
-// solo se gana. Es el objetivo que le faltaba a la colección — hasta ahora,
-// completar Italia no producía NADA que enseñar.
+// El set completo de un país: la única tarjeta en oro de la vitrina, porque es
+// la única que se ha ganado entera.
 function SpecialCard({ country }) {
   const { t } = useT();
   return (
-    <div className="arch-especial mb-5">
-      <p className="kicker">{t("garage.specialKicker")}</p>
-      <p className="titulo">{getLocalizedCountry(country.pais)}</p>
-      <p className="sub">
-        {t("garage.specialSub", { total: country.total })}
-      </p>
+    <div className="arch-especial">
+      <span className="arch-especial-icono" aria-hidden="true">
+        <Icon d={I.estrella} size={20} />
+      </span>
+      <span className="arch-especial-texto">
+        <span className="kicker">{t("garage.specialKicker")}</span>
+        <span className="titulo">{getLocalizedCountry(country.pais)}</span>
+        <span className="sub">{t("garage.specialSub", { total: country.total })}</span>
+      </span>
     </div>
   );
 }
 
 // ============================================================================
-// La portada (el cromo) y el hueco
+// Las piezas de la vitrina
 // ============================================================================
 
-function Cover({ car, isNew, onClick }) {
-  const { t } = useT();
-  const merits = stampsOf(car);
-
+// El logotipo de la marca, sobre su azulejo blanco: los logotipos se dibujaron
+// para fondo claro, y en noche un PNG oscuro sobre grafito desaparece. Si el
+// fichero no existe, la inicial — un hueco roto en mitad de la rejilla delata
+// el catálogo a medio hacer.
+function LogoMarca({ marca, apagado = false, pequeno = false }) {
+  const [fallo, setFallo] = useState(false);
+  const inicial = Array.from(String(marca || "").trim())[0] || "·";
   return (
-    <button type="button" onClick={onClick} className="arch-portada focus-ring">
-      <div className="cab">
-        <span className="cabecera">{t("garage.coverMasthead")}</span>
-        <span className="num">
-          {t("garage.issueShort")} {issueLabel(car.issue)}
-        </span>
-      </div>
-
-      <div className="foto">
+    <span
+      className={"arch-logo" + (apagado ? " apagado" : "") + (pequeno ? " pequeno" : "")}
+      aria-hidden="true"
+    >
+      {fallo ? (
+        <b>{inicial.toLocaleUpperCase()}</b>
+      ) : (
         <img
-          // apiUrl(): las portadas vienen como /api/car-image?t=… (ruta
-          // relativa). En la app hay que absolutizarlas o el archivo entero
-          // se ve sin fotos — el <img> no pasa por el shim de fetch.
+          src={brandLogoPath(marca)}
+          alt=""
+          draggable={false}
+          loading="lazy"
+          onError={() => setFallo(true)}
+        />
+      )}
+    </span>
+  );
+}
+
+// Los distintivos de una portada: el pleno y el veterano en oro (se ganan), la
+// repesca en ámbar (dice de dónde vino, no cuánto costó).
+const ICONO_MERITO = { pleno: I.estrella, vet: I.galones };
+
+function Distintivo({ merito }) {
+  const { t } = useT();
+  return (
+    <span className={`arch-distintivo ${merito}`} title={t(`garage.merit_${merito}_aria`)}>
+      {ICONO_MERITO[merito] && <Icon d={ICONO_MERITO[merito]} size={12} strokeWidth="2" />}
+      {t(`garage.merit_${merito}`)}
+    </span>
+  );
+}
+
+function Destacada({ car, isNew, onClick }) {
+  const { t } = useT();
+  const stamps = stampsOf(car);
+  return (
+    <button type="button" onClick={onClick} className="arch-destacada focus-ring">
+      <span className="arch-destacada-foto">
+        <img
           src={apiUrl(car.img)}
           alt={`${car.marca} ${car.modelo}`}
           draggable={false}
           loading="lazy"
         />
-      </div>
-
-      <div className="pie">
-        <p className="marca">{car.marca}</p>
-        <p className="modelo">{car.modelo}</p>
-        <p className="anio">{car.anio}</p>
-      </div>
-
-      {isNew && <span className="arch-cinta">{t("garage.ribbonNew")}</span>}
-
-      {merits.length > 0 && (
-        <span className="arch-sellos">
-          {merits.map((m) => (
-            <span
-              key={m}
-              className={`arch-sello arch-sello--${m}`}
-              title={t(`garage.merit_${m}_aria`)}
-              aria-label={t(`garage.merit_${m}_aria`)}
-            >
-              {t(`garage.merit_${m}`)}
-            </span>
-          ))}
+        {isNew && <span className="arch-chip-foto nueva">{t("garage.ribbonNew")}</span>}
+        <span className="arch-chip-foto num">
+          {t("garage.issueShort")} {issueLabel(car.issue)}
         </span>
-      )}
+      </span>
+      <span className="arch-destacada-pie">
+        <span className="arch-ficha-nombre">
+          <span className="arch-marca">{car.marca}</span>
+          <span className="arch-modelo grande">{car.modelo}</span>
+        </span>
+        <span className="arch-destacada-datos">
+          {stamps.map((m) => (
+            <Distintivo key={m} merito={m} />
+          ))}
+          {car.pais && (
+            <img
+              src={flagImagePath(car.pais)}
+              alt={getLocalizedCountry(car.pais)}
+              draggable={false}
+              loading="lazy"
+              className="bandera"
+            />
+          )}
+          <span className="arch-anio">{car.anio}</span>
+        </span>
+      </span>
     </button>
   );
 }
 
-// El hueco NO carga imagen (ver .arch-hueco en index.css): la lona borrosa
-// solo se pide al abrir el detalle. Aquí es papel en blanco con trama, que
-// además es lo que un álbum de cromos enseña de verdad en una casilla vacía.
+function Ficha({ car, isNew, onClick }) {
+  const { t } = useT();
+  const stamps = stampsOf(car);
+  return (
+    <button type="button" onClick={onClick} className="arch-ficha focus-ring">
+      <span className="arch-ficha-cab">
+        <LogoMarca marca={car.marca} />
+        <span className="arch-ficha-num">
+          {isNew && <span className="arch-nuevo">{t("garage.ribbonNew")}</span>}
+          {t("garage.issueShort")} {issueLabel(car.issue)}
+        </span>
+      </span>
+      <span className="arch-ficha-nombre">
+        <span className="arch-marca">{car.marca}</span>
+        <span className="arch-modelo">{car.modelo}</span>
+        <span className="arch-ficha-pie">
+          <span className="arch-anio">{car.anio}</span>
+          {stamps.length > 0 && (
+            <span className="arch-distintivos">
+              {stamps.map((m) => (
+                <Distintivo key={m} merito={m} />
+              ))}
+            </span>
+          )}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+// El hueco: un número que falta. Rayado y con el canto en discontinua — se lee
+// como «aquí va algo» sin enseñar qué. Sin número de edición a propósito: el
+// del hueco diría qué día fue coche del día un coche que aún no has ganado.
 function Hole({ onClick }) {
   const { t } = useT();
   return (
@@ -1216,40 +1193,39 @@ function Hole({ onClick }) {
       className="arch-hueco focus-ring"
       aria-label={t("garage.ariaLockedCard")}
     >
-      <span className="num">{t("garage.issueShort")} ???</span>
-      <LockIcon className="h-5 w-5 text-tinta/35" />
-      <span className="txt">{t("garage.holeTitle")}</span>
+      <span className="arch-ficha-cab">
+        <span className="arch-logo cerrado">
+          <Icon d={I.candado} size={17} />
+        </span>
+      </span>
+      <span className="arch-ficha-nombre">
+        <span className="arch-modelo">{t("garage.lockedLabel")}</span>
+        <span className="arch-hueco-sub">{t("garage.holeSub")}</span>
+      </span>
     </button>
   );
 }
 
 // ============================================================================
-// Detalle: la portada a tamaño grande, con dorso
+// El detalle: la portada que se voltea
 // ============================================================================
 
 function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
   const { t, tn, dateLocale } = useT();
-  // Conservamos el último coche válido en estado local. Cuando el padre hace
-  // setDetailCar(null) para cerrar, `car` pasa a null y `open` a false en el
-  // mismo render — pero la animación de salida tarda ~250 ms. Sin esta cache
-  // leeríamos car.marca de null durante ese intervalo y reventaría.
+  // Conservamos el último coche mostrado mientras dura la animación de
+  // salida: si no, al poner `car` a null el contenido se vaciaría antes de
+  // que el panel termine de irse.
   const [displayCar, setDisplayCar] = useState(car);
-  // Ángulo ACUMULADO, no un booleano: ver lib/flipAngle.js. Los múltiplos
-  // pares de 180° miran a la portada, los impares al dorso.
   const [angle, setAngle] = useState(0);
   useEffect(() => {
     if (car) setDisplayCar(car);
   }, [car]);
-  // Cada portada se abre por su cara buena.
+  // Cada portada nueva se abre por la cara, nunca por el dorso.
   useEffect(() => {
     if (open) setAngle(0);
   }, [open, car?.id]);
 
   const isLocked = displayCar?.locked;
-  // Dos listas, no una: en la portada se estampa también el origen (repesca),
-  // pero la línea «Distintivo» del dorso es solo para el mérito — el origen
-  // tiene ahí su propia fila y decir «Distintivo: Repesca» sería llamar
-  // mérito a haber rescatado un número atrasado.
   const stamps = displayCar ? stampsOf(displayCar) : [];
   const merits = displayCar ? meritsOf(displayCar) : [];
   const wonAt = formatWonAt(displayCar?.wonAt, dateLocale);
@@ -1258,17 +1234,9 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
   const rarityPct = rarity ? formatRarityPct(rarity.pct) : null;
 
   const drag = useFlipDrag(angle, setAngle);
-  // La cara visible se deriva del ángulo EN VIVO, así que a mitad de arrastre
-  // el dorso ya es "la cara actual" en el mismo instante en que el navegador
-  // empieza a pintarlo (backface-visibility cambia a los 90°).
   const flipped = showsBack(drag.currentAngle);
 
-  // ── Altura = la de la CARA VISIBLE ──────────────────────────────────────
-  // El dorso casi siempre es más alto (ficha + tirada + datos). Si la carta
-  // midiera lo más alto, ver solo la portada dejaría un palmo de aire arriba y
-  // abajo. Medimos ambas caras y damos a la carta la altura de la que se está
-  // viendo; el cambio salta a los 90° (carta de perfil), donde no se ve, y la
-  // transición CSS de `height` lo suaviza.
+  // La carta mide lo que mide la cara VISIBLE (ver `.arch-flip-inner`).
   const portadaRef = useRef(null);
   const dorsoRef = useRef(null);
   const [faceH, setFaceH] = useState(null);
@@ -1276,28 +1244,18 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
     const portada = portadaRef.current;
     const dorso = dorsoRef.current;
     if (!portada || !dorso) return;
-    // Las caras están en `absolute`, así que su offsetHeight es su alto de
-    // contenido, independientemente de la rotación del padre. Medir en
-    // useLayoutEffect (pre-paint) evita que la carta nazca colapsada a 0.
     const measure = () => {
       const h = (flipped ? dorso : portada).offsetHeight;
       if (h) setFaceH(h);
     };
     measure();
-    // La ficha puede crecer tras el primer paint (fuentes que cargan, texto
-    // largo que reflowea): el observer mantiene la altura al día sin re-medir
-    // en cada frame del arrastre (dependemos de `flipped`, no de `dx`).
     const ro = new ResizeObserver(measure);
     ro.observe(portada);
     ro.observe(dorso);
     return () => ro.disconnect();
   }, [flipped, displayCar]);
 
-  // Flechas ←/→ como equivalente de teclado del arrastre, cada una girando
-  // hacia su lado (misma correspondencia que el dedo: derecha → +). Va por
-  // listener de ventana y no por onKeyDown del contenedor porque el foco lo
-  // tiene el panel de ModalShell (padre): un keydown allí nunca bajaría hasta
-  // la carta.
+  // Las flechas del teclado también voltean: el swipe no es el único camino.
   useEffect(() => {
     if (!open || isLocked) return;
     const onKey = (e) => {
@@ -1315,19 +1273,12 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
       onClose={onClose}
       label={t("garage.headerTitle")}
       backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
-      // La carta mide lo que mide la cara visible (ver faceH), así que no hay
-      // aire sobrante ni scroll interno: la ficha se lee entera. max-h + scroll
-      // es solo la VÁLVULA para el caso patológico —una descripción larguísima
-      // que hiciera el dorso más alto que la pantalla—; en una ficha normal no
-      // se activa.
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-[88vh] overflow-y-auto"
     >
       {displayCar && (
         <>
-          {/* La X vive en su propia banda, FUERA del cromo. En absolute sobre
-              la esquina caía encima de la cabecera de la portada y pisaba el
-              nº de edición. Además queda fuera del contenedor que rota, así
-              que no gira con la carta. */}
+          {/* La X vive en su propia banda, FUERA del cromo: queda fuera del
+              contenedor que rota, así que no gira con la carta. */}
           <div className="flex justify-end px-2 pt-2">
             <CloseButton onClick={onClose} />
           </div>
@@ -1336,38 +1287,27 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
             /* Hueco: aquí SÍ enseñamos la lona borrosa (una sola petición, y
                solo cuando el usuario ha mostrado interés tocando el hueco).
                Es el momento de intriga: "¿qué se esconde ahí?". */
-            <div className="px-4 pb-4 pt-1">
-              <div className="border border-border">
-                <div className="flex items-center justify-between border-b border-border px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
-                  <span>{t("garage.coverMasthead")}</span>
-                  <span className="text-accent">{t("garage.issueShort")} ???</span>
-                </div>
-                <div className="arch-paspartu relative aspect-[4/3] w-full overflow-hidden">
-                  {displayCar.img && (
-                    <img
-                      src={apiUrl(displayCar.img)}
-                      alt=""
-                      aria-hidden="true"
-                      className="h-full w-full object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  )}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-papel/70 text-center">
-                    <LockIcon className="h-8 w-8 text-tinta/70" />
-                    <p className="font-body text-[10px] font-extrabold uppercase tracking-[0.22em] text-tinta/80">
-                      {t("garage.lockedLabel")}
-                    </p>
-                  </div>
+            <div className="arch-detalle">
+              <div className="arch-detalle-foto">
+                {displayCar.img && (
+                  <img
+                    src={apiUrl(displayCar.img)}
+                    alt=""
+                    aria-hidden="true"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                )}
+                <div className="arch-detalle-velo">
+                  <Icon d={I.candado} size={30} />
+                  <p>{t("garage.lockedLabel")}</p>
                 </div>
               </div>
 
-              <p className="pm-kicker mt-4">{displayCar.marca}</p>
-              <p className="mt-1 font-display text-xl font-black text-tinta">
-                {t("garage.modelHidden")}
-              </p>
-              <p className="pm-body mt-2">{t("garage.lockedCardDetailBody")}</p>
+              <p className="arch-marca">{displayCar.marca}</p>
+              <p className="arch-detalle-modelo">{t("garage.modelHidden")}</p>
+              <p className="arch-detalle-texto">{t("garage.lockedCardDetailBody")}</p>
 
               <button
                 type="button"
@@ -1375,7 +1315,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                   onClose();
                   onStartRepesca?.();
                 }}
-                className="pm-btn mt-4"
+                className="pm-btn arch-boton-ambar"
               >
                 {t("garage.lockedCardDetailCta")}
               </button>
@@ -1383,9 +1323,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
           ) : (
             /* Las dos caras están SIEMPRE montadas (si no, no hay volteo que
                animar), así que la que mira hacia atrás se marca aria-hidden y
-               su botón sale del orden de tabulación: un lector de pantalla no
-               debe leer el dorso mientras se ve la portada, ni el Tab llevar
-               a un botón invisible. */
+               su botón sale del orden de tabulación. */
             <div className="arch-flip" {...drag.handlers}>
               <div
                 className={`arch-flip-inner ${drag.dragging ? "arrastrando" : ""}`}
@@ -1397,52 +1335,46 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                 {/* ── Cara: la portada ── */}
                 <div
                   ref={portadaRef}
-                  className="arch-cara arch-cara--portada px-4 pb-4 pt-1"
+                  className="arch-cara arch-cara--portada arch-detalle"
                   aria-hidden={flipped}
                 >
-                  <div className="border border-tinta">
-                    <div className="flex items-center justify-between border-b border-border px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">
-                      <span>{t("garage.coverMasthead")}</span>
-                      <span className="font-bold text-accent">
-                        {t("garage.issueShort")} {issueLabel(displayCar.issue)}
+                  {/* object-CONTAIN: en el detalle la foto se ve ENTERA. Las
+                      bandas que deja el encaje son del fondo del marco, como el
+                      paspartú de una foto montada. */}
+                  <div className="arch-detalle-foto">
+                    <img
+                      src={apiUrl(displayCar.img)}
+                      alt={`${displayCar.marca} ${displayCar.modelo}`}
+                      draggable={false}
+                    />
+                    <span className="arch-chip-foto num">
+                      {t("garage.issueShort")} {issueLabel(displayCar.issue)}
+                    </span>
+                    {stamps.length > 0 && (
+                      <span className="arch-detalle-sellos">
+                        {stamps.map((m) => (
+                          <Distintivo key={m} merito={m} />
+                        ))}
                       </span>
-                    </div>
-                    {/* object-CONTAIN, no cover: en el detalle la foto se ve
-                        ENTERA. Con cover, un coche fotografiado en panorámico
-                        o en vertical perdía los extremos justo en la pantalla
-                        donde el jugador viene a mirarlo de cerca. Las bandas
-                        que deja el encaje son de papel: leen como el paspartú
-                        de una foto montada, no como un hueco. En la rejilla se
-                        mantiene cover, que es lo que da la cuadrícula regular
-                        de un álbum. */}
-                    <div className="arch-paspartu relative aspect-[4/3] w-full overflow-hidden">
-                      <img
-                        src={apiUrl(displayCar.img)}
-                        alt={`${displayCar.marca} ${displayCar.modelo}`}
-                        // Sin esto, arrastrar la foto con el ratón inicia el
-                        // drag nativo de imagen y se come el gesto de volteo.
-                        draggable={false}
-                        className="h-full w-full object-contain"
-                      />
-                      {stamps.length > 0 && (
-                        <span className="arch-sellos" style={{ top: 8 }}>
-                          {stamps.map((m) => (
-                            <span key={m} className={`arch-sello arch-sello--${m}`}>
-                              {t(`garage.merit_${m}`)}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
 
-                  <p className="pm-kicker mt-3">{displayCar.marca}</p>
-                  <h3 className="mt-0.5 font-display text-[26px] font-black leading-none tracking-tight text-tinta">
-                    {displayCar.modelo}
-                  </h3>
-                  <p className="mt-1 font-mono text-xs tabular-nums text-muted">
-                    {displayCar.anio}
-                    {displayCar.pais ? ` · ${getLocalizedCountry(displayCar.pais)}` : ""}
+                  <p className="arch-marca">{displayCar.marca}</p>
+                  <h3 className="arch-detalle-modelo">{displayCar.modelo}</h3>
+                  <p className="arch-detalle-chapas">
+                    {displayCar.pais && (
+                      <span className="fin-chapa">
+                        <img
+                          src={flagImagePath(displayCar.pais)}
+                          alt=""
+                          aria-hidden="true"
+                          draggable={false}
+                          className="bandera"
+                        />
+                        {getLocalizedCountry(displayCar.pais)}
+                      </span>
+                    )}
+                    {displayCar.anio && <span className="fin-chapa mono">{displayCar.anio}</span>}
                   </p>
 
                   {/* El click sintético que sigue a un swipe se descarta: si
@@ -1455,46 +1387,42 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                       setAngle((a) => a + 180);
                     }}
                     tabIndex={flipped ? -1 : 0}
-                    className="pm-btn pm-btn--ghost mt-4"
+                    className="pm-btn pm-btn--ghost"
                   >
                     {t("garage.flipToBack")}
                   </button>
-                  {/* El swipe es un gesto nuevo y no se descubre solo. Una
-                      línea de pie basta: el botón de arriba ya cubre a quien
-                      no lo lea. Solo en la portada — en el dorso ya lo sabe. */}
-                  <p className="mt-1.5 text-center font-mono text-[9px] uppercase tracking-wider text-muted/70">
-                    {t("garage.flipHint")}
-                  </p>
+                  {/* El swipe es un gesto nuevo y no se descubre solo: una
+                      línea de pie basta. Solo en la portada. */}
+                  <p className="arch-pista">{t("garage.flipHint")}</p>
                 </div>
 
                 {/* ── Cara: el dorso ── */}
                 <div
                   ref={dorsoRef}
-                  className="arch-cara arch-cara--dorso px-4 pb-4 pt-1"
+                  className="arch-cara arch-cara--dorso arch-detalle"
                   aria-hidden={!flipped}
                 >
-                  <div className="flex items-center justify-between border-b border-border pb-1.5 font-mono text-[9px] uppercase tracking-wider text-muted">
-                    <span>{displayCar.marca} · {displayCar.modelo}</span>
-                    <span className="font-bold text-accent">
+                  <div className="arch-dorso-cab">
+                    <span>
+                      {displayCar.marca} · {displayCar.modelo}
+                    </span>
+                    <span className="num">
                       {t("garage.issueShort")} {issueLabel(displayCar.issue)}
                     </span>
                   </div>
 
-                  <p className="pm-label mt-3">{t("garage.carSpec")}</p>
-                  {getCarDescription(displayCar) ? (
-                    <p className="pm-body mt-1">{getCarDescription(displayCar)}</p>
-                  ) : (
-                    <p className="pm-body mt-1 italic">{t("garage.carNoDescription")}</p>
-                  )}
+                  <p className="arch-etiqueta">{t("garage.carSpec")}</p>
+                  <p className="arch-detalle-texto">
+                    {getCarDescription(displayCar) || t("garage.carNoDescription")}
+                  </p>
 
                   {/* TIRADA: cuánta gente tiene esta portada. Va ANTES de "en
-                      tu archivo" porque es el dato que no depende de ti — el
-                      que convierte un cromo en una pieza con valor. Se omite
-                      entero si el servidor no publica rareza (muestra
-                      insuficiente): mejor callar que inventar escasez. */}
+                      tu archivo" porque es el dato que no depende de ti. Se
+                      omite entero si el servidor no publica rareza: mejor
+                      callar que inventar escasez. */}
                   {rarity && rarityPct !== null && (
-                    <div className={`arch-tirada mt-4 t-${rarityKind}`}>
-                      <p className="pm-label">{t("garage.rarityTitle")}</p>
+                    <div className={`arch-tirada t-${rarityKind}`}>
+                      <p className="arch-etiqueta">{t("garage.rarityTitle")}</p>
                       <p className="etiqueta">{t(`garage.rarity_${rarityKind}`)}</p>
                       <p className="apoyo">
                         {t("garage.rarityBody", {
@@ -1505,19 +1433,16 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                     </div>
                   )}
 
-                  <p className="pm-label arch-filete mt-4 pt-3">
-                    {t("garage.backTitle")}
-                  </p>
-                  <div className="mt-1">
+                  <p className="arch-etiqueta">{t("garage.backTitle")}</p>
+                  <div className="arch-datos">
                     {wonAt && (
                       <div className="arch-dato">
                         <span className="k">{t("garage.datoWonAt")}</span>
                         <span className="v">{wonAt}</span>
                       </div>
                     )}
-                    {/* Origen: de dónde salió la portada. Un cromo rescatado
-                        de un número atrasado no se consiguió igual que uno
-                        del día, y el dorso es donde eso se cuenta. */}
+                    {/* Origen: un cromo rescatado de un número atrasado no se
+                        consiguió igual que uno del día. */}
                     <div className="arch-dato">
                       <span className="k">{t("garage.datoOrigin")}</span>
                       <span className="v">
@@ -1531,13 +1456,13 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                     {Number.isFinite(displayCar.attempts) && (
                       <div className="arch-dato">
                         <span className="k">{t("garage.datoAttempts")}</span>
-                        {/* El realce rojo marca el pleno, no el número: en la
-                            repesca veterana solo hay un intento, así que
-                            pintarlo de rojo celebraría una hazaña que no es. */}
+                        {/* El oro marca el pleno, no el número: en la repesca
+                            veterana solo hay un intento, así que celebrarlo
+                            sería celebrar una hazaña que no es. */}
                         <span
                           className={`v ${
                             displayCar.attempts === 1 && !displayCar.viaRepesca
-                              ? "rojo"
+                              ? "oro"
                               : ""
                           }`}
                         >
@@ -1562,7 +1487,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                       setAngle((a) => a - 180);
                     }}
                     tabIndex={flipped ? 0 : -1}
-                    className="pm-btn pm-btn--ghost mt-4"
+                    className="pm-btn pm-btn--ghost"
                   >
                     {t("garage.flipToFront")}
                   </button>
@@ -1577,146 +1502,76 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
 }
 
 // ============================================================================
-// Modal de confirmación de Repesca Aleatoria
+// ¿Sortear un coche? — la pregunta antes del sorteo
 // ============================================================================
 //
-// Se abre tras pulsar el CTA de números atrasados y antes de tocar
-// /api/repesca/start. Muestra las condiciones (una al día, mitad de puntos,
-// no afecta racha) y nada de info del coche — porque ni siquiera nosotros
-// sabemos cuál va a tocar todavía (lo sortea el servidor en el onAccept).
+// Es una DECISIÓN (regla 24), así que va centrada en las dos plataformas. El
+// botón principal es ámbar y no tinta: es el único sitio del juego donde se
+// gasta la repesca del día, y el color dice de qué se está hablando.
+
 function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) {
   const { t } = useT();
-  // Si está en pleno "Sorteando...", bloqueamos el cierre por backdrop: la
-  // animación de salida confundiría (parecería cancelado cuando sigue el POST).
   return (
     <ModalShell
       open={open}
       onClose={onCancel}
       dismissOnBackdrop={!starting}
       label={t("garage.repescaConfirmTitle")}
-      // Mismo encaje que RepescaHelpModal (ver allí el porqué del `max-h-full`
-      // y del `safe-area-pad`). Aquí no es una cuestión de comodidad sino de
-      // salida: este panel es más corto, pero en una pantalla baja —o con el
-      // tamaño de fuente del sistema subido— lo primero que se recortaba era la
-      // fila de botones, y sin CANCELAR ni ACEPTAR el jugador se queda mirando
-      // las condiciones de una repesca que no puede ni gastar ni rechazar.
       backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[95] flex items-center justify-center px-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
-        <div className="px-5 py-5 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center border border-accent text-accent">
-            <DiceIcon className="h-7 w-7" />
-          </div>
-          <p className="pm-kicker mt-4">{t("garage.repescaTag")}</p>
-          <h3 className="mt-1 font-display text-xl font-black tracking-tight text-tinta">
-            {t("garage.repescaConfirmTitle")}
-          </h3>
-
-          <p className="pm-body mt-3">
-            {t("garage.repescaConfirmBody", { poolSize })}
-          </p>
-
-          <div className="mt-4 border border-border px-3 py-1 text-left">
-            <RuleRow icon={<CalendarIcon />}>{t("garage.repescaRuleOnePerDay")}</RuleRow>
-            <RuleRow icon={<HalfIcon />}>{t("garage.repescaRuleHalfPoints")}</RuleRow>
-            <RuleRow icon={<StreakSafeIcon />} last>{t("garage.repescaRuleNoStreak")}</RuleRow>
-          </div>
-
-          <div className="mt-5 flex gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={starting}
-              className="pm-btn pm-btn--ghost flex-1"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={onAccept}
-              disabled={starting}
-              className="pm-btn flex-1"
-              aria-busy={starting}
-            >
-              {starting ? t("garage.repescaStarting") : t("garage.repescaAccept")}
-            </button>
-          </div>
-        </div>
+      <div className="arch-dialogo">
+        <span className="arch-dialogo-cab">
+          <span className="arch-kicker ambar">{t("garage.repescaTag")}</span>
+          <h3 className="arch-dialogo-titulo">{t("garage.repescaConfirmTitle")}</h3>
+        </span>
+        <p className="arch-dialogo-texto">{t("garage.repescaConfirmBody", { poolSize })}</p>
+        <ul className="arch-reglas">
+          <li>
+            <Icon d={I.calendario} size={18} />
+            {t("garage.reglaUnaAlDia")}
+          </li>
+          <li>
+            <span className="medio" aria-hidden="true">½</span>
+            {t("garage.reglaMitad")}
+          </li>
+          <li>
+            <Icon d={I.escudo} size={18} />
+            {t("garage.reglaRacha")}
+          </li>
+        </ul>
+        <button
+          type="button"
+          onClick={onAccept}
+          disabled={starting}
+          className="pm-btn arch-boton-ambar"
+          aria-busy={starting}
+        >
+          {starting ? t("garage.repescaStarting") : t("garage.repescaAccept")}
+        </button>
+        <button type="button" onClick={onCancel} disabled={starting} className="arch-ahora-no">
+          {t("garage.ahoraNo")}
+        </button>
+      </div>
     </ModalShell>
   );
 }
 
 // ============================================================================
-// Subcomponentes auxiliares
+// Piezas pequeñas
 // ============================================================================
 
-// ── Iconos line-art (stroke currentColor, NO emoji — coherencia con el
-// sistema de iconos de la app y cross-platform) ──────────────────────────
-const GICO = {
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.6,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-};
-
-function CollectionIcon({ className = "h-4 w-4" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <rect x="3" y="6" width="12" height="14" rx="1" />
-      <path d="M8 6V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-1" />
-    </svg>
-  );
-}
-
-function DiceIcon({ className = "h-[18px] w-[18px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <rect x="4" y="4" width="16" height="16" rx="1" />
-      <circle cx="8.5" cy="8.5" r="1.15" fill="currentColor" stroke="none" />
-      <circle cx="15.5" cy="8.5" r="1.15" fill="currentColor" stroke="none" />
-      <circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none" />
-      <circle cx="8.5" cy="15.5" r="1.15" fill="currentColor" stroke="none" />
-      <circle cx="15.5" cy="15.5" r="1.15" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function CalendarIcon({ className = "h-[15px] w-[15px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <rect x="4" y="5" width="16" height="16" rx="1" />
-      <path d="M4 9h16M8 3v4M16 3v4" />
-    </svg>
-  );
-}
-
-function HalfIcon({ className = "h-[15px] w-[15px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function StreakSafeIcon({ className = "h-[15px] w-[15px]" }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...GICO} aria-hidden="true">
-      <path d="M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z" />
-      <path d="M9 12l2 2 4-4.2" />
-    </svg>
-  );
-}
-
-// Medalla de tier: bronce/plata/oro de una colección (país o marca).
-function TierMedal({ tier, className = "h-4 w-4" }) {
+// La medalla de un rango (bronce, plata, oro). El color lo pone el CSS desde
+// los tokens del podio: los hex fijos de antes se habían oscurecido para el
+// papel crema y en noche se apagaban sobre el grafito.
+function TierMedal({ tier, size = 16 }) {
   if (!tier) return null;
   return (
     <svg
       viewBox="0 0 24 24"
-      className={className}
-      style={{ color: TIER_HEX[tier] }}
+      width={size}
+      height={size}
+      className={`arch-medalla tier-${tier}`}
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -1724,46 +1579,23 @@ function TierMedal({ tier, className = "h-4 w-4" }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <circle cx="12" cy="14" r="6" fill={TIER_HEX[tier]} fillOpacity="0.18" />
+      <circle cx="12" cy="14" r="6" fill="currentColor" fillOpacity="0.18" />
       <path d="M9 9 6.5 3.5M15 9l2.5-5.5" />
       <circle cx="12" cy="14" r="6" />
     </svg>
   );
 }
 
-// Regla de la repesca como fila con icono (en vez de viñeta "·").
-function RuleRow({ icon, children, last = false }) {
-  return (
-    <div
-      className={`flex items-center gap-2.5 py-2 font-body text-xs text-muted ${
-        last ? "" : "border-b border-border"
-      }`}
-    >
-      <span className="shrink-0 text-accent">{icon}</span>
-      <span>{children}</span>
-    </div>
-  );
-}
-
-// (Se fue el `pulse`. Su único consumidor era la carga del archivo, que ahora
-// enseña portadas sin imprimir en vez de una línea latiendo; lo que queda aquí
-// son mensajes que se leen quietos —vitrina vacía, fallo con reintento—.)
 function CenterMessage({ text, tone = "default", onRetry = null }) {
   const { t } = useT();
-  // El error usa el rojo del sistema (`accent`), no un red-400 suelto fuera
-  // de paleta: en una revista impresa solo hay una tinta roja.
-  const toneClass = tone === "error" ? "text-accent" : "text-muted";
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-      <p className={`font-mono text-sm ${toneClass}`}>{text}</p>
-      {/* UNA SALIDA, no solo un diagnóstico. Sin este botón, el Archivo caído
-          dejaba al jugador ante una línea roja y nada más: la única forma de
-          volver a intentarlo era cerrar el panel y abrirlo otra vez, y eso hay
-          que adivinarlo. Es el mismo remate que ya tienen la edición no
-          disponible y el cupón sin catálogo — dos sitios donde este proyecto ya
-          decidió que un fallo sin salida se lee como una app rota. */}
+    <div className="arch-mensaje">
+      <p className={tone === "error" ? "rojo" : undefined}>{text}</p>
+      {/* UNA SALIDA, no solo un diagnóstico: sin este botón, la única forma de
+          reintentar era cerrar el panel y abrirlo otra vez, y eso hay que
+          adivinarlo. */}
       {onRetry && (
-        <button type="button" onClick={onRetry} className="pm-btn pm-btn--ghost !w-auto px-6 !py-2 !text-[11px]">
+        <button type="button" onClick={onRetry} className="pm-btn pm-btn--ghost">
           {t("offline.retry")}
         </button>
       )}
@@ -1771,10 +1603,6 @@ function CenterMessage({ text, tone = "default", onRetry = null }) {
   );
 }
 
-// Modal con la explicación completa del modo Repesca. Lo lanza el link
-// contextual bajo la banda de números atrasados. Se complementa con
-// RandomRepescaConfirm, que es el modal corto justo antes de gastarla; este
-// está pensado para consultarse ANTES de decidir.
 function RepescaHelpModal({ open, onClose }) {
   const { t } = useT();
   return (
@@ -1782,83 +1610,53 @@ function RepescaHelpModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       label={t("garage.repescaHelpTitle")}
-      // EL PANEL SE ENCAJA EN LA PANTALLA, NO AL REVÉS. Esta hoja son cinco
-      // reglas del modo repesca y crece con el idioma: en un móvil no cabe. Sin
-      // `max-h` el panel centrado se salía por ARRIBA Y POR ABAJO a la vez, y el
-      // `overflow-hidden` remataba la jugada recortando lo que sobresalía — el
-      // ENTENDIDO quedaba fuera de pantalla y no había gesto que llegara a él.
-      //
-      // EL TOPE ES `max-h-full`, no el `calc(100dvh - 2rem)` de las otras hojas
-      // de ayuda, y esa diferencia es justo lo que arregla la app: el backdrop es
-      // `fixed inset-0`, así que su caja de contenido ya ES la pantalla menos el
-      // padding, y con `safe-area-pad` ese padding incluye la barra de estado y
-      // la de gestos. Restar un alto simétrico del viewport no serviría: los dos
-      // insets de Android no miden lo mismo, y centrar el sobrante deja el panel
-      // debajo de una de las dos barras. En web ambos insets valen 0 → padding de
-      // 1rem, exactamente el `p-4` que había aquí: fuera de la app no cambia nada.
       backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[95] flex items-center justify-center px-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
-        <div className="absolute right-2 top-2 z-10">
+      <div className="arch-dialogo">
+        <div className="arch-dialogo-fila">
+          <span className="arch-dialogo-cab">
+            <span className="arch-kicker ambar">{t("garage.repescaHelpTag")}</span>
+            <h3 className="arch-dialogo-titulo">{t("garage.repescaHelpTitle")}</h3>
+          </span>
           <CloseButton onClick={onClose} />
         </div>
+        <p className="arch-dialogo-texto">{t("garage.repescaHelpBody")}</p>
 
-        <div className="px-5 pb-5 pt-6 text-left">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-accent text-accent">
-              <DiceIcon className="h-6 w-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="pm-kicker">{t("garage.repescaHelpTag")}</p>
-              <h3 className="font-display text-xl font-black tracking-tight text-tinta">
-                {t("garage.repescaHelpTitle")}
-              </h3>
-            </div>
-          </div>
-
-          <p className="pm-body mt-4">{t("garage.repescaHelpBody")}</p>
-
-          <div className="mt-4 space-y-2">
-            <HelpRow icon={<DiceIcon className="h-4 w-4" />} title={t("garage.repescaHelpSurprise")}>
-              {t("garage.repescaHelpSurpriseDesc")}
-            </HelpRow>
-            <HelpRow icon={<CalendarIcon className="h-4 w-4" />} title={t("garage.repescaHelpOnce")}>
-              {t("garage.repescaHelpOnceDesc")}
-            </HelpRow>
-            <HelpRow icon={<HalfIcon className="h-4 w-4" />} title={t("garage.repescaHelpHalf")}>
-              {t("garage.repescaHelpHalfDesc")}
-            </HelpRow>
-            <HelpRow
-              icon={<AchievementIcon name="spark" size="h-4 w-4" />}
-              title={t("garage.repescaHelpNoStreak")}
-            >
-              {t("garage.repescaHelpNoStreakDesc")}
-            </HelpRow>
-            <HelpRow icon={<AchievementIcon name="trophy" size="h-4 w-4" />} title={t("garage.repescaHelpVeteran")}>
-              {t("garage.repescaHelpVeteranDesc")}
-            </HelpRow>
-          </div>
-
-          <button type="button" onClick={onClose} className="pm-btn mt-5">
-            {t("garage.repescaHelpOk")}
-          </button>
+        <div className="arch-ayuda-lista">
+          <HelpRow icon={<Icon d={I.shuffle} size={18} />} title={t("garage.repescaHelpSurprise")}>
+            {t("garage.repescaHelpSurpriseDesc")}
+          </HelpRow>
+          <HelpRow icon={<Icon d={I.calendario} size={18} />} title={t("garage.repescaHelpOnce")}>
+            {t("garage.repescaHelpOnceDesc")}
+          </HelpRow>
+          <HelpRow icon={<span className="medio">½</span>} title={t("garage.repescaHelpHalf")}>
+            {t("garage.repescaHelpHalfDesc")}
+          </HelpRow>
+          <HelpRow icon={<Icon d={I.escudo} size={18} />} title={t("garage.repescaHelpNoStreak")}>
+            {t("garage.repescaHelpNoStreakDesc")}
+          </HelpRow>
+          <HelpRow icon={<Icon d={I.galones} size={18} />} title={t("garage.repescaHelpVeteran")}>
+            {t("garage.repescaHelpVeteranDesc")}
+          </HelpRow>
         </div>
+
+        <button type="button" onClick={onClose} className="pm-btn">
+          {t("garage.repescaHelpOk")}
+        </button>
+      </div>
     </ModalShell>
   );
 }
 
 function HelpRow({ icon, title, children }) {
   return (
-    <div className="flex gap-3 border border-border px-3 py-2.5">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center text-accent">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="font-body text-[11px] font-bold uppercase tracking-[0.14em] text-tinta">
-          {title}
-        </p>
-        <p className="pm-body mt-0.5 text-[13px]">{children}</p>
-      </div>
+    <div className="arch-ayuda-fila">
+      <span className="arch-ayuda-icono" aria-hidden="true">{icon}</span>
+      <span className="arch-ayuda-texto">
+        <b>{title}</b>
+        <span>{children}</span>
+      </span>
     </div>
   );
 }
@@ -1866,52 +1664,16 @@ function HelpRow({ icon, title, children }) {
 function AuthWall({ onLogin }) {
   const { t } = useT();
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 border border-border bg-papel-mat p-6 text-center">
-        <div className="flex h-16 w-16 items-center justify-center border border-accent">
-          <LockIcon className="h-8 w-8 text-accent" />
-        </div>
-        <div>
-          <p className="font-display text-xl font-black tracking-tight text-tinta">
-            {t("garage.authTitle")}
-          </p>
-          <p className="pm-body mt-2">{t("garage.authBody")}</p>
-        </div>
-        {/* Sin el glifo de Google y sin su nombre: este botón NO entra con
-            Google, ABRE LA PUERTA — que ofrece Google y también el código por
-            correo. Anunciar un método concreto en el sitio que lleva a los dos
-            es lo que hacía que la entrada por correo pareciera un camino de
-            segunda, o directamente invisible. */}
-        <button
-          type="button"
-          onClick={onLogin}
-          className="pm-btn flex items-center justify-center gap-3"
-        >
+    <div className="arch-mensaje">
+      <div className="arch-muro">
+        <p className="arch-vacio-titulo">{t("garage.authTitle")}</p>
+        <p className="arch-vacio-texto">{t("garage.authBody")}</p>
+        {/* Sin el glifo de Google y sin su nombre: este botón ABRE LA PUERTA,
+            que ofrece Google y también el código por correo. */}
+        <button type="button" onClick={onLogin} className="pm-btn">
           {t("common.signIn")}
         </button>
       </div>
     </div>
-  );
-}
-
-// ============================================================================
-// Icons
-// ============================================================================
-
-function LockIcon({ className = "" }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="4" y="11" width="16" height="9" rx="1" />
-      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-    </svg>
   );
 }

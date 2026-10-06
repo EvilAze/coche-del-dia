@@ -24,7 +24,7 @@
     "howToPlayAria": "Cómo se juega",
     "attempts": "intentos",
     "attemptsRemainingAria": "{count} de {max} intentos restantes",
-    "loginModalTitle": "INICIAR SESIÓN",
+    "loginModalTitle": "Inicia sesión",
     "loginModalDescription": "Guarda tus estadísticas en la nube, compite en el ranking global y juega desde cualquier dispositivo.",
     "loginError": "No se pudo iniciar sesión. Inténtalo de nuevo.",
     "loginLinkTakenBody": "Esa cuenta de Google ya tiene partidas guardadas. Entra con ella y seguirás donde lo dejaste — el progreso de este dispositivo sin cuenta no se puede unir a otra que ya existe.",
@@ -38,7 +38,7 @@
     "emailInvalid": "Revisa el correo, no parece válido.",
     "emailError": "No se pudo enviar el código. Inténtalo de nuevo.",
     "emailRateLimited": "Demasiadas peticiones. Espera unos minutos y vuelve a intentarlo.",
-    "codeTitle": "REVISA TU CORREO",
+    "codeTitle": "Revisa tu correo",
     "codeBody": "Te hemos enviado un código de 6 cifras a {email}.",
     "codeEmailTakenBody": "Ese correo ya tiene una cuenta con partidas guardadas. Entrarás en ella y seguirás donde lo dejaste, pero el progreso de este dispositivo sin cuenta no se puede unir: se queda aquí. Si no era el correo que querías, cámbialo antes de escribir el código.",
     "codeLabel": "Código",
@@ -98,7 +98,30 @@
     "rule4": "Cuenta como acierto con ±2 años de diferencia.",
     "rule5Title": "Cada día, un coche",
     "rule5": "Vuelve cada 24 h por un coche nuevo y mantén tu racha.",
-    "cta": "¡A jugar!"
+    "cta": "¡A jugar!",
+    "paso": "{n} de {total}",
+    "pasosAria": "Pasos",
+    "saltar": "Saltar",
+    "siguiente": "Siguiente",
+    "aJugar": "A jugar",
+    "p1Titulo": "Cada fallo abre la foto",
+    "p1Texto": "Cinco intentos para dar con marca, modelo y año. Empiezas pegado al coche y, con cada fallo, la cámara se aleja.",
+    "p1Alt": "Una foto de ejemplo, alejándose intento a intento",
+    "p2Titulo": "Cada campo, una pista",
+    "p2Texto": "Tras cada intento, marca, modelo y año te dicen cómo vas. Siempre con su icono y su palabra, nunca solo con color.",
+    "ejCorrecta": "Correcta",
+    "ejCorrectaTexto": "Clavado. Ese campo queda resuelto.",
+    "ejPais": "Mismo país",
+    "ejPaisTexto": "No es la marca, pero es del mismo país.",
+    "ejNo": "No es",
+    "ejNoTexto": "Fallo. Prueba con otro en el siguiente intento.",
+    "ejAnio": "Más nuevo",
+    "ejAnioTexto": "El año real es posterior. Vale con ±2 años.",
+    "p3Titulo": "Un coche cada día",
+    "p3Texto": "Llega uno nuevo cada medianoche (hora de España). Cuanto antes aciertes, más puntos; y si aciertas días seguidos, la racha suma aparte.",
+    "puntosKicker": "Puntos según el intento",
+    "diasN": "{n} días",
+    "diasOMas": "{n} o más"
   },
   "guessLog": {
     "label": "Historial de intentos"
@@ -111,8 +134,8 @@
     "wordAnio": "año",
     "submit": "ADIVINAR",
     "submitting": "COMPROBANDO",
-    "comboPlaceholder": "Escribe o elige…",
-    "comboModeloDisabled": "Elige marca primero",
+    "comboPlaceholder": "Escribe…",
+    "comboModeloDisabled": "Primero la marca",
     "noMatches": "Sin coincidencias",
     "yearPlaceholder": "AAAA",
     "yearTolerance": "±{n} años",
@@ -128,7 +151,9 @@
     "sameCountry": "MISMO PAÍS",
     "srCorrect": "correcto",
     "srWrong": "incorrecto",
-    "selectorPick": "Toca para elegir",
+    "notaBien": "Correcto",
+    "notaMal": "No es",
+    "selectorPick": "Elegir",
     "tableroHueco": "Es un detalle del coche: prueba una marca",
     "tableroHueco2": "Cada fallo abre más la foto",
     "catalogLoading": "Cargando…",
@@ -160,26 +185,25 @@
     "carImageAlt": "Coche del día",
     "pieSolved": "Acertado en {n} de {max}",
     "pieUnsolved": "Sin resolver en {max} intentos",
-    "ladilloCronica": "La crónica del coche"
+    "ladilloCronica": "La crónica del coche",
+    "eligeMarca": "Elige la marca",
+    "eligeModelo": "Elige el modelo",
+    "eligeAnio": "Elige el año"
   },
   "sumario": {
-    "kicker": "Índice de la edición",
-    "titulo": "El sumario",
     "garajeApunte": "Tu colección de portadas",
     "garajeRepesca": "Tienes una repesca esperando",
     "clasificacionApunte": "La tabla de la temporada",
-    "clasificacionPuesto": "de la temporada",
-    "perfilApunte": "Tu carnet y tus estadísticas",
+    "perfilApunte": "Tus cifras y tus ajustes",
     "perfilRacha": {
       "one": "Racha de {count} día",
       "other": "Racha de {count} días"
     },
-    "entrarApunte": "Guarda tu progreso en la nube",
+    "entrarApunte": "Entra y tu racha, tus puntos y tu Archivo viajan contigo.",
     "comoApunte": "Las reglas, en un minuto",
-    "ejemplar": "El ejemplar",
-    "tinta": "Tinta",
-    "tintaDia": "Día",
-    "tintaNoche": "Noche"
+    "menu": "Menú",
+    "entrarTitulo": "Guarda tu racha",
+    "puestoTemporada": "{pos} de la temporada"
   },
   "prensa": {
     "ladilloFoto": "La fotografía del día",
@@ -339,7 +363,8 @@
     "errorEmail": "Ese correo no parece válido.",
     "errorCuota": "Has enviado varios mensajes hoy. Prueba mañana.",
     "errorSesion": "No se pudo identificar tu sesión. Recarga la página.",
-    "errorGenerico": "No se pudo enviar. Inténtalo otra vez."
+    "errorGenerico": "No se pudo enviar. Inténtalo otra vez.",
+    "tipoAria": "De qué va"
   },
   "publicProfile": {
     "portadas": {
@@ -376,14 +401,14 @@
   },
   "parte": {
     "kicker": "El parte de la clasificación",
-    "of": "de {total} lectores",
+    "of": "de {total}",
     "up": {
-      "one": "Hoy has subido {count} puesto",
-      "other": "Hoy has subido {count} puestos"
+      "one": "Subes {count} puesto",
+      "other": "Subes {count} puestos"
     },
     "down": {
-      "one": "Hoy bajas {count} puesto · defiende el tuyo",
-      "other": "Hoy bajas {count} puestos · defiende el tuyo"
+      "one": "Bajas {count} puesto",
+      "other": "Bajas {count} puestos"
     },
     "hold": "Mantienes tu puesto",
     "new": "Estrenas puesto esta temporada",
@@ -430,7 +455,9 @@
     "streakAria": "Racha de {count} días, bonus {bonus}",
     "streakTitle": "Racha de {count} días",
     "legends": "Leyendas",
-    "legendsSubtitle": "Clasificación histórica"
+    "legendsSubtitle": "Clasificación histórica",
+    "podio": "Podio",
+    "diaDe": "Día {n}/{total}"
   },
   "podium": {
     "title": "Podios del mes",
@@ -495,7 +522,23 @@
     "gameRulesNote": "Puntos a la mitad · no afecta a tu racha",
     "veteranBadge": "Modo Veterano",
     "veteranSello": "Veterano",
-    "veteranExplain": "Ya viste este coche al fallarlo. Tienes 1 intento y sin pistas: marca, modelo y año exactos."
+    "veteranExplain": "Ya viste este coche al fallarlo. Tienes 1 intento y sin pistas: marca, modelo y año exactos.",
+    "titulo": "Repesca",
+    "reglaPuntos": "puntos",
+    "reglaRacha": "Racha intacta",
+    "veteranSub": "Ya viste este coche al fallarlo",
+    "chipIntento": "1 intento",
+    "chipPistas": "Sin pistas",
+    "chipAnio": "Año exacto",
+    "mantenAdivinar": "Mantén para adivinar",
+    "mantenSigue": "Sigue…",
+    "mantenAria": "Mantén pulsado para adivinar",
+    "mantenNota": "Un solo intento: por eso se confirma manteniendo.",
+    "puntos": "Puntos de la repesca",
+    "finMitad": "La mitad que en el juego diario, y tu racha intacta.",
+    "finVeterano": "Ganada en Modo Veterano: la portada lleva su distintivo.",
+    "finPerdidaTitulo": "Sigue en el Archivo",
+    "finPerdidaTexto": "Este número vuelve al bombo: mañana puedes sortear otra repesca."
   },
   "garage": {
     "errorNoSession": "Sin sesión",
@@ -604,7 +647,31 @@
     "rarity_soldout": "Número agotado",
     "rarityBody": "La tienen el {pct} % de {collectors} coleccionistas",
     "sortRarity": "Rareza",
-    "flipHint": "Desliza para darle la vuelta"
+    "flipHint": "Desliza para darle la vuelta",
+    "deCatalogo": {
+      "one": "de {count} portada",
+      "other": "de {count} portadas"
+    },
+    "rango": "Coleccionista {tier}",
+    "pendientes": {
+      "one": "{count} pendiente",
+      "other": "{count} pendientes"
+    },
+    "repescaDisponible": "Repesca disponible",
+    "repescaACurso": "Tienes una repesca a medias",
+    "repescaJugada": "Repesca de hoy, jugada",
+    "repescaAlDia": "Archivo al día",
+    "repescaResumen": "{pendientes} · mitad de puntos, sin tocar tu racha",
+    "repescaManana": "{pendientes} · vuelve mañana a por otra",
+    "holeSub": "Recupérala en la repesca",
+    "reglaUnaAlDia": "Una al día",
+    "reglaMitad": "Mitad de puntos",
+    "reglaRacha": "Tu racha no se toca",
+    "ahoraNo": "Ahora no",
+    "drawBarajando": {
+      "one": "Barajando {count} número…",
+      "other": "Barajando {count} números…"
+    }
   },
   "primera": {
     "titulo1": "Casi nadie lo acierta a la primera.",
@@ -615,5 +682,54 @@
     "modeloOk": "el modelo es {modelo}",
     "anioOk": "el año es {anio}, ±{n}",
     "anioRango": "año {rango}"
+  },
+  "fin": {
+    "kickerWin": "El coche de hoy",
+    "kickerLose": "Era el coche de hoy",
+    "resueltoEn": "Resuelto en {n} de {max}",
+    "puntosHoy": "Puntos de hoy",
+    "base": "Base · acierto en el intento {n}",
+    "bonusRacha": "Bonus de racha",
+    "diasSeguidos": {
+      "one": "{count} día seguido",
+      "other": "{count} días seguidos"
+    },
+    "mejorRacha": "Tu mejor racha: {n}",
+    "revancha": "Revancha en",
+    "tuPartida": "Tu partida",
+    "faltoModelo": "Te faltó solo el modelo: era el {modelo}. Marca y año, clavados.",
+    "faltoAnio": "Te faltó solo el año: era de {anio}.",
+    "soloMarca": "La marca la tenías; el modelo y el año se resistieron.",
+    "nada": "Esta vez se resistió entero. Mañana, otro coche.",
+    "rachaCortada": {
+      "one": "Tu racha de {count} día se corta hoy",
+      "other": "Tu racha de {count} días se corta hoy"
+    },
+    "mejorSigue": "La mejor sigue siendo tuya: {n}",
+    "vuelveTitulo": "Este coche vuelve en la repesca",
+    "vuelveCuerpo": "Queda en tu Archivo como pendiente. Si te toca, será en Modo Veterano: un intento, sin pistas.",
+    "noEresElUnico": "No eres el único: el {pct} % tampoco lo sacó.",
+    "ficha": "La ficha"
+  },
+  "barra": {
+    "jugar": "Jugar"
+  },
+  "perfil": {
+    "cifras": "Tus cifras",
+    "dias": {
+      "one": "día",
+      "other": "días"
+    },
+    "deN": "de {n}",
+    "distribucion": "Intentos para acertar",
+    "porcentaje": "{pct} % de acierto",
+    "perdidas": "Perdidas",
+    "tema": "Tema",
+    "temaNoche": "Noche",
+    "temaDia": "Día",
+    "temaAuto": "Auto",
+    "aviso": "Aviso del coche nuevo",
+    "avisoHora": "Uno al día, a las {hora}",
+    "avisoBloqueado": "Bloqueado en los ajustes del navegador"
   }
 }

@@ -11,7 +11,7 @@
 
 export default function ErrorFallback() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-papel p-6 text-center font-serif text-tinta">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-papel p-6 text-center font-body text-tinta">
       <p className="pm-kicker m-0">Fe de erratas</p>
       <p className="pm-title mt-2">Algo falló en la rotativa</p>
       <p className="pm-body mt-3 max-w-[380px]">

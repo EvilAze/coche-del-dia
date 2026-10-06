@@ -65,4 +65,33 @@ export const I = {
   // componente le redondea las tres esquinas, que es lo que lo hace parecerse
   // al resto del set y no al play macizo de un reproductor.
   play: "M9 6.5v11l9-5.5-9-5.5Z",
+  // ── Sistema «Asfalto» ──
+  // El reloj de la cuenta atrás (próximo coche / revancha).
+  reloj: ["M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Z", "M12 7.5V12l3 2"],
+  // La repesca: dos trazos que se cruzan, el gesto de barajar.
+  shuffle: ["M4 7h3.5c4 0 5 10 9 10H20", "M17 14l3 3-3 3", "M4 17h3.5c1.6 0 2.7-1.6 3.6-3.5", "M13 10.5C13.9 8.6 15 7 16.5 7H20", "M17 4l3 3-3 3"],
+  // Subir y bajar en la clasificación.
+  trendUp: ["M4 16l5-5 4 4 7-7", "M15 8h5v5"],
+  trendDown: ["M4 8l5 5 4-4 7 7", "M15 16h5v-5"],
+  // La pestaña de jugar: un volante.
+  volante: ["M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Z", "M12 9.8a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4Z", "M3.6 11h6.3M14.1 11h6.3M12 14.2v6.3"],
+  // La pestaña del Archivo: la rejilla de portadas.
+  rejilla: ["M5.6 4h3.8A1.6 1.6 0 0 1 11 5.6v3.8A1.6 1.6 0 0 1 9.4 11H5.6A1.6 1.6 0 0 1 4 9.4V5.6A1.6 1.6 0 0 1 5.6 4Z", "M14.6 4h3.8A1.6 1.6 0 0 1 20 5.6v3.8a1.6 1.6 0 0 1-1.6 1.6h-3.8A1.6 1.6 0 0 1 13 9.4V5.6A1.6 1.6 0 0 1 14.6 4Z", "M5.6 13h3.8a1.6 1.6 0 0 1 1.6 1.6v3.8A1.6 1.6 0 0 1 9.4 20H5.6A1.6 1.6 0 0 1 4 18.4v-3.8A1.6 1.6 0 0 1 5.6 13Z", "M14.6 13h3.8a1.6 1.6 0 0 1 1.6 1.6v3.8a1.6 1.6 0 0 1-1.6 1.6h-3.8a1.6 1.6 0 0 1-1.6-1.6v-3.8a1.6 1.6 0 0 1 1.6-1.6Z"],
+  // Un número del Archivo que aún no tienes.
+  candado: ["M7 11h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z", "M8 11V8a4 4 0 0 1 8 0v3"],
+  // El mérito «pleno» (acertado al primer intento).
+  estrella: "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z",
+  // El buscador de la hoja de selección.
+  lupa: ["M11 4.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z", "M20 20l-4.2-4.2"],
+  // Los galones del Modo Veterano.
+  galones: ["M5 10l7-5 7 5", "M5 15l7-5 7 5", "M5 20l7-5 7 5"],
+  // El lápiz de cambiar la firma.
+  lapiz: ["M4 20h4L19 9l-4-4L4 16v4Z", "M13.5 6.5l4 4"],
+  // «Cómo se puntúa»: el interrogante dentro de su círculo, para cuando va
+  // suelto en una cabecera y no dentro de una tecla que ya le pone la caja.
+  ayuda: ["M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Z", "M9.7 9.4a2.4 2.4 0 0 1 4.6.9c0 1.6-2.3 2.1-2.3 3.6", "M12 16.9h.01"],
+  // El calendario de «una al día» y el escudo de «tu racha no se toca»: las
+  // reglas de la repesca, con el mismo trazo que el resto del juego.
+  calendario: ["M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z", "M4 9.5h16M8 3v4M16 3v4"],
+  escudo: ["M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z", "M9 12l2 2 4-4.2"],
 };

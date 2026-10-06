@@ -95,6 +95,9 @@ const PESOS = {
   impactHeavy: 4,
   warning: 4,
   veredicto: 4,
+  // El trinquete del sorteo de la repesca: UN patrón con todos sus tics (ver
+  // lib/sorteo.js), así que pesa como un impacto ligero y no lo pisa un toque.
+  trinquete: 2,
   success: 5,
   error: 5,
   derrota: 5,
@@ -161,4 +164,5 @@ export const haptic = {
   // La frase del veredicto: un golpe por celda, al compás de la tinta. Se llama
   // con el `result` del servidor en el mismo tick en que se pinta la fila.
   veredicto: (result) => fire("veredicto", fraseVeredicto(result)),
+  trinquete: (patron) => fire("trinquete", patron),
 };

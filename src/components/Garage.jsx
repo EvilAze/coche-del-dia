@@ -195,14 +195,14 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
   const [helpOpen, setHelpOpen] = useState(false);
   // Estado del POST a /api/repesca/start mientras se sortea un coche.
   const [repescaStarting, setRepescaStarting] = useState(false);
-  // Overlay de barajado de cromos. Lleva un objeto { carId, veteran } o null:
-  // cuando es no-null, se monta la animación a pantalla completa y arranca
-  // su secuencia visual. El redirect a /repesca lo dispara confirmAndStartRepesca
-  // cuando el POST y la animación (duración mínima visual) han terminado.
+  // El sorteo a pantalla completa (RepescaDrawAnimation). Lleva
+  // { carId, veteran, zoomBase, foto } o null: se monta al aceptar, con todo a
+  // null, y se va rellenando según responde el servidor y llega la foto. El
+  // propio sorteo decide cuándo ha terminado de enseñarse (espera a tener coche
+  // y foto) y lo avisa por `onFin`, que resuelve `finSorteo`; entonces se
+  // navega a /repesca.
   const [drawAnim, setDrawAnim] = useState(null);
-  // Duración mínima de la animación de sorteo. Si el POST termina antes,
-  // esperamos hasta cumplir este tiempo para no truncar el efecto visual.
-  const REPESCA_DRAW_MIN_MS = 2500;
+  const finSorteo = useRef(null);
 
   // Bloquea el scroll del body mientras El Archivo está abierto. No usa
   // ModalShell (es un motion.div directo a body), así que hay que llamar al
@@ -436,13 +436,13 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
 
     setRepescaStarting(true);
     setConfirmRepesca(false);
-    // Animación arranca con tema neutro (carId null, veteran false). El
-    // prop `veteran` solo lo lee RepescaDrawAnimation en la fase final
-    // del flip (~2.1s), así que actualizarlo cuando responda el POST
-    // (típicamente <500ms) llega a tiempo de tematizar la carta hero.
-    setDrawAnim({ carId: null, veteran: false });
-
-    const minDelay = new Promise((r) => setTimeout(r, REPESCA_DRAW_MIN_MS));
+    // El sorteo arranca sin saber nada (ni coche, ni modo, ni foto): el visor se
+    // abre y el carrete gira mientras el servidor elige. El modo tiñe la escena
+    // en cuanto se sabe (ámbar u oro), mucho antes del revelado.
+    const terminado = new Promise((r) => {
+      finSorteo.current = r;
+    });
+    setDrawAnim({ carId: null, veteran: false, zoomBase: null, foto: null });
 
     try {
       const {
@@ -462,9 +462,9 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         body: JSON.stringify({}),
       });
 
-      // Esperamos SOLO al POST (no al minDelay todavía): así tenemos el
-      // carId en cuanto el server responde (~300-600ms), no a los 2500ms.
-      // Eso nos deja ~2s del barajeo para precargar la imagen del coche.
+      // Esperamos SOLO al POST (el sorteo ya está girando): así tenemos el
+      // carId en cuanto el server responde (~300-600ms), mientras gira.
+      // Eso nos deja el resto del giro para precargar la foto del coche.
       const res = await postPromise;
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -474,10 +474,17 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       if (!serverPickedId) {
         throw new Error("Server did not return a carId");
       }
-      // Aplicamos el modo real a la animación (puede tematizar la carta
-      // hero en su fase de flip si llegamos a tiempo).
+      // El modo y el zoom del coche, al sorteo: el modo tiñe la escena y el
+      // zoom fija la escala con la que se enseñará la foto (la del intento 1).
       const serverVeteran = body?.mode === "veteran";
-      setDrawAnim({ carId: serverPickedId, veteran: serverVeteran });
+      setDrawAnim((d) =>
+        d && {
+          ...d,
+          carId: serverPickedId,
+          veteran: serverVeteran,
+          zoomBase: Number.isFinite(body?.zoomBase) ? body.zoomBase : null,
+        }
+      );
       track("repesca_start", { mode: serverVeteran ? "veteran" : "normal" });
 
       // PRELOAD de la imagen DURANTE el barajeo (fire-and-forget). Pedimos
@@ -488,29 +495,27 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       //     repesca/image es ahora cacheable (private, max-age=300): el
       //     blob queda en la cache HTTP y /repesca lo reusa al instante.
       // Consumimos .blob() para que la respuesta se descargue entera y el
-      // navegador la guarde (si solo leyéramos headers, podría no cachear).
-      const preload = (async () => {
+      // navegador la guarde (si solo leyéramos headers, podría no cachear). Y
+      // ese mismo blob es la foto que revela el sorteo: el visor la enseña con
+      // la escala del intento 1 y, al llegar a /repesca, está en el mismo sitio.
+      (async () => {
         try {
           const r = await fetch(
             `/api/repesca/image?carId=${encodeURIComponent(serverPickedId)}&phase=playing`,
             { headers: { Authorization: `Bearer ${session.access_token}` } }
           );
-          if (r.ok) await r.blob();
+          if (!r.ok) return;
+          const url = URL.createObjectURL(await r.blob());
+          setDrawAnim((d) => d && { ...d, foto: url });
         } catch {
-          // El preload nunca debe romper el flujo de la repesca.
+          // El preload nunca debe romper el flujo de la repesca: sin foto, el
+          // sorteo se revela igual (con su tope de espera).
         }
       })();
 
-      // Navegamos cuando se cumplan AMBAS: (1) el tiempo mínimo de animación
-      // (para no truncar el barajeo) y (2) que la imagen esté ya en la cache
-      // del navegador. Así, al acabar "eligiendo coche", /repesca la pinta al
-      // instante en vez de empezar a cargarla entonces. Tope de seguridad para
-      // no colgar el flujo si el server se atasca (sharp en frío).
-      await minDelay;
-      await Promise.race([
-        preload,
-        new Promise((resolve) => setTimeout(resolve, 2500)),
-      ]);
+      // Navegamos cuando el sorteo ha terminado de enseñarse, que ya incluye
+      // esperar a la foto (con tope): así /repesca la pinta al instante.
+      await terminado;
       window.location.href = `/repesca?id=${encodeURIComponent(serverPickedId)}`;
     } catch (err) {
       console.error("[Garage] random repesca:", err);
@@ -737,14 +742,17 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         </motion.div>
       )}
 
-      {/* Overlay de barajado de cromos: vive FUERA del motion.div del panel
-          para que cubra toda la pantalla (z-[120]) y no quede recortado por
-          el max-w-md. Solo se monta cuando el usuario ha aceptado el sorteo
-          y se desmonta cuando hay redirect (o si el POST falla). */}
+      {/* El sorteo: vive FUERA del motion.div del panel para que cubra toda la
+          pantalla (z-[120]) y no quede recortado por el max-w-md. Se monta al
+          aceptar y se desmonta con el redirect (o si el POST falla). */}
       {drawAnim && (
         <RepescaDrawAnimation
+          confirmado={Boolean(drawAnim.carId)}
           veteran={drawAnim.veteran}
+          zoomBase={drawAnim.zoomBase ?? undefined}
+          foto={drawAnim.foto}
           pendientes={repescaPoolSize}
+          onFin={() => finSorteo.current?.()}
         />
       )}
     </AnimatePresence>

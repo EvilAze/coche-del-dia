@@ -585,9 +585,6 @@
     "repescaHelpOk": "Got it",
     "drawAria": "Drawing rescue car",
     "drawShuffling": "Shuffling cards…",
-    "drawPicking": "Picking…",
-    "drawRevealed": "Your car!",
-    "drawCoupon": "Draw",
     "drawYours": "Your car",
     "drawVeteran": "Veteran Mode",
     "authTitle": "Archive closed",
@@ -671,7 +668,15 @@
     "drawBarajando": {
       "one": "Shuffling {count} issue…",
       "other": "Shuffling {count} issues…"
-    }
+    },
+    "sorteoKicker": "Rescue · draw",
+    "sorteoKickerVet": "Rescue · Veteran Mode",
+    "sorteoEnfocando": "Focusing…",
+    "sorteoTitulo": "This one is yours.",
+    "sorteoBajada": "An issue that got away. Five tries, half points.",
+    "sorteoTituloVet": "You have seen this one.",
+    "sorteoBajadaVet": "You missed it once and saw it whole. Now: one try, no clues.",
+    "sorteoFotoAlt": "The photo of the car you drew, as on the first try"
   },
   "primera": {
     "titulo1": "Almost nobody gets it on the first try.",

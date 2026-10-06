@@ -5103,52 +5103,141 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .pun-peldano.p3 b, .pun-peldano.p3 .pun-dias { color: var(--gold); }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   EL SORTEO DE LA REPESCA «ASFALTO» (RepescaDrawAnimation, rep-*)
-   El dorso, rayado con las rayas rojas de la marca; el anverso, en la tinta
-   del sistema (o en oro, si toca Modo Veterano). El velo es oscuro en los dos
-   temas: el rótulo va en claro fijo.
+   EL SORTEO DE LA REPESCA «ASFALTO» (RepescaDrawAnimation, sorteo-*)
+   «El visor busca tu coche»: el marco de la foto del juego, sus esquinas de
+   visor y el canto ámbar de la repesca (oro en el Veterano); dentro, un
+   carrete de números sin revelar que gira, frena y se clava; y debajo, la
+   foto del primer intento. La duración y la curva del giro llegan del
+   componente (--giro-ms, --giro-curva: lib/sorteo.js), porque la mano tiene
+   que notar cada número con la MISMA curva con la que se ve pasar. El velo es
+   oscuro en los dos temas, así que la escena va en colores fijos de noche.
    ═══════════════════════════════════════════════════════════════════════ */
-.rep-carta {
-  position: absolute; inset: 0; box-sizing: border-box; overflow: hidden;
-  display: flex; flex-direction: column; border-radius: var(--radio-tarjeta);
-  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+.sorteo {
+  --sorteo-acento: 245 165 36;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; box-sizing: border-box;
+  background: rgb(var(--velo-rgb) / .9); color: rgb(242 240 235);
 }
-.rep-carta-dorso {
-  align-items: center; justify-content: center; gap: 12px;
-  background-color: rgb(27 30 34);
-  background-image: repeating-linear-gradient(135deg, transparent 0 7px, rgb(255 255 255 / .035) 7px 14px);
-  border: 1px solid rgb(58 63 70);
-  box-shadow: 0 14px 30px rgb(0 0 0 / .45);
+.sorteo[data-modo="veterano"] { --sorteo-acento: 227 194 122; }
+.sorteo-columna { width: 100%; max-width: 358px; display: flex; flex-direction: column; gap: 12px; }
+.sorteo-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px; }
+.sorteo-kicker {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: rgb(var(--sorteo-acento)); transition: color var(--ms-escena) var(--curva-roce);
 }
-.rep-rayas { display: flex; flex-direction: column; gap: 4px; width: 64px; }
-.rep-rayas i { display: block; height: 5px; border-radius: 1px; background: var(--rojo); }
-.rep-rayas i + i { height: 2.5px; }
-.rep-num { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; color: rgb(167 172 180); }
-.rep-carta-cara {
-  transform: rotateY(180deg); justify-content: space-between; padding: 14px;
-  background: rgb(242 240 235); color: rgb(12 13 15);
-  box-shadow: 0 22px 44px rgb(0 0 0 / .55);
+.sorteo-pendientes {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: rgb(125 131 140);
 }
-.rep-cara-kicker { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: rgb(91 96 104); }
-.rep-cara-centro { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
-.rep-cara-centro b {
-  font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: .95;
-  letter-spacing: .02em; text-transform: uppercase;
+
+/* 1 · EL VISOR SE ABRE: el marco sube y las esquinas entran desde fuera. */
+@keyframes sorteoVisor { from { opacity: 0; transform: scale(.96); } }
+.sorteo-visor {
+  position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
+  border-radius: var(--radio-foto); background: rgb(20 22 25);
+  animation: sorteoVisor var(--ms-sello) var(--curva-entra) both;
 }
-.rep-carta-cara .rep-rayas { width: 100%; }
-.rep-carta-cara .rep-rayas i { height: 4px; }
-.rep-carta-cara .rep-rayas i + i { height: 2px; }
-.rep-carta-cara.veterano { background: rgb(227 194 122); }
-.rep-carta-cara.veterano .rep-rayas i { background: rgb(12 13 15); }
-.rep-estado { min-height: 64px; margin-top: 22px; padding: 0 24px; text-align: center; }
-.rep-estado p {
+.sorteo-aro {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
+  box-shadow: inset 0 0 0 1.5px rgb(var(--sorteo-acento) / .58);
+  transition: box-shadow var(--ms-escena) var(--curva-roce);
+}
+.sorteo-esq {
+  position: absolute; z-index: 6; width: 22px; height: 22px;
+  border: 0 solid rgb(242 240 235 / .94); filter: drop-shadow(0 0 1px rgb(0 0 0 / .6));
+}
+.sorteo-esq.ai { left: 14px; top: 14px; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: 5px; --dx: -16px; --dy: -16px; }
+.sorteo-esq.ad { right: 14px; top: 14px; border-right-width: 2px; border-top-width: 2px; border-top-right-radius: 5px; --dx: 16px; --dy: -16px; }
+.sorteo-esq.bi { left: 14px; bottom: 14px; border-left-width: 2px; border-bottom-width: 2px; border-bottom-left-radius: 5px; --dx: -16px; --dy: 16px; }
+.sorteo-esq.bd { right: 14px; bottom: 14px; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: 5px; --dx: 16px; --dy: 16px; }
+@keyframes sorteoEncuadra { from { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+.sorteo-esq { animation: sorteoEncuadra var(--ms-escena) var(--curva-entra) calc(var(--ms-paso) * 2) both; }
+
+/* 2 · EL CARRETE. Dieciséis fichas de la altura del visor (el carrete mide
+   16 veces el visor, así que cada una es un 6,25 %) y una banda oscura entre
+   ellas, como los fotogramas de una película; la última, sin banda, es la que
+   queda encuadrada. El desenfoque acompaña a la velocidad. */
+.sorteo-carrete { position: absolute; left: 0; right: 0; top: 0; height: 1600%; z-index: 2; }
+.sorteo-ficha {
+  height: 6.25%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  border-top: 5px solid rgb(12 13 15); border-bottom: 5px solid rgb(12 13 15);
+  background-color: rgb(23 25 28);
+  background-image: repeating-linear-gradient(135deg, transparent 0 9px, rgb(255 255 255 / .035) 9px 18px);
+  color: rgb(125 131 140);
+}
+.sorteo-ficha.b { background-color: rgb(27 30 34); }
+.sorteo-ficha.ultima { border: 0; }
+.sorteo-ficha .rayas { display: flex; flex-direction: column; gap: 5px; width: 72px; }
+.sorteo-ficha .rayas i { display: block; height: 6px; border-radius: 1px; background: rgb(229 64 42); }
+.sorteo-ficha .rayas i + i { height: 3px; }
+.sorteo-ficha .num { font-family: var(--font-mono); font-weight: 500; font-size: 12px; letter-spacing: .14em; }
+@keyframes sorteoGira { to { transform: translateY(-93.75%); } }
+@keyframes sorteoBorra { 12% { filter: blur(2.6px); } 62% { filter: blur(1.2px); } 88%, 100% { filter: blur(0); } }
+.sorteo[data-fase="girar"] .sorteo-carrete,
+.sorteo[data-fase="enfocar"] .sorteo-carrete,
+.sorteo[data-fase="revelado"] .sorteo-carrete,
+.sorteo[data-fase="sello"] .sorteo-carrete {
+  animation: sorteoGira var(--giro-ms) var(--giro-curva) both, sorteoBorra var(--giro-ms) var(--giro-curva) both;
+}
+/* Las marcas del centro: por dónde va a caer el número. */
+.sorteo-marca {
+  position: absolute; top: 50%; z-index: 5; width: 10px; height: 2px; margin-top: -1px; border-radius: 1px;
+  background: rgb(var(--sorteo-acento)); transition: opacity var(--ms-hoja) var(--curva-roce);
+}
+.sorteo-marca.izq { left: 0; }
+.sorteo-marca.der { right: 0; }
+.sorteo[data-fase="revelado"] .sorteo-marca, .sorteo[data-fase="sello"] .sorteo-marca { opacity: 0; }
+
+/* 3 · EL ENFOQUE: las esquinas muerden hacia dentro y vuelven. */
+@keyframes sorteoMuerde { 45% { transform: translate(calc(var(--dx) * -.44), calc(var(--dy) * -.44)); } }
+.sorteo[data-fase="enfocar"] .sorteo-esq,
+.sorteo[data-fase="revelado"] .sorteo-esq,
+.sorteo[data-fase="sello"] .sorteo-esq { animation: sorteoMuerde var(--ms-sello) var(--curva-sello) both; }
+
+/* 4 · EL REVELADO: la ficha encuadrada se recoge como una persiana y la foto
+   del primer intento se asienta debajo, con la escala que le da el
+   componente (la del juego). */
+.sorteo-foto { position: absolute; inset: 0; z-index: 1; overflow: hidden; }
+.sorteo-foto img { width: 100%; height: 100%; object-fit: cover; display: block; transform-origin: center center; }
+@keyframes sorteoPersiana { to { clip-path: inset(0 0 100% 0); } }
+@keyframes sorteoAsienta { from { transform: scale(1.08); } }
+.sorteo[data-foto="si"][data-fase="revelado"] .sorteo-ficha.ultima,
+.sorteo[data-foto="si"][data-fase="sello"] .sorteo-ficha.ultima { animation: sorteoPersiana var(--ms-escena) var(--curva-lente) both; }
+.sorteo[data-foto="si"][data-fase="revelado"] .sorteo-foto,
+.sorteo[data-foto="si"][data-fase="sello"] .sorteo-foto { animation: sorteoAsienta var(--ms-revelado) var(--curva-lente) both; }
+.sorteo-lente {
+  position: absolute; left: 22px; bottom: 20px; z-index: 6;
+  height: 26px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 7px; background: rgb(12 13 15 / .78); color: rgb(242 240 235);
+  font-family: var(--font-mono); font-weight: 600; font-size: 12px; letter-spacing: .02em; font-variant-numeric: tabular-nums;
+}
+/* El sello, con la caída del sello grande del final (viaja como una escena). */
+@keyframes sorteoSello { from { opacity: 0; transform: scale(1.7) rotate(-14deg); } to { opacity: 1; transform: rotate(-6deg); } }
+.sorteo-sello {
+  position: absolute; right: 16px; top: 18px; z-index: 7;
+  height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px;
+  border-radius: 8px; background: rgb(var(--sorteo-acento)); color: rgb(12 13 15);
+  font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .08em; text-transform: uppercase;
+  box-shadow: 0 8px 20px rgb(0 0 0 / .45);
+  animation: sorteoSello var(--ms-escena) var(--curva-sello) both;
+}
+
+/* El texto de debajo: el estado mientras busca, la frase al revelar. */
+@keyframes sorteoTexto { from { opacity: 0; } }
+.sorteo-texto { min-height: 112px; padding: 6px 2px 0; }
+.sorteo-estado {
   margin: 0; font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
-  color: rgb(167 172 180);
+  color: rgb(167 172 180); animation: sorteoTexto var(--ms-sello) var(--curva-roce) both;
 }
-.rep-estado p.grande {
-  font-family: var(--font-display); font-weight: 700; font-size: 30px; letter-spacing: 0; text-transform: none;
-  color: rgb(242 240 235);
-}
+.sorteo-revelado { display: flex; flex-direction: column; gap: 8px; animation: sorteoTexto var(--ms-sello) var(--curva-roce) var(--ms-sello) both; }
+.sorteo-revelado b { font-family: var(--font-display); font-weight: 700; font-size: 32px; line-height: 1; }
+.sorteo-revelado span { font-family: var(--font-body); font-size: 15px; line-height: 1.45; color: rgb(167 172 180); }
+
+/* MENOS MOVIMIENTO: el silenciador global ya apaga las animaciones; aquí se
+   coloca lo que ellas habrían dejado puesto — el carrete en su último número
+   y, al revelar, la ficha retirada para que se vea la foto. */
+.sorteo[data-quieto="si"] .sorteo-carrete { transform: translateY(-93.75%); }
+.sorteo[data-quieto="si"][data-foto="si"][data-fase="revelado"] .sorteo-ficha.ultima,
+.sorteo[data-quieto="si"][data-foto="si"][data-fase="sello"] .sorteo-ficha.ultima { opacity: 0; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    LA PARTIDA DE REPESCA «ASFALTO» (Repesca.jsx, rep-*)

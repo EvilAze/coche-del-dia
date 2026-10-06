@@ -585,9 +585,6 @@
     "repescaHelpOk": "Entendido",
     "drawAria": "Sorteando coche de repesca",
     "drawShuffling": "Barajando cromos…",
-    "drawPicking": "Eligiendo…",
-    "drawRevealed": "¡Tu coche!",
-    "drawCoupon": "Sorteo",
     "drawYours": "Tu coche",
     "drawVeteran": "Modo Veterano",
     "authTitle": "Archivo cerrado",
@@ -671,7 +668,15 @@
     "drawBarajando": {
       "one": "Barajando {count} número…",
       "other": "Barajando {count} números…"
-    }
+    },
+    "sorteoKicker": "Repesca · sorteo",
+    "sorteoKickerVet": "Repesca · Modo Veterano",
+    "sorteoEnfocando": "Enfocando…",
+    "sorteoTitulo": "Te ha tocado este.",
+    "sorteoBajada": "Un número que se te escapó. Cinco intentos, mitad de puntos.",
+    "sorteoTituloVet": "Este ya lo viste.",
+    "sorteoBajadaVet": "Lo fallaste un día y salió entero. Ahora, un intento y sin pistas.",
+    "sorteoFotoAlt": "La foto del coche que te ha tocado, como en el primer intento"
   },
   "primera": {
     "titulo1": "Casi nadie lo acierta a la primera.",

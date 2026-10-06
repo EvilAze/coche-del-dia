@@ -34,40 +34,6 @@ export function Renglon({ w = "w-full", h = "h-3", className = "" }) {
   );
 }
 
-// La tabla de la clasificación antes de que llegue. La rejilla es LA MISMA que
-// la de `Ranking` (columnas puesto | jugador | puntos): si no lo fuera, al
-// llegar los datos las columnas se moverían y el esqueleto habría hecho más
-// daño que bien.
-// `texto` es opcional: sin él, las filas son decoración muda. Hace falta porque
-// el palmarés apila VARIOS bloques de estos y anidar cuatro `role="status"` en
-// la misma pantalla es peor que no anunciar nada — quien compone anuncia una vez
-// por fuera.
-export function FilasClasificacion({ n = 8, texto = null }) {
-  return (
-    <div
-      role={texto ? "status" : undefined}
-      aria-label={texto || undefined}
-      aria-hidden={texto ? undefined : "true"}
-      className="divide-y divide-border"
-    >
-      {texto && <span className="sr-only">{texto}</span>}
-      {Array.from({ length: n }, (_, i) => (
-        <div
-          key={i}
-          className="grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] items-center gap-2 px-3 py-[0.6875rem]"
-        >
-          <Renglon w="w-6" h="h-4" />
-          {/* Los nombres no miden todos igual, y una columna de bloques
-              idénticos se lee como una barra de progreso, no como una lista.
-              Tres anchos alternos bastan para que parezca una tabla. */}
-          <Renglon w={["w-28", "w-20", "w-24"][i % 3]} h="h-3.5" />
-          <Renglon w="w-10" h="h-3.5" className="justify-self-end" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // La vitrina del archivo antes de que llegue: la portada es el objeto, así que
 // el esqueleto es la portada SIN imprimir — su filete, su cabecera de kiosco, su
 // hueco de foto en 4:3 y su pie. La rejilla es la de `Showcase`.

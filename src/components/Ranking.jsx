@@ -1,43 +1,30 @@
 // src/components/Ranking.jsx
-// LA CLASIFICACIÓN — la tabla de la temporada y el salón de campeones.
+// LA CLASIFICACIÓN (sistema «Asfalto») — la tabla de la temporada, el salón de
+// campeones y las leyendas.
 //
-// Este modal era la última superficie grande de la web pública que seguía
-// montada sobre el chasis anterior: tarjetas redondeadas, píldoras, pestañas
-// segmentadas sobre gris, halo pulsante en la racha y —lo que más daño hacía—
-// el puesto pintado como un `7` gris en Franklin. La faja de portada prometía
-// una cifra dorada de 38px en Fraunces y al tocarla aparecía otra cosa: el
-// reconocimiento no se rompía al salir, se rompía al LLEGAR.
+// LO QUE CAMBIÓ CON «ASFALTO», y por qué. La prensa la componía como el
+// recuadro de resultados de un periódico: versalitas, dobles filetes y un
+// ordinal en Fraunces por fila. Funcionaba como tabla, pero no contaba nada —
+// el primero y el decimoctavo pesaban lo mismo, y para saber dónde estabas
+// había que buscarte. Ahora se lee de arriba abajo como lo que es, una carrera:
 //
-// Ahora es un recuadro de resultados de periódico: ladillo con filete, doble
-// filete de cierre, cifras en Fraunces tabulares, sellos en vez de píldoras y
-// el mismo marcador de puesto (PuestoCifra) que la faja, la faja fina y el
-// parte del final de partida.
+//   · LA TEMPORADA ES UNA TARJETA CON SU RELOJ. Número, tema, «cierra en N
+//     días» y una regla de segmentos con el día de hoy en rojo (`progresoPeriodo`):
+//     cuánto queda es lo que decide si merece la pena apretar.
+//   · EL PODIO SE VE. Los tres primeros suben a sus peanas con oro, plata y
+//     bronce — los únicos colores de medalla del sistema, y aquí están ganados.
+//     En el DOM van en orden (1, 2, 3) para el lector de pantalla; el 2-1-3 de
+//     la foto lo pone el CSS.
+//   · TÚ VAS SIEMPRE A LA VISTA. Tu fila es `sticky` arriba y abajo: si estás
+//     fuera de la pantalla se queda pegada al borde, y al llegar a tu sitio se
+//     posa en él. Una sola fila, sin duplicarla en un aparte, y debajo de tu
+//     nombre lo que te importa: cuánto te has movido y a cuántos puntos tienes
+//     al de delante.
 //
-// LA CONTINUIDAD la da el propio glifo: el ordinal que el jugador toca en la
-// barra (Header) es el mismo que le señala su fila aquí. La cabecera «Tu puesto»
-// que hubo bajo el ladillo se retiró al simplificar el modal — repetía en grande
-// lo que la fila destacada ya dice, y empujaba la tabla fuera de pantalla.
-//
-// LA PASADA DE COHERENCIA (rediseño de menú y perfiles). Cuatro cosas que se
-// habían quedado hablando otro idioma, cada una con su porqué:
-//
-//   · LA CABECERA. La X flotaba en absoluto sobre la esquina del panel y el
-//     ladillo llevaba un `pr-10` a mano para no meterse debajo. Ahora es la
-//     misma banda que abre el carnet del perfil (.prensa-modal-cab): kicker, X
-//     y doble filete. Un botón que flota obliga a que todo lo de su línea sepa
-//     que está ahí; una banda propia no le pide nada a nadie.
-//   · EL ORO DE LA TEMPORADA. La banda de temporada lo llevaba por triplicado
-//     (doble filete, kicker y contador) y competía con los tres sitios donde el
-//     oro está GANADO: el ordinal del podio, los puntos del primero y el bonus
-//     de racha. Con cinco oros en una pantalla el oro deja de significar. La
-//     temporada es contexto, así que habla en rojo y tinta.
-//   · TU FILA. Se señalaba con un fondo de tinta al 5%, que sobre papel crema
-//     casi no se ve y que además no dice nada en este sistema. Ahora lleva la
-//     marca del corrector —filete rojo al margen—, el mismo objeto que señala
-//     la opción elegida del cupón.
-//   · EL VELO DEL ANÓNIMO. Bajo las filas desenfocadas había un degradado de
-//     80px que las fundía con el papel: el último efecto blando del modal. Una
-//     lista aquí no se desvanece, se corta.
+// Lo que NO cambia: la carga perezosa de las dos pestañas históricas, el
+// reintento con salida, la cadena del «atrás» (useHistoryChain) y que el
+// anónimo vea la cabeza de la tabla y el resto velado, que es la razón de ser
+// de su invitación a entrar.
 
 import { useEffect, useState } from "react";
 import {
@@ -47,141 +34,319 @@ import {
   getLeaderboard,
   getWeekRange,
 } from "../lib/statsService";
-import { daysUntilClose } from "../lib/season";
+import { daysUntilClose, progresoPeriodo } from "../lib/season";
+import { rankMovement } from "../lib/rankMovement";
 import { useEscape } from "../hooks/useEscape";
 import { useHistoryChain } from "../hooks/useHistoryClose";
 import { useT } from "../i18n";
 import CloseButton from "./CloseButton";
 import Superficie from "./Superficie";
-import { Renglon, FilasClasificacion } from "./Esqueleto";
-import AchievementIcon from "./AchievementIcons";
+import { Renglon } from "./Esqueleto";
 import ScoringHelpModal from "./ScoringHelpModal";
 import PublicProfile from "./PublicProfile";
-import PuestoCifra, { tonoPorPuesto } from "./PuestoCifra";
+import { ordinal } from "./PuestoCifra";
+import { Icon, I } from "./configurator/icons";
 import { track } from "../lib/analytics";
 
-function getStreakDisplay(streak) {
+// El bonus que la racha suma cada día (ver ScoringHelpModal): +1 con dos días,
+// +2 con tres, +3 a partir de cuatro. Por debajo de dos no hay racha que contar.
+function bonusDeRacha(streak) {
   if (!streak || streak < 2) return null;
-  if (streak >= 4) return { icon: "blaze", bonus: "+3" };
-  if (streak === 3) return { icon: "spark_double", bonus: "+2" };
-  return { icon: "spark", bonus: "+1" };
+  return streak >= 4 ? 3 : streak - 1;
 }
 
-// La racha, en oro viejo y quieta. Antes latía (`animate-pulse`) y venía en el
-// menta del tema anterior: sobre papel, un halo que respira no existe — y el
-// bonus de racha es justo lo que el oro significa, «esto vale algo».
-function StreakBadge({ streak }) {
+// La racha de una fila: la llama y los días. En oro solo cuando ya da el bonus
+// máximo — el oro es «esto vale algo», y una racha de dos días todavía es una
+// promesa. Quieta: aquí nada late.
+function Racha({ streak }) {
   const { t } = useT();
-  const display = getStreakDisplay(streak);
-  if (!display) return null;
-
+  const bonus = bonusDeRacha(streak);
+  if (!bonus) return null;
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1 leading-none"
+      className={"clas-racha" + (bonus === 3 ? " oro" : "")}
+      role="img"
       title={t("ranking.streakTitle", { count: streak })}
-      aria-label={t("ranking.streakAria", { count: streak, bonus: display.bonus })}
+      aria-label={t("ranking.streakAria", { count: streak, bonus: `+${bonus}` })}
     >
-      <AchievementIcon name={display.icon} size="h-4 w-4" color="text-oro-viejo" />
-      <span className="font-body text-[11px] font-bold text-oro-viejo">{display.bonus}</span>
+      <Icon d={I.flame} size={13} />
+      <span aria-hidden="true">{streak}</span>
     </span>
   );
 }
 
-// El sello «TÚ» de una fila: doble filete y Courier, sin rotación (en una fila
-// de tabla el sello estampado a mano se comería la línea de al lado).
-// UN FALLO CON SALIDA. Las tres pestañas de este modal se quedaban en una línea
-// roja y nada más: para reintentar había que cerrar el ranking y volver a
-// abrirlo (que sí recarga, porque el efecto cuelga de `open`) y eso hay que
-// adivinarlo. El juego y el cupón ya tienen su botón de reintento con el motivo
-// escrito —un fallo sin salida se lee como una app rota—, y una clasificación
-// que no carga no merece peor trato que ellos.
+// La inicial del monograma. `Array.from` y no `[0]`: un nombre que empiece por
+// un carácter fuera del plano básico partiría el par sustituto por la mitad.
+function inicial(nombre) {
+  const c = Array.from((nombre || "").trim())[0];
+  return c ? c.toLocaleUpperCase() : "·";
+}
+
+// El tono de medalla de un puesto: lo comparten el podio y el palmarés.
+function tonoDe(pos) {
+  return pos === 1 ? " oro" : pos === 2 ? " plata" : pos === 3 ? " bronce" : "";
+}
+
+// UN FALLO CON SALIDA. Una clasificación que no carga merece el mismo trato que
+// el juego y el cupón: el motivo escrito y un botón para reintentar, sin tener
+// que adivinar que cerrar y abrir el panel también recarga.
 function ErrorConSalida({ texto, onReintentar }) {
   const { t } = useT();
   return (
-    <div className="py-3">
-      <p className="font-display text-sm text-rojo">{texto}</p>
-      <button
-        type="button"
-        onClick={onReintentar}
-        className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-[11px]"
-      >
+    <div className="clas-aviso">
+      <p className="clas-aviso-texto rojo">{texto}</p>
+      <button type="button" onClick={onReintentar} className="pm-btn pm-btn--ghost">
         {t("offline.retry")}
       </button>
     </div>
   );
 }
 
-function SelloYo() {
-  const { t } = useT();
-  return <span className="pm-sello pm-sello--plano rank-yo">{t("ranking.you")}</span>;
-}
-
-// El bloque de puntos de una fila: cifra en Fraunces tabular + su etiqueta.
-function Puntos({ value, destacado = false }) {
-  return (
-    <div className="text-right">
-      <div
-        className={
-          "font-display text-xl font-black leading-none tabular-nums " +
-          (destacado ? "text-oro-viejo" : "text-tinta")
-        }
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
-// Una fila de la tabla — la misma en la temporada y en el salón de campeones.
+// Una fila de la tabla — la misma en la temporada, el palmarés y las leyendas.
 // Vive FUERA del componente a propósito: definida dentro, React la trataría como
-// un tipo nuevo en cada render y desmontaría/remontaría la tabla entera cada vez
-// que cambia cualquier estado del modal (abrir un perfil, cambiar de pestaña).
+// un tipo nuevo en cada render y desmontaría la tabla entera cada vez que cambia
+// cualquier estado del panel (abrir un perfil, cambiar de pestaña).
 function Fila({
-  pos, userId, nombre, puntos, sub, streak,
+  pos, userId, nombre, puntos, sub, streak, apunte,
   currentUserId, clicable, source, onAbrirPerfil,
 }) {
-  const isSelf = currentUserId && currentUserId === userId;
-  // Tu propia fila nunca es clicable (para verte a ti ya tienes MyStats), y los
-  // visitantes anónimos ven la tabla pero no abren perfiles ajenos.
+  const { t } = useT();
+  const isSelf = !!currentUserId && currentUserId === userId;
+  // Tu propia fila nunca es clicable (para verte a ti ya tienes el perfil), y
+  // los visitantes anónimos ven la tabla pero no abren perfiles ajenos.
   const isClickable = clicable && !isSelf;
-  const RowTag = isClickable ? "button" : "div";
+  const Tag = isClickable ? "button" : "div";
   return (
-    <RowTag
-      type={RowTag === "button" ? "button" : undefined}
+    <Tag
+      type={isClickable ? "button" : undefined}
       onClick={
-        RowTag === "button"
+        isClickable
           ? () => {
               track("profile_view", { source });
               onAbrirPerfil(userId);
             }
           : undefined
       }
-      className={
-        "grid w-full grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] items-center gap-2 px-3 py-2.5 text-left " +
-        (isSelf ? "rank-fila-yo " : "") +
-        (RowTag === "button" ? "rank-fila-clic transition-colors" : "")
-      }
+      className={"clas-fila" + (isSelf ? " yo" : "") + (isClickable ? " clic" : "")}
     >
-      <PuestoCifra pos={pos} size="s" tono={tonoPorPuesto(pos)} />
-
-      <div className="min-w-0">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="truncate font-display text-sm font-semibold text-tinta">{nombre}</p>
-          {isSelf && <SelloYo />}
-          <StreakBadge streak={streak} />
-        </div>
-        {sub && <p className="mt-0.5 font-display text-[11px] italic text-tinta-2">{sub}</p>}
-      </div>
-
-      <Puntos value={puntos} destacado={pos === 1} />
-    </RowTag>
+      <span className={"clas-pos" + tonoDe(pos)}>{pos}</span>
+      <span className="clas-mono" aria-hidden="true">{inicial(nombre)}</span>
+      <span className="clas-nombre">
+        <span className="clas-nombre-linea">
+          <b>{nombre}</b>
+          {isSelf && <span className="clas-tu">{t("ranking.you")}</span>}
+        </span>
+        {apunte ? (
+          <span className={"clas-apunte" + (apunte.tono ? ` ${apunte.tono}` : "")}>
+            {apunte.icono && <Icon d={apunte.icono} size={12} strokeWidth="2.4" />}
+            {apunte.texto}
+          </span>
+        ) : sub ? (
+          <span className="clas-apunte">{sub}</span>
+        ) : null}
+      </span>
+      <Racha streak={streak} />
+      <span className="clas-puntos">{puntos}</span>
+    </Tag>
   );
+}
+
+// EL PODIO. Los tres primeros, cada uno sobre su peana: más alta la del
+// primero, y el número del puesto en su color de medalla.
+function Podio({ jugadores, filaBase, source }) {
+  const { t, locale } = useT();
+  return (
+    <ol className="clas-podio" aria-label={t("ranking.podio")}>
+      {jugadores.map((j, i) => {
+        const isSelf = !!filaBase.currentUserId && filaBase.currentUserId === j.userId;
+        const isClickable = filaBase.clicable && !isSelf;
+        const Tag = isClickable ? "button" : "div";
+        return (
+          <li key={j.userId} className={`clas-podio-puesto p${i + 1}${tonoDe(i + 1)}`}>
+            <Tag
+              type={isClickable ? "button" : undefined}
+              className={"clas-podio-boton" + (isClickable ? " clic" : "")}
+              onClick={
+                isClickable
+                  ? () => {
+                      track("profile_view", { source });
+                      filaBase.onAbrirPerfil(j.userId);
+                    }
+                  : undefined
+              }
+            >
+              <span className="sr-only">{ordinal(j.rank, locale)}</span>
+              <span className={"clas-mono grande" + (isSelf ? " yo" : "")} aria-hidden="true">
+                {inicial(j.displayName)}
+              </span>
+              <span className="clas-podio-nombre">{j.displayName}</span>
+              <span className="clas-podio-pts">
+                {j.totalPoints} {t("scoring.ptsSuffix")}
+              </span>
+              <span className="clas-podio-peana" aria-hidden="true">{j.rank}</span>
+            </Tag>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// La tabla de un periodo: el podio y, debajo, el resto. Con menos de tres
+// jugadores no hay podio que levantar y todo va en lista. Al anónimo se le
+// enseñan el podio y tres filas veladas: lo justo para que la invitación de
+// debajo tenga algo que prometer, sin pintar mil filas desenfocadas.
+function Tabla({ jugadores, filaBase, source, anonimo = false, apunteYo = null, sub = null }) {
+  const conPodio = jugadores.length >= 3;
+  let resto = conPodio ? jugadores.slice(3) : jugadores;
+  if (anonimo) resto = resto.slice(0, 3);
+  return (
+    <>
+      {conPodio && <Podio jugadores={jugadores.slice(0, 3)} filaBase={filaBase} source={source} />}
+      {resto.length > 0 && (
+        <ol className={"clas-lista" + (anonimo ? " velada" : "")} aria-hidden={anonimo || undefined}>
+          {resto.map((j) => {
+            const yo = !!filaBase.currentUserId && j.userId === filaBase.currentUserId;
+            return (
+              <li key={j.userId} className={yo ? "clas-li-yo" : undefined}>
+                <Fila
+                  {...filaBase}
+                  clicable={filaBase.clicable && !anonimo}
+                  source={source}
+                  pos={j.rank}
+                  userId={j.userId}
+                  nombre={j.displayName}
+                  puntos={j.totalPoints}
+                  streak={j.currentStreak}
+                  sub={sub ? sub(j) : null}
+                  apunte={yo ? apunteYo : null}
+                />
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </>
+  );
+}
+
+// La tarjeta del periodo: qué se juega (número y tema, o la semana), cuándo
+// cierra y en qué día estamos. Con más de un mes de periodo los segmentos
+// dejarían de leerse como días, así que pasa a ser una barra continua.
+function TarjetaPeriodo({ kicker, titulo, desde, hasta }) {
+  const { t, tn } = useT();
+  const quedan = hasta ? daysUntilClose(hasta) : null;
+  const progreso = desde && hasta ? progresoPeriodo(desde, hasta) : null;
+  return (
+    <section className="clas-periodo">
+      <div className="clas-periodo-cab">
+        <span className="clas-kicker">{kicker}</span>
+        {quedan != null && (
+          <span className="clas-cierre">
+            <Icon d={I.reloj} size={14} strokeWidth="2" />
+            {quedan <= 0 ? t("ranking.closesToday") : tn("ranking.closesIn", quedan)}
+          </span>
+        )}
+      </div>
+      {titulo && <p className="clas-periodo-titulo">{titulo}</p>}
+      {progreso && (
+        <div className="clas-progreso">
+          {progreso.total <= 31 ? (
+            <span className="clas-regla" aria-hidden="true">
+              {Array.from({ length: progreso.total }, (_, i) => (
+                <i
+                  key={i}
+                  className={i + 1 < progreso.dia ? "hecho" : i + 1 === progreso.dia ? "hoy" : undefined}
+                />
+              ))}
+            </span>
+          ) : (
+            <span className="clas-regla continua" aria-hidden="true">
+              <i style={{ width: `${(progreso.dia / progreso.total) * 100}%` }} />
+            </span>
+          )}
+          <span className="clas-dia">{t("ranking.diaDe", { n: progreso.dia, total: progreso.total })}</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// La espera con la forma de la lista: puesto, monograma, nombre y puntos en la
+// MISMA fila que llegará, para que al cargar no se mueva ninguna columna.
+function FilasEsperando({ n = 8, texto }) {
+  return (
+    <div role="status" aria-label={texto} className="clas-lista">
+      <span className="sr-only">{texto}</span>
+      {Array.from({ length: n }, (_, i) => (
+        <div key={i} className="clas-fila" aria-hidden="true">
+          <span className="clas-pos"><Renglon w="w-4" h="h-3" /></span>
+          <span className="clas-mono pm-esperando" />
+          <span className="clas-nombre">
+            {/* Tres anchos alternos: una columna de bloques idénticos se lee
+                como una barra de progreso, no como una lista de nombres. */}
+            <Renglon w={["w-28", "w-20", "w-24"][i % 3]} h="h-3.5" />
+          </span>
+          <span className="clas-puntos"><Renglon w="w-8" h="h-3.5" /></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Lo que va debajo de TU nombre: cuánto te has movido (si el puesto que trae el
+// juego es de este mismo periodo) y a cuántos puntos tienes al de delante. Los
+// empatados comparten puesto, así que «el de delante» es el primero con MÁS
+// puntos, no la fila de arriba.
+function apunteDe(selfRow, jugadores, rank, { t, tn, locale }) {
+  if (!selfRow) return null;
+  const partes = [];
+  let tono = "";
+  let icono = null;
+  if (rank && rank.rank === selfRow.rank) {
+    const mv = rankMovement(rank);
+    if (mv.kind === "up") {
+      partes.push(tn("parte.up", mv.n));
+      tono = "verde";
+      icono = I.arrowU;
+    } else if (mv.kind === "down") {
+      partes.push(tn("parte.down", mv.n));
+      tono = "rojo";
+      icono = I.arrowD;
+    }
+  }
+  const i = jugadores.indexOf(selfRow);
+  let delante = null;
+  for (let k = i - 1; k >= 0; k--) {
+    if (jugadores[k].totalPoints > selfRow.totalPoints) {
+      delante = jugadores[k];
+      break;
+    }
+  }
+  if (delante) {
+    partes.push(
+      tn("parte.distancia", delante.totalPoints - selfRow.totalPoints, {
+        pos: ordinal(delante.rank, locale),
+      })
+    );
+  } else if (selfRow.rank === 1) {
+    partes.push(t("parte.lider"));
+  }
+  if (!partes.length) return null;
+  // La segunda frase va en minúscula: se lee como una sola línea, no como dos.
+  const texto = partes
+    .map((p, k) => (k ? p.charAt(0).toLocaleLowerCase(locale) + p.slice(1) : p))
+    .join(" · ");
+  return { texto, tono, icono };
 }
 
 export default function Ranking({
   open,
   onClose,
   user,
+  // El puesto del jugador con su movimiento del día (useStats), para el apunte
+  // de su fila. Opcional: sin él la fila dice solo la distancia al de delante.
+  rank = null,
   onOpenLogin,
   // Logueado sin display_name: no aparece en la tabla. Se le ofrece elegir firma
   // AQUÍ, que es donde eso se nota (ver NicknameModal.jsx).
@@ -194,24 +359,17 @@ export default function Ranking({
     players: [],
     error: "",
   });
-  // Temporada activa, para el banner (número + tema) y el countdown de cierre.
+  // Temporada activa, para la tarjeta (número + tema) y el countdown de cierre.
   // null = sin temporada activa (hueco o aún no configurada) → ranking semanal.
   const [season, setSeason] = useState(null);
-  // Rango de la semana actual (para el banner semanal cuando no hay temporada).
-  // null = aún cargando o sin datos → el banner no se pinta.
+  // Rango de la semana actual (para la tarjeta semanal cuando no hay temporada).
+  // null = aún cargando o sin datos → la tarjeta no se pinta.
   const [weekRange, setWeekRange] = useState(null);
   // Pestaña activa: la clasificación de la temporada en curso ("temporada"), el
   // SALÓN DE CAMPEONES histórico ("campeones") o LEYENDAS, el acumulado all-time
   // ("leyendas"). Las dos históricas se cargan PEREZOSAS al abrir su pestaña por
   // primera vez (no lastramos la apertura del ranking con fetches que la mayoría
   // no mira).
-  //
-  // Leyendas vivía como modal aparte colgando de una "puerta" del perfil, encima
-  // de él y con su propio listener de Escape: una pulsación cerraba los dos. Es
-  // una clasificación, no una sección del perfil, así que su sitio es esta tira
-  // de pestañas, junto a las otras dos. De paso se lleva por delante la última
-  // superficie con el chasis anterior (puesto en Franklin gris, tarjetas con
-  // filete propio): aquí reusa la MISMA fila que la temporada y el palmarés.
   const [view, setView] = useState("temporada");
   const [champions, setChampions] = useState({ loading: false, seasons: [], error: "", loaded: false });
   const [legends, setLegends] = useState({ loading: false, players: [], error: "", loaded: false });
@@ -224,12 +382,15 @@ export default function Ranking({
   // del jugador objetivo; null = cerrado.
   const [openProfileId, setOpenProfileId] = useState(null);
   // userId del usuario actual (logueado), si lo hay. Lo usamos para NO hacer
-  // clicable su propia fila — ya tiene su MyStats privado.
+  // clicable su propia fila — ya tiene su perfil privado.
   const currentUserId = user?.id || null;
-  // Mi fila dentro del leaderboard cargado. Si estoy fuera del top visible, la
-  // fijamos abajo para que siempre vea dónde estoy.
+  // Mi fila dentro del leaderboard cargado, para su apunte (movimiento y
+  // distancia al de delante).
   const selfRow = currentUserId
     ? state.players.find((p) => p.userId === currentUserId) || null
+    : null;
+  const legendsSelf = currentUserId
+    ? legends.players.find((p) => p.userId === currentUserId) || null
     : null;
 
   useEffect(() => {
@@ -245,13 +406,13 @@ export default function Ranking({
     setWeekRange(null);
 
     // El leaderboard del periodo (temporada o semana) y la temporada activa
-    // (para el banner) son independientes: los pedimos en paralelo.
+    // (para la tarjeta) son independientes: los pedimos en paralelo.
     Promise.all([getSeasonLeaderboard(), getCurrentSeason()])
       .then(([players, s]) => {
         if (cancelled) return;
         setSeason(s);
         setState({ loading: false, players, error: "" });
-        // Sin temporada activa → pedimos el rango de la semana para el banner.
+        // Sin temporada activa → pedimos el rango de la semana para la tarjeta.
         // Es un fetch secundario que no bloquea la tabla (ya tiene datos).
         if (!s) {
           getWeekRange()
@@ -276,19 +437,14 @@ export default function Ranking({
 
   // El perfil público entra en la condición junto a la ayuda: es otro sub-modal
   // que se monta ENCIMA con su propio listener de Escape, así que sin esto una
-  // sola pulsación cerraba el perfil ajeno Y el ranking de debajo. Es el mismo
-  // defecto que tenía el perfil con «Leyendas», que ahora es una pestaña.
+  // sola pulsación cerraba el perfil ajeno Y el ranking de debajo.
   useEscape(open && !helpOpen && !openProfileId, onClose);
 
   // La «atrás» de Android, con la MISMA cadena que el Escape y en el mismo
-  // orden. Antes no la tenía: la cubría el trap global de App.jsx, que cierra el
-  // slot entero de una pulsación, así que abrir el perfil de otro jugador y
-  // pulsar atrás no te devolvía a la tabla — te sacaba de la clasificación. En
-  // la app la «atrás» no es una alternativa al Escape, es EL gesto, y tenerla
-  // encadenada peor que una tecla que allí no existe era justo al revés.
-  // Por eso `ranking` sale del trap global (ver App.jsx): dos capas empujando
-  // entradas fantasma por la misma pulsación es el enredo que documenta
-  // ModalShell. Una sola capa, y es esta.
+  // orden: abrir el perfil de otro jugador y pulsar atrás te devuelve a la
+  // tabla, no te saca de la clasificación. `ranking` sale del trap global de
+  // App.jsx por eso: dos capas empujando entradas fantasma por la misma
+  // pulsación es el enredo que documenta ModalShell. Una sola capa, y es esta.
   // true = «he retrocedido un nivel, sigo abierto»; false = cerrado del todo.
   useHistoryChain(open, () => {
     if (helpOpen) {
@@ -330,8 +486,8 @@ export default function Ranking({
       });
   }
 
-  // Cambio de pestaña. La primera vez que se abre "Campeones" dispara el fetch
-  // del palmarés (perezoso, una sola vez por apertura del modal).
+  // Cambio de pestaña. La primera vez que se abre una histórica dispara su
+  // fetch (perezoso, una sola vez por apertura del panel).
   function selectView(next) {
     setView(next);
     if (next === "campeones" && !champions.loaded && !champions.loading) cargarCampeones();
@@ -344,273 +500,153 @@ export default function Ranking({
     clicable: !!user,
     onAbrirPerfil: setOpenProfileId,
   };
+  const i18n = { t, tn, locale };
+
+  const pestanas = [
+    ["temporada", season ? t("ranking.tabSeason") : t("ranking.tabWeekly")],
+    ["campeones", t("ranking.tabChampions")],
+    // Leyendas solo para logueados: al anónimo le velamos la propia tabla de la
+    // temporada, no vamos a regalarle el acumulado de años.
+    ...(user ? [["leyendas", t("ranking.legends")]] : []),
+  ];
+
+  const fmtCorta = (iso) => {
+    try {
+      return new Date(`${iso}T00:00:00`).toLocaleDateString(
+        locale === "en" ? "en-US" : "es-ES",
+        { day: "numeric", month: "short" }
+      );
+    } catch {
+      return iso;
+    }
+  };
 
   return (
     <>
     <Superficie
       open={open}
       onClose={onClose}
-      label={t("ranking.tag")}
-      // ENCAJE DE MODAL ALTO, que a esta le faltaba y era la única sin él. El
-      // panel no tenía tope de altura ni scroll: cabecera + pestañas + faja de
-      // temporada + tabla (22rem) + pie se acercan a 600px, así que en una
-      // pantalla corta —un 360x640— salía más alto que su velo y, con
-      // `items-center`, se recortaba por ARRIBA y por ABAJO a la vez. Lo que
-      // quedaba fuera incluía la X de cerrar, y sin scroll con el que llegar a
-      // ella. La receta es la que documenta index.css junto a `.safe-area-pad`:
-      // los insets van al velo y el panel topa contra su caja.
+      label={t("prensa.clasificacion")}
+      // ENCAJE DE MODAL ALTO: los insets van al velo y el panel topa contra su
+      // caja con scroll propio (ver `.safe-area-pad` en index.css). Sin tope,
+      // en un 360x640 el panel salía más alto que su velo y se recortaba por
+      // arriba y por abajo a la vez, X de cerrar incluida.
       veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[80] flex items-center justify-center px-4"
       veloApp="pm-velo-hoja fixed inset-0 z-[80] flex items-end justify-center"
-      panelWeb="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
+      panelWeb="modal-panel-flat panel-seccion w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
-        {/* Cabecera del modal: el MISMO objeto que abre el carnet del perfil —
-            kicker a la izquierda, X a la derecha, doble filete debajo. Antes la
-            X flotaba en absoluto sobre la esquina del panel y el ladillo de al
-            lado llevaba un `pr-10` a mano para no meterse por debajo: un botón
-            que flota obliga a que todo lo de su línea sepa que está ahí.
-
-            El texto es el MISMO que la faja de portada («La clasificación»), no
-            un título distinto para el mismo sitio. */}
-        <div className="prensa-modal-cab">
-          <p className="pm-kicker">{t("ranking.tag")}</p>
+        {/* La cabecera: el nombre de la sección en grande, como el de una
+            pantalla, y a su lado «cómo se puntúa» y cerrar. */}
+        <div className="clas-cab">
+          <h2 className="clas-titulo">{t("prensa.clasificacion")}</h2>
+          <button
+            type="button"
+            className="clas-icono-boton"
+            onClick={() => setHelpOpen(true)}
+            aria-label={t("ranking.helpButtonAria")}
+            title={t("ranking.helpButtonAria")}
+          >
+            <Icon d={I.ayuda} size={22} strokeWidth="1.7" />
+          </button>
           <CloseButton onClick={onClose} label={t("common.close")} />
         </div>
 
-        {/* Conmutador de pestañas: la clasificación de la temporada en curso vs
-            el SALÓN DE CAMPEONES (palmarés de temporadas cerradas). Versalitas
-            con filete rojo bajo la activa — el segmentado con fondo gris era
-            vocabulario de app, no de periódico. */}
-        <div className="rank-tabs">
-          {/* `aria-pressed` y no el patrón role="tablist"/"tab": ese exige
-              paneles con aria-controls y navegación por flechas, y aquí son dos
-              botones que reemplazan el contenido. Un patrón ARIA a medias
-              confunde más al lector de pantalla que no ponerlo. */}
-          {[
-            ["temporada", season ? t("ranking.tabSeason") : t("ranking.tabWeekly")],
-            ["campeones", t("ranking.tabChampions")],
-            // Leyendas solo para logueados: es donde vivía antes (colgando del
-            // perfil) y donde tiene sentido — al anónimo le velamos la propia
-            // tabla de la temporada, no vamos a regalarle el acumulado de años.
-            ...(user ? [["leyendas", t("ranking.legends")]] : []),
-          ].map(
-            ([id, lbl]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => selectView(id)}
-                aria-pressed={view === id}
-                className={"rank-tab" + (view === id ? " rank-tab--activa" : "")}
-              >
-                {lbl}
-              </button>
-            )
-          )}
-          <button type="button" className="rank-ayuda group" onClick={() => setHelpOpen(true)} aria-label={t("ranking.helpButtonAria")} title={t("ranking.helpButtonAria")}>
-            {/* CUADRADO, no disco. Era la única curva de toda la pantalla: un
-                círculo sobre un pliego que no redondea nada, rodeado de filetes
-                rectos y del cuadrado de tinta del sumario. Es exactamente el
-                mismo arreglo que se hizo en su día en el nodo de hito del
-                modal de Logros (que ya no existe) y que a este se le pasó. */}
-            <span className="flex items-center justify-center w-5 h-5 rounded-none border border-current font-serif text-sm font-medium transition-colors group-hover:bg-rojo group-hover:text-papel">?</span>
-          </button>
+        {/* Las pestañas, en segmentado. `aria-pressed` y no el patrón
+            role="tablist"/"tab": ese exige paneles con aria-controls y
+            navegación por flechas, y aquí son botones que reemplazan el
+            contenido. Un patrón ARIA a medias confunde más que no ponerlo. */}
+        <div className={`clas-tabs n${pestanas.length}`}>
+          {pestanas.map(([id, lbl]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => selectView(id)}
+              aria-pressed={view === id}
+              className={"clas-tab" + (view === id ? " activa" : "")}
+            >
+              {lbl}
+            </button>
+          ))}
         </div>
 
         {view === "temporada" && (
         <>
-        {/* Banner de la temporada en curso (o ranking semanal si no hay
-            temporada). Cabecera de sección de periódico (versalitas sobre doble
-            filete), no una tarjeta con esquinas redondeadas. */}
-        {season &&
-          (() => {
-            const d = daysUntilClose(season.ends_at);
-            const label = locale === "en" ? season.label_en : season.label_es;
-            return (
-              <div className="rank-temporada">
-                <div className="min-w-0">
-                  <p className="rank-temporada-kicker">
-                    {t("ranking.seasonKicker", { n: season.number })}
-                  </p>
-                  <p className="rank-temporada-tema">{label}</p>
-                </div>
-                {d != null && (
-                  <span className="rank-temporada-cierre">
-                    {d <= 0 ? t("ranking.closesToday") : tn("ranking.closesIn", d)}
-                  </span>
-                )}
-              </div>
-            );
-          })()}
-        {!season && weekRange && (() => {
-          const fmt = (iso) => {
-            try {
-              return new Date(`${iso}T00:00:00`).toLocaleDateString(
-                locale === "en" ? "en-US" : "es-ES",
-                { day: "numeric", month: "short" }
-              );
-            } catch { return iso; }
-          };
-          return (
-            <div className="rank-temporada">
-              <div className="min-w-0">
-                <p className="rank-temporada-kicker">
-                  {t("ranking.weeklyKicker")}
-                </p>
-                <p className="rank-temporada-tema">
-                  {fmt(weekRange.start)} – {fmt(weekRange.end)}
-                </p>
-              </div>
-            </div>
-          );
-        })()}
+        {season && (
+          <TarjetaPeriodo
+            kicker={t("ranking.seasonKicker", { n: season.number })}
+            titulo={locale === "en" ? season.label_en : season.label_es}
+            desde={season.starts_at}
+            hasta={season.ends_at}
+          />
+        )}
+        {!season && weekRange && (
+          <TarjetaPeriodo
+            kicker={t("ranking.weeklyKicker")}
+            titulo={`${fmtCorta(weekRange.start)} – ${fmtCorta(weekRange.end)}`}
+            desde={weekRange.start}
+            hasta={weekRange.end}
+          />
+        )}
 
         {/* Logueado pero sin firma: aquí —y solo aquí— el nick significa algo,
             porque sin él no se sale en la tabla (las SQL de temporada filtran
-            `display_name IS NOT NULL`). Antes esto se cobraba por adelantado con
-            un modal obligatorio nada más entrar; ahora se ofrece en el sitio
-            donde el jugador entiende para qué sirve. */}
+            `display_name IS NOT NULL`). Se ofrece en el sitio donde el jugador
+            entiende para qué sirve. */}
         {necesitaNick && (
-          <div className="mb-3 border border-dashed border-tinta px-4 py-3 text-center">
-            <p className="pm-body text-sm">{t("ranking.nickPrompt")}</p>
-            <button type="button" onClick={onOpenNickname} className="pm-btn mt-3">
+          <div className="clas-aviso">
+            <p className="clas-aviso-texto">{t("ranking.nickPrompt")}</p>
+            <button type="button" onClick={onOpenNickname} className="pm-btn">
               {t("ranking.nickCta")}
             </button>
           </div>
         )}
 
         {state.loading ? (
-          /* LA ESPERA CON LA FORMA DE LA TABLA. Era un renglón de texto donde
-             luego hay diez filas: el panel medía una línea y de golpe medía
-             seiscientos píxeles. El esqueleto usa LA MISMA rejilla que `Fila`,
-             así que al llegar los datos no se mueve ninguna columna. */
-          <div className="rank-tabla">
-            <FilasClasificacion n={8} texto={t("ranking.loading")} />
-          </div>
+          <FilasEsperando n={8} texto={t("ranking.loading")} />
         ) : state.error ? (
           <ErrorConSalida texto={state.error} onReintentar={() => setReintento((n) => n + 1)} />
         ) : state.players.length === 0 ? (
-          <p className="pm-body py-3 text-sm">{t(season ? "ranking.emptySeason" : "ranking.emptyWeekly")}</p>
+          <p className="clas-vacio">{t(season ? "ranking.emptySeason" : "ranking.emptyWeekly")}</p>
         ) : (
-          <div className="rank-tabla">
-            {/* El `pr` extra cuando la tabla scrollea compensa el ancho de la
-                barra: la cabecera vive FUERA del contenedor con scroll, y sin
-                esto la columna de puntos quedaba 6px desalineada de sus cifras. */}
-            <div
-              className={
-                "rank-cabecera grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] gap-2 px-3 py-2 " +
-                (user && state.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : "")
-              }
-            >
-              <span>{t("ranking.colRank")}</span>
-              <span>{t("ranking.colPlayer")}</span>
-              <span className="text-right">{t("ranking.colPoints")}</span>
-            </div>
-
-            <div
-              // `relative` se fue con el degradado: era su ancla de posición y
-              // ya no hay nada absoluto aquí dentro.
-              className={`
-                divide-y divide-border
-                ${user && state.players.length > 5 ? "scrollbar-premium max-h-[22rem] overflow-y-auto" : ""}
-                ${!user && state.players.length > 3 ? "max-h-[17.9rem] overflow-hidden sm:max-h-[19rem]" : ""}
-              `}
-            >
-              {state.players.map((player, index) => (
-                <div
-                  key={player.userId}
-                  // El velo del anónimo: de la 4ª fila en adelante el dato se
-                  // desenfoca. No es adorno — es la razón de existir del CTA de
-                  // abajo, y por eso el desenfoque va aquí y no en el CSS de la
-                  // fila (que es compartida con campeones).
-                  style={
-                    !user && index > 2 ? { filter: "blur(1.2px)", opacity: 0.62 } : undefined
-                  }
-                >
-                  <Fila
-                    {...filaBase}
-                    source="ranking"
-                    pos={player.rank}
-                    userId={player.userId}
-                    nombre={player.displayName}
-                    puntos={player.totalPoints}
-                    streak={player.currentStreak}
-                  />
-                </div>
-              ))}
-
-              {/* (Aquí había un DEGRADADO de 80px que fundía las últimas filas
-                  con el papel. Era el último efecto blando del modal: en este
-                  sistema una lista no se desvanece, se CORTA — y el corte lo
-                  cierra el filete del bloque de abajo, que además es donde está
-                  la explicación. El desenfoque de las filas se queda: eso sí es
-                  «impreso pero sin revelar», y es la razón de existir del CTA.) */}
-            </div>
-
-            {/* Fuera del top visible: tu fila se fija al pie de la tabla, con
-                doble filete de por medio (es un aparte, no la fila siguiente). */}
-            {selfRow && selfRow.rank > 5 && (
-              <div className="arch-filete">
-                <p className="rank-tuposicion">{t("ranking.yourPosition")}</p>
-                <Fila
-                  {...filaBase}
-                  clicable={false}
-                  pos={selfRow.rank}
-                  userId={selfRow.userId}
-                  nombre={selfRow.displayName}
-                  puntos={selfRow.totalPoints}
-                  streak={selfRow.currentStreak}
-                />
-              </div>
-            )}
-
+          <>
+            <Tabla
+              jugadores={state.players}
+              filaBase={filaBase}
+              source="ranking"
+              anonimo={!user}
+              apunteYo={apunteDe(selfRow, state.players, rank, i18n)}
+            />
             {!user && state.players.length > 3 && (
-              <div className="border-t border-border-strong p-4">
-                <p className="pm-body text-center text-sm">{t("ranking.loginPrompt")}</p>
+              <div className="clas-aviso">
+                <p className="clas-aviso-texto">{t("ranking.loginPrompt")}</p>
                 <button
                   type="button"
                   onClick={() => {
                     onClose();
                     onOpenLogin?.("ranking");
                   }}
-                  className="pm-btn mt-3"
+                  className="pm-btn"
                 >
                   {t("ranking.loginCta")}
                 </button>
               </div>
             )}
-          </div>
+          </>
         )}
         </>
         )}
 
-        {/* SALÓN DE CAMPEONES: temporadas cerradas con su podio. Los datos ya se
-            sellaban en season_podium al cerrar cada temporada; esto es la vista
-            que faltaba. Filas clicables al perfil igual que la temporada. */}
+        {/* SALÓN DE CAMPEONES: temporadas cerradas con su podio, una tarjeta
+            por temporada. Filas clicables al perfil igual que la temporada. */}
         {view === "campeones" &&
           (champions.loading ? (
-            /* El palmarés no es una tabla sino varias: cada temporada es su
-               propia caja con cabecera y podio de tres. El esqueleto repite esa
-               estructura —dos cajas— en vez de fingir una lista larga que aquí
-               no existe. Anuncia UNA vez por fuera; las filas van mudas. */
-            <div role="status" aria-label={t("ranking.loading")} className="space-y-4">
-              <span className="sr-only">{t("ranking.loading")}</span>
-              {[0, 1].map((i) => (
-                <div key={i} className="rank-tabla">
-                  <div className="rank-temporada rank-temporada--palmares">
-                    <div className="min-w-0 flex flex-col gap-1.5">
-                      <Renglon w="w-16" h="h-2" />
-                      <Renglon w="w-28" h="h-3.5" />
-                    </div>
-                  </div>
-                  <FilasClasificacion n={3} />
-                </div>
-              ))}
-            </div>
+            <FilasEsperando n={6} texto={t("ranking.loading")} />
           ) : champions.error ? (
             <ErrorConSalida texto={champions.error} onReintentar={cargarCampeones} />
           ) : champions.seasons.length === 0 ? (
-            <p className="pm-body py-3 text-sm">{t("ranking.championsEmpty")}</p>
+            <p className="clas-vacio">{t("ranking.championsEmpty")}</p>
           ) : (
-            <div className="scrollbar-premium max-h-[26rem] space-y-4 overflow-y-auto pr-1">
+            <div className="clas-palmares">
               {champions.seasons.map((s) => {
                 const label = locale === "en" ? s.labelEn : s.labelEs;
                 let when = "";
@@ -623,95 +659,56 @@ export default function Ranking({
                   when = "";
                 }
                 return (
-                  <div key={s.number} className="rank-tabla">
-                    <div className="rank-temporada rank-temporada--palmares">
-                      <div className="min-w-0">
-                        <p className="rank-temporada-kicker">
-                          {t("ranking.seasonKicker", { n: s.number })}
-                        </p>
-                        <p className="rank-temporada-tema">{label}</p>
-                      </div>
-                      {when && <span className="rank-temporada-fecha">{when}</span>}
+                  <section key={s.number} className="clas-periodo">
+                    <div className="clas-periodo-cab">
+                      <span className="clas-kicker">{t("ranking.seasonKicker", { n: s.number })}</span>
+                      {when && <span className="clas-cierre">{when}</span>}
                     </div>
-                    <div className="divide-y divide-border">
+                    {label && <p className="clas-periodo-titulo">{label}</p>}
+                    <ol className="clas-lista">
                       {s.podium.map((c) => (
-                        <Fila
-                          {...filaBase}
-                          key={c.rank}
-                          source="champions"
-                          pos={c.rank}
-                          userId={c.userId}
-                          nombre={c.displayName}
-                          puntos={c.points}
-                        />
+                        <li key={c.rank + c.userId}>
+                          <Fila
+                            {...filaBase}
+                            source="champions"
+                            pos={c.rank}
+                            userId={c.userId}
+                            nombre={c.displayName}
+                            puntos={c.points}
+                          />
+                        </li>
                       ))}
-                    </div>
-                  </div>
+                    </ol>
+                  </section>
                 );
               })}
             </div>
           ))}
 
         {/* LEYENDAS: la clasificación histórica all-time (acumulado de
-            total_points, que SÍ incluye el bonus de racha). Cabecera de sección
-            como la de temporada y la MISMA fila que las otras dos vistas: el
-            jugador reconoce su puesto porque es el mismo glifo en las tres. */}
+            total_points, que SÍ incluye el bonus de racha), con el mismo podio y
+            la misma fila que la temporada. */}
         {view === "leyendas" && (
           <>
-            <div className="rank-temporada">
-              <div className="min-w-0">
-                <p className="rank-temporada-kicker">{t("ranking.legends")}</p>
-                <p className="rank-temporada-tema">{t("ranking.legendsSubtitle")}</p>
-              </div>
-            </div>
-
+            <TarjetaPeriodo kicker={t("ranking.legends")} titulo={t("ranking.legendsSubtitle")} />
             {legends.loading ? (
-              <div className="rank-tabla">
-                <FilasClasificacion n={8} texto={t("ranking.loading")} />
-              </div>
+              <FilasEsperando n={8} texto={t("ranking.loading")} />
             ) : legends.error ? (
               <ErrorConSalida texto={legends.error} onReintentar={cargarLeyendas} />
             ) : legends.players.length === 0 ? (
-              <p className="pm-body py-3 text-sm">{t("ranking.empty")}</p>
+              <p className="clas-vacio">{t("ranking.empty")}</p>
             ) : (
-              <div className="rank-tabla">
-                <div
-                  className={
-                    "rank-cabecera grid grid-cols-[3.25rem_minmax(0,1fr)_4.5rem] gap-2 px-3 py-2 " +
-                    (legends.players.length > 5 ? "pr-[calc(0.75rem+6px)]" : "")
-                  }
-                >
-                  <span>{t("ranking.colRank")}</span>
-                  <span>{t("ranking.colPlayer")}</span>
-                  <span className="text-right">{t("ranking.colPoints")}</span>
-                </div>
-
-                <div
-                  className={
-                    "divide-y divide-border " +
-                    (legends.players.length > 5 ? "scrollbar-premium max-h-[22rem] overflow-y-auto" : "")
-                  }
-                >
-                  {legends.players.map((player) => (
-                    <Fila
-                      {...filaBase}
-                      key={player.userId}
-                      source="legends"
-                      pos={player.rank}
-                      userId={player.userId}
-                      nombre={player.displayName}
-                      puntos={player.totalPoints}
-                      sub={t("ranking.bestStreak", { value: player.maxStreak })}
-                      streak={player.currentStreak}
-                    />
-                  ))}
-                </div>
-              </div>
+              <Tabla
+                jugadores={legends.players}
+                filaBase={filaBase}
+                source="legends"
+                apunteYo={apunteDe(legendsSelf, legends.players, null, i18n)}
+                sub={(p) => t("ranking.bestStreak", { value: p.maxStreak })}
+              />
             )}
           </>
         )}
     </Superficie>
-
     {/* Sub-modal hermano (no anidado): cada uno gestiona su propio backdrop y su
         animación de entrada/salida. */}
     <ScoringHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />

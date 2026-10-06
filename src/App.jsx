@@ -684,8 +684,9 @@ export default function App() {
             open={activeModal === "ranking"}
             onClose={closeModal}
             user={user}
-            // Sin `rank`: la cabecera «Tu puesto» del modal se retiró y el dato
-            // se lee ya de la propia tabla (la fila del jugador va destacada).
+            // El puesto con su movimiento del día: lo dice el apunte de tu fila
+            // («Subes 4 puestos · a 3 puntos del 17º»).
+            rank={rank}
             onOpenLogin={openLogin}
             // Aquí es donde el nick significa algo: sin firma no se sale en la
             // tabla. Se ofrece dentro del ranking, no como puerta para entrar.

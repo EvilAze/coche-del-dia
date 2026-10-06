@@ -87,4 +87,7 @@ export const I = {
   galones: ["M5 10l7-5 7 5", "M5 15l7-5 7 5", "M5 20l7-5 7 5"],
   // El lápiz de cambiar la firma.
   lapiz: ["M4 20h4L19 9l-4-4L4 16v4Z", "M13.5 6.5l4 4"],
+  // «Cómo se puntúa»: el interrogante dentro de su círculo, para cuando va
+  // suelto en una cabecera y no dentro de una tecla que ya le pone la caja.
+  ayuda: ["M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Z", "M9.7 9.4a2.4 2.4 0 0 1 4.6.9c0 1.6-2.3 2.1-2.3 3.6", "M12 16.9h.01"],
 };

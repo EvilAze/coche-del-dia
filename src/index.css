@@ -4731,3 +4731,210 @@ button.fin-tarjeta:active { transform: translateY(1px); }
      Android subiría pegada al teclado, tapando los campos. */
   :root:has(.prensa-cupon input:focus) .barra-secciones { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LAS SECCIONES «ASFALTO» — el suelo común y la Clasificación (clas-*)
+   -----------------------------------------------------------------------
+   Las secciones (clasificación, archivo, perfil, sumario, reglas) dejan de ser
+   un papel blanco con filetes y pasan a ser una PANTALLA: el suelo es el fondo
+   de la app y lo que hay encima son tarjetas con canto, como en el panel final.
+   Por eso la hoja de navegación —y su panel de escritorio, que lleva la marca
+   `panel-seccion`— se pintan con `--bg` y no con `--surface`: una tarjeta
+   blanca sobre papel blanco no se levanta de nada.
+   ═══════════════════════════════════════════════════════════════════════ */
+.pm-hoja-nav, .modal-panel-flat.panel-seccion { background: var(--bg); }
+
+/* La cabecera de una sección: su nombre en grande, como el de una pantalla, y
+   las teclas al margen. El alto lo pone la X (44px, el mínimo táctil). */
+.clas-cab { display: flex; align-items: center; gap: 2px; min-height: 48px; margin: -4px -8px 10px 0; }
+.clas-titulo {
+  flex: 1; min-width: 0; margin: 0;
+  font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; letter-spacing: .005em;
+  color: var(--cdd-text);
+}
+.clas-icono-boton {
+  flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; background: none; cursor: pointer; color: var(--cdd-muted);
+  transition: color var(--ms-roce) var(--curva-roce);
+}
+@media (hover: hover) {
+  .clas-icono-boton:hover { color: var(--cdd-text); }
+}
+
+/* Las pestañas: un segmentado. La activa es la tinta (el botón principal del
+   sistema), las demás, texto apagado sobre el hueco. */
+.clas-tabs {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px;
+  padding: 3px; margin-bottom: 14px; border-radius: var(--radio-boton); background: var(--surface2);
+}
+.clas-tab {
+  height: 38px; padding: 0 6px; border: 0; border-radius: 9px; background: none; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: color var(--ms-roce) var(--curva-roce), background-color var(--ms-roce) var(--curva-roce);
+}
+.clas-tab.activa { background: var(--cdd-text); color: var(--bg); font-weight: 700; }
+@media (hover: hover) {
+  .clas-tab:not(.activa):hover { color: var(--cdd-text); }
+}
+
+/* La tarjeta del periodo: kicker y cierre arriba, el tema en titular y la
+   regla de los días. El día de hoy es el único segmento rojo: es «lo que se
+   está gastando», el mismo rojo del medidor de intentos. */
+.clas-periodo {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;
+  padding: 14px 16px 16px; border-radius: var(--radio-tarjeta);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.clas-periodo-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.clas-kicker {
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+}
+.clas-cierre {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-muted);
+}
+.clas-periodo-titulo {
+  margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.05;
+  color: var(--cdd-text);
+}
+.clas-progreso { display: flex; align-items: center; gap: 10px; }
+.clas-regla { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; }
+.clas-regla i { display: block; height: 4px; border-radius: 2px; background: var(--surface2); }
+.clas-regla i.hecho { background: rgb(var(--tinta2-rgb) / .7); }
+.clas-regla i.hoy { background: var(--rojo); }
+.clas-regla.continua { display: block; height: 4px; border-radius: 2px; background: var(--surface2); overflow: hidden; }
+.clas-regla.continua i { height: 100%; background: rgb(var(--tinta2-rgb) / .7); }
+.clas-dia { flex: none; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
+
+/* EL PODIO. En el DOM va 1-2-3 (lo que lee un lector de pantalla); a la vista,
+   2-1-3, con el primero más alto en el centro. */
+.clas-podio {
+  list-style: none; margin: 0 0 10px; padding: 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: end;
+}
+.clas-podio-puesto.p1 { order: 2; }
+.clas-podio-puesto.p2 { order: 1; }
+.clas-podio-puesto.p3 { order: 3; }
+.clas-podio-puesto { --medalla: var(--line-strong); }
+.clas-podio-puesto.oro { --medalla: var(--gold); }
+.clas-podio-puesto.plata { --medalla: var(--plata); }
+.clas-podio-puesto.bronce { --medalla: var(--bronce); }
+.clas-podio-boton {
+  width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: center;
+}
+button.clas-podio-boton { cursor: pointer; }
+.clas-podio-boton .clas-mono { box-shadow: 0 0 0 2px var(--medalla); }
+.clas-podio-nombre {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-body); font-weight: 700; font-size: 14px; color: var(--cdd-text);
+}
+.clas-podio-pts { margin-top: -7px; font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted); }
+.clas-podio-puesto.p1 .clas-podio-pts { color: var(--gold); }
+.clas-podio-peana {
+  width: 100%; height: 42px; display: flex; align-items: center; justify-content: center;
+  border-radius: 10px 10px 4px 4px; border-top: 2px solid var(--medalla); background: var(--surface);
+  font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--medalla);
+  transition: transform var(--ms-pulso) var(--curva-roce);
+}
+.clas-podio-puesto.p1 .clas-podio-peana { height: 74px; font-size: 32px; }
+.clas-podio-puesto.p2 .clas-podio-peana { height: 54px; font-size: 26px; }
+button.clas-podio-boton:active .clas-podio-peana { transform: translateY(1px); }
+.clas-podio-puesto.p1 .clas-mono.grande { width: 58px; height: 58px; font-size: 24px; }
+
+/* El monograma: la inicial en un disco, que es lo que tiene un jugador sin
+   foto. El tuyo, en negativo — la misma tinta que el chip «Tú». */
+.clas-mono {
+  flex: none; width: 32px; height: 32px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface2); color: var(--cdd-text);
+  font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1;
+}
+.clas-mono.grande { width: 48px; height: 48px; font-size: 20px; }
+.clas-mono.yo, .clas-fila.yo .clas-mono { background: var(--cdd-text); color: var(--bg); }
+
+/* LA LISTA. Filas de 52px separadas por un filete tenue, sin caja alrededor:
+   la caja la pone la pantalla. */
+.clas-lista { list-style: none; margin: 0; padding: 0; }
+.clas-lista > li + li, .clas-lista > .clas-fila + .clas-fila { border-top: 1px solid var(--line-2); }
+.clas-fila {
+  width: 100%; min-height: 52px; box-sizing: border-box; padding: 6px 0;
+  display: flex; align-items: center; gap: 12px;
+  border: 0; background: none; color: inherit; font: inherit; text-align: left;
+}
+button.clas-fila { cursor: pointer; transition: background-color var(--ms-roce) var(--curva-roce); }
+@media (hover: hover) {
+  button.clas-fila:hover { background: rgb(var(--tinta-rgb) / .03); }
+}
+.clas-pos {
+  flex: none; width: 26px;
+  font-family: var(--font-mono); font-size: 13px; color: var(--cdd-muted); font-variant-numeric: tabular-nums;
+}
+.clas-pos.oro { color: var(--gold); font-weight: 600; }
+.clas-pos.plata { color: var(--plata); font-weight: 600; }
+.clas-pos.bronce { color: var(--bronce); font-weight: 600; }
+.clas-nombre { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.clas-nombre-linea { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.clas-nombre-linea b {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--cdd-text);
+}
+.clas-fila.yo .clas-nombre-linea b { font-weight: 700; }
+.clas-tu {
+  flex: none; height: 18px; padding: 0 6px; display: inline-flex; align-items: center;
+  border-radius: 5px; background: var(--cdd-text); color: var(--bg);
+  font-family: var(--font-body); font-weight: 700; font-size: 11px;
+}
+.clas-apunte {
+  display: inline-flex; align-items: center; gap: 4px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-body); font-weight: 600; font-size: 12px; color: var(--cdd-muted);
+}
+.clas-apunte svg { flex: none; }
+.clas-apunte.verde { color: var(--verde); }
+.clas-apunte.rojo { color: var(--rojo); }
+.clas-racha {
+  flex: none; display: inline-flex; align-items: center; gap: 3px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted);
+}
+.clas-racha svg { fill: currentColor; stroke: none; }
+.clas-racha.oro { color: var(--gold); }
+.clas-puntos {
+  flex: none; min-width: 44px; text-align: right;
+  font-family: var(--font-mono); font-weight: 600; font-size: 15px; color: var(--cdd-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* TU FILA, SIEMPRE A LA VISTA. `sticky` arriba y abajo a la vez: si tu puesto
+   cae fuera de la pantalla, la fila se queda pegada al borde más cercano, y al
+   llegar a su sitio se posa en él. Sangra hasta los cantos de la hoja (el
+   cuerpo lleva 20px de aire a cada lado) para leerse como una banda, no como
+   una fila más con fondo. */
+.clas-lista > li.clas-li-yo {
+  position: sticky; top: 0; bottom: 0; z-index: 1;
+  margin: 0 -20px; padding: 0 20px;
+  background: var(--surface); border-top: 1px solid var(--line);
+  box-shadow: 0 -1px 0 var(--line), 0 1px 0 var(--line);
+}
+.clas-li-yo .clas-fila { min-height: 64px; }
+.clas-li-yo .clas-pos { color: var(--cdd-text); font-weight: 600; }
+
+/* El anónimo ve el podio y tres filas veladas: impresas pero sin revelar. */
+.clas-lista.velada { filter: blur(1.2px); opacity: .6; pointer-events: none; user-select: none; }
+
+/* Los avisos dentro de la sección (elegir firma, entrar para competir, el
+   fallo con reintento): una tarjeta con su frase y su botón. */
+.clas-aviso {
+  display: flex; flex-direction: column; gap: 12px; margin: 14px 0 4px;
+  padding: 16px; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+}
+.clas-aviso-texto { margin: 0; font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-text); }
+.clas-aviso-texto.rojo { color: var(--rojo); font-weight: 600; }
+.clas-vacio { margin: 6px 0; font-family: var(--font-body); font-size: 15px; color: var(--cdd-muted); }
+
+/* El palmarés: una tarjeta por temporada cerrada, con sus tres medallistas. */
+.clas-palmares { display: flex; flex-direction: column; gap: 12px; }
+.clas-palmares .clas-periodo { margin-bottom: 0; padding-bottom: 6px; }
+.clas-palmares .clas-lista { margin-top: -2px; }

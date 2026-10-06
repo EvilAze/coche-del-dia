@@ -432,7 +432,9 @@
     "streakAria": "Racha de {count} días, bonus {bonus}",
     "streakTitle": "Racha de {count} días",
     "legends": "Leyendas",
-    "legendsSubtitle": "Clasificación histórica"
+    "legendsSubtitle": "Clasificación histórica",
+    "podio": "Podio",
+    "diaDe": "Día {n}/{total}"
   },
   "podium": {
     "title": "Podios del mes",

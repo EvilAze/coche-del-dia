@@ -432,7 +432,9 @@
     "streakAria": "Streak of {count} days, bonus {bonus}",
     "streakTitle": "Streak of {count} days",
     "legends": "Legends",
-    "legendsSubtitle": "All-time ranking"
+    "legendsSubtitle": "All-time ranking",
+    "podio": "Podium",
+    "diaDe": "Day {n}/{total}"
   },
   "podium": {
     "title": "Monthly podiums",

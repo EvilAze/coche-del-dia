@@ -605,11 +605,11 @@ export default function Repesca() {
         {isVeteran && phase === "playing" && (
           <section className="rep-veterano" role="note" aria-label={t("repesca.veteranBadge")}>
             <div className="rep-veterano-cab">
-              <span className="rep-veterano-icono" aria-hidden="true">
-                <Icon d={I.galones} size={22} strokeWidth="2" />
-              </span>
               <span className="rep-veterano-texto">
-                <b>{t("repesca.veteranBadge")}</b>
+                <b>
+                  <Icon d={I.galones} size={22} strokeWidth="2" />
+                  {t("repesca.veteranBadge")}
+                </b>
                 <span>{t("repesca.veteranSub")}</span>
               </span>
             </div>

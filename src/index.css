@@ -5877,3 +5877,26 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 }
 .prensa-medalla .puesto { font-family: var(--font-body); font-weight: 700; font-size: 14px; letter-spacing: 0; text-transform: none; }
 .prensa-medalla .de { font-family: var(--font-body); font-size: 12.5px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIN CUADRITOS. El icono dentro de un cuadrado de color pastel es el tic de
+   plantilla que más delata una interfaz hecha en serie: lo lleva cualquier
+   panel generado, y aquí no distinguía nada que no dijera ya el texto o el
+   color de la tarjeta. Los iconos que se quedan van SUELTOS, en su color, a
+   la altura de la primera línea; donde el texto ya bastaba, se han ido.
+   ═══════════════════════════════════════════════════════════════════════ */
+.fin-icono, .fin-icono.oro, .fin-icono.ambar, .fin-icono.verde, .fin-icono.rojo,
+.arch-repesca-icono, .arch-repesca.activa .arch-repesca-icono, .arch-especial-icono, .arch-ayuda-icono {
+  width: 24px; height: auto; border-radius: 0; background: none;
+  align-self: flex-start; justify-content: flex-start; margin-top: 1px;
+}
+.fin-fila { align-items: flex-start; gap: 12px; }
+.fin-fila .fin-chev, .fin-fila .fin-salto { align-self: center; }
+.arch-repesca { align-items: flex-start; gap: 12px; }
+.arch-repesca-boton { align-self: center; }
+.arch-especial { align-items: flex-start; gap: 12px; }
+.arch-ayuda-fila { gap: 10px; }
+.arch-ayuda-icono { color: var(--ambar); margin-top: 0; }
+.rep-veterano-texto b { display: inline-flex; align-items: center; gap: 8px; }
+.arch-dialogo-fila { margin: -8px -14px 0 0; }
+.arch-dialogo-fila .arch-dialogo-cab { padding-top: 8px; }

@@ -930,9 +930,6 @@ function Showcase({ covers, newIds, order, onSelectCar }) {
     return (
       <div className="arch-vitrina">
         <div className="arch-vacio">
-          <span className="arch-logo cerrado" aria-hidden="true">
-            <Icon d={I.rejilla} size={20} />
-          </span>
           <p className="arch-vacio-titulo">{t("garage.emptyTitle")}</p>
           <p className="arch-vacio-texto">{t("garage.emptyBody")}</p>
         </div>
@@ -1524,9 +1521,6 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
       <div className="arch-dialogo">
-        <span className="arch-dialogo-icono" aria-hidden="true">
-          <Icon d={I.shuffle} size={24} />
-        </span>
         <span className="arch-dialogo-cab">
           <span className="arch-kicker ambar">{t("garage.repescaTag")}</span>
           <h3 className="arch-dialogo-titulo">{t("garage.repescaConfirmTitle")}</h3>
@@ -1621,15 +1615,12 @@ function RepescaHelpModal({ open, onClose }) {
     >
       <div className="arch-dialogo">
         <div className="arch-dialogo-fila">
-          <span className="arch-dialogo-icono" aria-hidden="true">
-            <Icon d={I.shuffle} size={24} />
+          <span className="arch-dialogo-cab">
+            <span className="arch-kicker ambar">{t("garage.repescaHelpTag")}</span>
+            <h3 className="arch-dialogo-titulo">{t("garage.repescaHelpTitle")}</h3>
           </span>
           <CloseButton onClick={onClose} />
         </div>
-        <span className="arch-dialogo-cab">
-          <span className="arch-kicker ambar">{t("garage.repescaHelpTag")}</span>
-          <h3 className="arch-dialogo-titulo">{t("garage.repescaHelpTitle")}</h3>
-        </span>
         <p className="arch-dialogo-texto">{t("garage.repescaHelpBody")}</p>
 
         <div className="arch-ayuda-lista">
@@ -1675,9 +1666,6 @@ function AuthWall({ onLogin }) {
   return (
     <div className="arch-mensaje">
       <div className="arch-muro">
-        <span className="arch-logo cerrado grande" aria-hidden="true">
-          <Icon d={I.candado} size={26} />
-        </span>
         <p className="arch-vacio-titulo">{t("garage.authTitle")}</p>
         <p className="arch-vacio-texto">{t("garage.authBody")}</p>
         {/* Sin el glifo de Google y sin su nombre: este botón ABRE LA PUERTA,

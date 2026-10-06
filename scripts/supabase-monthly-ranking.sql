@@ -12,10 +12,13 @@
 --   - Una fila ganada (status='won') es DAILY si (date, car_id) existe en
 --     `daily_cars`; en caso contrario es REPESCA, que vale la MITAD de los
 --     puntos redondeando hacia arriba (api/repesca/validate.js: ceil(base/2)).
---   - El bonus de racha NO entra en el cómputo mensual a propósito: el
---     mensual mide "puntos base del mes", una métrica limpia y alcanzable
---     para los recién llegados (el global de `stats.total_points` sí lo
---     incluye, pero ese es otro ranking).
+--   - [HISTÓRICO] Este script nació SIN el bonus de racha: el mensual medía
+--     "puntos base del mes". Esa decisión se revirtió en octubre de 2026 —el
+--     perfil sumaba el bonus y la ayuda «Cómo se puntúa», que se abre desde la
+--     clasificación, lo promete— con
+--     scripts/2026-10-bonus-racha-en-clasificacion.sql, que PARCHEA esta
+--     función en producción. Ejecutar de nuevo ESTE fichero quitaría el bonus
+--     (y los filtros parcheados después): no lo hagas.
 --
 -- ZONA HORARIA: `user_guesses.date` ya guarda la fecha de Madrid (el backend
 -- usa todayInMadrid()). El "mes actual" se calcula también en Madrid para que

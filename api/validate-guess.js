@@ -16,8 +16,9 @@
 //     el cliente intenta parsear como JSON. Cada llamada externa de este
 //     handler lleva su plazo de _lib/timeout.js, y la decisión de si además
 //     lleva reintento está escrita al lado de cada una: reintentan las LECTURAS
-//     que sostienen la partida (sin ellas no se puede validar nada), no las
-//     escrituras de auditoría ni las de puntuación.
+//     que sostienen la partida (sin ellas no se puede validar nada), el upsert
+//     de la partida y el registro de puntos (ver registro-puntos.js), pero no
+//     las escrituras de auditoría: nadie las espera.
 
 import { readAnonToken, signAnonSession } from "./_lib/anon-session.js";
 import { signRevealToken } from "./_lib/reveal-token.js";
@@ -33,8 +34,8 @@ import { compareGuess } from "./_lib/compare-guess.js";
 import { basePointsFor } from "./_lib/score.js";
 import { resolverCocheDelUsuario } from "./_lib/coche-de-hoy.js";
 import { sellosDe } from "./_lib/sello.js";
+import { registrarResultadoDiario } from "./_lib/registro-puntos.js";
 import {
-  conTimeout,
   conTimeoutOFallback,
   conTimeoutReintentando,
   fuePorPlazo,
@@ -87,27 +88,30 @@ async function fetchCarById(id, etiqueta) {
 }
 
 /**
- * Registro de puntos y racha. CON PLAZO Y SIN REINTENTO, y el motivo no es el
- * presupuesto sino la idempotencia: `record_daily_result_v2` se protege de la
- * doble contabilidad con `last_played_date = hoy`, así que un segundo intento
- * lanzado detrás de un plazo agotado —cuando el primero PUDO haber
- * commiteado— vuelve con `alreadyRecorded: true` y basePoints 0. Sería
- * contarle al jugador que no ha puntuado justo el día que sí. El fallo de esta
- * escritura ya está contemplado arriba (score.persisted = false).
+ * Registro de puntos y racha. CON PLAZO Y UN REINTENTO, y es seguro por lo que
+ * se hace con la respuesta, no por la base de datos: `record_daily_result_v2` ya
+ * era idempotente (`last_played_date = hoy`), pero un segundo intento lanzado
+ * detrás de un plazo agotado —cuando el primero PUDO haber commiteado— vuelve
+ * con `alreadyRecorded: true` y basePoints 0, o sea, contarle al jugador que no
+ * ha puntuado justo el día que sí. Por eso antes no se reintentaba, y por eso
+ * un solo atranco dejaba la partida sin registrar: sin puntos, y al día
+ * siguiente sin racha, sin que nadie lo viera. La lógica (qué se reintenta, y
+ * cómo se reconstruye la puntuación cuando el primer intento sí se guardó) vive
+ * en _lib/registro-puntos.js, que es la parte con tests. Si se agotan los
+ * intentos sigue valiendo lo de arriba (score.persisted = false), pero ahora
+ * queda en Sentry: el último fallo así lo encontró un jugador, no nosotros.
  */
 async function persistDailyResult({ accessToken, won, attemptNumber }) {
   const client = accessToken ? createAuthClient(accessToken) : null;
   if (!client) return null;
-  const { data, error } = await conTimeout(
-    client.rpc("record_daily_result_v2", {
-      p_won: won,
-      p_attempt_number: attemptNumber,
-    }),
-    PLAZOS.SUPABASE,
-    { etiqueta: "record_daily_result_v2" }
+  return registrarResultadoDiario(
+    () =>
+      client.rpc("record_daily_result_v2", {
+        p_won: won,
+        p_attempt_number: attemptNumber,
+      }),
+    { won, attemptNumber }
   );
-  if (error) throw error;
-  return data;
 }
 
 export default async function handler(req, res) {
@@ -538,8 +542,16 @@ export default async function handler(req, res) {
           };
         }
       } catch (err) {
-        // No reventamos la respuesta principal: solo logueamos.
+        // No reventamos la respuesta principal. Pero con los intentos agotados
+        // esta partida se queda SIN registrar (sin puntos y, al día siguiente,
+        // sin racha), y un `console.error` no se lo cuenta a nadie: el último
+        // caso lo encontró el jugador y tardó semanas en llegar. Sentry solo
+        // captura excepciones (regla 8) y esto lo es.
         console.error("[validate-guess] persistDailyResult:", err);
+        await captureServerError(err, {
+          endpoint: "validate-guess",
+          etapa: "persistDailyResult",
+        });
       }
     }
 

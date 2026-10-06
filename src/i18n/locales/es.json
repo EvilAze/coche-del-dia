@@ -708,7 +708,7 @@
     "mejorSigue": "La mejor sigue siendo tuya: {n}",
     "vuelveTitulo": "Este coche vuelve en la repesca",
     "vuelveCuerpo": "Queda en tu Archivo como pendiente. Si te toca, será en Modo Veterano: un intento, sin pistas.",
-    "noEresElUnico": "No eres el único: {n} de cada 10 tampoco lo sacaron.",
+    "noEresElUnico": "No eres el único: el {pct} % tampoco lo sacó.",
     "ficha": "La ficha"
   },
   "barra": {

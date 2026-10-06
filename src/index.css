@@ -5492,3 +5492,14 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   box-shadow: var(--sombra-flota);
 }
 .rep-error-tarjeta .dlg-titulo { margin-top: -4px; }
+
+/* «Ver mi partida»: un renglón, no una píldora en versalitas. Es la salida
+   discreta del panel, y una caja con canto la ponía a competir con Compartir. */
+.fin .cdd-end-link {
+  min-height: 44px; padding: 10px 12px; border: 0; border-radius: 0; background: none;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none;
+  color: var(--cdd-muted); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
+}
+@media (hover: hover) {
+  .fin .cdd-end-link:hover { color: var(--cdd-text); border-color: transparent; }
+}

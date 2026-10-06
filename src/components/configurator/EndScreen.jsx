@@ -268,10 +268,12 @@ export default function EndScreen({
   const puntos = useCuenta(score?.totalPoints ?? 0);
   const lectura = !won && hasReveal ? lecturaDerrota(guesses, car, t) : null;
   const mejorRacha = score?.maxStreak ?? null;
-  // «No eres el único»: cuántos de cada diez tampoco lo sacaron hoy.
-  const deCadaDiez =
+  // «No eres el único»: qué parte del mundo tampoco lo sacó hoy. En tanto por
+  // ciento y no en «N de cada 10»: con 4 derrotas de 32, redondear a décimos
+  // decía «1 de cada 10» al lado de una barra que marcaba un 13 %.
+  const pctPerdidas =
     !won && daily.ready && daily.totalGames > 0
-      ? Math.round((daily.losses / daily.totalGames) * 10)
+      ? Math.round((daily.losses / daily.totalGames) * 100)
       : 0;
 
   return (
@@ -528,7 +530,7 @@ export default function EndScreen({
             </div>
             <Distribution data={daily} attempts={attempts} won={won} sinPie />
             {won && pct > 0 && <p className="fin-pie">{t("dailyStats.betterThanShare", { pct })}</p>}
-            {!won && deCadaDiez >= 1 && <p className="fin-pie">{t("fin.noEresElUnico", { n: deCadaDiez })}</p>}
+            {!won && pctPerdidas >= 1 && <p className="fin-pie">{t("fin.noEresElUnico", { pct: pctPerdidas })}</p>}
           </section>
         )}
 

@@ -5,7 +5,7 @@
 // rechazan con shake + toast; el modelo se bloquea hasta elegir marca válida;
 // el servidor sigue siendo la fuente de verdad y recibe `guessCarId`).
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useCatalog } from "../../data/catalog";
 import { useT, getLocalizedCountry } from "../../i18n";
 import { useToast } from "../Toast";
@@ -35,6 +35,20 @@ const MIN_YEAR = 1886;
 
 // `mantener`: el envío se confirma manteniendo el botón (Modo Veterano, un
 // solo intento; ver BotonMantener). El resto del formulario no cambia.
+// ¿El intento sale de un teclado físico? Sí si el foco estaba en un campo del
+// cupón (se envió con Intro) o en un control con foco VISIBLE (Tab hasta
+// ADIVINAR). El try es por los entornos que aún no entienden :focus-visible.
+function enviadoConTeclado(form) {
+  const el = typeof document !== "undefined" ? document.activeElement : null;
+  if (!el || !form || !form.contains(el)) return false;
+  if (el.tagName === "INPUT") return true;
+  try {
+    return el.matches(":focus-visible");
+  } catch {
+    return false;
+  }
+}
+
 export default function GuessForm({ onSubmit, isSubmitting = false, guesses = [], tolerance = 2, attempts, maxAttempts = 5, mantener = false }) {
   const { t } = useT();
   const toast = useToast();
@@ -68,6 +82,16 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
   const [shake, setShake] = useState(false);
+  // EL AVISO VA DONDE ESTÁ EL PROBLEMA (web). Todo lo que el cupón rechazaba
+  // antes de enviar salía como toast: abajo del todo, encima de la barra de
+  // pestañas, casi un segundo después del toque y a 400 px del campo vacío, que
+  // además no se marcaba ni recibía el foco. Ahora el aviso se escribe bajo las
+  // casillas, el campo culpable lleva aria-invalid y el foco va a él. `campo` es
+  // null cuando el problema no es de un campo (sin red). En la app sigue el
+  // toast: su cupón vive al milímetro de la foto y de la hoja (CLAUDE.md 18) y
+  // una línea de más movería la composición que mide test:layout.
+  const [aviso, setAviso] = useState(null);
+  const avisoId = useId();
 
   // ── DOS FORMAS DE RELLENAR EL CUPÓN, UNA POR PLATAFORMA ────────────────────
   // En WEB se teclea, como siempre: hay teclado físico o el móvil está en un
@@ -267,6 +291,20 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     requestAnimationFrame(() => setShake(true));
   }
 
+  // Rechazo de un intento antes de enviarlo: temblor y háptico siempre; el
+  // aviso, junto al campo en web y como toast en la app (ver `aviso`).
+  function avisar(texto, campo = null) {
+    haptic.warning();
+    triggerShake();
+    if (enApp) {
+      toast.push(texto, { type: "error" });
+      return;
+    }
+    setAviso({ campo, texto });
+    const ref = campo === "marca" ? marcaRef : campo === "modelo" ? modeloRef : campo === "anio" ? anioRef : null;
+    if (ref) focusSoon(ref);
+  }
+
   const formDisabled = isSubmitting || !catalog;
   const anioNum = parseInt(anio, 10);
   const anioValido = !isNaN(anioNum) && anioNum >= MIN_YEAR && anioNum <= CURRENT_YEAR;
@@ -304,28 +342,21 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
       // aspecto): un botón muerto no explica nada. Tocarlo con el intento a
       // medias hace shake + nombra el PRIMER campo que falta — frustración
       // convertida en guía (auditoría UX #5).
-      haptic.warning(); triggerShake();
-      const missing = !marcaFinalValida
-        ? t("guess.missingMarca")
-        : !modeloFinalValido
-        ? t("guess.missingModelo")
-        : t("guess.missingAnio");
-      toast.push(missing, { type: "error" });
+      if (!marcaFinalValida) avisar(t("guess.missingMarca"), "marca");
+      else if (!modeloFinalValido) avisar(t("guess.missingModelo"), "modelo");
+      else avisar(t("guess.missingAnio"), "anio");
       return;
     }
     if (triedWrongMarcas.has(marcaFinal.toLowerCase())) {
-      haptic.warning(); triggerShake();
-      toast.push(t("guess.marcaAlreadyTried"), { type: "error" });
+      avisar(t("guess.marcaAlreadyTried"), "marca");
       return;
     }
     if (triedWrongModelKeys.has(`${marcaFinal.toLowerCase()}|${modeloFinal.toLowerCase()}`)) {
-      haptic.warning(); triggerShake();
-      toast.push(t("guess.modelAlreadyTried"), { type: "error" });
+      avisar(t("guess.modelAlreadyTried"), "modelo");
       return;
     }
     if (triedWrongYears.has(String(anioNum))) {
-      haptic.warning(); triggerShake();
-      toast.push(t("guess.yearAlreadyTried"), { type: "error" });
+      avisar(t("guess.yearAlreadyTried"), "anio");
       return;
     }
     // Año FUERA de la horquilla ya deducida. Sin esta comprobación el juego
@@ -336,8 +367,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     // hay. Mismo trato que el año repetido: temblor + aviso, no bloqueo del
     // botón (un botón muerto no explica nada).
     if (horquilla.acotada && (anioNum < horquilla.min - tolerance || anioNum > horquilla.max + tolerance)) {
-      haptic.warning(); triggerShake();
-      toast.push(t("guess.yearOutOfRange"), { type: "error" });
+      avisar(t("guess.yearOutOfRange"), "anio");
       return;
     }
 
@@ -352,14 +382,20 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     // muerto. El intento no se toca, y el texto lo dice — que es lo único que
     // el jugador necesita saber en ese momento.
     if (!online) {
-      haptic.warning(); triggerShake();
-      toast.push(t("guess.sinRed"), { type: "error" });
+      avisar(t("guess.sinRed"));
       return;
     }
 
     const guessCar = CARS.find((c) => c.marca === marcaFinal && c.modelo === modeloFinal);
     if (!guessCar) return;
 
+    // ¿Se está jugando con TECLADO? Se mira ANTES de enviar, que es cuando el
+    // foco aún dice desde dónde se envió: un campo (Intro) o el botón con foco
+    // visible (Tab + Intro). Un clic de ratón deja el foco en el botón pero sin
+    // :focus-visible, y no cuenta.
+    const viaTeclado = !enApp && enviadoConTeclado(formRef.current);
+
+    setAviso(null);
     haptic.impactMedium();
     const result = await onSubmit({ guessCarId: guessCar.id, anio: String(anioNum), marca: marcaFinal, modelo: modeloFinal });
     if (!result) return;
@@ -368,10 +404,21 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     setModelo(result.modelo.status === "correct" ? modeloFinal : "");
     setAnio(result.anio.status === "correct" ? anioNum : "");
 
-    // QoL móvil (columna única): cerrar el teclado y devolver el cupón entero a
-    // la vista. Antes se centraba la fila «último intento»; sin ella el destino
-    // del scroll es el propio cupón.
-    if (window.matchMedia("(max-width: 1099px)").matches) {
+    // EN TÁCTIL, cerrar el teclado y devolver el cupón entero a la vista (antes
+    // se centraba la fila «último intento»; sin ella el destino del scroll es el
+    // propio cupón). CON TECLADO FÍSICO, lo contrario: el foco vuelve al primer
+    // campo por resolver, que es donde va a escribir el siguiente intento — antes
+    // se quedaba en el año recién vaciado y había que volver hacia atrás con
+    // Mayús+Tab. Si la partida acaba de terminar, el cupón ya no está y
+    // focusSoon no encuentra nada que enfocar: el panel final se lleva el foco.
+    const tactil = !window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (viaTeclado && !tactil) {
+      focusSoon(
+        result.marca.status !== "correct" ? marcaRef
+        : result.modelo.status !== "correct" ? modeloRef
+        : anioRef
+      );
+    } else if (window.matchMedia("(max-width: 1099px)").matches) {
       document.activeElement?.blur?.();
       requestAnimationFrame(() => {
         desplazarSuave(cuponRef.current, { block: "nearest" });
@@ -512,13 +559,14 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
-          onChange={(v) => { setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
+          onChange={(v) => { setAviso(null); setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
           onCommit={() => focusSoon(modeloRef)}
           inputRef={marcaRef}
           options={availableMarcas}
           placeholder={catalogCargando ? t("cdd.catalogLoading") : t("cdd.comboPlaceholder")}
           disabled={formDisabled}
-          invalid={marcaInvalida}
+          invalid={marcaInvalida || aviso?.campo === "marca"}
+          describedBy={aviso?.campo === "marca" ? avisoId : undefined}
           optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
           enterKeyHint="next"
           bloqueado={bloqueo.marca}
@@ -527,7 +575,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         <Combo
           label={t("cdd.labelModelo")}
           value={modelo}
-          onChange={(v) => setModelo(v)}
+          onChange={(v) => { setAviso(null); setModelo(v); }}
           onCommit={() => focusSoon(anioRef)}
           inputRef={modeloRef}
           options={modelOptions}
@@ -539,21 +587,32 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               : t("cdd.comboModeloDisabled")
           }
           disabled={formDisabled || !marcaValida}
-          invalid={modeloInvalido}
+          invalid={modeloInvalido || aviso?.campo === "modelo"}
+          describedBy={aviso?.campo === "modelo" ? avisoId : undefined}
           enterKeyHint="next"
           bloqueado={bloqueo.modelo}
           estado={bloqueo.modelo ? "resuelto" : null}
         />
         <YearField
           value={anio}
-          onChange={(v) => setAnio(v)}
+          onChange={(v) => { setAviso(null); setAnio(v); }}
           tolerance={tolerance}
           inputRef={anioRef}
           bloqueado={bloqueo.anio}
           estado={bloqueo.anio ? "resuelto" : null}
           horquilla={horquilla}
+          invalid={aviso?.campo === "anio"}
+          describedBy={aviso?.campo === "anio" ? avisoId : undefined}
         />
         </div>
+        )}
+        {/* El aviso del cupón, bajo las casillas y antes del botón: donde ya
+            está mirando quien acaba de tocar ADIVINAR. role="alert" para que
+            un lector de pantalla lo diga sin ir a buscarlo. */}
+        {!enApp && aviso && (
+          <p id={avisoId} className="prensa-aviso" role="alert">
+            {aviso.texto}
+          </p>
         )}
         {/* disabled SOLO mientras envía o sin catálogo (anti doble-submit).
             Con campos incompletos el botón queda tocable con aspecto apagado

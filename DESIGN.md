@@ -334,6 +334,13 @@ silencer, where `1ms` is a zero and not a tempo.
   brand drops to `bg`, loses its chevron and keeps its text in `tinta-2`. Web:
   three rounded fields, ink focus ring, red only when invalid; a disabled field
   is sunk the same way instead of fading to 45%.
+- **A rejected guess is told where the problem is** (web): an empty, repeated
+  or out-of-range field, or no network, writes one red line under the fields
+  (`prensa-aviso`, `role="alert"`), marks the field `aria-invalid` and moves
+  focus to it — never a toast at the foot of the screen. The app keeps the
+  toast: its coupon is laid out to the pixel against the photo and the sheet.
+  The brand and model fields are ARIA comboboxes (`aria-activedescendant` on
+  the highlighted option).
 - **Air around the primary action**: 12px above ADIVINAR (to the coupon) and
   12px below it (to the tab bar). The button must not rest on the bar's seam:
   the active tab's red line lives there and reads as the button's underline.
@@ -356,7 +363,13 @@ distribution and the spec sheet. The rescue's own end panel is the same object.
 - **Section screens** (Clasificación, Archivo, Perfil, Menú): the floor is
   `--bg` and everything on it is a card on `--surface` with a 1px seam. The
   section name is a 30px Barlow Condensed headline with the close button in its
-  row — no kicker above it.
+  row — no kicker above it. Every section is a dialog for assistive tech
+  (named, focus inside, Tab trapped via `lib/foco.js`), including the Archivo,
+  which does not mount ModalShell; and a veil that is leaving stops taking taps
+  the moment it closes.
+- **An anonymous session is not an account.** The profile of a player without
+  account shows their figures, offers «Iniciar sesión» under them and has no
+  «Cerrar sesión»: closing an anonymous session cannot be undone.
 - **Grouped lists** (`grupo-lista` / `grupo-fila`): settings and the menu.
   58px rows, hairline separators, a plain line icon in the secondary grey when
   the row needs one, a chevron or a control at the end.

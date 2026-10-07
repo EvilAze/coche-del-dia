@@ -16,3 +16,26 @@ export const BONUS_RACHA = [
   { dias: 3, bonus: 2 },
   { dias: 4, bonus: 3 },
 ];
+
+// Bonus de racha de un día GANADO, dada la racha ya actualizada (contando hoy).
+// Mismo escalonado que `streakBonusFor` del servidor; el test de sincronía lo
+// compara racha a racha.
+export function bonusDeRacha(racha) {
+  if (!Number.isFinite(racha)) return 0;
+  let bonus = 0;
+  for (const escalon of BONUS_RACHA) if (racha >= escalon.dias) bonus = escalon.bonus;
+  return bonus;
+}
+
+// LA PUNTUACIÓN DEL DÍA, RECONSTRUIDA. El servidor solo la manda en la
+// respuesta del intento que cierra la partida; quien vuelve más tarde (recarga,
+// otra visita, la app que se recarga sola) recibía «Puntos de hoy —» por algo
+// que ya había ganado. Con los intentos y la racha de hoy se rehace exacta: es
+// la misma cuenta que record_daily_result, sin datos nuevos. Devuelve null si
+// la partida no se ganó o el número de intentos no está en la curva.
+export function puntuacionDelDia(intentos, racha) {
+  const base = PUNTOS_POR_INTENTO[intentos - 1];
+  if (!Number.isFinite(base)) return null;
+  const bonus = bonusDeRacha(racha);
+  return { basePoints: base, streakBonus: bonus, totalPoints: base + bonus };
+}

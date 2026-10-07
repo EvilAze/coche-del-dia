@@ -37,6 +37,7 @@ import { esApp } from "../../lib/plataforma";
 import { track } from "../../lib/analytics";
 import { flagImagePath } from "../../data/countries";
 import { apiUrl } from "../../lib/apiUrl";
+import { puntuacionDelDia } from "../../lib/puntos";
 import { useToast } from "../Toast";
 import { Icon, I } from "./icons";
 // `Percentile` se retiró de dailyStats: era una caja con el porcentaje y ahora ese
@@ -156,7 +157,7 @@ export default function EndScreen({
   sentirSello = false,
   // La puntuación que devolvió el servidor al cerrar la partida (base, bonus de
   // racha, racha actual y mejor racha). Solo existe en la sesión en que se
-  // terminó: al reabrir tras recargar, el marcador enseña lo que sabe.
+  // terminó; al reabrir tras recargar se reconstruye (ver `marcador`, abajo).
   score = null,
   // La racha que había ANTES de esta partida. Al perder, `streak` ya vale 0 y
   // sin esto no se podría decir qué racha se acaba de cortar.
@@ -265,7 +266,16 @@ export default function EndScreen({
     }
   }
 
-  const puntos = useCuenta(score?.totalPoints ?? 0);
+  // EL MARCADOR NO SE BORRA AL VOLVER. `score` solo llega en la respuesta del
+  // intento que cerró la partida, así que quien volvía más tarde —recarga, otra
+  // visita, la app que se recarga sola— veía «Puntos de hoy —» por unos puntos
+  // que ya tenía (medido el 7-oct: 3 pts recién ganada, «—» al recargar, en día,
+  // noche y escritorio). Con los intentos y la racha de hoy la cuenta se rehace
+  // exacta (lib/puntos.js, réplica del servidor con su test de sincronía). Lo
+  // único que no se puede rehacer es la MEJOR racha, que solo trae el servidor:
+  // esa línea se omite, como ya hacía cuando no llegaba.
+  const marcador = score ?? (won ? puntuacionDelDia(attempts, streak) : null);
+  const puntos = useCuenta(marcador?.totalPoints ?? 0);
   const lectura = !won && hasReveal ? lecturaDerrota(guesses, car, t) : null;
   const mejorRacha = score?.maxStreak ?? null;
   // «No eres el único»: qué parte del mundo tampoco lo sacó hoy. En tanto por
@@ -373,7 +383,7 @@ export default function EndScreen({
             <div className="fin-marcador">
               <div className="fin-marcador-cifra">
                 <span className="fin-etiqueta">{t("fin.puntosHoy")}</span>
-                {score ? (
+                {marcador ? (
                   <span className="fin-puntos">
                     {puntos}
                     <small>{t("score.points")}</small>
@@ -384,16 +394,16 @@ export default function EndScreen({
               </div>
               <Rejilla guesses={guesses} />
             </div>
-            {score && (
+            {marcador && (
               <dl className="fin-desglose">
                 <div>
                   <dt>{t("fin.base", { n: attempts })}</dt>
-                  <dd>+{score.basePoints}</dd>
+                  <dd>+{marcador.basePoints}</dd>
                 </div>
-                {score.streakBonus > 0 && (
+                {marcador.streakBonus > 0 && (
                   <div>
                     <dt>{t("fin.bonusRacha")}</dt>
-                    <dd className="oro">+{score.streakBonus}</dd>
+                    <dd className="oro">+{marcador.streakBonus}</dd>
                   </div>
                 )}
               </dl>

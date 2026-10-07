@@ -35,6 +35,10 @@ export default function YearField({
   bloqueado = false,
   // Horquilla viva: { min, max, acotada } de lib/yearRange.
   horquilla = null,
+  // El aviso del cupón señala este campo (año que falta, repetido o fuera de
+  // la horquilla): lo marca como inválido y lo enlaza con su texto.
+  invalid = false,
+  describedBy = undefined,
 }) {
   const { t } = useT();
   // id estable para asociar <label> ↔ <input> (a11y: gemelo de Marca/Modelo).
@@ -79,9 +83,11 @@ export default function YearField({
           }}
           className={
             "prensa-input" +
-            (isInvalid ? " invalida" : "") +
+            (isInvalid || invalid ? " invalida" : "") +
             (resuelto ? " veredicto-resuelto" : "")
           }
+          aria-invalid={isInvalid || invalid || undefined}
+          aria-describedby={describedBy}
           inputMode="numeric"
           // "go" y no "done": Enter aquí ENVÍA el intento (submit del form).
           enterKeyHint="go"

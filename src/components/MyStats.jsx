@@ -28,7 +28,7 @@
 
 import { useEffect, useState } from "react";
 import { getProfileSummary, getMyDistribution, getCurrentSeason } from "../lib/statsService";
-import { signOut } from "../lib/auth";
+import { signOut, esCuentaReal } from "../lib/auth";
 import { useEscape } from "../hooks/useEscape";
 import { useHistoryChain } from "../hooks/useHistoryClose";
 import { useT } from "../i18n";
@@ -88,6 +88,7 @@ export default function MyStats({
   open,
   onClose,
   onSignedOut,
+  onOpenLogin,
   onOpenRanking,
   onOpenNickname,
   onOpenContacto,
@@ -171,6 +172,18 @@ export default function MyStats({
 
   const cargando = state.loading;
   const stats = state.stats;
+  // LA SESIÓN ANÓNIMA NO ES UNA CUENTA, Y ESTE PERFIL TAMPOCO DEBE FINGIRLO.
+  // Tras la primera partida, Supabase da al jugador una sesión anónima con sus
+  // cifras de verdad (ver lib/auth.js), y este perfil la pintaba igual que una
+  // cuenta: «Sin nickname», un lápiz para elegir firma —que sin cuenta no se
+  // puede guardar— y, abajo del todo, «Cerrar sesión · Sesión anónima» con la
+  // misma flecha que cualquier fila. Ese toque cerraba al momento una sesión
+  // que NO tiene credencial con la que volver: racha, aciertos y portadas
+  // quedaban fuera de alcance, sin aviso. Y lo único que protege todo eso,
+  // «Entrar», no aparecía. Ahora es al revés: sin salida que destruya, con la
+  // puerta que guarda a la vista (el acceso vincula la sesión anónima, así que
+  // entrar conserva lo jugado).
+  const sesionAnonima = Boolean(state.user) && !esCuentaReal(state.user);
   const sinFirma = !state.profile?.display_name;
   const nickname = state.profile?.display_name || t("myStats.noNickname");
   const email = state.user?.email || "";
@@ -233,18 +246,44 @@ export default function MyStats({
           </button>
         </div>
       ) : !cargando && !state.user ? (
-        <div className="clas-aviso">
-          <p className="clas-aviso-texto">{t("myStats.promoLogin")}</p>
-        </div>
+        /* Antes de la primera partida no hay ni sesión anónima. Era un callejón:
+           una frase que pedía iniciar sesión sin botón para hacerlo, y sin los
+           ajustes, que solo vivían en la rama de abajo. */
+        <>
+          <div className="clas-aviso">
+            <p className="clas-aviso-texto">{t("myStats.promoLogin")}</p>
+            <button type="button" className="pm-btn" onClick={() => go(onOpenLogin, "perfil")}>
+              {t("common.signIn")}
+            </button>
+          </div>
+          <section className="perf-ajustes" aria-label={t("myStats.settings")}>
+            <h3 className="grupo-titulo">{t("myStats.settings")}</h3>
+            <div className="grupo-lista">
+              <FilaTema />
+              <FilaIdioma />
+            </div>
+          </section>
+        </>
       ) : (
         <>
           {/* ── Tú ── */}
           <section className="perf-id" aria-busy={cargando}>
-            <span className="perf-avatar" aria-hidden="true">{cargando ? "" : inicial}</span>
+            <span className="perf-avatar" aria-hidden="true">
+              {cargando ? "" : sesionAnonima ? <Icon d={I.user} size={30} /> : inicial}
+            </span>
             <span className="perf-id-texto">
-              <b className={"perf-nick" + (sinFirma ? " sin" : "")}>{cargando ? guion : nickname}</b>
-              {(sinFirma ? t("myStats.sinFirmaApunte") : desde) && !cargando && (
-                <span className="perf-desde">{sinFirma ? t("myStats.sinFirmaApunte") : desde}</span>
+              {sesionAnonima ? (
+                <>
+                  <b className="perf-nick">{t("myStats.anonTitulo")}</b>
+                  <span className="perf-desde">{t("myStats.anonApunte")}</span>
+                </>
+              ) : (
+                <>
+                  <b className={"perf-nick" + (sinFirma ? " sin" : "")}>{cargando ? guion : nickname}</b>
+                  {(sinFirma ? t("myStats.sinFirmaApunte") : desde) && !cargando && (
+                    <span className="perf-desde">{sinFirma ? t("myStats.sinFirmaApunte") : desde}</span>
+                  )}
+                </>
               )}
               {tierLabel && (
                 <span className={`perf-rango tier-${tier}`} title={t("myStats.tierLabel")}>
@@ -253,15 +292,18 @@ export default function MyStats({
                 </span>
               )}
             </span>
-            <button
-              type="button"
-              className="perf-editar"
-              onClick={() => go(onOpenNickname)}
-              aria-label={sinFirma ? t("myStats.pickNick") : t("myStats.changeNick")}
-              title={sinFirma ? t("myStats.pickNick") : t("myStats.changeNick")}
-            >
-              <Icon d={I.lapiz} size={20} />
-            </button>
+            {/* La firma es de la cuenta: sin cuenta no hay dónde guardarla. */}
+            {!sesionAnonima && (
+              <button
+                type="button"
+                className="perf-editar"
+                onClick={() => go(onOpenNickname)}
+                aria-label={sinFirma ? t("myStats.pickNick") : t("myStats.changeNick")}
+                title={sinFirma ? t("myStats.pickNick") : t("myStats.changeNick")}
+              >
+                <Icon d={I.lapiz} size={20} />
+              </button>
+            )}
           </section>
 
           {/* ── Tus cifras ── */}
@@ -305,6 +347,17 @@ export default function MyStats({
               </span>
             </button>
           </section>
+
+          {/* Justo debajo de lo que se puede perder: ahí es donde se entiende
+              por qué entrar. */}
+          {sesionAnonima && !cargando && (
+            <div className="clas-aviso">
+              <p className="clas-aviso-texto">{t("myStats.anonGuardar")}</p>
+              <button type="button" className="pm-btn" onClick={() => go(onOpenLogin, "perfil_anonimo")}>
+                {t("common.signIn")}
+              </button>
+            </div>
+          )}
 
           <Distribucion dist={dist} />
 
@@ -351,14 +404,18 @@ export default function MyStats({
                 <Icon d={I.chevR} size={18} className="grupo-chev" />
               </button>
               {/* El correo va aquí y no arriba: nadie abre su perfil para ver su
-                  propio correo, pero al cerrar sesión sí importa cuál se cierra. */}
-              <button type="button" className="grupo-fila" onClick={handleSignOut}>
-                <span className="grupo-fila-texto">
-                  <b>{t("common.signOut")}</b>
-                  <span title={email}>{email || t("myStats.sessionAnon")}</span>
-                </span>
-                <Icon d={I.arrowR} size={18} className="grupo-chev" />
-              </button>
+                  propio correo, pero al cerrar sesión sí importa cuál se cierra.
+                  Solo con cuenta: cerrar una sesión anónima no es «salir», es
+                  tirar lo jugado (ver `sesionAnonima`). */}
+              {!sesionAnonima && (
+                <button type="button" className="grupo-fila" onClick={handleSignOut}>
+                  <span className="grupo-fila-texto">
+                    <b>{t("common.signOut")}</b>
+                    <span title={email}>{email || t("myStats.sessionAnon")}</span>
+                  </span>
+                  <Icon d={I.arrowR} size={18} className="grupo-chev" />
+                </button>
+              )}
             </div>
 
             {/* Solo con cuenta de verdad (`email` vacío = sesión anónima, que

@@ -46,11 +46,15 @@ export default function Combo({
   // historial, que por eso volvió a pintarse también en móvil.
   estado = null,
   bloqueado = false,
+  // id del aviso del cupón cuando el problema es de este campo (aria-describedby).
+  describedBy = undefined,
 }) {
   const { t } = useT();
   // id estable para asociar <label> ↔ <input> (a11y: el lector de pantalla
   // anuncia "Marca"/"Modelo" y tocar la etiqueta enfoca el campo).
   const inputId = useId();
+  // id de la lista y prefijo de las opciones, para el patrón combobox (abajo).
+  const listId = useId();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [hi, setHi] = useState(0);
@@ -143,6 +147,16 @@ export default function Combo({
   // qué) y sin desplegable. El lector de pantalla anuncia el valor y su estado.
   const resuelto = estado === "resuelto" || bloqueado;
 
+  // PATRÓN COMBOBOX (ARIA 1.2). El teclado ya funcionaba —flechas, Intro,
+  // Escape—, pero para un lector de pantalla esto era un campo de búsqueda sin
+  // más: no sabía que se había abierto una lista ni cuál estaba resaltada, y la
+  // opción resaltada seguía con aria-selected=false. El foco NO sale del input
+  // (sigues escribiendo); la opción activa se anuncia con aria-activedescendant
+  // y es la que lleva aria-selected.
+  const listaVisible = open && !disabled && !resuelto;
+  const opcionId = (i) => `${listId}-op-${i}`;
+  const activa = listaVisible && filtered[hi] ? opcionId(hi) : undefined;
+
   return (
     <div className="relative flex flex-col gap-0.5" ref={ref}>
       <label htmlFor={inputId} className="prensa-label">
@@ -170,6 +184,13 @@ export default function Combo({
           disabled={disabled}
           readOnly={resuelto}
           aria-readonly={resuelto || undefined}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={listaVisible}
+          aria-controls={listaVisible ? listId : undefined}
+          aria-activedescendant={activa}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           placeholder={placeholder}
           onChange={(e) => { onChange(""); setQ(e.target.value); setOpen(true); }}
           onFocus={onFocus}
@@ -182,18 +203,21 @@ export default function Combo({
           <span className="prensa-campo-marca bien" aria-hidden="true">✓</span>
         )}
       </div>
-      {open && !disabled && !resuelto && (
-        <ul className="prensa-listbox" role="listbox" ref={listRef}>
+      {listaVisible && (
+        <ul id={listId} className="prensa-listbox" role="listbox" aria-label={label} ref={listRef}>
           {filtered.length === 0 && (
-            <li className="prensa-opt vacia">{t("cdd.noMatches")}</li>
+            <li className="prensa-opt vacia" role="option" aria-disabled="true" aria-selected="false">
+              {t("cdd.noMatches")}
+            </li>
           )}
           {filtered.map((o, i) => {
             const flag = optionFlag ? optionFlag(o) : null;
             return (
               <li
                 key={o}
+                id={opcionId(i)}
                 role="option"
-                aria-selected={o === value}
+                aria-selected={i === hi}
                 className={"prensa-opt" + (i === hi ? " hi" : "")}
                 onMouseEnter={() => setHi(i)}
                 onClick={() => choose(o)}

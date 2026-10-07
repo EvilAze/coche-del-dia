@@ -713,6 +713,7 @@ export default function App() {
             open={activeModal === "profile"}
             onClose={closeModal}
             onSignedOut={handleSignedOut}
+            onOpenLogin={openLogin}
             onOpenGarage={openGarage}
             onOpenRanking={openRanking}
             // El candado junto al nick pasa a ser un botón: ya se puede cambiar.

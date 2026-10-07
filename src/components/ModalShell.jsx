@@ -40,6 +40,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useScrollLock } from "../hooks/useScrollLock";
+import { atraparTab } from "../lib/foco";
 
 // LO QUE TARDA EN IRSE, QUE NO ES LO MISMO QUE LO QUE TARDA EN VENIR.
 //
@@ -166,29 +167,11 @@ export default function ModalShell({
   }, [open]);
 
   // Focus trap: Tab / Shift+Tab ciclan DENTRO del diálogo, sin escaparse a la
-  // página de fondo. (Escape lo gestiona cada modal vía useEscape.)
+  // página de fondo. (Escape lo gestiona cada modal vía useEscape.) La lógica
+  // vive en lib/foco.js porque el Archivo, que no monta ModalShell, la necesita
+  // igual.
   function handleKeyDown(e) {
-    if (e.key !== "Tab") return;
-    const panel = panelRef.current;
-    if (!panel) return;
-    const focusables = panel.querySelectorAll(
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
-    if (focusables.length === 0) {
-      e.preventDefault();
-      panel.focus();
-      return;
-    }
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    const active = document.activeElement;
-    if (e.shiftKey && (active === first || active === panel)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && active === last) {
-      e.preventDefault();
-      first.focus();
-    }
+    atraparTab(e, panelRef.current);
   }
 
   if (!render) return null;

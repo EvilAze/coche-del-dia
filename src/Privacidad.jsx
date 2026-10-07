@@ -26,7 +26,17 @@ const ADMIN_CONTACT_EMAIL = "soporte@cochedeldia.com";
 // IMPORTANTE: actualizar esta fecha CADA VEZ que cambies el contenido
 // del documento. GDPR Art. 13 exige que el usuario sepa cuándo ha sido
 // la última revisión de los términos que está aceptando implícitamente.
-const LAST_UPDATED = "6 de agosto de 2026";
+const LAST_UPDATED = "7 de octubre de 2026";
+// (7-oct-2026) Puesta al día con el producto real. La versión anterior decía
+// que los datos llegaban solo de Google y que el juego «no envía correos»,
+// cuando el acceso por código de 6 cifras los envía; hablaba del «Garaje» y de
+// un «ranking diario y global»; y en «Datos que recopilamos» faltaban la sesión
+// anónima, el nombre de jugador, los mensajes del buzón y las suscripciones de
+// avisos, que el apartado 7 sí mencionaba. Cada dato de abajo sale del código:
+// lib/auth.js, statsService.js, el buzón (scripts/2026-08-buzon-de-mensajes.sql),
+// push_subscriptions (scripts/2026-07-web-push-subscriptions.sql) y el envío del
+// código por Resend (docs/correo-de-entrada.md). Si cambia un proveedor o un
+// dato, este texto cambia con él.
 
 export default function Privacidad() {
   // Título de pestaña y meta-tag descriptivo. SÍ queremos que sea
@@ -72,13 +82,35 @@ export default function Privacidad() {
         <main className="mt-8 space-y-8 text-sm leading-relaxed sm:text-[15px]">
           <Section title="1. Datos que recopilamos">
             <p>
-              El Coche del Día únicamente recopila los siguientes datos personales,
-              proporcionados por tu cuenta de Google en el momento del inicio
-              de sesión:
+              El Coche del Día solo trata los datos necesarios para que el juego
+              funcione:
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-tinta">
-              <li>Tu nombre.</li>
-              <li>Tu dirección de correo electrónico.</li>
+              <li>
+                <span className="pm-strong">Si juegas sin cuenta:</span> un
+                identificador anónimo que se crea al enviar tu primer intento, con
+                tus partidas, tu racha y tu colección. No va asociado a tu nombre
+                ni a tu correo.
+              </li>
+              <li>
+                <span className="pm-strong">Si creas una cuenta:</span> tu
+                dirección de correo electrónico y, si entras con Google, también el
+                nombre de tu cuenta de Google.
+              </li>
+              <li>
+                Tu <span className="pm-strong">nombre de jugador</span>, si eliges
+                uno para aparecer en la clasificación.
+              </li>
+              <li>
+                Los <span className="pm-strong">mensajes</span> que nos envíes desde
+                «Escribir al equipo», con el correo que decidas dejarnos para
+                responderte (es opcional).
+              </li>
+              <li>
+                Si activas los <span className="pm-strong">avisos diarios</span> en
+                la web: la suscripción de notificaciones de tu navegador y tu
+                idioma.
+              </li>
             </ul>
             <p className="mt-3 text-muted">
               No solicitamos, recopilamos ni almacenamos ningún otro dato
@@ -88,19 +120,23 @@ export default function Privacidad() {
 
           <Section title="2. Finalidad del tratamiento">
             <p>
-              La única finalidad de estos datos es la creación de una cuenta
-              de usuario en El Coche del Día que permita:
+              Estos datos se usan únicamente para:
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-tinta">
               <li>
-                Guardar tu progreso de juego (intentos, victorias, derrotas).
+                Guardar tu progreso de juego (intentos, aciertos y racha) y tu
+                colección de portadas en el Archivo.
               </li>
               <li>
-                Mantener tu colección personal en el Garaje (álbum de coches
-                adivinados).
+                Mostrar tu puntuación en la clasificación semanal y de temporada,
+                si has elegido un nombre de jugador.
               </li>
               <li>
-                Registrar tu puntuación en el ranking diario y global.
+                Enviarte el código de acceso por correo cuando eliges entrar con tu
+                correo, y los avisos diarios si los activas.
+              </li>
+              <li>
+                Leer y responder los mensajes que nos escribas.
               </li>
             </ul>
             <p className="mt-3 text-muted">
@@ -126,36 +162,40 @@ export default function Privacidad() {
           <Section title="4. Compartición con terceros">
             <p>
               El Coche del Día <span className="pm-strong">no comparte</span>,{" "}
-              <span className="pm-strong">no vende</span> ni cede tu nombre
-              o tu correo electrónico a terceros bajo ninguna circunstancia.
+              <span className="pm-strong">no vende</span> ni cede tus datos
+              personales a terceros bajo ninguna circunstancia.
             </p>
             <p className="mt-3 text-muted">
-              Tampoco utilizamos tu correo electrónico para enviar
-              comunicaciones promocionales, publicitarias ni de ningún otro
-              tipo. El Coche del Día no envía correos electrónicos a sus usuarios.
+              Solo te escribimos cuando tú lo pides: el código de acceso de 6
+              cifras si entras con tu correo, y la respuesta a un mensaje si nos
+              dejaste tu dirección. Nunca enviamos comunicaciones promocionales ni
+              publicitarias.
             </p>
           </Section>
 
-          <Section title="5. Cookies y servicios técnicos">
+          <Section title="5. Cookies y almacenamiento local">
             <p>
-              El Coche del Día utiliza únicamente cookies{" "}
-              <span className="pm-strong">estrictamente necesarias</span>{" "}
+              El Coche del Día solo guarda en tu navegador (con cookies o con su
+              almacenamiento local) lo{" "}
+              <span className="pm-strong">estrictamente necesario</span>{" "}
               para el funcionamiento del juego. Conforme al artículo 22.2
-              de la LSSI y la Directiva ePrivacy, estas cookies no
-              requieren consentimiento previo:
+              de la LSSI y la Directiva ePrivacy, este almacenamiento no
+              requiere consentimiento previo:
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-tinta">
               <li>
-                <span className="pm-strong">Cookie de sesión anónima:</span>{" "}
-                firmada, permite contar tus intentos del día y mantener tu
-                progreso sin necesidad de cuenta. Caduca cada 24 horas.
+                <span className="pm-strong">Partida sin cuenta:</span>{" "}
+                un identificador firmado que cuenta tus intentos del día y
+                mantiene tu progreso sin necesidad de cuenta. Se renueva cada día.
               </li>
               <li>
-                <span className="pm-strong">
-                  Cookies de autenticación (Supabase):
-                </span>{" "}
-                solo si inicias sesión con Google. Mantienen tu sesión
-                activa entre visitas.
+                <span className="pm-strong">Sesión (Supabase):</span>{" "}
+                mantiene tu sesión entre visitas, tanto si tienes cuenta como si
+                juegas sin ella.
+              </li>
+              <li>
+                <span className="pm-strong">Preferencias:</span>{" "}
+                el tema (día o noche), el idioma y si ya viste la ayuda.
               </li>
             </ul>
             <p className="mt-3 text-muted">
@@ -174,9 +214,16 @@ export default function Privacidad() {
             <ul className="mt-3 list-disc space-y-2 pl-5 text-tinta">
               <li>
                 <span className="pm-strong">Supabase</span> (alojado en
-                AWS, regiones EU). Base de datos y autenticación. Recibe:
-                tu identificador de cuenta, nombre, email y progreso de
-                juego. Base legal: ejecución del contrato (Art. 6.1.b GDPR).
+                AWS, regiones EU). Base de datos y autenticación. Recibe: tu
+                identificador (de cuenta o anónimo), tu correo y tu nombre si los
+                hay, tu nombre de jugador, tu progreso de juego y los mensajes que
+                nos envíes. Base legal: ejecución del contrato (Art. 6.1.b GDPR).
+              </li>
+              <li>
+                <span className="pm-strong">Resend</span> (envío de correo, desde
+                servidores en Irlanda). Solo cuando pides entrar con tu correo:
+                recibe tu dirección y el código de acceso que te enviamos. Base
+                legal: ejecución del contrato (Art. 6.1.b GDPR).
               </li>
               <li>
                 <span className="pm-strong">Vercel</span> (alojamiento de
@@ -204,6 +251,20 @@ export default function Privacidad() {
                 evento. Base legal: interés legítimo en garantizar la
                 seguridad y la fiabilidad del servicio (Art. 6.1.f GDPR).
               </li>
+              <li>
+                <span className="pm-strong">
+                  Servicio de notificaciones de tu navegador
+                </span>{" "}
+                (Google, Mozilla o Apple, según el navegador). Solo si activas
+                los avisos diarios en la web: el aviso viaja por él hasta tu
+                dispositivo. Base legal: tu consentimiento al activarlos (Art.
+                6.1.a GDPR); puedes retirarlo desactivando los avisos.
+              </li>
+              <li>
+                <span className="pm-strong">YouTube</span> (Google). Solo si
+                pulsas reproducir el vídeo de un coche, en su versión sin
+                cookies de seguimiento; antes de pulsar no se carga nada.
+              </li>
             </ul>
             <p className="mt-3 text-muted">
               El Coche del Día no transfiere tus datos a terceros con fines
@@ -220,8 +281,9 @@ export default function Privacidad() {
               inmediato e irreversible.
             </p>
             <p className="mt-3">
-              Se elimina tu identidad (nombre, correo y la conexión con tu cuenta
-              de Google), tu nombre de jugador y tus suscripciones a avisos. El
+              Se elimina tu identidad (nombre, correo y, si la usabas, la conexión
+              con tu cuenta de Google), tu nombre de jugador y tus suscripciones
+              a avisos. El
               registro de partidas se conserva{" "}
               <span className="pm-strong">anonimizado</span>, sin ninguna
               referencia a ti, porque de él dependen las clasificaciones ya

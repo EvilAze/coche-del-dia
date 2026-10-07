@@ -24,8 +24,9 @@
 // coches, dos taps hasta ver un solo cromo) y pasó a ser un chip de filtro:
 // se salta de país a país sin volver atrás.
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
+import { atraparTab } from "../lib/foco";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
 import { useHistoryChain } from "../hooks/useHistoryClose";
@@ -269,6 +270,48 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       setConfirmRepesca(false);
       setHelpOpen(false);
     }
+  }, [open]);
+
+  // ── EL ARCHIVO ES UN DIÁLOGO, AUNQUE NO MONTE ModalShell ────────────────
+  // Es la única sección que va en su propio motion.div (por el arrastre lateral
+  // y la salida con muelle), y por eso se había quedado sin lo que ModalShell da
+  // gratis a las demás: nombre de diálogo, foco dentro al abrir, Tab que no se
+  // escapa y foco de vuelta al cerrar. Sin ello el foco se quedaba en <body> y con
+  // Tab se acababa en «Abrir menú», debajo del Archivo. Mismo rAF que ModalShell:
+  // el panel aún se está montando cuando corre el efecto.
+  const panelRef = useRef(null);
+  const tituloId = useId();
+  useEffect(() => {
+    if (!open) return;
+    const previo = document.activeElement;
+    const id = requestAnimationFrame(() => {
+      const panel = panelRef.current;
+      if (panel && !panel.contains(document.activeElement)) {
+        panel.focus({ preventScroll: true });
+      }
+    });
+    return () => {
+      cancelAnimationFrame(id);
+      if (previo && typeof previo.focus === "function" && document.contains(previo)) {
+        previo.focus({ preventScroll: true });
+      }
+    };
+  }, [open]);
+
+  // ── EL VELO QUE SE VA NO PUEDE SEGUIR COMIÉNDOSE TOQUES ─────────────────
+  // Medido en producción: tras pulsar ✕, el velo seguía montado y a pantalla
+  // completa unos 2,2 s —opaco los primeros ~900 ms y transparente después— y
+  // con `pointer-events` vivos todo ese rato. El primer toque en otra pestaña
+  // caía en él (y llamaba a onClose otra vez, que no hace nada), así que «tocar
+  // Perfil» no abría Perfil hasta el segundo intento. Pasaba 3 de 3 veces.
+  //
+  // Se corta aquí y no con el `exit` de framer porque no depende de cuánto tarde
+  // la animación en arrancar o en asentarse: en cuanto `open` es false, el nodo
+  // que se está yendo deja de ser un objetivo. Si se reabre a mitad de salida,
+  // AnimatePresence reutiliza el mismo nodo, así que hay que devolvérselo.
+  const veloRef = useRef(null);
+  useEffect(() => {
+    if (veloRef.current) veloRef.current.style.pointerEvents = open ? "" : "none";
   }, [open]);
 
   // Instrumentación: una vez por apertura (logueado o no — el anónimo rebota
@@ -556,22 +599,34 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       {open && (
         <motion.div
           key="garage-backdrop"
+          ref={veloRef}
           className="scrim-flat fixed inset-0 z-[85] flex items-stretch justify-center"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          // Las salidas son más cortas que las entradas (DESIGN.md §6): --ms-roce
+          // con --curva-sale, en vez de heredar los 200 ms de la entrada.
+          exit={{ opacity: 0, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } }}
           transition={{ duration: 0.2 }}
         >
           <motion.div
             key="garage-panel"
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={tituloId}
+            tabIndex={-1}
+            onKeyDown={(e) => atraparTab(e, panelRef.current)}
             className="
-              arch-panel relative flex w-full max-w-md flex-col overflow-hidden
+              arch-panel relative flex w-full max-w-md flex-col overflow-hidden outline-none
             "
             onClick={(e) => e.stopPropagation()}
             initial={{ y: 24, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 24, opacity: 0, scale: 0.98 }}
+            // La entrada conserva su muelle; la SALIDA no. Un muelle en la
+            // salida tarda en asentarse —y la opacidad con él— y era la mitad de
+            // los 2,2 s que el Archivo se quedaba encima tras cerrarlo.
+            exit={{ y: 24, opacity: 0, scale: 0.98, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } }}
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
             // Drag horizontal armado pero NO autostart: el edge handle de
             // abajo es quien dispara dragControls.start(). Así el resto del
@@ -605,7 +660,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
                 sistema. El aire propio viaja en la variable y no en un `pt-*`,
                 porque la clase pisaría la utilidad (ver index.css). */}
             <div className="arch-cab safe-area-top" style={{ "--safe-area-extra-top": "0.5rem" }}>
-              <h2 className="clas-titulo">{t("prensa.garaje")}</h2>
+              <h2 id={tituloId} className="clas-titulo">{t("prensa.garaje")}</h2>
               {/* El orden, como UNA tecla que rota entre los disponibles: tres
                   palabras sueltas en una fila aparte eran una línea entera para
                   algo que se toca una vez. «Rareza» solo entra en la rueda

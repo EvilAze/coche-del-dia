@@ -77,10 +77,13 @@ describe("El aviso del cupón web va junto al campo", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("el foco va al campo que falta", async () => {
+  it("el foco va al campo que falta sin desplegar la lista que taparía el aviso", async () => {
     await montar();
     fireEvent.click(adivinar());
     await waitFor(() => expect(document.activeElement).toBe(campoMarca()));
+    expect(campoMarca().getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.getByRole("alert")).toBeTruthy();
   });
 
   it("escribir en el campo retira el aviso", async () => {

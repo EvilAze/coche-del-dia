@@ -567,6 +567,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           disabled={formDisabled}
           invalid={marcaInvalida || aviso?.campo === "marca"}
           describedBy={aviso?.campo === "marca" ? avisoId : undefined}
+          abrirAlEnfocar={aviso?.campo !== "marca"}
           optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
           enterKeyHint="next"
           bloqueado={bloqueo.marca}
@@ -589,6 +590,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           disabled={formDisabled || !marcaValida}
           invalid={modeloInvalido || aviso?.campo === "modelo"}
           describedBy={aviso?.campo === "modelo" ? avisoId : undefined}
+          abrirAlEnfocar={aviso?.campo !== "modelo"}
           enterKeyHint="next"
           bloqueado={bloqueo.modelo}
           estado={bloqueo.modelo ? "resuelto" : null}

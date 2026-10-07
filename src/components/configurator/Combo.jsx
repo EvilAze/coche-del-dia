@@ -48,6 +48,11 @@ export default function Combo({
   bloqueado = false,
   // id del aviso del cupón cuando el problema es de este campo (aria-describedby).
   describedBy = undefined,
+  // ¿Enfocar el campo despliega la lista? Sí, salvo cuando el foco lo pone el
+  // aviso del cupón: la lista cuelga justo encima de la línea del aviso y la
+  // tapaba en el mismo frame en que se escribía (visto en producción el 7-oct).
+  // Teclear, la flecha abajo o un toque siguen abriéndola.
+  abrirAlEnfocar = true,
 }) {
   const { t } = useT();
   // id estable para asociar <label> ↔ <input> (a11y: el lector de pantalla
@@ -122,7 +127,7 @@ export default function Combo({
     // no se puede cambiar. (`resuelto` se declara abajo; para cuando el usuario
     // puede enfocar, el render ya lo ha inicializado.)
     if (disabled || resuelto) return;
-    setOpen(true);
+    if (abrirAlEnfocar) setOpen(true);
     // Subir el campo sobre el teclado es cosa de la WEB. En la app lo resuelve
     // la composición (el cupón ya nace pegado al teclado), y desplazar aquí
     // movería un shell que por diseño no se mueve. La decisión vive en
@@ -194,6 +199,10 @@ export default function Combo({
           placeholder={placeholder}
           onChange={(e) => { onChange(""); setQ(e.target.value); setOpen(true); }}
           onFocus={onFocus}
+          // Un toque sobre el campo ya enfocado también la abre: sin esto, tras
+          // cerrarla con Escape (o tras el foco del aviso) solo se reabría
+          // tecleando o con la flecha.
+          onClick={() => { if (!disabled && !resuelto) setOpen(true); }}
           onKeyDown={onKey}
         />
         {/* El ✓ del campo resuelto vive FUERA del input (un <input> no admite

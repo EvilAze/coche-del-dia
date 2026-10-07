@@ -20,7 +20,13 @@ import { yearRange, MIN_YEAR } from "./yearRange";
  * @param {number} [maxYear]
  * @returns {string[]}  Frases cortas en minúscula, listas para unir con « · ».
  */
-export function pistasAprendidas(guesses, tolerance, t, maxYear = new Date().getFullYear()) {
+export function pistasAprendidas(
+  guesses,
+  tolerance,
+  t,
+  maxYear = new Date().getFullYear(),
+  nombrePais = null
+) {
   const lista = Array.isArray(guesses) ? guesses : [];
   const pistas = [];
 
@@ -28,10 +34,22 @@ export function pistasAprendidas(guesses, tolerance, t, maxYear = new Date().get
   // sobra. El país se dice con la marca que lo destapó, que es la que el jugador
   // tiene en la cabeza — «mismo país que Alfa Romeo» se entiende sin saber que
   // la bandera era la italiana.
+  //
+  // …PERO SE DICE TAMBIÉN EL PAÍS, si se sabe cuál es (`nombrePais` traduce el
+  // código del servidor). En la partida del 7-oct, «es del mismo país que
+  // Nissan» obligaba a traducir Nissan → Japón cuando la celda ya enseñaba la
+  // bandera. «Es de Japón, como Nissan» dice las dos cosas.
   const marcaOk = lista.find((g) => g?.marca?.status === "correct");
   const marcaCerca = lista.find((g) => g?.marca?.status === "partial");
   if (marcaOk?.marca?.val) pistas.push(t("primera.marcaOk", { marca: marcaOk.marca.val }));
-  else if (marcaCerca?.marca?.val) pistas.push(t("primera.mismoPais", { marca: marcaCerca.marca.val }));
+  else if (marcaCerca?.marca?.val) {
+    const pais = marcaCerca.marca.pais && nombrePais ? nombrePais(marcaCerca.marca.pais) : null;
+    pistas.push(
+      pais
+        ? t("primera.mismoPaisDe", { pais, marca: marcaCerca.marca.val })
+        : t("primera.mismoPais", { marca: marcaCerca.marca.val })
+    );
+  }
 
   const modeloOk = lista.find((g) => g?.modelo?.status === "correct");
   if (modeloOk?.modelo?.val) pistas.push(t("primera.modeloOk", { modelo: modeloOk.modelo.val }));

@@ -84,9 +84,15 @@ export function FilaAviso({ abierto = true }) {
   const { t } = useT();
   const { disponible, activo, ocupado, bloqueado, cambiar } = useAvisoDiario(abierto);
   if (!disponible) return null;
+  // En la web no se promete una hora: el push lo dispara un cron de GitHub a
+  // las 15:00 UTC (.github/workflows/daily-push.yml), que son las 16:00 en
+  // invierno y las 17:00 en verano, y GitHub no garantiza puntualidad. «Por la
+  // tarde» es verdad todo el año; «a las 16:00» lo era medio año.
   const nota = bloqueado
     ? t("perfil.avisoBloqueado")
-    : t("perfil.avisoHora", { hora: isNative() ? `${REMINDER_HOUR}:00` : "16:00" });
+    : isNative()
+    ? t("perfil.avisoHora", { hora: `${REMINDER_HOUR}:00` })
+    : t("perfil.avisoTarde");
   return (
     <div className="grupo-fila">
       <span className="grupo-fila-texto">

@@ -104,7 +104,9 @@ export default function ZoomStage({
           elemento de verdad y no el `::after` de siempre porque el estado va
           DESPUÉS de la regla, y un pseudo-elemento siempre va el último. */}
       <div className="prensa-ladillo prensa-ladillo--pregunta">
-        <span className="rotulo">{rotulo}</span>
+        {/* h2 y no span: la pregunta es el encabezado de la pantalla para quien
+            navega por encabezados (el h1 sr-only de Configurator la presenta). */}
+        <h2 className="rotulo">{rotulo}</h2>
         {/* EL CONTADOR SE RE-ESTAMPA AL CAMBIAR DE INTENTO. Es el relevo
             tipográfico del lavado rojo que se tiraba sobre la fotografía (ver
             CarImage): en este sistema el aviso lo da la letra, no un tinte

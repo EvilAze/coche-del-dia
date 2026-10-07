@@ -381,7 +381,15 @@ export default function CarImage({
               : undefined
           }
           sizes={isApiProxy && !imgFailed ? "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px" : undefined}
-          alt={t("cdd.carImageAlt")}
+          // Durante la partida, el alt cuenta lo que cuenta la pastilla del
+          // visor: cuánto se ve y en qué intento. «Coche del día» a secas
+          // dejaba fuera la mecánica entera para un lector de pantalla
+          // (auditoría 7-oct). No dice nada del coche (regla 5).
+          alt={
+            lecturaAumento && Number.isFinite(hintIndex)
+              ? t("cdd.carImageAltZoom", { aumento: lecturaAumento, n: hintIndex + 1, max: totalHints })
+              : t("cdd.carImageAlt")
+          }
           draggable={false}
           // Pistas al navegador para optimizar LCP: la foto del coche es el
           // hero element de la página y siempre está above-the-fold.

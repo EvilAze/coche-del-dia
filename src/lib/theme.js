@@ -170,12 +170,25 @@ function toggleTheme() {
 }
 
 // Seguir el sistema SOLO mientras no haya override manual guardado.
+//
+// Y SEGUIRLO SIN GUARDARLO. Aquí se llamaba a setTheme(), que escribe en
+// localStorage: el primer cambio del sistema —el oscuro automático al
+// anochecer— quedaba grabado como si el jugador lo hubiera elegido a mano, y a
+// partir de ahí «Auto» dejaba de seguir al sistema para siempre (el menú
+// marcaba «Noche», no «Auto»). Medido en producción el 7-oct-2026. Ahora se
+// pinta y se avisa, exactamente lo que hace setModo("auto"), sin tocar storage.
 if (typeof window !== "undefined" && window.matchMedia) {
   try {
     window
       .matchMedia("(prefers-color-scheme: dark)")
       .addEventListener("change", (e) => {
-        if (readStored() == null) setTheme(e.matches ? "noche" : "dia");
+        if (readStored() != null) return;
+        const tema = e.matches ? "noche" : "dia";
+        current = tema;
+        conCruce(() => {
+          applyTheme(tema);
+          listeners.forEach((fn) => fn());
+        });
       });
   } catch {
     // ignore

@@ -15,6 +15,7 @@
 // exactamente eso: letra pequeña, sobre el mismo papel que el resto.
 
 import { useEffect } from "react";
+import { Icon, I } from "./components/configurator/icons";
 
 // Dirección de contacto para solicitudes (borrado, dudas, etc.). Si
 // cambias el correo del admin, sustitúyelo aquí. La dirección se sirve
@@ -66,9 +67,16 @@ export default function Privacidad() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-papel font-body text-tinta">
-      <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:px-8 sm:py-14">
-        <header className="border-b border-border pb-6">
+    <div className="legal min-h-screen w-full bg-papel font-body text-tinta">
+      <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-8 sm:py-10">
+        {/* La salida, arriba. Se llega aquí desde el pie de la web o desde un
+            enlace de la ficha de Play, y hasta ahora la única vuelta era la
+            «atrás» del navegador — que desde un enlace externo saca del sitio
+            (auditoría 7-oct, P20). */}
+        <a href="/" className="legal-volver">
+          <Icon d={I.chevL} size={18} /> Volver al juego
+        </a>
+        <header className="mt-4 border-b border-border pb-6">
           <p className="pm-kicker">Documento legal</p>
           <h1 className="pm-title mt-2 !text-[26px] sm:!text-[32px]">
             Política de Privacidad

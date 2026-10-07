@@ -5,14 +5,14 @@ theme: Asfalto
 colors:
   primary: "#131416"
   signal: "#c9321c"
-  reward: "#85631a"
+  reward: "#806610"
   neutral-bg: "#f4f3ef"
   neutral-surface: "#ffffff"
   neutral-surface2: "#ebeae5"
   neutral-text: "#131416"
   neutral-muted: "#5b6068"
   good: "#117548"
-  warn: "#9a5600"
+  warn: "#8a4604"
   bad: "#c9321c"
 typography:
   display:
@@ -113,8 +113,8 @@ override).
 | `tinta-2` (muted) | `#5b6068` | `#a7acb4` |
 | `rojo` (signal) | `#c9321c` | `#f0533b` |
 | `verde` (correct) | `#117548` | `#3fcf8e` |
-| `ámbar` (same country / available) | `#9a5600` | `#f5a524` |
-| `oro` (reward) | `#85631a` | `#e3c27a` |
+| `ámbar` (same country / available) | `#8a4604` | `#f08c28` |
+| `oro` (reward) | `#806610` | `#e8c86e` |
 | `plata` | `#5f636a` | `#c3c8cf` |
 | `bronce` | `#8c522d` | `#c98a5e` |
 
@@ -136,6 +136,11 @@ The platform is stamped the same way on `<html data-plataforma="app">` from
   podium, collection. Gold on ordinary chrome stops reading as a reward.
 - **Ámbar** means **available / partial**: the "same country" hint, and a
   pending repesca. It is never a warning.
+- Gold and amber are kept apart **in hue and in light**, not just by name:
+  gold leans to brass (≈46°), amber to burnt orange (≈30°), with at least
+  1.25:1 luminance between them in both editions. Until Oct 2026 they were the
+  same ochre at 1.02:1, and the gold streak and the amber rescue row read as
+  one family.
 
 `plata` and `bronce` exist so the podium has three real metals that follow the
 theme.
@@ -191,20 +196,25 @@ italic caption is here plain text in muted ink.
 
 ## 5. Shape and elevation
 
-**Corners have a radius, chosen by object size**, never ad hoc. Six tokens in
-`:root`:
+**Corners have a radius, chosen by object size**, never ad hoc. Eight tokens in
+`:root`, plus `0` (a hard corner) and `50%` (a circle) — nothing else:
 
 | Token | Value | Used for |
 |---|---|---|
+| `--radio-mini` | 3px | what barely has a corner: flags, bars, 2px marks |
 | `--radio-sello` | 6px | chips, small seals |
 | `--radio-celda` | 10px | verdict cells, web fields, empty slots |
 | `--radio-boton` | 12px | buttons, options, the floating peek, the countdown |
 | `--radio-tarjeta` | 16px | the grouped coupon and content cards |
 | `--radio-foto` | 18px | the photograph frame |
-| `--radio-hoja` | 24px | top corners of the app's bottom sheets |
+| `--radio-hoja` | 24px | top corners of the app's bottom sheets; centred dialogs |
+| `--radio-pildora` | 999px | capsules: switches, pill chips |
 
 In JSX the rule stays what `test:estetica` enforces: **no Tailwind
-`rounded-*` utilities**. Shape lives in tokens, like color and motion.
+`rounded-*` utilities**. In `index.css` a numeric radius outside the token
+definitions fails the same script (`forma-radio`): until Oct 2026, 97 loose
+radii (1 to 22px) lived next to the tokens. Shape lives in tokens, like color
+and motion.
 
 - Separation is surface and air; a `1px` seam in `--line` where two surfaces
   meet (e.g. the three rows of the app coupon card).
@@ -304,8 +314,11 @@ silencer, where `1ms` is a zero and not a tempo.
 - **Primary** (`prensa-submit`, `cdd-submit`, `pm-btn`): ink fill, background
   colored text, Barlow Condensed 700 uppercase +0.08em, `--radio-boton`, 56px
   in the app and 60px on the web. Hover lowers the fill a step; press sinks one
-  pixel. **Incomplete** stays tappable, as a pale raised fill with muted text;
-  **working** keeps the ink fill with a sweeping band (`is-trabajando`).
+  pixel. **Incomplete** stays tappable, as a raised `surface2` fill with a
+  `line-strong` seam and ink text — a button waiting for you, not a broken
+  one; **disabled** (`pm-btn:disabled`, e.g. the nickname dialog before you
+  type) wears the same shape with muted text. **Working** keeps the ink fill
+  with a sweeping band (`is-trabajando`).
 - **Ghost**: transparent with a 1px seam ring.
 - **Close** on photographs: a dark translucent rounded square with a white ✕.
 
@@ -353,13 +366,37 @@ a headline with its country and year as plates, what you did (the points with
 the attempt grid when you win; your game line by line and one sentence on what
 was missing when you lose), share in ink and the countdown, and below it what
 is read if you stay: the broken streak, the rescue, your standing, the world's
-distribution and the spec sheet. The rescue's own end panel is the same object.
+distribution and the spec sheet. The rescue's own end panel is the same object
+— and the same code: `PanelFin` owns the dialog, focus, Escape, back button,
+Tab trap and the ✕, whose bar gains a background once the card scrolls.
+
+- **The attempt grid speaks in shape too**: correct cells carry ✓, same-country
+  cells (amber fill) carry ~, misses carry ✕, and each attempt is read out in
+  words for screen readers («Intento 1 de 5: Fiat, mismo país; …»).
+- **Share** is the ink button. The copied text keeps the three states
+  (✅ correct · 🟨 same country · ❌ miss), and if neither the share sheet nor
+  the clipboard works the text appears in a box, selected, to copy by hand.
+- **From 1024px the panel is two columns**: what happened (photo, car, score,
+  share) on the left, what is read if you stay on the right. On phones the two
+  groups are `display: contents` and it is the usual single column.
+- **Offers inside the panel are secondary buttons** (surface + seam): the panel
+  already has its one ink fill, Share.
 
 ### Navigation and sections
 - **Tab bar** (`BarraSecciones`, phones only): Jugar · Clasificación · Archivo ·
   Perfil, with a red 2px line over the active tab and an amber dot on Archivo
   when a rescue is waiting. It is a door, not a router: the sections still open
-  as sheets over the game (CLAUDE.md rule 24).
+  as sheets over the game (CLAUDE.md rule 24). While it is visible, the menu
+  does not repeat its doors (nor the «?» of the header): it keeps account,
+  settings and legal — unless a row carries a notice.
+- **Desktop header** (≥1100px, no tab bar): Clasificación, Archivo and Perfil
+  as words, not icons; once the game is over, VER RESULTADO moves up next to
+  the photo, as on phones.
+- **Doors for players without an account** share one shape: what is behind,
+  shown without revealing it (the veiled table; the unprinted, numbered covers
+  of the Archivo with today's dashed slot), then a left-aligned card with the
+  benefit and «Entrar». A player who won today is told the points that will not
+  count until they sign in.
 - **Section screens** (Clasificación, Archivo, Perfil, Menú): the floor is
   `--bg` and everything on it is a card on `--surface` with a 1px seam. The
   section name is a 30px Barlow Condensed headline with the close button in its
@@ -387,7 +424,13 @@ The only filled red button in the product is «Eliminar mi cuenta».
 
 ### Offers
 The end-of-game offers (daily reminder, Android edition, create an account) are
-cards with the question as a headline, one ink button and an «Ahora no» line.
+cards with the question as a headline, one secondary button and an «Ahora no»
+line (see the end panel: Share is its only ink fill).
+
+### Legal pages
+Privacy and account deletion open with a «Volver al juego» line at the top and
+a grey kicker — nothing there is spent or needs attention, which is all red
+says.
 
 ### Icons
 Line icons (`components/configurator/icons.jsx`, 1.6 stroke on a 24 box;
@@ -404,7 +447,8 @@ in the UI entirely** (§9).
 - `prefers-reduced-motion` is honoured by **one** universal rule (§6), and
   haptics go silent with it.
 - Keyboard navigation with a visible focus indicator on every interactive
-  element.
+  element, **in ink** (`--cdd-text`), never red: red already means a field is
+  invalid, and a focused field must not look like a wrong one.
 - The game photo carries a localized `alt`; decorative flags, marks, viewfinder
   corners and verdict notes are `aria-hidden` (the exact verdict travels in
   `sr-only`).
@@ -440,7 +484,7 @@ in the UI entirely** (§9).
 
 `npm run test:estetica` (`scripts/check-estetica.mjs`, included in `npm test`)
 fails the build on emoji in UI, raw Tailwind palette, Tailwind `rounded-*`,
-glows, and loose hex in classes. `npm run test:layout` measures the app game
+glows, loose hex in classes, loose durations and curves, and loose radii. `npm run test:layout` measures the app game
 screen in six phones, both editions, with and without the keyboard: run it
 whenever a change touches heights in the game screen or the sheets.
 

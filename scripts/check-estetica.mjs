@@ -400,6 +400,33 @@ const COMPOSITABLES = new Set(["transform", "opacity", "filter", "-webkit-filter
   });
 }
 
+// ── 5. La forma: radios sueltos en index.css ─────────────────────────────
+//
+// El color sale de ternas, el compás de tokens y la forma… salía de 97 radios
+// literales sueltos (1, 2, 3, 4, 5, 7, 8, 9, 13, 14, 20, 22px) conviviendo con
+// los seis tokens `--radio-*` que DESIGN.md describe como «uno por tamaño de
+// objeto». Cada número suelto es una esquina que no se movería si mañana el
+// sistema cambia de canto. Se permiten `0` (esquina viva), `50%` (círculo) y
+// cualquier `var(...)`; los números viven en la definición de los tokens.
+{
+  const src = readFileSync(join(ROOT, CSS_VIGILADO), "utf8");
+  const lineas = sinComentariosDeBloque(src).split(/\r?\n/);
+  lineas.forEach((linea, i) => {
+    if (/^\s*--radio-[a-z]+\s*:/.test(linea)) return;
+    for (const m of linea.matchAll(/(?:^|[;{\s])((?:border(?:-(?:top|bottom)-(?:left|right))?-radius)\s*:\s*([^;{}]+))/g)) {
+      const valor = m[2].replace(/var\([^)]*\)/g, "");
+      if (!/\b(?:[1-9]\d*(?:\.\d+)?|0?\.\d+)(?:px|rem|em)\b/.test(valor)) continue;
+      fallos.push({
+        rel: CSS_VIGILADO,
+        linea: i + 1,
+        regla: "forma-radio",
+        msg: "radio suelto — la forma sale de los tokens: var(--radio-mini|sello|celda|boton|tarjeta|foto|hoja|pildora), o 0 / 50%. El radio lo elige el TAMAÑO del objeto",
+        texto: linea.trim().slice(0, 100),
+      });
+    }
+  });
+}
+
 // ── Informe ──────────────────────────────────────────────────────────────
 if (fallos.length === 0) {
   console.log("✓ estética: sin restos de temas anteriores en la web pública.");

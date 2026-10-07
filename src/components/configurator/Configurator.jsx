@@ -5,7 +5,7 @@
 // La lógica de juego vive en useGame (App) y llega por props.
 
 import { useEffect, useRef, useState } from "react";
-import { useT } from "../../i18n";
+import { useT, getLocalizedCountry } from "../../i18n";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useEncajeEscenario } from "../../hooks/useEncajeEscenario";
 import { esApp } from "../../lib/plataforma";
@@ -301,7 +301,7 @@ export default function Configurator({
       : null;
   let nota = null;
   if (primeraPartida && verTablero && guesses.length > 0 && !pendingGuess) {
-    const pistas = pistasAprendidas(guesses, tolerance, t);
+    const pistas = pistasAprendidas(guesses, tolerance, t, undefined, getLocalizedCountry);
     nota = (
       // `aria-live`: quien usa lector de pantalla recibe la pista nueva sin ir
       // a buscarla, igual que ve la nota quien mira.
@@ -383,6 +383,8 @@ export default function Configurator({
           onOpenMenu={onOpenMenu}
           onOpenRanking={onOpenRanking}
           onOpenHowTo={onOpenHowTo}
+          onOpenGarage={onOpenGarage}
+          onOpenProfile={onOpenProfile}
         />
 
         {/* H1 real solo para lectores de pantalla/SEO (v0 no lo pinta). */}

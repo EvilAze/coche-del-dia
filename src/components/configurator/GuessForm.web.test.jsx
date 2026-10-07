@@ -29,7 +29,7 @@ const CATALOGO = {
 
 const push = vi.fn();
 
-async function montar() {
+async function montar({ guesses = [] } = {}) {
   vi.resetModules();
   vi.doMock("../../lib/plataforma", () => ({ esApp: () => false }));
   vi.doMock("../../data/catalog", () => ({
@@ -48,7 +48,7 @@ async function montar() {
   }));
 
   const { default: GuessForm } = await import("./GuessForm");
-  render(<GuessForm onSubmit={vi.fn()} guesses={[]} attempts={0} maxAttempts={5} />);
+  render(<GuessForm onSubmit={vi.fn()} guesses={guesses} attempts={guesses.length} maxAttempts={5} />);
 }
 
 const campoMarca = () => screen.getAllByRole("combobox")[0];
@@ -93,6 +93,25 @@ describe("El aviso del cupón web va junto al campo", () => {
     fireEvent.change(campoMarca(), { target: { value: "Se" } });
     expect(screen.queryByRole("alert")).toBeNull();
     expect(campoMarca().getAttribute("aria-invalid")).toBeNull();
+  });
+});
+
+describe("Una marca ya probada no «desaparece»", () => {
+  it("al buscarla dice que ya la probaste, no «Sin coincidencias»", async () => {
+    const guesses = [
+      {
+        marca: { val: "Citroën", status: "wrong" },
+        modelo: { val: "2CV", status: "wrong" },
+        anio: { val: 1990, status: "wrong", direction: "up" },
+      },
+    ];
+    await montar({ guesses });
+    const campo = campoMarca();
+    fireEvent.focus(campo);
+    fireEvent.change(campo, { target: { value: "Citr" } });
+    const lista = screen.getByRole("listbox");
+    expect(lista.textContent).toContain("cdd.yaProbada:Citroën");
+    expect(lista.textContent).not.toContain("cdd.noMatches");
   });
 });
 

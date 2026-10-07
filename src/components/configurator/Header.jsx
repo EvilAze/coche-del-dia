@@ -102,6 +102,8 @@ export default function Header({
   onOpenMenu,
   onOpenRanking,
   onOpenHowTo,
+  onOpenGarage,
+  onOpenProfile,
 }) {
   const { t, tn, dateLocale, locale } = useT();
 
@@ -223,7 +225,11 @@ export default function Header({
   // En la app no: quien la abre ya sabe a qué viene.
   return (
     <header className="prensa-area-cab">
-      <nav className="prensa-topbar" aria-label={t("prensa.navAria")}>
+      {/* div y no nav: es la barra de identidad y acciones del <header>, no
+          una navegación. Como nav llevaba el MISMO nombre («Secciones») que la
+          barra de pestañas, y un lector de pantalla listaba dos landmarks
+          iguales (auditoría 7-oct). */}
+      <div className="prensa-topbar">
         <span className="prensa-identidad">
           <Marca />
           <span className="prensa-cornisa">
@@ -265,6 +271,27 @@ export default function Header({
             <span className="lad">{t("prensa.clasificacion")}</span>
             {cifra && <span className="cifra">{cifra}</span>}
           </button>
+          {/* ARCHIVO Y PERFIL, EN TEXTO, SOLO EN EL ESCRITORIO. Allí no hay
+              barra de pestañas, y las dos secciones solo existían dentro del
+              menú: la cabecera eran tres iconos sin palabra (auditoría 7-oct,
+              J6). Por debajo de 1100px se ocultan (CSS): esas puertas ya las
+              pone la barra. */}
+          <button
+            type="button"
+            className="prensa-seccion"
+            aria-label={repescaAlert ? `${t("prensa.garaje")} · ${t("sumario.garajeRepesca")}` : undefined}
+            onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
+          >
+            {t("prensa.garaje")}
+            {repescaAlert && <span className="aviso" aria-hidden="true" />}
+          </button>
+          <button
+            type="button"
+            className="prensa-seccion"
+            onClick={() => { haptic.impactLight(); onOpenProfile?.(); }}
+          >
+            {t("prensa.perfil")}
+          </button>
           <button
             type="button"
             // `aria-haspopup="dialog"` y sin `aria-expanded`: lo que abre es un
@@ -282,7 +309,7 @@ export default function Header({
             {repescaAlert && <span className="aviso" aria-hidden="true" />}
           </button>
         </span>
-      </nav>
+      </div>
 
       {!enApp && <p className="prensa-lema">{t("app.tagline")}</p>}
     </header>

@@ -348,6 +348,10 @@ export default function Ranking({
   // de su fila. Opcional: sin él la fila dice solo la distancia al de delante.
   rank = null,
   onOpenLogin,
+  // Puntos de la partida de hoy si se ganó (0 si no). Solo los usa el
+  // anónimo: «Hoy has sumado N puntos. Entra para que cuenten» dice lo que
+  // pierde por no entrar, y eso convence más que una tabla velada (P27).
+  puntosHoy = 0,
   // Logueado sin display_name: no aparece en la tabla. Se le ofrece elegir firma
   // AQUÍ, que es donde eso se nota (ver NicknameModal.jsx).
   necesitaNick = false,
@@ -616,9 +620,11 @@ export default function Ranking({
               anonimo={!user}
               apunteYo={apunteDe(selfRow, state.players, rank, i18n)}
             />
-            {!user && state.players.length > 3 && (
+            {!user && (state.players.length > 3 || puntosHoy > 0) && (
               <div className="clas-aviso">
-                <p className="clas-aviso-texto">{t("ranking.loginPrompt")}</p>
+                <p className="clas-aviso-texto">
+                  {puntosHoy > 0 ? tn("ranking.hoySumado", puntosHoy) : t("ranking.loginPrompt")}
+                </p>
                 <button
                   type="button"
                   onClick={() => {

@@ -181,13 +181,25 @@
   /* El rojo de la marca (las dos rayas del logotipo): intento gastado, sección
      activa, aviso. Ya no es el color del botón principal — ese es la tinta. */
   --rojo-rgb: 201 50 28; --rojo-dark-rgb: 168 40 22;
-  --gold-rgb: 133 99 26; --gold-dark-rgb: 105 78 20;
+  /* ORO Y ÁMBAR, SEPARADOS EN TONO Y EN LUZ. Eran el mismo ocre (41° y 34°) a
+     1,02:1 de luminancia: la racha dorada del panel y la fila ámbar de la
+     Repesca parecían de la misma familia, y «cada acento significa una cosa»
+     solo se cumplía en el papel. Ahora el oro tira a LATÓN (46°) y el ámbar a
+     NARANJA TOSTADO (30°), con 1,29:1 entre ellos; los dos siguen en AA sobre
+     --bg y --bg2 (oro 4,9 y 4,6; ámbar 6,4 y 5,9). Auditoría 7-oct, F2. */
+  --gold-rgb: 128 102 16; --gold-dark-rgb: 104 83 12;
   /* Veredicto de la clasificación: VERDE = acierto, ÁMBAR = "casi" (mismo país).
      El rojo queda para el FALLO — verde=correcto/rojo=incorrecto es la convención
      universal, la que promete el modal «Cómo se juega» y la que ya usa la rejilla
      del share (✅/❌). Verde: tinta de "visto bueno" (AA 5.4:1 sobre el crema).
-     Ámbar: ocre de "parcial", ni acierto ni fallo (AA 4.9:1). */
-  --verde-rgb: 17 117 72; --ambar-rgb: 154 86 0;
+     Ámbar: naranja tostado de "parcial", ni acierto ni fallo (AA 6.4:1). */
+  --verde-rgb: 17 117 72; --ambar-rgb: 138 70 4;
+  /* EL ÁMBAR DE RELLENO, para los cuadros de la rejilla del final. El ámbar de
+     texto (arriba) y el verde tienen la MISMA luminancia (1,01:1 entre ellos):
+     como letra no importa, porque va con su palabra, pero como cuadro de color
+     era indistinguible del verde con deuteranopía. El relleno se aclara hasta
+     3,2:1 contra el verde y 3,1:1 contra el oro (auditoría 7-oct). */
+  --ambar-relleno-rgb: 242 185 85;
   /* Podio: plata y bronce. Existen como token porque el oro ya lo era y sus dos
      hermanos se estaban pintando con paleta cruda de Tailwind (zinc-300 /
      amber-700), que NO sigue al tema: sobre el papel crema el zinc-300 quedaba
@@ -327,20 +339,29 @@
      por TAMAÑO de objeto y no por gusto — cuanto más grande el objeto, más
      redondo, para que el canto se perciba igual en un sello de 20px que en una
      hoja de pantalla entera:
+       · mini    — lo que apenas tiene canto: banderas, barras, marcas de 2px.
        · sello   — chips y sellos pequeños.
        · celda   — las celdas del veredicto, los campos de la web, huecos.
        · boton   — botones, opciones, el aviso flotante, la cuenta atrás.
        · tarjeta — el cupón agrupado y las tarjetas de contenido.
        · foto    — el marco de la fotografía.
-       · hoja    — las esquinas de arriba de las hojas inferiores de la app.
+       · hoja    — las esquinas de arriba de las hojas inferiores de la app y
+                   los diálogos centrados, los objetos flotantes más grandes.
+       · pildora — lo que es redondo de punta a punta (interruptores, chips en
+                   cápsula): un radio «infinito», que no depende del alto.
+     Y los círculos, `50%`. Nada más: hasta oct-2026 convivían 97 radios
+     literales (1, 2, 3, 4, 5, 7, 8, 9, 13, 14, 20, 22px…) junto a los tokens,
+     y `test:estetica` falla ahora ante uno nuevo (regla `forma-radio`).
      En JSX la regla sigue siendo la de test:estetica: nada de `rounded-*` de
      Tailwind sueltos. La forma vive aquí, como el color y el compás. */
+  --radio-mini: 3px;
   --radio-sello: 6px;
   --radio-celda: 10px;
   --radio-boton: 12px;
   --radio-tarjeta: 16px;
   --radio-foto: 18px;
   --radio-hoja: 24px;
+  --radio-pildora: 999px;
 
   --curva-entra: cubic-bezier(.16, 1, .3, 1);
   --curva-sale: cubic-bezier(.4, 0, 1, 1);
@@ -412,9 +433,12 @@
      elevada (--bg2) y 5.6:1 sobre el fondo. Las rayas del logotipo y el medidor
      lo heredan; a oscuras un rojo de marca siempre se sube un punto. */
   --rojo-rgb: 240 83 59; --rojo-dark-rgb: 200 52 34;
-  --gold-rgb: 227 194 122; --gold-dark-rgb: 196 164 98;
+  /* Latón claro y naranja, como de día (F2): 1,52:1 entre ellos. */
+  --gold-rgb: 232 200 110; --gold-dark-rgb: 196 168 92;
   /* Verde y ámbar del veredicto, subidos para contraste AA sobre el grafito. */
-  --verde-rgb: 63 207 142; --ambar-rgb: 245 165 36;
+  --verde-rgb: 63 207 142; --ambar-rgb: 240 140 40;
+  /* De noche el relleno ámbar se OSCURECE: 3,0:1 contra el verde. */
+  --ambar-relleno-rgb: 135 90 18;
   /* Plata y bronce del podio (AA sobre el grafito). */
   --plata-rgb: 195 200 207; --bronce-rgb: 201 138 94;
   /* El velo se va casi al negro y la sombra gana peso: sobre grafito un roce
@@ -441,7 +465,7 @@
   }
 
   /*
-   * focus-ring: halo dorado consistente en TODOS los elementos
+   * focus-ring: anillo de tinta consistente en TODOS los elementos
    * interactivos (inputs, botones, items de listbox) cuando el usuario
    * navega con teclado. focus-visible para que no se pinte al hacer
    * click con ratón — solo en navegación Tab/flechas.
@@ -459,7 +483,7 @@
   .focus-ring {
     @apply outline-none
       focus-visible:ring-2
-      focus-visible:ring-accent/60
+      focus-visible:ring-tinta/70
       focus-visible:ring-offset-0;
   }
 
@@ -871,7 +895,9 @@ body,
 .cdd-dist-bar.me { background: var(--accent); }
 .cdd-dist-pct { width: 36px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
 .cdd-dist-pct.me { color: var(--accent); }
-.cdd-dist-foot { margin-top: 9px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .14em; color: var(--faint); }
+/* El pie de la distribución («28 partidas · 75 % de acierto»): 11 px y tinta-2.
+   Iba a 8,5 px en --faint, 2,61:1 de día (auditoría 7-oct). */
+.cdd-dist-foot { margin-top: 9px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--cdd-muted); }
 
 /* (Purga: `.cdd-percentile` era la caja del «mejor que el X%» y `.cdd-grid` /
    `.cdd-grid-k` pintaban la rejilla de emoji en pantalla con su micro-encabezado.
@@ -1033,7 +1059,7 @@ body,
   content: ""; position: absolute; inset: -8px -10px;
 }
 .prensa-topbar > span > .prensa-sumario-boton:focus-visible {
-  color: var(--rojo); border-color: var(--rojo); background: var(--surface2);
+  color: var(--cdd-text); border-color: var(--cdd-text); background: var(--surface2);
 }
 @media (hover: hover) {
   .prensa-topbar > span > .prensa-sumario-boton:hover {
@@ -1522,7 +1548,10 @@ body,
 .prensa-fila-hueco {
   align-items: center; min-height: 26px; padding-top: 4px; padding-bottom: 4px;
 }
-.prensa-fila-hueco .num { color: var(--faint); }
+/* El ordinal de la pista que aún no toca va en tinta-2, no en --faint: «aún no»
+   lo dice la tinta entera del «01» de al lado, y el --faint dejaba el «02» a
+   2,61:1 de día (auditoría 7-oct). */
+.prensa-fila-hueco .num { color: var(--cdd-muted); }
 /* El siguiente, donde va a caer el próximo intento: número en tinta plena. */
 .prensa-fila-hueco.siguiente .num { color: var(--cdd-text); }
 .prensa-fila-hueco .hueco {
@@ -1652,7 +1681,7 @@ body,
   letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .prensa-cierre button, .prensa-cierre a {
-  background: none; border: 0; cursor: pointer; padding: 6px 0; margin: -6px 0;
+  background: none; border: 0; cursor: pointer; padding: 14px 4px; margin: -14px -4px;
   color: var(--cdd-muted); font: inherit; letter-spacing: inherit;
   text-transform: inherit; text-decoration: none;
 }
@@ -2146,7 +2175,7 @@ body,
     }
   }
   :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:focus-visible {
-    border-color: var(--rojo); background: none; color: var(--rojo);
+    border-color: var(--cdd-text); background: none; color: var(--cdd-text);
   }
   /* El aviso de repesca se pega a la MARCA y no a la esquina de un marco que ya
      no está: sin esto, el cuadradito rojo quedaba flotando a 9px del glifo, en
@@ -2699,8 +2728,11 @@ body,
    .prensa-year:focus-within), así que el anillo dibujaba un recuadro redundante
    alrededor de la cifra al enfocar el año. Un solo indicador, más limpio. */
 .prensa button:focus-visible, .prensa a:focus-visible,
+/* EN TINTA, NO EN ROJO (auditoría 7-oct). En este sistema el rojo es «gastado /
+   atención / error»: un foco rojo se leía como un campo con error, y los campos
+   ya enfocaban en tinta (DESIGN.md §7). Un solo color de foco para todo. */
 .prensa [role="option"]:focus-visible {
-  outline: 2px solid var(--rojo); outline-offset: 2px;
+  outline: 2px solid var(--cdd-text); outline-offset: 2px;
 }
 
 
@@ -2713,7 +2745,9 @@ body,
   letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
-.prensa-label .pista-label { letter-spacing: .06em; color: var(--faint); text-transform: none; }
+/* «±2 años» es una regla del juego, no un adorno: tinta-2 (5,7:1 de día) y no
+   --faint, que la dejaba a 2,61:1 a 10 px (auditoría 7-oct). */
+.prensa-label .pista-label { letter-spacing: .06em; color: var(--cdd-muted); text-transform: none; }
 .prensa-input {
   width: 100%; background: transparent; border: 0; outline: 0;
   border-bottom: 1px solid var(--line-strong); border-radius: 0;
@@ -3542,14 +3576,14 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-marca--grande::after { height: .17em; border-top-width: .085em; border-bottom-width: .045em; }
 
 /* La cornisa de la app: el nombre en la voz de los titulares y la fecha en la
-   de los datos. 17 + 4 + 10,5 = 31,5px: sigue dentro de los 34 de la barra. */
+   de los datos. 17 + 4 + 11 = 32px: sigue dentro de los 34 de la barra. */
 .prensa-cornisa { gap: 4px; }
 .prensa-cornisa .cabeza {
   font-family: var(--font-display); font-weight: 700; font-size: 17px;
   letter-spacing: .005em; text-transform: none; color: var(--cdd-text); line-height: 1;
 }
 .prensa-cornisa .fecha {
-  font-family: var(--font-mono); font-weight: 400; font-size: 10.5px;
+  font-family: var(--font-mono); font-weight: 400; font-size: 11px;
   letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted); line-height: 1;
 }
 /* La barra, en una fila: identidad a la izquierda, acciones a la derecha. */
@@ -3558,9 +3592,13 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-topbar > span.prensa-acciones { gap: 6px; flex: none; }
 /* Racha y clasificación son FICHAS de 34px, el mismo alto que la tecla del
    sumario: la barra no engorda. */
+/* La racha va SUELTA: llama y cifra en oro, sin ficha. Con el mismo cuadro
+   tintado y el mismo alto que «?» y «☰» parecía una tecla más y no se puede
+   pulsar; además, un icono dentro de un cuadro tintado es justo lo que DESIGN.md
+   §9 prohíbe. Sin el tinte, el oro sobre el papel sube de 4,15:1 a AA. */
 .prensa-racha {
-  display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px 0 8px;
-  border-radius: var(--radio-boton); background: rgb(var(--gold-rgb) / .14); color: var(--gold);
+  display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 4px;
+  background: none; color: var(--gold);
   font-family: var(--font-mono); font-weight: 600; font-size: 14px; letter-spacing: 0;
 }
 .prensa-racha svg { fill: currentColor; }
@@ -3646,7 +3684,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px;
 }
 .prensa-ladillo .filete .seg {
-  border-radius: 2px; background: var(--line-strong);
+  border-radius: var(--radio-mini); background: var(--line-strong);
   transition: background-color var(--ms-sello) var(--curva-roce) var(--ms-sello);
 }
 .prensa-ladillo .filete .seg.gastado { background: var(--rojo); }
@@ -3673,10 +3711,10 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   border: 0 solid rgb(255 255 255 / .92);
   filter: drop-shadow(0 0 1px rgb(0 0 0 / .55));
 }
-.cdd-visor .arr-izq { left: 12px; top: 12px; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: 5px; }
-.cdd-visor .arr-der { right: 12px; top: 12px; border-right-width: 2px; border-top-width: 2px; border-top-right-radius: 5px; }
-.cdd-visor .aba-izq { left: 12px; bottom: 12px; border-left-width: 2px; border-bottom-width: 2px; border-bottom-left-radius: 5px; }
-.cdd-visor .aba-der { right: 12px; bottom: 12px; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: 5px; }
+.cdd-visor .arr-izq { left: 12px; top: 12px; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: var(--radio-sello); }
+.cdd-visor .arr-der { right: 12px; top: 12px; border-right-width: 2px; border-top-width: 2px; border-top-right-radius: var(--radio-sello); }
+.cdd-visor .aba-izq { left: 12px; bottom: 12px; border-left-width: 2px; border-bottom-width: 2px; border-bottom-left-radius: var(--radio-sello); }
+.cdd-visor .aba-der { right: 12px; bottom: 12px; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: var(--radio-sello); }
 /* La lectura del aumento. Se re-estampa (`.prensa-estampada`) cuando cambia
    de intento, pero en el CUARTO tiempo del veredicto: la cifra nueva aparece
    cuando la lente empieza a moverse, no cuando cae la tinta de las celdas.
@@ -3691,7 +3729,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .cdd-lente {
   position: absolute; left: 0; right: 0; bottom: 14px; width: max-content; margin-inline: auto;
   display: inline-flex; align-items: center;
-  height: 26px; padding: 0 10px; border-radius: 13px;
+  height: 26px; padding: 0 10px; border-radius: var(--radio-pildora);
   background: rgb(12 13 15 / .62); color: rgb(242 240 235);
   font-family: var(--font-mono); font-weight: 600; font-size: 12px;
   letter-spacing: .02em; font-variant-numeric: tabular-nums;
@@ -3727,6 +3765,9 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 }
 .prensa-dato.bien { background: rgb(var(--verde-rgb) / .1); border-color: rgb(var(--verde-rgb) / .38); }
 .prensa-dato.cerca { background: rgb(var(--ambar-rgb) / .1); border-color: rgb(var(--ambar-rgb) / .4); }
+/* «Mismo país» sobre el tinte ámbar de su celda: mismo ajuste que el oro del
+   perfil (4,46:1 → 5,5:1 de día; auditoría 7-oct). */
+.prensa-dato.cerca .prensa-apostilla { color: color-mix(in srgb, var(--ambar) 85%, var(--cdd-text)); }
 .prensa-dato.bien .palabra, .prensa-dato.cerca .palabra { border-bottom: 0; }
 .prensa-dato.mal .palabra { text-decoration-color: rgb(var(--tinta2-rgb) / .6); text-decoration-thickness: 1.5px; }
 .prensa-dato.anio .palabra { font-family: var(--font-mono); font-size: 14px; }
@@ -3739,7 +3780,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   font-family: var(--font-body); font-weight: 600; font-size: 11.5px;
   letter-spacing: 0; text-transform: none;
 }
-.prensa-apostilla .bandera { width: 16px; height: 11px; border-radius: 2px; }
+.prensa-apostilla .bandera { width: 16px; height: 11px; border-radius: var(--radio-mini); }
 .prensa-dato.bien .nota { color: var(--verde); }
 .prensa-dato.mal .nota { color: var(--rojo); }
 /* La dirección del año informa, no corrige: va en tinta apagada, como su flecha. */
@@ -3800,7 +3841,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-renglones > .prensa-renglon.espera .vacio { color: var(--cdd-muted); font-size: 13.5px; line-height: 1.2; }
 .prensa-renglon .cabeza { display: contents; }
 .prensa-renglon .etiqueta {
-  order: 1; font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .08em;
+  order: 1; font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .08em;
 }
 .prensa-renglon .cuerpo { order: 2; min-height: 22px; gap: 4px; }
 .prensa-renglon .apunte {
@@ -3837,7 +3878,9 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 /* Web: campos con canto en vez de línea base. El foco abraza el campo en tinta
    (el rojo queda para el campo inválido). El ✓ del campo resuelto entra DENTRO
    de la caja, a la derecha, en vez de colgar fuera. */
-.prensa-label { font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .08em; }
+/* 11 px, el suelo de la voz mono en mayúsculas (auditoría 7-oct): a 10 px con
+   caja alta y tracción abierta se leía peor que su tamaño nominal. */
+.prensa-label { font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .08em; }
 .prensa-label .pista-label { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; }
 .prensa-input {
   padding: 11px 11px; border: 1px solid var(--line-strong); border-radius: var(--radio-celda);
@@ -3866,9 +3909,9 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   color: var(--rojo);
 }
 .prensa-listbox { padding: 6px; border-radius: var(--radio-boton); border: 1px solid var(--line-strong); }
-.prensa-opt { border-radius: 8px; font-family: var(--font-body); font-weight: 500; font-size: 15px; }
+.prensa-opt { border-radius: var(--radio-celda); font-family: var(--font-body); font-weight: 500; font-size: 15px; }
 .prensa-opt.hi { background: var(--surface2); box-shadow: none; }
-.prensa-opt .bandera { border-radius: 2px; }
+.prensa-opt .bandera { border-radius: var(--radio-mini); }
 
 /* EL BOTÓN PRINCIPAL ES LA TINTA. Hueso sobre grafito de noche, casi negro
    sobre claro de día: el mayor contraste de la pantalla para la única acción
@@ -3884,14 +3927,20 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   .prensa-submit:hover:not(:disabled):not(.is-incomplete) {
     transform: none; box-shadow: none; background: rgb(var(--tinta-rgb) / .86);
   }
-  .prensa-submit.is-incomplete:hover { background: rgb(var(--tinta-rgb) / .9); }
+  .prensa-submit.is-incomplete:hover { background: rgb(var(--tinta-rgb) / .1); }
 }
-/* Incompleto: el MISMO bloque de tinta con la palabra apagada — sigue siendo
-   el botón de jugar, esperando datos. Un bloque gris (se probó: la tinta a la
-   mitad) se leía como un control muerto. Tocable igual: el temblor dice qué
-   falta. */
+/* Incompleto: superficie elevada, canto y la palabra EN TINTA ENTERA.
+   Antes era el mismo bloque de tinta con la palabra al 50 %: con el cupón
+   vacío, el objeto más contrastado de la pantalla era un botón que aún no
+   servía para nada, y competía con la fotografía en el primer vistazo (losa
+   negra de día, hueso de noche). La regla del relleno fuerte único (DESIGN.md
+   §3) es para la acción disponible. Lo que mató la versión gris de antes —la
+   tinta a la mitad, que se leía como control muerto— era la PALABRA apagada; aquí
+   la palabra va a contraste completo y el botón sigue vivo y tocable (el temblor
+   dice qué falta). Cuando el cupón se completa, la tinta se enciende con la
+   transición de color del propio botón: esa es la señal de «ya puedes». */
 .prensa-submit.is-incomplete {
-  background: var(--cdd-text); color: rgb(var(--bg-rgb) / .5); box-shadow: none;
+  background: var(--surface2); color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 .prensa-submit.is-trabajando,
 .prensa-submit.is-trabajando:disabled { background: var(--cdd-text); color: var(--bg); }
@@ -3900,7 +3949,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 /* El pie del juego, en la voz de los datos. */
 .prensa-cierre {
   border-top: 1px solid var(--line);
-  font-family: var(--font-mono); font-weight: 600; font-size: 10.5px; letter-spacing: .06em;
+  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .06em;
 }
 
 /* ── LA HOJA DE SELECCIÓN (app) ────────────────────────────────────────────
@@ -3913,7 +3962,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   border-top: 0;
   border-top-left-radius: var(--radio-hoja); border-top-right-radius: var(--radio-hoja);
 }
-.pm-hoja-tirador { width: 38px; border-radius: 2px; opacity: .8; }
+.pm-hoja-tirador { width: 38px; border-radius: var(--radio-mini); opacity: .8; }
 .pm-hoja-titulo { font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.15; }
 .pm-hoja-apunte { font-family: var(--font-body); font-size: 13px; }
 .pm-buscar-campo {
@@ -3939,7 +3988,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa .cdd-end-scrim { background: rgb(var(--velo-rgb) / .55); }
 .prensa .cdd-end-card {
   background: var(--bg); border: 1px solid var(--line); outline: 0;
-  border-radius: 22px; box-shadow: 0 30px 70px -24px rgb(var(--velo-rgb) / .65);
+  border-radius: var(--radio-hoja); box-shadow: 0 30px 70px -24px rgb(var(--velo-rgb) / .65);
 }
 .prensa .cdd-end-close {
   color: rgb(255 255 255); background: rgb(12 13 15 / .6);
@@ -3963,7 +4012,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    la que cuelga el golpe háptico de useSelloSentido): solo cambian la forma y
    la inclinación final, más contenida. */
 .prensa-sello {
-  padding: 6px 12px; border: 0; border-radius: 9px; transform: rotate(-4deg);
+  padding: 6px 12px; border: 0; border-radius: var(--radio-celda); transform: rotate(-4deg);
   background: var(--verde); color: var(--bg);
   font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: .08em;
   box-shadow: 0 10px 24px -8px rgb(var(--velo-rgb) / .5);
@@ -4004,8 +4053,8 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 
 /* La distribución del día: barras con canto, la tuya en tinta plena. */
 .cdd-dist-track { height: 18px; }
-.prensa .cdd-dist-track { background: var(--surface2); border-radius: 5px; }
-.prensa .cdd-dist-bar { background: rgb(var(--tinta-rgb) / .22); border-radius: 5px; }
+.prensa .cdd-dist-track { background: var(--surface2); border-radius: var(--radio-sello); }
+.prensa .cdd-dist-bar { background: rgb(var(--tinta-rgb) / .22); border-radius: var(--radio-sello); }
 .prensa .cdd-dist-bar.me { background: var(--cdd-text); }
 .prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--cdd-text); }
 .cdd-unlock-kicker { font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em; }
@@ -4021,7 +4070,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
     padding: max(8px, var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) 8px
              max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   }
-  .prensa .cdd-end-card { border: 1px solid var(--line); border-radius: 20px; max-height: 100%; }
+  .prensa .cdd-end-card { border: 1px solid var(--line); border-radius: var(--radio-hoja); max-height: 100%; }
 }
 
 /* ── LAS PRIMITIVAS DE LOS MODALES (lo que el sistema le da a la fase 2) ───
@@ -4030,7 +4079,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    con canto y una sombra de verdad en vez del doble filete de lámina, y los
    botones y rótulos con la letra nueva. */
 .modal-panel-flat {
-  border: 1px solid var(--line-strong); border-radius: 20px;
+  border: 1px solid var(--line-strong); border-radius: var(--radio-hoja);
   box-shadow: 0 30px 70px -24px rgb(var(--velo-rgb) / .6);
 }
 .pm-kicker { font-family: var(--font-mono); font-weight: 600; letter-spacing: .08em; }
@@ -4043,6 +4092,10 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .08em;
 }
 .pm-btn--ghost { box-shadow: inset 0 0 0 1px var(--line-strong); }
+/* Deshabilitado = el mismo «aún no» que ADIVINAR incompleto (.is-incomplete):
+   superficie y canto. El contorno transparente con texto desvaído de la piel
+   anterior parecía un botón roto, no uno que espera a que escribas (P22). */
+.pm-btn:disabled { background: var(--surface2); color: var(--cdd-muted); box-shadow: inset 0 0 0 1px var(--line-strong); }
 @media (hover: hover) {
   .pm-btn:hover:not(:disabled) { background: rgb(var(--tinta-rgb) / .86); }
   .pm-btn--ghost:hover:not(:disabled) {
@@ -4050,7 +4103,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   }
 }
 .pm-sello { border-radius: var(--radio-sello); }
-.scrollbar-premium::-webkit-scrollbar-thumb { border-radius: 3px; }
+.scrollbar-premium::-webkit-scrollbar-thumb { border-radius: var(--radio-mini); }
 
 /* ── EL ORDEN DE LA APP: foto, historial y, abajo, el cupón ─────────────────
    Durante la partida en la app el historial —la banda elástica con scroll
@@ -4081,6 +4134,11 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   }
   .prensa-area-clas { border-right: 0; padding-right: 0; margin-right: 0; gap: 16px; }
   .prensa-area-jugar { border-left: 0; padding-left: 0; margin-left: 0; }
+  /* Terminada la partida (sin .app-pantalla), VER RESULTADO sube junto a la
+     foto y el historial pasa debajo: es la única acción que queda, y al final
+     de la columna, tras cinco renglones, era lo último que se encontraba. En
+     el móvil ya va justo bajo la foto (P21). */
+  .prensa-pliego:not(.app-pantalla) { grid-template-areas: "cab cab" "foto jugar" "foto clas" "pie pie"; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -4119,17 +4177,17 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .fin-chapas { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 6px; }
 .fin-chapa {
   display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px;
-  border-radius: 8px; background: var(--surface2);
+  border-radius: var(--radio-celda); background: var(--surface2);
   font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-text);
 }
 .fin-chapa.mono { font-family: var(--font-mono); }
-.fin-chapa .bandera { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+.fin-chapa .bandera { width: 18px; height: 12px; border-radius: var(--radio-mini); object-fit: cover; }
 
 /* La tarjeta: superficie con canto. Si es un botón (la clasificación, la
    repesca), toda ella es el objetivo táctil: se hunde un píxel al tocarla. */
 .fin-tarjeta {
   display: block; width: 100%; box-sizing: border-box; padding: 16px;
-  border-radius: 18px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
   color: var(--cdd-text); font: inherit; text-align: left;
 }
 button.fin-tarjeta { cursor: pointer; transition: border-color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce); }
@@ -4160,11 +4218,24 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 
 .fin-rejilla { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
 .fin-rejilla .fila, .fin-partida .cuadros { display: flex; gap: 4px; }
+/* LA REJILLA YA NO HABLA SOLO EN COLOR (auditoría 7-oct). Cada cuadro lleva su
+   glifo —✓ acierto, ~ mismo país, ✕ fallo— y el ámbar va en su tono de relleno,
+   separado del verde por luminosidad. Así «correcto» y «mismo país» se
+   distinguen también con deuteranopía, y en gris. */
 .fin-rejilla i, .fin-partida .cuadros i {
-  display: block; width: 13px; height: 13px; border-radius: 3px; background: var(--line-strong);
+  display: flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: var(--radio-mini);
+  background: var(--surface2); box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-style: normal; font-family: var(--font-body); font-weight: 700; font-size: 10px; line-height: 1;
+  color: var(--cdd-muted);
 }
-.fin-rejilla i.bien, .fin-partida .cuadros i.bien { background: var(--verde); }
-.fin-rejilla i.cerca, .fin-partida .cuadros i.cerca { background: var(--ambar); }
+.fin-rejilla i::after, .fin-partida .cuadros i::after { content: "✕"; }
+.fin-rejilla i.bien, .fin-partida .cuadros i.bien { background: var(--verde); box-shadow: none; color: var(--bg); }
+.fin-rejilla i.bien::after, .fin-partida .cuadros i.bien::after { content: "✓"; }
+.fin-rejilla i.cerca, .fin-partida .cuadros i.cerca {
+  background: rgb(var(--ambar-relleno-rgb)); box-shadow: none; color: var(--cdd-text);
+}
+.fin-rejilla i.cerca::after, .fin-partida .cuadros i.cerca::after { content: "~"; font-size: 12px; }
 
 .fin-desglose { margin: 14px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .fin-desglose div { display: flex; justify-content: space-between; gap: 12px; }
@@ -4180,7 +4251,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin-fila { display: flex; align-items: center; gap: 14px; }
 .fin-icono {
   flex: none; display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 12px;
+  width: 40px; height: 40px; border-radius: var(--radio-boton);
   background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-muted);
 }
 .fin-icono.oro { background: rgb(var(--gold-rgb) / .14); color: var(--gold); }
@@ -4209,7 +4280,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
   display: flex; align-items: center; gap: 12px;
   animation: finEntra var(--ms-escena) var(--curva-entra) both;
 }
-.fin-partida .cuadros i { width: 14px; height: 14px; }
+.fin-partida .cuadros i { width: 16px; height: 16px; }
 .fin-partida .texto {
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted);
@@ -4222,6 +4293,16 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 
 /* Compartir y el reloj. */
 .fin-acciones { display: flex; flex-direction: column; gap: 10px; }
+/* El plan B de compartir: el texto, seleccionado, para copiarlo a mano. Mono
+   porque es lo que se va a pegar tal cual, renglón a renglón. */
+.fin-copia { display: flex; flex-direction: column; gap: 6px; }
+.fin-copia-k { font-family: var(--font-body); font-size: 14px; color: var(--cdd-muted); }
+.fin-copia textarea {
+  width: 100%; resize: none; padding: 12px 14px; border-radius: var(--radio-boton);
+  background: var(--surface2); border: 1px solid var(--line-strong); color: var(--cdd-text);
+  font-family: var(--font-mono); font-size: 14px; line-height: 1.5;
+}
+.fin-copia textarea:focus-visible { outline: 2px solid var(--cdd-text); outline-offset: 2px; }
 .fin-reloj {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   min-height: 60px; padding: 0 16px; border-radius: var(--radio-boton); border: 1px solid var(--line);
@@ -4246,6 +4327,26 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin > .fin-entra:nth-child(4) { animation-delay: calc(var(--ms-paso) * 4); }
 .fin > .fin-entra:nth-child(5) { animation-delay: calc(var(--ms-paso) * 6); }
 .fin > .fin-entra:nth-child(n+6) { animation-delay: calc(var(--ms-paso) * 8); }
+/* El mismo compás con el panel partido en dos grupos (EndScreen, .fin-col):
+   en el primero cuentan sus propios hijos; el segundo entra en el último paso. */
+.fin-col > .fin-entra { animation: finEntra var(--ms-escena) var(--curva-entra) both; }
+.fin-col-a > .fin-entra:nth-child(2) { animation-delay: calc(var(--ms-paso) * 2); }
+.fin-col-a > .fin-entra:nth-child(3) { animation-delay: calc(var(--ms-paso) * 4); }
+.fin-col-a > .fin-entra:nth-child(4) { animation-delay: calc(var(--ms-paso) * 6); }
+.fin-col-b > .fin-entra { animation-delay: calc(var(--ms-paso) * 8); }
+
+/* UNA COLUMNA EN EL MÓVIL, DOS EN EL ESCRITORIO (P21). Los grupos no existen
+   para la maqueta hasta 1024px; desde ahí la tarjeta se ensancha y los pone
+   lado a lado, cada uno con el hueco de siempre entre tarjetas. */
+.fin-col { display: contents; }
+@media (min-width: 1024px) {
+  .cdd-end-card.fin:has(> .fin-col) {
+    max-width: 940px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 14px; row-gap: 10px; align-items: start;
+  }
+  .cdd-end-card.fin:has(> .fin-col) > .cdd-end-topbar { grid-column: 1 / -1; }
+  .fin-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    LA BARRA DE PESTAÑAS (BarraSecciones) — solo por debajo de 1100px
@@ -4262,10 +4363,39 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 :root { --barra-alto: 62px; }
 .barra-secciones { display: none; }
 .prensa-topbar > span > .prensa-ayuda {
-  width: 34px; height: 34px; padding: 0; margin: 0;
+  position: relative; width: 34px; height: 34px; padding: 0; margin: 0;
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: var(--radio-boton); background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
 }
+/* 34 px de dibujo y 44 de objetivo táctil, con el mismo truco que la tecla del
+   sumario: un pseudo-elemento invisible. En horizontal solo crece 3 px por lado
+   para no invadir al vecino (las teclas van a 6 px). Medido el 7-oct: «?» y el
+   trofeo eran objetivos reales de 34 × 34. */
+.prensa-topbar > span > .prensa-ayuda::after,
+.prensa-topbar > span > .prensa-clasif::after {
+  content: ""; position: absolute; inset: -5px -3px;
+}
+.prensa-topbar > span > .prensa-clasif { position: relative; }
+/* Archivo y Perfil en la cabecera: solo en el escritorio, donde no hay barra
+   de pestañas (J6, ver Header.jsx). Con texto, como la clasificación allí. */
+.prensa-topbar > span > .prensa-seccion { display: none; }
+@media (min-width: 1100px) {
+  .prensa-topbar .prensa-clasif .lad { display: inline; font-family: var(--font-body); font-weight: 600; font-size: 14px; }
+  .prensa-topbar > span > .prensa-seccion {
+    position: relative; display: inline-flex; align-items: center; gap: 6px;
+    height: 34px; padding: 0 12px; margin: 0; border: 0; cursor: pointer;
+    border-radius: var(--radio-boton); background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
+    font-family: var(--font-body); font-weight: 600; font-size: 14px;
+  }
+  .prensa-seccion .aviso {
+    position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ambar); box-shadow: 0 0 0 2px var(--bg);
+  }
+}
+@media (hover: hover) {
+  .prensa-topbar > span > .prensa-seccion:hover { background: rgb(var(--tinta-rgb) / .1); }
+}
+.prensa-topbar > span > .prensa-seccion:active { transform: translateY(1px); }
 @media (max-width: 1099px) {
   .barra-secciones {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -4280,10 +4410,13 @@ button.fin-tarjeta:active { transform: translateY(1px); }
     transition: color var(--ms-roce) var(--curva-roce);
   }
   .barra-pestana.activa { color: var(--cdd-text); }
-  /* La pestaña activa lleva la raya roja de la marca en su borde de arriba. */
+  /* La pestaña activa lleva la raya roja de la marca, DENTRO de la barra y
+     no sobre su canto: encima del canto se leía como el subrayado de lo que
+     quedara justo arriba (en reposo, «Cómo se juega» del pie; antes, ADIVINAR).
+     Auditoría 7-oct. */
   .barra-pestana.activa::before {
-    content: ""; position: absolute; top: -1px; left: 50%; width: 24px; height: 2px;
-    margin-left: -12px; border-radius: 1px; background: var(--rojo);
+    content: ""; position: absolute; top: 5px; left: 50%; width: 24px; height: 2px;
+    margin-left: -12px; border-radius: var(--radio-mini); background: var(--rojo);
   }
   .barra-icono { position: relative; display: flex; transition: transform var(--ms-pulso) var(--curva-roce); }
   .barra-pestana:active .barra-icono { transform: translateY(1px); }
@@ -4349,26 +4482,32 @@ button.fin-tarjeta:active { transform: translateY(1px); }
   .clas-icono-boton:hover { color: var(--cdd-text); }
 }
 
-/* Las pestañas: un segmentado. La activa es la tinta (el botón principal del
-   sistema), las demás, texto apagado sobre el hueco. */
+/* Las pestañas: un segmentado. La activa se eleva sobre el hueco; las demás,
+   texto apagado. 44 px de alto: es un objetivo táctil. */
 .clas-tabs {
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px;
   padding: 3px; margin-bottom: 14px; border-radius: var(--radio-boton); background: var(--surface2);
 }
 .clas-tab {
-  height: 38px; padding: 0 6px; border: 0; border-radius: 9px; background: none; cursor: pointer;
+  height: 44px; padding: 0 6px; border: 0; border-radius: var(--radio-celda); background: none; cursor: pointer;
   font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   transition: color var(--ms-roce) var(--curva-roce), background-color var(--ms-roce) var(--curva-roce);
 }
-.clas-tab.activa { background: var(--cdd-text); color: var(--bg); font-weight: 700; }
+/* La activa, en SUPERFICIE con su canto y texto en tinta: elevada sobre el
+   hueco, no rellena de tinta. Con la tinta, la pestaña y «Entrar» eran dos
+   rellenos a todo contraste en la misma pantalla, y el de la acción tiene que
+   ser único (DESIGN.md §3; auditoría 7-oct). Mismo dialecto que .segmentado. */
+.clas-tab.activa {
+  background: var(--surface); color: var(--cdd-text); font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
 @media (hover: hover) {
   .clas-tab:not(.activa):hover { color: var(--cdd-text); }
 }
 
 /* La tarjeta del periodo: kicker y cierre arriba, el tema en titular y la
-   regla de los días. El día de hoy es el único segmento rojo: es «lo que se
-   está gastando», el mismo rojo del medidor de intentos. */
+   regla de los días, con el día de hoy en tinta (ver .clas-regla i.hoy). */
 .clas-periodo {
   display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;
   padding: 14px 16px 16px; border-radius: var(--radio-tarjeta);
@@ -4389,10 +4528,13 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 }
 .clas-progreso { display: flex; align-items: center; gap: 10px; }
 .clas-regla { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; }
-.clas-regla i { display: block; height: 4px; border-radius: 2px; background: var(--surface2); }
+.clas-regla i { display: block; height: 4px; border-radius: var(--radio-mini); background: var(--surface2); }
 .clas-regla i.hecho { background: rgb(var(--tinta2-rgb) / .7); }
-.clas-regla i.hoy { background: var(--rojo); }
-.clas-regla.continua { display: block; height: 4px; border-radius: 2px; background: var(--surface2); overflow: hidden; }
+/* Hoy en TINTA, como el intento en curso del medidor de la pregunta. Iba en
+   rojo, y en el medidor de intentos el rojo es lo gastado y la tinta lo
+   actual: el mismo dibujo con los colores al revés (auditoría 7-oct). */
+.clas-regla i.hoy { background: var(--cdd-text); }
+.clas-regla.continua { display: block; height: 4px; border-radius: var(--radio-mini); background: var(--surface2); overflow: hidden; }
 .clas-regla.continua i { height: 100%; background: rgb(var(--tinta2-rgb) / .7); }
 .clas-dia { flex: none; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
 
@@ -4423,7 +4565,7 @@ button.clas-podio-boton { cursor: pointer; }
 .clas-podio-puesto.p1 .clas-podio-pts { color: var(--gold); }
 .clas-podio-peana {
   width: 100%; height: 42px; display: flex; align-items: center; justify-content: center;
-  border-radius: 10px 10px 4px 4px; border-top: 2px solid var(--medalla); background: var(--surface);
+  border-radius: var(--radio-celda) var(--radio-celda) var(--radio-mini) var(--radio-mini); border-top: 2px solid var(--medalla); background: var(--surface);
   font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--medalla);
   transition: transform var(--ms-pulso) var(--curva-roce);
 }
@@ -4472,7 +4614,7 @@ button.clas-fila { cursor: pointer; transition: background-color var(--ms-roce) 
 .clas-fila.yo .clas-nombre-linea b { font-weight: 700; }
 .clas-tu {
   flex: none; height: 18px; padding: 0 6px; display: inline-flex; align-items: center;
-  border-radius: 5px; background: var(--cdd-text); color: var(--bg);
+  border-radius: var(--radio-sello); background: var(--cdd-text); color: var(--bg);
   font-family: var(--font-body); font-weight: 700; font-size: 11px;
 }
 .clas-apunte {
@@ -4564,9 +4706,9 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
   color: var(--cdd-text); font-variant-numeric: tabular-nums;
 }
 .arch-resumen-cifra span { font-family: var(--font-body); font-weight: 500; font-size: 15px; color: var(--cdd-muted); }
-.arch-barra { display: block; height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; }
+.arch-barra { display: block; height: 6px; border-radius: var(--radio-mini); background: var(--surface2); overflow: hidden; }
 .arch-barra > i {
-  display: block; height: 100%; border-radius: 3px; background: var(--cdd-text);
+  display: block; height: 100%; border-radius: var(--radio-mini); background: var(--cdd-text);
   transition: width var(--ms-escena) var(--curva-entra);
 }
 .arch-resumen-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
@@ -4584,7 +4726,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 }
 .arch-repesca.activa { background: rgb(var(--ambar-rgb) / .07); border-color: rgb(var(--ambar-rgb) / .35); }
 .arch-repesca-icono {
-  flex: none; width: 42px; height: 42px; border-radius: 12px;
+  flex: none; width: 42px; height: 42px; border-radius: var(--radio-boton);
   display: flex; align-items: center; justify-content: center;
   background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-muted);
 }
@@ -4601,7 +4743,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
   .arch-repesca-ayuda:hover { color: var(--cdd-text); }
 }
 .arch-repesca-boton {
-  flex: none; height: 40px; padding: 0 14px; border: 0; border-radius: 10px; cursor: pointer;
+  flex: none; height: 40px; padding: 0 14px; border: 0; border-radius: var(--radio-celda); cursor: pointer;
   background: var(--ambar); color: rgb(var(--velo-rgb));
   font-family: var(--font-body); font-weight: 700; font-size: 14px;
   transition: transform var(--ms-pulso) var(--curva-roce), opacity var(--ms-roce) var(--curva-roce);
@@ -4615,7 +4757,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 .arch-tira::-webkit-scrollbar { display: none; }
 .arch-chip {
   flex: none; height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px;
-  border: 0; border-radius: 10px; background: var(--surface2); cursor: pointer; white-space: nowrap;
+  border: 0; border-radius: var(--radio-celda); background: var(--surface2); cursor: pointer; white-space: nowrap;
   font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text);
   transition: background-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
 }
@@ -4623,7 +4765,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 .arch-chip.on { background: var(--cdd-text); color: var(--bg); font-weight: 700; }
 .arch-chip .cifra { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--cdd-muted); }
 .arch-chip.on .cifra { color: inherit; opacity: .6; }
-.arch-chip .bandera { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+.arch-chip .bandera { width: 18px; height: 12px; border-radius: var(--radio-mini); object-fit: cover; }
 
 /* La vitrina. */
 .arch-vitrina { display: flex; flex-direction: column; gap: 10px; padding: 4px 16px 20px; }
@@ -4655,7 +4797,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 }
 .arch-destacada-pie { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding: 12px 14px 14px; }
 .arch-destacada-datos { flex: none; display: inline-flex; align-items: center; gap: 8px; }
-.arch-destacada-datos .bandera { width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+.arch-destacada-datos .bandera { width: 18px; height: 12px; border-radius: var(--radio-mini); object-fit: cover; }
 
 /* Las fichas: logotipo y número arriba, marca, modelo y año abajo. */
 .arch-ficha, .arch-hueco {
@@ -4677,7 +4819,7 @@ div.arch-ficha { cursor: default; }
   font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted);
 }
 .arch-nuevo {
-  height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border-radius: 5px;
+  height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border-radius: var(--radio-sello);
   background: var(--cdd-text); color: var(--bg);
   font-family: var(--font-body); font-weight: 700; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
 }
@@ -4703,18 +4845,18 @@ div.arch-ficha { cursor: default; }
 
 /* El logotipo, sobre su azulejo blanco (los PNG se dibujaron para fondo claro). */
 .arch-logo {
-  flex: none; width: 32px; height: 32px; border-radius: 9px; overflow: hidden;
+  flex: none; width: 32px; height: 32px; border-radius: var(--radio-celda); overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center;
   background: rgb(255 255 255); color: rgb(19 20 22);
   box-shadow: inset 0 0 0 1px var(--line-2);
 }
 .arch-logo img { width: 24px; height: 24px; object-fit: contain; }
 .arch-logo b { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
-.arch-logo.pequeno { width: 26px; height: 26px; border-radius: 7px; }
+.arch-logo.pequeno { width: 26px; height: 26px; border-radius: var(--radio-sello); }
 .arch-logo.pequeno img { width: 19px; height: 19px; }
 .arch-logo.apagado img { opacity: .4; filter: grayscale(1); }
 .arch-logo.cerrado { background: var(--surface2); color: var(--cdd-muted); box-shadow: none; }
-.arch-logo.grande { width: 56px; height: 56px; border-radius: 16px; }
+.arch-logo.grande { width: 56px; height: 56px; border-radius: var(--radio-tarjeta); }
 span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 
 /* El hueco: rayado, canto en discontinua, sin número. */
@@ -4736,7 +4878,7 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
   border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
 }
 .arch-pais-cab { display: flex; align-items: center; gap: 10px; }
-.arch-pais-cab .bandera { flex: none; width: 27px; height: 18px; border-radius: 3px; object-fit: cover; }
+.arch-pais-cab .bandera { flex: none; width: 27px; height: 18px; border-radius: var(--radio-mini); object-fit: cover; }
 .arch-pais-cab h3 {
   flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1; color: var(--cdd-text);
@@ -4759,7 +4901,7 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
   background: rgb(var(--gold-rgb) / .08);
 }
 .arch-especial-icono {
-  flex: none; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  flex: none; width: 42px; height: 42px; border-radius: var(--radio-boton); display: flex; align-items: center; justify-content: center;
   background: rgb(var(--gold-rgb) / .16); color: var(--gold);
 }
 .arch-especial-icono svg { fill: currentColor; }
@@ -4776,12 +4918,24 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 .arch-mensaje > p { margin: 0; font-family: var(--font-body); font-size: 15px; color: var(--cdd-muted); }
 .arch-mensaje > p.rojo { color: var(--rojo); font-weight: 600; }
 .arch-mensaje .pm-btn { width: auto; padding-left: 24px; padding-right: 24px; }
-.arch-muro, .arch-vacio {
-  width: 100%; max-width: 360px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px;
+.arch-vacio {
+  width: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 24px 20px; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
+  margin-top: 6px;
 }
-.arch-vacio { max-width: none; margin-top: 6px; }
-.arch-muro .pm-btn { width: 100%; margin-top: 8px; }
+/* La puerta (anónimo): portadas sin imprimir y, debajo, la tarjeta de aviso de
+   la Clasificación, alineada a la izquierda como todo texto corrido (§9). */
+.arch-anticipo .arch-ficha {
+  min-height: 128px; cursor: default; background: var(--surface2); border-color: transparent;
+}
+.arch-anticipo .arch-ficha:active { transform: none; }
+.arch-anticipo .arch-ficha:first-child { background: transparent; border: 1px dashed var(--line-strong); }
+.arch-anticipo-num {
+  font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: 1; letter-spacing: .02em;
+  color: var(--faint);
+}
+.arch-puerta { margin: 4px 0 0; }
+.arch-puerta .arch-vacio-titulo { margin: 0; font-size: 22px; line-height: 1.1; }
 .arch-vacio-titulo { margin: 4px 0 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--cdd-text); }
 .arch-vacio-texto { margin: 0; max-width: 36ch; font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-muted); }
 
@@ -4835,7 +4989,7 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 .arch-dialogo-fila { display: flex; align-items: flex-start; justify-content: space-between; margin: -8px -14px 0 0; }
 .arch-dialogo-fila .arch-dialogo-icono { margin-top: 8px; }
 .arch-dialogo-icono {
-  flex: none; width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  flex: none; width: 48px; height: 48px; border-radius: var(--radio-boton); display: flex; align-items: center; justify-content: center;
   background: rgb(var(--ambar-rgb) / .15); color: var(--ambar);
 }
 .arch-dialogo-cab { display: flex; flex-direction: column; gap: 6px; }
@@ -4870,7 +5024,7 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
   background: var(--surface2);
 }
 .arch-ayuda-icono {
-  flex: none; width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  flex: none; width: 32px; height: 32px; border-radius: var(--radio-celda); display: flex; align-items: center; justify-content: center;
   background: rgb(var(--ambar-rgb) / .15); color: var(--ambar);
 }
 .arch-ayuda-icono .medio { color: var(--ambar); }
@@ -4923,7 +5077,7 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 .perf-cifras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
 .perf-cifra {
   display: flex; flex-direction: column; gap: 6px; padding: 14px; min-width: 0; text-align: left;
-  border-radius: 14px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radio-boton); background: var(--surface); border: 1px solid var(--line);
   color: var(--cdd-text); font: inherit;
 }
 button.perf-cifra { cursor: pointer; transition: border-color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce); }
@@ -4947,7 +5101,10 @@ button.perf-cifra:active { transform: translateY(1px); }
   font-size: 17px; font-weight: 600; color: var(--cdd-muted);
 }
 .perf-cifra.oro { background: rgb(var(--gold-rgb) / .09); border-color: rgb(var(--gold-rgb) / .3); }
-.perf-cifra.oro .k, .perf-cifra.oro .v, .perf-cifra.oro .v small { color: var(--gold); }
+/* Oro SOBRE SU PROPIO TINTE: un 15 % hacia la tinta. De día oscurece y de noche
+   aclara, así que sube en las dos ediciones. «Racha» quedaba a 4,44:1 sobre la
+   tarjeta dorada (auditoría 7-oct); así pasa de 5,5:1. */
+.perf-cifra.oro .k, .perf-cifra.oro .v, .perf-cifra.oro .v small { color: color-mix(in srgb, var(--gold) 85%, var(--cdd-text)); }
 .perf-cifra.oro .k svg { fill: currentColor; stroke: none; }
 
 /* Una tarjeta de la sección (la distribución). */
@@ -4964,9 +5121,9 @@ button.perf-cifra:active { transform: translateY(1px); }
   display: flex; align-items: center; font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted);
 }
 .perf-dist-n { justify-content: flex-end; }
-.perf-dist-barra { display: block; height: 16px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.perf-dist-barra { display: block; height: 16px; border-radius: var(--radio-mini); background: var(--surface2); overflow: hidden; }
 .perf-dist-barra i {
-  display: block; height: 100%; min-width: 4px; border-radius: 4px; background: rgb(var(--tinta2-rgb) / .7);
+  display: block; height: 100%; min-width: 4px; border-radius: var(--radio-mini); background: rgb(var(--tinta2-rgb) / .7);
   transition: width var(--ms-escena) var(--curva-entra);
 }
 .perf-dist-fila.fuerte .perf-dist-k, .perf-dist-fila.fuerte .perf-dist-n { color: var(--cdd-text); font-weight: 600; }
@@ -5004,9 +5161,10 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted);
 }
 .grupo-chev { flex: none; color: var(--cdd-muted); }
-.segmentado { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--bg); }
+.segmentado { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: var(--radio-celda); background: var(--bg); }
+/* 44 px: el alto de un objetivo táctil (antes 32). Cabe en la fila de 58. */
 .segmentado button {
-  height: 32px; padding: 0 11px; border: 0; border-radius: 8px; background: none; cursor: pointer;
+  height: 44px; padding: 0 11px; border: 0; border-radius: var(--radio-celda); background: none; cursor: pointer;
   font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-muted);
   transition: background-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce);
 }
@@ -5068,7 +5226,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
    las dos esquinas, en píldora. Ancho fijo porque las cinco cifras se apilan. */
 .htp-chip {
   position: absolute; left: 0; right: 0; bottom: 14px; margin-inline: auto; z-index: 4;
-  width: 58px; height: 26px; border-radius: 13px;
+  width: 58px; height: 26px; border-radius: var(--radio-pildora);
   background: rgb(12 13 15 / .62); color: rgb(242 240 235);
   font-family: var(--font-mono); font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums;
 }
@@ -5084,7 +5242,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 @keyframes htpL4 { 0%, 57% { opacity: 0; } 58%, 77% { opacity: 1; } 78%, 100% { opacity: 0; } }
 @keyframes htpL5 { 0%, 77% { opacity: 0; } 78%, 97% { opacity: 1; } 98%, 100% { opacity: 0; } }
 .htp-medidor { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding-top: 6px; }
-.htp-medidor > span { position: relative; height: 4px; border-radius: 2px; overflow: hidden; background: var(--surface2); }
+.htp-medidor > span { position: relative; height: 4px; border-radius: var(--radio-mini); overflow: hidden; background: var(--surface2); }
 .htp-medidor i { position: absolute; inset: 0; background: var(--rojo); opacity: 0; }
 .htp-medidor .s1 { animation: htpS1 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
 .htp-medidor .s2 { animation: htpS2 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
@@ -5110,7 +5268,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   height: 50px; box-sizing: border-box; padding: 0 10px; display: flex; align-items: center; gap: 8px;
   border-radius: var(--radio-celda); background: var(--surface); border: 1px solid var(--line-strong); color: var(--cdd-muted);
 }
-.htp-celda .bandera { flex: none; width: 18px; height: 12px; border-radius: 2px; object-fit: cover; }
+.htp-celda .bandera { flex: none; width: 18px; height: 12px; border-radius: var(--radio-mini); object-fit: cover; }
 .htp-celda svg { flex: none; }
 .htp-celda-texto { display: flex; flex-direction: column; min-width: 0; }
 .htp-celda-texto b { font-family: var(--font-body); font-weight: 600; font-size: 15px; line-height: 1.2; color: var(--cdd-text); }
@@ -5127,7 +5285,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .htp-puntos { flex: none; display: flex; align-items: center; }
 .htp-puntos button { width: 28px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: none; cursor: pointer; }
 .htp-puntos span {
-  display: block; width: 8px; height: 8px; border-radius: 4px; background: var(--line-strong);
+  display: block; width: 8px; height: 8px; border-radius: var(--radio-mini); background: var(--line-strong);
   transition: width var(--ms-hoja) var(--curva-entra), background-color var(--ms-roce) var(--curva-roce);
 }
 .htp-puntos span.on { width: 22px; background: var(--cdd-text); }
@@ -5149,8 +5307,8 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .pun-fila { display: grid; grid-template-columns: 16px minmax(0, 1fr) 44px; gap: 10px; align-items: center; }
 .pun-k { font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted); }
 .pun-v { text-align: right; font-family: var(--font-mono); font-weight: 600; font-size: 13px; color: var(--cdd-text); }
-.pun-barra { display: block; height: 14px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
-.pun-barra i { display: block; height: 100%; border-radius: 4px; background: rgb(var(--tinta2-rgb) / .5); transform-origin: left center; }
+.pun-barra { display: block; height: 14px; border-radius: var(--radio-mini); background: var(--surface2); overflow: hidden; }
+.pun-barra i { display: block; height: 100%; border-radius: var(--radio-mini); background: rgb(var(--tinta2-rgb) / .5); transform-origin: left center; }
 .pun-fila.n1 .pun-barra i { background: var(--cdd-text); }
 .pun-fila.n2 .pun-barra i { background: var(--cdd-muted); }
 .pun-fila.n3 .pun-barra i { background: rgb(var(--tinta2-rgb) / .75); }
@@ -5215,10 +5373,10 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   position: absolute; z-index: 6; width: 22px; height: 22px;
   border: 0 solid rgb(242 240 235 / .94); filter: drop-shadow(0 0 1px rgb(0 0 0 / .6));
 }
-.sorteo-esq.ai { left: 14px; top: 14px; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: 5px; --dx: -16px; --dy: -16px; }
-.sorteo-esq.ad { right: 14px; top: 14px; border-right-width: 2px; border-top-width: 2px; border-top-right-radius: 5px; --dx: 16px; --dy: -16px; }
-.sorteo-esq.bi { left: 14px; bottom: 14px; border-left-width: 2px; border-bottom-width: 2px; border-bottom-left-radius: 5px; --dx: -16px; --dy: 16px; }
-.sorteo-esq.bd { right: 14px; bottom: 14px; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: 5px; --dx: 16px; --dy: 16px; }
+.sorteo-esq.ai { left: 14px; top: 14px; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: var(--radio-sello); --dx: -16px; --dy: -16px; }
+.sorteo-esq.ad { right: 14px; top: 14px; border-right-width: 2px; border-top-width: 2px; border-top-right-radius: var(--radio-sello); --dx: 16px; --dy: -16px; }
+.sorteo-esq.bi { left: 14px; bottom: 14px; border-left-width: 2px; border-bottom-width: 2px; border-bottom-left-radius: var(--radio-sello); --dx: -16px; --dy: 16px; }
+.sorteo-esq.bd { right: 14px; bottom: 14px; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: var(--radio-sello); --dx: 16px; --dy: 16px; }
 @keyframes sorteoEncuadra { from { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
 .sorteo-esq { animation: sorteoEncuadra var(--ms-escena) var(--curva-entra) calc(var(--ms-paso) * 2) both; }
 
@@ -5237,7 +5395,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .sorteo-ficha.b { background-color: rgb(27 30 34); }
 .sorteo-ficha.ultima { border: 0; }
 .sorteo-ficha .rayas { display: flex; flex-direction: column; gap: 5px; width: 72px; }
-.sorteo-ficha .rayas i { display: block; height: 6px; border-radius: 1px; background: rgb(229 64 42); }
+.sorteo-ficha .rayas i { display: block; height: 6px; border-radius: var(--radio-mini); background: rgb(229 64 42); }
 .sorteo-ficha .rayas i + i { height: 3px; }
 .sorteo-ficha .num { font-family: var(--font-mono); font-weight: 500; font-size: 12px; letter-spacing: .14em; }
 @keyframes sorteoGira { to { transform: translateY(-93.75%); } }
@@ -5250,7 +5408,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 }
 /* Las marcas del centro: por dónde va a caer el número. */
 .sorteo-marca {
-  position: absolute; top: 50%; z-index: 5; width: 10px; height: 2px; margin-top: -1px; border-radius: 1px;
+  position: absolute; top: 50%; z-index: 5; width: 10px; height: 2px; margin-top: -1px; border-radius: var(--radio-mini);
   background: rgb(var(--sorteo-acento)); transition: opacity var(--ms-hoja) var(--curva-roce);
 }
 .sorteo-marca.izq { left: 0; }
@@ -5277,7 +5435,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .sorteo-lente {
   position: absolute; left: 22px; bottom: 20px; z-index: 6;
   height: 26px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px;
-  border-radius: 7px; background: rgb(12 13 15 / .78); color: rgb(242 240 235);
+  border-radius: var(--radio-sello); background: rgb(12 13 15 / .78); color: rgb(242 240 235);
   font-family: var(--font-mono); font-weight: 600; font-size: 12px; letter-spacing: .02em; font-variant-numeric: tabular-nums;
 }
 /* El sello, con la caída del sello grande del final (viaja como una escena). */
@@ -5285,7 +5443,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .sorteo-sello {
   position: absolute; right: 16px; top: 18px; z-index: 7;
   height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px;
-  border-radius: 8px; background: rgb(var(--sorteo-acento)); color: rgb(12 13 15);
+  border-radius: var(--radio-celda); background: rgb(var(--sorteo-acento)); color: rgb(12 13 15);
   font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .08em; text-transform: uppercase;
   box-shadow: 0 8px 20px rgb(0 0 0 / .45);
   animation: sorteoSello var(--ms-escena) var(--curva-sello) both;
@@ -5337,13 +5495,13 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .rep-modo { justify-self: end; }
 .rep-modo-chip {
   height: 30px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
-  border-radius: 8px; background: rgb(var(--gold-rgb) / .14); color: var(--gold);
+  border-radius: var(--radio-celda); background: rgb(var(--gold-rgb) / .14); color: var(--gold);
   font-family: var(--font-body); font-weight: 700; font-size: 12.5px;
 }
 
 .rep-reglas {
   height: 36px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  border-radius: 10px; background: rgb(var(--ambar-rgb) / .08); border: 1px solid rgb(var(--ambar-rgb) / .28);
+  border-radius: var(--radio-celda); background: rgb(var(--ambar-rgb) / .08); border: 1px solid rgb(var(--ambar-rgb) / .28);
   font-family: var(--font-body); font-weight: 600; font-size: 12.5px; color: var(--ambar);
 }
 .rep-reglas > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -5352,11 +5510,11 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 
 .rep-veterano {
   display: flex; flex-direction: column; gap: 12px; padding: 16px;
-  border-radius: 18px; background: var(--surface); border: 1px solid rgb(var(--gold-rgb) / .35);
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid rgb(var(--gold-rgb) / .35);
 }
 .rep-veterano-cab { display: flex; align-items: center; gap: 12px; }
 .rep-veterano-icono {
-  flex: none; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  flex: none; width: 44px; height: 44px; border-radius: var(--radio-boton); display: flex; align-items: center; justify-content: center;
   background: rgb(var(--gold-rgb) / .14); color: var(--gold);
 }
 .rep-veterano-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -5364,7 +5522,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .rep-veterano-texto span { font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted); }
 .rep-veterano-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .rep-veterano-chips span {
-  height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 7px;
+  height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: var(--radio-sello);
   background: var(--surface2); font-family: var(--font-body); font-weight: 700; font-size: 12.5px; color: var(--cdd-text);
 }
 
@@ -5408,7 +5566,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .pm-hoja-cab > .min-w-0 { flex: 1 1 auto; }
 .pm-hoja-pasos { flex: none; display: flex; align-items: center; gap: 4px; margin-top: 9px; }
 .pm-hoja-pasos i {
-  display: block; width: 6px; height: 6px; border-radius: 3px; background: var(--line-strong);
+  display: block; width: 6px; height: 6px; border-radius: var(--radio-mini); background: var(--line-strong);
   transition: width var(--ms-hoja) var(--curva-entra), background-color var(--ms-roce) var(--curva-roce);
 }
 .pm-hoja-pasos i.hecho { background: var(--cdd-muted); }
@@ -5416,7 +5574,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .pm-opcion.con-logo { justify-content: flex-start; gap: 12px; padding-top: 10px; padding-bottom: 10px; }
 .pm-opcion.con-logo .pm-opcion-texto { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pm-opcion-logo {
-  flex: none; width: 32px; height: 32px; border-radius: 9px; overflow: hidden;
+  flex: none; width: 32px; height: 32px; border-radius: var(--radio-celda); overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center;
   background: rgb(255 255 255); color: rgb(19 20 22); box-shadow: inset 0 0 0 1px var(--line-2);
 }
@@ -5426,7 +5584,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   flex: none; display: inline-flex; align-items: center; gap: 7px;
   font-family: var(--font-body); font-weight: 500; font-size: 13px; color: var(--cdd-muted);
 }
-.pm-opcion-pais .bandera { width: 18px; height: 12px; border-radius: 2px; }
+.pm-opcion-pais .bandera { width: 18px; height: 12px; border-radius: var(--radio-mini); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    LAS LISTAS AGRUPADAS (Perfil, Menú) y EL MENÚ «ASFALTO» (sum-*)
@@ -5436,6 +5594,12 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
    interfaz hecha en serie, y aquí no distinguían nada.
    ═══════════════════════════════════════════════════════════════════════ */
 .grupo-lista + .grupo-titulo, .sum-entrar + .grupo-lista { margin-top: 18px; }
+/* Con la barra de pestañas a la vista, el menú no repite sus puertas (J5, ver
+   SumarioModal.jsx). Si no queda ninguna fila, la lista entera se va. */
+@media (max-width: 1099px) {
+  .grupo-fila.en-barra { display: none; }
+  .grupo-lista:not(:has(> .grupo-fila:not(.en-barra), > :not(.grupo-fila))) { display: none; }
+}
 .grupo-titulo { margin-top: 20px; }
 .grupo-icono { flex: none; display: flex; color: var(--cdd-muted); margin-right: -2px; }
 button.grupo-fila { justify-content: flex-start; }
@@ -5495,6 +5659,9 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .dlg-input:disabled { opacity: .5; }
 .dlg-codigo { height: 60px; text-align: center; font-family: var(--font-mono); font-weight: 600; font-size: 26px; letter-spacing: .4em; padding-left: calc(14px + .4em); }
 .dlg-firma { height: 56px; font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: .04em; text-transform: uppercase; }
+/* El ejemplo, a cuerpo de texto: en la letra de la firma, «P. EJ. MAX12» se
+   leía como un apodo ya escrito, no como un ejemplo (P22). */
+.dlg-firma::placeholder { font-family: var(--font-body); font-weight: 500; font-size: 16px; letter-spacing: 0; text-transform: none; }
 .dlg-area { height: auto; min-height: 128px; padding: 12px 14px; resize: none; line-height: 1.45; }
 .dlg .pm-btn { width: 100%; }
 .dlg .segmentado { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
@@ -5510,13 +5677,15 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .dlg-trato dt { font-family: var(--font-body); font-weight: 700; font-size: 14px; color: var(--cdd-text); }
 .dlg-trato dd { margin: 4px 0 0; font-family: var(--font-body); font-size: 13.5px; line-height: 1.45; color: var(--cdd-muted); }
 
-/* Google: su chapa de marca (logo sobre blanco, por sus directrices) con la
-   forma de nuestros botones. De día, el canto le hace falta para no fundirse
-   con la tarjeta blanca. */
+/* Google: su logo con la forma de nuestros botones, como botón SECUNDARIO —
+   superficie, canto y texto en tinta—, que es el estilo claro u oscuro que
+   permiten sus directrices. Era una chapa blanca fija, y de noche eso la volvía
+   el objeto más brillante del diálogo, compitiendo con «Enviarme un código»:
+   dos rellenos a todo contraste para una sola decisión (auditoría 7-oct). */
 .dlg-google {
   width: 100%; height: 52px; display: flex; align-items: center; justify-content: center; gap: 12px;
-  border: 1px solid var(--line-strong); border-radius: var(--radio-boton); background: rgb(255 255 255); cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 15.5px; color: rgb(31 31 31);
+  border: 1px solid var(--line-strong); border-radius: var(--radio-boton); background: var(--surface); cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 15.5px; color: var(--cdd-text);
   transition: transform var(--ms-pulso) var(--curva-roce);
 }
 .dlg-google:active { transform: translateY(1px); }
@@ -5532,11 +5701,6 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 }
 .dlg-enlace:disabled { opacity: .5; cursor: default; }
 .dlg-espera { font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted); }
-.dlg-idioma { padding-top: 14px; border-top: 1px solid var(--line); }
-
-/* El idioma suelto (LanguageStrip), al pie del diálogo de entrar. */
-.idioma-tira { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.idioma-tira > span { font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    EL PERFIL DE OTRO JUGADOR y LOS PODIOS «ASFALTO»
@@ -5593,7 +5757,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
    verde es «correcto / en marcha» en todo el juego— y la bola que se desliza.
    Solo transform y color. */
 .interruptor {
-  position: relative; flex: none; width: 48px; height: 28px; padding: 0; border: 0; border-radius: 14px; cursor: pointer;
+  position: relative; flex: none; width: 48px; height: 28px; padding: 0; border: 0; border-radius: var(--radio-pildora); cursor: pointer;
   background: var(--line-strong);
   transition: background-color var(--ms-roce) var(--curva-roce);
 }
@@ -5611,12 +5775,34 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
    y el «ahora no» como renglón al lado. */
 .oferta {
   display: flex; flex-direction: column; gap: 8px; padding: 16px;
-  border-radius: 18px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
 }
 .oferta-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.1; color: var(--cdd-text); }
 .oferta-texto { margin: 0; font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-muted); }
 .oferta-botones { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
 .oferta-botones .pm-btn { flex: 1 1 auto; width: auto; }
+/* EN EL PANEL FINAL, LAS OFERTAS VAN EN SECUNDARIO. Ahí la acción con relleno
+   es COMPARTIR, y una oferta debajo con su propio bloque de tinta hacía dos
+   rellenos a todo contraste a la vista a la vez (auditoría 7-oct; DESIGN.md §3).
+   Fuera del panel —donde la oferta es lo único que se pide— siguen en tinta. */
+.fin .oferta-botones .pm-btn {
+  background: var(--surface); color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+@media (hover: hover) {
+  .fin .oferta-botones .pm-btn:hover:not(:disabled) { background: var(--surface2); }
+}
+
+/* LA ✕ DEL PANEL GANA UNA FRANJA AL DESPLAZAR. Sobre la foto flota bien; en
+   cuanto el panel baja, flotaba encima de las tarjetas y tapaba títulos y la
+   oferta de aviso (auditoría 7-oct). La franja es el fondo del propio panel
+   con su canto, y aparece solo con scroll (EndScreen pone .con-banda). */
+.cdd-end-topbar::before {
+  content: ""; position: absolute; top: 0; left: -10px; right: -10px; height: 56px;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  opacity: 0; transition: opacity var(--ms-roce) var(--curva-roce); pointer-events: none;
+}
+.cdd-end-topbar.con-banda::before { opacity: 1; }
+.cdd-end-topbar .cdd-end-close { position: relative; }
 .oferta-no {
   flex: none; padding: 10px 4px; border: 0; background: none; cursor: pointer;
   font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
@@ -5647,7 +5833,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 }
 .rep-error-tarjeta {
   width: 100%; max-width: 24rem; box-sizing: border-box;
-  border-radius: 20px; background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--radio-hoja); background: var(--surface); border: 1px solid var(--line-strong);
   box-shadow: var(--sombra-flota);
 }
 .rep-error-tarjeta .dlg-titulo { margin-top: -4px; }
@@ -5662,3 +5848,16 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 @media (hover: hover) {
   .fin .cdd-end-link:hover { color: var(--cdd-text); border-color: transparent; }
 }
+
+/* LAS PÁGINAS LEGALES (privacidad, eliminar cuenta). La salida arriba, como un
+   renglón: se llega desde el pie o desde Play y la «atrás» del navegador no
+   siempre vuelve al juego. El kicker en gris: aquí no hay nada gastado ni que
+   pida atención, que es lo único que dice el rojo (auditoría 7-oct, P20). */
+.legal .pm-kicker { color: var(--cdd-muted); }
+.legal-volver {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: -6px; padding: 0 6px;
+  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text);
+  text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
+}
+.legal-volver:focus-visible { outline: 2px solid var(--cdd-text); outline-offset: 2px; border-radius: var(--radio-sello); }
+@media (hover: hover) { .legal-volver:hover { text-decoration-color: currentColor; } }

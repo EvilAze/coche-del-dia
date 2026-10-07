@@ -563,15 +563,11 @@ export function useGame() {
         payload,
       });
       haptic.error();
-      // `data.error` viene del servidor tal cual (no está localizado): se
-      // interpola en la plantilla i18n para que al menos el prefijo hable el
-      // idioma del jugador.
-      toast.push(
-        data?.error
-          ? t("errors.validationDetail", { detail: data.error })
-          : t("errors.validationFailed"),
-        { type: "error" }
-      );
+      // `data.error` viene del servidor tal cual: sin localizar y escrito para
+      // nosotros, no para el jugador. Antes se enseñaba con un «Error: » delante;
+      // ahora el jugador lee qué hacer y el detalle se queda en el console.error
+      // de arriba (y en Sentry, que lo recoge).
+      toast.push(t("errors.validationFailed"), { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
       return;

@@ -19,8 +19,9 @@ describe("shareGrid", () => {
     expect(shareGrid([row(C, C, C)])).toBe("✅✅✅");
   });
 
-  it("binario: partial (mismo país) cuenta como ❌", () => {
-    expect(shareGrid([row(P, W, W)])).toBe("❌❌❌");
+  it("tres estados: partial (mismo país) es 🟨, no un fallo más", () => {
+    expect(shareGrid([row(P, W, W)])).toBe("🟨❌❌");
+    expect(shareGrid([row(P, W, C), row(C, C, C)])).toBe("🟨❌✅\n✅✅✅");
   });
 
   it("varias filas se unen con salto de línea", () => {

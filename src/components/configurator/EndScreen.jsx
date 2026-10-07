@@ -27,13 +27,9 @@
 import { useEffect, useRef, useState } from "react";
 import { menosMovimiento } from "../../lib/movimiento";
 import { useCountdown } from "../../hooks/useCountdown";
-import { useEscape } from "../../hooks/useEscape";
-import { useScrollLock } from "../../hooks/useScrollLock";
-import { useHistoryClose } from "../../hooks/useHistoryClose";
 import { useSelloSentido } from "../../hooks/useSelloSentido";
 import { useT, getCarDescription, getLocalizedCountry } from "../../i18n";
 import { haptic } from "../../lib/haptics";
-import { esApp } from "../../lib/plataforma";
 import { track } from "../../lib/analytics";
 import { flagImagePath } from "../../data/countries";
 import { apiUrl } from "../../lib/apiUrl";
@@ -48,6 +44,8 @@ import { useDailyStats, Distribution } from "./dailyStats";
 // partida diaria — su pantalla viva es ESTA.
 import NotificationOptIn from "../NotificationOptIn";
 import FaldonApp from "../FaldonApp";
+import { momentoDeFaldon, faldonDescartado } from "../../lib/edicionApp";
+import PanelFin from "./PanelFin";
 import RankParte from "./RankParte";
 // (Aquí se importaba `shareGrid` para pintar la rejilla ✅/❌ EN PANTALLA. Esa
 // función existe para el TEXTO que se copia a WhatsApp, donde el emoji es el
@@ -109,6 +107,23 @@ function useCuenta(objetivo, ms = 700) {
 function cuadro(status) {
   return status === "correct" ? "bien" : status === "partial" ? "cerca" : "mal";
 }
+
+// LO QUE DICE LA REJILLA, EN PALABRAS. Los cuadros van con aria-hidden (son
+// dibujo), así que un lector de pantalla oía «Fiat · Panda · 1986» sin saber qué
+// había acertado. Esto es lo que se lee en su lugar: «Intento 1 de 4: Fiat,
+// mismo país; Panda, incorrecto; 1986, correcto» (auditoría 7-oct).
+export function leerIntento(g, n, total, t) {
+  const estado = (s) =>
+    s === "correct"
+      ? t("cdd.srCorrect")
+      : s === "partial"
+      ? t("cdd.sameCountry").toLocaleLowerCase()
+      : t("cdd.srWrong");
+  const partes = [g.marca, g.modelo, g.anio]
+    .filter((c) => c?.val != null && c.val !== "")
+    .map((c) => `${c.val}, ${estado(c.status)}`);
+  return `${t("prensa.pista", { n, max: total })}: ${partes.join("; ")}`;
+}
 export function Rejilla({ guesses }) {
   return (
     <span className="fin-rejilla" aria-hidden="true">
@@ -167,6 +182,25 @@ export default function EndScreen({
   const toast = useToast();
   const countdown = useCountdown();
   const [copied, setCopied] = useState(false);
+  // EL PLAN B DE COMPARTIR. Sin share nativo y sin portapapeles (un WebView
+  // raro, un iframe, permisos denegados) el botón solo decía «No se pudo» y el
+  // resultado se perdía. Ahora el texto aparece en un cuadro, seleccionado,
+  // para copiarlo a mano (auditoría 7-oct, P14).
+  const [copiaManual, setCopiaManual] = useState(false);
+  // UNA OFERTA POR PANEL, como mucho. Detrás de Compartir podían apilarse
+  // hasta tres llamadas de peso parecido —guardar el progreso, la edición
+  // Android (que al anónimo TAMBIÉN le pedía la cuenta) y el recordatorio—, y
+  // tres botones seguidos no son tres oportunidades: son ruido (auditoría
+  // 7-oct, F6). Gana la primera que toque, en este orden: la cuenta (sin ella
+  // no se guarda nada), la firma (sin ella no sales en la tabla), la app y el
+  // recordatorio. Leído una vez al abrir, como hacen las propias ofertas, para
+  // que nada aparezca ni desaparezca a mitad de lectura.
+  // (Sin mirar `user`: si entra desde aquí, la oferta de Play sigue en pie.)
+  const [faldonToca] = useState(() => momentoDeFaldon() && !faldonDescartado());
+  const ofertaCuenta = !user;
+  const ofertaFirma = Boolean(won && user && necesitaNick);
+  const ofertaApp = !ofertaCuenta && !ofertaFirma && faldonToca;
+  const ofertaAviso = !ofertaCuenta && !ofertaFirma && !ofertaApp;
   const alEstamparSello = useSelloSentido({ won, activo: sentirSello });
 
   // ── EL VÍDEO DEL COCHE (temporadas presentadas) ───────────────────────────
@@ -191,27 +225,8 @@ export default function EndScreen({
   const copyTimer = useRef(null);
   useEffect(() => () => clearTimeout(copyTimer.current), []);
 
-  // El EndScreen es un modal a medida: aquí le damos el mismo comportamiento
-  // que al resto (Escape cierra, se bloquea el scroll del fondo) y, sobre todo,
-  // que la "atrás" del móvil lo CIERRE en vez de sacar de la web. Como solo se
-  // monta cuando está visible, el "active" de los tres es constante (true).
-  useScrollLock(true);
-  useEscape(true, onClose);
-  useHistoryClose(true, onClose);
-
-  // El foco entra al panel al abrirlo, que es la otra mitad de lo que promete
-  // `aria-modal` (ver el comentario del contenedor, abajo). Va en un rAF por el
-  // mismo motivo que en ModalShell: el panel tiene animación de entrada y el
-  // nodo aún se está montando cuando corre el efecto.
-  const cardRef = useRef(null);
-  useEffect(() => {
-    // `preventScroll`: el panel es el que scrollea, y enfocarlo no debe moverlo
-    // ni un píxel — el revelado del coche tiene que verse desde arriba.
-    const id = requestAnimationFrame(() =>
-      cardRef.current?.focus({ preventScroll: true })
-    );
-    return () => cancelAnimationFrame(id);
-  }, []);
+  // El armazón del modal —foco, Escape, «atrás», bloqueo del scroll, la ✕ y su
+  // franja— vive en PanelFin, compartido con la Repesca.
 
   const hasReveal = Boolean(car?.marca && car?.modelo && car?.anio);
   const attempts = guesses.length;
@@ -252,17 +267,14 @@ export default function EndScreen({
         toast.push(t("result.shareCopied"), { type: "success" });
         track("share", { method, where: "end_screen", result: won ? "win" : "lose" });
       } else {
-        // En la app no hay «navegador» al que echarle la culpa: el mensaje web
-        // señala al Chrome del usuario, y dentro del APK eso solo confunde.
-        toast.push(
-          esApp() ? t("result.shareUnsupportedApp") : t("result.shareUnsupported"),
-          { type: "error" }
-        );
+        // Antes: un toast de error que culpaba al navegador y se iba. Ahora el
+        // texto a la vista para copiarlo (vale igual en web y en la app).
+        setCopiaManual(true);
       }
     } catch (err) {
       if (err?.name === "AbortError") return;
       haptic.error();
-      toast.push(t("result.shareError"), { type: "error" });
+      setCopiaManual(true);
     }
   }
 
@@ -287,24 +299,14 @@ export default function EndScreen({
       : 0;
 
   return (
-    // `aria-modal="true"` promete que lo de fuera NO existe para un lector de
-    // pantalla: por eso el panel lleva nombre y recibe el foco al abrirse.
-    <div className="cdd-end" role="dialog" aria-modal="true" aria-label={t("cdd.endScreenAria")}>
-      <div className="cdd-end-scrim" onClick={onClose} />
-      <div className="cdd-end-card fin outline-none" ref={cardRef} tabIndex={-1}>
-        {/* Cerrar SIEMPRE a la vista: barra sticky de alto 0 con la ✕ flotando
-            arriba a la izquierda (la derecha es de la chapa del veredicto). */}
-        <div className="cdd-end-topbar">
-          <button
-            type="button"
-            className="cdd-end-close"
-            aria-label={t("cdd.seeGame")}
-            onClick={() => { haptic.impactLight(); onClose?.(); }}
-          >
-            <Icon d={I.x} size={20} />
-          </button>
-        </div>
-
+    <PanelFin onClose={onClose}>
+      {/* DOS GRUPOS, UNA O DOS COLUMNAS. En el móvil los dos son display:
+          contents y el panel es la columna de siempre. Desde 1024px se ponen
+          lado a lado: a la izquierda lo que pasó (foto, coche, marcador y
+          compartir), a la derecha lo que se lee si te quedas. Era una columna
+          de móvil de 460px con scroll interno en mitad de un escritorio
+          (auditoría 7-oct, P21). */}
+      <div className="fin-col fin-col-a">
         {/* LA FOTO, ya entera, con la chapa del veredicto: «Resuelto en 3 de 5»
             en verde o «Sin resolver» en neutro. La chapa cae con su rebote y su
             golpe háptico (useSelloSentido). */}
@@ -393,6 +395,9 @@ export default function EndScreen({
                 )}
               </div>
               <Rejilla guesses={guesses} />
+              <span className="sr-only">
+                {guesses.map((g, i) => leerIntento(g, i + 1, max, t)).join(". ")}
+              </span>
             </div>
             {marcador && (
               <dl className="fin-desglose">
@@ -429,7 +434,8 @@ export default function EndScreen({
                     <i className={cuadro(g.modelo?.status)} />
                     <i className={cuadro(g.anio?.status)} />
                   </span>
-                  <span className="texto">{[g.marca?.val, g.modelo?.val, g.anio?.val].filter(Boolean).join(" · ")}</span>
+                  <span className="texto" aria-hidden="true">{[g.marca?.val, g.modelo?.val, g.anio?.val].filter(Boolean).join(" · ")}</span>
+                  <span className="sr-only">{leerIntento(g, i + 1, max, t)}</span>
                 </li>
               ))}
             </ol>
@@ -442,6 +448,18 @@ export default function EndScreen({
           <button className="cdd-submit cdd-share-btn" onClick={copyShare}>
             <Icon d={I.share} size={17} /> <span>{copied ? t("cdd.copied") : t("cdd.copyResult")}</span>
           </button>
+          {copiaManual && (
+            <label className="fin-copia">
+              <span className="fin-copia-k">{t("result.shareManual")}</span>
+              <textarea
+                readOnly
+                autoFocus
+                rows={shareText.split("\n").length}
+                value={shareText}
+                onFocus={(e) => e.currentTarget.select()}
+              />
+            </label>
+          )}
           <div className="fin-reloj">
             <span className="fin-reloj-k">
               <Icon d={I.reloj} size={17} />
@@ -450,7 +468,9 @@ export default function EndScreen({
             <span className="fin-reloj-cifra">{countdown.formatted}</span>
           </div>
         </div>
+      </div>
 
+      <div className="fin-col fin-col-b">
         <div className="fin-extra">
           {/* Nueva portada en el Archivo: un renglón, no una caja (es la acción
               menos importante y no debe competir con compartir). */}
@@ -467,7 +487,7 @@ export default function EndScreen({
             </button>
           )}
           {/* Sin cuenta: conservar lo jugado (con la racha nombrada si la hay). */}
-          {!user && (
+          {ofertaCuenta && (
             <button className="cdd-submit cdd-submit--ghost" onClick={() => onOpenLogin?.("endscreen")}>
               <span>
                 {streak > 1 ? tn("result.saveStreakCta", streak) : t("result.saveProgressCta")}
@@ -476,14 +496,14 @@ export default function EndScreen({
           )}
           {/* Ganó, tiene cuenta y le falta firma: el único momento en que elegir
               nick tiene una consecuencia visible (salir en la tabla). */}
-          {won && user && necesitaNick && (
+          {ofertaFirma && (
             <button className="cdd-submit cdd-submit--ghost" onClick={onOpenNickname}>
               <span>{t("result.pickNickCta")}</span>
             </button>
           )}
           {/* Recordatorio diario: se ofrece UNA vez y devuelve null si ya se
               preguntó o no hay soporte. */}
-          <NotificationOptIn />
+          {ofertaAviso && <NotificationOptIn />}
         </div>
 
         {/* LA RACHA CORTADA, solo al perder y si había racha. Sin rojo: perder
@@ -554,7 +574,7 @@ export default function EndScreen({
 
         {/* La edición Android: devuelve null salvo Android-en-navegador con días
             jugados. */}
-        <FaldonApp user={user} streak={streak} onOpenLogin={onOpenLogin} />
+        {ofertaApp && <FaldonApp user={user} streak={streak} onOpenLogin={onOpenLogin} />}
 
         <div className="cdd-end-links">
           <button type="button" className="cdd-end-link" onClick={onClose}>
@@ -562,6 +582,6 @@ export default function EndScreen({
           </button>
         </div>
       </div>
-    </div>
+    </PanelFin>
   );
 }

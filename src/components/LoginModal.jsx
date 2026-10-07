@@ -35,7 +35,6 @@ import { track } from "../lib/analytics";
 import { useToast } from "./Toast";
 import ModalShell from "./ModalShell";
 import CloseButton from "./CloseButton";
-import LanguageStrip from "./LanguageStrip";
 
 // Validación deliberadamente laxa: "algo@algo.algo". La de verdad la hace el
 // servidor al enviar, y un regex estricto de RFC rechaza correos válidos raros.
@@ -436,12 +435,11 @@ export default function LoginModal({ open, onClose, aviso = null }) {
             </>
           )}
 
-          {/* Selector de idioma para usuarios anónimos. Antes vivía en el
-              popover del header; al quitarlo, este modal (al que llega el
-              anónimo desde el icono de perfil) es su nuevo hogar. */}
-          <div className="dlg-idioma">
-            <LanguageStrip />
-          </div>
+          {/* (Aquí vivía el selector de idioma, desde que se quitó el popover
+              del header y el anónimo no tenía otro sitio. Hoy lo tiene en el
+              Menú y en el Perfil, también sin cuenta, y en un diálogo que solo
+              debe pedir una decisión —entrar— era una segunda: se retiró en la
+              auditoría del 7-oct.) */}
         </>
       )}
       </div>

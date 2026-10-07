@@ -1724,18 +1724,35 @@ function HelpRow({ icon, title, children }) {
   );
 }
 
+// LA PUERTA DEL ARCHIVO, con la forma de la de la Clasificación: lo que hay
+// detrás, enseñado sin revelar, y debajo una tarjeta con la frase y «Entrar».
+// Antes era una tarjeta centrada en 600px de vacío bajo un titular en negativo
+// («Archivo cerrado») — la parte más coleccionable del juego, escondida justo
+// a quien había que convencer (auditoría 7-oct, S2/S3). El anticipo son
+// portadas numeradas sin imprimir; la primera, con el canto discontinuo del
+// hueco, es la de hoy. Es dibujo: va entero con aria-hidden.
 function AuthWall({ onLogin }) {
   const { t } = useT();
   return (
-    <div className="arch-mensaje">
-      <div className="arch-muro">
-        <p className="arch-vacio-titulo">{t("garage.authTitle")}</p>
-        <p className="arch-vacio-texto">{t("garage.authBody")}</p>
-        {/* Sin el glifo de Google y sin su nombre: este botón ABRE LA PUERTA,
-            que ofrece Google y también el código por correo. */}
-        <button type="button" onClick={onLogin} className="pm-btn">
-          {t("common.signIn")}
-        </button>
+    <div className="safe-area-bottom flex-1 overflow-y-auto overscroll-contain">
+      <div className="arch-vitrina">
+        <div className="arch-rejilla arch-anticipo" aria-hidden="true">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="arch-ficha">
+              <span className="arch-ficha-num">Nº {n}</span>
+              <span className="arch-anticipo-num">{String(n).padStart(3, "0")}</span>
+            </div>
+          ))}
+        </div>
+        <div className="clas-aviso arch-puerta">
+          <p className="arch-vacio-titulo">{t("garage.authTitle")}</p>
+          <p className="clas-aviso-texto">{t("garage.authBody")}</p>
+          {/* Sin el glifo de Google y sin su nombre: este botón ABRE LA PUERTA,
+              que ofrece Google y también el código por correo. */}
+          <button type="button" onClick={onLogin} className="pm-btn">
+            {t("common.signIn")}
+          </button>
+        </div>
       </div>
     </div>
   );

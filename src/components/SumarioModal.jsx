@@ -25,11 +25,17 @@ import { FilaTema, FilaIdioma } from "./Ajustes";
 import { Icon, I } from "./configurator/icons";
 import { ordinal } from "./PuestoCifra";
 
-function Seccion({ icono, nombre, apunte, aviso = false, onClick }) {
+// `enBarra`: la sección ya tiene puerta propia fuera del menú (la barra de
+// pestañas, o el «?» de la cabecera para la ayuda). Con la barra a la vista
+// —móvil y web estrecha— esas filas se ocultan por CSS y el menú se queda en
+// cuenta, ajustes y legal: cuatro puertas a lo mismo no la hacen más fácil de
+// encontrar, diluyen lo demás (auditoría 7-oct, J5). Una fila con AVISO no se
+// oculta nunca: el punto del menú promete algo dentro y tiene que estar.
+function Seccion({ icono, nombre, apunte, aviso = false, enBarra = false, onClick }) {
   return (
     <button
       type="button"
-      className="grupo-fila"
+      className={"grupo-fila" + (enBarra && !aviso ? " en-barra" : "")}
       onClick={() => {
         haptic.impactLight();
         onClick?.();
@@ -105,6 +111,7 @@ export default function SumarioModal({
           nombre={t("prensa.garaje")}
           aviso={repescaAlert}
           apunte={repescaAlert ? t("sumario.garajeRepesca") : t("sumario.garajeApunte")}
+          enBarra
           onClick={onOpenGarage}
         />
         <Seccion
@@ -115,6 +122,7 @@ export default function SumarioModal({
               ? t("sumario.puestoTemporada", { pos: ordinal(puesto, locale) })
               : t("sumario.clasificacionApunte")
           }
+          enBarra
           onClick={() => onOpenRanking?.("sumario")}
         />
         {user && (
@@ -126,6 +134,7 @@ export default function SumarioModal({
                 ? tn("sumario.perfilRacha", streak, { count: streak })
                 : t("sumario.perfilApunte")
             }
+            enBarra
             onClick={onOpenProfile}
           />
         )}
@@ -133,6 +142,7 @@ export default function SumarioModal({
           icono={I.ayuda}
           nombre={t("cdd.helpAria")}
           apunte={t("sumario.comoApunte")}
+          enBarra
           onClick={onOpenHowTo}
         />
       </div>

@@ -198,6 +198,17 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     return set;
   }, [guesses]);
 
+  // Lo ya probado, con su grafía original, para que el combo pueda decir
+  // «Ferrari · ya lo probaste» en vez de «Sin coincidencias» (ver Combo).
+  const marcasProbadas = useMemo(() => {
+    const vistas = new Map();
+    for (const g of guesses) {
+      const st = g?.marca?.status;
+      if ((st === "wrong" || st === "partial") && g.marca?.val) vistas.set(g.marca.val.toLowerCase(), g.marca.val);
+    }
+    return [...vistas.values()];
+  }, [guesses]);
+
   const availableMarcas = useMemo(() => {
     if (triedWrongMarcas.size === 0) return MARCAS;
     const filtered = MARCAS.filter((m) => !triedWrongMarcas.has(m.toLowerCase()));
@@ -223,6 +234,18 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
       .filter((m) => !triedWrongModelKeys.has(`${key}|${m.toLowerCase()}`))
       .sort();
   }, [CARS, marca, marcaValida, triedWrongModelKeys]);
+
+  const modelosProbados = useMemo(() => {
+    if (!marcaValida) return [];
+    const key = marca.toLowerCase();
+    const vistos = new Map();
+    for (const g of guesses) {
+      if (g?.modelo?.status === "wrong" && g.modelo.val && g.marca?.val?.toLowerCase() === key) {
+        vistos.set(g.modelo.val.toLowerCase(), g.modelo.val);
+      }
+    }
+    return [...vistos.values()];
+  }, [guesses, marca, marcaValida]);
 
   const modeloValido = marcaValida && CARS.some((c) => c.marca === marca && c.modelo === modelo);
   const modeloInvalido = marcaValida && modelo.trim().length > 0 && !modeloValido;
@@ -563,6 +586,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           onCommit={() => focusSoon(modeloRef)}
           inputRef={marcaRef}
           options={availableMarcas}
+          probadas={marcasProbadas}
           placeholder={catalogCargando ? t("cdd.catalogLoading") : t("cdd.comboPlaceholder")}
           disabled={formDisabled}
           invalid={marcaInvalida || aviso?.campo === "marca"}
@@ -580,6 +604,7 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           onCommit={() => focusSoon(anioRef)}
           inputRef={modeloRef}
           options={modelOptions}
+          probadas={modelosProbados}
           placeholder={
             catalogCargando
               ? t("cdd.catalogLoading")

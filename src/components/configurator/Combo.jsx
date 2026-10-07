@@ -53,6 +53,11 @@ export default function Combo({
   // tapaba en el mismo frame en que se escribía (visto en producción el 7-oct).
   // Teclear, la flecha abajo o un toque siguen abriéndola.
   abrirAlEnfocar = true,
+  // Lo ya probado en esta partida, que `options` ya no incluye. Solo se usa
+  // para explicar una búsqueda vacía: al teclear «Ferr» tras haber probado
+  // Ferrari, la lista decía «Sin coincidencias», como si la marca no existiera
+  // (auditoría 7-oct). Ahora dice «Ferrari · ya lo probaste».
+  probadas = [],
 }) {
   const { t } = useT();
   // id estable para asociar <label> ↔ <input> (a11y: el lector de pantalla
@@ -87,6 +92,12 @@ export default function Combo({
     const needle = norm(value ? "" : q);
     return options.filter((o) => norm(o).includes(needle));
   }, [q, value, options]);
+
+  const probadasQueCoinciden = useMemo(() => {
+    const needle = norm(value ? "" : q);
+    if (!needle || filtered.length > 0) return [];
+    return probadas.filter((o) => norm(o).includes(needle));
+  }, [q, value, probadas, filtered.length]);
 
   useEffect(() => { setHi(0); }, [q, value, open]);
 
@@ -214,11 +225,16 @@ export default function Combo({
       </div>
       {listaVisible && (
         <ul id={listId} className="prensa-listbox" role="listbox" aria-label={label} ref={listRef}>
-          {filtered.length === 0 && (
+          {filtered.length === 0 && probadasQueCoinciden.length === 0 && (
             <li className="prensa-opt vacia" role="option" aria-disabled="true" aria-selected="false">
               {t("cdd.noMatches")}
             </li>
           )}
+          {probadasQueCoinciden.map((o) => (
+            <li key={`probada-${o}`} className="prensa-opt vacia" role="option" aria-disabled="true" aria-selected="false">
+              {t("cdd.yaProbada", { valor: o })}
+            </li>
+          ))}
           {filtered.map((o, i) => {
             const flag = optionFlag ? optionFlag(o) : null;
             return (

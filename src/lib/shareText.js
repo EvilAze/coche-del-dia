@@ -10,6 +10,10 @@
 // los demás. Al jugador al que le llaman la atención por spam no vuelve a
 // compartir — y compartir es el único canal de captación que tiene el juego.
 //
+// (Historia: LA REJILLA ✅/❌ SE RETIRÓ en jul-2026 y VOLVIÓ el 29-jul con el
+// formato corto de abajo — sin «N/5», sin racha y sin el enlace /r/…. Lo que
+// sigue es por qué se quitó; el formato vigente es el de «Formato resultante».)
+//
 // LA REJILLA ✅/❌ SE RETIRÓ (jul-2026), y no por capricho de brevedad:
 //   · Su información ya estaba en la cabecera. "3/5" dice cuántos intentos
 //     costó; la rejilla lo repetía en cinco líneas, con el detalle de qué campo
@@ -24,20 +28,19 @@
 // `shareGrid` NO se borra: el EndScreen la sigue pintando en pantalla como
 // registro de tu partida. Es el trofeo; el mensaje es otra cosa.
 //
-// Formato resultante — tres líneas como mucho:
-//   1. CABECERA  → "Coche del Día · DD/MM · N/5 · 🔥7"
-//      • Nombre sin artículo y fecha sin año: más compacto, el resultado solo
-//        tiene sentido el mismo día (puzzle diario).
-//      • Score "N/5" ("X/5" en derrota), como Wordle: lo primero que comunica.
-//      • Racha solo si > 0 (un "🔥0" sería contraproducente).
-//   2. PERCENTIL → lo inserta EndScreen, y solo si es un flex de verdad
-//      (top 30%). Opcional por definición.
+// Formato resultante (el vigente desde el 29-jul):
+//   1. CABECERA  → "Coche del Día · DD/MM". Nombre sin artículo y fecha sin
+//      año: el resultado solo tiene sentido el mismo día (puzzle diario). El
+//      «N/5» se retiró a propósito: la rejilla ya lo cuenta en filas.
+//   2. REJILLA   → una línea por intento, ✅ acierto · 🟨 mismo país · ❌ fallo.
+//      El 🟨 es de oct-2026: antes el «mismo país» se compartía como ❌, así
+//      que una partida que se iba acercando parecía a ciegas — y es lo que la
+//      rejilla de la pantalla sí distingue (cuadro ámbar).
 //   3. DOMINIO   → SIEMPRE la última línea, sin texto alrededor. Activa el OG
 //      card preview en WhatsApp/Telegram (marketing gratis) y hace de firma.
-//      EndScreen inserta el percentil ("Mejor que el N%…") JUSTO ANTES de esta
-//      línea — cuenta con que el dominio cierra el mensaje.
 //
-//      LLEVA LA PARTIDA (/r/DD-MM/CODIGO) Y NO ES DECORACIÓN. El enlace es lo
+//      (Hasta el 29-jul el enlace llevaba la partida, /r/DD-MM/CODIGO, y no
+//      era decoración: lo que sigue explica qué hacía, por si vuelve. El
 //      que hace que la tarjeta del preview sea la TUYA:
 //        · La fecha, porque las plataformas cachean el preview POR URL. Si todo
 //          el mundo comparte `cochedeldia.com` a secas, Telegram enseña
@@ -52,7 +55,7 @@
 //
 //      La app ignora la ruta —el ruteo de index.jsx solo mira prefijos
 //      concretos y cae a la portada— y no crea contenido duplicado para Google:
-//      index.html declara <link rel="canonical"> a la raíz.
+//      index.html declara <link rel="canonical"> a la raíz.)
 
 import { getMadridDateStr } from "./dates";
 import { encodeResult } from "./resultCode";
@@ -62,17 +65,16 @@ import { encodeResult } from "./resultCode";
 // solo cubre llamadas sin el dato.
 const SHARE_MAX_ATTEMPTS = 5;
 
-// Rejilla compartible: una línea por intento. Espejo EXACTO que consume también
-// EndScreen.jsx. Optional chaining + guard de array → nunca lanza con estado
-// corrupto o lista vacía (cae a ❌, que es lo correcto: sin status no es acierto).
+// Rejilla compartible: una línea por intento, con los MISMOS tres estados que
+// la rejilla dibujada del panel final (EndScreen, cuadros bien/cerca/mal).
+// «partial» solo existe en la marca (mismo país, ver api/_lib/compare-guess.js).
+// Optional chaining + guard de array → nunca lanza con estado corrupto o lista
+// vacía (cae a ❌, que es lo correcto: sin status no es acierto).
+const EMOJI = { correct: "✅", partial: "🟨" };
+const celda = (c) => EMOJI[c?.status] || "❌";
 export function shareGrid(guesses) {
   return (Array.isArray(guesses) ? guesses : [])
-    .map((g) => {
-      const m = g?.marca?.status === "correct" ? "✅" : "❌";
-      const mo = g?.modelo?.status === "correct" ? "✅" : "❌";
-      const a = g?.anio?.status === "correct" ? "✅" : "❌";
-      return m + mo + a;
-    })
+    .map((g) => celda(g?.marca) + celda(g?.modelo) + celda(g?.anio))
     .join("\n");
 }
 

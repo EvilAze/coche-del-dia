@@ -25,6 +25,7 @@ import { apiUrl } from "./lib/apiUrl";
 import { esApp } from "./lib/plataforma";
 import { isNative, rearmIfEnabled } from "./lib/notifications";
 import { reminderCopy } from "./lib/reminderCopy";
+import { puntuacionDelDia } from "./lib/puntos";
 
 // Modales lazy: viven todos detrás de un clic, así que NO entran en el bundle
 // inicial. Se descargan la primera vez que se abren y, una vez montados, se
@@ -688,6 +689,13 @@ export default function App() {
             // («Subes 4 puestos · a 3 puntos del 17º»).
             rank={rank}
             onOpenLogin={openLogin}
+            // Lo que el anónimo ya ganó hoy y aún no cuenta: es el motivo para
+            // entrar que la clasificación puede dar con su número (P27).
+            puntosHoy={
+              status === "won"
+                ? (score?.totalPoints ?? puntuacionDelDia(attempts, streak)?.totalPoints ?? 0)
+                : 0
+            }
             // Aquí es donde el nick significa algo: sin firma no se sale en la
             // tabla. Se ofrece dentro del ranking, no como puerta para entrar.
             necesitaNick={necesitaNick}

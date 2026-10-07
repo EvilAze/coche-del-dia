@@ -39,7 +39,8 @@ import AttemptList, { AttemptRow } from "./components/configurator/AttemptList";
 import GuessForm from "./components/configurator/GuessForm";
 // La rejilla de la partida es la del panel final del juego diario: los dos
 // paneles resumen lo mismo y con el mismo dibujo.
-import { Rejilla } from "./components/configurator/EndScreen";
+import { Rejilla, leerIntento } from "./components/configurator/EndScreen";
+import PanelFin from "./components/configurator/PanelFin";
 import { useToast } from "./components/Toast";
 import { useSelloSentido } from "./hooks/useSelloSentido";
 import { useT, getCarDescription, getLocalizedCountry } from "./i18n";
@@ -424,10 +425,9 @@ export default function Repesca() {
     if (!response.ok) {
       console.error("[Repesca] server error", { status: response.status, data });
       haptic.error();
-      toast.push(
-        data?.error ? `Error: ${data.error}` : t("repesca.errorValidationFailed"),
-        { type: "error" }
-      );
+      // El detalle del servidor va al console.error de arriba, no al jugador:
+      // «Error: » + un mensaje en inglés técnico no le dice qué hacer.
+      toast.push(t("repesca.errorValidationFailed"), { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
       return;
@@ -684,20 +684,10 @@ export default function Repesca() {
           (clases fin-*), con lo que es propio de aquí — los puntos a la mitad,
           sin racha, y la vuelta al Archivo como acción principal. */}
       {showEnd && ended && (
-        <div className="cdd-end" role="dialog" aria-modal="true" aria-label={t("cdd.endScreenAria")}>
-          <div className="cdd-end-scrim" onClick={() => setShowEnd(false)} />
-          <div className="cdd-end-card fin">
-            <div className="cdd-end-topbar">
-              <button
-                type="button"
-                className="cdd-end-close"
-                aria-label={t("cdd.seeGame")}
-                onClick={() => { haptic.impactLight(); setShowEnd(false); }}
-              >
-                <Icon d={I.x} size={20} />
-              </button>
-            </div>
-
+        // El armazón (diálogo, foco, Escape, «atrás», la ✕ y su franja) es el
+        // MISMO que el del juego diario: PanelFin. Antes era una copia que no
+        // movía el foco ni se cerraba con Escape o con «atrás».
+        <PanelFin onClose={() => setShowEnd(false)}>
             <div className="fin-foto">
               {car.img && <img src={car.img} alt="" draggable={false} className="fin-foto-img" />}
               <div className={"prensa-sello" + (won ? "" : " tinta")} aria-hidden="true" onAnimationStart={alEstamparSello}>
@@ -750,6 +740,9 @@ export default function Repesca() {
                     )}
                   </div>
                   <Rejilla guesses={guesses} />
+                  <span className="sr-only">
+                    {guesses.map((g, i) => leerIntento(g, i + 1, effectiveMaxAttempts, t)).join(". ")}
+                  </span>
                 </div>
                 <p className="rep-fin-nota">
                   {isVeteran ? t("repesca.finVeterano") : t("repesca.finMitad")}
@@ -790,8 +783,7 @@ export default function Repesca() {
                 {t("cdd.seeGame")}
               </button>
             </div>
-          </div>
-        </div>
+        </PanelFin>
       )}
     </div>
   );

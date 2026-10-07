@@ -38,7 +38,6 @@ async function montar({ conEmail = true, ...props } = {}) {
     default: ({ open, children }) => (open ? <div>{children}</div> : null),
   }));
   vi.doMock("./CloseButton", () => ({ default: () => <button type="button">cerrar</button> }));
-  vi.doMock("./LanguageStrip", () => ({ default: () => null }));
 
   const { default: LoginModal } = await import("./LoginModal.jsx");
   return render(<LoginModal open onClose={() => {}} {...props} />);

@@ -39,6 +39,15 @@ describe("pistasAprendidas", () => {
     ]);
   });
 
+  it("con el nombre del país a mano, dice el país además de la marca", () => {
+    const g = [intento({ val: "Nissan", status: "partial", pais: "JP" }, mal("300ZX"), { val: 1990, status: "correct" })];
+    const nombrePais = (codigo) => ({ JP: "Japón" })[codigo];
+    expect(pistasAprendidas(g, 2, t, 2026, nombrePais)).toEqual([
+      "es de Japón, como Nissan",
+      "el año es 1990, ±2",
+    ]);
+  });
+
   it("la marca acertada manda sobre el país, y el año acertado sobre la horquilla", () => {
     const g = [
       intento({ val: "Alfa Romeo", status: "partial" }, mal("Giulia"), { val: 2010, status: "wrong", direction: "down" }),

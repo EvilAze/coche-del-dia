@@ -165,22 +165,22 @@ export default function AttemptList({
     );
   }
   if (!guesses.length && !pendingGuess) return null;
-  // Cabecera de columnas alineada con la MISMA rejilla de las filas + filas
-  // (más reciente primero). El estampado lo dispara justRevealedIndex.
+  // Filas en ORDEN DE JUEGO, 01 arriba, como el tablero. Iban al revés (lo más
+  // reciente primero), y como el tablero solo se usa mientras se juega la
+  // partida diaria, el historial cambiaba de sentido justo al terminar: 01→04
+  // durante, 04→01 después (auditoría 7-oct). La fila entintada va al final,
+  // donde nacerá el intento. El estampado lo dispara justRevealedIndex.
   return (
     // El aria-label era `cdd.lastAttempt` («Último intento»), heredado de cuando
     // esta lista convivía con la fila viva y solo mostraba los ANTERIORES.
     // Retirada la fila, esta sección es el historial entero y así se anuncia.
     <section aria-label={t("guessLog.label")} className="flex flex-col">
+      {guesses.map((g, i) => (
+        <AttemptRow key={i} g={g} tolerance={tolerance} fresh={i === justRevealedIndex} num={i + 1} />
+      ))}
       {pendingGuess && (
         <AttemptRow key="pending" g={pendingGuess} tolerance={tolerance} pending num={guesses.length + 1} />
       )}
-      {guesses
-        .map((g, i) => ({ g, i }))
-        .reverse()
-        .map(({ g, i }) => (
-          <AttemptRow key={i} g={g} tolerance={tolerance} fresh={i === justRevealedIndex} num={i + 1} />
-        ))}
     </section>
   );
 }

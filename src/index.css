@@ -4380,12 +4380,14 @@ button.fin-tarjeta:active { transform: translateY(1px); }
    de pestañas (J6, ver Header.jsx). Con texto, como la clasificación allí. */
 .prensa-topbar > span > .prensa-seccion { display: none; }
 @media (min-width: 1100px) {
-  .prensa-topbar .prensa-clasif .lad { display: inline; font-family: var(--font-body); font-weight: 600; font-size: 14px; }
+  /* Sin las versalitas ni la tracción de la barra (mono 10,5px): son
+     nombres de sección, en minúscula inicial como el resto de la interfaz. */
+  .prensa-topbar .prensa-clasif .lad { display: inline; font-family: var(--font-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none; }
   .prensa-topbar > span > .prensa-seccion {
     position: relative; display: inline-flex; align-items: center; gap: 6px;
     height: 34px; padding: 0 12px; margin: 0; border: 0; cursor: pointer;
     border-radius: var(--radio-boton); background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
-    font-family: var(--font-body); font-weight: 600; font-size: 14px;
+    font-family: var(--font-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none;
   }
   .prensa-seccion .aviso {
     position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%;

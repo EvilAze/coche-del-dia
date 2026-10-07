@@ -446,7 +446,11 @@ export default function CarImage({
           Solo mientras se juega: al revelar, las esquinas se apagan con la foto
           abriéndose (mismo retardo que la lente) y la lectura desaparece, porque
           ya no hay aumento que leer. La cifra se re-estampa al cambiar de intento
-          en el cuarto tiempo del veredicto, cuando la lente empieza a moverse. */}
+          en el cuarto tiempo del veredicto, cuando la lente empieza a moverse.
+          LA CIFRA VA SOLA, SIN LUPA: «2,5×» es como lo escribe el chip de zoom
+          de cualquier cámara de móvil, y el «×» ya dice qué es. La lupa con su
+          menos convertía la lectura de un visor en un botón de «alejar» que no
+          se podía pulsar. */}
       {configurator && (
         <div className={"cdd-visor" + (status === "playing" ? "" : " fuera")} aria-hidden="true">
           <span className="esq arr-izq" />
@@ -455,10 +459,6 @@ export default function CarImage({
           <span className="esq aba-der" />
           {lecturaAumento && (
             <span key={lecturaAumento} className="cdd-lente prensa-estampada">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="6.5" />
-                <path d="M20 20l-4.2-4.2M8.5 11h5" />
-              </svg>
               {lecturaAumento}
             </span>
           )}

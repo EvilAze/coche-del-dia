@@ -111,7 +111,7 @@ override).
 | `line-strong` (seam) | `#cdcbc4` | `#3a3f46` |
 | `tinta` (text, primary fill) | `#131416` | `#f2f0eb` |
 | `tinta-2` (muted) | `#5b6068` | `#a7acb4` |
-| `rojo` (signal) | `#c9321c` | `#e5402a` |
+| `rojo` (signal) | `#c9321c` | `#f0533b` |
 | `verde` (correct) | `#117548` | `#3fcf8e` |
 | `ámbar` (same country / available) | `#9a5600` | `#f5a524` |
 | `oro` (reward) | `#85631a` | `#e3c27a` |
@@ -159,7 +159,15 @@ The verdict tints are low-alpha washes, not fills.
 
 **Contrast floor.** AA (4.5:1) for body and interactive text in **both**
 editions; the light-edition red, green, amber and gold were darkened until
-they passed on `bg`.
+they passed on `bg`. **Measure on the lightest surface the color is written
+on, not on the floor.** The night red passed on `bg` (4.7:1) and failed where
+it is actually read — «No es» inside a history cell, on `surface` (4.4:1) — so
+it was lifted to `#f0533b`: 5.2:1 on `surface`, 4.8:1 on `bg2`.
+
+**A field that is not ready yet is sunk, not washed out.** Text that tells the
+player what to do («Primero la marca») is an instruction and keeps AA; the
+"not yet" lives in the surface (the cell drops to `bg`), never in an opacity
+or a `--faint` that takes the sentence below 3:1.
 
 ## 4. Typography
 
@@ -302,17 +310,33 @@ silencer, where `1ms` is a zero and not a tempo.
 - **Close** on photographs: a dark translucent rounded square with a white ✕.
 
 ### The game screen
-- **Question + meter**: «¿Qué coche es?» on the left, «Intento 3 de 5» on the
-  right, and between them the five-segment attempt meter (spent = red, current
-  = ink, remaining = seam).
+- **Question + counter**: «¿Qué coche es?» on the left and, on the right, the
+  counter (`prensa-contador`): «Intento 3 de 5» with the five-segment attempt
+  meter **directly under it, at the label's width** (spent = red, current =
+  ink, remaining = seam). The label is the meter's caption — the "step N of M"
+  pattern nobody needs a legend for. It used to stretch across the gap between
+  question and label, and players asked what the red and the white meant. The
+  stack still fits in the question's line height, so it costs the photo nothing.
 - **Photograph**: `--radio-foto`, no mat, the viewfinder corners and the
   magnification readout (`useGame` computes the real magnification over the
   full photo with the same formula as the server crop — the CSS scale alone
-  would read 1,0× on the last attempt while the photo is still cropped).
-- **History**: numbered rows of three verdict cells (§3).
+  would read 1,0× on the last attempt while the photo is still cropped). The
+  readout is a **pill at the bottom centre, digits only** («2,5×»), where a
+  phone camera puts its zoom chip: it used to sit bottom-left with a magnifier
+  icon, on top of the bottom-left corner. Centred with auto margins, never with
+  `translateX`, because the re-stamp animates `transform`.
+- **History**: numbered rows of three verdict cells (§3). The ordinal sits on
+  the page margin in a 22px column; the cells are already the container, so
+  the row gets no card of its own.
 - **Coupon** — app: the three selector rows grouped in one card
-  (`prensa-renglones`); web: three rounded fields, ink focus ring, red only when
-  invalid.
+  (`prensa-renglones`), each ending in a **down** chevron (it opens a sheet over
+  the same screen; `›` would promise a new screen). The model cell waiting for a
+  brand drops to `bg`, loses its chevron and keeps its text in `tinta-2`. Web:
+  three rounded fields, ink focus ring, red only when invalid; a disabled field
+  is sunk the same way instead of fading to 45%.
+- **Air around the primary action**: 12px above ADIVINAR (to the coupon) and
+  12px below it (to the tab bar). The button must not rest on the bar's seam:
+  the active tab's red line lives there and reads as the button's underline.
 
 ### End-of-game panel
 A column of **cards** that enter one step after another (`fin-*`): the

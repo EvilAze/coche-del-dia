@@ -403,7 +403,15 @@
   --bg-rgb: 12 13 15; --bg2-rgb: 27 30 34; --surface-rgb: 20 22 25;
   --tinta-rgb: 242 240 235; --tinta2-rgb: 167 172 180;
   --line-strong-rgb: 58 63 70;
-  --rojo-rgb: 229 64 42; --rojo-dark-rgb: 200 52 34;
+  /* EL ROJO SE MIDE SOBRE LA SUPERFICIE MÁS CLARA EN LA QUE ESCRIBE, no sobre el
+     fondo. Era 229 64 42 y pasaba sobre --bg (4.7:1), que es donde se midió; pero
+     donde de verdad se LEE el rojo es dentro de las celdas del historial («No
+     es», 11,5px, sobre --surface) y ahí daba 4.4:1 — por debajo del AA justo en
+     la nota que hace que el fallo se entienda sin distinguir colores. Subido un
+     escalón de luz con el mismo tono: 5.2:1 sobre la superficie, 4.8:1 sobre la
+     elevada (--bg2) y 5.6:1 sobre el fondo. Las rayas del logotipo y el medidor
+     lo heredan; a oscuras un rojo de marca siempre se sube un punto. */
+  --rojo-rgb: 240 83 59; --rojo-dark-rgb: 200 52 34;
   --gold-rgb: 227 194 122; --gold-dark-rgb: 196 164 98;
   /* Verde y ámbar del veredicto, subidos para contraste AA sobre el grafito. */
   --verde-rgb: 63 207 142; --ambar-rgb: 245 165 36;
@@ -3614,19 +3622,27 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted);
 }
 
-/* LA PREGUNTA DEL JUEGO y, en el hueco del filete, EL MEDIDOR DE INTENTOS
-   (ZoomStage): gastados en el rojo de la marca, el actual en tinta, los que
-   quedan en filete. El cambio de color espera al cuarto tiempo del veredicto
-   (`--ms-sello`), cuando la lente empieza a abrirse: el segmento se gasta a la
-   vez que la foto se aleja, no antes. */
+/* LA PREGUNTA DEL JUEGO y, al margen derecho, EL CONTADOR: «Intento 2 de 5»
+   con el MEDIDOR DE INTENTOS justo debajo, al ancho del rótulo (ZoomStage).
+   Gastados en el rojo de la marca, el actual en tinta, los que quedan en
+   filete. El texto es el pie de la barra: por eso van juntos y el hueco entre
+   la pregunta y el contador queda de aire. El cambio de color espera al cuarto
+   tiempo del veredicto (`--ms-sello`), cuando la lente empieza a abrirse: el
+   segmento se gasta a la vez que la foto se aleja, no antes. */
 .prensa-ladillo--pregunta { align-items: center; }
 .prensa-ladillo--pregunta .rotulo {
   font-family: var(--font-display); font-weight: 700; font-size: 21px;
   letter-spacing: .005em; line-height: 1.05;
 }
 .prensa-ladillo .filete { border-top: 1px solid var(--line); transform: none; align-self: center; }
+.prensa-contador {
+  flex: none; margin-left: auto;
+  display: flex; flex-direction: column; align-items: stretch; gap: 5px;
+}
+.prensa-contador .aparte { line-height: 1; }
 .prensa-ladillo .filete.medidor {
-  border-top: 0; height: 4px; min-width: 44px;
+  flex: none; align-self: stretch; min-width: 0;
+  border-top: 0; height: 4px;
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px;
 }
 .prensa-ladillo .filete .seg {
@@ -3663,13 +3679,21 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .cdd-visor .aba-der { right: 12px; bottom: 12px; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: 5px; }
 /* La lectura del aumento. Se re-estampa (`.prensa-estampada`) cuando cambia
    de intento, pero en el CUARTO tiempo del veredicto: la cifra nueva aparece
-   cuando la lente empieza a moverse, no cuando cae la tinta de las celdas. */
+   cuando la lente empieza a moverse, no cuando cae la tinta de las celdas.
+   ABAJO Y AL CENTRO, entre las dos esquinas, donde una cámara de móvil pone su
+   chip de zoom. Vivía abajo a la izquierda (20px del borde) y se montaba encima
+   de la esquina del visor, que está a 12: dos piezas del mismo instrumento
+   pisándose, justo lo que hace que un visor parezca un adorno pegado. Se centra
+   con márgenes automáticos y NO con `translateX(-50%)`, porque el estampado
+   anima `transform` y lo pisaría a mitad de animación. Píldora (la mitad del
+   alto) como el chip de una cámara; el fondo, el mismo velo fijo de siempre: va
+   encima de una fotografía cualquiera, no del tema. */
 .cdd-lente {
-  position: absolute; left: 20px; bottom: 18px;
-  display: inline-flex; align-items: center; gap: 5px;
-  height: 24px; padding: 0 8px; border-radius: 7px;
-  background: rgb(12 13 15 / .74); color: rgb(242 240 235);
-  font-family: var(--font-mono); font-weight: 600; font-size: 11.5px;
+  position: absolute; left: 0; right: 0; bottom: 14px; width: max-content; margin-inline: auto;
+  display: inline-flex; align-items: center;
+  height: 26px; padding: 0 10px; border-radius: 13px;
+  background: rgb(12 13 15 / .62); color: rgb(242 240 235);
+  font-family: var(--font-mono); font-weight: 600; font-size: 12px;
   letter-spacing: .02em; font-variant-numeric: tabular-nums;
   animation-delay: var(--ms-sello);
 }
@@ -3680,11 +3704,21 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    del mismo país, neutra si no — con el valor tachado y su nota escrita
    debajo (AttemptList). La rejilla conserva el número a la izquierda y la
    proporción de las tres columnas (el modelo, la más ancha). */
+/* El ordinal («01») es la etiqueta de la fila y se alinea con el margen del
+   pliego, como la pregunta y la foto. Tenía 18px de columna para dos cifras de
+   11px: se quedaba pegado a la primera celda y se leía como un resto tímido de
+   la tabla. Con 22px y un punto más de cuerpo, número y celdas se leen como
+   etiqueta y fila — sin caja alrededor: las celdas ya son la caja, y meter la
+   fila en otra tarjeta sería una tarjeta dentro de otra. En un 320 la columna
+   vuelve a 18: ahí cada píxel es de la celda del año, que ya va justa. */
 .prensa-fila {
-  grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, .85fr);
+  grid-template-columns: clamp(18px, 5.6vw, 22px) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, .85fr);
   gap: 6px; padding: 3px 0; border-bottom: 0; align-items: stretch;
 }
-.prensa-fila .num { align-self: center; font-family: var(--font-mono); font-weight: 600; font-size: 11px; }
+.prensa-fila .num {
+  align-self: center; font-family: var(--font-mono); font-weight: 600; font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
 .prensa-dato {
   display: flex; flex-direction: column; justify-content: center;
   min-height: 46px; padding: 6px 9px; box-sizing: border-box;
@@ -3754,6 +3788,16 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 }
 .prensa-renglones > .prensa-renglon:active:not(:disabled) { background: var(--surface2); }
 .prensa-renglones > .prensa-renglon.resuelto { border: 0; background: rgb(var(--verde-rgb) / .1); }
+/* EN ESPERA (el modelo sin marca): la casilla se HUNDE al suelo en vez de
+   apagar su texto. Apagarlo a --faint dejaba «Primero la marca» en 2,7:1 de día
+   —y es una instrucción, no un adorno: dice qué hacer—, mientras la casilla
+   seguía siendo la misma superficie blanca que sus vecinas, o sea que se leía
+   peor y se distinguía igual de poco. En este sistema las cosas se separan por
+   superficie: lo listo está levantado (--surface) y lo que todavía no, al nivel
+   del suelo (--bg). El texto baja a la tinta secundaria (≥5,7:1) y un punto de
+   cuerpo, para que la frase quepa en un renglón de la casilla del medio. */
+.prensa-renglones > .prensa-renglon.espera { background: var(--bg); }
+.prensa-renglones > .prensa-renglon.espera .vacio { color: var(--cdd-muted); font-size: 13.5px; line-height: 1.2; }
 .prensa-renglon .cabeza { display: contents; }
 .prensa-renglon .etiqueta {
   order: 1; font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .08em;
@@ -3780,6 +3824,14 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    lo dicen el ✓ y la casilla en verde. */
 .prensa-casillas .prensa-label .pista-label.resuelta { display: none; }
 .prensa-casillas .prensa-input { padding-left: 10px; padding-right: 10px; }
+/* La casilla que todavía no se puede rellenar (el modelo sin marca, o las tres
+   mientras se envía) habla como la de la app: HUNDIDA al suelo, no lavada al
+   45%. La opacidad se llevaba por delante también el «Primero la marca», que es
+   la instrucción de qué hacer (≈3:1); hundida, se distingue de una casilla lista
+   por superficie y su texto se sigue leyendo. La resuelta queda fuera: mientras
+   se envía también va `disabled`, y tiene que seguir en su verde. */
+.prensa-casillas .prensa-input:disabled { opacity: 1; cursor: not-allowed; }
+.prensa-casillas .prensa-input:disabled:not(.veredicto-resuelto) { background: var(--bg); border-color: var(--line); }
 .prensa-casillas .prensa-listbox { right: auto; min-width: 100%; width: 240px; max-width: 72vw; }
 
 /* Web: campos con canto en vez de línea base. El foco abraza el campo en tinta
@@ -4240,8 +4292,15 @@ button.fin-tarjeta:active { transform: translateY(1px); }
   .prensa-hoja {
     padding-bottom: calc(var(--barra-alto) + 32px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   }
+  /* Y 12px de aire entre ADIVINAR y la barra, los mismos que lo separan del
+     cupón por arriba. Iba a tope: el botón apoyaba su canto en el filete de la
+     barra, y la raya roja de la pestaña activa —que vive en ese filete— quedaba
+     pegada debajo de él como si fuera SUYA: se leía como un subrayado perdido
+     del botón, no como la marca de «Jugar». Separados, cada uno es un objeto, y
+     el bloque de tinta deja de pelearse con la barra por ser el suelo. Los 12px
+     se los cede la banda del historial, que es la pieza elástica del pliego. */
   :root[data-plataforma="app"]:not([data-teclado]) .app-pantalla {
-    padding-bottom: calc(var(--barra-alto) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+    padding-bottom: calc(var(--barra-alto) + 12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   }
   /* En la app, durante la partida, el reloj del pie se retira: el suelo es de
      la barra y la cuenta atrás la enseña el panel final. */
@@ -4997,10 +5056,13 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   80%, 95% { transform: scale(1); }
   100% { transform: scale(3); }
 }
+/* El chip del demo es el de la partida (`.cdd-lente`): abajo, al centro entre
+   las dos esquinas, en píldora. Ancho fijo porque las cinco cifras se apilan. */
 .htp-chip {
-  position: absolute; left: 20px; bottom: 18px; z-index: 4; width: 58px; height: 24px; border-radius: 7px;
-  background: rgb(12 13 15 / .74); color: rgb(242 240 235);
-  font-family: var(--font-mono); font-weight: 600; font-size: 11.5px; font-variant-numeric: tabular-nums;
+  position: absolute; left: 0; right: 0; bottom: 14px; margin-inline: auto; z-index: 4;
+  width: 58px; height: 26px; border-radius: 13px;
+  background: rgb(12 13 15 / .62); color: rgb(242 240 235);
+  font-family: var(--font-mono); font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums;
 }
 .htp-chip span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; }
 .htp-chip .l1 { opacity: 1; animation: htpL1 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }

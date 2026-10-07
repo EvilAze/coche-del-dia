@@ -67,11 +67,16 @@ export default function ZoomStage({
   // siempre.
   const rotulo = revealed ? t("prensa.ladilloFoto") : t("prensa.pregunta");
 
-  // EL MEDIDOR DE INTENTOS VIVE EN EL HUECO DEL FILETE. Entre la pregunta y el
-  // «Intento 3 de 5» ya había un elemento elástico —la regla del ladillo—, así
-  // que el medidor ocupa ESE sitio y no añade un renglón: en la app el alto de
-  // esta sección es parte del presupuesto que reparte el pliego (ver
-  // `--cdd-foto-suelo`) y un renglón más se lo habría cobrado a la foto.
+  // EL MEDIDOR VA DEBAJO DE SU RÓTULO, no en el hueco del filete. Vivió estirado
+  // entre la pregunta y el «Intento 3 de 5» —ocupaba un elemento elástico que ya
+  // existía—, y así cada pieza explicaba la de al lado sin tocarla: cinco rayas
+  // sueltas a media línea (en la web, de casi un palmo cada una) y, lejos, una
+  // etiqueta. Quien lo veía por primera vez preguntaba qué era el rojo y qué el
+  // blanco. Apilado, el texto es literalmente el pie de la barra —«Intento 2 de
+  // 5» encima, el segundo segmento encendido debajo—, que es el patrón de «paso
+  // N de M» que cualquiera lee sin leyenda. Sigue sin costar renglón: rótulo
+  // (11px) + 4px + barra (4px) caben en el alto de la pregunta (21px), y el alto
+  // de esta sección es presupuesto de la foto (`--cdd-foto-suelo`).
   // Gastado = rojo de la marca, el actual = tinta, los que quedan = filete. Al
   // terminar la partida vuelve a ser una regla lisa: ya no hay nada que contar.
   const medidor =
@@ -100,9 +105,6 @@ export default function ZoomStage({
           DESPUÉS de la regla, y un pseudo-elemento siempre va el último. */}
       <div className="prensa-ladillo prensa-ladillo--pregunta">
         <span className="rotulo">{rotulo}</span>
-        <i className={"filete" + (medidor ? " medidor" : "")} aria-hidden="true">
-          {medidor && medidor.map((estado, i) => <span key={i} className={"seg " + estado} />)}
-        </i>
         {/* EL CONTADOR SE RE-ESTAMPA AL CAMBIAR DE INTENTO. Es el relevo
             tipográfico del lavado rojo que se tiraba sobre la fotografía (ver
             CarImage): en este sistema el aviso lo da la letra, no un tinte
@@ -111,7 +113,19 @@ export default function ZoomStage({
             animación del sello vuelve a arrancar — que es la única forma de
             re-disparar una keyframe CSS sin tocarla desde JS. Cae en el primer
             tiempo del compás, antes que la foto. */}
-        {estado && <span key={estado} className="aparte prensa-estampada">{estado}</span>}
+        {medidor ? (
+          <span className="prensa-contador">
+            {estado && <span key={estado} className="aparte prensa-estampada">{estado}</span>}
+            <i className="filete medidor" aria-hidden="true">
+              {medidor.map((estado, i) => <span key={i} className={"seg " + estado} />)}
+            </i>
+          </span>
+        ) : (
+          <>
+            <i className="filete" aria-hidden="true" />
+            {estado && <span key={estado} className="aparte prensa-estampada">{estado}</span>}
+          </>
+        )}
       </div>
 
       {/* UN solo marco. Aquí había un segundo paspartú en utilidades (padding,

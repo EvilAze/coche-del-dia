@@ -26,6 +26,17 @@
 // El campo RESUELTO no se puede tocar: el dato ya está cerrado y abrir su lista
 // invitaría a cambiar algo que no se puede cambiar. Se marca con ✓ verde, el
 // mismo acuse que usa el combo de la web.
+//
+// EL CHEVRÓN APUNTA ABAJO, NO A LA DERECHA. En un móvil «›» al final de una
+// fila es la promesa de una pantalla nueva (lo que hace un ajuste del sistema
+// al tocarlo), y esto no navega a ningún sitio: abre una hoja encima de la
+// misma pantalla, con la foto a la vista. «⌄» es el «despliega opciones» de un
+// selector, que es lo que hay detrás.
+//
+// EN ESPERA NO HAY CHEVRÓN. El modelo sin marca sigue siendo tocable (lleva a
+// la marca), pero no despliega SU lista: dibujarle la flecha prometía algo que
+// no iba a pasar. Lo que lo distingue de un campo listo es la casilla hundida
+// (ver `.espera` en index.css), no un texto apagado hasta no leerse.
 
 import { Icon, I } from "./icons";
 import { useT } from "../../i18n";
@@ -68,8 +79,8 @@ export default function CampoBoton({
         <span className={valor ? "valor" : "vacio"}>{valor || placeholder}</span>
         {resuelto ? (
           <span className="marca" aria-hidden="true">✓</span>
-        ) : (
-          <Icon d={I.chevR} size={16} className="chev" />
+        ) : espera ? null : (
+          <Icon d={I.chevD} size={16} className="chev" />
         )}
       </span>
     </button>

@@ -169,7 +169,8 @@
     "eligeAnio": "Elige el año",
     "volverPartida": "Volver a la partida",
     "yaProbada": "{valor} · ya lo probaste",
-    "carImageAltZoom": "Detalle del coche del día, ampliado {aumento}. Intento {n} de {max}."
+    "carImageAltZoom": "Detalle del coche del día, ampliado {aumento}. Intento {n} de {max}.",
+    "grupoMismoPais": "Mismo país que {marca}"
   },
   "sumario": {
     "garajeApunte": "Tu colección de portadas",

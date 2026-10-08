@@ -36,10 +36,10 @@ import {
   zoomForAttempt,
 } from "../lib/zoom.js";
 
-// Acento del tema Platino (igual que DEFAULT_ACCENT en Configurator). El chrome
-// del escenario (.cdd-*) usa variables del tema; envolvemos la preview en
-// `.theme-platino` y fijamos --accent para que se vea como el juego real.
-const PLATINO_ACCENT = "#7af0c8";
+// (Aquí vivía PLATINO_ACCENT, el menta #7af0c8, y las previews se envolvían en
+// `.theme-platino`: el tema de hace dos pieles, con su Archivo y su Space Mono.
+// «Para que se vea como el juego real» había dejado de ser verdad hacía meses.
+// Ahora la preview hereda los tokens vivos de :root, que son los del juego.)
 
 // El intento de "revelado" es el siguiente al último jugable.
 const REVEAL_STEP = ZOOM_ATTEMPTS + 1;
@@ -313,8 +313,7 @@ export default function PreviewPanel({ selectedCarId = "", onSelectCar, override
 //   - Step 6: revelado. Reusamos el ZoomStage real → mismo chrome, mismo HUD
 //     ("REVELADO" / 100%) y aspecto natural de la foto que en el juego.
 //
-// Todo el chrome (.cdd-*) usa variables del tema, así que envolvemos en
-// `.theme-platino` con --accent fijado.
+// Todo el chrome (.cdd-*) usa las variables del tema vivo (:root), como el juego.
 function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) {
   const [dims, setDims] = useState(null);
   const [containerAspect, setContainerAspect] = useState(1);
@@ -359,7 +358,7 @@ function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) 
   // idéntico al del juego: marco con aspecto natural + HUD "REVELADO".
   if (step >= REVEAL_STEP) {
     return (
-      <div className="theme-platino" style={{ "--accent": PLATINO_ACCENT }}>
+      <div style={{ "--accent": "var(--rojo)" }}>
         <ZoomStage
           car={{ img: src }}
           zoom={1}
@@ -378,7 +377,7 @@ function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) 
   const cropPct = cropPctForAttempt(step, zoomBase);
   if (!dims) {
     return (
-      <div className="theme-platino" style={{ "--accent": PLATINO_ACCENT }}>
+      <div style={{ "--accent": "var(--rojo)" }}>
         <div className="cdd-stage">
           <div className="cdd-stage-frame flex items-center justify-center text-xs text-muted">
             Cargando imagen…
@@ -408,7 +407,7 @@ function SimulatedGameImage({ src, step, focus, zoomBase = DEFAULT_ZOOM_BASE }) 
 
 
   return (
-    <div className="theme-platino" style={{ "--accent": PLATINO_ACCENT }}>
+    <div style={{ "--accent": "var(--rojo)" }}>
       <div className="cdd-stage">
         <div ref={containerRef} className="cdd-stage-frame">
           {/* Capa de imagen: recorte simulado server-side. Llena el marco

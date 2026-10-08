@@ -115,6 +115,57 @@ describe("Una marca ya probada no «desaparece»", () => {
   });
 });
 
+describe("Intro elige y salta al siguiente campo (P24)", () => {
+  it("con la lista cerrada y una sola coincidencia, Intro la elige y lleva a Modelo", async () => {
+    await montar();
+    const campo = campoMarca();
+    fireEvent.focus(campo);
+    fireEvent.change(campo, { target: { value: "Cit" } });
+    fireEvent.keyDown(campo, { key: "Escape" });
+    expect(campo.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.keyDown(campo, { key: "Enter" });
+    expect(campo.value).toBe("Citroën");
+    const modelo = screen.getAllByRole("combobox")[1];
+    await waitFor(() => expect(document.activeElement).toBe(modelo));
+  });
+
+  it("con la lista abierta, Intro elige la señalada tras refiltrar", async () => {
+    await montar();
+    const campo = campoMarca();
+    fireEvent.focus(campo);
+    // Bajar con la lista entera y refiltrar a una sola: la señalada se acota.
+    fireEvent.keyDown(campo, { key: "ArrowDown" });
+    fireEvent.keyDown(campo, { key: "ArrowDown" });
+    fireEvent.change(campo, { target: { value: "Se" } });
+    fireEvent.keyDown(campo, { key: "Enter" });
+    expect(campo.value).toBe("Seat");
+  });
+});
+
+describe("El país que ya sabes sube arriba (P11)", () => {
+  it("tras un «mismo país», las marcas de ese país encabezan la lista en su grupo", async () => {
+    CATALOGO.cars.push({ id: 4, marca: "Cupra", modelo: "Born", pais: "es" });
+    CATALOGO.marcas = ["Citroën", "Cupra", "Seat"];
+    try {
+      const guesses = [
+        { marca: { val: "Seat", status: "partial" }, modelo: { val: "Ibiza", status: "wrong" }, anio: { val: 1990, status: "wrong" } },
+      ];
+      await montar({ guesses });
+      const campo = campoMarca();
+      fireEvent.focus(campo);
+      const grupo = screen.getByRole("group", { name: "cdd.grupoMismoPais:Seat" });
+      expect(grupo.textContent).toContain("Cupra");
+      const opciones = screen.getAllByRole("option");
+      expect(opciones.map((o) => o.textContent)).toEqual(["Cupra", "Citroën"]);
+      // La resaltada al abrir es la del grupo, y el combobox la anuncia.
+      expect(campo.getAttribute("aria-activedescendant")).toBe(opciones[0].id);
+    } finally {
+      CATALOGO.cars.pop();
+      CATALOGO.marcas = ["Citroën", "Seat"];
+    }
+  });
+});
+
 describe("Las sugerencias son un combobox de verdad", () => {
   it("anuncia la lista abierta y la opción resaltada", async () => {
     await montar();

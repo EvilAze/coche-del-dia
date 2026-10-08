@@ -144,7 +144,7 @@ export default function RepescaDrawAnimation({
 
   return (
     <motion.div
-      className="sorteo fixed inset-0 z-[120]"
+      className="sorteo fixed inset-0 z-dialogo-sobre"
       data-fase={fase}
       data-modo={veteran ? "veterano" : "normal"}
       data-foto={conFoto ? "si" : "no"}

@@ -535,8 +535,8 @@ export default function Ranking({
       // caja con scroll propio (ver `.safe-area-pad` en index.css). Sin tope,
       // en un 360x640 el panel salía más alto que su velo y se recortaba por
       // arriba y por abajo a la vez, X de cerrar incluida.
-      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[80] flex items-center justify-center px-4"
-      veloApp="pm-velo-hoja fixed inset-0 z-[80] flex items-end justify-center"
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-hoja flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-hoja flex items-end justify-center"
       panelWeb="modal-panel-flat panel-seccion w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
         {/* La cabecera: el nombre de la sección en grande, como el de una

@@ -74,7 +74,7 @@ function ToastItem({ toast, onDismiss }) {
       `}
     >
       <span
-        className={`shrink-0 text-[15px] font-bold ${style.glifo}`}
+        className={`shrink-0 text-cuerpo font-bold ${style.glifo}`}
         aria-hidden="true"
       >
         {style.icon}
@@ -168,7 +168,7 @@ export function ToastProvider({ children }) {
             // —el error es asertivo y el resto no—, y eso desde el contenedor,
             // que es uno solo para todos, no se puede.
             className="
-              pointer-events-none fixed inset-x-0 bottom-0 z-[200]
+              pointer-events-none fixed inset-x-0 bottom-0 z-aviso
               flex flex-col items-center gap-2
               px-4 pb-[max(1rem,env(safe-area-inset-bottom))]
             "

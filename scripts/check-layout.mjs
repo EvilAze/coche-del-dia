@@ -183,9 +183,13 @@ const SELECTORES = [
 // La cabecera es la de la APP, que es lo que mide este banco en 30 de sus 31
 // escenarios: barra con la cornisa dentro (`.prensa-cornisa`) y SIN la banda
 // `.prensa-folio`, porque en la app esa banda no se monta — la fecha viaja en
-// la barra (ver Header.jsx). El masthead sí se deja: lo apaga el CSS
-// por `data-plataforma`, y dejarlo aquí es justo lo que comprueba que sigue
-// apagándose. El ladillo es el de la partida: la pregunta del juego a la
+// la barra (ver Header.jsx). Tampoco lleva masthead: aquí estuvo para comprobar
+// que el CSS lo apagaba en la app, pero Header.jsx dejó de montarlo en las DOS
+// plataformas con la cabecera «Asfalto», y en oct-2026 su CSS se borró por
+// muerto — con lo que la maqueta, y solo ella, empezó a pintarlo (24px de más en
+// web, la foto 6px más pequeña en la app). Un banco que mide piezas que el
+// juego ya no tiene mide otra pantalla. El ladillo es el de la partida (la
+// pregunta es el h1 de la página, como en ZoomStage): la pregunta del juego a la
 // izquierda, el filete y el intento en curso al final (ver ZoomStage).
 //
 // LA MARCA DEL SUMARIO VA COMO BOTÓN DE VERDAD, y no como la palabra «SUMARIO»
@@ -214,10 +218,9 @@ function paginaHtml(hrefCss) {
   <main class="prensa-hoja prensa-pliego flex min-h-screen flex-col gap-3 app-pantalla">
     <header class="prensa-area-cab">
       <nav class="prensa-topbar"><span><button class="prensa-sumario-boton"><svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 1h14M1 6h14M1 11h14"/></svg></button><span class="prensa-cornisa"><span class="cabeza">Coche del Día</span><span class="fecha">13 de septiembre</span></span></span><span><button class="prensa-clasif"><span class="lad">Clasificación</span><span class="cifra"><span class="pos">12º</span><span class="mov mov--up"><svg width="11" height="7" viewBox="0 0 11 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.4 5.6 5.5 1.4l4.1 4.2"/></svg>2</span></span></button></span></nav>
-      <div class="prensa-masthead prensa-masthead--compacto"><p class="titulo">Coche del Día</p></div>
     </header>
     <section class="prensa-area-foto flex flex-col gap-3 pb-4">
-      <div class="prensa-ladillo prensa-ladillo--pregunta"><span class="rotulo">¿Qué coche es?</span><i class="filete"></i><span class="aparte">Intento 1 de 5</span></div>
+      <div class="prensa-ladillo prensa-ladillo--pregunta"><h1 class="rotulo">¿Qué coche es?</h1><i class="filete"></i><span class="aparte">Intento 1 de 5</span></div>
       <div class="cdd-stage"><div class="cdd-stage-frame" id="marco">
         <div style="position:absolute;inset:0;background:#888"></div>
       </div></div>

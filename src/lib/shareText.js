@@ -28,10 +28,13 @@
 // `shareGrid` NO se borra: el EndScreen la sigue pintando en pantalla como
 // registro de tu partida. Es el trofeo; el mensaje es otra cosa.
 //
-// Formato resultante (el vigente desde el 29-jul):
-//   1. CABECERA  → "Coche del Día · DD/MM". Nombre sin artículo y fecha sin
-//      año: el resultado solo tiene sentido el mismo día (puzzle diario). El
-//      «N/5» se retiró a propósito: la rejilla ya lo cuenta en filas.
+// Formato resultante (el vigente desde el 8-oct):
+//   1. CABECERA  → "Coche del Día · DD/MM · 4/5" ("X/5" al perder). Nombre sin
+//      artículo y fecha sin año: el resultado solo tiene sentido el mismo día
+//      (puzzle diario). El «N/5» se retiró el 29-jul («la rejilla ya lo cuenta
+//      en filas») y VOLVIÓ el 8-oct: en la vista previa de un chat y en las
+//      notificaciones solo se lee la primera línea, y el resultado tiene que
+//      estar ahí. La racha (🔥) no vuelve: es tuya, no del día.
 //   2. REJILLA   → una línea por intento, ✅ acierto · 🟨 mismo país · ❌ fallo.
 //      El 🟨 es de oct-2026: antes el «mismo país» se compartía como ❌, así
 //      que una partida que se iba acercando parecía a ciegas — y es lo que la
@@ -95,5 +98,16 @@ export function buildShareText(
   const list = Array.isArray(guesses) ? guesses : [];
   const grid = shareGrid(list);
 
-  return `Coche del Día · ${getShareDate(todayStr)}\n${grid}\ncochedeldia.com`;
+  // Victoria = última fila con las tres celdas correctas (no hay otra forma de
+  // ganar; la partida se cierra ahí). Derrota → "X/5", como Wordle.
+  const ultima = list[list.length - 1];
+  const gano = Boolean(
+    ultima &&
+      ultima.marca?.status === "correct" &&
+      ultima.modelo?.status === "correct" &&
+      ultima.anio?.status === "correct"
+  );
+  const marcador = `${gano ? list.length : "X"}/${maxAttempts}`;
+
+  return `Coche del Día · ${getShareDate(todayStr)} · ${marcador}\n${grid}\ncochedeldia.com`;
 }

@@ -387,11 +387,15 @@ export default function Configurator({
           onOpenProfile={onOpenProfile}
         />
 
-        {/* H1 real solo para lectores de pantalla/SEO (v0 no lo pinta). */}
-        <h1 className="sr-only">
+        {/* La frase de qué se juega, para lectores de pantalla y buscadores.
+            Era el H1 y la pregunta visible un span: quien navegaba por
+            encabezados no encontraba «¿Qué coche es?» (auditoría 7-oct, J8).
+            Ahora el H1 es la pregunta (ZoomStage) y esto un párrafo, que los
+            buscadores siguen leyendo igual. */}
+        <p className="sr-only">
           {t("cdd.guess")} {t("cdd.wordMarca")}, {t("cdd.wordModelo")} {conn}{" "}
           {t("cdd.wordAnio")}
-        </h1>
+        </p>
 
         {loadError ? (
           <EdicionNoDisponible onRetry={onRetryLoad} isRetrying={isRetryingLoad} />
@@ -401,6 +405,7 @@ export default function Configurator({
           // muro se retiró entero —ver «Política de revelado» en
           // api/validate-guess.js— y con él la prop.
           <ZoomStage
+            nivelPregunta={1}
             car={car}
             zoom={zoom}
             aumento={aumento}

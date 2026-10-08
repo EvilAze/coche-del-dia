@@ -596,3 +596,24 @@ describe("La hoja aparta el escenario en vez de taparlo", () => {
     expect(marco.style.getPropertyValue("--cdd-escenario-subida")).toBe("");
   });
 });
+
+describe("El país que ya sabes sube arriba (P11)", () => {
+  it("tras un «mismo país», las marcas de ese país encabezan la hoja en su grupo", async () => {
+    const catalogo = {
+      cars: [...CATALOGO.cars, { id: 5, marca: "Cupra", modelo: "Born", pais: "es" }],
+      marcas: ["Citroën", "Cupra", "Seat", "Volkswagen", ...MARCAS_RELLENO],
+    };
+    // Seat salió «mismo país»: el coche es español, y Cupra es la que queda.
+    const guesses = [
+      { marca: { val: "Seat", status: "partial" }, modelo: { val: "Ibiza", status: "wrong" }, anio: { val: 1990, status: "wrong" } },
+    ];
+    await montar({ guesses, catalogo });
+    fireEvent.click(renglon("cdd.labelMarca"));
+
+    const grupo = screen.getByRole("group", { name: "cdd.grupoMismoPais:Seat" });
+    expect(grupo.textContent).toContain("Cupra");
+    // Primera opción de la lista y sin duplicarse en su letra.
+    expect(screen.getAllByRole("option")[0].textContent).toContain("Cupra");
+    expect(screen.getAllByRole("option", { name: /Cupra/ })).toHaveLength(1);
+  });
+});

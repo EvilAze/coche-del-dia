@@ -58,6 +58,11 @@ export default function Combo({
   // Ferrari, la lista decía «Sin coincidencias», como si la marca no existiera
   // (auditoría 7-oct). Ahora dice «Ferrari · ya lo probaste».
   probadas = [],
+  // Las que suben a un grupo propio arriba de la lista, con su título: las
+  // marcas del país que el jugador ya sabe por un «mismo país» (ver GuessForm).
+  // Salen de su sitio alfabético, no se duplican.
+  destacadas = [],
+  destacadasTitulo = null,
 }) {
   const { t } = useT();
   // id estable para asociar <label> ↔ <input> (a11y: el lector de pantalla
@@ -88,10 +93,19 @@ export default function Combo({
   // Volkswagen…). La lista es acotada (marcas/modelos) y el desplegable ya
   // hace scroll, así que renderizamos todas las coincidencias (como el
   // Autocomplete de producción).
-  const filtered = useMemo(() => {
+  // Las coincidencias EN EL ORDEN EN QUE SE VEN: primero las destacadas,
+  // después el resto. Las flechas y el Intro recorren este mismo array, así que
+  // el orden del teclado y el de la pantalla son el mismo por construcción.
+  const { filtered, nArriba } = useMemo(() => {
     const needle = norm(value ? "" : q);
-    return options.filter((o) => norm(o).includes(needle));
-  }, [q, value, options]);
+    const coinciden = options.filter((o) => norm(o).includes(needle));
+    if (!destacadas.length) return { filtered: coinciden, nArriba: 0 };
+    const set = new Set(destacadas);
+    const arriba = coinciden.filter((o) => set.has(o));
+    // Si TODO es del mismo país (o nada lo es), no hay grupo que separar.
+    if (!arriba.length || arriba.length === coinciden.length) return { filtered: coinciden, nArriba: 0 };
+    return { filtered: [...arriba, ...coinciden.filter((o) => !set.has(o))], nArriba: arriba.length };
+  }, [q, value, options, destacadas]);
 
   const probadasQueCoinciden = useMemo(() => {
     const needle = norm(value ? "" : q);
@@ -108,9 +122,11 @@ export default function Combo({
 
   useEffect(() => {
     if (!open) return;
-    const el = listRef.current?.children[hi];
+    // Por id y no por posición entre los hijos: con el grupo del mismo país
+    // (y las filas de «ya lo probaste») la opción n ya no es el hijo n.
+    const el = document.getElementById(`${listId}-op-${hi}`);
     el?.scrollIntoView({ block: "nearest" });
-  }, [hi, open]);
+  }, [hi, open, listId]);
 
   useEffect(() => {
     function onDoc(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
@@ -150,7 +166,21 @@ export default function Combo({
     if (resuelto) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setHi((h) => Math.min(h + 1, filtered.length - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
-    else if (e.key === "Enter" && open && filtered[hi]) { e.preventDefault(); choose(filtered[hi]); }
+    else if (e.key === "Enter") {
+      // INTRO ELIGE Y AVANZA, también con la lista cerrada si solo hay una
+      // coincidencia. En producción, una vez de tres, «Niss» + Intro dejaba
+      // «Nissan» en la marca sin saltar a Modelo y lo siguiente se escribía en
+      // la marca («Nissan300», auditoría 7-oct P24): con la lista cerrada (o con
+      // `hi` aún apuntando más allá de una lista recién filtrada, porque se
+      // reinicia en un efecto) el Intro caía al envío del formulario, que
+      // canonizaba la marca pero no movía el foco. Ahora la señalada se acota a
+      // la lista y, cerrada, solo se elige lo inequívoco — el mismo criterio que
+      // el resolver del envío.
+      const senalada = open ? filtered[Math.min(hi, filtered.length - 1)] : null;
+      const unica = !open && !value && q.trim() && filtered.length === 1 ? filtered[0] : null;
+      const eleccion = senalada || unica;
+      if (eleccion) { e.preventDefault(); choose(eleccion); }
+    }
     else if (e.key === "Escape") setOpen(false);
   }
 
@@ -172,6 +202,24 @@ export default function Combo({
   const listaVisible = open && !disabled && !resuelto;
   const opcionId = (i) => `${listId}-op-${i}`;
   const activa = listaVisible && filtered[hi] ? opcionId(hi) : undefined;
+
+  const opcionLi = (o, i) => {
+    const flag = optionFlag ? optionFlag(o) : null;
+    return (
+      <li
+        key={o}
+        id={opcionId(i)}
+        role="option"
+        aria-selected={i === hi}
+        className={"prensa-opt" + (i === hi ? " hi" : "")}
+        onMouseEnter={() => setHi(i)}
+        onClick={() => choose(o)}
+      >
+        <span>{o}</span>
+        {flag && <img className="bandera" src={flag} alt="" draggable={false} loading="lazy" />}
+      </li>
+    );
+  };
 
   return (
     <div className="relative flex flex-col gap-0.5" ref={ref}>
@@ -235,23 +283,26 @@ export default function Combo({
               {t("cdd.yaProbada", { valor: o })}
             </li>
           ))}
-          {filtered.map((o, i) => {
-            const flag = optionFlag ? optionFlag(o) : null;
-            return (
-              <li
-                key={o}
-                id={opcionId(i)}
-                role="option"
-                aria-selected={i === hi}
-                className={"prensa-opt" + (i === hi ? " hi" : "")}
-                onMouseEnter={() => setHi(i)}
-                onClick={() => choose(o)}
-              >
-                <span>{o}</span>
-                {flag && <img className="bandera" src={flag} alt="" draggable={false} loading="lazy" />}
+          {nArriba > 0 ? (
+            <>
+              {/* Dos grupos con nombre (role="group"), como las letras de la
+                  hoja de la app: el lector de pantalla anuncia «Mismo país que
+                  Nissan» al entrar en el primero. */}
+              <li role="presentation">
+                <p className="prensa-opt-grupo" id={`${listId}-g1`}>{destacadasTitulo}</p>
+                <ul role="group" aria-labelledby={`${listId}-g1`}>
+                  {filtered.slice(0, nArriba).map((o, i) => opcionLi(o, i))}
+                </ul>
               </li>
-            );
-          })}
+              <li role="presentation" className="prensa-opt-resto">
+                <ul role="group" aria-label={label}>
+                  {filtered.slice(nArriba).map((o, i) => opcionLi(o, i + nArriba))}
+                </ul>
+              </li>
+            </>
+          ) : (
+            filtered.map((o, i) => opcionLi(o, i))
+          )}
         </ul>
       )}
     </div>

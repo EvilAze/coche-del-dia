@@ -600,7 +600,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
         <motion.div
           key="garage-backdrop"
           ref={veloRef}
-          className="scrim-flat fixed inset-0 z-[85] flex items-stretch justify-center"
+          className="scrim-flat fixed inset-0 z-hoja flex items-stretch justify-center"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -649,7 +649,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
             <div
               aria-hidden="true"
               onPointerDown={(e) => dragControls.start(e)}
-              className="absolute inset-y-0 left-0 z-30 w-4"
+              className="absolute inset-y-0 left-0 z-10 w-4"
               style={{ touchAction: "pan-y" }}
             />
 
@@ -798,7 +798,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
       )}
 
       {/* El sorteo: vive FUERA del motion.div del panel para que cubra toda la
-          pantalla (z-[120]) y no quede recortado por el max-w-md. Se monta al
+          pantalla (z-dialogo-sobre) y no quede recortado por el max-w-md. Se monta al
           aceptar y se desmonta con el redirect (o si el POST falla). */}
       {drawAnim && (
         <RepescaDrawAnimation
@@ -1335,7 +1335,7 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
       open={open}
       onClose={onClose}
       label={t("garage.headerTitle")}
-      backdropClassName="modal-scrim fixed inset-0 z-[95] flex items-center justify-center p-4"
+      backdropClassName="modal-scrim fixed inset-0 z-dialogo flex items-center justify-center p-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-[88vh] overflow-y-auto"
     >
       {displayCar && (
@@ -1580,7 +1580,7 @@ function RandomRepescaConfirm({ open, poolSize, starting, onCancel, onAccept }) 
       onClose={onCancel}
       dismissOnBackdrop={!starting}
       label={t("garage.repescaConfirmTitle")}
-      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[95] flex items-center justify-center px-4"
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-dialogo flex items-center justify-center px-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
       <div className="arch-dialogo">
@@ -1673,7 +1673,7 @@ function RepescaHelpModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       label={t("garage.repescaHelpTitle")}
-      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-[95] flex items-center justify-center px-4"
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-dialogo flex items-center justify-center px-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
       <div className="arch-dialogo">

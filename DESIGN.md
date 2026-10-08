@@ -189,6 +189,30 @@ All three are static families, self-hosted from `public/fonts/` via
 latin-ext only: 274 KB in total, down from 424 KB for the Prensa trio. The two
 faces visible on first paint are preloaded in `index.html`.
 
+**One scale, thirteen named steps** (`--t-*` in `:root`; Tailwind names them
+too: `text-etiqueta`, `text-ui`…). Taken from what the product actually uses,
+not from a ratio: until Oct 2026 there were 32 distinct sizes, eight of them on
+a half pixel and five below 11px.
+
+| Token | Size | Used for |
+|---|---|---|
+| `--t-etiqueta` | 11px | the FLOOR: labels, kickers, chips — nothing smaller |
+| `--t-dato` | 12px | small figures, the tab bar |
+| `--t-nota` | 13px | notes under a line |
+| `--t-ui` | 14px | interface and card text (the most used size) |
+| `--t-cuerpo` | 15px | running text, options |
+| `--t-campo` | 16px | what you type (16 avoids iOS zoom on focus) |
+| `--t-boton` | 17px | button words, header figures |
+| `--t-pregunta` | 21px | «¿Qué coche es?», ADIVINAR, sheet titles |
+| `--t-titulo` | 24px | card titles |
+| `--t-cabecera` | 28px | dialog titles |
+| `--t-seccion` | 30px | section names, the car's name |
+| `--t-cifra` | 40px | big figures (profile, Archivo, position) |
+| `--t-heroe` | 64px | today's points. Only one. |
+
+A pixel `font-size` outside the tokens fails `test:estetica` (`tipo-suelto`),
+and so does a `text-[Npx]` in JSX. `clamp()` stays allowed: a range, not a step.
+
 **No italics, anywhere.** No italic faces are loaded, and a single rule in the
 Asfalto layer neutralizes `font-style: italic` across the app: a synthesized
 oblique is the worst thing you can do to a typeface. What Prensa set as an
@@ -222,6 +246,16 @@ and motion.
   peek), is a real shadow derived from `--velo-rgb`, never from ink — a shadow
   from bone ink would be a pale halo at night.
 - **No glows**, no glass, no gradient washes.
+
+**Layers** (`--capa-*`, and `z-hoja`, `z-dialogo`… in Tailwind). Only one App
+overlay is open at a time, so all that needs ordering is what opens ON TOP of
+another: barra 40 (tab bar, peek, coupon dropdown) · panel 60 (end panel, below
+the sheets it opens) · hoja 80 (navigation surfaces) · hoja-sobre 90 (a sheet
+over a sheet, the coupon sheet) · dialogo 100 · dialogo-sobre 120 (a dialog over
+a sheet or a dialog, the day change) · aviso 200 (toasts). Inside a component,
+1–10 is local order. Anything above 10 that is not a token, or a `z-[N]` in JSX,
+fails `test:estetica` (`capa-suelta`). There used to be fourteen loose values,
+each new overlay one notch above the last one anybody remembered.
 
 ## 6. Motion — "el compás"
 
@@ -354,6 +388,11 @@ silencer, where `1ms` is a zero and not a tempo.
   toast: its coupon is laid out to the pixel against the photo and the sheet.
   The brand and model fields are ARIA comboboxes (`aria-activedescendant` on
   the highlighted option).
+- **What the player knows moves up the list.** After a «same country» brand,
+  that country's brands leave their alphabetical place for a group at the
+  top, «Mismo país que Nissan», in both coupons (web combo and app sheet).
+  Nothing is hidden or dimmed: the list helps find, it doesn't rule out for
+  the player.
 - **Air around the primary action**: 12px above ADIVINAR (to the coupon) and
   12px below it (to the tab bar). The button must not rest on the bar's seam:
   the active tab's red line lives there and reads as the button's underline.
@@ -373,9 +412,11 @@ Tab trap and the ✕, whose bar gains a background once the card scrolls.
 - **The attempt grid speaks in shape too**: correct cells carry ✓, same-country
   cells (amber fill) carry ~, misses carry ✕, and each attempt is read out in
   words for screen readers («Intento 1 de 5: Fiat, mismo país; …»).
-- **Share** is the ink button. The copied text keeps the three states
-  (✅ correct · 🟨 same country · ❌ miss), and if neither the share sheet nor
-  the clipboard works the text appears in a box, selected, to copy by hand.
+- **Share** is the ink button. The copied text opens with the result
+  («Coche del Día · 08/10 · 4/5», «X/5» on a loss: a chat preview only shows
+  the first line), keeps the three states (✅ correct · 🟨 same country ·
+  ❌ miss), and if neither the share sheet nor the clipboard works the text
+  appears in a box, selected, to copy by hand.
 - **From 1024px the panel is two columns**: what happened (photo, car, score,
   share) on the left, what is read if you stay on the right. On phones the two
   groups are `display: contents` and it is the usual single column.
@@ -484,7 +525,8 @@ in the UI entirely** (§9).
 
 `npm run test:estetica` (`scripts/check-estetica.mjs`, included in `npm test`)
 fails the build on emoji in UI, raw Tailwind palette, Tailwind `rounded-*`,
-glows, loose hex in classes, loose durations and curves, and loose radii. `npm run test:layout` measures the app game
+glows, loose hex in classes, loose durations and curves, loose radii, loose
+font sizes and loose z-index layers. `npm run test:layout` measures the app game
 screen in six phones, both editions, with and without the keyboard: run it
 whenever a change touches heights in the game screen or the sheets.
 

@@ -127,8 +127,8 @@ export default function HowToPlayModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       label={t("howto.title")}
-      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[85] flex items-center justify-center px-4"
-      veloApp="pm-velo-hoja fixed inset-0 z-[85] flex items-end justify-center"
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-hoja flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-hoja flex items-end justify-center"
       panelWeb="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
       <div className="htp-cab">

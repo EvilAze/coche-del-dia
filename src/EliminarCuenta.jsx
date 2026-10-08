@@ -65,7 +65,7 @@ export default function EliminarCuenta() {
         </a>
         <header className="mt-4 border-b border-border pb-6">
           <p className="pm-kicker">Tu cuenta</p>
-          <h1 className="pm-title mt-2 !text-[26px] sm:!text-[32px]">
+          <h1 className="pm-title mt-2 !text-cabecera sm:!text-seccion">
             Eliminar tu cuenta
           </h1>
           <p className="mt-2 text-sm text-muted">
@@ -74,7 +74,7 @@ export default function EliminarCuenta() {
           </p>
         </header>
 
-        <main className="mt-8 space-y-8 text-sm leading-relaxed sm:text-[15px]">
+        <main className="mt-8 space-y-8 text-sm leading-relaxed sm:text-cuerpo">
           <Section title="1. Desde la app o desde la web">
             <p>
               Es el camino directo y no hace falta escribir a nadie: el borrado

@@ -100,7 +100,7 @@ export default function SelectorHoja({
       // Sin `modal-scrim`: el velo de la hoja no tiñe (ver la cabecera). Sigue
       // siendo una capa a pantalla completa, así que tocar la foto —o el
       // pliego— cierra la hoja igual que antes.
-      backdropClassName="pm-hoja-velo fixed inset-0 z-[90] flex items-end justify-center"
+      backdropClassName="pm-hoja-velo fixed inset-0 z-hoja-sobre flex items-end justify-center"
       panelClassName="pm-hoja"
       // LA HOJA ENTRA DESLIZÁNDOSE, no encogiendo desde el centro como una
       // tarjeta: sale de debajo del borde de la pantalla y sube hasta su sitio,

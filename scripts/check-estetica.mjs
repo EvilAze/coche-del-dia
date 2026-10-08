@@ -99,6 +99,15 @@ const HEX_EN_CLASE = /(?:\[|:)#[0-9a-fA-F]{3,8}\b/;
 // `rounded-full` entre por la puerta de `rounded-f…`.
 const REDONDEO = /\brounded(?:-[a-z]+)?-(?:sm|md|lg|xl|2xl|3xl)\b|\brounded-(?:sm|md|lg|xl|2xl|3xl)\b/;
 
+// Capa suelta en un JSX: un z-[N] arbitrario o un z-20…z-50 de Tailwind. Lo
+// que flota sobre la página usa las capas con nombre (z-hoja, z-dialogo…, ver
+// «LAS CAPAS» en index.css); dentro de un componente, z-0…z-10 bastan.
+const CAPA_SUELTA = /(?:^|[\s"'`])z-(?:\[\d+\]|[2-9]\d)(?=[\s"'`]|$)/;
+
+// Tamaño de letra suelto en un JSX: text-[13px]. La escala vive en index.css
+// (--t-*) y Tailwind la nombra: text-etiqueta, text-ui, text-pregunta…
+const TIPO_SUELTO = /\btext-\[\d+(?:\.\d+)?px\]/;
+
 // Sombras de catálogo de Tailwind. `shadow-[…]` (arbitraria) queda fuera a
 // propósito: ahí es donde se escribe la del sistema, `shadow-[var(--sombra-flota)]`.
 // Y `shadow-none` también se permite.
@@ -135,6 +144,16 @@ const REGLAS = [
     msg: "radio suelto — la forma vive en los tokens --radio-* de index.css (por tamaño de objeto); en JSX, rounded-none o rounded-full para un círculo de verdad",
   },
   {
+    id: "tipo-suelto",
+    re: TIPO_SUELTO,
+    msg: "tamaño de letra suelto — usa un paso de la escala: text-etiqueta, dato, nota, ui, cuerpo, campo, boton, pregunta, titulo, cabecera, seccion, cifra o heroe (--t-* en index.css)",
+  },
+  {
+    id: "capa-suelta",
+    re: CAPA_SUELTA,
+    msg: "capa suelta — lo que flota sobre la página usa una capa con nombre: z-barra, z-panel, z-hoja, z-hoja-sobre, z-dialogo, z-dialogo-sobre, z-aviso (--capa-* en index.css). Dentro de un componente, z-0…z-10",
+  },
+  {
     id: "sombra-blanda",
     re: SOMBRA_BLANDA,
     msg: "sombra de catálogo de Tailwind — no sabe si debajo hay papel o grafito; separa con filete (border) o, si de verdad flota, usa shadow-[var(--sombra-flota)]",
@@ -153,7 +172,7 @@ const ALLOW = [
     path: "src/lib/shareText.js",
     reglas: ["emoji"],
     porque:
-      "la rejilla ✅/❌ y el 🔥 de racha son TEXTO PLANO para WhatsApp/X — ahí el emoji es el idioma de Wordle y lo pinta la app destino",
+      "la rejilla ✅/🟨/❌ es TEXTO PLANO para WhatsApp/X — ahí el emoji es el idioma de Wordle y lo pinta la app destino",
   },
   {
     path: "src/lib/shareText.test.js",
@@ -424,6 +443,52 @@ const COMPOSITABLES = new Set(["transform", "opacity", "filter", "-webkit-filter
         texto: linea.trim().slice(0, 100),
       });
     }
+  });
+}
+
+// ── 6. Las capas: z-index sueltos en index.css ──────────────────────────
+//
+// Catorce z-index distintos entre 40 y 200, y cada overlay nuevo entraba con
+// «uno más que el último» (auditoría 7-oct, D6). Por encima de 10 —o sea, todo
+// lo que compite con otros overlays de la página— el valor sale de una capa
+// --capa-*. De 0 a 10 es orden local dentro de un componente y se queda.
+{
+  const src = readFileSync(join(ROOT, CSS_VIGILADO), "utf8");
+  const lineas = sinComentariosDeBloque(src).split(/\r?\n/);
+  lineas.forEach((linea, i) => {
+    if (/^\s*--capa-[a-z-]+\s*:/.test(linea)) return;
+    for (const m of linea.matchAll(/z-index\s*:\s*(-?\d+)/g)) {
+      if (Math.abs(Number(m[1])) <= 10) continue;
+      fallos.push({
+        rel: CSS_VIGILADO,
+        linea: i + 1,
+        regla: "capa-suelta",
+        msg: "z-index suelto — por encima de 10 la capa sale de los tokens: var(--capa-barra|panel|hoja|hoja-sobre|dialogo|dialogo-sobre|aviso)",
+        texto: linea.trim().slice(0, 100),
+      });
+    }
+  });
+}
+
+// ── 7. La escala: tamaños de letra sueltos en index.css ──────────────────
+//
+// 32 tamaños distintos, ocho en medio píxel y cinco por debajo de 11px, antes
+// de la escala de trece pasos (auditoría 7-oct, D1). Un font-size en px fuera
+// de la definición de los tokens --t-* no pasa; clamp() y em sí (son rangos y
+// proporciones, no pasos).
+{
+  const src = readFileSync(join(ROOT, CSS_VIGILADO), "utf8");
+  const lineas = sinComentariosDeBloque(src).split(/\r?\n/);
+  lineas.forEach((linea, i) => {
+    if (/^\s*--t-[a-z]+\s*:/.test(linea)) return;
+    if (!/font-size\s*:\s*\d+(?:\.\d+)?px/.test(linea)) return;
+    fallos.push({
+      rel: CSS_VIGILADO,
+      linea: i + 1,
+      regla: "tipo-suelto",
+      msg: "tamaño de letra suelto — sale de la escala: var(--t-etiqueta|dato|nota|ui|cuerpo|campo|boton|pregunta|titulo|cabecera|seccion|cifra|heroe)",
+      texto: linea.trim().slice(0, 100),
+    });
   });
 }
 

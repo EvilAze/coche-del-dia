@@ -29,6 +29,10 @@ export default function ZoomStage({
   // Configurator, que es quien tiene la temporada y el idioma. Aquí solo se
   // pinta. null = línea de siempre.
   credito = null,
+  // Nivel del encabezado de la pregunta. En el juego diario es EL encabezado de
+  // la página (h1, auditoría 7-oct J8); en la Repesca y en el panel interno la
+  // página ya tiene el suyo y la pregunta va debajo (h2).
+  nivelPregunta = 2,
   onRevealLoad,
   // Ref opcional a la <section> del escenario. Lo usa Configurator para
   // observar (IntersectionObserver) cuándo la foto sale del viewport y
@@ -104,9 +108,9 @@ export default function ZoomStage({
           elemento de verdad y no el `::after` de siempre porque el estado va
           DESPUÉS de la regla, y un pseudo-elemento siempre va el último. */}
       <div className="prensa-ladillo prensa-ladillo--pregunta">
-        {/* h2 y no span: la pregunta es el encabezado de la pantalla para quien
-            navega por encabezados (el h1 sr-only de Configurator la presenta). */}
-        <h2 className="rotulo">{rotulo}</h2>
+        {/* Un encabezado y no un span: la pregunta es lo primero que busca
+            quien navega por encabezados. h1 en el juego diario. */}
+        {nivelPregunta === 1 ? <h1 className="rotulo">{rotulo}</h1> : <h2 className="rotulo">{rotulo}</h2>}
         {/* EL CONTADOR SE RE-ESTAMPA AL CAMBIAR DE INTENTO. Es el relevo
             tipográfico del lavado rojo que se tiraba sobre la fotografía (ver
             CarImage): en este sistema el aviso lo da la letra, no un tinte

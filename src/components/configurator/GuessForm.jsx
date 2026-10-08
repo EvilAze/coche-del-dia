@@ -221,6 +221,28 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     return m;
   }, [CARS]);
 
+  // EL PAÍS QUE YA SABES. Un «mismo país» en la marca dice de dónde es el coche,
+  // y la lista seguía ofreciendo las ochenta marcas en orden alfabético: el
+  // jugador tenía que hacer de filtro, recordando cuáles eran japonesas
+  // (auditoría 7-oct, P11). Las de ese país SUBEN a un grupo propio arriba,
+  // «Mismo país que Nissan»; el resto sigue debajo, sin atenuar ni quitar nada
+  // — ayuda a encontrar, no descarta por el jugador. Vale el ÚLTIMO «mismo
+  // país», que es el que el jugador tiene en la cabeza.
+  const mismoPais = useMemo(() => {
+    for (let i = guesses.length - 1; i >= 0; i--) {
+      const g = guesses[i];
+      if (g?.marca?.status === "partial" && g.marca.val && marcaPais[g.marca.val]) {
+        return { pais: marcaPais[g.marca.val], marca: g.marca.val };
+      }
+    }
+    return null;
+  }, [guesses, marcaPais]);
+  const marcasDelPais = useMemo(
+    () => (mismoPais ? availableMarcas.filter((m) => marcaPais[m] === mismoPais.pais) : []),
+    [mismoPais, availableMarcas, marcaPais]
+  );
+  const tituloDelPais = mismoPais ? t("cdd.grupoMismoPais", { marca: mismoPais.marca }) : null;
+
   const marcaValida = MARCAS.includes(marca);
   const marcaInvalida = marca.trim().length > 0 && !marcaValida;
 
@@ -587,6 +609,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
           inputRef={marcaRef}
           options={availableMarcas}
           probadas={marcasProbadas}
+          destacadas={marcasDelPais}
+          destacadasTitulo={tituloDelPais}
           placeholder={catalogCargando ? t("cdd.catalogLoading") : t("cdd.comboPlaceholder")}
           disabled={formDisabled}
           invalid={marcaInvalida || aviso?.campo === "marca"}
@@ -702,6 +726,8 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               key="marca"
               titulo={t("cdd.labelMarca")}
               opciones={availableMarcas}
+              destacadas={marcasDelPais}
+              destacadasTitulo={tituloDelPais}
               valor={marca}
               optionFlag={(m) => (marcaPais[m] ? flagImagePath(marcaPais[m]) : null)}
               optionLogo={logoMarca}
@@ -755,14 +781,14 @@ function CatalogoCaido({ onRetry }) {
       aria-live="polite"
     >
       <p className="pm-kicker m-0">{t("offline.kicker")}</p>
-      <p className="mt-1 font-display text-[15px] font-black leading-tight text-tinta">
+      <p className="mt-1 font-display text-cuerpo font-black leading-tight text-tinta">
         {t("cdd.catalogDownTitle")}
       </p>
-      <p className="pm-body m-0 mt-1 !text-[12px]">{t("cdd.catalogDownBody")}</p>
+      <p className="pm-body m-0 mt-1 !text-dato">{t("cdd.catalogDownBody")}</p>
       <button
         type="button"
         onClick={() => { haptic.impactLight(); onRetry?.(); }}
-        className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-[11px]"
+        className="pm-btn pm-btn--ghost mt-3 !w-auto px-6 !py-2 !text-etiqueta"
       >
         {t("offline.retry")}
       </button>
@@ -770,7 +796,7 @@ function CatalogoCaido({ onRetry }) {
           está la cuenta): `pm-body` es --cdd-muted y ya viene con 4.97:1, al
           borde del AA. El 70% que llevaba lo hundía a 2.80:1. */}
       {!online && (
-        <p className="pm-body m-0 mt-2 !text-[11px]">{t("offline.autoRetry")}</p>
+        <p className="pm-body m-0 mt-2 !text-etiqueta">{t("offline.autoRetry")}</p>
       )}
     </div>
   );

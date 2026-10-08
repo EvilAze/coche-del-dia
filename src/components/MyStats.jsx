@@ -227,8 +227,8 @@ export default function MyStats({
       open={open}
       onClose={onClose}
       label={t("prensa.perfil")}
-      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[80] flex items-center justify-center px-4"
-      veloApp="pm-velo-hoja fixed inset-0 z-[80] flex items-end justify-center"
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-hoja flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-hoja flex items-end justify-center"
       panelWeb="modal-panel-flat panel-seccion w-full max-w-sm max-h-full overflow-y-auto overscroll-contain p-5"
     >
       <div className="clas-cab">

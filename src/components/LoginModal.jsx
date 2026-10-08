@@ -253,7 +253,7 @@ export default function LoginModal({ open, onClose, aviso = null }) {
       open={open}
       onClose={onClose}
       label={t("app.loginModalTitle")}
-      backdropClassName="modal-scrim fixed inset-0 z-[100] flex items-center justify-center p-4"
+      backdropClassName="modal-scrim fixed inset-0 z-dialogo flex items-center justify-center p-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
       {/* Un diálogo de DECISIÓN (regla 24): tarjeta centrada en las dos

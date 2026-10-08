@@ -169,7 +169,8 @@
     "eligeAnio": "Pick the year",
     "volverPartida": "Back to the game",
     "yaProbada": "{valor} · already tried",
-    "carImageAltZoom": "Close-up of today’s car, zoomed {aumento}. Try {n} of {max}."
+    "carImageAltZoom": "Close-up of today’s car, zoomed {aumento}. Try {n} of {max}.",
+    "grupoMismoPais": "Same country as {marca}"
   },
   "sumario": {
     "garajeApunte": "Your collection of covers",

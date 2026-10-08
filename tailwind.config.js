@@ -15,6 +15,36 @@ module.exports = {
   future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
+      // Las capas viven en index.css (--capa-*, ver «LAS CAPAS»); aquí solo
+      // se les pone nombre de utilidad para los velos de los JSX: z-hoja,
+      // z-dialogo… Un z-[N] arbitrario hace fallar test:estetica.
+      // La escala tipográfica (--t-* en index.css, ver «LA ESCALA
+      // TIPOGRÁFICA»): text-etiqueta, text-ui, text-pregunta… Un text-[Npx]
+      // arbitrario hace fallar test:estetica.
+      fontSize: {
+        etiqueta: "var(--t-etiqueta)",
+        dato: "var(--t-dato)",
+        nota: "var(--t-nota)",
+        ui: "var(--t-ui)",
+        cuerpo: "var(--t-cuerpo)",
+        campo: "var(--t-campo)",
+        boton: "var(--t-boton)",
+        pregunta: "var(--t-pregunta)",
+        titulo: "var(--t-titulo)",
+        cabecera: "var(--t-cabecera)",
+        seccion: "var(--t-seccion)",
+        cifra: "var(--t-cifra)",
+        heroe: "var(--t-heroe)",
+      },
+      zIndex: {
+        barra: "var(--capa-barra)",
+        panel: "var(--capa-panel)",
+        hoja: "var(--capa-hoja)",
+        "hoja-sobre": "var(--capa-hoja-sobre)",
+        dialogo: "var(--capa-dialogo)",
+        "dialogo-sobre": "var(--capa-dialogo-sobre)",
+        aviso: "var(--capa-aviso)",
+      },
       fontFamily: {
         // Sistema «Asfalto»: display = Barlow Condensed (titulares y cifras
         // grandes), body = Barlow (interfaz), mono = IBM Plex Mono (etiquetas,

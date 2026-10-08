@@ -66,7 +66,7 @@ export default function EdicionNoDisponible({ onRetry, isRetrying = false }) {
           Y el lector de este aviso es justo quien peor lo tiene: sin cobertura,
           probablemente en la calle y con el móvil al sol. */}
       {!online && (
-        <p className="pm-body m-0 !text-[12px]">{t("offline.autoRetry")}</p>
+        <p className="pm-body m-0 !text-dato">{t("offline.autoRetry")}</p>
       )}
     </section>
   );

@@ -21,8 +21,8 @@ export default function ScoringHelpModal({ open, onClose }) {
       label={t("scoring.tag")}
       // Encaje de modal alto: `safe-area-pad` en el velo + `max-h-full` en el
       // panel (el porqué, en index.css junto a `.safe-area-pad`).
-      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-[90] flex items-center justify-center px-4"
-      veloApp="pm-velo-hoja fixed inset-0 z-[90] flex items-end justify-center"
+      veloWeb="modal-scrim safe-area-pad fixed inset-0 z-hoja-sobre flex items-center justify-center px-4"
+      veloApp="pm-velo-hoja fixed inset-0 z-hoja-sobre flex items-end justify-center"
       panelWeb="modal-panel-flat panel-seccion w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
       <div className="clas-cab">

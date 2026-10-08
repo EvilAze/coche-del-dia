@@ -78,7 +78,7 @@ export default function Privacidad() {
         </a>
         <header className="mt-4 border-b border-border pb-6">
           <p className="pm-kicker">Documento legal</p>
-          <h1 className="pm-title mt-2 !text-[26px] sm:!text-[32px]">
+          <h1 className="pm-title mt-2 !text-cabecera sm:!text-seccion">
             Política de Privacidad
           </h1>
           <p className="mt-2 text-sm text-muted">
@@ -87,7 +87,7 @@ export default function Privacidad() {
           </p>
         </header>
 
-        <main className="mt-8 space-y-8 text-sm leading-relaxed sm:text-[15px]">
+        <main className="mt-8 space-y-8 text-sm leading-relaxed sm:text-cuerpo">
           <Section title="1. Datos que recopilamos">
             <p>
               El Coche del Día solo trata los datos necesarios para que el juego

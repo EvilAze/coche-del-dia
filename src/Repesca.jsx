@@ -637,7 +637,7 @@ export default function Repesca() {
             aria-live="polite"
             className="flex flex-col gap-2"
           >
-            <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+            <span className="px-1 text-etiqueta font-medium uppercase tracking-wide text-muted-foreground/70">
               {t("cdd.lastAttempt")}
             </span>
             {pendingGuess ? (

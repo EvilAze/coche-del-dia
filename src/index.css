@@ -157,9 +157,9 @@
    Día en :root; noche en :root[data-tema="noche"] (lo fija el inline de
    index.html + src/lib/theme.js). La consume TODO: el CSS del juego
    (.cdd-, .prensa- y .pm- vía var(--...)) y Tailwind (tailwind.config.js
-   apunta sus colores a estas mismas variables). Los temas de admin
-   (.theme-platino, conservado para las previews del admin) siguen fijando
-   sus tokens localmente y NO se tematizan.
+   apunta sus colores a estas mismas variables). Las previews del admin
+   también: `.theme-platino`, el tema local que las vestía con la piel de hace
+   dos rediseños, se borró en oct-2026.
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
   color-scheme: light;
@@ -255,8 +255,7 @@
      kickers de temporada se componían todos en la MISMA sans. Tres voces
      colapsadas en una: el sistema tipográfico solo se veía en la pantalla de
      juego. Las familias se autoalojan en fonts.css, así que ya estaban cargadas —
-     solo faltaba poder nombrarlas desde aquí. `.prensa` las repite (inofensivo) y
-     `.theme-platino` las sigue pisando para sus previews. */
+     solo faltaba poder nombrarlas desde aquí. `.prensa` las repite (inofensivo). */
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-body: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -363,6 +362,74 @@
   --radio-hoja: 24px;
   --radio-pildora: 999px;
 
+  /* ── LA ESCALA TIPOGRÁFICA ────────────────────────────────────────────────
+     Las tres voces (§4 de DESIGN.md) tenían familia pero no escala: 32 tamaños
+     distintos en este fichero, ocho de ellos en medio píxel (10,5 · 11,5 ·
+     12,5 · 13,5 · 14,5 · 15,5…) y cinco por debajo de 11px (auditoría 7-oct,
+     D1). Cada uno tenía su porqué local y ninguno sabía de los demás, que es
+     como una interfaz acaba teniendo siete tamaños de «texto pequeño».
+     Trece pasos con nombre, sacados de lo que el producto USA y no de una
+     proporción de manual: 14px, el más usado (36 veces), se queda como paso.
+       · etiqueta 11 — el SUELO: versalitas, kickers, chips. Nada por debajo.
+       · dato 12     — cifras pequeñas, la barra de pestañas.
+       · nota 13     — apuntes y notas bajo una línea.
+       · ui 14       — el texto de la interfaz y de las tarjetas.
+       · cuerpo 15   — texto corrido y opciones.
+       · campo 16    — lo que se escribe (16 evita el zoom de iOS al enfocar).
+       · boton 17    — la palabra de un botón y las cifras de la cabecera.
+       · pregunta 21 — «¿Qué coche es?», ADIVINAR, títulos de hoja.
+       · titulo 24   — el título de una tarjeta.
+       · cabecera 28 — el título de un diálogo.
+       · seccion 30  — el nombre de una sección y el del coche.
+       · cifra 40    — las cifras grandes (perfil, Archivo, puesto).
+       · heroe 64    — los puntos del día. Uno solo.
+     Un font-size en px fuera de esta lista hace fallar test:estetica
+     (`tipo-suelto`). Los clamp() fluidos quedan fuera: son un rango, no un paso. */
+  --t-etiqueta: 11px;
+  --t-dato: 12px;
+  --t-nota: 13px;
+  --t-ui: 14px;
+  --t-cuerpo: 15px;
+  --t-campo: 16px;
+  --t-boton: 17px;
+  --t-pregunta: 21px;
+  --t-titulo: 24px;
+  --t-cabecera: 28px;
+  --t-seccion: 30px;
+  --t-cifra: 40px;
+  --t-heroe: 64px;
+
+  /* ── LAS CAPAS ──────────────────────────────────────────────────────────
+     Lo que flota sobre la página, de abajo arriba. Había catorce z-index
+     sueltos (40, 50, 60, 78, 80, 82, 85, 90, 95, 100, 110, 120, 130, 200)
+     repartidos entre index.css y los JSX, y cada overlay nuevo se colaba con
+     un número «un poco más alto» que el último que alguien recordaba
+     (auditoría 7-oct, D6). Solo hay UN overlay de App abierto a la vez
+     (activeModal), así que lo único que hay que ordenar es lo que se abre
+     ENCIMA de otro: el perfil público sobre la clasificación, los diálogos
+     del Archivo sobre el Archivo, borrar la cuenta sobre el perfil.
+       · barra       — barra de pestañas, recorte flotante, desplegable del cupón.
+       · panel       — el panel final (la clasificación o el Archivo se abren
+                       desde él, así que va por debajo de las hojas).
+       · hoja        — las superficies de navegación: menú, clasificación,
+                       Archivo, perfil, reglas.
+       · hoja-sobre  — una hoja abierta desde otra (perfil público, puntuación)
+                       y la hoja de selección del cupón.
+       · dialogo     — diálogos de decisión: entrar, los del Archivo.
+       · dialogo-sobre — un diálogo sobre una hoja o sobre otro diálogo (firma,
+                       contacto, borrar la cuenta, el sorteo, el cambio de día).
+       · aviso       — los toasts: siempre a la vista.
+     Dentro de un componente (la foto y su visor, una cabecera pegajosa) el
+     orden es local y basta con 1–10. Más de 10 en index.css, o un z-[N] en un
+     JSX, hace fallar test:estetica (`capa-suelta`). */
+  --capa-barra: 40;
+  --capa-panel: 60;
+  --capa-hoja: 80;
+  --capa-hoja-sobre: 90;
+  --capa-dialogo: 100;
+  --capa-dialogo-sobre: 120;
+  --capa-aviso: 200;
+
   --curva-entra: cubic-bezier(.16, 1, .3, 1);
   --curva-sale: cubic-bezier(.4, 0, 1, 1);
   --curva-roce: cubic-bezier(.4, 0, .2, 1);
@@ -448,9 +515,9 @@
 }
 
 @layer utilities {
-  /* Prensa del motor (F5): las utilidades tipográficas que consumen las
-     pantallas internas pasan a la familia editorial. `font-display` = Fraunces
-     (titulares), `font-body` = Libre Franklin (UI), `font-mono` = Courier Prime
+  /* Las utilidades tipográficas que consumen las pantallas internas (nacieron
+     con «Prensa del motor», F5). Hoy: `font-display` = Barlow Condensed
+     (titulares), `font-body` = Barlow (UI), `font-mono` = IBM Plex Mono
      (datos/cifras). La pantalla de juego y los modales usan sus propias
      familias en `.cdd-*`/`.prensa-*`/`.pm-*`, así que no dependen de esto. */
   .font-display {
@@ -522,33 +589,6 @@
      legible sobre papel (el #e8c87a era para grafito). Sin halo (fuera glows).
      Racha, victoria, podio, sello del tier. */
   .text-gold { color: var(--gold); }
-
-  /* Barra de scroll de los paneles largos (Ranking, Leyendas, Archivo).
-     Prensa (F5): pulgar de TINTA vía terna RGB — antes era menta #7af0c8, un
-     resto del sistema Platino que desentonaba dentro del periódico. Al salir
-     de la terna, el modo noche lo hereda solo (tinta beige sobre grafito). */
-  .scrollbar-premium {
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--tinta-rgb) / 0.35) transparent;
-    scrollbar-gutter: stable;
-  }
-  .scrollbar-premium::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-premium::-webkit-scrollbar-track {
-    background: transparent;
-    margin: 4px 0;
-  }
-  .scrollbar-premium::-webkit-scrollbar-thumb {
-    background-color: rgb(var(--tinta-rgb) / 0.35);
-    /* Esquina viva, como todo lo demás: el pulgar era la última píldora del
-       sistema. A 6px de ancho el redondeo no se veía, pero era una regla del
-       tema anterior que seguía escrita. */
-    border-radius: 0;
-  }
-  .scrollbar-premium::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(var(--tinta-rgb) / 0.6);
-  }
 }
 
 html,
@@ -569,34 +609,14 @@ body,
    Herencia del rediseño "configurador premium" (dir. Platino). Tras la purga
    F5 aquí solo quedan los selectores que el juego actual sigue montando
    (escenario, EndScreen, distribución, recorte…) — la capa .prensa
-   de más abajo los sobreescribe por cascada — y `.theme-platino`, que
-   conserva el admin: PreviewPanel envuelve sus previews del escenario en ese
-   tema para verlas como las ve el juego. (.theme-cobre, el header de iconos,
-   los chips de intento y el formulario .cdd-combo/.cdd-input se borraron:
-   ningún componente vivo los renderizaba.)
+   de más abajo los sobreescribe por cascada. (.theme-cobre, .theme-platino, el
+   header de iconos, los chips de intento y el formulario .cdd-combo/.cdd-input
+   se borraron: ningún componente vivo los renderizaba, y el admin ya previsualiza
+   con los tokens del juego.)
    =================================================================== */
-.theme-platino {
-  --bg: #0d1014; --bg2: #07090c; --surface: #14181e; --surface2: #1b212a;
-  --line: rgba(255,255,255,.09); --line-2: rgba(255,255,255,.05);
-  --cdd-text: #eef2f6; --cdd-muted: #8b95a3; --faint: #586675;
-  --accent-ink: #05131d; --good-ink: #05131d;
-  /* Fallo: rojo sobrio reutilizado del pip gastado (#e26060). Tinte oscuro para
-     el chip, versión clara para el ✕/flecha (contraste sobre el chip rojo). */
-  --bad: #e26060; --bad-ink: #f0a39c; --bad-sub: #d98b83;
-  --warn: #eab44e;
-  /* Oro premium: acento metálico reservado a momentos de alta gama (racha,
-     victoria, podio). Tinta oscura para texto sobre relleno oro (contraste AA). */
-  --gold: #e8c87a; --gold-ink: #1a1306; --gold-glow: rgba(232,200,122,.38);
-  /* (Material "Liquid Glass" retirado en el rediseño plano: tokens --mat, --edge,
-     --spec, --elev y --glow eliminados — sin uso tras aplanar. --line-strong se conserva.) */
-  --line-strong: rgba(255,255,255,.26);
-  --font-display: 'Archivo', sans-serif; --font-body: 'Archivo', sans-serif;
-  --font-mono: 'Space Mono', monospace;
-  --ambient: radial-gradient(900px 500px at 50% -8%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 70%);
-}
 /* (Purga F5: .theme-cobre era el tema alternativo del configurador Platino;
    nadie lo montaba ya — el conmutador real de temas es día/noche vía
-   :root[data-tema], y el admin usa .theme-platino.) */
+   :root[data-tema].) */
 
 .cdd-app {
   position: relative; min-height: 100svh; width: 100%;
@@ -607,7 +627,6 @@ body,
 /* (Purga F5: .cdd-ambient/cddAurora y el shell de columna del Platino
    (.cdd-shell) se fueron con su Configurator; el pliego actual monta
    .prensa-hoja/.prensa-pliego.) */
-.cdd-mono { font-family: var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 
 /* (Purga F5: la cabecera de glyphs del Platino —.cdd-header/.cdd-wordmark/
    .cdd-title/.cdd-nav/.cdd-iconbtn—, la píldora de estado .cdd-statuspill,
@@ -701,7 +720,7 @@ body,
   /* Botón plano (rediseño v0): menta sólida, sin degradado ni gloss. */
   background: var(--accent);
   color: var(--accent-ink); font-family: var(--font-display);
-  font-weight: 800; font-size: 14px; letter-spacing: .14em; text-transform: uppercase;
+  font-weight: 800; font-size: var(--t-ui); letter-spacing: .14em; text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 9px; transition: background var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
   box-shadow: none; }
 @media (hover: hover) {
@@ -745,7 +764,7 @@ body,
    padding respeta las safe-areas (notch / barra de gestos) y la tarjeta nunca
    supera el alto disponible: si el contenido es más alto, scrollea dentro de la
    propia tarjeta (overflow-y) en vez de desbordar la pantalla. */
-.cdd-end { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+.cdd-end { position: fixed; inset: 0; z-index: var(--capa-panel); display: flex; align-items: center; justify-content: center;
   padding: max(16px, var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))
            max(16px, var(--safe-area-inset-right, env(safe-area-inset-right, 0px)))
            max(16px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))
@@ -783,18 +802,11 @@ body,
 /* Banda de revelado: alto fluido (clamp) para que en pantallas bajas no empuje
    el resto del contenido fuera de la tarjeta. */
 .cdd-reveal { position: relative; height: clamp(150px, 24svh, 230px); overflow: hidden; background: var(--surface); }
-.cdd-reveal .cdd-reveal-grad { position: absolute; inset: 0; background: linear-gradient(to top, var(--surface) 4%, transparent 60%); z-index: 2; }
-.cdd-reveal-head { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
 /* (Purga: `.cdd-verdict` era la píldora «ACERTADO · 1/5» estampada sobre la
    fotografía. La retiró el rediseño del panel: el sello RESUELTO de la esquina ya
    dice el veredicto y el recuento vive en el pie de la partida, donde además se le
    puede pegar el percentil. Con ella se va el último `#d9604e` suelto del
    archivo, un rojo del tema plano que no seguía al tema.) */
-.cdd-reveal-name { display: flex; flex-direction: column; line-height: 1; }
-.cdd-reveal-brand { font-family: var(--font-mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
-.cdd-reveal-model { font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: -.02em; }
-.cdd-reveal-meta { font-size: 10px; color: var(--cdd-muted); margin-top: 3px; display: inline-flex; align-items: center; gap: 6px; }
-.cdd-reveal-meta .cdd-flag { width: 18px; height: 12px; object-fit: cover; }
 
 /* ── EL VÍDEO DEL COCHE (temporadas presentadas) ───────────────────────────
    La banda de revelado tiene dos estados. Cerrada es exactamente la de
@@ -824,7 +836,7 @@ body,
    misma excepción que ya se documenta para la etiqueta de pista y la ✕. */
 .cdd-reveal-play .marca {
   display: inline-flex; align-items: center; gap: 8px;
-  font-family: var(--font-body); font-weight: 800; font-size: 11px;
+  font-family: var(--font-body); font-weight: 800; font-size: var(--t-etiqueta);
   letter-spacing: .2em; text-transform: uppercase;
   color: #fff; border: 2px solid #fff; border-radius: 0;
   padding: 9px 14px; background: rgb(var(--velo-rgb) / .55);
@@ -839,8 +851,6 @@ body,
   width: 100%; height: 100%; border: 0;
 }
 .cdd-reveal.reproduciendo { height: auto; aspect-ratio: 16 / 9; }
-.cdd-reveal.reproduciendo .cdd-reveal-grad,
-.cdd-reveal.reproduciendo .cdd-reveal-head,
 .cdd-reveal.reproduciendo .prensa-sello { display: none; }
 
 /* Desbloqueo de cromo (victoria): UN RENGLÓN, no una caja. Cierra el bucle
@@ -852,10 +862,10 @@ body,
 .cdd-unlock { display: flex; align-items: baseline; gap: 7px; width: 100%;
   padding: 4px 0; cursor: pointer; text-align: left;
   background: transparent; border: 0; color: var(--gold); transition: color var(--ms-roce) var(--curva-roce); }
-.cdd-unlock-kicker { flex: none; font-family: var(--font-body); font-weight: 800;
-  font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); }
-.cdd-unlock-name { min-width: 0; flex: 1; font-family: var(--font-display); font-weight: 700;
-  font-size: 13px; color: var(--cdd-text);
+.cdd-unlock-kicker { flex: none;
+  font-size: var(--t-etiqueta); text-transform: uppercase; color: var(--gold); }
+.cdd-unlock-name { min-width: 0; flex: 1;
+  font-size: var(--t-nota); color: var(--cdd-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdd-unlock-chev { flex: none; align-self: center; }
 @media (hover: hover) {
@@ -864,22 +874,7 @@ body,
 /* El pip del intento que acertó, en el verde del veredicto: el mismo verde que
    subraya los aciertos en el historial. Los demás quedan en tinta gastada. */
 .prensa-pips .pip.acierto { border-color: var(--verde); background: var(--verde); }
-
-/* Secciones de debajo del pliegue (la crónica, el mundo): ladillo + contenido,
-   separadas por filete. Son las que antes vivían en la pestaña FICHA. */
-.cdd-end-sec {
-  padding: 12px 18px 2px; border-top: 1px solid var(--line);
-  display: flex; flex-direction: column; gap: 8px;
-}
-/* Origen y año en UN renglón de datos, con sus etiquetas en versalitas. */
-.cdd-ficha-datos {
-  margin: 0; font-family: var(--font-mono); font-size: 11.5px; color: var(--cdd-text);
-}
-.cdd-ficha-datos .k {
-  font-family: var(--font-body); font-weight: 600; font-size: 9px;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
-}
-.cdd-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--cdd-muted); }
+.cdd-note { margin: 0; font-size: var(--t-nota); line-height: 1.5; color: var(--cdd-muted); }
 
 /* Distribución de intentos (datos reales). El título ya no vive dentro
    (`.cdd-dist-title` se fue con él): lo pone el llamante como ladillo, porque en
@@ -888,16 +883,16 @@ body,
 .cdd-dist-card { padding: 12px 13px; }
 .cdd-dist { display: flex; flex-direction: column; gap: 6px; }
 .cdd-dist-row { display: flex; align-items: center; gap: 8px; }
-.cdd-dist-n { width: 12px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
+.cdd-dist-n { width: 12px; text-align: right; font-family: var(--font-mono); font-size: var(--t-etiqueta); color: var(--cdd-muted); }
 .cdd-dist-n.me { color: var(--accent); font-weight: 700; }
-.cdd-dist-track { flex: 1; height: 16px; overflow: hidden; }
+.cdd-dist-track { flex: 1; overflow: hidden; }
 .cdd-dist-bar { height: 100%; transition: transform var(--ms-escena) var(--curva-entra); }
 .cdd-dist-bar.me { background: var(--accent); }
-.cdd-dist-pct { width: 36px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
+.cdd-dist-pct { width: 36px; text-align: right; font-family: var(--font-mono); font-size: var(--t-etiqueta); color: var(--cdd-muted); }
 .cdd-dist-pct.me { color: var(--accent); }
 /* El pie de la distribución («28 partidas · 75 % de acierto»): 11 px y tinta-2.
    Iba a 8,5 px en --faint, 2,61:1 de día (auditoría 7-oct). */
-.cdd-dist-foot { margin-top: 9px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; color: var(--cdd-muted); }
+.cdd-dist-foot { margin-top: 9px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .06em; color: var(--cdd-muted); }
 
 /* (Purga: `.cdd-percentile` era la caja del «mejor que el X%» y `.cdd-grid` /
    `.cdd-grid-k` pintaban la rejilla de emoji en pantalla con su micro-encabezado.
@@ -906,17 +901,6 @@ body,
    que se copia — en pantalla eran cuadros dibujados por el sistema operativo, lo
    más saturado de la web, justo al lado del botón que tenía que llevarse el ojo.) */
 .cdd-share-btn { height: 56px; }
-
-.cdd-next { display: flex; align-items: center; justify-content: space-between; margin: 8px 18px 0;
-  padding: 12px 14px; background: var(--surface2); border: 1px solid var(--line); }
-.cdd-next-k { font-size: 9px; color: var(--cdd-muted); }
-.cdd-next-clock { font-size: 18px; font-weight: 700; color: var(--accent); }
-/* El aviso de repesca reutiliza la caja de la cuenta atrás (.cdd-next) porque
-   es su pareja: el reloj dice "vuelve mañana" y este renglón dice "o no". Dos
-   cajas idénticas, una encima de otra, se leen como una sola idea en dos
-   líneas — que es exactamente lo que son. Solo se separa en el remate: donde
-   el reloj tiene una cifra, este tiene algo que pulsar. */
-.cdd-repesca { margin-top: 6px; }
 /* "Ver mi partida" como botón secundario (ghost) de área táctil cómoda (≥44px),
    no un enlace de 10px imposible de acertar con el pulgar. Sigue por DEBAJO de
    Compartir (relleno = primario) y de la X de cerrar: es la salida etiquetada
@@ -925,7 +909,7 @@ body,
 .cdd-end-link {
   background: none; cursor: pointer; min-height: 44px; padding: 12px 22px;
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-body); font-weight: 700; font-size: 11.5px; letter-spacing: .16em;
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-dato); letter-spacing: .16em;
   text-transform: uppercase; color: var(--cdd-muted);
   border: 1px solid var(--line); transition: color var(--ms-roce) var(--curva-roce), border-color var(--ms-roce) var(--curva-roce);
 }
@@ -942,7 +926,6 @@ body,
    aprieta su ritmo vertical para no necesitar scroll interno. */
 @media (max-height: 720px) {
   .cdd-reveal { height: clamp(120px, 20svh, 170px); }
-  .cdd-next { margin-top: 6px; }
 }
 
 /* ── Móvil: el panel de fin, a sangre y CENTRADO ──
@@ -970,7 +953,7 @@ body,
   /* Piel editorial: sin outline flotante (se saldría a sangre por los bordes)
      ni esquinas; filetes arriba y abajo, como una sección del pliego. */
   .prensa .cdd-end-card {
-    outline: 0; border-radius: 0;
+    outline: 0;
     border-left: 0; border-right: 0;
     border-top: 2px solid var(--line-strong);
     border-bottom: 2px solid var(--line-strong);
@@ -988,7 +971,7 @@ body,
    premium). Sin sombras/glow/blur; jerarquía por filetes; esquinas vivas.
    Se aplica bajo `.prensa` (lo pone Configurator en la raíz del juego) y
    sobreescribe por CASCADA los selectores .cdd-* que el juego aún consume;
-   el bloque antiguo (.theme-platino y compañía) se borra físicamente en F5.
+   el bloque antiguo se borró en F5 y lo que quedaba (.theme-platino), en oct-2026.
    Fuente de verdad visual: public/prensa-del-motor.html.
    ═══════════════════════════════════════════════════════════════════════ */
 .prensa {
@@ -1006,10 +989,7 @@ body,
 
 /* ── Cabecera de periódico (Header.jsx la monta; ver Task 5) ── */
 .prensa-topbar {
-  display: flex; justify-content: space-between; align-items: center; gap: 10px;
-  padding: 7px 0; border-bottom: 1px solid var(--line-strong);
-  font-family: var(--font-body); font-weight: 600; font-size: 10px;
-  letter-spacing: .18em; text-transform: uppercase;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; text-transform: uppercase;
 }
 /* Cada grupo (izq/der) alinea sus enlaces por la línea base. El aire alrededor
    del "·" lo da el padding horizontal de los propios enlaces, no un gap del
@@ -1052,7 +1032,6 @@ body,
   position: relative; padding: 0; margin: 0;
   width: 34px; height: 34px;
   display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--line-strong); color: var(--cdd-text);
   transition: color var(--ms-roce) var(--curva-roce), border-color var(--ms-roce) var(--curva-roce), background var(--ms-roce) var(--curva-roce);
 }
 .prensa-sumario-boton::after {
@@ -1061,102 +1040,17 @@ body,
 .prensa-topbar > span > .prensa-sumario-boton:focus-visible {
   color: var(--cdd-text); border-color: var(--cdd-text); background: var(--surface2);
 }
-@media (hover: hover) {
-  .prensa-topbar > span > .prensa-sumario-boton:hover {
-    color: var(--rojo); border-color: var(--rojo); background: var(--surface2);
-  }
-}
 .prensa-sumario-boton:active { transform: translateY(1px); }
 /* Repesca pendiente: cuadradito de tinta roja mordiendo la esquina del cuadro.
-   Es el mismo objeto que .pm-dot (esquina viva, sin halo), no una píldora de
-   notificación: aquí no hay número que contar, solo un «hay algo dentro». */
+   Un punto de esquina viva y sin halo, no una píldora de notificación: aquí no hay número que contar, solo un «hay algo dentro». */
 .prensa-sumario-boton .aviso {
   position: absolute; top: -3px; right: -3px;
-  width: 6px; height: 6px; background: var(--rojo);
 }
 
-/* ── EL CARNET DE LECTOR ──────────────────────────────────────────────────
-   El objeto de identidad que comparten el perfil propio y el ajeno. Antes era
-   una TARJETA: un rectángulo con filete de oro al 25% y un hairline dorado
-   encima, sobre el que se apilaban un nombre, una cifra grande y dos renglones
-   con iconos. Tres problemas de fondo:
-
-     · El oro al 25% sobre papel crema no es oro, es un beige lavado — y encima
-       competía con el sello del tier y con el ordinal, que sí se ganan. El oro
-       está reservado a lo premium (CLAUDE.md): cuando enmarca TODO, no premia
-       nada.
-     · No tenía anatomía de nada. Un carnet de prensa es un DOCUMENTO: cabecera
-       que dice qué es, titular con el nombre, sello de acreditación y una banda
-       de datos. Aquí había tres bloques sueltos con tres filetes distintos.
-     · Las cifras iban de dos en dos, en renglones con icono, así que comparar
-       «racha» con «máxima» pedía leer dos frases en vez de mirar una fila.
-
-   Ahora es el documento: cabecera con doble filete, nombre en Fraunces con el
-   sello del tier estampado al margen, y LA BANDA DE DATOS — cuatro casillas
-   separadas por filetes finos, que es como un carnet imprime lo que acredita.
-   Las mismas cuatro casillas sirven para el perfil ajeno cambiando qué se
-   pone en ellas (allí no hay puesto, hay aciertos). */
-.prensa-carnet {
-  position: relative; background: var(--surface);
-  border: 1px solid var(--line-strong);
-}
-/* La cabecera del documento. El alto lo pone la X (44px, el mínimo táctil), no
-   un padding: así el kicker queda centrado en una banda que ya tenía que medir
-   eso. La X vive DENTRO del carnet porque el carnet HACE de cabecera del modal
-   — flotando encima, el nombre le pasaba por debajo en vez de truncar. */
-.prensa-carnet-cab {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  min-height: 42px; padding: 0 2px 0 12px;
-  border-bottom: 3px double var(--line-strong);
-}
-.prensa-carnet-cuerpo {
-  display: flex; align-items: flex-start; gap: 10px; padding: 12px 12px 13px;
-}
-.prensa-carnet-nombre {
-  display: block; font-family: var(--font-display); font-weight: 900;
-  font-size: 26px; line-height: 1.06; letter-spacing: -.015em; color: var(--cdd-text);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-/* El renglón de acreditación: «Lector desde mayo de 2026». En cursiva del
-   sistema, la misma voz que los pies de foto. */
-.prensa-carnet-apunte {
-  margin: 3px 0 0; font-family: var(--font-display); font-style: italic;
-  font-size: 12.5px; line-height: 1.35; color: var(--cdd-muted);
-}
-/* La banda de datos. `flex` y no `grid`: las casillas se reparten el ancho a
-   partes iguales sea cual sea su número (cuatro en los dos perfiles hoy, pero
-   la banda no tiene por qué saberlo). */
-.prensa-carnet-cifras { display: flex; border-top: 1px solid var(--line-strong); }
-.prensa-carnet-cifras > * {
-  flex: 1 1 0; min-width: 0; padding: 9px 4px 10px; text-align: center;
-  background: var(--surface2);
-}
-.prensa-carnet-cifras > * + * { border-left: 1px solid var(--line); }
-.prensa-carnet-cifras .cifra {
-  display: block; font-family: var(--font-display); font-weight: 900;
-  font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums;
-  color: var(--cdd-text);
-}
-/* El oro, SOLO donde hay algo que celebrar: el puesto y la racha viva. Una
-   racha de 0 en oro devalúa el oro en todas las demás pantallas. */
-.prensa-carnet-cifras .cifra.oro { color: var(--gold); }
-.prensa-carnet-cifras .cifra.apagada { color: var(--faint); }
-.prensa-carnet-cifras .et {
-  display: block; margin-top: 5px; font-family: var(--font-body); font-weight: 700;
-  font-size: 8px; letter-spacing: .16em; text-transform: uppercase; color: var(--cdd-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-/* La letra pequeña de una casilla: el desglose de una cifra que suma dos cosas
-   (hoy, los aciertos de repesca dentro del total). Va en cursiva y en tinta
-   floja porque NO es un dato más de la banda —si compitiera con la etiqueta
-   habría dos rótulos por casilla y ninguno mandaría—, sino una salvedad sobre
-   el número de arriba. Sin mayúsculas ni tracking justamente por eso: la banda
-   entera está en versalitas y romper esa voz es lo que lo marca como aparte. */
-.prensa-carnet-cifras .apunte {
-  display: block; margin-top: 3px; font-family: var(--font-body); font-style: italic;
-  font-weight: 500; font-size: 8.5px; line-height: 1.2; color: var(--faint);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+/* (Aquí vivía EL CARNET DE LECTOR, el «documento» del perfil con su cabecera de
+   doble filete y su banda de cuatro casillas. El Perfil «Asfalto» no lo monta
+   —sus cifras van en tarjetas (.perf-*)— y su CSS se borró por muerto en
+   oct-2026.) */
 
 /* (Aquí estaba .prensa-plancha / .prensa-cromo, la hoja de sellos con los
    logros del perfil ajeno. Se fue con el sistema entero: sus cromos de marca y
@@ -1169,17 +1063,13 @@ body,
    puesto. Iba con el filete del metal al 60% y fondo propio, así que tres
    medallas seguidas eran tres cajas de tres colores. */
 .prensa-medalla {
-  display: inline-flex; align-items: center; gap: 7px;
-  border: 1px solid var(--line-strong); background: var(--surface);
-  padding: 5px 9px;
+  display: inline-flex; align-items: center;
 }
 .prensa-medalla .puesto {
-  display: block; font-family: var(--font-body); font-weight: 800; font-size: 9.5px;
-  letter-spacing: .16em; text-transform: uppercase; line-height: 1.3;
+  display: block; line-height: 1.3;
 }
 .prensa-medalla .de {
-  display: block; font-family: var(--font-display); font-style: italic;
-  font-size: 11.5px; line-height: 1.25; color: var(--cdd-muted);
+  display: block; font-style: italic; line-height: 1.25; color: var(--cdd-muted);
 }
 .prensa-medalla .oro { color: var(--gold); }
 .prensa-medalla .plata { color: var(--plata); }
@@ -1196,8 +1086,7 @@ body,
   display: inline-flex; align-items: baseline; gap: 6px;
 }
 .prensa-topbar .prensa-clasif .pos {
-  font-family: var(--font-display); font-weight: 700; font-size: 13px;
-  letter-spacing: 0; text-transform: none; color: var(--gold);
+  letter-spacing: 0; text-transform: none;
 }
 .prensa-topbar .prensa-clasif .pos--pendiente { color: var(--faint); }
 @media (hover: hover) {
@@ -1210,9 +1099,7 @@ body,
    en rojo al completar el cupón), y una invitación secundaria pintada con el
    mismo color le disputaba el ojo al único botón que importa. Tinta plena y
    peso 800 bastan para que se lea como algo que se toca. */
-.prensa-topbar .prensa-clasif .pos--invita {
-  font-family: var(--font-body); font-weight: 800; font-size: 12px;
-  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-text);
+.prensa-topbar .prensa-clasif .pos--invita { text-transform: uppercase;
 }
 /* EL SALTO DEL DÍA. Flecha de línea + número, en tinta. Sin verde ni rojo a
    propósito: en este juego esos dos colores son el veredicto de un intento
@@ -1220,7 +1107,7 @@ body,
    flecha, que para bajar es la misma volteada — un solo trazo que mantener. */
 .prensa-topbar .prensa-clasif .mov {
   display: inline-flex; align-items: center; gap: 2px;
-  font-family: var(--font-body); font-weight: 700; font-size: 11px;
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta);
   letter-spacing: 0; text-transform: none; line-height: 1;
   color: var(--cdd-text); font-variant-numeric: tabular-nums;
 }
@@ -1232,42 +1119,10 @@ body,
    en una barra a la que se le quitaron todos, y se paga con el trazo del
    sistema (1.6 escalado a 2 para que a 11px no se deshaga en un acento). */
 
-.prensa-masthead { text-align: center; padding: 14px 0 12px; }
-.prensa-masthead .titulo {
-  font-family: var(--font-display); font-weight: 900; letter-spacing: -.015em;
-  font-size: clamp(34px, 7vw, 52px); line-height: .95; color: var(--cdd-text);
-}
-/* Masthead compacto: título algo menor y menos aire inferior, para que la foto y
-   el cupón suban sobre la línea de flotación en móvil — el jugador diario no
-   debería hacer scroll para poder ENVIAR su respuesta (ese era el peaje de la
-   portada completa, repetido cada día). Conservamos el respiro superior (14px)
-   para que el wordmark no roce el filete de la barra; solo apretamos abajo.
-
-   Ya no hay variante «portada íntegra»: el lema y el sello de temporada que
-   llevaba el masthead se retiraron al simplificar la cabecera, y con ellos su
-   CSS y el gateo por localStorage (`ccd_masthead_seen`). La temporada activa se
-   sigue anunciando donde se juega algo con ella: el modal de clasificación y el
-   parte del final de partida. */
-.prensa-masthead--compacto { padding: 14px 0 8px; }
-.prensa-masthead--compacto .titulo { font-size: clamp(26px, 6vw, 46px); }
-/* (Aquí había una media query ≤1099px que repetía EXACTAMENTE estos dos valores
-   sobre `.prensa-masthead`. Sobraba desde que Header dejó de tener variante: el
-   masthead se monta siempre con `--compacto`, así que la query no cambiaba nada
-   y el clamp(34…52) de la regla base no llega a pintarse nunca.) */
-.prensa-folio {
-  display: flex; justify-content: center; align-items: baseline; gap: 8px;
-  flex-wrap: nowrap; white-space: nowrap;
-  border-top: 3px double var(--line-strong); border-bottom: 3px double var(--line-strong);
-  padding: 5px 0; font-family: var(--font-body); font-weight: 600;
-  /* La fecha COMPLETA debe caber en UN renglón, también en móviles estrechos:
-     escala fluida y letter-spacing contenido evitan el salto de línea. */
-  font-size: clamp(8px, 2.4vw, 10px); letter-spacing: .1em; text-transform: uppercase;
-}
-
 /* ── LA CORNISA (la cabecera de la app; Header.jsx la monta) ───────────────
    El rótulo que en las páginas interiores de un diario dice qué se está
    leyendo y de qué día: el nombre en versalitas diminutas y la fecha debajo,
-   en Fraunces. Sustituye a la CIFRA DEL FOLIO —el día a 24px con mes y día de
+   en la voz de etiqueta. Sustituye a la CIFRA DEL FOLIO —el día a 24px con mes y día de
    la semana apilados al lado—, que tenía dos problemas: se llevaba el mayor
    peso tipográfico de la barra para el dato que menos se puede hacer con él
    (ver Header.jsx), y su forma era la del icono de calendario de un teléfono,
@@ -1283,20 +1138,14 @@ body,
 
    El `text-transform` y el `letter-spacing` de la FECHA van a cero a mano: los
    hereda de `.prensa-topbar`, que compone toda la barra en versalitas
-   espaciadas, y una fecha en Fraunces con .18em de interletraje deja de leerse
+   espaciadas, y una fecha con .18em de interletraje deja de leerse
    como una fecha. `tabular-nums` para que el día no cambie de ancho del 11 al
    22 y la barra no baile de un día para otro; `nowrap` porque una cornisa
    partida en dos renglones deja de ser una cornisa. */
-.prensa-cornisa { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.prensa-cornisa .cabeza {
-  font-family: var(--font-body); font-weight: 600; font-size: 8.5px;
-  letter-spacing: .2em; text-transform: uppercase; line-height: 1;
-  color: var(--cdd-muted); white-space: nowrap;
+.prensa-cornisa { display: flex; flex-direction: column; min-width: 0; }
+.prensa-cornisa .cabeza { white-space: nowrap;
 }
-.prensa-cornisa .fecha {
-  font-family: var(--font-display); font-weight: 600; font-size: 15px;
-  line-height: 1; letter-spacing: 0; text-transform: none;
-  color: var(--cdd-text); white-space: nowrap;
+.prensa-cornisa .fecha { white-space: nowrap;
   font-variant-numeric: lining-nums tabular-nums;
 }
 
@@ -1310,16 +1159,13 @@ body,
 /* ── Ladillos de sección: versalitas + filete que llena la línea ── */
 .prensa-ladillo {
   display: flex; align-items: baseline; gap: 12px;
-  font-family: var(--font-body); font-weight: 800; font-size: 11px;
-  letter-spacing: .22em; text-transform: uppercase; color: var(--cdd-text);
 }
-.prensa-ladillo::after { content: ""; flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-3px); }
-.prensa-ladillo .aparte { font-weight: 600; color: var(--cdd-muted); letter-spacing: .14em; }
+.prensa-ladillo::after { flex: 1; border-top: 1px solid var(--line-strong); transform: translateY(-3px); }
 
 /* ── EL LADILLO DE LA FOTO ES LA PREGUNTA DEL JUEGO ─────────────────────────
    «¿Qué coche es?» a la izquierda, el filete llenando el centro y el intento en
-   curso al final. La pregunta va en la voz de los titulares (Fraunces, caja
-   baja) y no en versalitas espaciadas porque es la frase que se LEE — la única
+   curso al final. La pregunta va en la voz de los titulares (Barlow Condensed,
+   caja baja) y no en versalitas espaciadas porque es la frase que se LEE — la única
    que un recién llegado necesita para entender la pantalla (ver ZoomStage). El
    estado se queda en la voz de etiqueta, en tinta apagada: es el dato al margen.
 
@@ -1330,14 +1176,11 @@ body,
    no rompe en dos, lo que encoge es la regla (hasta su mínimo de 16px). */
 .prensa-ladillo--pregunta::after { content: none; }
 .prensa-ladillo--pregunta .rotulo {
-  flex: none; white-space: nowrap;
-  font-family: var(--font-display); font-weight: 800; font-size: 19px;
-  line-height: 1.1; letter-spacing: -0.01em; text-transform: none;
+  flex: none; white-space: nowrap; text-transform: none;
   color: var(--cdd-text);
 }
 .prensa-ladillo .filete {
   flex: 1; min-width: 16px;
-  border-top: 1px solid var(--line-strong); transform: translateY(-4px);
 }
 .prensa-ladillo--pregunta .aparte { flex: none; white-space: nowrap; }
 
@@ -1353,7 +1196,7 @@ body,
    comentario, no una banda nueva sobre la foto. */
 .prensa-pie .presenta {
   font-family: var(--font-body); font-style: normal; font-weight: 600;
-  font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
+  font-size: var(--t-etiqueta); letter-spacing: .16em; text-transform: uppercase;
   color: var(--cdd-muted); white-space: nowrap;
   /* Válvula de seguridad, no maqueta: un nombre de temporada larguísimo se
      corta con puntos suspensivos en vez de empujar el pie a dos líneas. */
@@ -1361,10 +1204,6 @@ body,
 }
 
 /* ── Escenario: paspartú + filete (fuera HUD/grain/viñeta del sistema previo) ── */
-.prensa .cdd-stage-frame {
-  border: 1px solid var(--line-strong);
-  background: var(--surface); padding: 8px;
-}
 /* Encaje del escenario: el ancho máximo lo calcula useEncajeEscenario y lo deja
    en --cdd-marco-max sobre el pliego, para que el botón ADIVINAR entre entero
    en pantalla al abrir. Se capa el ANCHO y jamás el alto: el marco es 4:3 y de
@@ -1438,7 +1277,7 @@ body,
 .prensa-pie {
   display: flex; justify-content: flex-end; align-items: center; gap: 14px;
   color: var(--cdd-muted); font-family: var(--font-display);
-  font-style: italic; font-size: 12px;
+  font-style: italic; font-size: var(--t-dato);
 }
 /* Pips "fotogramas": cuadraditos de negativo. Urgencia = SOLO rojo. */
 .prensa-pips { display: flex; gap: 5px; flex: none; }
@@ -1465,9 +1304,8 @@ body,
    z-50: sobre el contenido pero bajo EndScreen (60) y modales (100+).
    fixed + top: anclado al viewport LAYOUT — con teclado abierto lo fijado
    arriba sigue visible (lo problemático es anclar abajo). */
-.cdd-peek { position: fixed; top: calc(10px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))); right: 12px; z-index: 50;
-  width: 104px; height: 78px; padding: 0; overflow: hidden; cursor: pointer;
-  border-radius: 0; border: 1px solid var(--line-strong); background: var(--surface);
+.cdd-peek { position: fixed; top: calc(10px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))); right: 12px; z-index: var(--capa-barra);
+  width: 104px; height: 78px; padding: 0; overflow: hidden; cursor: pointer; background: var(--surface);
   box-shadow: var(--sombra-flota);
   animation: cddPeekIn var(--ms-hoja) var(--curva-entra); }
 /* picture { display: contents }: fuera la caja intermedia; el img se ancla
@@ -1492,17 +1330,15 @@ body,
    usuario que motivó este cambio.) Fondos transparentes: la fila es tipografía +
    filete, no un chip. */
 .prensa-fila {
-  display: grid; grid-template-columns: 26px 1.05fr 1.3fr .8fr; gap: 10px;
-  padding: 11px 2px; border-bottom: 1px solid var(--line);
-  align-items: baseline;
+  display: grid; grid-template-columns: 26px 1.05fr 1.3fr .8fr;
 }
-.prensa-fila .num { font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--cdd-muted); }
+.prensa-fila .num { color: var(--cdd-muted); }
 /* (La cabecera de columnas —MARCA · MODELO · AÑO sobre la rejilla— se retiró:
    el propio dato ya se lee sin etiqueta y gastaba un renglón en cada pliego.) */
 /* Wrapper de nombre: da a useFitText el ancho de la celda; la .palabra inline
    conserva el subrayado/tachado AL ANCHO DE LA PALABRA. */
 .prensa-dato .linea-nombre { display: block; width: 100%; white-space: nowrap; overflow: hidden; }
-.prensa-dato { min-width: 0; font-family: var(--font-display); font-size: 16px; line-height: 1.25; }
+.prensa-dato { min-width: 0; }
 .prensa-dato .palabra { display: inline; }
 .prensa-dato.bien .palabra { border-bottom: 2px solid var(--verde); font-weight: 600; }
 .prensa-dato.bien .marca-v { color: var(--verde); font-weight: 700; }
@@ -1511,21 +1347,20 @@ body,
    término recede (tinta muted) para no llenar la rejilla de alarma — quien lidera
    la jerarquía visual es el verde de los aciertos (como en Wordle, el "ausente"
    es el estado más callado). */
-.prensa-dato.mal .palabra { text-decoration: line-through; text-decoration-color: var(--rojo); text-decoration-thickness: 2px; color: var(--cdd-muted); }
+.prensa-dato.mal .palabra { text-decoration: line-through; color: var(--cdd-muted); }
 .prensa-apostilla {
-  display: flex; align-items: center; gap: 5px; margin-top: 2px;
+  display: flex; align-items: center; gap: 5px;
   /* Ámbar de PISTA (no de fallo): la bandera "mismo país" es una ayuda, no un
      error; por eso lleva el ámbar del estado "casi" y no el rojo. */
-  font-family: var(--font-display); font-style: italic; font-size: 11.5px; color: var(--ambar);
-  text-transform: lowercase; /* "MISMO PAÍS" (i18n) se lee "mismo país" en cursiva */
+  font-style: italic; color: var(--ambar); /* "MISMO PAÍS" (i18n) se lee "mismo país" en cursiva */
 }
 /* Apostilla neutra (p.ej. el "±2" del año acertado): informa, no corrige. */
 .prensa-apostilla.neutra { color: var(--cdd-muted); }
-.prensa-apostilla .bandera { width: 18px; height: 12px; object-fit: cover; flex: none; }
+.prensa-apostilla .bandera { object-fit: cover; flex: none; }
 /* Flecha de dirección del año, EN LÍNEA con la cifra (no en apostilla debajo):
    ahorra un renglón por fila. Ámbar de pista; el icono (11px) alinea su base con
    los dígitos (16px) → mismo centro óptico, sin tocar la altura de la línea. */
-.prensa-dato .prensa-dir { color: var(--ambar); margin-left: 4px; }
+.prensa-dato .prensa-dir { margin-left: 4px; }
 .prensa-dato .prensa-dir svg { display: inline-block; vertical-align: baseline; }
 .prensa-fila-pendiente { animation: prensaEntintado var(--ms-latido) var(--curva-latido) infinite; }
 @keyframes prensaEntintado { 0%, 100% { opacity: .45; } 50% { opacity: .8; } }
@@ -1544,9 +1379,8 @@ body,
    El filete de ARRIBA, en tinta plena, es la cabecera de la tabla: sin él la
    primera fila quedaba pegada al bloque de ADIVINAR y se leía como parte del
    botón. */
-.prensa-tablero { border-top: 1px solid var(--line-strong); }
 .prensa-fila-hueco {
-  align-items: center; min-height: 26px; padding-top: 4px; padding-bottom: 4px;
+  align-items: center; padding-top: 4px; padding-bottom: 4px;
 }
 /* El ordinal de la pista que aún no toca va en tinta-2, no en --faint: «aún no»
    lo dice la tinta entera del «01» de al lado, y el --faint dejaba el «02» a
@@ -1555,9 +1389,7 @@ body,
 /* El siguiente, donde va a caer el próximo intento: número en tinta plena. */
 .prensa-fila-hueco.siguiente .num { color: var(--cdd-text); }
 .prensa-fila-hueco .hueco {
-  grid-column: 2 / -1; min-width: 0;
-  font-family: var(--font-display); font-style: italic; font-size: 13px;
-  color: var(--cdd-muted);
+  grid-column: 2 / -1; min-width: 0; font-style: italic;
 }
 
 /* ── LA NOTA DE LA PRIMERA PARTIDA ───────────────────────────────────────────
@@ -1571,15 +1403,13 @@ body,
    220ms, ver AttemptList) y la nota espera a que caigan: primero el resultado,
    luego su lectura. Entinta (opacidad, regla 22), no se desliza. */
 .prensa-nota {
-  padding: 7px 2px 9px; border-bottom: 1px solid var(--line);
   animation: notaEntinta var(--ms-escena) var(--curva-entra) calc(var(--ms-sello) + var(--ms-hoja)) both;
 }
 .prensa-nota .titulo {
-  margin: 0; font-family: var(--font-display); font-style: italic; font-weight: 600;
-  font-size: 14px; line-height: 1.25; color: var(--cdd-text); text-wrap: pretty;
+  margin: 0; font-style: italic; line-height: 1.25; color: var(--cdd-text); text-wrap: pretty;
 }
 .prensa-nota .pistas {
-  margin: 2px 0 0; font-family: var(--font-body); font-size: 12.5px; line-height: 1.35;
+  margin: 2px 0 0; font-family: var(--font-body); font-size: var(--t-nota); line-height: 1.35;
   color: var(--cdd-muted); text-wrap: pretty;
 }
 .prensa-nota .sabes { font-weight: 700; color: var(--cdd-text); }
@@ -1622,13 +1452,6 @@ body,
    el ÚNICO relleno saturado del panel; el resto es tipografía y filete.
    El hover no coge el gesto de ADIVINAR (levantarse con sombra dura): esa es la
    firma del botón del cupón y repetirla la diluiría. Aquí solo baja de tono. */
-.prensa .cdd-submit {
-  background: var(--rojo); color: var(--bg);
-  font-family: var(--font-body); font-weight: 800; font-size: 13px; letter-spacing: .26em;
-}
-@media (hover: hover) {
-  .prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: var(--rojo-dark); }
-}
 .prensa .cdd-submit:disabled {
   background: transparent; color: var(--faint);
   box-shadow: inset 0 0 0 1px var(--line);
@@ -1648,14 +1471,7 @@ body,
    Mismo dialecto que .pm-btn--ghost, el fantasma de los modales: papel, aro de
    tinta de 1px y vuelco a rojo al pasar. Un solo fantasma en toda la app. */
 .prensa .cdd-submit--ghost {
-  background: transparent; color: var(--cdd-text);
-  border: 0; box-shadow: inset 0 0 0 1px var(--cdd-text);
-}
-@media (hover: hover) {
-  .prensa .cdd-submit--ghost:hover:not(:disabled) {
-    background: transparent; color: var(--rojo);
-    box-shadow: inset 0 0 0 1px var(--rojo);
-  }
+  border: 0;
 }
 /* (El override que hundía 1px este botón bajo `.prensa` se retira: la regla
    base ya hunde 1px, porque el gesto dejó de ser una excepción de una piel para
@@ -1673,12 +1489,9 @@ body,
    `items-center justify-center` (reglas propias después de @tailwind
    utilities, misma especificidad) y el pie se veía alineado a la izquierda.
    El layout vive AQUÍ y el JSX ya no lo repite. */
-.prensa-cierre {
-  border-top: 1px solid var(--line-strong); padding-top: 12px; margin-top: 8px;
+.prensa-cierre { padding-top: 12px; margin-top: 8px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 12px; text-align: center;
-  font-family: var(--font-body); font-weight: 600; font-size: 10px;
-  letter-spacing: .14em; text-transform: uppercase; color: var(--cdd-muted);
+  gap: 12px; text-align: center; text-transform: uppercase; color: var(--cdd-muted);
 }
 .prensa-cierre button, .prensa-cierre a {
   background: none; border: 0; cursor: pointer; padding: 14px 4px; margin: -14px -4px;
@@ -1731,21 +1544,18 @@ body,
 .prensa-estadistica { order: 6; }
 .prensa-area-pie { order: 8; }
 @media (min-width: 1100px) {
-  .prensa-hoja { max-width: 1260px; }
   .prensa-pliego {
-    display: grid; grid-template-columns: 27fr 46fr 27fr; column-gap: 0; row-gap: 26px;
+    display: grid; grid-template-columns: 27fr 46fr 27fr;
     align-content: start;
-    grid-template-areas: "cab cab cab" "clas foto jugar" "pie pie pie";
   }
   .prensa-area-cab { grid-area: cab; }
   /* En el pliego, la columna vuelve a ser un bloque real y apila sus piezas. */
   .prensa-area-clas {
-    display: flex; flex-direction: column; gap: 24px;
-    grid-area: clas; border-right: 1px solid var(--line-strong);
-    padding-right: 30px; margin-right: 30px; min-width: 0;
+    display: flex; flex-direction: column;
+    grid-area: clas; min-width: 0;
   }
   .prensa-area-foto { grid-area: foto; min-width: 0; }
-  .prensa-area-jugar { grid-area: jugar; border-left: 1px solid var(--line-strong); padding-left: 30px; margin-left: 30px; min-width: 0; }
+  .prensa-area-jugar { grid-area: jugar; min-width: 0; }
   .prensa-area-pie { grid-area: pie; }
 }
 
@@ -1844,7 +1654,6 @@ body,
     overscroll-behavior-y: contain;
     /* Los 44px de aire para el scroll sobran cuando no hay scroll: aquí el pie
        ES el suelo, y por debajo solo va la barra de gestos del sistema. */
-    padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   }
 
   /* Las bandas que NO se mueven: cabecera, cupón y pie miden lo que miden. */
@@ -2118,13 +1927,13 @@ body,
    En pantallas cortas el efecto es mayor porque ahí la foto va a su suelo: en
    un 360x640 el pliego pasa de deslizarse 87px a 41.
 
-   El h1 de verdad (SEO y lectores de pantalla) vive `sr-only` en Configurator,
-   así que esconder esto no le quita el nombre a nadie: el masthead es el
+   El h1 de verdad es la pregunta, «¿Qué coche es?» (ZoomStage), y la frase de
+   qué se juega vive `sr-only` en Configurator, así que esconder esto no le
+   quita el nombre a nadie: el masthead es el
    wordmark VISUAL. Por eso se apaga desde el CSS en vez de con una rama en
    Header.jsx — una regla que cuelga de `data-plataforma` no puede filtrarse a
    la web por accidente, y el componente sigue siendo uno solo. */
 @media (max-width: 1099px) {
-  :root[data-plataforma="app"] .prensa-masthead { display: none; }
 
   /* ── LA BARRA ES AHORA EL CABECERO ENTERO ────────────────────────────────
      Quitado el masthead, la cabecera se quedó con TRES bandas del mismo rango
@@ -2149,7 +1958,6 @@ body,
      ella. */
   :root[data-plataforma="app"] .prensa-topbar {
     padding: 10px 0;
-    border-bottom: 3px double var(--line-strong);
   }
   /* (El `gap` entre la marca y el folio se subió a la regla base de
      `.prensa-topbar > span`: la Repesca monta la misma barra y también en web.) */
@@ -2167,7 +1975,7 @@ body,
      marco a un botón no puede costarle el único indicador que tiene quien
      navega con teclado. */
   :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton {
-    border-color: transparent; color: var(--cdd-muted);
+    border-color: transparent;
   }
   @media (hover: hover) {
     :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:hover {
@@ -2194,34 +2002,30 @@ body,
      etiqueta contra tres de valor, discutiendo por el mismo renglón. En un
      marcador el número es el mensaje y la palabra es el pie.
 
-     Ahora se apilan: la etiqueta encima a 8,5px y la cifra debajo a 22px, que
+     Ahora se apilan: la etiqueta encima, en el suelo de la escala (11px), y la
+     cifra debajo, en el paso de botón (17px), que
      es el mismo objeto «etiqueta + cifra» que la cornisa del otro extremo y
      que el marcador de PuestoCifra en la tabla y en el parte final. El oro
      sigue siendo el único acento de la barra (regla de marca) pero ahora se
      ve, que era justo el problema: el ordinal a 13px era lo más pequeño de la
      cabecera siendo lo único accionable.
 
-     8,5 + 3 + 22 = 33,5px: sigue cabiendo en los 34px de la marca del sumario,
+     11 + 3 + 17 = 31px: sigue cabiendo en los 34px de la marca del sumario,
      así que la barra NO engorda. Nada de esto se toca en web, donde la barra
      cuelga del masthead y no es lo primero que se lee. */
-  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif {
-    flex-direction: column; align-items: flex-end; gap: 3px;
-  }
   :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .lad {
-    color: var(--cdd-muted); font-size: 8.5px; letter-spacing: .2em;
+    color: var(--cdd-muted); font-size: var(--t-etiqueta); letter-spacing: .2em;
     line-height: 1;
   }
-  /* `line-height: 1` NO es cosmético: Fraunces sin interlineado declarado se
-     compone a `normal`, que en esta familia es ~1.4, así que el ordinal a 22px
+  /* `line-height: 1` NO es cosmético: una cifra de titular sin interlineado
+     declarado se compone a `normal` (~1.4 en la familia de entonces), así que el ordinal a 22px
      ocupaba 31 y la barra entera engordaba 11px — justo lo que el presupuesto
-     de 34px existe para impedir. Con el interlineado a 1: 8,5 + 3 + 22 = 33,5,
+     de 34px existe para impedir. Con el interlineado a 1 cabe (ver arriba),
      y la cabecera vuelve a medir lo que medía. Medido con el banco de maqueta.
      Lo mismo para la invitación, que es la otra pieza que ocupa ese hueco. */
-  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos {
-    font-size: 22px; line-height: 1;
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos { line-height: 1;
   }
-  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos--invita {
-    font-size: 13px; line-height: 1;
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos--invita { line-height: 1;
   }
 
   /* ── EL FILETE DEL LADILLO ES DIVISIÓN MENOR ─────────────────────────────
@@ -2287,45 +2091,36 @@ body,
 }
 .prensa-renglon:active:not(:disabled) { border-bottom-color: var(--rojo); }
 .prensa-renglon:disabled { opacity: .45; cursor: not-allowed; }
-.prensa-renglon .cabeza {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+.prensa-renglon .cabeza { align-items: baseline; justify-content: space-between; gap: 12px;
   min-width: 0;
 }
 .prensa-renglon .etiqueta {
-  flex: none;
-  font-family: var(--font-body); font-weight: 600; font-size: 10px;
-  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
+  flex: none; text-transform: uppercase; color: var(--cdd-muted);
 }
 /* La nota del campo: la horquilla del año («2001 o posterior», «±2 años») o el
    «resuelto». En la cursiva de las apostillas, como la horquilla de la web. */
 .prensa-renglon .apunte {
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
+  min-width: 0; text-overflow: ellipsis; font-style: italic;
   color: var(--cdd-muted);
 }
-.prensa-renglon .apunte.resuelta {
-  font-family: var(--font-body); font-style: normal; font-weight: 700;
-  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+.prensa-renglon .apunte.resuelta { font-style: normal; text-transform: uppercase;
   color: var(--verde);
 }
 .prensa-renglon .cuerpo {
-  display: flex; align-items: center; gap: 8px; min-height: 22px;
+  display: flex; align-items: center;
 }
 .prensa-renglon .valor {
   flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono); font-size: 17px; line-height: 1.2;
+  white-space: nowrap; line-height: 1.2;
   color: var(--cdd-text);
 }
 /* El hueco se lee como hueco: la misma cursiva de apostilla que el placeholder
    de los campos de la web, para que los dos cupones hablen igual. */
 .prensa-renglon .vacio {
-  flex: 1 1 auto; min-width: 0;
-  font-family: var(--font-display); font-style: italic; font-size: 16px;
-  line-height: 1.2; color: var(--placeholder);
+  flex: 1 1 auto; min-width: 0; font-style: italic; color: var(--placeholder);
 }
 .prensa-renglon .chev { flex: none; color: var(--cdd-muted); }
-.prensa-renglon .marca { flex: none; font-size: 15px; color: var(--verde); }
+.prensa-renglon .marca { flex: none; font-size: var(--t-cuerpo); color: var(--verde); }
 /* En espera (el modelo sin marca): sigue siendo tocable —lleva al paso que
    falta— pero su hueco va un tono más apagado, para que «elige marca primero»
    no tenga la misma cara que un campo listo para elegir. */
@@ -2506,20 +2301,19 @@ body,
 /* El tirador no arrastra nada —no hay gesto de arrastre— pero es el signo
    universal de «esto se cierra hacia abajo». Cuesta tres píxeles. */
 .pm-hoja-tirador {
-  flex: none; width: 40px; height: 3px; margin: 8px auto 0;
-  background: var(--line-strong); opacity: .5;
+  flex: none; height: 3px; margin: 8px auto 0;
+  background: var(--line-strong);
 }
 .pm-hoja-cab {
   flex: none; display: flex; align-items: flex-start; justify-content: space-between;
   gap: 12px; padding: 10px 16px 12px; border-bottom: 1px solid var(--line);
 }
 .pm-hoja-titulo {
-  margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 20px;
+  margin: 0;
   color: var(--cdd-text);
 }
 .pm-hoja-apunte {
-  margin: 2px 0 0; font-family: var(--font-display); font-style: italic;
-  font-size: 13px; color: var(--cdd-muted);
+  margin: 2px 0 0; font-style: italic; color: var(--cdd-muted);
 }
 .pm-hoja-cerrar {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
@@ -2616,14 +2410,12 @@ body,
    la hoja abre en modo lista y el teclado se pide, no se impone. */
 .pm-buscar { flex: none; padding: 10px 16px; border-bottom: 1px solid var(--line); }
 .pm-buscar-campo {
-  width: 100%; background: transparent; border: 0; outline: 0; border-radius: 0;
-  border-bottom: 1px solid var(--line-strong); padding: 8px 2px;
-  font-family: var(--font-mono); font-size: 16px; color: var(--cdd-text);
+  width: 100%; outline: 0;
+  border-bottom: 1px solid var(--line-strong); font-size: var(--t-campo); color: var(--cdd-text);
 }
-.pm-buscar-campo:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 7px; }
+.pm-buscar-campo:focus { border-bottom: 2px solid var(--rojo); }
 .pm-buscar-campo::placeholder {
   color: var(--placeholder); font-style: italic;
-  font-family: var(--font-display); font-size: 14px;
 }
 
 .pm-lista-caja { flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden; }
@@ -2637,12 +2429,12 @@ body,
      toques con el móvil en una mano. Por debajo de eso se falla. */
   min-height: 52px; padding: 12px 16px; cursor: pointer;
   border-bottom: 1px solid var(--line);
-  font-family: var(--font-body); font-size: 16px; color: var(--cdd-text);
+  font-family: var(--font-body); color: var(--cdd-text);
 }
 .pm-opcion:active { background: rgb(var(--rojo-rgb) / .08); }
 /* La ya elegida, con el filete al margen del corrector — el mismo lenguaje que
    la opción señalada del combo de la web. */
-.pm-opcion.elegida { box-shadow: inset 3px 0 0 0 var(--rojo); font-weight: 700; }
+.pm-opcion.elegida { font-weight: 700; }
 /* La SEÑALADA por las flechas del buscador. Solo el lavado de rojo —el mismo de
    :active, que es su gemelo táctil—: el filete al margen ya lo gasta .elegida,
    que es la que está puesta en el cupón, y las dos pueden caer en la misma fila
@@ -2658,8 +2450,7 @@ body,
 .pm-grupo-letra {
   position: sticky; top: 0; z-index: 1; margin: 0; padding: 6px 16px;
   background: var(--bg); border-bottom: 1px solid var(--line);
-  font-family: var(--font-mono); font-weight: 700; font-size: 11px;
-  letter-spacing: .18em; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-size: var(--t-etiqueta); color: var(--cdd-muted);
 }
 
 /* El índice A-Z: sin él, elegir Volkswagen es arrastrar el dedo por tres
@@ -2681,13 +2472,11 @@ body,
 }
 .pm-indice-letra {
   padding: 1px 4px; background: none; border: 0; cursor: pointer;
-  font-family: var(--font-mono); font-weight: 700; font-size: 10px; line-height: 1.15;
+  font-family: var(--font-mono); font-size: var(--t-etiqueta); line-height: 1.15;
   color: var(--cdd-muted);
 }
 /* La letra bajo el dedo mientras se recorre. Solo color: en esta tira no cabe
    ni un filete, y el rojo ya es el acento de acción del sistema. */
-.pm-indice-letra:active,
-.pm-indice-letra.activa { color: var(--rojo); }
 
 /* ── EL AÑO: décadas y años, cero dígitos tecleados ── */
 .pm-decadas {
@@ -2697,9 +2486,8 @@ body,
 .pm-decada {
   flex: none; padding: 8px 12px; cursor: pointer; border-radius: 0;
   background: transparent; border: 1px solid var(--line-strong);
-  font-family: var(--font-mono); font-size: 14px; color: var(--cdd-text);
+  font-family: var(--font-mono); font-size: var(--t-ui); color: var(--cdd-text);
 }
-.pm-decada.activa { background: var(--rojo); border-color: var(--rojo); color: var(--bg); }
 .pm-anios {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
@@ -2708,10 +2496,8 @@ body,
 .pm-anio {
   min-height: 52px; cursor: pointer; border-radius: 0;
   background: transparent; border: 1px solid var(--line-strong);
-  font-family: var(--font-mono); font-size: 17px; color: var(--cdd-text);
+  font-family: var(--font-mono); font-size: var(--t-boton); color: var(--cdd-text);
 }
-.pm-anio:active:not(:disabled) { background: rgb(var(--rojo-rgb) / .08); }
-.pm-anio.elegido { border-color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }
 /* DESCARTADO por los intentos previos. Filete discontinuo y tinta apagada: la
    marca del corrector para «esto ya está tachado». No se puede pulsar, y ese
    es el punto — el intento que se tiraba a la basura tecleando un año que el
@@ -2740,25 +2526,21 @@ body,
       Los componentes (Combo/YearField/GuessForm) usan estas clases prensa-*
       directamente. (Las primitivas v0 —input-flat, btn--mint— se borraron en
       la purga F5: ya no quedaba ninguna pantalla sin portar que las usara.) ── */
-.prensa-label {
-  font-family: var(--font-body); font-weight: 600; font-size: 10px;
-  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted);
+.prensa-label { text-transform: uppercase; color: var(--cdd-muted);
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
 /* «±2 años» es una regla del juego, no un adorno: tinta-2 (5,7:1 de día) y no
    --faint, que la dejaba a 2,61:1 a 10 px (auditoría 7-oct). */
-.prensa-label .pista-label { letter-spacing: .06em; color: var(--cdd-muted); text-transform: none; }
+.prensa-label .pista-label { color: var(--cdd-muted); text-transform: none; }
 .prensa-input {
-  width: 100%; background: transparent; border: 0; outline: 0;
-  border-bottom: 1px solid var(--line-strong); border-radius: 0;
-  font-family: var(--font-mono); font-size: 16px; color: var(--cdd-text);
+  width: 100%; outline: 0;
+  border-bottom: 1px solid var(--line-strong); color: var(--cdd-text);
   /* Padding vertical apretado (7px, antes 11): el texto/placeholder sube y queda
      pegado a su etiqueta —el aire de arriba era el que sobraba— dejando el cupón
      más compacto. El focus baja el padding-bottom en 1px para compensar el borde
      de 1→2px y que el texto NO salte al enfocar. */
-  padding: 7px 2px; transition: border-color var(--ms-roce) var(--curva-roce);
 }
-.prensa-input:focus { border-bottom: 2px solid var(--rojo); padding-bottom: 6px; }
+.prensa-input:focus { border-bottom: 2px solid var(--rojo); }
 .prensa-input.invalida { border-bottom: 2px solid var(--rojo); }
 .prensa-input:disabled { opacity: .45; }
 /* Solo táctil: el scrollIntoView(block:"start") de Combo/YearField respeta
@@ -2770,7 +2552,7 @@ body,
 @media (pointer: coarse) {
   .prensa-input { scroll-margin-top: 116px; }
 }
-.prensa-input::placeholder { color: var(--placeholder); font-style: italic; font-family: var(--font-display); font-size: 14px; }
+.prensa-input::placeholder { color: var(--placeholder); font-style: italic; }
 
 /* ── EL VEREDICTO EN EL PROPIO CAMPO ────────────────────────────────────────
    El resultado del intento dejó de vivir en una fila aparte y se estampa sobre
@@ -2781,17 +2563,17 @@ body,
    filete inferior («lo escrito no vale, corrígelo»), mientras que descartado
    tacha la palabra («esto ya se ha probado y no era»). Dos mensajes distintos,
    dos marcas distintas. */
-.prensa-campo { position: relative; display: flex; align-items: baseline; gap: 8px; }
+.prensa-campo { position: relative; display: flex; gap: 8px; }
 .prensa-campo .prensa-input { flex: 1; min-width: 0; }
 /* Marca a la derecha del renglón (✓, bandera, flecha). No captura el toque: el
    objetivo táctil sigue siendo el campo entero. */
 .prensa-campo-marca {
   flex: none; pointer-events: none;
   display: inline-flex; align-items: center; gap: 5px;
-  font-family: var(--font-body); font-weight: 700; font-size: 11px;
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta);
   letter-spacing: .1em; text-transform: uppercase;
 }
-.prensa-campo-marca.bien { color: var(--verde); font-size: 15px; letter-spacing: 0; }
+.prensa-campo-marca.bien { color: var(--verde); font-size: var(--t-cuerpo); letter-spacing: 0; }
 /* (`.cerca` —la bandera del mismo país— y `.dir` —la flecha ↑/↓ del año— se
    fueron con el veredicto estampado: esa información vive hoy en el historial
    y en la horquilla del propio campo.) */
@@ -2800,7 +2582,7 @@ body,
    cerrado. Filete verde firme y texto en tinta plena (no apagado: es un acierto,
    no un campo deshabilitado). El cursor lo dice también. */
 .prensa-input.veredicto-resuelto {
-  border-bottom: 2px solid var(--verde); padding-bottom: 6px;
+  border-bottom: 2px solid var(--verde);
   color: var(--cdd-text); cursor: default;
 }
 .prensa-input.veredicto-resuelto:focus { border-bottom-color: var(--verde); }
@@ -2814,15 +2596,14 @@ body,
 /* La horquilla del año: el rango que sigue vivo según las flechas acumuladas.
    Nota al pie del campo, en la cursiva de las apostillas — es una acotación del
    corrector, no un dato del formulario. */
-.prensa-horquilla {
-  font-family: var(--font-display); font-style: italic; font-size: 12.5px;
-  color: var(--cdd-muted); margin-top: 3px;
+.prensa-horquilla { font-style: italic;
+  color: var(--cdd-muted);
 }
 .prensa-listbox {
-  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40;
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: var(--capa-barra);
   max-height: min(260px, 42dvh); overflow-y: auto; overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch; margin: 0; padding: 4px; list-style: none;
-  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 0;
+  -webkit-overflow-scrolling: touch; margin: 0; list-style: none;
+  background: var(--surface);
   /* Única sombra funcional del sistema: sin ella el desplegable no se
      despega del papel (documentada en el spec §4). Va por token porque estaba
      escrita con --line-2, que es TINTA: en la edición de noche la tinta es
@@ -2831,14 +2612,12 @@ body,
 }
 .prensa-opt {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 10px 12px; cursor: pointer; border-radius: 0;
-  font-family: var(--font-body); font-size: 14px; color: var(--cdd-text);
+  padding: 10px 12px; cursor: pointer; color: var(--cdd-text);
 }
 /* Opción señalada: lavado de rojo + filete de tinta al margen izquierdo (la
    marca del corrector). El rojo va por terna, no a pelo: el 179 39 27 escrito
    aquí era el rojo del DÍA, así que en la edición de noche el lavado no era el
    rojo de la noche (más claro) sino el de papel, apagado sobre el grafito. */
-.prensa-opt.hi { background: rgb(var(--rojo-rgb) / .08); box-shadow: inset 2px 0 0 0 var(--rojo); }
 .prensa-opt.vacia { cursor: default; color: var(--faint); font-style: italic; }
 .prensa-opt .bandera { width: 18px; height: 12px; object-fit: cover; flex: none; }
 /* El campo Año ya no tiene steppers ni caja propia: usa .prensa-input, gemelo
@@ -2848,10 +2627,7 @@ body,
      rotativa (ver `.is-trabajando` más abajo); sin partida en curso no pintan
      nada. */
   position: relative; overflow: hidden;
-  width: 100%; height: 64px; border: 0; border-radius: 0; cursor: pointer;
-  background: rgb(var(--rojo-rgb)); color: var(--bg);
-  font-family: var(--font-display); font-weight: 900; font-size: 24px;
-  letter-spacing: .05em; text-transform: uppercase;
+  width: 100%; border: 0; cursor: pointer; text-transform: uppercase;
   transition: background var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
 }
 /* LA FIRMA DEL BOTON DEL CUPON: se levanta y proyecta su propia tinta, como un
@@ -2860,12 +2636,6 @@ body,
    AL TOCAR y lo deja pegado hasta que tocas otra cosa. O sea que ADIVINAR se
    quedaba levantado con su sombra dura despues de cada intento, y quien juega
    en el movil —casi todo el mundo— veia el estado de reposo UNA vez, al abrir. */
-@media (hover: hover) {
-  .prensa-submit:hover:not(:disabled):not(.is-incomplete) {
-    transform: translateY(-2px);
-    box-shadow: 4px 4px 0px rgb(var(--tinta-rgb));
-  }
-}
 /* Y la pulsacion es la del sistema: el papel se hunde UN pixel. Bajaba dos, y
    dos desde el reposo deja el boton POR DEBAJO del papel — que es lo que no
    hace ningun objeto real: un tipo de imprenta se apoya, no atraviesa. Con
@@ -2878,16 +2648,6 @@ body,
 .prensa-submit:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
 
 /* Incompleto pero TOCABLE */
-.prensa-submit.is-incomplete {
-  background: rgb(var(--tinta-rgb));
-  color: var(--bg);
-  box-shadow: none;
-}
-@media (hover: hover) {
-  .prensa-submit.is-incomplete:hover { 
-    background: color-mix(in srgb, rgb(var(--tinta-rgb)) 80%, black);
-  }
-}
 
 /* ── EL BOTÓN MIENTRAS EL SERVIDOR DECIDE ──────────────────────────────────
    «Estoy trabajando» y «no me puedes pulsar» son estados distintos y llevaban
@@ -2914,15 +2674,12 @@ body,
    la definición del latido en el compás. */
 .prensa-submit.is-trabajando,
 .prensa-submit.is-trabajando:disabled {
-  background: rgb(var(--rojo-rgb));
-  color: var(--bg);
   box-shadow: none;
   cursor: progress;
 }
 .prensa-submit.is-trabajando::after {
   content: ""; position: absolute; left: 0; bottom: 0;
   width: 32%; height: 3px;
-  background: rgb(var(--bg-rgb) / .45);
   /* El punto de partida va en la REGLA y no solo en la keyframe: con
      `prefers-reduced-motion` el compás apaga las animaciones (`animation: none`)
      y sin esto la banda se quedaría clavada en la esquina como una barra de
@@ -2941,63 +2698,33 @@ body,
    juego), así que el grueso del cambio es tipografía, esquinas vivas y
    filetes. El chasis gana el doble filete de recortable; la celebración es
    el SELLO estampándose (el confetti se retiró: era de otra fiesta). */
-.prensa .cdd-end-card {
-  background: var(--bg);
-  border: 1px solid var(--line-strong);
-  outline: 1px solid var(--line-strong); outline-offset: 4px;
-  box-shadow: none;
+.prensa .cdd-end-card { outline-offset: 4px;
 }
-.prensa .cdd-end-scrim { background: rgb(var(--velo-rgb) / .45); }
 /* X de cerrar en piel editorial: cuadrada, tinta plena sobre papel, sin blur.
    Al hover vira a rojo (acción), como el resto de controles prensa. */
-.prensa .cdd-end-close {
-  color: var(--cdd-text);
-  background: color-mix(in srgb, var(--bg) 84%, transparent);
-  border: 1px solid var(--line-strong);
-}
-@media (hover: hover) {
-  .prensa .cdd-end-close:hover { color: var(--rojo); border-color: var(--rojo); background: var(--bg); }
-}
 /* "Ver mi partida" editorial: cuadrado, tinta, hover rojo. */
-.prensa .cdd-end-link { color: var(--cdd-text); border-color: var(--line-strong); }
+.prensa .cdd-end-link { color: var(--cdd-text); }
 @media (hover: hover) {
   .prensa .cdd-end-link:hover { color: var(--rojo); border-color: var(--rojo); }
 }
-.prensa .cdd-reveal { background: var(--surface); border-bottom: 1px solid var(--line-strong); }
-.prensa .cdd-reveal-grad { background: linear-gradient(to top, var(--bg) 4%, transparent 55%); }
-.prensa .cdd-reveal-brand { font-family: var(--font-body); font-weight: 600; letter-spacing: .2em; color: var(--rojo); }
-.prensa .cdd-reveal-model { font-family: var(--font-display); font-weight: 900; letter-spacing: -.01em; font-size: 30px; }
-.prensa .cdd-reveal-meta { font-family: var(--font-body); letter-spacing: .12em; }
+.prensa .cdd-reveal { background: var(--surface); }
 /* El sello: RESUELTO en rojo, SIN RESOLVER en tinta. Cae con overshoot un
    cuarto de segundo después de abrirse la crónica. */
 .prensa-sello {
-  position: absolute; top: 12px; right: 12px; z-index: 4;
-  font-family: var(--font-body); font-weight: 800; font-size: 15px;
-  letter-spacing: .28em; text-transform: uppercase;
-  color: var(--rojo); border: 3px solid var(--rojo); padding: 7px 10px 7px 14px;
-  transform: rotate(-7deg);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  position: absolute; top: 12px; right: 12px; z-index: 4; text-transform: uppercase;
   animation: prensaSellar var(--ms-escena) var(--curva-sello) both; animation-delay: var(--ms-sello);
 }
-.prensa-sello.tinta { color: var(--cdd-text); border-color: var(--cdd-text); }
+.prensa-sello.tinta { border-color: var(--cdd-text); }
 @keyframes prensaSellar { from { opacity: 0; transform: rotate(-7deg) scale(1.7); } }
 /* (Los overrides de `.cdd-unlock` viven ahora en la regla base: al dejar de ser
    una caja no hay nada que "aplanar". Y `.cdd-end-tabs`, `.cdd-tab`, `.cdd-stat*`
    se fueron con las pestañas y las fichas en rejilla.) */
 /* La crónica se lee como artículo: serif, cuerpo de texto, tinta plena. */
-.prensa .cdd-note { font-family: var(--font-display); font-size: 14px; line-height: 1.55; color: var(--cdd-text); }
+.prensa .cdd-note { color: var(--cdd-text); }
 /* La distribución, sin marco: es una sección bajo su ladillo, no una tarjeta. */
 .prensa .cdd-dist-card { background: transparent; border: 0; padding: 0; }
-.prensa .cdd-dist-track { background: var(--surface2); }
-.prensa .cdd-dist-bar { background: var(--line-strong); }
-.prensa .cdd-dist-bar.me { background: var(--rojo); }
-.prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--rojo); }
 /* (`.cdd-percentile` y `.cdd-grid` se retiraron con la caja del percentil y la
    rejilla de emoji en pantalla.) */
-/* Cuenta atrás: una LÍNEA centrada (etiqueta + reloj), no una caja. */
-.prensa .cdd-next { border: 0; background: transparent; justify-content: center; gap: 10px; padding: 4px 0; }
-.prensa .cdd-next-k { font-family: var(--font-body); letter-spacing: .18em; }
-.prensa .cdd-next-clock { color: var(--cdd-text); font-family: var(--font-body); font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* (La «Nota de la redacción» —aviso one-time del rediseño— se retiró junto a su
    componente. Se gateaba por AUSENCIA de un flag en localStorage, así que la
@@ -3022,11 +2749,6 @@ body,
      Todo se deriva de las ternas RGB del tema, así que noche lo hereda solo
      (filete beige + sombra igual de válida sobre el grafito). */
   background: var(--surface); color: var(--cdd-text);
-  border: 1.5px solid var(--cdd-text); border-radius: 0;
-  box-shadow:
-    inset 0 0 0 4px var(--surface),
-    inset 0 0 0 5px rgb(var(--tinta-rgb) / .30),
-    0 26px 55px -22px rgb(var(--velo-rgb) / .55);
 }
 /* Scrim ÚNICO (antes había un duplicado muerto en @layer utilities). Subido del
    45% al 72% de tinta cálida: sobre tema claro un panel de papel necesita MÁS
@@ -3036,44 +2758,30 @@ body,
 .modal-scrim, .scrim-flat { background: rgb(var(--velo-rgb) / .72); }
 
 /* Utilidades de contenido de modal (concretas, reutilizables en F3-F4) */
-.pm-kicker { font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif; font-weight: 800; font-size: 10px;
-  letter-spacing: .24em; text-transform: uppercase; color: var(--rojo); }
-.pm-title { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 900; font-size: 26px;
-  letter-spacing: -.01em; line-height: 1.05; color: var(--cdd-text); }
-.pm-body { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-size: 14px; line-height: 1.55; color: var(--cdd-muted); }
+.pm-kicker { font-size: var(--t-etiqueta); text-transform: uppercase; color: var(--rojo); }
+.pm-title { font-size: var(--t-cabecera); line-height: 1.05; color: var(--cdd-text); }
+.pm-body { line-height: 1.55; color: var(--cdd-muted); }
 .pm-strong { color: var(--cdd-text); font-weight: 600; }
-.pm-label { font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif; font-weight: 600; font-size: 10px;
-  letter-spacing: .2em; text-transform: uppercase; color: var(--cdd-muted); }
-/* Marcador de lista: cuadradito de tinta (fuera el punto menta con glow) */
-.pm-dot { width: 6px; height: 6px; flex: none; background: var(--cdd-text); border-radius: 0; margin-top: 7px; }
-.pm-btn { width: 100%; border: 0; border-radius: 0; cursor: pointer; padding: 14px 12px;
-  background: var(--cdd-text); color: var(--bg);
-  font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif; font-weight: 800; font-size: 13px;
-  letter-spacing: .24em; text-transform: uppercase; transition: background var(--ms-roce) var(--curva-roce); }
-@media (hover: hover) {
-  .pm-btn:hover:not(:disabled) { background: var(--rojo); }
-}
+.pm-btn { width: 100%; border: 0; cursor: pointer; padding: 14px 12px;
+  background: var(--cdd-text); color: var(--bg); text-transform: uppercase; transition: background var(--ms-roce) var(--curva-roce); }
 .pm-btn:active:not(:disabled) { transform: translateY(1px); }
-.pm-btn:disabled { background: transparent; color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); cursor: not-allowed; }
-.pm-btn--ghost { background: transparent; color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--cdd-text); }
-@media (hover: hover) {
-  .pm-btn--ghost:hover:not(:disabled) { background: transparent; color: var(--rojo); box-shadow: inset 0 0 0 1px var(--rojo); }
-}
+.pm-btn:disabled { cursor: not-allowed; }
+.pm-btn--ghost { background: transparent; color: var(--cdd-text); }
 
 /* ── Sello de caucho ────────────────────────────────────────────────────
    El sustituto tipográfico del icono. Donde antes había un emoji dentro de
    un disco de acento (el modal de recarga tenía un coche de 24px que cada
    sistema operativo dibujaba distinto), ahora hay un SELLO: doble filete,
-   Courier, rotado como se estampa a mano. Es vocabulario que la app ya
+   letra mono, rotado como se estampa a mano. Es vocabulario que la app ya
    habla — el archivo estampa sus portadas y `animate-sellar` existe desde
    el rediseño — y a diferencia de un icono no necesita dibujar un objeto
    para significar algo, así que nunca se ve genérico ni "de librería".
 
    Doble filete: `double` de CSS necesita 3px o pinta una sola raya. */
 .pm-sello {
-  display: inline-block; padding: 5px 10px; border-radius: 0;
+  display: inline-block; padding: 5px 10px;
   border: 3px double var(--rojo); color: var(--rojo);
-  font-family: var(--font-mono); font-weight: 700; font-size: 9px;
+  font-family: var(--font-mono); font-weight: 700; font-size: var(--t-etiqueta);
   letter-spacing: .18em; text-transform: uppercase; white-space: nowrap;
   /* .88 en vez de 1: la tinta de un sello nunca cubre del todo el papel. */
   opacity: .88;
@@ -3082,18 +2790,9 @@ body,
      propio `transform` inline y esta regla cede el paso sola. */
   transform: rotate(-7deg);
 }
-/* Variante oro para los momentos premium (veterano, podio, logros): mismo
-   objeto, otra tinta. La regla de marca de siempre — rojo es "atención",
-   oro es "esto vale algo". */
-.pm-sello--oro { border-color: var(--gold); color: var(--gold); }
-/* Los dos hermanos del oro, para cuando el sello dice QUÉ metal se tiene (el
-   tier de coleccionista del carnet). Faltaban, así que un carnet de Plata se
-   estampaba en oro: el sello decía una cosa y su color otra. */
-.pm-sello--plata { border-color: var(--plata); color: var(--plata); }
-.pm-sello--bronce { border-color: var(--bronce); color: var(--bronce); }
 
 /* ── El marcador de puesto (PuestoCifra.jsx) ──────────────────────────────
-   El ordinal «7º» en Fraunces sobre oro viejo es la FIRMA de la
+   El ordinal «7º» en la voz de las cifras sobre oro es la FIRMA de la
    clasificación: el mismo glifo en la faja de portada, en la faja fina, en el
    parte del final de partida, en la cabecera del modal y en las filas de la
    tabla. Antes cada sitio lo dibujaba a su manera (incluido un `7` gris en
@@ -3110,17 +2809,15 @@ body,
    la línea siguiente en vez de montarlo. */
 .pm-puesto { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .pm-puesto .cifra {
-  font-family: var(--font-display); font-weight: 900; line-height: .95;
-  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  font-family: var(--font-display); line-height: .95; font-variant-numeric: tabular-nums;
 }
-.pm-puesto .de {
-  font-family: var(--font-display); font-style: italic; font-size: 13px;
+.pm-puesto .de { font-style: italic; font-size: var(--t-nota);
   color: var(--cdd-muted); white-space: nowrap;
 }
-.pm-puesto--xl .cifra { font-size: 38px; }
-.pm-puesto--l  .cifra { font-size: 30px; }
-.pm-puesto--s  .cifra { font-size: 15px; }
-.pm-puesto--s  .de    { font-size: 11px; }
+.pm-puesto--xl .cifra { font-size: var(--t-cifra); }
+.pm-puesto--l  .cifra { font-size: var(--t-seccion); }
+.pm-puesto--s  .cifra { font-size: var(--t-cuerpo); }
+.pm-puesto--s  .de    { font-size: var(--t-etiqueta); }
 /* Los cuatro tonos. Fuera de una tabla el puesto va SIEMPRE en oro (es tu
    dato, no compite con nadie); dentro, el oro se reserva al podio para que
    siga significando algo. */
@@ -3151,8 +2848,7 @@ body,
 
 /* Tira de filtros de país: scroll horizontal SIN barra visible (en móvil la
    barra tapa los chips; el desbordamiento ya se insinúa con el corte). */
-.arch-tira { scrollbar-width: none; -ms-overflow-style: none; }
-.arch-tira::-webkit-scrollbar { display: none; }
+.arch-tira { -ms-overflow-style: none; }
 
 /* ── El hueco (número que aún te falta) ─────────────────────────────── */
 /* Papel en blanco con trama de imprenta. NO carga imagen: antes cada hueco
@@ -3160,50 +2856,29 @@ body,
    catálogo disparaba cientos de peticiones (y otros tantos `sharp`) para
    pintar recuadros negros. La lona borrosa sigue existiendo, pero solo se
    pide al TOCAR el hueco, que es cuando de verdad genera intriga. */
-.arch-hueco {
-  position: relative; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 7px;
-  width: 100%; min-height: 190px; cursor: pointer; text-align: center;
-  border: 1px dashed rgb(var(--tinta-rgb) / .38); border-radius: 0;
-  background-color: var(--bg2);
-  background-image: repeating-linear-gradient(45deg,
-    transparent 0 7px, rgb(var(--tinta-rgb) / .045) 7px 14px);
+.arch-hueco { display: flex; flex-direction: column; justify-content: center; gap: 7px;
+  width: 100%; min-height: 190px; text-align: center; border-radius: 0;
   transition: border-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce);
 }
-@media (hover: hover) {
-  .arch-hueco:hover { border-color: var(--rojo); }
-}
 .arch-hueco .num {
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: .14em;
+  font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .14em;
   color: rgb(var(--tinta-rgb) / .45);
 }
-.arch-hueco .txt {
-  font-family: var(--font-body); font-weight: 700; font-size: 8.5px;
-  letter-spacing: .18em; text-transform: uppercase; line-height: 1.5;
-  color: rgb(var(--tinta-rgb) / .5);
-}
 @media (hover: hover) {
-  .arch-hueco:hover .txt, .arch-hueco:hover .num { color: var(--rojo); }
+  .arch-hueco:hover .num { color: var(--rojo); }
 }
 
 /* ── Especial de set completo ───────────────────────────────────────── */
 /* La recompensa por completar un país: una portada que NO existe en el
    catálogo, solo se gana. El oro está reservado a estos momentos premium. */
 .arch-especial {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; min-height: 190px; padding: 12px; text-align: center;
-  border: 1px solid var(--gold); border-radius: 0;
-  background: color-mix(in srgb, var(--gold) 9%, var(--surface));
+  display: flex;
 }
-.arch-especial .kicker {
-  font-family: var(--font-body); font-weight: 800; font-size: 8px;
-  letter-spacing: .24em; text-transform: uppercase; color: var(--gold);
+.arch-especial .kicker { text-transform: uppercase; color: var(--gold);
 }
-.arch-especial .titulo {
-  font-family: var(--font-display); font-weight: 900; font-size: 17px;
-  line-height: 1.05; color: var(--cdd-text);
+.arch-especial .titulo { color: var(--cdd-text);
 }
-.arch-especial .sub { font-family: var(--font-mono); font-size: 10px; color: var(--cdd-muted); }
+.arch-especial .sub { color: var(--cdd-muted); }
 
 /* ── Regla de progreso ──────────────────────────────────────────────── */
 /* Una regla de imprenta, no una píldora: filete de tinta que se entinta de
@@ -3217,33 +2892,24 @@ body,
    pinta como un bloque con voz propia y no como una fila más de la ficha.
    Solo el escalón más raro se lleva el oro: si «número agotado» brillara en
    media colección, dejaría de significar nada. */
-.arch-tirada { border: 1px solid var(--line); padding: 8px 10px; }
 .arch-tirada .etiqueta {
-  margin-top: 2px; font-family: var(--font-display); font-weight: 900;
-  font-size: 16px; line-height: 1.1; color: var(--cdd-text);
+  margin-top: 2px; font-family: var(--font-display); line-height: 1.1; color: var(--cdd-text);
 }
 .arch-tirada .apoyo {
-  margin-top: 3px; font-family: var(--font-mono); font-size: 10.5px;
+  margin-top: 3px; font-family: var(--font-mono);
   color: var(--cdd-muted); font-variant-numeric: tabular-nums;
-}
-.arch-tirada.t-soldout {
-  border-color: var(--gold);
-  background: color-mix(in srgb, var(--gold) 8%, transparent);
 }
 .arch-tirada.t-soldout .etiqueta { color: var(--gold); }
 
 /* ── Ficha del dorso ────────────────────────────────────────────────── */
 .arch-dato {
   display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
-  padding: 8px 0; border-bottom: 1px dotted rgb(var(--tinta-rgb) / .3);
 }
 .arch-dato:last-child { border-bottom: 0; }
-.arch-dato .k {
-  font-family: var(--font-body); font-weight: 600; font-size: 10px;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--cdd-muted);
+.arch-dato .k { color: var(--cdd-muted);
 }
 .arch-dato .v {
-  font-family: var(--font-mono); font-size: 12px; color: var(--cdd-text);
+  font-family: var(--font-mono); color: var(--cdd-text);
   text-align: right; font-variant-numeric: tabular-nums;
 }
 .arch-dato .v.oro { color: var(--gold); }
@@ -3436,7 +3102,7 @@ body,
    tipográfica, no una decisión sobre ningún componente concreto, y cualquier
    regla que quiera otra cosa tiene que poder pisarla sin pelear. */
 :where(body) { text-wrap: pretty; }
-:where(h1, h2, h3, h4, .pm-title, .pm-hoja-titulo, .cdd-reveal-model) { text-wrap: balance; }
+:where(h1, h2, h3, h4, .pm-title, .pm-hoja-titulo) { text-wrap: balance; }
 
 /* ── EL TRACKING SIGUE AL CUERPO ────────────────────────────────────────────
    Una fuente display no quiere el mismo espaciado a 38px que a 15px: cuanto
@@ -3534,8 +3200,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 
 /* ── LA CABECERA ──────────────────────────────────────────────────────────── */
 .prensa-topbar {
-  border-bottom: 1px solid var(--line);
-  font-family: var(--font-mono); font-weight: 600; font-size: 10.5px; letter-spacing: .06em;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em;
 }
 /* El botón del sumario: una tecla con canto, no un marco de lámina. Mismos
    34px de caja que fijan el alto de la barra. */
@@ -3579,11 +3244,11 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    de los datos. 17 + 4 + 11 = 32px: sigue dentro de los 34 de la barra. */
 .prensa-cornisa { gap: 4px; }
 .prensa-cornisa .cabeza {
-  font-family: var(--font-display); font-weight: 700; font-size: 17px;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton);
   letter-spacing: .005em; text-transform: none; color: var(--cdd-text); line-height: 1;
 }
 .prensa-cornisa .fecha {
-  font-family: var(--font-mono); font-weight: 400; font-size: 11px;
+  font-family: var(--font-mono); font-weight: 400; font-size: var(--t-etiqueta);
   letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted); line-height: 1;
 }
 /* La barra, en una fila: identidad a la izquierda, acciones a la derecha. */
@@ -3599,7 +3264,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-racha {
   display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 4px;
   background: none; color: var(--gold);
-  font-family: var(--font-mono); font-weight: 600; font-size: 14px; letter-spacing: 0;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-ui); letter-spacing: 0;
 }
 .prensa-racha svg { fill: currentColor; }
 .prensa-topbar > span > .prensa-clasif {
@@ -3608,26 +3273,15 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 }
 .prensa-topbar .prensa-clasif .lad { display: none; }
 .prensa-topbar .prensa-clasif .pos {
-  font-family: var(--font-display); font-weight: 700; font-size: 17px; line-height: 1; color: var(--gold);
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton); line-height: 1; color: var(--gold);
 }
 .prensa-topbar .prensa-clasif .pos--invita {
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .06em; color: var(--cdd-text);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em; color: var(--cdd-text);
 }
 /* El subtítulo de la web: qué es esto, en una frase (ver Header.jsx). */
 .prensa-lema {
-  margin: 2px 0 14px; font-family: var(--font-body); font-weight: 500; font-size: 14px;
+  margin: 2px 0 14px; font-family: var(--font-body); font-weight: 500; font-size: var(--t-ui);
   line-height: 1.4; color: var(--cdd-muted);
-}
-
-/* La cabecera de la web: el nombre con su marca, sin filetes dobles. */
-.prensa-masthead .titulo {
-  display: inline-flex; align-items: center; gap: .32em;
-  font-weight: 700; letter-spacing: .005em;
-}
-.prensa-masthead--compacto .titulo { font-size: clamp(28px, 5.4vw, 42px); }
-.prensa-folio {
-  border-top: 0; border-bottom: 1px solid var(--line); padding: 2px 0 12px;
-  font-family: var(--font-mono); font-weight: 400; letter-spacing: .06em; color: var(--cdd-muted);
 }
 
 @media (max-width: 1099px) {
@@ -3642,8 +3296,8 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   :root[data-plataforma="app"] .prensa-topbar .prensa-clasif {
     flex-direction: row; align-items: center; gap: 6px;
   }
-  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos { font-size: 17px; }
-  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos--invita { font-size: 11px; }
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos { font-size: var(--t-boton); }
+  :root[data-plataforma="app"] .prensa-topbar .prensa-clasif .pos--invita { font-size: var(--t-etiqueta); }
 }
 
 /* ── LOS TITULARES DE SECCIÓN ──────────────────────────────────────────────
@@ -3651,12 +3305,12 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    margen. Aquí es un titular corto en Barlow Condensed, sin regla: el aire de
    encima ya dice que empieza otra cosa. */
 .prensa-ladillo {
-  font-family: var(--font-display); font-weight: 700; font-size: 19px;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta);
   letter-spacing: .005em; text-transform: none; color: var(--cdd-text);
 }
 .prensa-ladillo::after { content: none; }
 .prensa-ladillo .aparte {
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted);
 }
 
@@ -3669,7 +3323,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    segmento se gasta a la vez que la foto se aleja, no antes. */
 .prensa-ladillo--pregunta { align-items: center; }
 .prensa-ladillo--pregunta .rotulo {
-  font-family: var(--font-display); font-weight: 700; font-size: 21px;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta);
   letter-spacing: .005em; line-height: 1.05;
 }
 .prensa-ladillo .filete { border-top: 1px solid var(--line); transform: none; align-self: center; }
@@ -3731,7 +3385,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   display: inline-flex; align-items: center;
   height: 26px; padding: 0 10px; border-radius: var(--radio-pildora);
   background: rgb(12 13 15 / .62); color: rgb(242 240 235);
-  font-family: var(--font-mono); font-weight: 600; font-size: 12px;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato);
   letter-spacing: .02em; font-variant-numeric: tabular-nums;
   animation-delay: var(--ms-sello);
 }
@@ -3754,14 +3408,14 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   gap: 6px; padding: 3px 0; border-bottom: 0; align-items: stretch;
 }
 .prensa-fila .num {
-  align-self: center; font-family: var(--font-mono); font-weight: 600; font-size: 12px;
+  align-self: center; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato);
   font-variant-numeric: tabular-nums;
 }
 .prensa-dato {
   display: flex; flex-direction: column; justify-content: center;
   min-height: 46px; padding: 6px 9px; box-sizing: border-box;
   border-radius: var(--radio-celda); background: var(--surface); border: 1px solid var(--line);
-  font-family: var(--font-body); font-weight: 600; font-size: 15px; line-height: 1.2;
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-cuerpo); line-height: 1.2;
 }
 .prensa-dato.bien { background: rgb(var(--verde-rgb) / .1); border-color: rgb(var(--verde-rgb) / .38); }
 .prensa-dato.cerca { background: rgb(var(--ambar-rgb) / .1); border-color: rgb(var(--ambar-rgb) / .4); }
@@ -3770,14 +3424,14 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-dato.cerca .prensa-apostilla { color: color-mix(in srgb, var(--ambar) 85%, var(--cdd-text)); }
 .prensa-dato.bien .palabra, .prensa-dato.cerca .palabra { border-bottom: 0; }
 .prensa-dato.mal .palabra { text-decoration-color: rgb(var(--tinta2-rgb) / .6); text-decoration-thickness: 1.5px; }
-.prensa-dato.anio .palabra { font-family: var(--font-mono); font-size: 14px; }
+.prensa-dato.anio .palabra { font-family: var(--font-mono); font-size: var(--t-ui); }
 /* El año fallado NO se tacha: no está descartado, está orientado — lleva su
    flecha hacia el año bueno, y eso es lo que tiene que leerse. */
 .prensa-dato.anio.mal .palabra { text-decoration: none; color: var(--cdd-text); }
 .prensa-dato .prensa-dir { color: var(--cdd-text); }
 .prensa-apostilla {
   margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-family: var(--font-body); font-weight: 600; font-size: 11.5px;
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-dato);
   letter-spacing: 0; text-transform: none;
 }
 .prensa-apostilla .bandera { width: 16px; height: 11px; border-radius: var(--radio-mini); }
@@ -3798,10 +3452,10 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-fila-hueco:has(.hueco:empty) { display: none; }
 .prensa-fila-hueco .hueco {
   display: flex; align-items: center; min-height: 30px; padding: 0 2px;
-  font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted);
 }
 .prensa-nota { border-bottom: 0; padding: 8px 2px 10px; }
-.prensa-nota .titulo { font-family: var(--font-body); font-weight: 600; font-size: 14px; }
+.prensa-nota .titulo { font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); }
 
 /* ── EL CUPÓN: TRES CASILLAS EN FILA ───────────────────────────────────────
    Marca, modelo y año como un solo control de tres partes, igual en las dos
@@ -3838,19 +3492,19 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    del suelo (--bg). El texto baja a la tinta secundaria (≥5,7:1) y un punto de
    cuerpo, para que la frase quepa en un renglón de la casilla del medio. */
 .prensa-renglones > .prensa-renglon.espera { background: var(--bg); }
-.prensa-renglones > .prensa-renglon.espera .vacio { color: var(--cdd-muted); font-size: 13.5px; line-height: 1.2; }
+.prensa-renglones > .prensa-renglon.espera .vacio { color: var(--cdd-muted); font-size: var(--t-nota); line-height: 1.2; }
 .prensa-renglon .cabeza { display: contents; }
 .prensa-renglon .etiqueta {
-  order: 1; font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .08em;
+  order: 1; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .08em;
 }
 .prensa-renglon .cuerpo { order: 2; min-height: 22px; gap: 4px; }
 .prensa-renglon .apunte {
   order: 3; white-space: normal; overflow: visible; line-height: 1.2;
-  font-family: var(--font-body); font-weight: 500; font-size: 11.5px;
+  font-family: var(--font-body); font-weight: 500; font-size: var(--t-dato);
 }
-.prensa-renglon .apunte.resuelta { font-family: var(--font-mono); font-weight: 600; font-size: 10px; letter-spacing: .06em; }
-.prensa-renglon .valor { font-family: var(--font-body); font-weight: 600; font-size: 16px; }
-.prensa-renglon .vacio { font-family: var(--font-body); font-weight: 500; font-size: 15px; line-height: 1.15; white-space: normal; }
+.prensa-renglon .apunte.resuelta { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em; }
+.prensa-renglon .valor { font-family: var(--font-body); font-weight: 600; font-size: var(--t-campo); }
+.prensa-renglon .vacio { font-family: var(--font-body); font-weight: 500; font-size: var(--t-cuerpo); line-height: 1.15; white-space: normal; }
 .prensa-renglon .chev { width: 13px; height: 13px; }
 
 /* Web (`.prensa-casillas`): la misma fila de tres, con campos de texto. Los
@@ -3880,38 +3534,48 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    de la caja, a la derecha, en vez de colgar fuera. */
 /* 11 px, el suelo de la voz mono en mayúsculas (auditoría 7-oct): a 10 px con
    caja alta y tracción abierta se leía peor que su tamaño nominal. */
-.prensa-label { font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .08em; }
+.prensa-label { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .08em; }
 .prensa-label .pista-label { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; }
 .prensa-input {
   padding: 11px 11px; border: 1px solid var(--line-strong); border-radius: var(--radio-celda);
   background: var(--surface);
-  font-family: var(--font-body); font-weight: 600; font-size: 16px;
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-campo);
   transition: border-color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce);
 }
 .prensa-input:focus { border: 1px solid var(--cdd-text); padding-bottom: 11px; box-shadow: 0 0 0 1px var(--cdd-text); }
-.prensa-casillas .prensa-input::placeholder { font-size: 13.5px; }
+.prensa-casillas .prensa-input::placeholder { font-size: var(--t-nota); }
 .prensa-input.invalida { border: 1px solid var(--rojo); box-shadow: 0 0 0 1px var(--rojo); }
 .prensa-input.veredicto-resuelto {
   border: 1px solid rgb(var(--verde-rgb) / .5); padding-bottom: 11px; padding-right: 30px;
   background: rgb(var(--verde-rgb) / .08);
 }
 .prensa-input.veredicto-resuelto:focus { border-color: rgb(var(--verde-rgb) / .5); box-shadow: none; }
-.prensa-input::placeholder { font-family: var(--font-body); font-weight: 500; font-size: 15px; }
+.prensa-input::placeholder { font-family: var(--font-body); font-weight: 500; font-size: var(--t-cuerpo); }
 .prensa-campo { align-items: center; }
 .prensa-campo-marca { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
-.prensa-horquilla { font-family: var(--font-body); font-size: 11.5px; line-height: 1.25; margin-top: 5px; }
+.prensa-horquilla { font-family: var(--font-body); font-size: var(--t-dato); line-height: 1.25; margin-top: 5px; }
 /* El aviso del cupón (web): bajo las casillas y antes de ADIVINAR, en el rojo
    de «campo inválido». Antes era un toast al pie de la pantalla, encima de la
    barra de pestañas y lejos del campo que lo provocaba. AA en las dos ediciones
    sobre el papel (4,8:1 de día, 5,6:1 de noche). */
 .prensa-aviso {
-  margin: 0; font-family: var(--font-body); font-weight: 600; font-size: 13.5px; line-height: 1.35;
+  margin: 0; font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); line-height: 1.35;
   color: var(--rojo);
 }
 .prensa-listbox { padding: 6px; border-radius: var(--radio-boton); border: 1px solid var(--line-strong); }
-.prensa-opt { border-radius: var(--radio-celda); font-family: var(--font-body); font-weight: 500; font-size: 15px; }
+.prensa-opt { border-radius: var(--radio-celda); font-family: var(--font-body); font-weight: 500; font-size: var(--t-cuerpo); }
 .prensa-opt.hi { background: var(--surface2); box-shadow: none; }
 .prensa-opt .bandera { border-radius: var(--radio-mini); }
+/* El grupo del mismo país arriba de la lista (P11) y el resto debajo, tras un
+   filete. El título habla como las iniciales de la hoja de la app: mono, gris,
+   pequeño — es un rótulo, no una opción. */
+.prensa-listbox li[role="presentation"] { list-style: none; }
+.prensa-listbox ul[role="group"] { margin: 0; padding: 0; list-style: none; }
+.prensa-opt-grupo {
+  margin: 0; padding: 8px 12px 4px;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em; color: var(--cdd-muted);
+}
+.prensa-opt-resto { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 
 /* EL BOTÓN PRINCIPAL ES LA TINTA. Hueso sobre grafito de noche, casi negro
    sobre claro de día: el mayor contraste de la pantalla para la única acción
@@ -3921,7 +3585,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-submit {
   height: 60px; border-radius: var(--radio-boton);
   background: var(--cdd-text); color: var(--bg);
-  font-family: var(--font-display); font-weight: 700; font-size: 21px; letter-spacing: .08em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); letter-spacing: .08em;
 }
 @media (hover: hover) {
   .prensa-submit:hover:not(:disabled):not(.is-incomplete) {
@@ -3949,7 +3613,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 /* El pie del juego, en la voz de los datos. */
 .prensa-cierre {
   border-top: 1px solid var(--line);
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .06em;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em;
 }
 
 /* ── LA HOJA DE SELECCIÓN (app) ────────────────────────────────────────────
@@ -3963,20 +3627,23 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   border-top-left-radius: var(--radio-hoja); border-top-right-radius: var(--radio-hoja);
 }
 .pm-hoja-tirador { width: 38px; border-radius: var(--radio-mini); opacity: .8; }
-.pm-hoja-titulo { font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.15; }
-.pm-hoja-apunte { font-family: var(--font-body); font-size: 13px; }
+.pm-hoja-titulo { font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); line-height: 1.15; }
+.pm-hoja-apunte { font-family: var(--font-body); font-size: var(--t-nota); }
 .pm-buscar-campo {
   padding: 7px 12px; border: 1px solid var(--line-strong); border-radius: var(--radio-boton);
   background: var(--surface2); font-family: var(--font-body); font-weight: 500;
 }
 .pm-buscar-campo:focus { border: 1px solid var(--cdd-text); padding-bottom: 7px; }
-.pm-buscar-campo::placeholder { font-family: var(--font-body); font-size: 15px; }
-.pm-opcion { font-weight: 600; font-size: 17px; }
+.pm-buscar-campo::placeholder { font-family: var(--font-body); font-size: var(--t-cuerpo); }
+.pm-opcion { font-weight: 600; font-size: var(--t-boton); }
 .pm-opcion:active, .pm-opcion.hi { background: var(--surface2); }
 /* La ya elegida: tinta plena y un tinte, sin el filete rojo al margen (en
    Asfalto el rojo significa «gastado», no «elegido»). */
 .pm-opcion.elegida { box-shadow: inset 3px 0 0 0 var(--cdd-text); background: rgb(var(--tinta-rgb) / .05); }
 .pm-grupo-letra { font-weight: 600; letter-spacing: .1em; }
+/* El grupo del mismo país (P11): un título y no una letra, así que sin la
+   tracción de las iniciales, que en una frase entera se lee a trompicones. */
+.pm-grupo--pais .pm-grupo-letra { letter-spacing: .04em; }
 .pm-indice-letra { font-weight: 600; }
 .pm-indice-letra:active, .pm-indice-letra.activa { color: var(--cdd-text); }
 .pm-decada, .pm-anio { border-radius: var(--radio-boton); border-color: var(--line-strong); }
@@ -3998,13 +3665,6 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   .prensa .cdd-end-close:hover { color: rgb(255 255 255); background: rgb(12 13 15 / .78); border-color: transparent; }
 }
 .prensa .cdd-reveal { border-bottom: 0; }
-.prensa .cdd-reveal-brand {
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .08em; color: var(--cdd-muted);
-}
-.prensa .cdd-reveal-model {
-  font-family: var(--font-display); font-weight: 700; font-size: 34px; letter-spacing: .002em; line-height: .95;
-}
-.prensa .cdd-reveal-meta { font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; }
 
 /* EL SELLO DEL VEREDICTO, convertido en chapa: «Resuelto» sobre el verde del
    acierto, «Sin resolver» sobre superficie neutra — perder no se pinta de rojo,
@@ -4014,19 +3674,16 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-sello {
   padding: 6px 12px; border: 0; border-radius: var(--radio-celda); transform: rotate(-4deg);
   background: var(--verde); color: var(--bg);
-  font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: .08em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-campo); letter-spacing: .08em;
   box-shadow: 0 10px 24px -8px rgb(var(--velo-rgb) / .5);
 }
 .prensa-sello.tinta { background: var(--surface); color: var(--cdd-text); border: 1px solid var(--line-strong); }
-.cdd-end-sec { border-top: 1px solid var(--line); padding: 16px 18px 6px; gap: 10px; }
-.prensa .cdd-note { font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
-.cdd-ficha-datos { font-family: var(--font-mono); }
-.cdd-ficha-datos .k { font-family: var(--font-mono); letter-spacing: .08em; }
+.prensa .cdd-note { font-family: var(--font-body); font-size: var(--t-cuerpo); line-height: 1.6; }
 
 /* El botón de compartir: el mismo bloque de tinta que ADIVINAR. */
 .prensa .cdd-submit {
   border-radius: var(--radio-boton); background: var(--cdd-text); color: var(--bg);
-  font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .08em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); letter-spacing: .08em;
 }
 @media (hover: hover) {
   .prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: rgb(var(--tinta-rgb) / .86); }
@@ -4036,20 +3693,12 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 }
 .prensa .cdd-submit--ghost {
   background: transparent; color: var(--cdd-text);
-  box-shadow: inset 0 0 0 1px var(--line-strong); font-size: 17px;
+  box-shadow: inset 0 0 0 1px var(--line-strong); font-size: var(--t-boton);
 }
 .prensa .cdd-end-link {
   border-radius: var(--radio-boton); border-color: var(--line-strong);
   font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em;
 }
-
-/* La cuenta atrás: una caja con canto, etiqueta a un lado y reloj al otro. */
-.prensa .cdd-next {
-  margin: 8px 18px 0; padding: 12px 16px; justify-content: space-between;
-  border: 1px solid var(--line); border-radius: var(--radio-boton);
-}
-.prensa .cdd-next-k { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; }
-.prensa .cdd-next-clock { font-family: var(--font-mono); font-weight: 600; font-size: 20px; }
 
 /* La distribución del día: barras con canto, la tuya en tinta plena. */
 .cdd-dist-track { height: 18px; }
@@ -4084,12 +3733,10 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 }
 .pm-kicker { font-family: var(--font-mono); font-weight: 600; letter-spacing: .08em; }
 .pm-title { font-family: var(--font-display); font-weight: 700; letter-spacing: .005em; }
-.pm-body { font-family: var(--font-body); font-size: 15px; }
-.pm-label { font-family: var(--font-mono); letter-spacing: .08em; }
-.pm-dot { border-radius: 50%; }
+.pm-body { font-family: var(--font-body); font-size: var(--t-cuerpo); }
 .pm-btn {
   border-radius: var(--radio-boton);
-  font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .08em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton); letter-spacing: .08em;
 }
 .pm-btn--ghost { box-shadow: inset 0 0 0 1px var(--line-strong); }
 /* Deshabilitado = el mismo «aún no» que ADIVINAR incompleto (.is-incomplete):
@@ -4103,7 +3750,6 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   }
 }
 .pm-sello { border-radius: var(--radio-sello); }
-.scrollbar-premium::-webkit-scrollbar-thumb { border-radius: var(--radio-mini); }
 
 /* ── EL ORDEN DE LA APP: foto, historial y, abajo, el cupón ─────────────────
    Durante la partida en la app el historial —la banda elástica con scroll
@@ -4166,19 +3812,19 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 
 .fin-titulo { display: flex; flex-direction: column; gap: 6px; padding: 8px 6px 4px; }
 .fin-kicker {
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   letter-spacing: .08em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .fin-coche {
   margin: 0; font-family: var(--font-display); font-weight: 700;
-  font-size: 34px; line-height: .98; letter-spacing: .002em; color: var(--cdd-text);
+  font-size: var(--t-seccion); line-height: .98; letter-spacing: .002em; color: var(--cdd-text);
 }
-.fin-sin-ficha { margin: 0; font-family: var(--font-body); font-size: 14px; color: var(--cdd-muted); }
+.fin-sin-ficha { margin: 0; font-family: var(--font-body); font-size: var(--t-ui); color: var(--cdd-muted); }
 .fin-chapas { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 6px; }
 .fin-chapa {
   display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px;
   border-radius: var(--radio-celda); background: var(--surface2);
-  font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); color: var(--cdd-text);
 }
 .fin-chapa.mono { font-family: var(--font-mono); }
 .fin-chapa .bandera { width: 18px; height: 12px; border-radius: var(--radio-mini); object-fit: cover; }
@@ -4196,24 +3842,24 @@ button.fin-tarjeta:active { transform: translateY(1px); }
   button.fin-tarjeta:hover { border-color: var(--line-strong); }
 }
 .fin-tarjeta-titulo {
-  margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px;
+  margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta);
   letter-spacing: .005em; color: var(--cdd-text);
 }
 .fin-tarjeta-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-.fin-tarjeta-cabeza span { font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); text-align: right; }
+.fin-tarjeta-cabeza span { font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); text-align: right; }
 
 /* El marcador: los puntos del día en grande y, a su lado, la rejilla. */
 .fin-marcador { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
 .fin-marcador-cifra { display: flex; flex-direction: column; gap: 2px; }
 .fin-etiqueta {
-  font-family: var(--font-mono); font-weight: 600; font-size: 10.5px;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   letter-spacing: .08em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .fin-puntos {
-  font-family: var(--font-display); font-weight: 700; font-size: 64px; line-height: .9;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-heroe); line-height: .9;
   color: var(--cdd-text); font-variant-numeric: tabular-nums;
 }
-.fin-puntos small { font-size: 22px; font-weight: 600; color: var(--cdd-muted); padding-left: 4px; }
+.fin-puntos small { font-size: var(--t-titulo); font-weight: 600; color: var(--cdd-muted); padding-left: 4px; }
 .fin-puntos--sin { color: var(--cdd-muted); }
 
 .fin-rejilla { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
@@ -4226,7 +3872,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
   display: flex; align-items: center; justify-content: center;
   width: 15px; height: 15px; border-radius: var(--radio-mini);
   background: var(--surface2); box-shadow: inset 0 0 0 1px var(--line-strong);
-  font-style: normal; font-family: var(--font-body); font-weight: 700; font-size: 10px; line-height: 1;
+  font-style: normal; font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta); line-height: 1;
   color: var(--cdd-muted);
 }
 .fin-rejilla i::after, .fin-partida .cuadros i::after { content: "✕"; }
@@ -4235,12 +3881,12 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin-rejilla i.cerca, .fin-partida .cuadros i.cerca {
   background: rgb(var(--ambar-relleno-rgb)); box-shadow: none; color: var(--cdd-text);
 }
-.fin-rejilla i.cerca::after, .fin-partida .cuadros i.cerca::after { content: "~"; font-size: 12px; }
+.fin-rejilla i.cerca::after, .fin-partida .cuadros i.cerca::after { content: "~"; font-size: var(--t-dato); }
 
 .fin-desglose { margin: 14px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .fin-desglose div { display: flex; justify-content: space-between; gap: 12px; }
-.fin-desglose dt { font-family: var(--font-body); font-size: 14px; color: var(--cdd-muted); }
-.fin-desglose dd { margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: 14px; color: var(--cdd-text); }
+.fin-desglose dt { font-family: var(--font-body); font-size: var(--t-ui); color: var(--cdd-muted); }
+.fin-desglose dd { margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-text); }
 .fin .oro { color: var(--gold); }
 .fin-racha {
   display: flex; align-items: center; gap: 12px;
@@ -4248,7 +3894,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 }
 
 /* La fila de icono + texto + flecha: la racha, la repesca, la clasificación. */
-.fin-fila { display: flex; align-items: center; gap: 14px; }
+.fin-fila { display: flex; }
 .fin-icono {
   flex: none; display: flex; align-items: center; justify-content: center;
   width: 40px; height: 40px; border-radius: var(--radio-boton);
@@ -4260,13 +3906,13 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin-icono.verde { background: rgb(var(--verde-rgb) / .14); color: var(--verde); }
 .fin-icono.rojo { background: rgb(var(--rojo-rgb) / .12); color: var(--rojo); }
 .fin-fila-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.fin-fila-texto b { font-family: var(--font-body); font-weight: 700; font-size: 16px; color: var(--cdd-text); }
+.fin-fila-texto b { font-family: var(--font-body); font-weight: 700; font-size: var(--t-campo); color: var(--cdd-text); }
 .fin-fila-texto b.oro { color: var(--gold); }
-.fin-fila-texto span { font-family: var(--font-body); font-size: 13px; line-height: 1.4; color: var(--cdd-muted); }
+.fin-fila-texto span { font-family: var(--font-body); font-size: var(--t-nota); line-height: 1.4; color: var(--cdd-muted); }
 .fin-chev { flex: none; color: var(--cdd-muted); }
 .fin-salto {
   flex: none; display: inline-flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-size: 14px; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-size: var(--t-ui); color: var(--cdd-muted);
 }
 .fin-salto b { color: var(--cdd-text); font-weight: 600; }
 .fin-repesca { background: rgb(var(--ambar-rgb) / .07); border-color: rgb(var(--ambar-rgb) / .35); }
@@ -4283,12 +3929,12 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin-partida .cuadros i { width: 16px; height: 16px; }
 .fin-partida .texto {
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted);
 }
 .fin-lectura {
   margin: 14px 0 0; padding: 12px 14px; border-radius: var(--radio-boton);
   background: var(--surface2);
-  font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-text);
+  font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.45; color: var(--cdd-text);
 }
 
 /* Compartir y el reloj. */
@@ -4296,25 +3942,25 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 /* El plan B de compartir: el texto, seleccionado, para copiarlo a mano. Mono
    porque es lo que se va a pegar tal cual, renglón a renglón. */
 .fin-copia { display: flex; flex-direction: column; gap: 6px; }
-.fin-copia-k { font-family: var(--font-body); font-size: 14px; color: var(--cdd-muted); }
+.fin-copia-k { font-family: var(--font-body); font-size: var(--t-ui); color: var(--cdd-muted); }
 .fin-copia textarea {
   width: 100%; resize: none; padding: 12px 14px; border-radius: var(--radio-boton);
   background: var(--surface2); border: 1px solid var(--line-strong); color: var(--cdd-text);
-  font-family: var(--font-mono); font-size: 14px; line-height: 1.5;
+  font-family: var(--font-mono); font-size: var(--t-ui); line-height: 1.5;
 }
 .fin-copia textarea:focus-visible { outline: 2px solid var(--cdd-text); outline-offset: 2px; }
 .fin-reloj {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   min-height: 60px; padding: 0 16px; border-radius: var(--radio-boton); border: 1px solid var(--line);
 }
-.fin-reloj-k { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font-body); font-size: 14px; color: var(--cdd-muted); }
+.fin-reloj-k { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font-body); font-size: var(--t-ui); color: var(--cdd-muted); }
 .fin-reloj-cifra {
-  font-family: var(--font-mono); font-weight: 600; font-size: 22px; letter-spacing: .02em;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-titulo); letter-spacing: .02em;
   color: var(--cdd-text); font-variant-numeric: tabular-nums;
 }
 .fin-extra { display: flex; flex-direction: column; gap: 10px; }
 .fin-extra:empty { display: none; }
-.fin-pie { margin: 12px 0 0; font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text); }
+.fin-pie { margin: 12px 0 0; font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-text); }
 .fin .cdd-end-links { margin: 2px 0 6px; }
 .fin .cdd-dist-bar.perdidas { background: rgb(var(--tinta-rgb) / .14); }
 .fin .cdd-dist-bar.perdidas.me { background: var(--cdd-text); }
@@ -4382,12 +4028,12 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 @media (min-width: 1100px) {
   /* Sin las versalitas ni la tracción de la barra (mono 10,5px): son
      nombres de sección, en minúscula inicial como el resto de la interfaz. */
-  .prensa-topbar .prensa-clasif .lad { display: inline; font-family: var(--font-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none; }
+  .prensa-topbar .prensa-clasif .lad { display: inline; font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); letter-spacing: 0; text-transform: none; }
   .prensa-topbar > span > .prensa-seccion {
     position: relative; display: inline-flex; align-items: center; gap: 6px;
     height: 34px; padding: 0 12px; margin: 0; border: 0; cursor: pointer;
     border-radius: var(--radio-boton); background: rgb(var(--tinta-rgb) / .06); color: var(--cdd-text);
-    font-family: var(--font-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none;
+    font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); letter-spacing: 0; text-transform: none;
   }
   .prensa-seccion .aviso {
     position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%;
@@ -4400,7 +4046,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .prensa-topbar > span > .prensa-seccion:active { transform: translateY(1px); }
 @media (max-width: 1099px) {
   .barra-secciones {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--capa-barra);
     display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
     height: calc(var(--barra-alto) + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
@@ -4426,7 +4072,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
     position: absolute; top: -1px; right: -4px; width: 8px; height: 8px; border-radius: 50%;
     background: var(--ambar); box-shadow: 0 0 0 2px var(--bg);
   }
-  .barra-texto { font-family: var(--font-body); font-weight: 600; font-size: 11.5px; line-height: 1; }
+  .barra-texto { font-family: var(--font-body); font-weight: 600; font-size: var(--t-dato); line-height: 1; }
   @media (hover: hover) {
     .barra-pestana:hover { color: var(--cdd-text); }
   }
@@ -4472,7 +4118,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .clas-cab { display: flex; align-items: center; gap: 2px; min-height: 48px; margin: -4px -8px 10px 0; }
 .clas-titulo {
   flex: 1; min-width: 0; margin: 0;
-  font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; letter-spacing: .005em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-seccion); line-height: 1; letter-spacing: .005em;
   color: var(--cdd-text);
 }
 .clas-icono-boton {
@@ -4492,7 +4138,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 }
 .clas-tab {
   height: 44px; padding: 0 6px; border: 0; border-radius: var(--radio-celda); background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   transition: color var(--ms-roce) var(--curva-roce), background-color var(--ms-roce) var(--curva-roce);
 }
@@ -4517,15 +4163,15 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 }
 .clas-periodo-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .clas-kicker {
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .clas-cierre {
   display: inline-flex; align-items: center; gap: 6px; flex: none;
-  font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); color: var(--cdd-muted);
 }
 .clas-periodo-titulo {
-  margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.05;
+  margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); line-height: 1.05;
   color: var(--cdd-text);
 }
 .clas-progreso { display: flex; align-items: center; gap: 10px; }
@@ -4538,7 +4184,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .clas-regla i.hoy { background: var(--cdd-text); }
 .clas-regla.continua { display: block; height: 4px; border-radius: var(--radio-mini); background: var(--surface2); overflow: hidden; }
 .clas-regla.continua i { height: 100%; background: rgb(var(--tinta2-rgb) / .7); }
-.clas-dia { flex: none; font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted); }
+.clas-dia { flex: none; font-family: var(--font-mono); font-size: var(--t-etiqueta); color: var(--cdd-muted); }
 
 /* EL PODIO. En el DOM va 1-2-3 (lo que lee un lector de pantalla); a la vista,
    2-1-3, con el primero más alto en el centro. */
@@ -4561,20 +4207,20 @@ button.clas-podio-boton { cursor: pointer; }
 .clas-podio-boton .clas-mono { box-shadow: 0 0 0 2px var(--medalla); }
 .clas-podio-nombre {
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-body); font-weight: 700; font-size: 14px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-ui); color: var(--cdd-text);
 }
-.clas-podio-pts { margin-top: -7px; font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted); }
+.clas-podio-pts { margin-top: -7px; font-family: var(--font-mono); font-size: var(--t-dato); color: var(--cdd-muted); }
 .clas-podio-puesto.p1 .clas-podio-pts { color: var(--gold); }
 .clas-podio-peana {
   width: 100%; height: 42px; display: flex; align-items: center; justify-content: center;
   border-radius: var(--radio-celda) var(--radio-celda) var(--radio-mini) var(--radio-mini); border-top: 2px solid var(--medalla); background: var(--surface);
-  font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--medalla);
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); color: var(--medalla);
   transition: transform var(--ms-pulso) var(--curva-roce);
 }
-.clas-podio-puesto.p1 .clas-podio-peana { height: 74px; font-size: 32px; }
-.clas-podio-puesto.p2 .clas-podio-peana { height: 54px; font-size: 26px; }
+.clas-podio-puesto.p1 .clas-podio-peana { height: 74px; font-size: var(--t-seccion); }
+.clas-podio-puesto.p2 .clas-podio-peana { height: 54px; font-size: var(--t-cabecera); }
 button.clas-podio-boton:active .clas-podio-peana { transform: translateY(1px); }
-.clas-podio-puesto.p1 .clas-mono.grande { width: 58px; height: 58px; font-size: 24px; }
+.clas-podio-puesto.p1 .clas-mono.grande { width: 58px; height: 58px; font-size: var(--t-titulo); }
 
 /* El monograma: la inicial en un disco, que es lo que tiene un jugador sin
    foto. El tuyo, en negativo — la misma tinta que el chip «Tú». */
@@ -4582,9 +4228,9 @@ button.clas-podio-boton:active .clas-podio-peana { transform: translateY(1px); }
   flex: none; width: 32px; height: 32px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--surface2); color: var(--cdd-text);
-  font-family: var(--font-display); font-weight: 700; font-size: 15px; line-height: 1;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-cuerpo); line-height: 1;
 }
-.clas-mono.grande { width: 48px; height: 48px; font-size: 20px; }
+.clas-mono.grande { width: 48px; height: 48px; font-size: var(--t-pregunta); }
 .clas-mono.yo, .clas-fila.yo .clas-mono { background: var(--cdd-text); color: var(--bg); }
 
 /* LA LISTA. Filas de 52px separadas por un filete tenue, sin caja alrededor:
@@ -4602,7 +4248,7 @@ button.clas-fila { cursor: pointer; transition: background-color var(--ms-roce) 
 }
 .clas-pos {
   flex: none; width: 26px;
-  font-family: var(--font-mono); font-size: 13px; color: var(--cdd-muted); font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono); font-size: var(--t-nota); color: var(--cdd-muted); font-variant-numeric: tabular-nums;
 }
 .clas-pos.oro { color: var(--gold); font-weight: 600; }
 .clas-pos.plata { color: var(--plata); font-weight: 600; }
@@ -4611,31 +4257,31 @@ button.clas-fila { cursor: pointer; transition: background-color var(--ms-roce) 
 .clas-nombre-linea { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .clas-nombre-linea b {
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-cuerpo); color: var(--cdd-text);
 }
 .clas-fila.yo .clas-nombre-linea b { font-weight: 700; }
 .clas-tu {
   flex: none; height: 18px; padding: 0 6px; display: inline-flex; align-items: center;
   border-radius: var(--radio-sello); background: var(--cdd-text); color: var(--bg);
-  font-family: var(--font-body); font-weight: 700; font-size: 11px;
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta);
 }
 .clas-apunte {
   display: inline-flex; align-items: center; gap: 4px; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-body); font-weight: 600; font-size: 12px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-dato); color: var(--cdd-muted);
 }
 .clas-apunte svg { flex: none; }
 .clas-apunte.verde { color: var(--verde); }
 .clas-apunte.rojo { color: var(--rojo); }
 .clas-racha {
   flex: none; display: inline-flex; align-items: center; gap: 3px;
-  font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-size: var(--t-dato); color: var(--cdd-muted);
 }
 .clas-racha svg { fill: currentColor; stroke: none; }
 .clas-racha.oro { color: var(--gold); }
 .clas-puntos {
   flex: none; min-width: 44px; text-align: right;
-  font-family: var(--font-mono); font-weight: 600; font-size: 15px; color: var(--cdd-text);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-cuerpo); color: var(--cdd-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -4662,9 +4308,9 @@ button.clas-fila { cursor: pointer; transition: background-color var(--ms-roce) 
   display: flex; flex-direction: column; gap: 12px; margin: 14px 0 4px;
   padding: 16px; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
 }
-.clas-aviso-texto { margin: 0; font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-text); }
+.clas-aviso-texto { margin: 0; font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.45; color: var(--cdd-text); }
 .clas-aviso-texto.rojo { color: var(--rojo); font-weight: 600; }
-.clas-vacio { margin: 6px 0; font-family: var(--font-body); font-size: 15px; color: var(--cdd-muted); }
+.clas-vacio { margin: 6px 0; font-family: var(--font-body); font-size: var(--t-cuerpo); color: var(--cdd-muted); }
 
 /* El palmarés: una tarjeta por temporada cerrada, con sus tres medallistas. */
 .clas-palmares { display: flex; flex-direction: column; gap: 12px; }
@@ -4689,7 +4335,7 @@ button.clas-fila { cursor: pointer; transition: background-color var(--ms-roce) 
 .arch-orden {
   flex: none; height: 44px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
   border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-muted);
   transition: color var(--ms-roce) var(--curva-roce);
 }
 @media (hover: hover) {
@@ -4704,16 +4350,16 @@ button.clas-fila { cursor: pointer; transition: background-color var(--ms-roce) 
 div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-color: transparent; }
 .arch-resumen-cifra { margin: 0; display: flex; align-items: baseline; gap: 8px; }
 .arch-resumen-cifra b {
-  font-family: var(--font-display); font-weight: 700; font-size: 52px; line-height: .9;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-cifra); line-height: .9;
   color: var(--cdd-text); font-variant-numeric: tabular-nums;
 }
-.arch-resumen-cifra span { font-family: var(--font-body); font-weight: 500; font-size: 15px; color: var(--cdd-muted); }
+.arch-resumen-cifra span { font-family: var(--font-body); font-weight: 500; font-size: var(--t-cuerpo); color: var(--cdd-muted); }
 .arch-barra { display: block; height: 6px; border-radius: var(--radio-mini); background: var(--surface2); overflow: hidden; }
 .arch-barra > i {
   display: block; height: 100%; border-radius: var(--radio-mini); background: var(--cdd-text);
   transition: width var(--ms-escena) var(--curva-entra);
 }
-.arch-resumen-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.arch-resumen-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: var(--t-nota); }
 .arch-rango { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-body); font-weight: 600; color: var(--cdd-text); }
 .arch-siguiente { font-family: var(--font-body); color: var(--cdd-muted); text-align: right; }
 .arch-medalla { flex: none; }
@@ -4723,7 +4369,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 
 /* La repesca. Neutra por defecto; ÁMBAR solo cuando se puede jugar. */
 .arch-repesca {
-  display: flex; align-items: center; gap: 14px; margin: 0 16px; padding: 14px 14px 14px 16px;
+  display: flex; margin: 0 16px; padding: 14px 14px 14px 16px;
   border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
 }
 .arch-repesca.activa { background: rgb(var(--ambar-rgb) / .07); border-color: rgb(var(--ambar-rgb) / .35); }
@@ -4734,11 +4380,11 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 }
 .arch-repesca.activa .arch-repesca-icono { background: rgb(var(--ambar-rgb) / .16); color: var(--ambar); }
 .arch-repesca-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-.arch-repesca-texto b { font-family: var(--font-body); font-weight: 700; font-size: 16px; color: var(--cdd-text); }
-.arch-repesca-texto > span { font-family: var(--font-body); font-size: 13px; line-height: 1.35; color: var(--cdd-muted); }
+.arch-repesca-texto b { font-family: var(--font-body); font-weight: 700; font-size: var(--t-campo); color: var(--cdd-text); }
+.arch-repesca-texto > span { font-family: var(--font-body); font-size: var(--t-nota); line-height: 1.35; color: var(--cdd-muted); }
 .arch-repesca-ayuda {
   margin-top: 2px; padding: 0; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 12.5px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); color: var(--cdd-muted);
   text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--line-strong);
 }
 @media (hover: hover) {
@@ -4747,7 +4393,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 .arch-repesca-boton {
   flex: none; height: 40px; padding: 0 14px; border: 0; border-radius: var(--radio-celda); cursor: pointer;
   background: var(--ambar); color: rgb(var(--velo-rgb));
-  font-family: var(--font-body); font-weight: 700; font-size: 14px;
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-ui);
   transition: transform var(--ms-pulso) var(--curva-roce), opacity var(--ms-roce) var(--curva-roce);
 }
 .arch-repesca-boton:active { transform: translateY(1px); }
@@ -4760,12 +4406,12 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 .arch-chip {
   flex: none; height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px;
   border: 0; border-radius: var(--radio-celda); background: var(--surface2); cursor: pointer; white-space: nowrap;
-  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-text);
   transition: background-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
 }
 .arch-chip:active { transform: translateY(1px); }
 .arch-chip.on { background: var(--cdd-text); color: var(--bg); font-weight: 700; }
-.arch-chip .cifra { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--cdd-muted); }
+.arch-chip .cifra { font-family: var(--font-mono); font-size: var(--t-dato); font-weight: 600; color: var(--cdd-muted); }
 .arch-chip.on .cifra { color: inherit; opacity: .6; }
 .arch-chip .bandera { width: 18px; height: 12px; border-radius: var(--radio-mini); object-fit: cover; }
 
@@ -4788,7 +4434,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
 .arch-destacada-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; }
 .arch-chip-foto {
   position: absolute; top: 10px; height: 24px; padding: 0 8px; display: inline-flex; align-items: center;
-  border-radius: var(--radio-sello); font-family: var(--font-mono); font-weight: 600; font-size: 11.5px;
+  border-radius: var(--radio-sello); font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato);
 }
 .arch-chip-foto.num { right: 10px; background: rgb(var(--velo-rgb) / .78); color: rgb(242 240 235); }
 /* «Nueva» en la tinta del sistema, como el chip «Tú»: el rojo es «gastado /
@@ -4818,29 +4464,29 @@ div.arch-ficha { cursor: default; }
 .arch-ficha-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
 .arch-ficha-num {
   display: inline-flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-size: 11px; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-size: var(--t-etiqueta); color: var(--cdd-muted);
 }
 .arch-nuevo {
   height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border-radius: var(--radio-sello);
   background: var(--cdd-text); color: var(--bg);
-  font-family: var(--font-body); font-weight: 700; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta); letter-spacing: .04em; text-transform: uppercase;
 }
 .arch-ficha-nombre { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .arch-marca {
-  margin: 0; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  margin: 0; font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase;
   color: var(--cdd-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .arch-modelo {
-  font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.05; color: var(--cdd-text);
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); line-height: 1.05; color: var(--cdd-text);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.arch-modelo.grande { font-size: 23px; line-height: 1; }
+.arch-modelo.grande { font-size: var(--t-titulo); line-height: 1; }
 .arch-ficha-pie { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-top: 6px; }
-.arch-anio { font-family: var(--font-mono); font-size: 12.5px; color: var(--cdd-muted); }
+.arch-anio { font-family: var(--font-mono); font-size: var(--t-nota); color: var(--cdd-muted); }
 .arch-distintivos { display: inline-flex; gap: 4px; min-width: 0; }
 .arch-distintivo {
   flex: none; height: 22px; padding: 0 7px; display: inline-flex; align-items: center; gap: 4px;
-  border-radius: var(--radio-sello); font-family: var(--font-body); font-weight: 700; font-size: 11.5px;
+  border-radius: var(--radio-sello); font-family: var(--font-body); font-weight: 700; font-size: var(--t-dato);
   background: rgb(var(--gold-rgb) / .14); color: var(--gold);
 }
 .arch-distintivo.repesca { background: rgb(var(--ambar-rgb) / .13); color: var(--ambar); }
@@ -4853,7 +4499,7 @@ div.arch-ficha { cursor: default; }
   box-shadow: inset 0 0 0 1px var(--line-2);
 }
 .arch-logo img { width: 24px; height: 24px; object-fit: contain; }
-.arch-logo b { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.arch-logo b { font-family: var(--font-display); font-weight: 700; font-size: var(--t-campo); }
 .arch-logo.pequeno { width: 26px; height: 26px; border-radius: var(--radio-sello); }
 .arch-logo.pequeno img { width: 19px; height: 19px; }
 .arch-logo.apagado img { opacity: .4; filter: grayscale(1); }
@@ -4871,8 +4517,8 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 @media (hover: hover) {
   .arch-hueco:hover { border-color: var(--cdd-muted); }
 }
-.arch-hueco .arch-modelo { font-weight: 600; font-size: 20px; color: var(--cdd-muted); }
-.arch-hueco-sub { font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted); }
+.arch-hueco .arch-modelo { font-weight: 600; font-size: var(--t-pregunta); color: var(--cdd-muted); }
+.arch-hueco-sub { font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
 
 /* La página de un país. */
 .arch-pais {
@@ -4883,21 +4529,21 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 .arch-pais-cab .bandera { flex: none; width: 27px; height: 18px; border-radius: var(--radio-mini); object-fit: cover; }
 .arch-pais-cab h3 {
   flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1; color: var(--cdd-text);
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-cabecera); line-height: 1; color: var(--cdd-text);
 }
 .arch-pais-cab .cifra, .arch-marca-cab .cifra {
-  flex: none; font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted); font-variant-numeric: tabular-nums;
+  flex: none; font-family: var(--font-mono); font-size: var(--t-dato); color: var(--cdd-muted); font-variant-numeric: tabular-nums;
 }
 .arch-marca-seccion { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .arch-marca-cab { display: flex; align-items: center; gap: 10px; }
 .arch-marca-cab .nombre {
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-body); font-weight: 700; font-size: 16px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-campo); color: var(--cdd-text);
 }
 
 /* El set completo: la única tarjeta en oro. */
 .arch-especial {
-  flex-direction: row; align-items: center; justify-content: flex-start; gap: 14px;
+  flex-direction: row; justify-content: flex-start;
   min-height: 0; margin-top: 10px; padding: 16px; text-align: left;
   border: 1px solid rgb(var(--gold-rgb) / .45); border-radius: var(--radio-tarjeta);
   background: rgb(var(--gold-rgb) / .08);
@@ -4908,16 +4554,16 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 }
 .arch-especial-icono svg { fill: currentColor; }
 .arch-especial-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.arch-especial .kicker { font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .1em; }
-.arch-especial .titulo { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.05; }
-.arch-especial .sub { font-family: var(--font-body); font-size: 13px; }
+.arch-especial .kicker { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; }
+.arch-especial .titulo { font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); line-height: 1.05; }
+.arch-especial .sub { font-family: var(--font-body); font-size: var(--t-nota); }
 
 /* Vacío, muro de entrada y fallo: una tarjeta centrada. */
 .arch-mensaje {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; padding: 24px 16px; text-align: center;
 }
-.arch-mensaje > p { margin: 0; font-family: var(--font-body); font-size: 15px; color: var(--cdd-muted); }
+.arch-mensaje > p { margin: 0; font-family: var(--font-body); font-size: var(--t-cuerpo); color: var(--cdd-muted); }
 .arch-mensaje > p.rojo { color: var(--rojo); font-weight: 600; }
 .arch-mensaje .pm-btn { width: auto; padding-left: 24px; padding-right: 24px; }
 .arch-vacio {
@@ -4933,13 +4579,13 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 .arch-anticipo .arch-ficha:active { transform: none; }
 .arch-anticipo .arch-ficha:first-child { background: transparent; border: 1px dashed var(--line-strong); }
 .arch-anticipo-num {
-  font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: 1; letter-spacing: .02em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-cifra); line-height: 1; letter-spacing: .02em;
   color: var(--faint);
 }
 .arch-puerta { margin: 4px 0 0; }
-.arch-puerta .arch-vacio-titulo { margin: 0; font-size: 22px; line-height: 1.1; }
-.arch-vacio-titulo { margin: 4px 0 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--cdd-text); }
-.arch-vacio-texto { margin: 0; max-width: 36ch; font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-muted); }
+.arch-puerta .arch-vacio-titulo { margin: 0; font-size: var(--t-titulo); line-height: 1.1; }
+.arch-vacio-titulo { margin: 4px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); color: var(--cdd-text); }
+.arch-vacio-texto { margin: 0; max-width: 36ch; font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.45; color: var(--cdd-muted); }
 
 /* EL DETALLE: la portada que se voltea. */
 .arch-detalle { display: flex; flex-direction: column; padding: 0 16px 16px; }
@@ -4955,61 +4601,56 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
   background: rgb(var(--bg-rgb) / .62); color: var(--cdd-text);
 }
 .arch-detalle-velo p {
-  margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+  margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato); letter-spacing: .1em; text-transform: uppercase;
 }
 .arch-detalle > .arch-marca { margin-top: 16px; }
 .arch-detalle-modelo {
-  margin: 4px 0 0; font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; color: var(--cdd-text);
+  margin: 4px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-seccion); line-height: 1; color: var(--cdd-text);
 }
 .arch-detalle-chapas { margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.arch-detalle-texto { margin: 6px 0 0; font-family: var(--font-body); font-size: 15px; line-height: 1.5; color: var(--cdd-text); }
+.arch-detalle-texto { margin: 6px 0 0; font-family: var(--font-body); font-size: var(--t-cuerpo); line-height: 1.5; color: var(--cdd-text); }
 .arch-detalle > .pm-btn { margin-top: 18px; }
 .arch-pista {
-  margin: 8px 0 0; text-align: center; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--cdd-muted);
+  margin: 8px 0 0; text-align: center; font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .06em; color: var(--cdd-muted);
 }
 .arch-dorso-cab {
   display: flex; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .arch-dorso-cab .num { flex: none; color: var(--cdd-text); font-weight: 600; }
 .arch-etiqueta {
-  margin: 16px 0 0; font-family: var(--font-mono); font-weight: 600; font-size: 10.5px;
+  margin: 16px 0 0; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .arch-tirada { margin-top: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radio-boton); background: var(--surface2); }
 .arch-tirada .arch-etiqueta { margin-top: 0; }
-.arch-tirada .etiqueta { margin: 4px 0 0; font-weight: 700; font-size: 19px; }
-.arch-tirada .apoyo { margin: 2px 0 0; font-size: 11.5px; }
+.arch-tirada .etiqueta { margin: 4px 0 0; font-weight: 700; font-size: var(--t-pregunta); }
+.arch-tirada .apoyo { margin: 2px 0 0; font-size: var(--t-dato); }
 .arch-tirada.t-soldout { border-color: rgb(var(--gold-rgb) / .45); background: rgb(var(--gold-rgb) / .08); }
 .arch-datos { margin-top: 4px; }
 .arch-dato { padding: 10px 0; border-bottom: 1px solid var(--line-2); }
-.arch-dato .k { font-family: var(--font-body); font-weight: 500; font-size: 14px; letter-spacing: 0; text-transform: none; }
-.arch-dato .v { font-size: 13.5px; font-weight: 600; }
+.arch-dato .k { font-family: var(--font-body); font-weight: 500; font-size: var(--t-ui); letter-spacing: 0; text-transform: none; }
+.arch-dato .v { font-size: var(--t-nota); font-weight: 600; }
 
 /* Los diálogos del archivo (¿sortear?, cómo funciona la repesca). */
 .arch-dialogo { display: flex; flex-direction: column; gap: 14px; padding: 24px 22px 14px; text-align: left; }
-.arch-dialogo-fila { display: flex; align-items: flex-start; justify-content: space-between; margin: -8px -14px 0 0; }
-.arch-dialogo-fila .arch-dialogo-icono { margin-top: 8px; }
-.arch-dialogo-icono {
-  flex: none; width: 48px; height: 48px; border-radius: var(--radio-boton); display: flex; align-items: center; justify-content: center;
-  background: rgb(var(--ambar-rgb) / .15); color: var(--ambar);
-}
+.arch-dialogo-fila { display: flex; align-items: flex-start; justify-content: space-between; }
 .arch-dialogo-cab { display: flex; flex-direction: column; gap: 6px; }
 .arch-kicker {
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .arch-kicker.ambar { color: var(--ambar); }
-.arch-dialogo-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; color: var(--cdd-text); }
-.arch-dialogo-texto { margin: 0; font-family: var(--font-body); font-size: 15.5px; line-height: 1.5; color: var(--cdd-muted); }
+.arch-dialogo-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-seccion); line-height: 1; color: var(--cdd-text); }
+.arch-dialogo-texto { margin: 0; font-family: var(--font-body); font-size: var(--t-cuerpo); line-height: 1.5; color: var(--cdd-muted); }
 .arch-reglas {
   margin: 0; padding: 4px 0; list-style: none; display: flex; flex-direction: column; gap: 10px;
-  font-family: var(--font-body); font-weight: 600; font-size: 14.5px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-text);
 }
 .arch-reglas li { display: flex; align-items: center; gap: 10px; }
 .arch-reglas svg { flex: none; color: var(--cdd-muted); }
 .medio {
   flex: none; width: 18px; text-align: center;
-  font-family: var(--font-mono); font-weight: 600; font-size: 13px; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-nota); color: var(--cdd-muted);
 }
 .pm-btn.arch-boton-ambar { background: var(--ambar); color: rgb(var(--velo-rgb)); }
 @media (hover: hover) {
@@ -5017,22 +4658,22 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 }
 .arch-ahora-no {
   height: 44px; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 14.5px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-muted);
 }
 .arch-ahora-no:disabled { opacity: .5; cursor: default; }
 .arch-ayuda-lista { display: flex; flex-direction: column; gap: 8px; }
 .arch-ayuda-fila {
-  display: flex; gap: 12px; padding: 12px; border-radius: var(--radio-boton);
+  display: flex; padding: 12px; border-radius: var(--radio-boton);
   background: var(--surface2);
 }
 .arch-ayuda-icono {
   flex: none; width: 32px; height: 32px; border-radius: var(--radio-celda); display: flex; align-items: center; justify-content: center;
-  background: rgb(var(--ambar-rgb) / .15); color: var(--ambar);
+  background: rgb(var(--ambar-rgb) / .15);
 }
 .arch-ayuda-icono .medio { color: var(--ambar); }
 .arch-ayuda-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.arch-ayuda-texto b { font-family: var(--font-body); font-weight: 700; font-size: 14.5px; color: var(--cdd-text); }
-.arch-ayuda-texto span { font-family: var(--font-body); font-size: 13.5px; line-height: 1.45; color: var(--cdd-muted); }
+.arch-ayuda-texto b { font-family: var(--font-body); font-weight: 700; font-size: var(--t-ui); color: var(--cdd-text); }
+.arch-ayuda-texto span { font-family: var(--font-body); font-size: var(--t-nota); line-height: 1.45; color: var(--cdd-muted); }
 .arch-dialogo > .pm-btn { margin-top: 4px; }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -5047,18 +4688,18 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
   flex: none; width: 64px; height: 64px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: var(--cdd-text); color: var(--bg);
-  font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-seccion); line-height: 1;
 }
 .perf-id-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .perf-nick {
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; color: var(--cdd-text);
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-cabecera); line-height: 1; color: var(--cdd-text);
 }
 .perf-nick.sin { color: var(--cdd-muted); }
-.perf-desde { font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.perf-desde { font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
 .perf-rango {
   margin-top: 2px; height: 24px; padding: 0 8px; display: inline-flex; align-items: center; gap: 5px;
-  border-radius: var(--radio-sello); font-family: var(--font-body); font-weight: 700; font-size: 12px;
+  border-radius: var(--radio-sello); font-family: var(--font-body); font-weight: 700; font-size: var(--t-dato);
 }
 .perf-rango svg { fill: currentColor; }
 .perf-rango.tier-gold { background: rgb(var(--gold-rgb) / .14); color: var(--gold); }
@@ -5089,18 +4730,18 @@ button.perf-cifra:active { transform: translateY(1px); }
 }
 .perf-cifra .k {
   display: flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-weight: 600; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase;
   color: var(--cdd-muted);
 }
 .perf-cifra.clic .k { justify-content: space-between; }
 .perf-cifra .v {
   display: flex; align-items: baseline; gap: 6px; min-width: 0;
-  font-family: var(--font-display); font-weight: 700; font-size: 40px; line-height: .95; color: var(--cdd-text);
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-cifra); line-height: .95; color: var(--cdd-text);
   font-variant-numeric: tabular-nums;
 }
 .perf-cifra .v small {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: 17px; font-weight: 600; color: var(--cdd-muted);
+  font-size: var(--t-boton); font-weight: 600; color: var(--cdd-muted);
 }
 .perf-cifra.oro { background: rgb(var(--gold-rgb) / .09); border-color: rgb(var(--gold-rgb) / .3); }
 /* Oro SOBRE SU PROPIO TINTE: un 15 % hacia la tinta. De día oscurece y de noche
@@ -5115,12 +4756,12 @@ button.perf-cifra:active { transform: translateY(1px); }
   border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
 }
 .perf-tarjeta-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.perf-tarjeta-cab h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 19px; color: var(--cdd-text); }
-.perf-tarjeta-cab span { font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.perf-tarjeta-cab h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); color: var(--cdd-text); }
+.perf-tarjeta-cab span { font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
 .perf-dist { display: flex; flex-direction: column; gap: 6px; }
 .perf-dist-fila { display: grid; grid-template-columns: 16px minmax(0, 1fr) 28px; align-items: center; gap: 10px; }
 .perf-dist-k, .perf-dist-n {
-  display: flex; align-items: center; font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted);
+  display: flex; align-items: center; font-family: var(--font-mono); font-size: var(--t-dato); color: var(--cdd-muted);
 }
 .perf-dist-n { justify-content: flex-end; }
 .perf-dist-barra { display: block; height: 16px; border-radius: var(--radio-mini); background: var(--surface2); overflow: hidden; }
@@ -5135,13 +4776,13 @@ button.perf-cifra:active { transform: translateY(1px); }
 .perf-podios { margin-bottom: 12px; }
 .perf-nota {
   margin: 0 0 12px; padding: 14px 16px; border-radius: var(--radio-tarjeta); background: var(--surface2);
-  font-family: var(--font-body); font-size: 14px; line-height: 1.45; color: var(--cdd-muted);
+  font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.45; color: var(--cdd-muted);
 }
 
 /* Los ajustes: una lista con canto, filas de 58px. */
 .perf-ajustes { display: flex; flex-direction: column; margin-top: 8px; }
 .grupo-titulo {
-  margin: 0 0 8px 4px; font-family: var(--font-mono); font-weight: 500; font-size: 11px;
+  margin: 0 0 8px 4px; font-family: var(--font-mono); font-weight: 500; font-size: var(--t-etiqueta);
   letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .grupo-lista { overflow: hidden; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line); }
@@ -5157,25 +4798,25 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   button.grupo-fila:hover { background: rgb(var(--tinta-rgb) / .03); }
 }
 .grupo-fila-texto { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.grupo-fila-texto b { font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--cdd-text); }
+.grupo-fila-texto b { font-family: var(--font-body); font-weight: 600; font-size: var(--t-cuerpo); color: var(--cdd-text); }
 .grupo-fila-texto span {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted);
 }
 .grupo-chev { flex: none; color: var(--cdd-muted); }
 .segmentado { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: var(--radio-celda); background: var(--bg); }
 /* 44 px: el alto de un objetivo táctil (antes 32). Cabe en la fila de 58. */
 .segmentado button {
   height: 44px; padding: 0 11px; border: 0; border-radius: var(--radio-celda); background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 13px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); color: var(--cdd-muted);
   transition: background-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce);
 }
 .segmentado button.on { background: var(--surface2); color: var(--cdd-text); font-weight: 700; box-shadow: inset 0 0 0 1px var(--line); }
 .perf-borrar {
   align-self: center; margin-top: 10px; height: 44px; padding: 0 12px; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 13.5px; color: var(--rojo);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); color: var(--rojo);
 }
-.perf-error { margin: 10px 0 0; text-align: center; font-family: var(--font-body); font-size: 14px; color: var(--rojo); }
+.perf-error { margin: 10px 0 0; text-align: center; font-family: var(--font-body); font-size: var(--t-ui); color: var(--rojo); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    CÓMO SE JUEGA y CÓMO SE PUNTÚA «ASFALTO» (htp-*, pun-*)
@@ -5188,12 +4829,12 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
    ═══════════════════════════════════════════════════════════════════════ */
 .htp-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin: -6px -10px 4px 0; }
 .htp-kicker {
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase;
   color: var(--cdd-muted);
 }
 .htp-saltar {
   height: 44px; padding: 0 12px; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-muted);
 }
 @media (hover: hover) {
   .htp-saltar:hover { color: var(--cdd-text); }
@@ -5203,8 +4844,8 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 @keyframes htpEntraAtras { from { opacity: 0; transform: translateX(-14px); } }
 .htp-paso { display: flex; flex-direction: column; gap: 10px; animation: htpEntra var(--ms-sello) var(--curva-entra) both; }
 .htp-paso.atras { animation-name: htpEntraAtras; }
-.htp-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; color: var(--cdd-text); }
-.htp-texto { margin: 0; font-family: var(--font-body); font-size: 16px; line-height: 1.5; color: var(--cdd-muted); }
+.htp-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-seccion); line-height: 1; color: var(--cdd-text); }
+.htp-texto { margin: 0; font-family: var(--font-body); font-size: var(--t-campo); line-height: 1.5; color: var(--cdd-muted); }
 
 /* Paso 1: la foto que se aleja. */
 .htp-foto {
@@ -5230,7 +4871,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   position: absolute; left: 0; right: 0; bottom: 14px; margin-inline: auto; z-index: 4;
   width: 58px; height: 26px; border-radius: var(--radio-pildora);
   background: rgb(12 13 15 / .62); color: rgb(242 240 235);
-  font-family: var(--font-mono); font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato); font-variant-numeric: tabular-nums;
 }
 .htp-chip span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; }
 .htp-chip .l1 { opacity: 1; animation: htpL1 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
@@ -5273,14 +4914,14 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .htp-celda .bandera { flex: none; width: 18px; height: 12px; border-radius: var(--radio-mini); object-fit: cover; }
 .htp-celda svg { flex: none; }
 .htp-celda-texto { display: flex; flex-direction: column; min-width: 0; }
-.htp-celda-texto b { font-family: var(--font-body); font-weight: 600; font-size: 15px; line-height: 1.2; color: var(--cdd-text); }
-.htp-celda-texto b.mono { font-family: var(--font-mono); font-size: 14px; }
+.htp-celda-texto b { font-family: var(--font-body); font-weight: 600; font-size: var(--t-cuerpo); line-height: 1.2; color: var(--cdd-text); }
+.htp-celda-texto b.mono { font-family: var(--font-mono); font-size: var(--t-ui); }
 .htp-celda-texto b.tachado { color: var(--cdd-muted); text-decoration: line-through; }
-.htp-celda-texto span { font-family: var(--font-body); font-weight: 600; font-size: 11.5px; }
+.htp-celda-texto span { font-family: var(--font-body); font-weight: 600; font-size: var(--t-dato); }
 .htp-celda.bien { background: rgb(var(--verde-rgb) / .11); border-color: rgb(var(--verde-rgb) / .38); color: var(--verde); }
 .htp-celda.cerca { background: rgb(var(--ambar-rgb) / .11); border-color: rgb(var(--ambar-rgb) / .38); color: var(--ambar); }
 .htp-celda.mal { color: var(--rojo); }
-.htp-ej-texto { font-family: var(--font-body); font-size: 14.5px; line-height: 1.4; color: var(--cdd-text); }
+.htp-ej-texto { font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.4; color: var(--cdd-text); }
 
 /* El pie: los puntos de paso y el botón. */
 .htp-pie { display: flex; align-items: center; gap: 12px; padding-top: 14px; }
@@ -5295,20 +4936,20 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 
 /* LA PUNTUACIÓN (Puntuacion.jsx): la curva de puntos y la escalera de racha. */
 .pun-seccion { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
-.pun-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--cdd-text); }
-.pun-texto { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.45; color: var(--cdd-muted); }
-.pun-nota { margin: 0; font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.pun-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); color: var(--cdd-text); }
+.pun-texto { margin: 0; font-family: var(--font-body); font-size: var(--t-cuerpo); line-height: 1.45; color: var(--cdd-muted); }
+.pun-nota { margin: 0; font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
 .pun-tabla {
   display: flex; flex-direction: column; gap: 8px; padding: 16px; margin-top: 4px;
   border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
 }
 .pun-kicker {
-  padding-bottom: 2px; font-family: var(--font-mono); font-weight: 600; font-size: 10.5px;
+  padding-bottom: 2px; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .pun-fila { display: grid; grid-template-columns: 16px minmax(0, 1fr) 44px; gap: 10px; align-items: center; }
-.pun-k { font-family: var(--font-mono); font-size: 12px; color: var(--cdd-muted); }
-.pun-v { text-align: right; font-family: var(--font-mono); font-weight: 600; font-size: 13px; color: var(--cdd-text); }
+.pun-k { font-family: var(--font-mono); font-size: var(--t-dato); color: var(--cdd-muted); }
+.pun-v { text-align: right; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-nota); color: var(--cdd-text); }
 .pun-barra { display: block; height: 14px; border-radius: var(--radio-mini); background: var(--surface2); overflow: hidden; }
 .pun-barra i { display: block; height: 100%; border-radius: var(--radio-mini); background: rgb(var(--tinta2-rgb) / .5); transform-origin: left center; }
 .pun-fila.n1 .pun-barra i { background: var(--cdd-text); }
@@ -5326,9 +4967,9 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   border-radius: var(--radio-tarjeta); background: rgb(var(--gold-rgb) / .08); border: 1px solid rgb(var(--gold-rgb) / .3);
 }
 .pun-peldano { display: flex; flex-direction: column; gap: 3px; }
-.pun-dias { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-body); font-size: 12.5px; color: var(--cdd-muted); }
+.pun-dias { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
 .pun-dias svg { fill: currentColor; stroke: none; }
-.pun-peldano b { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: rgb(var(--gold-rgb) / .6); }
+.pun-peldano b { font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); color: rgb(var(--gold-rgb) / .6); }
 .pun-peldano.p2 b { color: rgb(var(--gold-rgb) / .8); }
 .pun-peldano.p3 b, .pun-peldano.p3 .pun-dias { color: var(--gold); }
 
@@ -5352,11 +4993,11 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .sorteo-columna { width: 100%; max-width: 358px; display: flex; flex-direction: column; gap: 12px; }
 .sorteo-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px; }
 .sorteo-kicker {
-  font-family: var(--font-mono); font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase;
   color: rgb(var(--sorteo-acento)); transition: color var(--ms-escena) var(--curva-roce);
 }
 .sorteo-pendientes {
-  font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: rgb(125 131 140);
+  font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .06em; text-transform: uppercase; color: rgb(125 131 140);
 }
 
 /* 1 · EL VISOR SE ABRE: el marco sube y las esquinas entran desde fuera. */
@@ -5399,7 +5040,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .sorteo-ficha .rayas { display: flex; flex-direction: column; gap: 5px; width: 72px; }
 .sorteo-ficha .rayas i { display: block; height: 6px; border-radius: var(--radio-mini); background: rgb(229 64 42); }
 .sorteo-ficha .rayas i + i { height: 3px; }
-.sorteo-ficha .num { font-family: var(--font-mono); font-weight: 500; font-size: 12px; letter-spacing: .14em; }
+.sorteo-ficha .num { font-family: var(--font-mono); font-weight: 500; font-size: var(--t-dato); letter-spacing: .14em; }
 @keyframes sorteoGira { to { transform: translateY(-93.75%); } }
 @keyframes sorteoBorra { 12% { filter: blur(2.6px); } 62% { filter: blur(1.2px); } 88%, 100% { filter: blur(0); } }
 .sorteo[data-fase="girar"] .sorteo-carrete,
@@ -5438,7 +5079,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   position: absolute; left: 22px; bottom: 20px; z-index: 6;
   height: 26px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px;
   border-radius: var(--radio-sello); background: rgb(12 13 15 / .78); color: rgb(242 240 235);
-  font-family: var(--font-mono); font-weight: 600; font-size: 12px; letter-spacing: .02em; font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato); letter-spacing: .02em; font-variant-numeric: tabular-nums;
 }
 /* El sello, con la caída del sello grande del final (viaja como una escena). */
 @keyframes sorteoSello { from { opacity: 0; transform: scale(1.7) rotate(-14deg); } to { opacity: 1; transform: rotate(-6deg); } }
@@ -5446,7 +5087,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   position: absolute; right: 16px; top: 18px; z-index: 7;
   height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px;
   border-radius: var(--radio-celda); background: rgb(var(--sorteo-acento)); color: rgb(12 13 15);
-  font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .08em; text-transform: uppercase;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton); letter-spacing: .08em; text-transform: uppercase;
   box-shadow: 0 8px 20px rgb(0 0 0 / .45);
   animation: sorteoSello var(--ms-escena) var(--curva-sello) both;
 }
@@ -5455,12 +5096,12 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 @keyframes sorteoTexto { from { opacity: 0; } }
 .sorteo-texto { min-height: 112px; padding: 6px 2px 0; }
 .sorteo-estado {
-  margin: 0; font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  margin: 0; font-family: var(--font-mono); font-size: var(--t-dato); letter-spacing: .12em; text-transform: uppercase;
   color: rgb(167 172 180); animation: sorteoTexto var(--ms-sello) var(--curva-roce) both;
 }
 .sorteo-revelado { display: flex; flex-direction: column; gap: 8px; animation: sorteoTexto var(--ms-sello) var(--curva-roce) var(--ms-sello) both; }
-.sorteo-revelado b { font-family: var(--font-display); font-weight: 700; font-size: 32px; line-height: 1; }
-.sorteo-revelado span { font-family: var(--font-body); font-size: 15px; line-height: 1.45; color: rgb(167 172 180); }
+.sorteo-revelado b { font-family: var(--font-display); font-weight: 700; font-size: var(--t-seccion); line-height: 1; }
+.sorteo-revelado span { font-family: var(--font-body); font-size: var(--t-cuerpo); line-height: 1.45; color: rgb(167 172 180); }
 
 /* MENOS MOVIMIENTO: el silenciador global ya apaga las animaciones; aquí se
    coloca lo que ellas habrían dejado puesto — el carrete en su último número
@@ -5483,7 +5124,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .rep-volver {
   justify-self: start; height: 44px; padding: 0 8px; display: inline-flex; align-items: center; gap: 2px;
   border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 15px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-cuerpo); color: var(--cdd-muted);
   transition: color var(--ms-roce) var(--curva-roce);
 }
 @media (hover: hover) {
@@ -5491,20 +5132,20 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 }
 .rep-titulo {
   display: inline-flex; align-items: center; gap: 8px;
-  font-family: var(--font-display); font-weight: 700; font-size: 21px; color: var(--cdd-text);
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); color: var(--cdd-text);
 }
 .rep-titulo svg { color: var(--ambar); }
 .rep-modo { justify-self: end; }
 .rep-modo-chip {
   height: 30px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px;
   border-radius: var(--radio-celda); background: rgb(var(--gold-rgb) / .14); color: var(--gold);
-  font-family: var(--font-body); font-weight: 700; font-size: 12.5px;
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-nota);
 }
 
 .rep-reglas {
   height: 36px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   border-radius: var(--radio-celda); background: rgb(var(--ambar-rgb) / .08); border: 1px solid rgb(var(--ambar-rgb) / .28);
-  font-family: var(--font-body); font-weight: 600; font-size: 12.5px; color: var(--ambar);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); color: var(--ambar);
 }
 .rep-reglas > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .rep-reglas .medio { width: auto; color: inherit; }
@@ -5515,17 +5156,13 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid rgb(var(--gold-rgb) / .35);
 }
 .rep-veterano-cab { display: flex; align-items: center; gap: 12px; }
-.rep-veterano-icono {
-  flex: none; width: 44px; height: 44px; border-radius: var(--radio-boton); display: flex; align-items: center; justify-content: center;
-  background: rgb(var(--gold-rgb) / .14); color: var(--gold);
-}
 .rep-veterano-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.rep-veterano-texto b { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; color: var(--gold); }
-.rep-veterano-texto span { font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted); }
+.rep-veterano-texto b { font-family: var(--font-display); font-weight: 700; font-size: var(--t-cabecera); line-height: 1; color: var(--gold); }
+.rep-veterano-texto span { font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
 .rep-veterano-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .rep-veterano-chips span {
   height: 28px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: var(--radio-sello);
-  background: var(--surface2); font-family: var(--font-body); font-weight: 700; font-size: 12.5px; color: var(--cdd-text);
+  background: var(--surface2); font-family: var(--font-body); font-weight: 700; font-size: var(--t-nota); color: var(--cdd-text);
 }
 
 /* El canto del marco de la foto: ámbar en la repesca, oro en el Veterano. Va
@@ -5555,8 +5192,8 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 }
 .boton-mantener.manteniendo { transform: scale(.985); }
 .mantener-texto { position: relative; }
-.rep-mantener-nota { margin: -4px 0 0; text-align: center; font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
-.rep-fin-nota { margin: 12px 0 0; font-family: var(--font-body); font-size: 14px; line-height: 1.45; color: var(--cdd-muted); }
+.rep-mantener-nota { margin: -4px 0 0; text-align: center; font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
+.rep-fin-nota { margin: 12px 0 0; font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.45; color: var(--cdd-muted); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    LA HOJA DE SELECCIÓN «ASFALTO» (SelectorHoja / SelectorLista)
@@ -5581,10 +5218,10 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   background: rgb(255 255 255); color: rgb(19 20 22); box-shadow: inset 0 0 0 1px var(--line-2);
 }
 .pm-opcion-logo img { width: 24px; height: 24px; object-fit: contain; }
-.pm-opcion-logo b { font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+.pm-opcion-logo b { font-family: var(--font-display); font-weight: 700; font-size: var(--t-cuerpo); }
 .pm-opcion-pais {
   flex: none; display: inline-flex; align-items: center; gap: 7px;
-  font-family: var(--font-body); font-weight: 500; font-size: 13px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 500; font-size: var(--t-nota); color: var(--cdd-muted);
 }
 .pm-opcion-pais .bandera { width: 18px; height: 12px; border-radius: var(--radio-mini); }
 
@@ -5614,11 +5251,11 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
 }
 .sum-entrar p { margin: 0; display: flex; flex-direction: column; gap: 4px; }
-.sum-entrar b { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.05; color: var(--cdd-text); }
-.sum-entrar span { font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-muted); }
+.sum-entrar b { font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); line-height: 1.05; color: var(--cdd-text); }
+.sum-entrar span { font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.45; color: var(--cdd-muted); }
 .sum-pie { display: flex; justify-content: center; margin-top: 18px; }
 .sum-pie a {
-  padding: 12px; font-family: var(--font-body); font-weight: 600; font-size: 13px;
+  padding: 12px; font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota);
   color: var(--cdd-muted); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
 }
 @media (hover: hover) {
@@ -5636,34 +5273,34 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .dlg { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 20px; text-align: left; }
 .dlg-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin: -6px -12px -4px 0; }
 .dlg-titulo {
-  margin: 6px 0 0; font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1.02;
+  margin: 6px 0 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-cabecera); line-height: 1.02;
   letter-spacing: .003em; color: var(--cdd-text);
 }
-.dlg-texto { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.5; color: var(--cdd-muted); }
-.dlg-nota { margin: -6px 0 0; font-family: var(--font-body); font-size: 13px; line-height: 1.45; color: var(--cdd-muted); }
-.dlg-contador { text-align: right; font-family: var(--font-mono); font-size: 12px; }
-.dlg-error { margin: -4px 0 0; font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--rojo); }
+.dlg-texto { margin: 0; font-family: var(--font-body); font-size: var(--t-cuerpo); line-height: 1.5; color: var(--cdd-muted); }
+.dlg-nota { margin: -6px 0 0; font-family: var(--font-body); font-size: var(--t-nota); line-height: 1.45; color: var(--cdd-muted); }
+.dlg-contador { text-align: right; font-family: var(--font-mono); font-size: var(--t-dato); }
+.dlg-error { margin: -4px 0 0; font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--rojo); }
 .dlg-aviso {
   margin: 0; padding: 12px 14px; border-radius: var(--radio-boton); background: rgb(var(--ambar-rgb) / .1);
-  font-family: var(--font-body); font-size: 14px; line-height: 1.45; color: var(--cdd-text);
+  font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.45; color: var(--cdd-text);
 }
 .dlg-campo { display: flex; flex-direction: column; gap: 8px; }
-.dlg-etiqueta { font-family: var(--font-body); font-weight: 600; font-size: 13.5px; color: var(--cdd-text); }
+.dlg-etiqueta { font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); color: var(--cdd-text); }
 .dlg-input {
   width: 100%; box-sizing: border-box; height: 50px; padding: 0 14px;
   border: 1px solid var(--line-strong); border-radius: var(--radio-boton); background: var(--surface2);
-  font-family: var(--font-body); font-weight: 500; font-size: 16px; color: var(--cdd-text); outline: none;
+  font-family: var(--font-body); font-weight: 500; font-size: var(--t-campo); color: var(--cdd-text); outline: none;
   transition: border-color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce);
 }
 .dlg-input::placeholder { color: var(--placeholder); font-weight: 500; }
 .dlg-input:focus { border-color: var(--cdd-text); box-shadow: 0 0 0 1px var(--cdd-text); }
 .dlg-input[aria-invalid="true"] { border-color: var(--rojo); box-shadow: 0 0 0 1px var(--rojo); }
 .dlg-input:disabled { opacity: .5; }
-.dlg-codigo { height: 60px; text-align: center; font-family: var(--font-mono); font-weight: 600; font-size: 26px; letter-spacing: .4em; padding-left: calc(14px + .4em); }
-.dlg-firma { height: 56px; font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: .04em; text-transform: uppercase; }
+.dlg-codigo { height: 60px; text-align: center; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-cabecera); letter-spacing: .4em; padding-left: calc(14px + .4em); }
+.dlg-firma { height: 56px; font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); letter-spacing: .04em; text-transform: uppercase; }
 /* El ejemplo, a cuerpo de texto: en la letra de la firma, «P. EJ. MAX12» se
    leía como un apodo ya escrito, no como un ejemplo (P22). */
-.dlg-firma::placeholder { font-family: var(--font-body); font-weight: 500; font-size: 16px; letter-spacing: 0; text-transform: none; }
+.dlg-firma::placeholder { font-family: var(--font-body); font-weight: 500; font-size: var(--t-campo); letter-spacing: 0; text-transform: none; }
 .dlg-area { height: auto; min-height: 128px; padding: 12px 14px; resize: none; line-height: 1.45; }
 .dlg .pm-btn { width: 100%; }
 .dlg .segmentado { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
@@ -5676,8 +5313,8 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .dlg-trato { margin: 0; display: flex; flex-direction: column; gap: 0; border-radius: var(--radio-boton); background: var(--surface2); }
 .dlg-trato > div { padding: 12px 14px; }
 .dlg-trato > div + div { border-top: 1px solid var(--line); }
-.dlg-trato dt { font-family: var(--font-body); font-weight: 700; font-size: 14px; color: var(--cdd-text); }
-.dlg-trato dd { margin: 4px 0 0; font-family: var(--font-body); font-size: 13.5px; line-height: 1.45; color: var(--cdd-muted); }
+.dlg-trato dt { font-family: var(--font-body); font-weight: 700; font-size: var(--t-ui); color: var(--cdd-text); }
+.dlg-trato dd { margin: 4px 0 0; font-family: var(--font-body); font-size: var(--t-nota); line-height: 1.45; color: var(--cdd-muted); }
 
 /* Google: su logo con la forma de nuestros botones, como botón SECUNDARIO —
    superficie, canto y texto en tinta—, que es el estilo claro u oscuro que
@@ -5687,35 +5324,35 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .dlg-google {
   width: 100%; height: 52px; display: flex; align-items: center; justify-content: center; gap: 12px;
   border: 1px solid var(--line-strong); border-radius: var(--radio-boton); background: var(--surface); cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 15.5px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-cuerpo); color: var(--cdd-text);
   transition: transform var(--ms-pulso) var(--curva-roce);
 }
 .dlg-google:active { transform: translateY(1px); }
 .dlg-google:disabled { opacity: .6; }
 .dlg-o { display: flex; align-items: center; gap: 12px; margin: 2px 0; }
 .dlg-o i { flex: 1; height: 1px; background: var(--line); }
-.dlg-o span { font-family: var(--font-body); font-size: 13px; color: var(--cdd-muted); }
+.dlg-o span { font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
 .dlg-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .dlg-enlace {
   padding: 10px 0; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-text);
   text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
 }
 .dlg-enlace:disabled { opacity: .5; cursor: default; }
-.dlg-espera { font-family: var(--font-body); font-size: 13.5px; color: var(--cdd-muted); }
+.dlg-espera { font-family: var(--font-body); font-size: var(--t-nota); color: var(--cdd-muted); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    EL PERFIL DE OTRO JUGADOR y LOS PODIOS «ASFALTO»
    ═══════════════════════════════════════════════════════════════════════ */
 .pub-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin: -6px -10px 6px 0; }
-.pub-kicker { font-family: var(--font-body); font-weight: 600; font-size: 13.5px; color: var(--cdd-muted); }
-.perf-cifra-nota { margin-top: -2px; font-family: var(--font-body); font-size: 12.5px; color: var(--ambar); }
+.pub-kicker { font-family: var(--font-body); font-weight: 600; font-size: var(--t-nota); color: var(--cdd-muted); }
+.perf-cifra-nota { margin-top: -2px; font-family: var(--font-body); font-size: var(--t-nota); color: var(--ambar); }
 
 /* Los podios: una tarjeta por medalla, con el metal en el disco y en el
    puesto, y el periodo debajo. */
 .podios { display: flex; flex-direction: column; gap: 14px; }
 .podios-titulo {
-  margin: 0 0 8px 4px; font-family: var(--font-mono); font-weight: 500; font-size: 11px;
+  margin: 0 0 8px 4px; font-family: var(--font-mono); font-weight: 500; font-size: var(--t-etiqueta);
   letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
 }
 .podios-fila { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -5723,8 +5360,8 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   gap: 10px; padding: 10px 14px 10px 12px; border: 1px solid var(--line);
   border-radius: var(--radio-boton); background: var(--surface);
 }
-.prensa-medalla .puesto { font-family: var(--font-body); font-weight: 700; font-size: 14px; letter-spacing: 0; text-transform: none; }
-.prensa-medalla .de { font-family: var(--font-body); font-size: 12.5px; }
+.prensa-medalla .puesto { font-family: var(--font-body); font-weight: 700; font-size: var(--t-ui); letter-spacing: 0; text-transform: none; }
+.prensa-medalla .de { font-family: var(--font-body); font-size: var(--t-nota); }
 
 /* ═══════════════════════════════════════════════════════════════════════
    SIN CUADRITOS. El icono dentro de un cuadrado de color pastel es el tic de
@@ -5779,8 +5416,8 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   display: flex; flex-direction: column; gap: 8px; padding: 16px;
   border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line);
 }
-.oferta-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.1; color: var(--cdd-text); }
-.oferta-texto { margin: 0; font-family: var(--font-body); font-size: 14.5px; line-height: 1.45; color: var(--cdd-muted); }
+.oferta-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); line-height: 1.1; color: var(--cdd-text); }
+.oferta-texto { margin: 0; font-family: var(--font-body); font-size: var(--t-ui); line-height: 1.45; color: var(--cdd-muted); }
 .oferta-botones { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
 .oferta-botones .pm-btn { flex: 1 1 auto; width: auto; }
 /* EN EL PANEL FINAL, LAS OFERTAS VAN EN SECUNDARIO. Ahí la acción con relleno
@@ -5807,7 +5444,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .cdd-end-topbar .cdd-end-close { position: relative; }
 .oferta-no {
   flex: none; padding: 10px 4px; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-muted);
 }
 @media (hover: hover) {
   .oferta-no:hover { color: var(--cdd-text); }
@@ -5819,11 +5456,11 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .cdd-toast {
   padding: 12px 14px 12px 16px; border-radius: var(--radio-boton);
   background: var(--surface); border: 1px solid var(--line-strong); box-shadow: var(--sombra-flota);
-  font-family: var(--font-body); font-weight: 500; font-size: 14.5px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 500; font-size: var(--t-ui); color: var(--cdd-text);
 }
 .cdd-toast-accion {
   flex: none; padding: 6px 2px; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-body); font-weight: 700; font-size: 14px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-ui); color: var(--cdd-text);
   text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
 }
 
@@ -5844,7 +5481,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
    discreta del panel, y una caja con canto la ponía a competir con Compartir. */
 .fin .cdd-end-link {
   min-height: 44px; padding: 10px 12px; border: 0; border-radius: 0; background: none;
-  font-family: var(--font-body); font-weight: 600; font-size: 14px; letter-spacing: 0; text-transform: none;
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); letter-spacing: 0; text-transform: none;
   color: var(--cdd-muted); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
 }
 @media (hover: hover) {
@@ -5858,7 +5495,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .legal .pm-kicker { color: var(--cdd-muted); }
 .legal-volver {
   display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-left: -6px; padding: 0 6px;
-  font-family: var(--font-body); font-weight: 600; font-size: 14px; color: var(--cdd-text);
+  font-family: var(--font-body); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-text);
   text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px;
 }
 .legal-volver:focus-visible { outline: 2px solid var(--cdd-text); outline-offset: 2px; border-radius: var(--radio-sello); }

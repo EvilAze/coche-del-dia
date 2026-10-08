@@ -680,7 +680,7 @@ export default function App() {
           Aislando el Suspense por modal, la suspensión de uno nunca desmonta a
           otro: el que se va completa su salida limpiamente. */}
       {mounted.ranking && (
-        <Suspense fallback={<VeloDeEspera className="modal-scrim fixed inset-0 z-[80]" onClose={closeModal} />}>
+        <Suspense fallback={<VeloDeEspera className="modal-scrim fixed inset-0 z-hoja" onClose={closeModal} />}>
           <Ranking
             open={activeModal === "ranking"}
             onClose={closeModal}
@@ -705,7 +705,7 @@ export default function App() {
       )}
 
       {mounted.garage && (
-        <Suspense fallback={<VeloDeEspera className="scrim-flat fixed inset-0 z-[85]" onClose={closeModal} />}>
+        <Suspense fallback={<VeloDeEspera className="scrim-flat fixed inset-0 z-hoja" onClose={closeModal} />}>
           <Garage
             open={activeModal === "garage"}
             onClose={closeModal}
@@ -775,7 +775,7 @@ export default function App() {
           `activeModal` cambia y ModalShell se encarga de su animación de salida
           mientras entra la siguiente. */}
       {mounted.menu && (
-        <Suspense fallback={<VeloDeEspera className="modal-scrim fixed inset-0 z-[78]" onClose={closeModal} />}>
+        <Suspense fallback={<VeloDeEspera className="modal-scrim fixed inset-0 z-hoja" onClose={closeModal} />}>
           <SumarioModal
             open={activeModal === "menu"}
             onClose={closeModal}
@@ -801,7 +801,7 @@ export default function App() {
         open={staleDay}
         onClose={() => {}}
         dismissOnBackdrop={false}
-        backdropClassName="modal-scrim fixed inset-0 z-[110] flex items-center justify-center p-4"
+        backdropClassName="modal-scrim fixed inset-0 z-dialogo-sobre flex items-center justify-center p-4"
         panelClassName="modal-panel-flat relative w-full max-w-sm p-6"
       >
         {/* Sello de "edición caducada", esquina superior derecha. Sustituye al

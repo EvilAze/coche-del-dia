@@ -94,6 +94,11 @@ export default function SelectorLista({
   // marcas.
   optionLogo = null,
   optionNota = null,
+  // Las marcas del país que el jugador ya sabe por un «mismo país» suben a un
+  // grupo propio, encima de la A (P11, ver GuessForm). Salen de su letra: no se
+  // duplican, y el índice A-Z sigue siendo solo de letras.
+  destacadas = [],
+  destacadasTitulo = null,
 }) {
   const { t } = useT();
   const [q, setQ] = useState("");
@@ -109,11 +114,16 @@ export default function SelectorLista({
   // teclado ocupa píxeles», es «esta persona ha entrado a teclear».
   const [tecleando, setTecleando] = useState(false);
 
-  const filtradas = useMemo(() => {
+  const { filtradas, arriba } = useMemo(() => {
     const aguja = normalizar(q).trim();
-    if (!aguja) return opciones;
-    return opciones.filter((o) => normalizar(o).includes(aguja));
-  }, [q, opciones]);
+    const coinciden = aguja ? opciones.filter((o) => normalizar(o).includes(aguja)) : opciones;
+    if (!destacadas.length) return { filtradas: coinciden, arriba: [] };
+    const set = new Set(destacadas);
+    const sube = coinciden.filter((o) => set.has(o));
+    // Si todo es del mismo país (o nada lo es), no hay grupo que separar.
+    if (!sube.length || sube.length === coinciden.length) return { filtradas: coinciden, arriba: [] };
+    return { filtradas: coinciden.filter((o) => !set.has(o)), arriba: sube };
+  }, [q, opciones, destacadas]);
 
   // Agrupación por inicial: solo con la lista entera a la vista (buscando, el
   // orden que importa es el de la coincidencia, no el alfabético) y solo si hay
@@ -138,8 +148,8 @@ export default function SelectorLista({
   // venir alfabética. Aplanando los grupos, el índice del teclado y el orden
   // visual son el mismo por construcción.
   const navegables = useMemo(
-    () => (grupos ? grupos.flatMap(([, items]) => items) : filtradas),
-    [grupos, filtradas]
+    () => [...arriba, ...(grupos ? grupos.flatMap(([, items]) => items) : filtradas)],
+    [arriba, grupos, filtradas]
   );
 
   // Índice de cada opción dentro de ese recorrido. Las marcas y los modelos son
@@ -332,7 +342,14 @@ export default function SelectorLista({
 
       <div className="pm-lista-caja">
         <ul id={`${idBase}-lista`} className="pm-lista" role="listbox" aria-label={titulo} ref={listaRef}>
-          {filtradas.length === 0 && <li className="pm-opcion vacia">{t("cdd.noMatches")}</li>}
+          {navegables.length === 0 && <li className="pm-opcion vacia">{t("cdd.noMatches")}</li>}
+
+          {arriba.length > 0 && (
+            <li className="pm-grupo pm-grupo--pais">
+              <p className="pm-grupo-letra" id={`${idBase}-pais`}>{destacadasTitulo}</p>
+              <ul role="group" aria-labelledby={`${idBase}-pais`}>{arriba.map(opcion)}</ul>
+            </li>
+          )}
 
           {grupos
             ? grupos.map(([letra, items]) => (

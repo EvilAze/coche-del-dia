@@ -93,7 +93,7 @@ export default function ContactoModal({ open, onClose, user }) {
       open={open}
       onClose={onClose}
       label={t("contacto.titulo")}
-      backdropClassName="modal-scrim fixed inset-0 z-[120] flex items-center justify-center px-4"
+      backdropClassName="modal-scrim fixed inset-0 z-dialogo-sobre flex items-center justify-center px-4"
       panelClassName="modal-panel-flat relative w-full max-w-sm max-h-full overflow-y-auto overscroll-contain"
     >
       <form onSubmit={handleSubmit} className="dlg">

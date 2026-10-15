@@ -649,5 +649,13 @@
     "avisoHora": "Uno al día, a las {hora}",
     "avisoBloqueado": "Bloqueado en los ajustes del navegador",
     "avisoTarde": "Uno al día, por la tarde"
+  },
+  "compensacion": {
+    "titulo": "Perdón por el coche del 15",
+    "quepaso": "Ese día la marca TVR salía repetida y, en la que elegiste, no estaba el modelo correcto: no había forma de acertar.",
+    "loquehicimos": "Tu partida cuenta ya como ganada en el intento {intento}, el primero en que elegiste la marca, con sus puntos y tu racha intacta.",
+    "puntos": "Puntos devueltos",
+    "racha": "Tu racha",
+    "vale": "Entendido"
   }
 }

@@ -649,5 +649,13 @@
     "avisoHora": "One a day, at {hora}",
     "avisoBloqueado": "Blocked in your browser settings",
     "avisoTarde": "One a day, in the afternoon"
+  },
+  "compensacion": {
+    "titulo": "Sorry about the October 15 car",
+    "quepaso": "That day the TVR brand was listed twice and the right model was missing from the one you picked, so there was no way to get it.",
+    "loquehicimos": "Your game now counts as won on attempt {intento}, the first time you picked the brand, with its points and your streak intact.",
+    "puntos": "Points restored",
+    "racha": "Your streak",
+    "vale": "Got it"
   }
 }

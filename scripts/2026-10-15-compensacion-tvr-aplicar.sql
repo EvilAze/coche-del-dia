@@ -55,7 +55,7 @@ $guard$;
 INSERT INTO public.stats (user_id)
 SELECT DISTINCT a.user_id
 FROM public.guess_audit a
-WHERE a.game_date = DATE '2026-10-15' AND a.mode = 'daily'
+WHERE a.game_date = '2026-10-15' AND a.mode = 'daily'
   AND a.guess_make = 'Tvr' AND a.user_id IS NOT NULL
 ON CONFLICT (user_id) DO NOTHING;
 
@@ -74,7 +74,7 @@ hoy AS (
 tvr AS (
   SELECT a.user_id, min(a.attempt_number) AS intento_tvr
   FROM public.guess_audit a, params
-  WHERE a.game_date = params.dia
+  WHERE a.game_date = params.dia::text  -- guess_audit.game_date es TEXT
     AND a.mode = 'daily'
     AND a.guess_make = 'Tvr'
     AND a.user_id IS NOT NULL

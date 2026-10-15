@@ -44,7 +44,7 @@ hoy AS (
 tvr AS (
   SELECT a.user_id, min(a.attempt_number) AS intento_tvr
   FROM public.guess_audit a, params
-  WHERE a.game_date = params.dia
+  WHERE a.game_date = params.dia::text  -- guess_audit.game_date es TEXT
     AND a.mode = 'daily'
     AND a.guess_make = 'Tvr'
     AND a.user_id IS NOT NULL

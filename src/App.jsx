@@ -16,6 +16,7 @@ import {
 } from "./lib/authCallback";
 import { useGame } from "./hooks/useGame";
 import { useAuthSession } from "./hooks/useAuthSession";
+import { useCompensacionAviso } from "./hooks/useCompensacionAviso";
 import { useModalState } from "./hooks/useModalState";
 import { useEscape } from "./hooks/useEscape";
 import { useHistoryClose } from "./hooks/useHistoryClose";
@@ -99,8 +100,6 @@ export default function App() {
   // aviso y el enlace queda con el error pegado— y se abre el modal de login
   // con la explicación y la salida.
   const [avisoLogin, setAvisoLogin] = useState(null);
-  // Datos del aviso de compensación ({ intento, puntos, racha }) o null.
-  const [compensacion, setCompensacion] = useState(null);
   // De dónde viene el jugador que abre la puerta de entrada. Sin esto el embudo
   // de registro no tiene denominador: se sabría cuánta gente entra, pero no qué
   // puerta la trajo — que es justo lo que hace falta para arreglar la que no
@@ -375,31 +374,10 @@ export default function App() {
     setRecienEntrado, openNickname, activeModal, closeModal,
   ]);
 
-  // ── AVISO DE COMPENSACIÓN (temporal, 15-oct) ─────────────────────────────
-  // Se pregunta una vez por sesión de usuario. La RPC devuelve null a quien no
-  // está en la lista o ya lo vio, así que preguntar a ciegas es lo normal. Y
-  // falla en silencio (regla 9): si la RPC no existe o la red no responde, la
-  // partida carga igual y el aviso saldrá en otra entrada.
-  useEffect(() => {
-    if (!user?.id) return;
-    let vivo = true;
-    supabase
-      .rpc("mi_compensacion_tvr")
-      .then(({ data, error }) => {
-        if (vivo && !error && data) setCompensacion(data);
-      })
-      .catch(() => {});
-    return () => {
-      vivo = false;
-    };
-  }, [user?.id]);
-
-  const cerrarCompensacion = useCallback(() => {
-    setCompensacion(null);
-    // Se marca al CERRAR, no al abrir: si se va sin leerlo (recarga, cierra la
-    // app), lo vuelve a encontrar. Si la marca falla, a lo sumo lo verá otra vez.
-    supabase.rpc("compensacion_tvr_vista").then(() => {}, () => {});
-  }, []);
+  // Aviso de la compensación del 15-oct (temporal). A quién y cuántas veces lo
+  // decide el hook y, sobre todo, el servidor: ver useCompensacionAviso.
+  const { datos: compensacion, cerrar: cerrarCompensacion } =
+    useCompensacionAviso(user?.id);
 
   // Prefetch de los chunks de modales ligeros cuando el navegador está OCIOSO.
   // El bundle inicial sigue ligero (no se ejecutan al cargar), pero al pulsar

@@ -422,6 +422,12 @@ Tab trap and the ✕, whose bar gains a background once the card scrolls.
   groups are `display: contents` and it is the usual single column.
 - **Offers inside the panel are secondary buttons** (surface + seam): the panel
   already has its one ink fill, Share.
+- **The spec sheet leads with figures** (`fin-cifras`, win only, like the
+  text): power, torque, 0–100 and top speed in `--t-cifra` display numerals
+  with the unit in muted mono, on `--surface2` cells, above the story. Only the
+  figures that exist are drawn; with an odd count the first one spans the row,
+  so there is never an orphan cell. Ink, not gold: a figure of the car is not
+  something you won.
 
 ### Navigation and sections
 - **Tab bar** (`BarraSecciones`, phones only): Jugar · Clasificación · Archivo ·

@@ -626,7 +626,17 @@
     "vuelveTitulo": "This car comes back in the repesca",
     "vuelveCuerpo": "It stays pending in your Archive. If you draw it, it'll be in Veteran Mode: one attempt, no hints.",
     "noEresElUnico": "You are not alone: {pct}% did not get it either.",
-    "ficha": "The spec sheet"
+    "ficha": "The spec sheet",
+    "cifras": {
+      "potencia": "Power",
+      "par": "Torque",
+      "aceleracion": "0–100 km/h",
+      "vmax": "Top speed",
+      "cv": "PS",
+      "nm": "Nm",
+      "s": "s",
+      "kmh": "km/h"
+    }
   },
   "barra": {
     "jugar": "Play"

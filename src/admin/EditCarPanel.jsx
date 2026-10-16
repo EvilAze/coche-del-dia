@@ -53,7 +53,57 @@ const initialForm = {
   // ID o URL de YouTube— y el servidor lo normaliza a ID de 11 caracteres (ver
   // api/_lib/video-id.js). Vacío = el coche no tiene vídeo.
   video_id: "",
+  // Cifras de la ficha técnica, como texto (ver CAMPOS_CIFRAS).
+  potencia_cv: "",
+  par_nm: "",
+  aceleracion_0_100: "",
+  vmax_kmh: "",
 };
+
+// Las cifras de la ficha técnica que pinta el panel de resultado al ganar. El
+// form las trata como TEXTO —quien rellena copia de una ficha de fabricante y
+// escribe «3,9»— y el servidor las valida y convierte (api/_lib/cifras.js, con
+// los mismos rangos que los CHECK de la BD). Aquí no se replican los rangos a
+// propósito: un error del servidor ya dice qué cifra y qué rango, y dos copias
+// de un rango son dos sitios donde puede quedarse viejo.
+const CAMPOS_CIFRAS = [
+  { col: "potencia_cv", label: "Potencia", unidad: "CV", placeholder: "510", inputMode: "numeric" },
+  { col: "par_nm", label: "Par", unidad: "Nm", placeholder: "600", inputMode: "numeric" },
+  { col: "aceleracion_0_100", label: "0-100 km/h", unidad: "s", placeholder: "3,9", inputMode: "decimal" },
+  { col: "vmax_kmh", label: "Vel. máxima", unidad: "km/h", placeholder: "305", inputMode: "numeric" },
+];
+
+// La fila que devuelve /api/admin/save-car, convertida al estado del form.
+// Un solo sitio para las dos veces que se hace —al cargar el coche y al volver
+// de guardarlo—: estaba escrito dos veces, y la copia de después de guardar se
+// había quedado sin `tags` ni `video_id`, así que el panel los dejaba en blanco
+// en pantalla tras cada guardado aunque en la BD siguieran puestos.
+function formFromCar(data) {
+  return {
+    marca: data.marca || "",
+    modelo: data.modelo || "",
+    anio: data.anio != null ? String(data.anio) : "",
+    pais: data.pais || "",
+    description: data.description || "",
+    description_en: data.description_en || "",
+    img: data.img || "",
+    file: null,
+    focus_x: typeof data.focus_x === "number" ? data.focus_x : 0.5,
+    focus_y: typeof data.focus_y === "number" ? data.focus_y : 0.5,
+    zoom_base:
+      typeof data.zoom_base === "number" ? data.zoom_base : DEFAULT_ZOOM_BASE,
+    tags: Array.isArray(data.tags) ? data.tags.join(", ") : "",
+    video_id: data.video_id || "",
+    // Con coma decimal, que es como se escribe aquí: así «3,9» recién
+    // guardado vuelve como «3,9» y no como «3.9».
+    ...Object.fromEntries(
+      CAMPOS_CIFRAS.map(({ col }) => [
+        col,
+        typeof data[col] === "number" ? String(data[col]).replace(".", ",") : "",
+      ])
+    ),
+  };
+}
 
 // "grupo-b, rally" → ["grupo-b", "rally"]. El saneado real (slug, dedupe,
 // tope) lo hace el servidor; aquí solo troceamos.
@@ -217,22 +267,7 @@ export default function EditCarPanel({
         const data = await res.json();
         if (cancelled) return;
 
-        const next = {
-          marca: data.marca || "",
-          modelo: data.modelo || "",
-          anio: data.anio != null ? String(data.anio) : "",
-          pais: data.pais || "",
-          description: data.description || "",
-          description_en: data.description_en || "",
-          img: data.img || "",
-          file: null,
-          focus_x: typeof data.focus_x === "number" ? data.focus_x : 0.5,
-          focus_y: typeof data.focus_y === "number" ? data.focus_y : 0.5,
-          zoom_base:
-            typeof data.zoom_base === "number" ? data.zoom_base : DEFAULT_ZOOM_BASE,
-          tags: Array.isArray(data.tags) ? data.tags.join(", ") : "",
-          video_id: data.video_id || "",
-        };
+        const next = formFromCar(data);
 
         const ovr = overridesRef.current;
         const hasOverrides = ovr && String(ovr.carId) === String(selectedCarId);
@@ -370,7 +405,8 @@ export default function EditCarPanel({
       form.focus_y !== originalForm.focus_y ||
       form.zoom_base !== originalForm.zoom_base ||
       form.tags !== originalForm.tags ||
-      form.video_id !== originalForm.video_id
+      form.video_id !== originalForm.video_id ||
+      CAMPOS_CIFRAS.some(({ col }) => form[col] !== originalForm[col])
     );
   }, [form, originalForm, selectedCarId]);
 
@@ -531,6 +567,10 @@ export default function EditCarPanel({
       // Igual que tags: se manda aunque quede vacío, porque "" es la única
       // forma de QUITARLE el vídeo a un coche.
       if (form.video_id !== originalForm.video_id) patch.video_id = form.video_id.trim();
+      // Las cifras, igual: "" es la forma de quitar una que se metió mal.
+      for (const { col } of CAMPOS_CIFRAS) {
+        if (form[col] !== originalForm[col]) patch[col] = form[col].trim();
+      }
 
       const res = await fetch("/api/admin/save-car", {
         method: "POST",
@@ -552,20 +592,7 @@ export default function EditCarPanel({
       );
 
       const updated = data.car;
-      const nextForm = {
-        marca: updated.marca || "",
-        modelo: updated.modelo || "",
-        anio: updated.anio != null ? String(updated.anio) : "",
-        pais: updated.pais || "",
-        description: updated.description || "",
-        description_en: updated.description_en || "",
-        img: updated.img || "",
-        file: null,
-        focus_x: typeof updated.focus_x === "number" ? updated.focus_x : 0.5,
-        focus_y: typeof updated.focus_y === "number" ? updated.focus_y : 0.5,
-        zoom_base:
-          typeof updated.zoom_base === "number" ? updated.zoom_base : DEFAULT_ZOOM_BASE,
-      };
+      const nextForm = formFromCar(updated);
       setForm(nextForm);
       setOriginalForm(nextForm);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -790,6 +817,41 @@ export default function EditCarPanel({
                 siempre.
               </span>
             </Field>
+
+            {/* Un fieldset y no un Field: Field es un <label>, y un label con
+                cuatro inputs dentro manda el foco siempre al primero. */}
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-2 text-[10px] uppercase tracking-[0.22em] text-muted">
+                Ficha técnica (cifras)
+              </legend>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {CAMPOS_CIFRAS.map((c) => (
+                  <label key={c.col} className="flex flex-col gap-1">
+                    <span className="text-[11px] text-muted">
+                      {c.label} <span className="font-mono">({c.unidad})</span>
+                    </span>
+                    <input
+                      type="text"
+                      inputMode={c.inputMode}
+                      value={form[c.col]}
+                      onChange={(e) => updateField(c.col, e.target.value)}
+                      placeholder={c.placeholder}
+                      maxLength={8}
+                      disabled={isSubmitting}
+                      autoComplete="off"
+                      className={inputClass}
+                    />
+                  </label>
+                ))}
+              </div>
+              <span className="text-[11px] leading-relaxed text-muted">
+                Salen en grande en «La ficha» del panel de resultado, encima de
+                la descripción y solo al GANAR, igual que ella. Rellena las que
+                sepas: las vacías no se pintan y no dejan hueco. La potencia en
+                CV, no en kW (kW × 1,36); el 0-100 con un decimal; vacío si el
+                coche no llega a 100.
+              </span>
+            </fieldset>
 
             <Field label="Descripción (ES)">
               <DescriptionEsField

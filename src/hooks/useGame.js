@@ -78,20 +78,14 @@ function readInitialAnonState() {
   }
 }
 
-// El estado del coche ahora solo contiene lo mínimo para pintar la UI: la
-// imagen (siempre vía proxy), el LQIP base64 (placeholder borroso que
-// elimina el flash gris del skeleton) y, opcionalmente, marca/modelo/año
-// cuando el servidor decide revelarlos (solo en victoria).
-function buildCarState({ img, blurData, zoomBase, reveal }) {
+// Lo que el `reveal` del servidor aporta al estado del coche. UNA función para
+// los dos sitios que lo leen: el arranque (get-daily-car, que también
+// reconstruye el reveal al recargar una partida cerrada) y el intento que
+// cierra la partida (validate-guess). Estaban escritos dos veces y el segundo
+// se había quedado sin `videoId`: el vídeo no salía al terminar la partida y sí
+// al recargar. Un campo nuevo del reveal se añade aquí y llega a los dos.
+function camposDelRevelado(reveal) {
   return {
-    img,
-    blurData: blurData ?? null,
-    // Zoom base del coche de hoy (cars.zoom_base), tal cual lo manda
-    // get-daily-car. De aquí sale la escalera de scales CSS por intento; si se
-    // pierde por el camino, cssZoomLevels cae al default y TODOS los coches se
-    // juegan con la misma dificultad de encuadre — que es justo lo que pasaba
-    // mientras este campo no se copiaba (regla 7: el zoom es POR coche).
-    zoomBase: typeof zoomBase === "number" ? zoomBase : null,
     marca: reveal?.marca ?? null,
     modelo: reveal?.modelo ?? null,
     anio: reveal?.anio ?? null,
@@ -107,6 +101,29 @@ function buildCarState({ img, blurData, zoomBase, reveal }) {
     // `reveal` es null y esto es null. Sin vídeo, el panel de resultado pinta la
     // fotografía de siempre.
     videoId: reveal?.videoId ?? null,
+    // Las cifras de la ficha técnica (CV, Nm, 0-100, velocidad máxima). Solo
+    // llegan al GANAR —el servidor las manda a null al perder, igual que la
+    // descripción—, así que tampoco aquí hace falta gate. EndScreen pinta las
+    // que haya (lib/cifras.js).
+    cifras: reveal?.cifras ?? null,
+  };
+}
+
+// El estado del coche ahora solo contiene lo mínimo para pintar la UI: la
+// imagen (siempre vía proxy), el LQIP base64 (placeholder borroso que
+// elimina el flash gris del skeleton) y, opcionalmente, marca/modelo/año
+// cuando el servidor decide revelarlos (solo en victoria).
+function buildCarState({ img, blurData, zoomBase, reveal }) {
+  return {
+    img,
+    blurData: blurData ?? null,
+    // Zoom base del coche de hoy (cars.zoom_base), tal cual lo manda
+    // get-daily-car. De aquí sale la escalera de scales CSS por intento; si se
+    // pierde por el camino, cssZoomLevels cae al default y TODOS los coches se
+    // juegan con la misma dificultad de encuadre — que es justo lo que pasaba
+    // mientras este campo no se copiaba (regla 7: el zoom es POR coche).
+    zoomBase: typeof zoomBase === "number" ? zoomBase : null,
+    ...camposDelRevelado(reveal),
   };
 }
 
@@ -619,15 +636,7 @@ export function useGame() {
       // reveal=null y el coche del día permanece oculto: el atacante del
       // Network ya no tiene de dónde sacarlo.
       if (reveal) {
-        setCar((prev) => ({
-          ...(prev || {}),
-          marca: reveal.marca,
-          modelo: reveal.modelo,
-          anio: reveal.anio,
-          pais: reveal.pais,
-          description: reveal.description ?? null,
-          description_en: reveal.description_en ?? null,
-        }));
+        setCar((prev) => ({ ...(prev || {}), ...camposDelRevelado(reveal) }));
       }
 
       if (scoreBreakdown && newStatus !== "playing") setScore(scoreBreakdown);

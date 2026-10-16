@@ -3978,6 +3978,39 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin-desglose dt { font-family: var(--font-body); font-size: var(--t-ui); color: var(--cdd-muted); }
 .fin-desglose dd { margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-ui); color: var(--cdd-text); }
 .fin .oro { color: var(--gold); }
+
+/* LA FICHA EN CIFRAS: potencia, par, 0-100 y punta, como en la hoja de un
+   configurador. La cifra en la voz de las cifras grandes (display, `--t-cifra`)
+   y la unidad en la de las etiquetas (mono, apagada): se lee «510» primero y
+   «CV» después, que es el orden en que importan. Tinta y superficie, nada de
+   oro: el oro es de lo que se GANA (racha, podio) y esto es un dato del coche.
+   Solo se pintan las que existen, así que la rejilla se adapta al número: con
+   un número IMPAR de cifras la primera ocupa la fila entera (es la potencia,
+   el titular de cualquier ficha) y el resto van de dos en dos — nunca una
+   casilla huérfana con un hueco al lado. */
+.fin-cifras { margin: 12px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.fin-cifras > div {
+  min-width: 0; display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px 12px; border-radius: var(--radio-celda); background: var(--surface2);
+}
+.fin-cifras > div:first-child:nth-last-child(odd) { grid-column: 1 / -1; }
+.fin-cifras dt {
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--cdd-muted);
+}
+/* La unidad va DENTRO del dd para que un lector de pantalla diga «510 CV» de
+   una vez; si no cabe al lado de la cifra (un «1500» en un móvil estrecho)
+   salta debajo en vez de desbordar la casilla. */
+.fin-cifras dd {
+  margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 5px;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-cifra); line-height: .9;
+  color: var(--cdd-text); font-variant-numeric: tabular-nums;
+}
+.fin-cifras dd small {
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato); line-height: 1;
+  letter-spacing: .02em; color: var(--cdd-muted);
+}
+.fin-cifras + .cdd-note { margin-top: 14px; }
 .fin-racha {
   display: flex; align-items: center; gap: 12px;
   margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line);

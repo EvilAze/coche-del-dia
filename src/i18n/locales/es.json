@@ -626,7 +626,17 @@
     "vuelveTitulo": "Este coche vuelve en la repesca",
     "vuelveCuerpo": "Queda en tu Archivo como pendiente. Si te toca, será en Modo Veterano: un intento, sin pistas.",
     "noEresElUnico": "No eres el único: el {pct} % tampoco lo sacó.",
-    "ficha": "La ficha"
+    "ficha": "La ficha",
+    "cifras": {
+      "potencia": "Potencia",
+      "par": "Par",
+      "aceleracion": "0–100 km/h",
+      "vmax": "Velocidad máx.",
+      "cv": "CV",
+      "nm": "Nm",
+      "s": "s",
+      "kmh": "km/h"
+    }
   },
   "barra": {
     "jugar": "Jugar"

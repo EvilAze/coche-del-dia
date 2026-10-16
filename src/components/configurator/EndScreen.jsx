@@ -29,6 +29,7 @@ import { menosMovimiento } from "../../lib/movimiento";
 import { useCountdown } from "../../hooks/useCountdown";
 import { useSelloSentido } from "../../hooks/useSelloSentido";
 import { useT, getCarDescription, getLocalizedCountry } from "../../i18n";
+import { cifrasVisibles, formatearCifra } from "../../lib/cifras";
 import { haptic } from "../../lib/haptics";
 import { track } from "../../lib/analytics";
 import { flagImagePath } from "../../data/countries";
@@ -179,7 +180,7 @@ export default function EndScreen({
   // sin esto no se podría decir qué racha se acaba de cortar.
   rachaPrevia = 0,
 }) {
-  const { t, tn } = useT();
+  const { t, tn, locale } = useT();
   const toast = useToast();
   const countdown = useCountdown();
   const [copied, setCopied] = useState(false);
@@ -232,6 +233,9 @@ export default function EndScreen({
   const hasReveal = Boolean(car?.marca && car?.modelo && car?.anio);
   const attempts = guesses.length;
   const description = getCarDescription(car)?.trim();
+  // Las cifras de la ficha técnica, solo las que existan (lib/cifras.js). Llegan
+  // únicamente al ganar, como la descripción: perdiendo esto es [] siempre.
+  const cifras = cifrasVisibles(car?.cifras);
   // Datos reales del día (un solo fetch): alimenta el percentil (COMPARTIR) y
   // la distribución de intentos (FICHA).
   const daily = useDailyStats(attempts, won);
@@ -576,11 +580,29 @@ export default function EndScreen({
           </section>
         )}
 
-        {/* LA FICHA: la crónica del coche, que solo se revela al acertar. */}
-        {won && hasReveal && description && (
+        {/* LA FICHA: el coche en cifras y su crónica, que solo se revelan al
+            acertar. Las cifras van primero y en grande porque es lo primero que
+            busca un aficionado en una ficha —y lo que se lee de un vistazo—; el
+            texto, debajo, para quien se quede. Cada mitad sale solo si existe:
+            un coche con cifras y sin crónica tiene ficha, y uno sin cifras
+            tiene la de siempre. */}
+        {won && hasReveal && (description || cifras.length > 0) && (
           <section className="fin-tarjeta fin-entra">
             <h3 className="fin-tarjeta-titulo">{t("fin.ficha")}</h3>
-            <p className="cdd-note">{description}</p>
+            {cifras.length > 0 && (
+              <dl className="fin-cifras">
+                {cifras.map((c) => (
+                  <div key={c.clave}>
+                    <dt>{t(c.etiqueta)}</dt>
+                    <dd>
+                      {formatearCifra(c.valor, c.decimales, locale)}
+                      <small>{t(c.unidad)}</small>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {description && <p className="cdd-note">{description}</p>}
           </section>
         )}
 

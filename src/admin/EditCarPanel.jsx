@@ -172,6 +172,14 @@ export default function EditCarPanel({
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [aiError, setAiError] = useState(null);
+  // «Sugerir cifras» (ficha técnica): la respuesta del consenso de dos IA, y
+  // qué valor se le puso a cada campo. Lo segundo es lo que permite marcar un
+  // campo como SUGERIDO solo mientras siga teniendo ese valor: en cuanto el
+  // admin lo toca, deja de ser de la IA y la marca se va sola.
+  const [cifrasIa, setCifrasIa] = useState(null);
+  const [cifrasIaCargando, setCifrasIaCargando] = useState(false);
+  const [cifrasIaError, setCifrasIaError] = useState(null);
+  const [cifrasSugeridas, setCifrasSugeridas] = useState({});
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loadingCar, setLoadingCar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -225,6 +233,15 @@ export default function EditCarPanel({
   useEffect(() => {
     if (!form.file && fileInputRef.current) fileInputRef.current.value = "";
   }, [form.file]);
+
+  // Las sugerencias de cifras son de UN coche: al cambiar de coche, fuera.
+  // Si no, la versión que asumió la IA para el anterior se leería como la de
+  // este.
+  useEffect(() => {
+    setCifrasIa(null);
+    setCifrasIaError(null);
+    setCifrasSugeridas({});
+  }, [selectedCarId]);
 
   // Carga los datos del coche cuando cambia el id externo. El callback
   // onSelectCar mantiene a AdminTools sincronizado si el usuario cambia
@@ -488,6 +505,77 @@ export default function EditCarPanel({
       setAiError(err?.message || "No se pudo analizar la imagen.");
     } finally {
       setAiAnalyzing(false);
+    }
+  }
+
+  // Un campo está «sugerido» mientras conserve el valor que puso la IA.
+  const esSugerida = (col) =>
+    Boolean(cifrasSugeridas[col]) && form[col] === cifrasSugeridas[col];
+
+  // «Sugerir cifras»: pide al servidor las cuatro cifras por consenso de dos
+  // modelos (lib/admin-handlers/suggest-specs.js) y PRERRELLENA el form, sin
+  // guardar — el admin revisa y pulsa Guardar como siempre. Solo llegan las
+  // cifras en las que los dos coinciden; las demás no se tocan (ni se vacían:
+  // lo que ya hubiera escrito a mano se queda).
+  async function handleSugerirCifras() {
+    if (cifrasIaCargando) return;
+    setCifrasIaCargando(true);
+    setCifrasIaError(null);
+    setCifrasIa(null);
+    try {
+      const {
+        data: { session: s },
+      } = await supabase.auth.getSession();
+      if (!s) throw new Error("Sin sesión");
+
+      const res = await fetch("/api/admin/suggest-specs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${s.access_token}`,
+        },
+        body: JSON.stringify({
+          marca: form.marca,
+          modelo: form.modelo,
+          anio: form.anio,
+          pais: form.pais,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      // 404 = el panel ya tiene el botón pero el endpoint aún no está
+      // desplegado (el servidor va por PR y el panel directo a main).
+      if (res.status === 404) {
+        throw new Error("El servidor aún no tiene «Sugerir cifras» desplegado.");
+      }
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+      // Con coma decimal, como se escribe en el form (ver formFromCar).
+      const aplicar = {};
+      for (const { col } of CAMPOS_CIFRAS) {
+        const v = data?.sugerencias?.[col];
+        if (typeof v === "number") aplicar[col] = String(v).replace(".", ",");
+      }
+      // Un clic no debe pisar sin avisar una cifra escrita a mano.
+      const pisa = Object.entries(aplicar).filter(
+        ([col, v]) => form[col].trim() !== "" && form[col].trim() !== v
+      );
+      if (
+        pisa.length > 0 &&
+        !window.confirm(
+          `Se reemplazarán ${pisa.length} cifra(s) que ya tenías escritas. ¿Seguir?`
+        )
+      ) {
+        setCifrasIa(data);
+        return;
+      }
+      setForm((prev) => ({ ...prev, ...aplicar }));
+      setCifrasSugeridas(aplicar);
+      setCifrasIa(data);
+    } catch (err) {
+      console.error("[EditCarPanel] suggest-specs:", err);
+      setCifrasIaError(err?.message || "No se pudieron sugerir las cifras.");
+    } finally {
+      setCifrasIaCargando(false);
     }
   }
 
@@ -824,6 +912,20 @@ export default function EditCarPanel({
               <legend className="mb-2 text-[10px] uppercase tracking-[0.22em] text-muted">
                 Ficha técnica (cifras)
               </legend>
+              <button
+                type="button"
+                onClick={handleSugerirCifras}
+                disabled={
+                  cifrasIaCargando ||
+                  isSubmitting ||
+                  !form.marca.trim() ||
+                  !form.modelo.trim()
+                }
+                title="Pregunta a dos IA (Groq y Gemini) y rellena solo las cifras en las que coinciden. No guarda."
+                className="self-start rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-accent transition hover:border-accent hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {cifrasIaCargando ? "Consultando a dos IA..." : "Sugerir cifras"}
+              </button>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {CAMPOS_CIFRAS.map((c) => (
                   <label key={c.col} className="flex flex-col gap-1">
@@ -839,11 +941,20 @@ export default function EditCarPanel({
                       maxLength={8}
                       disabled={isSubmitting}
                       autoComplete="off"
-                      className={inputClass}
+                      className={`${inputClass} ${
+                        esSugerida(c.col) ? "border-accent/60" : ""
+                      }`}
                     />
+                    {esSugerida(c.col) && (
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-accent">
+                        Sugerida · revísala
+                      </span>
+                    )}
                   </label>
                 ))}
               </div>
+              {cifrasIaError && <p className="text-[11px] text-red-300">{cifrasIaError}</p>}
+              {cifrasIa && <DetalleCifrasIa data={cifrasIa} />}
               <span className="text-[11px] leading-relaxed text-muted">
                 Salen en grande en «La ficha» del panel de resultado, encima de
                 la descripción y solo al GANAR, igual que ella. Rellena las que
@@ -1106,6 +1217,68 @@ export default function EditCarPanel({
           </div>
         )}
       </form>
+    </div>
+  );
+}
+
+// El porqué de cada cifra sugerida o vacía, y QUÉ VERSIÓN asumió cada
+// modelo. Lo segundo es lo que hay que comprobar contra la foto: dos modelos
+// pueden coincidir en las cifras de una serie que no es la del coche, y solo
+// quien ve la foto puede saberlo.
+const ETIQUETA_CIFRA = Object.fromEntries(
+  CAMPOS_CIFRAS.map((c) => [c.col, `${c.label} (${c.unidad})`])
+);
+
+function DetalleCifrasIa({ data }) {
+  const votos = data?.votos || {};
+  const detalle = Array.isArray(data?.detalle) ? data.detalle : [];
+  const filaVoto = (nombre, v) => (
+    <li>
+      <span className="font-semibold text-white/80">{nombre}</span>
+      {v?.modelo && <span className="font-mono"> · {v.modelo}</span>}
+      {": "}
+      {v?.ok ? (
+        v.version ? (
+          <>
+            asumió <span className="text-white/80">{v.version}</span>
+          </>
+        ) : (
+          "no dijo qué versión asume"
+        )
+      ) : (
+        `sin voto (${v?.error || "no respondió"})`
+      )}
+    </li>
+  );
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-accent/30 bg-accent/5 p-3 text-[11px] leading-relaxed text-muted">
+      <p className="uppercase tracking-[0.18em] text-accent">
+        Sugeridas por IA, sin guardar: comprueba que la versión es la de la foto
+      </p>
+      <ul className="flex flex-col gap-0.5">
+        {filaVoto("Groq", votos.groq)}
+        {filaVoto("Gemini", votos.gemini)}
+      </ul>
+      {data?.aviso && <p className="text-white/80">{data.aviso}</p>}
+      <ul className="flex flex-col gap-0.5">
+        {detalle.map((d) => (
+          <li key={d.col}>
+            <span className="text-white/80">{ETIQUETA_CIFRA[d.col] || d.col}</span>
+            {": "}
+            {d.estado === "consenso" && typeof d.valor === "number" ? (
+              <>
+                sugerida{" "}
+                <span className="font-mono text-white/80">
+                  {String(d.valor).replace(".", ",")}
+                </span>
+                {d.motivo ? ` — ${d.motivo}` : ""}
+              </>
+            ) : (
+              <>vacía — {d.motivo}</>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

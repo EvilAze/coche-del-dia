@@ -65,7 +65,11 @@ import { fraseVeredicto } from "./veredicto";
 //     como un punto final y no como una alarma; nunca se parece a `error`.
 //   - veredicto: no tiene patrón fijo. Lo construye `fraseVeredicto()` a partir
 //     del resultado de cada intento (ver lib/veredicto.js).
+//   - muesca: 5 ms. Un año que pasa por el centro de la ruleta del año. Más
+//     corto que `selection` porque suena muchas veces seguidas: es la textura
+//     de la rueda, no una elección (la elección es el botón de confirmar).
 const PATTERNS = {
+  muesca: 5,
   selection: 8,
   impactLight: 10,
   impactMedium: 18,
@@ -89,6 +93,7 @@ function canVibrate() {
 // el envío, porque si el servidor contesta muy rápido la frase cae dentro de
 // su ventana y es ella la que lleva la información.
 const PESOS = {
+  muesca: 1,
   selection: 1,
   impactLight: 2,
   impactMedium: 3,
@@ -129,9 +134,25 @@ const VENTANA_MS = 110;
 let ultimoInstante = 0;
 let ultimoPeso = 0;
 
-function debeSonar(peso) {
+// LA MUESCA (la ruleta del año) no puede pasar por la ventana de arriba: con
+// ella, dos años seguidos —mismo peso— se separarían 110 ms como mínimo, y la
+// ruleta sonaría a «un tic de vez en cuando» en vez de a un trinquete. Tiene su
+// propio paso, más corto: a dedo lento cada año es un clic que se cuenta; en un
+// giro rápido los clics se funden en una textura, que es exactamente como se
+// siente una rueda dentada. Lo que NO hace es pisar a nadie: si dentro de la
+// ventana sonó algo con más peso (una validación, un error), la muesca calla.
+const MUESCA_MS = 60;
+let ultimaMuesca = 0;
+
+function debeSonar(peso, nombre) {
   const ahora = typeof performance !== "undefined" ? performance.now() : Date.now();
-  if (ahora - ultimoInstante < VENTANA_MS && peso <= ultimoPeso) return false;
+  if (nombre === "muesca") {
+    if (ahora - ultimoInstante < VENTANA_MS && ultimoPeso > peso) return false;
+    if (ahora - ultimaMuesca < MUESCA_MS) return false;
+    ultimaMuesca = ahora;
+  } else if (ahora - ultimoInstante < VENTANA_MS && peso <= ultimoPeso) {
+    return false;
+  }
   ultimoInstante = ahora;
   ultimoPeso = peso;
   return true;
@@ -142,7 +163,7 @@ function debeSonar(peso) {
 function fire(nombre, patron = PATTERNS[nombre]) {
   if (!canVibrate()) return;
   if (menosMovimiento()) return;
-  if (!debeSonar(PESOS[nombre] ?? 1)) return;
+  if (!debeSonar(PESOS[nombre] ?? 1, nombre)) return;
   try {
     navigator.vibrate(patron);
   } catch {
@@ -153,6 +174,7 @@ function fire(nombre, patron = PATTERNS[nombre]) {
 // API pública. Cada método nombra una *intención*, no un patrón concreto.
 // Si en el futuro afinamos los números, los call sites no se enteran.
 export const haptic = {
+  muesca: () => fire("muesca"),
   selection: () => fire("selection"),
   impactLight: () => fire("impactLight"),
   impactMedium: () => fire("impactMedium"),

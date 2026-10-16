@@ -313,6 +313,14 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     [guesses, tolerance]
   );
 
+  // Dónde abre la hoja del año mientras no hay pista: la mediana del catálogo
+  // (ver SelectorAnio). Del catálogo entero, que ya es público, y no del coche
+  // de hoy ni del modelo elegido: no dice nada que no diga ya `/api/list-cars`.
+  const anioHabitual = useMemo(() => {
+    const anios = CARS.map((c) => Number(c.anio)).filter(Boolean).sort((a, b) => a - b);
+    return anios.length ? anios[Math.floor(anios.length / 2)] : null;
+  }, [CARS]);
+
   const prefilledRef = useRef({ marca: null, modelo: null, anio: null });
   useEffect(() => {
     if (solved.marca && prefilledRef.current.marca !== solved.marca) {
@@ -499,6 +507,18 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   function elegirModelo(v) {
     setModelo(v);
     setHoja(siguientePaso(v, anio));
+  }
+
+  // El año es el último eslabón, pero no tiene por qué ser el último que se
+  // rellena: quien abre AÑO primero (lo sabe antes que el modelo) acababa con la
+  // hoja cerrada y el modelo vacío, y había que volver a abrirla a mano. La
+  // regla es la misma de arriba —solo hacia campos VACÍOS—, mirando hacia atrás:
+  // con todo puesto, cierra.
+  function elegirAnio(v) {
+    setAnio(v);
+    if (!marcaValida && !bloqueo.marca) setHoja("marca");
+    else if (!modelo && !bloqueo.modelo) setHoja("modelo");
+    else cerrarHoja();
   }
 
   return (
@@ -750,11 +770,59 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
               valor={anio}
               horquilla={horquilla}
               tolerance={tolerance}
-              onElegir={(v) => { setAnio(v); cerrarHoja(); }}
+              anioHabitual={anioHabitual}
+              onElegir={elegirAnio}
             />
           )}
         </SelectorHoja>
       )}
+    </div>
+  );
+}
+
+// ── EL CUPÓN MIENTRAS LLEGA LA PARTIDA ───────────────────────────────────────
+// Hasta que hay datos el cupón no se monta (no se puede jugar contra nada), y
+// su hueco tampoco existía: la foto, el pie y los enlaces se pintaban arriba y,
+// al llegar la partida, el cupón aparecía en medio y lo empujaba todo ~225px
+// hacia abajo, con el pulgar a punto de tocar lo que estaba ahí un instante
+// antes. Esto ocupa EXACTAMENTE su sitio, con las mismas clases que el cupón de
+// cada plataforma (regla 24: el esqueleto tiene la rejilla final), y no se
+// puede tocar ni enfocar: `inert` + `aria-hidden`, que un ADIVINAR que no hace
+// nada es peor que ninguno.
+export function CuponEsperando({ tolerance = 2 }) {
+  const { t } = useT();
+  const etiquetas = [t("cdd.labelMarca"), t("cdd.labelModelo"), t("cdd.labelAnio")];
+  return (
+    <div className="prensa-cupon" aria-hidden="true" inert="">
+      <form className="flex flex-col gap-3" onSubmit={(e) => e.preventDefault()}>
+        {esApp() ? (
+          <div className="prensa-renglones">
+            {etiquetas.map((etiqueta, i) => (
+              <div key={etiqueta} className="prensa-renglon espera">
+                <span className="cabeza">
+                  <span className="etiqueta">{etiqueta}</span>
+                  {i === 2 && <span className="apunte">{t("cdd.yearTolerance", { n: tolerance })}</span>}
+                </span>
+                <span className="cuerpo"><span className="vacio">{t("cdd.catalogLoading")}</span></span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="prensa-casillas">
+            {etiquetas.map((etiqueta) => (
+              <div key={etiqueta} className="relative flex flex-col gap-0.5">
+                <span className="prensa-label">{etiqueta}</span>
+                <div className="prensa-campo">
+                  <div className="prensa-input pm-esperando">&nbsp;</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <button type="button" className="prensa-submit mt-2 is-incomplete" tabIndex={-1}>
+          {t("cdd.submit")}
+        </button>
+      </form>
     </div>
   );
 }

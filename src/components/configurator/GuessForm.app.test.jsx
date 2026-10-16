@@ -68,6 +68,8 @@ async function montar({ guesses = [], catalogo = CATALOGO, error = null, reload 
 // El renglón se anuncia como «etiqueta: valor» (lo compone CampoBoton), así que
 // se busca por el principio del nombre accesible.
 const renglon = (clave) => screen.getByRole("button", { name: new RegExp(`^${clave}:`) });
+// El botón que fija el año propuesto por la ruleta («Elegir 1994»).
+const confirmarAnio = () => screen.getByRole("button", { name: /^cdd\.selectorYearConfirm:/ });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -124,14 +126,14 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     // Tercer paso sin haber tocado nada más: el año.
     expect(screen.getAllByRole("tab").length).toBeGreaterThan(1);
 
-    const anio = screen.getAllByRole("button").find((b) => /^\d{4}$/.test(b.textContent));
-    fireEvent.click(anio);
+    const anio = screen.getByRole("spinbutton").getAttribute("aria-valuenow");
+    fireEvent.click(confirmarAnio());
 
     // Con los tres campos puestos ya no queda paso: la hoja se va.
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).toBeNull();
     });
-    expect(renglon("cdd.labelAnio").textContent).toContain(anio.textContent);
+    expect(renglon("cdd.labelAnio").textContent).toContain(anio);
   });
 
   it("la cadena NO se mete en campos ya rellenos: corregir la marca cierra", async () => {
@@ -140,7 +142,7 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     fireEvent.click(renglon("cdd.labelMarca"));
     fireEvent.click(screen.getByRole("option", { name: /Seat/ }));
     fireEvent.click(screen.getByRole("option", { name: /Ibiza/ }));
-    fireEvent.click(screen.getAllByRole("button").find((b) => /^\d{4}$/.test(b.textContent)));
+    fireEvent.click(confirmarAnio());
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
     // Ahora vuelve a MARCA solo para corregirla: al elegir, la hoja debe
@@ -347,21 +349,70 @@ describe("El cupón de la app: tres renglones que abren una hoja", () => {
     expect(tira()).toBeTruthy();
   });
 
-  it("el AÑO se elige por décadas, sin teclear", async () => {
+  it("el AÑO se elige en la ruleta: la década salta, el botón confirma", async () => {
     await montar();
     fireEvent.click(renglon("cdd.labelAnio"));
 
     expect(screen.getByRole("dialog")).toBeTruthy();
     const decadas = screen.getAllByRole("tab");
     expect(decadas.length).toBeGreaterThan(1);
+    const ruleta = screen.getByRole("spinbutton");
 
-    fireEvent.click(decadas[decadas.length - 1]);
-    const anio = screen.getAllByRole("button").find((b) => /^20\d\d$/.test(b.textContent));
-    expect(anio).toBeTruthy();
-    fireEvent.click(anio);
-    expect(renglon("cdd.labelAnio").textContent).toContain(anio.textContent);
+    // Saltar a la última década gira la ruleta hasta ella…
+    const ultima = decadas[decadas.length - 1];
+    fireEvent.click(ultima);
+    const propuesto = Number(ruleta.getAttribute("aria-valuenow"));
+    expect(Math.floor(propuesto / 10) * 10).toBe(Number(ultima.textContent));
+    // …pero no elige nada todavía: el renglón sigue vacío hasta confirmar.
+    expect(renglon("cdd.labelAnio").textContent).not.toContain(String(propuesto));
     // El año no abre teclado NUNCA: es el campo que lo justificaba menos.
     expect(document.querySelectorAll("input").length).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: `cdd.selectorYearConfirm:${propuesto}` }));
+    expect(renglon("cdd.labelAnio").textContent).toContain(String(propuesto));
+  });
+
+  it("la ruleta se maneja con el teclado como un spinbutton", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelAnio"));
+    const ruleta = screen.getByRole("spinbutton");
+    const antes = Number(ruleta.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(ruleta, { key: "ArrowDown" });
+    fireEvent.keyDown(ruleta, { key: "PageDown" });
+    expect(Number(ruleta.getAttribute("aria-valuenow"))).toBe(antes + 11);
+    fireEvent.keyDown(ruleta, { key: "Enter" });
+    expect(renglon("cdd.labelAnio").textContent).toContain(String(antes + 11));
+  });
+
+  it("elegir el AÑO primero lleva a la marca que falta en vez de cerrar", async () => {
+    await montar();
+    fireEvent.click(renglon("cdd.labelAnio"));
+    fireEvent.keyDown(screen.getByRole("spinbutton"), { key: "Enter" });
+    // La hoja sigue abierta, ahora en el paso de la marca.
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+    expect(screen.getByText("Seat")).toBeTruthy();
+  });
+
+  // Auditoría 16-oct: sin pista, la hoja abría en el CENTRO de 1886-hoy, o sea
+  // en los cincuenta, con el chip activo fuera de la tira. Ahora abre en la
+  // década del año mediano del catálogo.
+  it("sin pista, el AÑO abre en la década típica del catálogo, no en los cincuenta", async () => {
+    const conAnios = {
+      ...CATALOGO,
+      cars: [
+        { id: 1, marca: "Seat", modelo: "Ibiza", pais: "es", anio: 1984 },
+        { id: 2, marca: "Seat", modelo: "León", pais: "es", anio: 1999 },
+        { id: 3, marca: "Citroën", modelo: "2CV", pais: "fr", anio: 1949 },
+        { id: 4, marca: "Volkswagen", modelo: "Golf", pais: "de", anio: 1993 },
+        { id: 5, marca: "Volkswagen", modelo: "Corrado", pais: "de", anio: 2008 },
+      ],
+    };
+    await montar({ catalogo: conAnios });
+    fireEvent.click(renglon("cdd.labelAnio"));
+
+    const activa = screen.getAllByRole("tab").find((d) => d.getAttribute("aria-selected") === "true");
+    expect(activa.textContent).toBe("1990");
   });
 });
 

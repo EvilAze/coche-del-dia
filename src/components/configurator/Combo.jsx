@@ -6,6 +6,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { haptic } from "../../lib/haptics";
+import { useFitText } from "../../hooks/useFitText";
 import { acercarCampoAlTeclado } from "../../lib/teclado";
 import { normalizar } from "../../lib/texto";
 import { useT } from "../../i18n";
@@ -76,12 +77,24 @@ export default function Combo({
   const ref = useRef(null);
   const innerRef = useRef(null);
   const listRef = useRef(null);
+  const [enfocado, setEnfocado] = useState(false);
+
+  // EL NOMBRE ELEGIDO CABE EN SU CASILLA. En la fila de tres el modelo tiene
+  // unos 120px de texto en un móvil, y «Giulia Quadrifoglio» se cortaba en seco
+  // («Giulia Quadrifog»): justo el dato que el jugador quiere comprobar antes de
+  // gastar un intento. Un <input> no puede partir en dos líneas como la casilla
+  // de la app, así que el valor ELEGIDO encoge hasta caber (el mismo
+  // shrink-to-fit del historial), con suelo en 12px (`--t-dato`); por debajo de
+  // eso, puntos suspensivos (ver .prensa-casillas en index.css). Lo que se está
+  // tecleando no encoge, y con el foco dentro vuelve a su tamaño: ver useFitText.
+  const ajusteRef = useFitText(value, { min: 12, activo: !enfocado || estado === "resuelto" || bloqueado });
 
   // Ref combinado: mantenemos el ref interno (lo usamos para el auto-scroll en
   // móvil) y, si el padre pasó inputRef, lo sincronizamos para que pueda
   // enfocar el input desde la cadena de foco.
   const setInputRef = (node) => {
     innerRef.current = node;
+    ajusteRef.current = node;
     if (typeof inputRef === "function") inputRef(node);
     else if (inputRef) inputRef.current = node;
   };
@@ -257,7 +270,8 @@ export default function Combo({
           aria-describedby={describedBy}
           placeholder={placeholder}
           onChange={(e) => { onChange(""); setQ(e.target.value); setOpen(true); }}
-          onFocus={onFocus}
+          onFocus={() => { setEnfocado(true); onFocus(); }}
+          onBlur={() => setEnfocado(false)}
           // Un toque sobre el campo ya enfocado también la abre: sin esto, tras
           // cerrarla con Escape (o tras el foco del aviso) solo se reabría
           // tecleando o con la flecha.

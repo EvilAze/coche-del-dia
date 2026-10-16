@@ -10,7 +10,15 @@
 import { useLayoutEffect, useRef } from "react";
 import { fitFontSize } from "../lib/fitText";
 
-export function useFitText(value, { min = 10 } = {}) {
+//
+// También vale para un <input> (el cupón de la web), con dos matices:
+//   · Se mide sin el RELLENO horizontal. En el span del historial es cero y no
+//     cambia nada; en un campo son 20-40px que, metidos en la regla de tres,
+//     dejaban el texto un pelo más grande de lo que cabe.
+//   · `activo: false` devuelve el tamaño del CSS y no mide. El campo lo apaga
+//     mientras tiene el foco: quien edita necesita la letra entera (16px, la que
+//     no dispara el zoom de iOS al enfocar) y el texto ya se desplaza solo.
+export function useFitText(value, { min = 10, activo = true } = {}) {
   const ref = useRef(null);
 
   useLayoutEffect(() => {
@@ -20,10 +28,13 @@ export function useFitText(value, { min = 10 } = {}) {
     const measure = () => {
       // Quitamos el override para medir al tamaño que dicta el CSS (= base).
       el.style.fontSize = "";
-      const base = parseFloat(getComputedStyle(el).fontSize) || 12.5;
+      if (!activo) return;
+      const cs = getComputedStyle(el);
+      const base = parseFloat(cs.fontSize) || 12.5;
+      const relleno = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
       const next = fitFontSize({
-        scrollWidth: el.scrollWidth,
-        clientWidth: el.clientWidth,
+        scrollWidth: el.scrollWidth - relleno,
+        clientWidth: el.clientWidth - relleno,
         base,
         min,
       });
@@ -45,7 +56,7 @@ export function useFitText(value, { min = 10 } = {}) {
     // 'value' debe ser el texto primitivo (string/número) del chip: es lo que
     // determina cuándo hay que volver a medir. No pasar objetos/arrays (su
     // referencia cambia en cada render y remediría de más).
-  }, [value, min]);
+  }, [value, min, activo]);
 
   return ref;
 }

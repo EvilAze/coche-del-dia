@@ -140,6 +140,26 @@ describe("Intro elige y salta al siguiente campo (P24)", () => {
     fireEvent.keyDown(campo, { key: "Enter" });
     expect(campo.value).toBe("Seat");
   });
+
+  // El mismo salto, un campo más allá. En la auditoría del 16-oct pareció roto
+  // («Giulia Q» + Intro y el año tecleado acababa pegado al modelo), pero era el
+  // banco: el navegador automatizado no pintaba frames y `focusSoon` espera a un
+  // requestAnimationFrame. Con frames, salta. Esta prueba fija que salta.
+  it("en Modelo, Intro elige y lleva a Año", async () => {
+    await montar();
+    const marca = campoMarca();
+    fireEvent.focus(marca);
+    fireEvent.change(marca, { target: { value: "Sea" } });
+    fireEvent.keyDown(marca, { key: "Enter" });
+    const modelo = screen.getAllByRole("combobox")[1];
+    await waitFor(() => expect(document.activeElement).toBe(modelo));
+
+    fireEvent.change(modelo, { target: { value: "Ib" } });
+    fireEvent.keyDown(modelo, { key: "Enter" });
+    expect(modelo.value).toBe("Ibiza");
+    const anio = screen.getByPlaceholderText("cdd.yearPlaceholder");
+    await waitFor(() => expect(document.activeElement).toBe(anio));
+  });
 });
 
 describe("El país que ya sabes sube arriba (P11)", () => {

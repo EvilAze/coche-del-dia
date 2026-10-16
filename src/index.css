@@ -439,6 +439,11 @@
      nunca no "entra" ni "sale", así que no le vale ninguna de las cinco de
      arriba — todas están hechas para un viaje con principio y final. */
   --curva-latido: ease-in-out;
+  /* El tambor de la ruleta del año. No es un viaje en el tiempo sino una
+     correspondencia con la POSICIÓN de scroll: cuánto se inclina una fila tiene
+     que ser proporcional a lo lejos que está de la banda, y cualquier curva con
+     aceleración haría que la rueda pareciera blanda en los bordes. */
+  --curva-ruleta: linear;
 }
 
 /* ── EL COMPÁS EN SILENCIO ─────────────────────────────────────────────────
@@ -2488,24 +2493,81 @@ body,
   background: transparent; border: 1px solid var(--line-strong);
   font-family: var(--font-mono); font-size: var(--t-ui); color: var(--cdd-text);
 }
-.pm-anios {
-  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 8px; padding: 4px 16px 16px;
+/* LA RULETA (SelectorAnio). Una banda fija en el centro y los años pasando por
+   debajo con imán: cada fila es una muesca (scroll-snap) y el año que cae en la
+   banda es el propuesto. Cinco filas a la vista, tres en pantallas bajas, donde
+   la hoja no tiene más alto que dar sin tapar la foto (regla 18f). El alto de
+   fila llega de JS (`--ruleta-fila`) porque la aritmética del trinquete lo
+   usa: una sola cifra para los dos. */
+.pm-ruleta {
+  --ruleta-visibles: 5;
+  position: relative; flex: 0 1 auto; margin: 0 16px;
+  height: calc(var(--ruleta-visibles) * var(--ruleta-fila));
+  min-height: calc(2.5 * var(--ruleta-fila));
 }
-.pm-anio {
-  min-height: 52px; cursor: pointer; border-radius: 0;
-  background: transparent; border: 1px solid var(--line-strong);
-  font-family: var(--font-mono); font-size: var(--t-boton); color: var(--cdd-text);
+/* Pantalla baja (un iPhone SE deja ~324px de hoja sin tapar la foto): tres filas
+   y márgenes más justos, y la rueda puede encoger hasta dos y media —con la
+   banda siempre en el centro, media fila arriba y abajo sigue leyéndose como
+   rueda— antes de que el botón de confirmar se quede fuera de la hoja. */
+@media (max-height: 700px) {
+  .pm-ruleta { --ruleta-visibles: 3; }
+  .pm-ruleta ~ .pm-ruleta-ok { margin: 8px 16px 12px; min-height: 48px; }
 }
-/* DESCARTADO por los intentos previos. Filete discontinuo y tinta apagada: la
-   marca del corrector para «esto ya está tachado». No se puede pulsar, y ese
-   es el punto — el intento que se tiraba a la basura tecleando un año que el
-   propio juego ya había descartado deja de poder ocurrir. */
-.pm-anio.descartado {
-  color: var(--faint); border-color: var(--line); border-style: dashed;
-  cursor: not-allowed;
+.pm-ruleta-banda {
+  position: absolute; left: 0; right: 0; height: var(--ruleta-fila);
+  top: calc(50% - var(--ruleta-fila) / 2);
+  border-radius: var(--radio-celda); background: var(--surface2); pointer-events: none;
 }
+/* Va DESPUÉS de la banda en el DOM y posicionado: pinta encima sin pedir capa. */
+.pm-ruleta-visor {
+  position: relative; height: 100%; overflow-y: auto; overscroll-behavior: contain;
+  scroll-snap-type: y mandatory; scrollbar-width: none;
+  /* Sin animaciones por scroll (WebView antiguo), un fundido en los bordes
+     sostiene la idea de rueda; con ellas, lo sustituye el tambor de abajo. */
+  -webkit-mask-image: linear-gradient(transparent, black 30%, black 70%, transparent);
+  mask-image: linear-gradient(transparent, black 30%, black 70%, transparent);
+}
+.pm-ruleta-visor::-webkit-scrollbar { display: none; }
+.pm-ruleta-visor:focus-visible { outline: 2px solid var(--cdd-text); outline-offset: 2px; border-radius: var(--radio-celda); }
+/* Los rellenos de arriba y abajo: sin ellos el primer y el último año no
+   podrían llegar a la banda. Calculados para el máximo de filas visibles; si la
+   hoja encoge la rueda, sobran unos píxeles, que es inocuo. */
+.pm-ruleta-visor::before, .pm-ruleta-visor::after {
+  content: ""; display: block; height: calc((var(--ruleta-visibles) - 1) / 2 * var(--ruleta-fila));
+}
+.pm-ruleta-fila {
+  height: var(--ruleta-fila); display: flex; align-items: center; justify-content: center;
+  scroll-snap-align: center; cursor: pointer;
+  font-family: var(--font-mono); font-size: var(--t-pregunta); font-variant-numeric: tabular-nums;
+  color: var(--cdd-text);
+}
+/* EL TAMBOR. Cada fila se inclina y se apaga según lo lejos que esté de la
+   banda, como en la rueda de una alarma. Es una animación ligada al SCROLL, no
+   al tiempo (`view()`): no hay bucle de JS ni lectura de layout por frame, la
+   lleva el compositor y solo toca `transform` y `opacity` (regla 25). Con
+   «reducir movimiento» la apaga la regla global y queda la lista plana con su
+   banda, que funciona igual. */
+@supports (animation-timeline: view()) {
+  .pm-ruleta-visor { -webkit-mask-image: none; mask-image: none; }
+  .pm-ruleta-fila {
+    animation: pm-ruleta-tambor both var(--curva-ruleta);
+    animation-timeline: view();
+  }
+}
+@keyframes pm-ruleta-tambor {
+  0% { opacity: .15; transform: perspective(320px) rotateX(-58deg) scale(.86); }
+  50% { opacity: 1; transform: none; }
+  100% { opacity: .15; transform: perspective(320px) rotateX(58deg) scale(.86); }
+}
+/* Confirmar: el botón principal es la tinta. Lleva el año dentro («Elegir
+   1994») para que lo que se va a fijar se lea en el mismo sitio donde se pulsa. */
+.pm-ruleta-ok {
+  flex: none; margin: 12px 16px 16px; min-height: 52px; cursor: pointer;
+  border: 0; border-radius: var(--radio-boton); background: var(--cdd-text); color: var(--bg);
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton);
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.pm-ruleta-ok:active { transform: translateY(1px); }
 
 /* Foco de teclado del sistema prensa: anillo rojo uniforme (sustituye al
    .focus-ring menta en la pantalla de juego). focus-visible: solo teclado.
@@ -3482,7 +3544,15 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   transition: background-color var(--ms-roce) var(--curva-roce);
 }
 .prensa-renglones > .prensa-renglon:active:not(:disabled) { background: var(--surface2); }
-.prensa-renglones > .prensa-renglon.resuelto { border: 0; background: rgb(var(--verde-rgb) / .1); }
+/* RESUELTA: superficie de siempre y el filete VERDE abajo, no la casilla teñida.
+   El velo verde al 10% sobre el papel daba un gris verdoso que se leía como
+   casilla APAGADA —justo lo contrario de un acierto— y, al lado de dos casillas
+   blancas, parecía la única que no se podía tocar por estar rota. El acierto lo
+   dicen el ✓, el «RESUELTO» en verde y el filete, que es el mismo gesto con el
+   que el renglón de una línea marcaba lo resuelto (ver .prensa-renglon.resuelto). */
+.prensa-renglones > .prensa-renglon.resuelto {
+  border: 0; background: var(--surface); box-shadow: inset 0 -2px 0 var(--verde);
+}
 /* EN ESPERA (el modelo sin marca): la casilla se HUNDE al suelo en vez de
    apagar su texto. Apagarlo a --faint dejaba «Primero la marca» en 2,7:1 de día
    —y es una instrucción, no un adorno: dice qué hacer—, mientras la casilla
@@ -3504,17 +3574,37 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 }
 .prensa-renglon .apunte.resuelta { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em; }
 .prensa-renglon .valor { font-family: var(--font-body); font-weight: 600; font-size: var(--t-campo); }
+/* EL NOMBRE PARTE EN DOS LÍNEAS antes que cortarse. En una casilla de ~105px de
+   texto, «Giulia Quadrifoglio» salía «Giulia Quadrif…» y «Mercedes-Benz»,
+   «Mercede…»: justo el dato que hay que comprobar antes de gastar un intento.
+   Encoger la letra a una línea no llega —el catálogo tiene modelos de 22
+   caracteres, que a una línea quedarían en 10px—; partir sí, y casi gratis: la
+   casilla del año ya mide tres renglones (etiqueta, valor, horquilla), así que
+   un modelo en dos no estira la fila. Por encima de dos, puntos suspensivos. */
+.prensa-renglones > .prensa-renglon .valor {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  white-space: normal; overflow-wrap: break-word; line-height: 1.15;
+}
 .prensa-renglon .vacio { font-family: var(--font-body); font-weight: 500; font-size: var(--t-cuerpo); line-height: 1.15; white-space: normal; }
 .prensa-renglon .chev { width: 13px; height: 13px; }
 
 /* Web (`.prensa-casillas`): la misma fila de tres, con campos de texto. Los
    desplegables cuelgan de su campo pero más anchos que la casilla: una lista de
    marcas no se lee en 100px. El de la casilla del medio se alinea a la
-   izquierda de su campo; el año no tiene lista. */
+   izquierda de su campo; el año no tiene lista.
+   Aquí el modelo se lleva más ancho que en la app (1.25 frente a 1.15), porque
+   un campo de texto no puede partir el nombre en dos líneas: se lo quita al año,
+   que son cuatro cifras y le sobraba. Lo que aun así no quepa encoge (Combo,
+   useFitText) y, en el último extremo, acaba en puntos suspensivos en vez de
+   cortado en seco. */
 .prensa-casillas {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, .85fr);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, .75fr);
   gap: 6px; align-items: start;
 }
+/* El interlineado se fija al del tamaño BASE: un campo dimensiona su alto por
+   su letra, y sin esto la casilla del nombre encogido quedaba un par de píxeles
+   más baja que sus vecinas — una fila de tres que deja de ser una fila. */
+.prensa-casillas .prensa-input { text-overflow: ellipsis; line-height: calc(var(--t-campo) * 1.2); }
 /* En una casilla estrecha el «resuelto» de la etiqueta pisa la de al lado: ya
    lo dicen el ✓ y la casilla en verde. */
 .prensa-casillas .prensa-label .pista-label.resuelta { display: none; }
@@ -3545,9 +3635,11 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-input:focus { border: 1px solid var(--cdd-text); padding-bottom: 11px; box-shadow: 0 0 0 1px var(--cdd-text); }
 .prensa-casillas .prensa-input::placeholder { font-size: var(--t-nota); }
 .prensa-input.invalida { border: 1px solid var(--rojo); box-shadow: 0 0 0 1px var(--rojo); }
+/* Resuelto: canto verde y ✓ sobre la superficie de siempre (el velo verde se
+   leía como campo apagado; ver la casilla resuelta de la app). */
 .prensa-input.veredicto-resuelto {
   border: 1px solid rgb(var(--verde-rgb) / .5); padding-bottom: 11px; padding-right: 30px;
-  background: rgb(var(--verde-rgb) / .08);
+  background: var(--surface);
 }
 .prensa-input.veredicto-resuelto:focus { border-color: rgb(var(--verde-rgb) / .5); box-shadow: none; }
 .prensa-input::placeholder { font-family: var(--font-body); font-weight: 500; font-size: var(--t-cuerpo); }
@@ -3646,10 +3738,8 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .pm-grupo--pais .pm-grupo-letra { letter-spacing: .04em; }
 .pm-indice-letra { font-weight: 600; }
 .pm-indice-letra:active, .pm-indice-letra.activa { color: var(--cdd-text); }
-.pm-decada, .pm-anio { border-radius: var(--radio-boton); border-color: var(--line-strong); }
+.pm-decada { border-radius: var(--radio-boton); border-color: var(--line-strong); }
 .pm-decada.activa { background: var(--cdd-text); border-color: var(--cdd-text); color: var(--bg); }
-.pm-anio:active:not(:disabled) { background: var(--surface2); }
-.pm-anio.elegido { border-color: var(--cdd-text); box-shadow: inset 0 0 0 1px var(--cdd-text); }
 
 /* ── EL PANEL DEL FINAL (EndScreen): victoria y derrota ────────────────────── */
 .prensa .cdd-end-scrim { background: rgb(var(--velo-rgb) / .55); }
@@ -3949,9 +4039,13 @@ button.fin-tarjeta:active { transform: translateY(1px); }
   font-family: var(--font-mono); font-size: var(--t-ui); line-height: 1.5;
 }
 .fin-copia textarea:focus-visible { outline: 2px solid var(--cdd-text); outline-offset: 2px; }
+/* El reloj es un DATO, no un control: renglón sin caja. Llevaba el mismo canto
+   y el mismo radio que «Guardar mi progreso», que va justo debajo, y en una
+   columna de tres piezas iguales la del medio se leía como un tercer botón que
+   no hacía nada al tocarlo. */
 .fin-reloj {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  min-height: 60px; padding: 0 16px; border-radius: var(--radio-boton); border: 1px solid var(--line);
+  min-height: 52px; padding: 0 4px;
 }
 .fin-reloj-k { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font-body); font-size: var(--t-ui); color: var(--cdd-muted); }
 .fin-reloj-cifra {

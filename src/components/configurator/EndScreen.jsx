@@ -34,6 +34,7 @@ import { track } from "../../lib/analytics";
 import { flagImagePath } from "../../data/countries";
 import { apiUrl } from "../../lib/apiUrl";
 import { puntuacionDelDia } from "../../lib/puntos";
+import { compartirEnApp } from "../../lib/compartir";
 import { useToast } from "../Toast";
 import { Icon, I } from "./icons";
 // `Percentile` se retiró de dailyStats: era una caja con el porcentaje y ahora ese
@@ -242,6 +243,17 @@ export default function EndScreen({
     haptic.impactLight();
     try {
       const finalShareText = shareText;
+
+      // En la app, la hoja nativa: el WebView no trae `navigator.share` y esto
+      // caía al portapapeles (ver lib/compartir.js). Fuera de la app devuelve
+      // null y sigue el camino web de siempre.
+      const enApp = await compartirEnApp(finalShareText);
+      if (enApp) {
+        if (enApp === "compartido") {
+          track("share", { method: "native_app", where: "end_screen", result: won ? "win" : "lose" });
+        }
+        return;
+      }
 
       if (navigator.share) {
         await navigator.share({ text: finalShareText });

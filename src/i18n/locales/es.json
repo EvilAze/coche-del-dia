@@ -148,7 +148,7 @@
     "selectorClose": "Cerrar",
     "selectorIndex": "Ir a la letra",
     "selectorDecade": "Década",
-    "selectorYearRuledOut": "{year}, descartado por tus intentos",
+    "selectorYearConfirm": "Elegir {year}",
     "copyResult": "Compartir resultado",
     "copied": "¡Copiado!",
     "repescaKicker": "Tienes una repesca",

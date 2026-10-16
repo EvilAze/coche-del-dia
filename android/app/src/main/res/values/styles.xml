@@ -37,7 +37,15 @@
     </style>
 
 
+    <!-- El splash de Android 12+ (Theme.SplashScreen) pinta su PROPIO fondo, que
+         no es android:background: sin windowSplashScreenBackground cae al color
+         de fondo del sistema, un lila claro que no es de la paleta. Arrancaba la
+         app con lila y el círculo crema del icono, y saltaba al papel. Con el
+         mismo cdd_window_bg que la ventana (papel de día, grafito de noche vía
+         values-night) el splash, el fondo de la Activity y la web son un solo
+         color de principio a fin. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/cdd_window_bg</item>
     </style>
 </resources>

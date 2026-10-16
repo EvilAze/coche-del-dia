@@ -403,7 +403,12 @@ export function useGame() {
   // amplía la foto ENTERA en este intento, con la misma fórmula que recorta el
   // servidor (zoomForAttempt, réplica de api/_lib/zoom.js). No filtra nada: el
   // zoom_base ya viaja al cliente para calcular los scales.
-  const aumento = status === "playing" ? zoomForAttempt(zoomIndex + 1, car?.zoomBase) : null;
+  //
+  // Y solo con la foto en camino (`car.img`): el coche del primer paint es un
+  // placeholder sin `zoomBase`, así que la lectura salía con el zoom POR DEFECTO
+  // («3,7×» sobre el esqueleto) y un segundo después cambiaba a la del coche de
+  // hoy («5,0×»). Un número que se corrige solo es peor que ningún número.
+  const aumento = status === "playing" && car?.img ? zoomForAttempt(zoomIndex + 1, car.zoomBase) : null;
 
   // Durante la partida pedimos siempre el crop más amplio (z=5). El cliente
   // termina de "cerrar" el zoom con CSS. Cuando el juego termina añadimos

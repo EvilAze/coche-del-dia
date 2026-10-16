@@ -22,7 +22,7 @@ import ZoomStage from "./ZoomStage";
 import PhotoPeek from "./PhotoPeek";
 import AttemptList from "./AttemptList";
 
-import GuessForm from "./GuessForm";
+import GuessForm, { CuponEsperando } from "./GuessForm";
 import EndScreen from "./EndScreen";
 import BarraSecciones from "./BarraSecciones";
 import { useDailyStats, Distribution } from "./dailyStats";
@@ -477,6 +477,10 @@ export default function Configurator({
         </div>
 
         <div className="prensa-area-jugar" ref={jugarRef}>
+          {/* Sin datos todavía: el hueco del cupón, para que su llegada no
+              empuje la página (ver CuponEsperando). Con la edición caída no:
+              ahí manda el cartel de reintentar. */}
+          {!dataReady && !loadError && <CuponEsperando tolerance={tolerance} />}
           {dataReady &&
             (!ended ? (
               <GuessForm

@@ -35,6 +35,7 @@ import { basePointsFor } from "./_lib/score.js";
 import { resolverCocheDelUsuario } from "./_lib/coche-de-hoy.js";
 import { sellosDe } from "./_lib/sello.js";
 import { registrarResultadoDiario } from "./_lib/registro-puntos.js";
+import { CIFRAS_SELECT, cifrasDelRevelado } from "./_lib/cifras.js";
 import {
   conTimeoutOFallback,
   conTimeoutReintentando,
@@ -73,7 +74,10 @@ async function fetchCarById(id, etiqueta) {
         // GRANT (ver scripts/2026-08-temporada-presentada-y-video.sql) porque
         // identifica el coche del día. Aquí estamos con service_role y su salida
         // está gateada por la política de revelado del paso 9.
-        .select("id, make, model, year, pais, description, description_en, video_id")
+        // Las cifras de la ficha técnica, igual: sin GRANT y solo en victoria
+        // (api/_lib/cifras.js). Se piden también para el coche ADIVINADO
+        // porque es la misma función; de ese no sale nada hacia el cliente.
+        .select(`id, make, model, year, pais, description, description_en, video_id, ${CIFRAS_SELECT}`)
         .eq("id", id)
         .maybeSingle(),
     PLAZOS.SUPABASE,
@@ -620,6 +624,12 @@ export default async function handler(req, res) {
         // EndScreen simplemente no pinta la nota).
         description: result.win ? realCar.description ?? null : null,
         description_en: result.win ? realCar.description_en ?? null : null,
+        // Las cifras de la ficha técnica (CV, Nm, 0-100, velocidad máxima) son
+        // FICHA, no identidad: también solo al que gana, y la condición va
+        // dentro de cifrasDelRevelado. Salen de `realRow` y no de `realCar` a
+        // propósito: `realCar` se persiste tal cual en user_guesses.car_data,
+        // una tabla que el propio jugador puede leer, gane o pierda.
+        cifras: cifrasDelRevelado(realRow, result.win === true),
         // EL VÍDEO VA CON LA IDENTIDAD, NO CON LA FICHA: gane o pierda. Es la
         // misma decisión —y el mismo argumento— que el revealToken de la foto
         // completa unas líneas más abajo: al jugador que acaba de leer «era un

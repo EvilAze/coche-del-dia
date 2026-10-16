@@ -176,6 +176,16 @@ expectSelectBlocked(
   "SELECT id, video_id FROM cars (el vídeo es la respuesta)",
   await anon.from("cars").select("id, video_id").limit(1)
 );
+// Las cifras de la ficha técnica (scripts/2026-10-ficha-tecnica-cifras.sql).
+// Sin GRANT como `description`: son la ficha, que solo se revela al GANAR, y
+// cruzadas con el catálogo público acotarían el coche del día (qué coches
+// tienen ya cifras, cuáles son superdeportivos). Viajan solo en el `reveal`.
+for (const col of ["potencia_cv", "par_nm", "aceleracion_0_100", "vmax_kmh"]) {
+  expectSelectBlocked(
+    `SELECT id, ${col} FROM cars (la ficha es de quien gana)`,
+    await anon.from("cars").select(`id, ${col}`).limit(1)
+  );
+}
 
 // Contra-test: la query que SÍ debe funcionar (la que usa /api/list-cars
 // para el autocomplete). Verificamos que no rompemos funcionalidad

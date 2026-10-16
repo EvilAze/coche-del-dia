@@ -43,6 +43,7 @@ import { versionDeImagen } from "./_lib/version-imagen.js";
 import { resolverCocheDelUsuario } from "./_lib/coche-de-hoy.js";
 import { sellosDe } from "./_lib/sello.js";
 import { clampZoomBase } from "./_lib/zoom.js";
+import { CIFRAS_SELECT, cifrasDelRevelado } from "./_lib/cifras.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
 import { isAllowedOrigin, CORS_ALLOW_HEADERS, CORS_ALLOW_METHODS } from "./_lib/cors.js";
 import {
@@ -553,7 +554,7 @@ export default async function handler(request) {
       conTimeoutOFallback(
         supabaseAdmin
           .from("cars")
-          .select("make, model, year, pais, description, description_en, video_id")
+          .select(`make, model, year, pais, description, description_en, video_id, ${CIFRAS_SELECT}`)
           // El coche del jugador, que puede no ser el vigente: revelarle el
           // coche nuevo sobre su partida vieja sería mentirle en la cara.
           .eq("id", carIdDelUsuario)
@@ -592,6 +593,11 @@ export default async function handler(request) {
         // respeta en el momento de perder). Corregido al unificar la política.
         description: isWon ? liveCar.description ?? null : null,
         description_en: isWon ? liveCar.description_en ?? null : null,
+        // Las cifras de la ficha técnica, con la misma política que la
+        // descripción (son ficha): solo en victoria, y la condición va dentro
+        // de cifrasDelRevelado. Sin esta línea estarían en el panel al ganar y
+        // desaparecerían al recargar.
+        cifras: cifrasDelRevelado(liveCar, isWon),
         // El vídeo va con la IDENTIDAD y no con la ficha (gane o pierda), y por
         // eso no lleva el gate de `isWon` — el porqué está en validate-guess,
         // paso 9. Esta rama es la que reconstruye el reveal al RECARGAR una

@@ -42,6 +42,7 @@ import analyzeImage from "../../lib/admin-handlers/analyze-image.js";
 import describeCar from "../../lib/admin-handlers/describe-car.js";
 import emergencySwap from "../../lib/admin-handlers/emergency-swap.js";
 import masters from "../../lib/admin-handlers/masters.js";
+import suggestSpecs from "../../lib/admin-handlers/suggest-specs.js";
 
 const ROUTES = {
   "analytics":     analytics,
@@ -63,6 +64,9 @@ const ROUTES = {
   "analyze-image": analyzeImage,
   "describe-car":  describeCar,
   "masters":       masters,
+  // «Sugerir cifras» de la ficha técnica: dos votos de IA (Groq + Gemini) y
+  // solo se sugiere lo que coincide. No escribe nada.
+  "suggest-specs": suggestSpecs,
 };
 
 // PLAZO POR RUTA, en ms. El dispatcher es el único sitio por el que pasan los
@@ -86,6 +90,9 @@ const PLAZO_MS = {
   "analyze-image": 55000,
   "describe-car": 55000,
   "translate": 55000,
+  // Dos modelos en paralelo, y Gemini con un reintento en serie si está
+  // saturado: los plazos de cada voto (suggest-specs.js) caben aquí dentro.
+  "suggest-specs": 55000,
   // Sube la foto al CDN además de escribir en la base.
   "save-car": 45000,
   // Analítica y auditoría barren rangos de hasta 90 días y cruzan varias

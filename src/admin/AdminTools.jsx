@@ -13,7 +13,7 @@
 //   4. Sincronizar el estado mínimo con la URL (?tab=…&id=…&date=…) para
 //      que F5 no resetee el contexto del admin.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import SchedulePanel from "./SchedulePanel";
 import SeasonsPanel from "./SeasonsPanel";
@@ -183,9 +183,21 @@ export default function AdminTools({ defaultTab }) {
     setRefreshKey((k) => k + 1);
   }
 
-  function handleFormChange(carId, overrides) {
-    setPreviewOverrides(overrides ? { carId, ...overrides } : null);
-  }
+  // Identidad estable + no-op si nada cambió: EditCarPanel lo tiene en las deps
+  // de un efecto que lo llama, así que un handler nuevo por render o un objeto
+  // nuevo con los mismos valores provocaba un bucle infinito de renders
+  // (un núcleo de CPU al 100 %).
+  const handleFormChange = useCallback((carId, overrides) => {
+    setPreviewOverrides((prev) => {
+      if (!overrides) return prev === null ? prev : null;
+      const next = { carId, ...overrides };
+      const mismo =
+        prev &&
+        Object.keys(next).length === Object.keys(prev).length &&
+        Object.keys(next).every((k) => Object.is(prev[k], next[k]));
+      return mismo ? prev : next;
+    });
+  }, []);
 
   function handleCarDeleted() {
     setSelectedCarId("");

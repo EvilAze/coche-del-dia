@@ -205,7 +205,7 @@ async function resolverElDia(supabaseAdmin, today) {
 // dejó de ser solo redundante: serían DOS verificaciones de firma que
 // mantener, con el riesgo de endurecer una y olvidar la otra. Una sola.
 
-export default async function handler(request) {
+export default async function handler(request, context) {
   // Preflight CORS de la app Android.
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeadersFor(request) });
@@ -434,8 +434,10 @@ export default async function handler(request) {
     ) || null;
 
   // AUDITORÍA: registra la PRIMERA visita del día por (user|ip + día).
-  // Deliberadamente SIN await — el insert vuela en background; Vercel Edge
-  // deja que las fetches en vuelo se completen tras devolver la Response.
+  // Deliberadamente SIN await para no sumar latencia al primer paint, pero con
+  // `context`: el insert se entrega a `waitUntil`, que es lo que mantiene viva
+  // la función tras devolver la Response. Sin eso, en una partida empezando el
+  // insert se perdía casi siempre (ver la nota de logSessionStart).
   // Dedupe en memoria de la instancia warm evita filas por cada F5.
   //
   // Con el coche RESUELTO: si esta visita es la de un congelado, la fila de
@@ -446,6 +448,7 @@ export default async function handler(request) {
     isAnon: !user,
     gameDate: today,
     carId: carIdDelUsuario,
+    context,
   }).catch(() => {});
 
   // Zoom base del coche de hoy. El cliente lo usa para calcular los scales CSS

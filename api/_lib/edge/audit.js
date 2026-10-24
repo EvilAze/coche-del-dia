@@ -59,10 +59,29 @@ function clip(value, max) {
 
 /**
  * Registra un session_start best-effort. Llamar SIN await para no añadir
- * latencia al primer paint — el insert vuela en background y Vercel deja
- * que las fetches en vuelo se completen tras devolver la Response.
+ * latencia al primer paint, pero pasando el `context` del handler.
+ *
+ * POR QUÉ `context.waitUntil` Y NO «que vuele en background». Aquí se asumía
+ * que Vercel deja terminar las fetches en vuelo tras devolver la Response, y
+ * no es así en Edge: lo que extiende la vida de la función es `waitUntil`. Sin
+ * él, el insert competía contra el final de la respuesta y perdía justo cuando
+ * la visita era la de una partida EMPEZANDO (el handler devuelve casi al
+ * instante), mientras que ganaba cuando la partida ya estaba cerrada (ahí el
+ * handler espera otra lectura a Supabase y le da margen). Resultado medido en
+ * producción: casi todos los session_start de un jugador eran POSTERIORES a su
+ * victoria, así que el time-to-win del panel de auditoría salía negativo para
+ * todo el mundo.
+ *
+ * Sin `context` (vercel dev, tests) se comporta como antes: la promesa queda
+ * suelta, que es lo mejor que se puede hacer sin runtime que la sostenga.
  */
-export async function logSessionStart({ request, userId, isAnon, gameDate, carId }) {
+export function logSessionStart({ request, userId, isAnon, gameDate, carId, context }) {
+  const trabajo = registrarSessionStart({ request, userId, isAnon, gameDate, carId });
+  if (typeof context?.waitUntil === "function") context.waitUntil(trabajo);
+  return trabajo;
+}
+
+async function registrarSessionStart({ request, userId, isAnon, gameDate, carId }) {
   try {
     if (!carId || !gameDate) return;
     const ip = getIp(request);

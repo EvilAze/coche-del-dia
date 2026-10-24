@@ -293,9 +293,13 @@ export default async function middleware(request) {
     // una imagen que ya no es la del día.
     if (preload?.img && preload.date === today) {
       // `preload.img` = "/api/daily-image?d=YYYY-MM-DD&v=HASH"
-      // Reconstruimos las 3 variantes AVIF del crop de juego (z=5), igual
-      // que pide el cliente durante "playing".
-      const variant = `${preload.img}&z=5&f=avif`;
+      // Reconstruimos las 3 variantes AVIF del recorte del INTENTO 1 (z=1),
+      // que es lo que pide en su <picture> quien llega sin haber jugado: va
+      // sin ticket porque es el recorte libre (api/_lib/edge/image-ticket.js),
+      // así que la URL se puede escribir aquí sin saber quién viene. Quien
+      // vuelve con intentos gastados pide el suyo con `&k=` y este preload no
+      // le sirve — mismo caso, y misma decisión, que el congelado de arriba.
+      const variant = `${preload.img}&z=1&f=avif`;
       const srcset =
         `${variant}&w=640 640w, ` +
         `${variant}&w=1280 1280w, ` +

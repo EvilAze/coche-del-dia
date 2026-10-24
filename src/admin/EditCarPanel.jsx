@@ -141,18 +141,43 @@ export default function EditCarPanel({
   // Filtro de "solo pendientes de imagen": cuando el admin tiene cientos
   // de coches en catálogo, encontrar a cuáles les falta imagen es una
   // necesidad recurrente (ej: batch de 200 inserts vía SQL). Toggle
-  // simple por encima del dropdown que reduce la lista a los image_ready=FALSE.
+  // simple por encima del dropdown que reduce la lista a los que aún no tienen foto.
   const [showOnlyPending, setShowOnlyPending] = useState(false);
+  // Los ids sin foto ya NO vienen en el catálogo: `image_ready` decía qué
+  // coches no pueden ser el coche del día y salió de /api/list-cars (ver
+  // lib/admin-handlers/pendientes-imagen.js). Se piden aparte, con la sesión
+  // de admin, y se vuelven a pedir cada vez que el catálogo se recarga (tras
+  // guardar un coche, que es justo cuando uno deja de estar pendiente).
+  const [pendientes, setPendientes] = useState(() => new Set());
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) return;
+        const res = await fetch("/api/admin/pendientes-imagen", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelado && Array.isArray(data?.ids)) setPendientes(new Set(data.ids));
+      } catch {
+        // Silencio: el filtro es una comodidad; sin él se elige a mano.
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [catalog]);
   const pendingCount = useMemo(
-    () => CARS.filter((c) => c.image_ready === false).length,
-    [CARS]
+    () => CARS.filter((c) => pendientes.has(c.id)).length,
+    [CARS, pendientes]
   );
   const visibleCars = useMemo(
     () =>
       showOnlyPending
-        ? carsSorted.filter((c) => c.image_ready === false)
+        ? carsSorted.filter((c) => pendientes.has(c.id))
         : carsSorted,
-    [carsSorted, showOnlyPending]
+    [carsSorted, showOnlyPending, pendientes]
   );
 
   const [form, setForm] = useState(initialForm);
@@ -778,7 +803,7 @@ export default function EditCarPanel({
               const isUsed = usedCarIds.has(c.id);
               return (
                 <option key={c.id} value={c.id}>
-                  {c.image_ready === false ? "📷 " : ""}
+                  {pendientes.has(c.id) ? "📷 " : ""}
                   {isUsed ? "📅 " : ""}
                   {c.marca} {c.modelo} ({c.anio}){isUsed ? " (Coche del día)" : ""}
                 </option>

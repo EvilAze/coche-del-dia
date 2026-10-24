@@ -135,6 +135,41 @@ check(
 }
 
 // ============================================================================
+console.log("\n[ATAQUE 1b] Pedir el recorte de un intento que no se ha jugado");
+// ============================================================================
+// El cliente pedía z=5 desde el intento 1 y lo cerraba con CSS: F12 enseñaba
+// cuatro pistas por adelantado. Ahora z>1 exige el ticket de ESE z para ESTA
+// revisión (api/_lib/edge/image-ticket.js); daily-image sirve z=1 sin él.
+{
+  const { firmarTicketImagen, verificarTicketImagen, ticketDelIntento } = await import(
+    "../api/_lib/edge/image-ticket.js"
+  );
+  const sello = "selloDeLaRevision";
+  const k3 = await firmarTicketImagen({ fecha: TODAY, sello, z: 3 });
+  check(
+    "ticket del intento 3 → abre el recorte 3",
+    (await verificarTicketImagen({ fecha: TODAY, sello, z: 3, k: k3 })) === true
+  );
+  check(
+    "ticket del intento 3 reutilizado para z=5 → rechazado",
+    (await verificarTicketImagen({ fecha: TODAY, sello, z: 5, k: k3 })) === false
+  );
+  check(
+    "ticket forjado ('AAA…') → rechazado",
+    (await verificarTicketImagen({ fecha: TODAY, sello, z: 5, k: "A".repeat(22) })) === false
+  );
+  check(
+    "ticket de otra revisión del día (cambio de emergencia) → rechazado",
+    (await verificarTicketImagen({ fecha: TODAY, sello: "otraRevision", z: 3, k: k3 })) === false
+  );
+  const inicial = await ticketDelIntento({ fecha: TODAY, sello, intentos: 0 });
+  check(
+    "jugador que acaba de llegar → recorte 1, sin ticket que reutilizar",
+    inicial.imgZ === 1 && inicial.imgK === null
+  );
+}
+
+// ============================================================================
 console.log("\n[ATAQUE 2] Brute-force a /api/validate-guess (rate-limit)");
 // ============================================================================
 

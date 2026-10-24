@@ -42,6 +42,7 @@ import { logSessionStart } from "./_lib/edge/audit.js";
 import { versionDeImagen } from "./_lib/version-imagen.js";
 import { resolverCocheDelUsuario } from "./_lib/coche-de-hoy.js";
 import { sellosDe } from "./_lib/sello.js";
+import { ticketDelIntento } from "./_lib/edge/image-ticket.js";
 import { clampZoomBase } from "./_lib/zoom.js";
 import { CIFRAS_SELECT, cifrasDelRevelado } from "./_lib/cifras.js";
 import { checkRateLimit, getClientIpEdge } from "./_lib/ratelimit.js";
@@ -456,12 +457,19 @@ export default async function handler(request) {
   // del día pide quien carga la foto. Ver api/_lib/version-imagen.js.
   const imgVersion = await versionDeImagen(imgRow?.image_url, zoomBase);
   const dailyImgUrl = `/api/daily-image?d=${today}&v=${imgVersion}`;
-  const blurData = imgRow?.blur_data || null;
+  // EL LQIP NO VIAJA MIENTRAS SE JUEGA. blur_data es la foto ENTERA a 24 px
+  // (_lib/blur-data.js): silueta, color y proporciones del coche completo, en
+  // el JSON del primer request y a un clic en F12. Peor aún, CarImage la pintaba
+  // SIN zoom detrás de la foto mientras cargaba, así que en el intento 1 se veía
+  // un instante el coche entero difuminado — más de lo que el intento 5 enseña
+  // (regla 5). Con la partida cerrada ya no esconde nada y vuelve a servir de
+  // placeholder para la foto completa del revelado.
+  const blurCerrada = imgRow?.blur_data || null;
 
   const base = {
     date: today,
     img: dailyImgUrl,
-    blurData,
+    blurData: null,
     zoomBase,
     maxAttempts: MAX_ATTEMPTS,
     guesses: [],
@@ -529,7 +537,24 @@ export default async function handler(request) {
       }
     }
 
-    return respond({ ...base, anonToken, revealToken });
+    // El recorte que se ha ganado: tantos como intentos firmados lleve su
+    // token. Del token y no del localStorage, que el cliente puede reescribir;
+    // `session.n` solo lo sube validate-guess al registrar un intento.
+    const cerradaAnon = valid && (session.s === "won" || session.s === "lost");
+    const ticket = await ticketDelIntento({
+      fecha: today,
+      sello: sellosPorCarId[carIdDelUsuario] || null,
+      intentos: valid ? session.n : 0,
+      jugando: !cerradaAnon,
+    });
+
+    return respond({
+      ...base,
+      ...ticket,
+      blurData: cerradaAnon ? blurCerrada : null,
+      anonToken,
+      revealToken,
+    });
   }
 
   // -------- RAMA LOGUEADA ------------------------------------------------
@@ -609,8 +634,19 @@ export default async function handler(request) {
     revealToken = signedToken;
   }
 
+  // El recorte de su intento en curso, contado sobre SU fila de user_guesses.
+  const cerrada = status === "won" || status === "lost";
+  const ticket = await ticketDelIntento({
+    fecha: today,
+    sello: sellosPorCarId[carIdDelUsuario] || null,
+    intentos: guesses.length,
+    jugando: !cerrada,
+  });
+
   return respond({
     ...base,
+    ...ticket,
+    blurData: cerrada ? blurCerrada : null,
     guesses,
     status,
     reveal,

@@ -34,6 +34,7 @@ import { compareGuess } from "./_lib/compare-guess.js";
 import { basePointsFor } from "./_lib/score.js";
 import { resolverCocheDelUsuario } from "./_lib/coche-de-hoy.js";
 import { sellosDe } from "./_lib/sello.js";
+import { ticketDelIntento } from "./_lib/edge/image-ticket.js";
 import { registrarResultadoDiario } from "./_lib/registro-puntos.js";
 import { CIFRAS_SELECT, cifrasDelRevelado } from "./_lib/cifras.js";
 import {
@@ -685,6 +686,17 @@ export default async function handler(req, res) {
       }
     }
 
+    // El recorte que este fallo acaba de ganar (api/_lib/edge/image-ticket.js).
+    // `attemptNumber` es el intento que se acaba de REGISTRAR, así que cuenta
+    // como gastado: es el único sitio que puede dar el ticket del siguiente
+    // porque es el único que sabe, con la base delante, que se ha gastado.
+    const ticket = await ticketDelIntento({
+      fecha: today,
+      sello: sellosPorCarId[todayCarId] || null,
+      intentos: attemptNumber,
+      jugando: newStatus === "playing",
+    });
+
     // -------- 9.ter Auditoría oculta (best-effort) -----------------------
     //   Registra cada intento en public.guess_audit para poder detectar el
     //   patrón de oráculo (misma IP sondeando hoy desde sesiones distintas
@@ -715,6 +727,7 @@ export default async function handler(req, res) {
       attemptNumber,
       reveal,
       revealToken,
+      ...ticket,
       anonToken,
       // El sello del coche que este jugador está jugando. El logueado no tiene
       // token donde guardarlo, así que lo devuelve por aquí y lo reenvía en el

@@ -51,11 +51,16 @@ jobs:
           # Reintenta UNA vez antes de dar nada por malo: un hipo suelto no es
           # una caída, y un canario que grita por ruido se acaba ignorando —que
           # es la única forma de que esto no sirva para nada.
+          #
+          # Con `Sec-Fetch-Site: same-origin` porque el canario hace de JUGADOR:
+          # /api/list-cars contesta 403 a quien no venga de nuestra página
+          # (api/_lib/origen-propio.js), y sin la cabecera esto mediría el
+          # portero en vez del catálogo. Al resto de URLs no les afecta.
           sondea() {
             nombre="$1"; url="$2"; limite="$3"; espera="${4:-}"
             for intento in 1 2; do
               cuerpo=$(mktemp)
-              res=$(curl -s -o "$cuerpo" -w "%{http_code} %{time_total}" --max-time 25 "$url" || echo "000 25")
+              res=$(curl -s -o "$cuerpo" -w "%{http_code} %{time_total}" --max-time 25 -H "Sec-Fetch-Site: same-origin" "$url" || echo "000 25")
               code="${res%% *}"; t="${res##* }"
               lento=$(awk -v t="$t" -v l="$limite" 'BEGIN{print (t>l)?1:0}')
               falta=0

@@ -22,6 +22,9 @@
 //   ?w=320|640|1280 → ancho objetivo. Allowlist estricta para evitar DoS por
 //                     resize a tamaños absurdos.
 //   ?f=avif|webp|jpeg → formato de salida. Allowlist estricta.
+//   ?z=1..5         → recorte del intento. z>1 solo con ?k válido.
+//   ?k=<ticket>     → abre el recorte `z` (_lib/edge/image-ticket.js). Sin él,
+//                     se sirve el del intento 1.
 //
 // Cache:
 //   Cada combinación (d, v, w, f) tiene su propia entrada en el edge cache
@@ -50,6 +53,7 @@ import { logCanary } from "./_lib/audit.js";
 import { clampZoomBase, cropPctForAttempt } from "./_lib/zoom.js";
 import { versionDeImagen } from "./_lib/version-imagen.js";
 import { selloDeCoche } from "./_lib/sello.js";
+import { verificarTicketImagen, Z_LIBRE } from "./_lib/edge/image-ticket.js";
 import {
   conTimeoutOFallback,
   conTimeoutReintentando,
@@ -320,8 +324,8 @@ export default async function handler(req, res) {
   //       hemos resuelto por el `v`: la fecha sola dejó de bastar el día que
   //       un día pudo tener dos coches.
   //   (b) Bearer del usuario y user_guesses.status ∈ {won, lost}.
-  // Si NINGUNA aplica, forzamos el crop más amplio que un jugador
-  // legítimo podría ver durante la partida (z=5 = 55,6% central).
+  // Si NINGUNA aplica, se sirve un recorte: el que abra el ticket `k` de la
+  // URL, o el del intento 1 sin él (ver el gateo del recorte, más abajo).
   let canReveal = false;
 
   const tParam = typeof req.query?.t === "string" ? req.query.t : "";
@@ -376,13 +380,52 @@ export default async function handler(req, res) {
     if (userStatus === "won" || userStatus === "lost") canReveal = true;
   }
 
+  // ---- Gateo del RECORTE de cada intento ---------------------------------
+  // Antes, sin reveal, se servía el `z` que pidiera el cliente (y z=5 si no
+  // pedía ninguno). Como el cliente pedía z=5 desde el intento 1 y lo cerraba
+  // con CSS, F12 enseñaba el encuadre del intento 5 a quien acababa de llegar.
+  // Ahora un recorte por encima del libre exige el ticket de ESE z para ESTA
+  // revisión del día (_lib/edge/image-ticket.js), y sin él se sirve el del
+  // intento 1. El ticket lo emiten get-daily-car y validate-guess solo con los
+  // intentos ya gastados.
+  //
+  // PUENTE PARA LOS APK VIEJOS (temporal). Los APK anteriores a este cambio
+  // llevan el JS empaquetado y piden `&z=5` sin ticket; recortarles al z=1 les
+  // pintaría el intento 1 ampliado otras 2× por CSS. Se les reconoce por el
+  // Referer `https://localhost` —el origen del WebView de Capacitor—, que una
+  // página web no puede falsificar (sí un `curl`, que es lo mismo que podía
+  // hacer cualquiera antes de este cambio: no empeora nada). En cuanto Play
+  // haya actualizado a todo el mundo, este puente se borra. Como la respuesta
+  // pasa a depender del Referer, esas URLs declaran `Vary: Referer` para que
+  // el CDN no le sirva a la web la copia del APK.
+  const kParam = typeof req.query?.k === "string" ? req.query.k : "";
+  let zPermitido = Z_LIBRE;
+  let dependeDelReferer = false;
+  if (!canReveal && zRequested !== null && zRequested > Z_LIBRE) {
+    if (kParam) {
+      const sello = await selloDeCoche(carId, today);
+      const valido = await verificarTicketImagen({
+        fecha: today,
+        sello,
+        z: zRequested,
+        k: kParam,
+      });
+      if (valido) zPermitido = zRequested;
+    } else {
+      dependeDelReferer = true;
+      if (/^https:\/\/localhost(\/|$)/.test(String(req.headers?.referer || ""))) {
+        zPermitido = zRequested;
+      }
+    }
+  }
+
   // Decisión final del crop:
   //   - canReveal=true  → respetamos lo que el cliente pidió (sin z = full,
   //                       con z = un crop concreto si lo quiere por motivos
   //                       de bandwidth — raro, pero válido).
-  //   - canReveal=false → SIEMPRE crop. Si el cliente mandó un z válido,
-  //                       lo usamos; si no, fallback a z=5.
-  const wantedZ = canReveal ? zRequested : zRequested ?? 5;
+  //   - canReveal=false → SIEMPRE crop, y nunca más amplio que el que su
+  //                       ticket abre (sin ticket, el del intento 1).
+  const wantedZ = canReveal ? zRequested : zPermitido;
 
   // 4) Bytes de origen. Por el helper: prefiere el master WebP —misma
   //    resolución, la mitad de peso— y cae al original si aún no existe,
@@ -482,9 +525,11 @@ export default async function handler(req, res) {
   //     públicamente: la siguiente request anónima a esa
   //     misma URL recibiría la imagen completa del cache → fuga total.
   //     Marcamos no-store.
-  //   - El resto (crop forzado a z=5) es público y determinista, sin
-  //     leak: el crop es lo mismo que ve cualquier jugador legítimo.
+  //   - El resto (el recorte que abre el ticket de la URL, o el libre si no
+  //     hay ticket válido) es público y determinista: misma URL, mismos bytes
+  //     para todo el mundo, así que el CDN la puede guardar sin filtrar nada.
   const cacheable = !canReveal || Boolean(tParam);
+  if (dependeDelReferer) res.setHeader("Vary", "Referer");
   res.setHeader("Content-Type", outContentType);
   res.setHeader("Content-Length", String(outBuffer.length));
   res.setHeader(

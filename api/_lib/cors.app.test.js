@@ -58,6 +58,7 @@ const DECISIONES = {
   "/api/admin/mensajes": { cors: true },
   "/api/admin/emergency-swap": { cors: true },
   "/api/admin/car-report": { cors: true },
+  "/api/admin/pendientes-imagen": { cors: true },
 
   "/api/push": {
     cors: false,

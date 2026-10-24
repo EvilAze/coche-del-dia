@@ -161,6 +161,7 @@ export default function ZoomStage({
           src={car?.img ?? null}
           blurData={car?.blurData ?? null}
           zoom={zoom}
+          escalaRecorte={car?.escalaRecorte ?? null}
           aumento={aumento}
           hintIndex={hintIndex}
           totalHints={totalHints}

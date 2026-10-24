@@ -422,7 +422,12 @@ export default function Configurator({
             El CSS lo oculta en el pliego ancho (≥1100px): allí la foto es la
             columna central y no se pierde. z-50, bajo EndScreen y modales. */}
         {dataReady && !ended && !fotoVisible && (
-          <PhotoPeek src={car?.img ?? null} zoom={zoom} onClick={volverALaFoto} />
+          <PhotoPeek
+            src={car?.img ?? null}
+            zoom={zoom}
+            escalaRecorte={car?.escalaRecorte ?? null}
+            onClick={volverALaFoto}
+          />
         )}
 
         {/* Columna "clas" del pliego: fila viva + historial + estadística.

@@ -187,30 +187,35 @@ for (const col of ["potencia_cv", "par_nm", "aceleracion_0_100", "vmax_kmh"]) {
   );
 }
 
-// Contra-test: la query que SÍ debe funcionar (la que usa /api/list-cars
-// para el autocomplete). Verificamos que no rompemos funcionalidad
-// legítima al endurecer. Nombres de columna canónicos en BD: make / model
-// / year / pais (el endpoint los mapea a marca/modelo/anio para el front).
+// El catálogo ya NO se lee con la anon key (scripts/2026-10-catalogo-privado.sql):
+// /api/list-cars lo sirve con service_role y solo a nuestra propia página. Si
+// estas columnas vuelven a tener GRANT, el portero del endpoint es teatro —
+// la anon key viaja en el bundle y PostgREST contestaría directamente—, y
+// `image_ready` además dice qué coches NO pueden ser el coche del día.
+for (const col of ["make", "model", "year", "pais", "image_ready"]) {
+  expectSelectBlocked(
+    `SELECT id, ${col} FROM cars (el catálogo va por /api/list-cars)`,
+    await anon.from("cars").select(`id, ${col}`).limit(1)
+  );
+}
+
+// Contra-test: lo que SÍ debe seguir funcionando con la anon key. `id` conserva
+// su GRANT porque lo usan el sondeo de salud (api/_lib/health.js) y el
+// recuento del Perfil (statsService.getCatalogCount). Si esto rompe, /api/health
+// da la base por caída y el canario canta sin motivo.
 {
-  const { data, error } = await anon
-    .from("cars")
-    .select("id, make, model, year, pais")
-    .limit(3);
+  const { data, error } = await anon.from("cars").select("id").limit(3);
   if (error) {
     fail(
-      "[cars] SELECT campos públicos (autocomplete)",
-      `ROTO: ${error.code || error.message}. ¿Has revocado SELECT sin re-GRANT?`
+      "[cars] SELECT id (salud + recuento del Perfil)",
+      `ROTO: ${error.code || error.message}. ¿Se revocó también el GRANT de id?`
     );
   } else if (!data || data.length === 0) {
-    // Puede ser legítimo si el catálogo está vacío en el entorno testeado.
     console.log(
-      `  ⚠ [cars] SELECT campos públicos devolvió 0 filas — ¿catálogo vacío en este entorno?`
+      `  ⚠ [cars] SELECT id devolvió 0 filas — ¿catálogo vacío en este entorno?`
     );
   } else {
-    pass(
-      "[cars] SELECT campos públicos (autocomplete) funciona",
-      `(${data.length} filas)`
-    );
+    pass("[cars] SELECT id (salud + recuento del Perfil) funciona", `(${data.length} filas)`);
   }
 }
 

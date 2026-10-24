@@ -6,12 +6,13 @@ import { markSeenToday } from "../lib/webpush";
 import { registrarDiaJugado } from "../lib/edicionApp";
 import { haptic } from "../lib/haptics";
 import { useT } from "../i18n";
-// Niveles de zoom CSS aplicados sobre la imagen `?z=5` que sirve el servidor
-// durante la partida. AHORA son POR COCHE: dependen de su `zoomBase` (el zoom
-// lógico del intento 1, que llega en la respuesta de get-daily-car). El
-// servidor solo entrega el crop del intento 5 (el más amplio) y el cliente
-// cierra el resto con CSS para los intentos 1..4 — un atacante con DevTools
-// nunca ve más imagen que un jugador legítimo en intento 5.
+// Niveles de zoom CSS de cada intento, medidos contra el recorte del intento 5.
+// Ya NO se aplican sobre una única imagen `?z=5`: esa era la que bajaba desde
+// el intento 1 y la que F12 enseñaba entera. Ahora el servidor sirve el recorte
+// de CADA intento, abierto por un ticket que solo da con los intentos gastados
+// (api/_lib/edge/image-ticket.js), y CarImage pinta `zoom / escalaRecorte`:
+// 1.0 en el intento en curso, y la diferencia solo mientras anima el paso de un
+// recorte al siguiente.
 //
 // La fórmula está centralizada en src/lib/zoom.js (réplica de api/_lib/zoom.js).
 // Con la curva logarítmica de pasos iguales (EASE 1), cssZoomLevels da
@@ -109,6 +110,17 @@ function camposDelRevelado(reveal) {
   };
 }
 
+// El ticket del recorte tal cual lo manda el servidor (`imgZ` + `imgK`). Un z
+// por encima del libre sin su `k` no lo abriría nadie, así que se cae al libre
+// en vez de pedir una URL que el servidor va a recortar igualmente.
+const TICKET_LIBRE = { z: 1, k: null };
+function ticketDe(respuesta) {
+  const z = Number(respuesta?.imgZ);
+  const k = typeof respuesta?.imgK === "string" && respuesta.imgK ? respuesta.imgK : null;
+  if (!Number.isInteger(z) || z < 1 || z > ZOOM_ATTEMPTS) return TICKET_LIBRE;
+  return z === 1 || k ? { z, k: z === 1 ? null : k } : TICKET_LIBRE;
+}
+
 // El estado del coche ahora solo contiene lo mínimo para pintar la UI: la
 // imagen (siempre vía proxy), el LQIP base64 (placeholder borroso que
 // elimina el flash gris del skeleton) y, opcionalmente, marca/modelo/año
@@ -198,6 +210,11 @@ export function useGame() {
   //   - Si el usuario llega con la partida ya cerrada → desde /api/get-daily-car.
   //   - Si la cierra en esta sesión → desde la respuesta de /api/validate-guess.
   const [revealToken, setRevealToken] = useState(null);
+  // El recorte que este jugador tiene derecho a ver y el ticket que lo abre,
+  // tal cual los emite el servidor (get-daily-car al cargar, validate-guess
+  // tras cada fallo). Arranca en el recorte libre, el del intento 1, que es lo
+  // único que se puede pedir sin ticket.
+  const [imgTicket, setImgTicket] = useState(TICKET_LIBRE);
   // Sello del coche que ESTE jugador tiene delante. Es opaco (no dice qué coche
   // es, regla 5) y viaja de vuelta en cada intento para que el servidor detecte
   // que está respondiendo sobre una foto que ya no es la de su partida —el
@@ -329,6 +346,7 @@ export function useGame() {
         if (daily?.anonToken) setAnonToken(daily.anonToken);
         // daily = { date, img, maxAttempts, guesses, status, reveal, revealToken, sello }
         setRevealToken(daily.revealToken || null);
+        setImgTicket(ticketDe(daily));
         // El sello se REESCRIBE en cada carga (igual que hace el servidor con
         // el del token anónimo): es lo que ancla la partida a la revisión que
         // esta pestaña acaba de recibir.
@@ -427,21 +445,25 @@ export function useGame() {
   // hoy («5,0×»). Un número que se corrige solo es peor que ningún número.
   const aumento = status === "playing" && car?.img ? zoomForAttempt(zoomIndex + 1, car.zoomBase) : null;
 
-  // Durante la partida pedimos siempre el crop más amplio (z=5). El cliente
-  // termina de "cerrar" el zoom con CSS. Cuando el juego termina añadimos
-  // `&t=<revealToken>` y el servidor entrega la imagen completa — sin ese
-  // token, /api/daily-image también devuelve crop (cierra el viejo cheat
-  // de "quitar &z=5 → ver foto entera").
+  // Durante la partida pedimos el recorte que abre el ticket del servidor
+  // (`&z=N&k=…`; el del intento 1 va sin `k`, y por eso el preload de
+  // middleware.js lo puede escribir sin saber quién viene). Cuando el juego
+  // termina añadimos `&t=<revealToken>` y el servidor entrega la imagen
+  // completa — sin ese token, /api/daily-image también devuelve recorte.
+  const recorte = `&z=${imgTicket.z}${imgTicket.k ? `&k=${imgTicket.k}` : ""}`;
   let dailyImgSrc = null;
+  // Cuánto amplía (en la escala de cssZoomLevels) el recorte que va en la URL.
+  // null cuando lo que se pinta es la foto entera: CarImage vuelve entonces a
+  // escalar con `zoom` a secas.
+  let escalaRecorte = null;
   if (car?.img) {
-    if (status === "playing") {
-      dailyImgSrc = `${car.img}&z=5`;
-    } else if (revealToken) {
-      dailyImgSrc = `${car.img}&t=${encodeURIComponent(revealToken)}`;
+    if (status === "playing" || !revealToken) {
+      // (Game over sin revealToken todavía: race muy puntual. Se mantiene el
+      // recorte hasta que llegue para no romper la UX.)
+      dailyImgSrc = `${car.img}${recorte}`;
+      escalaRecorte = zoomLevels[imgTicket.z - 1] ?? null;
     } else {
-      // Game over pero aún no llegó el revealToken (race muy puntual).
-      // Mantenemos el crop hasta que llegue para no romper UX.
-      dailyImgSrc = `${car.img}&z=5`;
+      dailyImgSrc = `${car.img}&t=${encodeURIComponent(revealToken)}`;
     }
   }
 
@@ -598,6 +620,10 @@ export function useGame() {
     try {
       const { result, reveal, revealToken: nextRevealToken, score: scoreBreakdown } = data;
       if (nextRevealToken) setRevealToken(nextRevealToken);
+      // El ticket del intento siguiente llega en la MISMA respuesta que el
+      // fallo, y se fija en el mismo lote que los intentos: así CarImage recibe
+      // a la vez el zoom nuevo y la URL del recorte que lo enseña.
+      if (data.imgZ != null) setImgTicket(ticketDe(data));
       if (!result) {
         console.error("[submitGuess] respuesta sin `result`", data);
         toast.push(t("errors.unexpectedResponse"), { type: "error" });
@@ -692,7 +718,7 @@ export function useGame() {
     // Sobreescribimos `img` con dailyImgSrc para que el consumidor reciba
     // ya la URL apropiada según el estado del juego (con `&z=N` si está
     // jugando, sin z si ha terminado y queremos servir la imagen completa).
-    car: car ? { ...car, img: dailyImgSrc } : car,
+    car: car ? { ...car, img: dailyImgSrc, escalaRecorte } : car,
     isLoading,
     // Fallo de la carga inicial + su salida. App solo pinta la pantalla de
     // error si ADEMÁS no hay coche: con snapshot local preferimos enseñar la

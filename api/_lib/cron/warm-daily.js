@@ -3,7 +3,7 @@
 //
 //   1. Llama a /api/get-daily-car → fuerza pick_daily_car a fijar el coche
 //      del día en daily_cars, y calienta la Edge Function en fra1.
-//   2. Para las 3 variantes AVIF del crop z=5 (640/1280/1920 px), hace
+//   2. Para las 3 variantes AVIF del crop z=1 (640/1280/1920 px), hace
 //      GET a /api/daily-image → fuerza el cold start de sharp y popula el
 //      Vercel CDN cache con las respuestas (cache-control public,
 //      s-maxage=86400). Las siguientes peticiones de usuarios reales a
@@ -186,7 +186,7 @@ export async function warmDaily(req, res) {
     const step2Start = Date.now();
     const settled = await Promise.allSettled(
       variants.map(async ({ f, w }) => {
-        const r = await fetch(`${imageUrlBase}&z=5&f=${f}&w=${w}`, {
+        const r = await fetch(`${imageUrlBase}&z=1&f=${f}&w=${w}`, {
           headers: { "User-Agent": "VercelCron/warm-daily" },
         });
         await r.arrayBuffer();

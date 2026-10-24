@@ -43,6 +43,7 @@ import describeCar from "../../lib/admin-handlers/describe-car.js";
 import emergencySwap from "../../lib/admin-handlers/emergency-swap.js";
 import masters from "../../lib/admin-handlers/masters.js";
 import suggestSpecs from "../../lib/admin-handlers/suggest-specs.js";
+import pendientesImagen from "../../lib/admin-handlers/pendientes-imagen.js";
 
 const ROUTES = {
   "analytics":     analytics,
@@ -67,6 +68,9 @@ const ROUTES = {
   // «Sugerir cifras» de la ficha técnica: dos votos de IA (Groq + Gemini) y
   // solo se sugiere lo que coincide. No escribe nada.
   "suggest-specs": suggestSpecs,
+  // Qué coches no tienen foto todavía. Salió del catálogo público porque dice
+  // cuáles NO pueden ser el coche del día (ver la cabecera del handler).
+  "pendientes-imagen": pendientesImagen,
 };
 
 // PLAZO POR RUTA, en ms. El dispatcher es el único sitio por el que pasan los

@@ -1,5 +1,5 @@
 // src/components/CarImage.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { haptic } from "../lib/haptics";
 import { useT } from "../i18n";
 import { apiUrl } from "../lib/apiUrl";
@@ -20,6 +20,14 @@ import { apiUrl } from "../lib/apiUrl";
 // Aspect ratio por defecto mientras la imagen aún no ha cargado.
 // Se reemplaza por el natural (img.naturalWidth/Height) al onLoad.
 const DEFAULT_ASPECT = 4 / 3;
+
+// srcset del proxy para un formato. Una sola fuente para la foto pintada y la
+// que se precarga: si divergieran, el navegador elegiría candidatos distintos
+// y la precarga no serviría de nada. Y tiene que seguir casando byte a byte con
+// el preload de middleware.js (regla 6).
+const TAMANOS = "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px";
+const srcsetDe = (base, f) =>
+  `${base}&f=${f}&w=640 640w, ${base}&f=${f}&w=1280 1280w, ${base}&f=${f}&w=1920 1920w`;
 
 export default function CarImage({
   src,
@@ -59,6 +67,12 @@ export default function CarImage({
   // fórmula que recorta el servidor). Solo alimenta la lectura del visor; el
   // zoom que se pinta sigue siendo `zoom`. null = sin lectura.
   aumento = null,
+  // Cuánto amplía el recorte que viene en `src`, en la misma escala que `zoom`
+  // (cssZoomLevels: relativa al recorte del intento 5). Lo pasa useGame durante
+  // la partida, porque el servidor ya sirve el recorte de CADA intento y no uno
+  // solo que el CSS cierre. null = `src` es una foto sin recortar por intento
+  // (revelado, repesca, admin) y se escala con `zoom` a secas, como siempre.
+  escalaRecorte = null,
 }) {
   const [loaded, setLoaded] = useState(false);
   // Cuando el <source> AVIF/WebP falla o tarda demasiado, marcamos fallback:
@@ -85,14 +99,86 @@ export default function CarImage({
   const prevZoomRef = useRef(zoom);
   const prevZoom = prevZoomRef.current;
 
-  // Si cambia la foto (nuevo coche), volvemos a mostrar el skeleton. El src
-  // sólo cambia: (1) al iniciar partida nueva, (2) al revelar la imagen
-  // completa al terminar (won/lost) — NO entre intentos, porque durante
-  // playing pedimos siempre la misma `?z=5`.
+  // LA FOTO QUE SE PINTA Y LA QUE VIENE DE CAMINO. Hasta oct-2026 el `src` no
+  // cambiaba entre intentos: bajaba UNA imagen, el recorte del intento 5, y el
+  // CSS la cerraba hasta el encuadre del intento en curso. Eso era justo lo que
+  // F12 enseñaba entero desde el intento 1. Ahora el servidor sirve el recorte
+  // de cada intento (api/_lib/edge/image-ticket.js), así que al fallar llega un
+  // `src` nuevo — y cambiarlo a pelo enseñaría el esqueleto entre intento e
+  // intento, o un frame del recorte viejo a la escala nueva.
+  //
+  // Así que el recorte nuevo se PRECARGA en una capa invisible con el mismo
+  // <picture> (mismo srcset, mismo `sizes`: el navegador elige el mismo
+  // candidato y lo deja en su lista de imágenes disponibles) y, ya decodificado,
+  // pasa a ser la foto pintada en UN render, entrando a la escala que deja su
+  // encuadre idéntico al que se veía (`desde`). Al frame siguiente se suelta la
+  // escala y la transición de siempre lo abre hasta 1: la misma lente, con el
+  // mismo compás (regla 22), solo que ahora lo que se abre son píxeles que el
+  // servidor acaba de conceder y no unos que ya estaban en el navegador.
+  const [pintada, setPintada] = useState({ src, escala: escalaRecorte });
+  const [entrante, setEntrante] = useState(null);
+  const [desde, setDesde] = useState(null);
+  const entranteRef = useRef(null);
+  entranteRef.current = entrante;
+  // Lo que hay que saber al cambiar de recorte, sin esperar a un render.
+  const loadedRef = useRef(false);
+  loadedRef.current = loaded;
+  const pintadaRef = useRef(pintada);
+  pintadaRef.current = pintada;
+  // Marca el cambio de foto que NO debe volver al esqueleto: la foto nueva ya
+  // está decodificada y entra en el sitio de la anterior.
+  const sinEsqueletoRef = useRef(false);
+
   useEffect(() => {
+    const actual = pintadaRef.current;
+    if (src === actual.src) {
+      setEntrante(null);
+      if (escalaRecorte !== actual.escala) setPintada({ src, escala: escalaRecorte });
+      return;
+    }
+    const cambioDeRecorte =
+      status === "playing" &&
+      loadedRef.current &&
+      Boolean(actual.src) &&
+      actual.escala != null &&
+      escalaRecorte != null;
+    if (cambioDeRecorte) {
+      setEntrante({ src, escala: escalaRecorte });
+    } else {
+      setEntrante(null);
+      setDesde(null);
+      setPintada({ src, escala: escalaRecorte });
+    }
+    // `status` se lee al cambiar la foto, no es un disparador: al terminar la
+    // partida cambia el src (al del revelado) y ESE cambio es el que cuenta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, escalaRecorte]);
+
+  // Si cambia la foto (nuevo coche, o el revelado al terminar), volvemos a
+  // mostrar el skeleton. Entre intentos no: ahí la foto nueva entra ya cargada.
+  useEffect(() => {
+    if (sinEsqueletoRef.current) {
+      sinEsqueletoRef.current = false;
+      return;
+    }
     setLoaded(false);
     setImgFailed(false);
-  }, [src]);
+  }, [pintada.src]);
+
+  // Suelta la escala de entrada dos frames después de pintarla, para que el
+  // navegador haya compuesto el primer frame ANTES de que empiece la
+  // transición (el mismo doble rAF que ModalShell y useEscenarioApartado).
+  useLayoutEffect(() => {
+    if (desde == null) return;
+    let id2 = 0;
+    const id1 = requestAnimationFrame(() => {
+      id2 = requestAnimationFrame(() => setDesde(null));
+    });
+    return () => {
+      cancelAnimationFrame(id1);
+      cancelAnimationFrame(id2);
+    };
+  }, [desde]);
 
   // Watchdog: si en 12 s la imagen no ha cargado, asumimos que el AVIF/WebP
   // se ha encallado (cold start de sharp, red lenta, etc.) y disparamos el
@@ -106,10 +192,10 @@ export default function CarImage({
   // instante, así que el watchdog solo cubre el "encallado sin error": ahí
   // damos más margen antes de cambiar de formato.
   useEffect(() => {
-    if (loaded || imgFailed || !src) return;
+    if (loaded || imgFailed || !pintada.src) return;
     const t = setTimeout(() => setImgFailed(true), 12000);
     return () => clearTimeout(t);
-  }, [src, loaded, imgFailed]);
+  }, [pintada.src, loaded, imgFailed]);
 
   function handleImageError() {
     setImgFailed(true);
@@ -133,7 +219,7 @@ export default function CarImage({
       // foto completa está visible de inmediato, avisamos para el scroll.
       if (status === "won" || status === "lost") onRevealLoad?.();
     }
-  }, [src, loaded, status, onRevealLoad]);
+  }, [pintada.src, loaded, status, onRevealLoad]);
 
   // EL MARCO DE LO QUE VEÍAS. Al fallar, la foto se abre — y sola, esa
   // apertura no se lee: el habitual sabe que el trozo nuevo es el de
@@ -176,7 +262,10 @@ export default function CarImage({
   useEffect(() => {
     const antes = prevZoomRef.current;
     const changed = antes !== zoom;
-    if (loaded && changed && status === "playing") {
+    // Con recorte por intento, la foto no se abre al cambiar `zoom` sino al
+    // llegar el recorte nuevo: el marco y el háptico los dispara ese momento
+    // (entrarRecorte, abajo), o irían por delante de la imagen que anuncian.
+    if (loaded && changed && status === "playing" && escalaRecorte == null) {
       haptic.impactLight();
       // Solo cuando la foto se ABRE (el zoom baja): es lo único que el marco
       // sabe contar. `n` cambia en cada fallo para que React remonte el marco
@@ -184,15 +273,50 @@ export default function CarImage({
       if (zoom < antes) setMarco((m) => ({ n: (m?.n ?? 0) + 1, escala: zoom / antes }));
     }
     prevZoomRef.current = zoom;
-  }, [zoom, status, loaded]);
+  }, [zoom, status, loaded, escalaRecorte]);
 
   // Las URLs de proxy propio (/api/...) soportan ?f=avif&w=640 etc.
   // Las URLs externas (Supabase CDN, /coches/, …) se usan directas.
-  const isApiProxy = typeof src === "string" && src.startsWith("/api/");
+  const esProxy = (u) => typeof u === "string" && u.startsWith("/api/");
+  const isApiProxy = esProxy(pintada.src);
   // En nativo, las URLs del proxy se absolutizan al dominio de producción
   // (el <img> no pasa por el shim de fetch). `isApiProxy` se calcula sobre el
   // `src` ORIGINAL relativo, así la detección no se rompe al absolutizar.
-  const proxBase = isApiProxy ? apiUrl(src) : src;
+  const proxBase = isApiProxy ? apiUrl(pintada.src) : pintada.src;
+  const baseEntrante = entrante && esProxy(entrante.src) ? apiUrl(entrante.src) : null;
+
+  // La escala que se pinta. Con recorte por intento es la que deja el recorte
+  // en el encuadre de `zoom` (1.0 en el intento en curso) y nunca baja de 1:
+  // por debajo se vería el borde de un recorte más pequeño que el marco. Si el
+  // zoom ya ha bajado y el recorte nuevo aún no ha llegado, el viejo se queda
+  // entero a la vista — que es exactamente lo que el jugador estaba viendo.
+  const escalaVisible =
+    pintada.escala != null ? Math.max(1, zoom / pintada.escala) : zoom;
+  const escalaImg = desde ?? escalaVisible;
+
+  // El recorte precargado ya está decodificado: pasa a ser la foto pintada.
+  function entrarRecorte(srcCargado) {
+    const ent = entranteRef.current;
+    if (!ent || ent.src !== srcCargado) return; // llegó otro detrás
+    const actual = pintadaRef.current;
+    const absAntes = (actual.escala ?? 1) * escalaImg;
+    const inicio = Math.max(1, absAntes / ent.escala);
+    sinEsqueletoRef.current = true;
+    setEntrante(null);
+    setPintada({ src: ent.src, escala: ent.escala });
+    setDesde(inicio);
+    if (status === "playing" && inicio > 1) {
+      haptic.impactLight();
+      setMarco((m) => ({ n: (m?.n ?? 0) + 1, escala: 1 / inicio }));
+    }
+  }
+
+  function handleEntranteLoad(e) {
+    const img = e.currentTarget;
+    const srcCargado = img.dataset.src;
+    const listo = typeof img.decode === "function" ? img.decode().catch(() => {}) : Promise.resolve();
+    listo.then(() => entrarRecorte(srcCargado));
+  }
 
   const isWinReveal = status === "won";
   // Estado "revelado": el juego ha terminado, por victoria o derrota. Al revelar,
@@ -340,10 +464,10 @@ export default function CarImage({
         <picture> con AVIF / WebP / JPEG (fallback):
           - El navegador elige el primer <source> que entiende. Safari 16+,
             Chrome y Firefox 93+ → AVIF. Safari 14-15 → WebP. Resto → JPEG.
-          - El servidor entrega la imagen ya con un primer crop (?z=5)
-            durante el juego. El cliente sigue aplicando un `transform:
-            scale(N..1.0)` CSS encima para los intentos con más zoom — la
-            combinación es lo que da el zoom-out animado.
+          - El servidor entrega el recorte de CADA intento (?z=N, abierto por
+            el ticket ?k=). El `transform: scale()` CSS solo existe ya para la
+            entrada de un recorte nuevo (ver `entrante`): calca el encuadre
+            anterior y se abre hasta 1.0 — eso es el zoom-out animado.
           - Por eso le mentimos al `sizes` para que pida imágenes grandes:
             el scale del intento 1 es ZOOM_SPAN (≈2.18×) para CUALQUIER
             coche, así que el "slot efectivo" es ~2.2× el container CSS.
@@ -355,18 +479,10 @@ export default function CarImage({
       */}
       <picture>
         {isApiProxy && !imgFailed && (
-          <source
-            type="image/avif"
-            srcSet={`${proxBase}&f=avif&w=640 640w, ${proxBase}&f=avif&w=1280 1280w, ${proxBase}&f=avif&w=1920 1920w`}
-            sizes="(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px"
-          />
+          <source type="image/avif" srcSet={srcsetDe(proxBase, "avif")} sizes={TAMANOS} />
         )}
         {isApiProxy && !imgFailed && (
-          <source
-            type="image/webp"
-            srcSet={`${proxBase}&f=webp&w=640 640w, ${proxBase}&f=webp&w=1280 1280w, ${proxBase}&f=webp&w=1920 1920w`}
-            sizes="(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px"
-          />
+          <source type="image/webp" srcSet={srcsetDe(proxBase, "webp")} sizes={TAMANOS} />
         )}
         <img
           // key cambia al activar fallback para forzar remount del elemento img y
@@ -374,13 +490,9 @@ export default function CarImage({
           // estado fallido del intento anterior).
           key={imgFailed ? "fallback" : "primary"}
           ref={imgRef}
-          src={isApiProxy ? `${proxBase}&f=jpeg&w=1280` : src}
-          srcSet={
-            isApiProxy && !imgFailed
-              ? `${proxBase}&f=jpeg&w=640 640w, ${proxBase}&f=jpeg&w=1280 1280w, ${proxBase}&f=jpeg&w=1920 1920w`
-              : undefined
-          }
-          sizes={isApiProxy && !imgFailed ? "(max-width: 480px) 200vw, (max-width: 1280px) 1280px, 1920px" : undefined}
+          src={isApiProxy ? `${proxBase}&f=jpeg&w=1280` : pintada.src}
+          srcSet={isApiProxy && !imgFailed ? srcsetDe(proxBase, "jpeg") : undefined}
+          sizes={isApiProxy && !imgFailed ? TAMANOS : undefined}
           // Durante la partida, el alt cuenta lo que cuenta la pastilla del
           // visor: cuánto se ve y en qué intento. «Coche del día» a secas
           // dejaba fuera la mecánica entera para un lector de pantalla
@@ -405,7 +517,7 @@ export default function CarImage({
           style={{
             opacity: loaded ? 1 : 0,
             transformOrigin: "center center",
-            transform: isWinReveal ? undefined : `scale(${zoom})`,
+            transform: isWinReveal ? undefined : `scale(${escalaImg})`,
             // EL CUARTO TIEMPO DEL COMPÁS. La fotografía se abría en el MISMO
             // instante en que se estampaba el veredicto, y con la curva
             // contraria: sello con rebote de 280 ms contra un ease-in-out de
@@ -423,13 +535,48 @@ export default function CarImage({
             // despacio, y un objetivo que se abre no titubea — sale disparado y
             // frena largo. Es el único movimiento de la app con derecho a
             // `--ms-revelado` (ver «EL COMPÁS» en index.css).
-            transition: isWinReveal
-              ? "opacity var(--ms-roce) var(--curva-entra)"
-              : "transform var(--ms-revelado) var(--curva-lente) var(--ms-sello), opacity var(--ms-roce) var(--curva-entra)",
+            //
+            // Sin transición de `transform` en el frame en que entra un recorte
+            // nuevo (`desde`): tiene que aparecer YA a la escala que calca el
+            // encuadre anterior, no viajar hasta ella.
+            transition:
+              isWinReveal || desde != null
+                ? "opacity var(--ms-roce) var(--curva-entra)"
+                : "transform var(--ms-revelado) var(--curva-lente) var(--ms-sello), opacity var(--ms-roce) var(--curva-entra)",
             "--zoom-from": zoomFrom,
           }}
         />
       </picture>
+
+      {/* El recorte del intento siguiente, precargándose (ver `entrante`). Es
+          invisible y no ocupa nada: solo está para que el navegador lo baje y
+          lo decodifique con la MISMA elección de candidato que hará la foto
+          pintada. Va sin fetchPriority alto: la foto que se ve ya está. */}
+      {entrante && (
+        <picture key={entrante.src} aria-hidden="true">
+          {baseEntrante && !imgFailed && (
+            <source type="image/avif" srcSet={srcsetDe(baseEntrante, "avif")} sizes={TAMANOS} />
+          )}
+          {baseEntrante && !imgFailed && (
+            <source type="image/webp" srcSet={srcsetDe(baseEntrante, "webp")} sizes={TAMANOS} />
+          )}
+          <img
+            data-src={entrante.src}
+            src={baseEntrante ? `${baseEntrante}&f=jpeg&w=1280` : entrante.src}
+            srcSet={baseEntrante && !imgFailed ? srcsetDe(baseEntrante, "jpeg") : undefined}
+            sizes={baseEntrante && !imgFailed ? TAMANOS : undefined}
+            alt=""
+            draggable={false}
+            decoding="async"
+            onLoad={handleEntranteLoad}
+            // Si el recorte nuevo falla, se le pasa igual a la foto pintada: ahí
+            // vive el respaldo a JPEG y el watchdog, y no hay que duplicarlos.
+            onError={() => entrarRecorte(entrante.src)}
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            style={{ opacity: 0 }}
+          />
+        </picture>
+      )}
 
       {/* El marco de lo que veías (ver `marco`, arriba). Solo mientras se
           juega: al ganar o perder la foto se abre entera y el marco no tendría

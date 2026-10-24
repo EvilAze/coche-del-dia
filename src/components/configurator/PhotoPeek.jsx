@@ -7,7 +7,8 @@
 // sin cubrir). Tap = cerrar teclado y volver al escenario.
 //
 // SEGURIDAD (regla 5, no revelar de más): mismo `src` (ya recortado por el
-// servidor) + mismo `scale(zoom)` CSS + marco 4:3 (la MISMA proporción que
+// servidor para el intento en curso) + la misma escala que pinta CarImage
+// (`zoom / escalaRecorte`, nunca por debajo de 1) + marco 4:3 (la MISMA proporción que
 // .cdd-stage-frame; si el escenario cambia de formato, este marco cambia con
 // él) = exactamente los MISMOS píxeles que ve el jugador en el intento actual,
 // solo que en pequeño.
@@ -22,12 +23,16 @@
 import { useT } from "../../i18n";
 import { apiUrl } from "../../lib/apiUrl";
 
-export default function PhotoPeek({ src, zoom, onClick }) {
+export default function PhotoPeek({ src, zoom, escalaRecorte = null, onClick }) {
   const { t } = useT();
   const isApiProxy = typeof src === "string" && src.startsWith("/api/");
   const proxBase = isApiProxy ? apiUrl(src) : src;
 
   if (!src) return null;
+  // Misma cuenta que CarImage: con recorte por intento, el encuadre de `zoom`
+  // sobre ESE recorte (1.0 en el intento en curso). Si el recorte nuevo aún no
+  // ha llegado, el viejo entero — que es lo que hay en el escenario.
+  const escala = escalaRecorte != null ? Math.max(1, zoom / escalaRecorte) : zoom;
 
   return (
     <button
@@ -65,7 +70,7 @@ export default function PhotoPeek({ src, zoom, onClick }) {
           alt=""
           draggable={false}
           decoding="async"
-          style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
+          style={{ transform: `scale(${escala})`, transformOrigin: "center center" }}
         />
       </picture>
     </button>

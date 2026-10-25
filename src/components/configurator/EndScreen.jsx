@@ -572,7 +572,7 @@ export default function EndScreen({
           <section className="fin-tarjeta fin-entra">
             <div className="fin-tarjeta-cabeza">
               <h3 className="fin-tarjeta-titulo">{t("dailyStats.title")}</h3>
-              <span>{t("dailyStats.gamesPlayed", { count: daily.totalGames })} · {t("dailyStats.winRate", { pct: daily.winRate })}</span>
+              <span>{t("dailyStats.gamesPlayed", { count: daily.totalGames })}, {t("dailyStats.winRate", { pct: daily.winRate })}</span>
             </div>
             <Distribution data={daily} attempts={attempts} won={won} sinPie />
             {won && pct > 0 && <p className="fin-pie">{t("dailyStats.betterThanShare", { pct })}</p>}

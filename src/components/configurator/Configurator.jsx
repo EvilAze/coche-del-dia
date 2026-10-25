@@ -513,7 +513,7 @@ export default function Configurator({
               Iba en ROJO, y el rojo en este sistema es «acción/atención»: un
               contador en rojo al pie de la pantalla se leía como urgencia o como
               error, y le disputaba el color al único botón que importa aquí. */}
-          <div className="text-xs font-bold uppercase text-tinta tabular-nums tracking-wider">
+          <div className="text-xs font-semibold text-tinta">
             <span className="text-muted mr-2">{t("prensa.cierre")}</span>
             {countdown.formatted}
           </div>
@@ -522,7 +522,7 @@ export default function Configurator({
               de la cabecera — «Cómo se juega» ya estaba allí y la privacidad se
               añadió por esto. El reloj de cierre sí se queda: es una línea y es
               información del día, no navegación. */}
-          <div className="prensa-cierre-enlaces flex justify-center items-center gap-x-3 text-xs text-muted font-bold uppercase">
+          <div className="prensa-cierre-enlaces flex justify-center items-center gap-x-5 text-xs text-muted font-semibold">
             {/* Primera visita (`howtoPulse`): las reglas se pintan en rojo, que
                 es el color de "atención" del sistema. Es el único empujón que le
                 queda al recién llegado desde que el pliego dejó de abrir con la
@@ -535,7 +535,6 @@ export default function Configurator({
             >
               {t("cdd.helpAria")}
             </button>
-            <span>·</span>
             <a href="/privacidad" className="hover:text-rojo transition-colors">{t("app.footerPrivacy")}</a>
           </div>
         </footer>

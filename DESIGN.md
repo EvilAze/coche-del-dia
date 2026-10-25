@@ -1,37 +1,43 @@
 ---
 name: Coche del Día
-description: Daily car-guessing game styled as an instrument panel — graphite and bone, surfaces instead of rules, the photograph framed like a viewfinder.
+description: Daily car-guessing game styled as an instrument panel — graphite and fog, surfaces instead of rules, one typeface in two widths.
 theme: Asfalto
 colors:
-  primary: "#131416"
-  signal: "#c9321c"
+  primary: "#15171a"
+  signal: "#c42e1a"
   reward: "#806610"
-  neutral-bg: "#f4f3ef"
+  neutral-bg: "#f2f3f5"
   neutral-surface: "#ffffff"
-  neutral-surface2: "#ebeae5"
-  neutral-text: "#131416"
-  neutral-muted: "#5b6068"
+  neutral-surface2: "#ebedf0"
+  neutral-text: "#15171a"
+  neutral-muted: "#585e67"
   good: "#117548"
   warn: "#8a4604"
-  bad: "#c9321c"
+  bad: "#c42e1a"
 typography:
+  insignia:
+    fontFamily: "'Google Sans Flex', system-ui, sans-serif"
+    fontStretch: "125%"
+    fontSize: "21px"
+    fontWeight: 760
+    lineHeight: 1.05
+    letterSpacing: "-0.015em"
   display:
-    fontFamily: "Barlow Condensed, 'Arial Narrow', sans-serif"
+    fontFamily: "'Google Sans Flex', system-ui, sans-serif"
     fontSize: "21px"
     fontWeight: 700
     lineHeight: 1.05
-    letterSpacing: "0.005em"
+    letterSpacing: "-0.01em"
   body:
-    fontFamily: "Barlow, 'Helvetica Neue', Arial, sans-serif"
+    fontFamily: "'Google Sans Flex', system-ui, sans-serif"
     fontSize: "15px"
     fontWeight: 500
     lineHeight: 1.45
   label:
-    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
-    fontSize: "10.5px"
-    fontWeight: 600
+    fontFamily: "'Google Sans Flex', system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 500
     lineHeight: 1
-    letterSpacing: "0.06em"
 rounded:
   sello: "6px"
   celda: "10px"
@@ -69,14 +75,16 @@ components:
 > Prime, `3px double` rules or rubber-stamp borders in code, it is sediment
 > from Prensa. The executable source of truth is the RGB triplets and the
 > `--radio-*` / `--ms-*` tokens in `:root` of `src/index.css`, plus the
-> «PIEL ASFALTO» layer at the end of that file.
+> «PIEL ASFALTO» layer and, after it, «LA VOZ INSIGNIA» (Oct 2026), which
+> replaced Asfalto's three typefaces with one. Barlow, Barlow Condensed or IBM
+> Plex Mono in code are sediment from Asfalto's first voice.
 
 ## 1. Overview
 
 **Creative North Star: "the instrument panel that frames the photograph"**
 
 The daily car is the only thing the player really looks at, so everything else
-behaves like the dashboard around it: quiet surfaces, data set in mono, one
+behaves like the dashboard around it: quiet surfaces, one typeface, one
 high-contrast control. A car configurator shows the car on dark for a reason,
 and the night edition is where this skin is most at home.
 
@@ -85,13 +93,17 @@ and the night edition is where this skin is most at home.
 - **Surfaces, not rules.** Things separate by stepping up a surface (ground →
   surface → raised) and by air. A hairline exists, but it is a seam, not a
   drawing.
-- **The photograph is a viewfinder.** Four camera corners and a magnification
-  readout («3,7×» going down) say "this is a window, and this is how much of
-  one" — the game's mechanic, made visible.
+- **The photograph is the only thing on it, and it opens.** Nothing sits on
+  top of it: the four camera corners and the «3,7×» magnification pill were
+  removed in Oct 2026 — the "viewfinder" ornament any photo screen gets, and a
+  pill that read as a zoom button. Instead, on phones (app and mobile web) a
+  tap opens it full screen to pinch and double-tap closer (§7).
 - **One primary action, in ink.** The guess button is the highest-contrast
   object on the screen: bone on graphite at night, near-black on light by day.
-- **Data looks like data.** Years, points, counters, labels and the clock are
-  IBM Plex Mono, tabular.
+- **One typeface, two widths.** Google Sans Flex everywhere; the normal width
+  reads, the extended width (the lettering a maker stretches across a boot
+  lid) announces — and only the game question and the ink buttons get it.
+  Figures are tabular across the whole app, so data lines up without a mono.
 
 ## 2. Themes
 
@@ -105,18 +117,18 @@ override).
 
 | Token | Día | Noche |
 |---|---|---|
-| `bg` | `#f4f3ef` | `#0c0d0f` |
-| `surface` | `#ffffff` | `#141619` |
-| `bg2` / raised | `#ebeae5` | `#1b1e22` |
-| `line-strong` (seam) | `#cdcbc4` | `#3a3f46` |
-| `tinta` (text, primary fill) | `#131416` | `#f2f0eb` |
-| `tinta-2` (muted) | `#5b6068` | `#a7acb4` |
-| `rojo` (signal) | `#c9321c` | `#f0533b` |
+| `bg` | `#f2f3f5` | `#131518` |
+| `surface` | `#ffffff` | `#1b1e22` |
+| `bg2` / raised | `#ebedf0` | `#24282d` |
+| `line-strong` (seam) | `#d2d6db` | `#3c4149` |
+| `tinta` (text, primary fill) | `#15171a` | `#f0f1f3` |
+| `tinta-2` (muted) | `#585e67` | `#a6acb5` |
+| `rojo` (signal) | `#c42e1a` | `#f86852` |
 | `verde` (correct) | `#117548` | `#3fcf8e` |
 | `ámbar` (same country / available) | `#8a4604` | `#f08c28` |
 | `oro` (reward) | `#806610` | `#e8c86e` |
 | `plata` | `#5f636a` | `#c3c8cf` |
-| `bronce` | `#8c522d` | `#c98a5e` |
+| `bronce` | `#8c522d` | `#ce9064` |
 
 The platform is stamped the same way on `<html data-plataforma="app">` from
 `src/index.jsx` when running inside the APK.
@@ -176,18 +188,43 @@ or a `--faint` that takes the sentence below 3:1.
 
 ## 4. Typography
 
-Three voices.
+**One typeface, two widths: «la voz Insignia».** Asfalto shipped with three
+voices — Barlow Condensed to announce, Barlow to read, IBM Plex Mono in tracked
+capitals for anything that was data — and together they were the stock "technical
+interface" kit: mono labels, a condensed uppercase button, a viewfinder. None
+of it said anything about cars. Since Oct 2026 there is one family, **Google
+Sans Flex** (variable: `wdth` 25–151, `wght` 1–1000), and hierarchy comes from
+weight and width.
 
-| Voice | Family | Used for |
+| Role | Setting | Used for |
 |---|---|---|
-| `font-display` | **Barlow Condensed** 600/700 | The game question, section titles, car names, big numbers, the primary button (uppercase, +0.08em) |
-| `font-body` | **Barlow** 400–700 | All running text and UI: values in cells and fields, notes, body copy |
-| `font-mono` | **IBM Plex Mono** 400/600 | Labels, kickers, years, points, counters, the magnification readout, the clock |
+| Insignia | `font-stretch: var(--ancho-insignia)` (125%), 720–760 | «¿Qué coche es?» while playing, and the words of the ink buttons (ADIVINAR, COMPARTIR). Nothing else. |
+| `font-display` | normal width, 700, −0.01em | Section titles, car names, big numbers |
+| `font-body` | normal width, 400–650 | All running text and UI |
+| `font-mono` | the same family | The name survives because ~70 rules use it; it no longer means a monospace |
 
-All three are static families, self-hosted from `public/fonts/` via
-`src/fonts.css` (generated by `scripts/gen-local-fonts.mjs`), latin and
-latin-ext only: 274 KB in total, down from 424 KB for the Prensa trio. The two
-faces visible on first paint are preloaded in `index.html`.
+- **The extended width is spent in two places.** It is the lettering a maker
+  stretches across a boot lid; on every heading it would stop being a badge and
+  become the app's typeface. When the game ends, the heading becomes «La
+  fotografía del día» and drops the insignia (`.rotulo.insignia` only while
+  playing): extended, it pushed «Partida terminada» off the edge.
+- **Sentence case everywhere.** No `text-transform: uppercase` survives in
+  `index.css`, and no positive tracking on lowercase. Labels say what goes in
+  a field, in muted ink at `--t-dato`.
+- **Figures are tabular across the app** (`font-variant-numeric: tabular-nums`
+  on `body`, the font's `tnum`): the clock no longer jitters and the ranking
+  columns align, which was the only job the mono really did.
+- **The width axis is also how a line fits.** A verdict note runs at 88%
+  («Mismo país» with its flag no longer fitted a 393 cell), and where even
+  that is too wide — a 360 cell gives 74px for 84 — the flag gives way, by a
+  container query on the cell, never the words. The axis is not linear: 78%
+  narrows a phrase only ~12%.
+
+Self-hosted from `public/fonts/` via `src/fonts.css` (generated by
+`scripts/gen-local-fonts.mjs`), latin and latin-ext, `wdth` + `wght` only: 174
+KB in total, down from 274 KB for Asfalto's trio (the `opsz` axis alone would
+triple it). One file serves every weight and width, so `index.html` preloads
+just the latin subset.
 
 **One scale, thirteen named steps** (`--t-*` in `:root`; Tailwind names them
 too: `text-etiqueta`, `text-ui`…). Taken from what the product actually uses,
@@ -312,8 +349,8 @@ frame and the chrome above it are one choreography (CLAUDE.md #18).
 **The verdict is a four-beat phrase — seen and felt.** Make → model → year
 stamp at 0/110/220ms (`PASO_VEREDICTO_MS` in `lib/veredicto.js`), and the
 photograph opens on the fourth beat at 280ms (the transition delay in
-`CarImage.jsx`). The attempt meter spends its segment and the magnification
-readout re-stamps on that same fourth beat. The haptic phrase
+`CarImage.jsx`). The attempt meter spends its segment on that same fourth
+beat. The haptic phrase
 (`haptic.veredicto`) taps on the same three beats, weighted by result; the end
 of the game is felt when the end seal lands (`useSelloSentido`).
 
@@ -346,7 +383,7 @@ silencer, where `1ms` is a zero and not a tempo.
 
 ### Buttons
 - **Primary** (`prensa-submit`, `cdd-submit`, `pm-btn`): ink fill, background
-  colored text, Barlow Condensed 700 uppercase +0.08em, `--radio-boton`, 56px
+  colored text, the insignia width (125%) at 720, sentence case, `--radio-boton`, 56px
   in the app and 60px on the web. Hover lowers the fill a step; press sinks one
   pixel. **Incomplete** stays tappable, as a raised `surface2` fill with a
   `line-strong` seam and ink text — a button waiting for you, not a broken
@@ -364,14 +401,22 @@ silencer, where `1ms` is a zero and not a tempo.
   pattern nobody needs a legend for. It used to stretch across the gap between
   question and label, and players asked what the red and the white meant. The
   stack still fits in the question's line height, so it costs the photo nothing.
-- **Photograph**: `--radio-foto`, no mat, the viewfinder corners and the
-  magnification readout (`useGame` computes the real magnification over the
-  full photo with the same formula as the server crop — the CSS scale alone
-  would read 1,0× on the last attempt while the photo is still cropped). The
-  readout is a **pill at the bottom centre, digits only** («2,5×»), where a
-  phone camera puts its zoom chip: it used to sit bottom-left with a magnifier
-  icon, on top of the bottom-left corner. Centred with auto margins, never with
-  `translateX`, because the re-stamp animates `transform`.
+- **Photograph**: `--radio-foto`, no mat, nothing drawn on top. How much of
+  the car it shows (`useGame` computes the real magnification over the full
+  photo with the same formula as the server crop) now lives only in its `alt`.
+- **The photo in large** (`FotoAmpliada.jsx`, app and mobile web below
+  1100px): the whole photo is an invisible button; it opens a black full-screen
+  viewer with the frame at the game's own proportion (measured on open), edge
+  to edge on a phone, with pinch and double-tap up to 4× and a one-line hint
+  that leaves once you have zoomed. **It shows exactly what the game shows,
+  bigger** (rule 5): the same `srcset` and `sizes` (so the browser reuses the
+  cached candidate, zero extra bytes), the same CSS scale, `object-fit: cover`,
+  and panning clamped so the crop's edge never enters the frame — zooming
+  reveals detail, never area. Gestures write one `transform` per frame and
+  measure only when they start (CLAUDE.md #25). It closes with ✕, a tap
+  outside the photo, Escape and Android back, and lives in a portal: the
+  frame carries a `transform` when the coupon sheet moves it, which would trap
+  a `position: fixed` child.
 - **History**: numbered rows of three verdict cells (§3). The ordinal sits on
   the page margin in a 22px column; the cells are already the container, so
   the row gets no card of its own.
@@ -424,7 +469,7 @@ Tab trap and the ✕, whose bar gains a background once the card scrolls.
   already has its one ink fill, Share.
 - **The spec sheet leads with figures** (`fin-cifras`, win only, like the
   text): power, torque, 0–100 and top speed in `--t-cifra` display numerals
-  with the unit in muted mono, on `--surface2` cells, above the story. Only the
+  with the unit in muted small type, on `--surface2` cells, above the story. Only the
   figures that exist are drawn; with an odd count the first one spans the row,
   so there is never an orphan cell. Ink, not gold: a figure of the car is not
   something you won.
@@ -446,7 +491,7 @@ Tab trap and the ✕, whose bar gains a background once the card scrolls.
   count until they sign in.
 - **Section screens** (Clasificación, Archivo, Perfil, Menú): the floor is
   `--bg` and everything on it is a card on `--surface` with a 1px seam. The
-  section name is a 30px Barlow Condensed headline with the close button in its
+  section name is a 30px display headline with the close button in its
   row — no kicker above it. Every section is a dialog for assistive tech
   (named, focus inside, Tab trapped via `lib/foco.js`), including the Archivo,
   which does not mount ModalShell; and a veil that is leaving stops taking taps
@@ -496,8 +541,8 @@ in the UI entirely** (§9).
 - Keyboard navigation with a visible focus indicator on every interactive
   element, **in ink** (`--cdd-text`), never red: red already means a field is
   invalid, and a focused field must not look like a wrong one.
-- The game photo carries a localized `alt`; decorative flags, marks, viewfinder
-  corners and verdict notes are `aria-hidden` (the exact verdict travels in
+- The game photo carries a localized `alt` (with how far it is zoomed);
+  decorative flags, marks and verdict notes are `aria-hidden` (the exact verdict travels in
   `sr-only`).
 
 ## 9. Do's and Don'ts
@@ -505,7 +550,9 @@ in the UI entirely** (§9).
 ### Do
 - **Do** take every color from the theme tokens, so both editions follow.
 - **Do** take every radius from `--radio-*`, by object size.
-- **Do** set data (years, points, counters, labels) in mono.
+- **Do** let figures stay tabular (the `body` sets it); never add a monospace
+  for data.
+- **Do** keep the extended width for the question and the ink buttons.
 - **Do** let the component supply the ornament, never the string.
 
 ### Don't
@@ -516,9 +563,12 @@ in the UI entirely** (§9).
   colour, aligned to the first line — or not at all.
 - **Don't** centre forms or paragraphs in a block; centre a single line at
   most.
-- **Don't** stack a mono uppercase kicker over every title. Kickers label
-  **data** (`TEMPORADA 5`, `PUNTOS SEGÚN EL INTENTO`); a section name or a
-  dialog title stands on its own.
+- **Don't** stack a kicker over every title, and never in tracked capitals or
+  with a middle dot («Cómo se juega · 1 de 3»). Kickers label **data**
+  («Temporada 5», «Puntos según el intento»); a section name or a dialog title
+  stands on its own.
+- **Don't** append «→» to a button or link that already says where it goes.
+- **Don't** zero-pad a count of five («01»): one digit reads first.
 - **Don't** use the raw Tailwind palette or Tailwind `rounded-*` utilities.
 - **Don't** add **glows** (`shadow-[0_0_…]`) or loose hex values in classes.
 - **Don't** use red as a fill for anything but an irreversible action

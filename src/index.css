@@ -1,7 +1,8 @@
-/* Las fuentes (Archivo + Space Mono) se cargan vía <link> en index.html con
-   preconnect, NO con @import aquí: el @import en CSS crea una cascada serial
+/* La fuente (Google Sans Flex, autoalojada) se declara en src/fonts.css, que
+   genera scripts/gen-local-fonts.mjs, y se precarga desde el <head> de
+   index.html. Nada de @import a Google aquí: crearía una cascada serial
    (CSS → descubre @import → descarga el CSS de Google → woff2) que retrasa el
-   render del título. Ver el <head> de index.html. */
+   render del título. */
 
 @tailwind base;
 @tailwind components;
@@ -112,7 +113,12 @@
        cubre gaps/overscroll para que no asome grafito. */
     background-color: var(--bg);
     color: var(--cdd-text);
-    font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    /* CIFRAS TABULARES EN TODA LA APP. Eran el trabajo de IBM Plex Mono —años,
+       puntos, contadores, el reloj— y ahora salen de la misma familia con su
+       `tnum`: un 1 ocupa lo que un 8, así que el reloj de cierre no tiembla cada
+       segundo y las columnas de la clasificación alinean sin una segunda fuente. */
+    font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -175,12 +181,12 @@
      `--line-strong` deja de ser tinta plena y pasa a ser un filete claro: en
      este sistema separan el aire y las superficies, no las reglas. Los valores
      de texto están medidos sobre --bg (AA 4.5:1 o más). */
-  --bg-rgb: 244 243 239; --bg2-rgb: 235 234 229; --surface-rgb: 255 255 255;
-  --tinta-rgb: 19 20 22; --tinta2-rgb: 91 96 104;
-  --line-strong-rgb: 205 203 196;
+  --bg-rgb: 242 243 245; --bg2-rgb: 235 237 240; --surface-rgb: 255 255 255;
+  --tinta-rgb: 21 23 26; --tinta2-rgb: 88 94 103;
+  --line-strong-rgb: 210 214 219;
   /* El rojo de la marca (las dos rayas del logotipo): intento gastado, sección
      activa, aviso. Ya no es el color del botón principal — ese es la tinta. */
-  --rojo-rgb: 201 50 28; --rojo-dark-rgb: 168 40 22;
+  --rojo-rgb: 196 46 26; --rojo-dark-rgb: 160 36 20;
   /* ORO Y ÁMBAR, SEPARADOS EN TONO Y EN LUZ. Eran el mismo ocre (41° y 34°) a
      1,02:1 de luminancia: la racha dorada del panel y la fila ámbar de la
      Repesca parecían de la misma familia, y «cada acento significa una cosa»
@@ -256,9 +262,9 @@
      colapsadas en una: el sistema tipográfico solo se veía en la pantalla de
      juego. Las familias se autoalojan en fonts.css, así que ya estaban cargadas —
      solo faltaba poder nombrarlas desde aquí. `.prensa` las repite (inofensivo). */
-  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-  --font-body: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-display: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   --gold-ink: rgb(var(--bg-rgb)); --gold-glow: transparent;
   --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
@@ -493,9 +499,9 @@
    ámbar y oro subidos para AA sobre el grafito. Solo ternas RGB. */
 :root[data-tema="noche"] {
   color-scheme: dark;
-  --bg-rgb: 12 13 15; --bg2-rgb: 27 30 34; --surface-rgb: 20 22 25;
-  --tinta-rgb: 242 240 235; --tinta2-rgb: 167 172 180;
-  --line-strong-rgb: 58 63 70;
+  --bg-rgb: 19 21 24; --bg2-rgb: 36 40 45; --surface-rgb: 27 30 34;
+  --tinta-rgb: 240 241 243; --tinta2-rgb: 166 172 181;
+  --line-strong-rgb: 60 65 73;
   /* EL ROJO SE MIDE SOBRE LA SUPERFICIE MÁS CLARA EN LA QUE ESCRIBE, no sobre el
      fondo. Era 229 64 42 y pasaba sobre --bg (4.7:1), que es donde se midió; pero
      donde de verdad se LEE el rojo es dentro de las celdas del historial («No
@@ -504,7 +510,7 @@
      escalón de luz con el mismo tono: 5.2:1 sobre la superficie, 4.8:1 sobre la
      elevada (--bg2) y 5.6:1 sobre el fondo. Las rayas del logotipo y el medidor
      lo heredan; a oscuras un rojo de marca siempre se sube un punto. */
-  --rojo-rgb: 240 83 59; --rojo-dark-rgb: 200 52 34;
+  --rojo-rgb: 248 104 82; --rojo-dark-rgb: 210 62 42;
   /* Latón claro y naranja, como de día (F2): 1,52:1 entre ellos. */
   --gold-rgb: 232 200 110; --gold-dark-rgb: 196 168 92;
   /* Verde y ámbar del veredicto, subidos para contraste AA sobre el grafito. */
@@ -512,7 +518,7 @@
   /* De noche el relleno ámbar se OSCURECE: 3,0:1 contra el verde. */
   --ambar-relleno-rgb: 135 90 18;
   /* Plata y bronce del podio (AA sobre el grafito). */
-  --plata-rgb: 195 200 207; --bronce-rgb: 201 138 94;
+  --plata-rgb: 195 200 207; --bronce-rgb: 206 144 100;
   /* El velo se va casi al negro y la sombra gana peso: sobre grafito un roce
      del 18% no separa nada. Todo lo que flota lo hereda solo (--sombra-flota
      se declara una vez arriba y resuelve estas ternas en el punto de uso). */
@@ -521,19 +527,18 @@
 
 @layer utilities {
   /* Las utilidades tipográficas que consumen las pantallas internas (nacieron
-     con «Prensa del motor», F5). Hoy: `font-display` = Barlow Condensed
-     (titulares), `font-body` = Barlow (UI), `font-mono` = IBM Plex Mono
-     (datos/cifras). La pantalla de juego y los modales usan sus propias
-     familias en `.cdd-*`/`.prensa-*`/`.pm-*`, así que no dependen de esto. */
+     con «Prensa del motor», F5). Hoy las tres apuntan a Google Sans Flex: el
+     nombre dice el PAPEL (titular, interfaz, dato) y la diferencia la ponen el
+     peso, la anchura y las cifras tabulares, no tres familias. */
   .font-display {
-    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
   }
   .font-body {
-    font-family: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+    font-family: var(--font-body);
   }
   .font-mono {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: var(--font-mono);
   }
 
   /*
@@ -725,7 +730,7 @@ body,
   /* Botón plano (rediseño v0): menta sólida, sin degradado ni gloss. */
   background: var(--accent);
   color: var(--accent-ink); font-family: var(--font-display);
-  font-weight: 800; font-size: var(--t-ui); letter-spacing: .14em; text-transform: uppercase;
+  font-weight: 800; font-size: var(--t-ui);
   display: flex; align-items: center; justify-content: center; gap: 9px; transition: background var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
   box-shadow: none; }
 @media (hover: hover) {
@@ -842,7 +847,6 @@ body,
 .cdd-reveal-play .marca {
   display: inline-flex; align-items: center; gap: 8px;
   font-family: var(--font-body); font-weight: 800; font-size: var(--t-etiqueta);
-  letter-spacing: .2em; text-transform: uppercase;
   color: #fff; border: 2px solid #fff; border-radius: 0;
   padding: 9px 14px; background: rgb(var(--velo-rgb) / .55);
   transition: background var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
@@ -868,7 +872,7 @@ body,
   padding: 4px 0; cursor: pointer; text-align: left;
   background: transparent; border: 0; color: var(--gold); transition: color var(--ms-roce) var(--curva-roce); }
 .cdd-unlock-kicker { flex: none;
-  font-size: var(--t-etiqueta); text-transform: uppercase; color: var(--gold); }
+  font-size: var(--t-etiqueta); color: var(--gold); }
 .cdd-unlock-name { min-width: 0; flex: 1;
   font-size: var(--t-nota); color: var(--cdd-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -897,7 +901,7 @@ body,
 .cdd-dist-pct.me { color: var(--accent); }
 /* El pie de la distribución («28 partidas · 75 % de acierto»): 11 px y tinta-2.
    Iba a 8,5 px en --faint, 2,61:1 de día (auditoría 7-oct). */
-.cdd-dist-foot { margin-top: 9px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .06em; color: var(--cdd-muted); }
+.cdd-dist-foot { margin-top: 9px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: var(--t-etiqueta); color: var(--cdd-muted); }
 
 /* (Purga: `.cdd-percentile` era la caja del «mejor que el X%» y `.cdd-grid` /
    `.cdd-grid-k` pintaban la rejilla de emoji en pantalla con su micro-encabezado.
@@ -914,8 +918,8 @@ body,
 .cdd-end-link {
   background: none; cursor: pointer; min-height: 44px; padding: 12px 22px;
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-body); font-weight: 700; font-size: var(--t-dato); letter-spacing: .16em;
-  text-transform: uppercase; color: var(--cdd-muted);
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-dato);
+  color: var(--cdd-muted);
   border: 1px solid var(--line); transition: color var(--ms-roce) var(--curva-roce), border-color var(--ms-roce) var(--curva-roce);
 }
 @media (hover: hover) {
@@ -984,9 +988,9 @@ body,
      (noche) — más abajo en este archivo. .prensa ya NO los fija localmente,
      para que el modo oscuro pueda sobreescribirlos por herencia. Aquí solo
      quedan la tipografía editorial y el lienzo (que consumen los tokens). */
-  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-  --font-body: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-display: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --ambient: none;
   background: var(--bg); color: var(--cdd-text);
   font-family: var(--font-body);
@@ -994,7 +998,7 @@ body,
 
 /* ── Cabecera de periódico (Header.jsx la monta; ver Task 5) ── */
 .prensa-topbar {
-  display: flex; justify-content: space-between; align-items: center; gap: 10px; text-transform: uppercase;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
 }
 /* Cada grupo (izq/der) alinea sus enlaces por la línea base. El aire alrededor
    del "·" lo da el padding horizontal de los propios enlaces, no un gap del
@@ -1104,7 +1108,7 @@ body,
    en rojo al completar el cupón), y una invitación secundaria pintada con el
    mismo color le disputaba el ojo al único botón que importa. Tinta plena y
    peso 800 bastan para que se lea como algo que se toca. */
-.prensa-topbar .prensa-clasif .pos--invita { text-transform: uppercase;
+.prensa-topbar .prensa-clasif .pos--invita {
 }
 /* EL SALTO DEL DÍA. Flecha de línea + número, en tinta. Sin verde ni rojo a
    propósito: en este juego esos dos colores son el veredicto de un intento
@@ -1201,7 +1205,7 @@ body,
    comentario, no una banda nueva sobre la foto. */
 .prensa-pie .presenta {
   font-family: var(--font-body); font-style: normal; font-weight: 600;
-  font-size: var(--t-etiqueta); letter-spacing: .16em; text-transform: uppercase;
+  font-size: var(--t-etiqueta);
   color: var(--cdd-muted); white-space: nowrap;
   /* Válvula de seguridad, no maqueta: un nombre de temporada larguísimo se
      corta con puntos suspensivos en vez de empujar el pie a dos líneas. */
@@ -1496,7 +1500,7 @@ body,
    El layout vive AQUÍ y el JSX ya no lo repite. */
 .prensa-cierre { padding-top: 12px; margin-top: 8px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 12px; text-align: center; text-transform: uppercase; color: var(--cdd-muted);
+  gap: 12px; text-align: center; color: var(--cdd-muted);
 }
 .prensa-cierre button, .prensa-cierre a {
   background: none; border: 0; cursor: pointer; padding: 14px 4px; margin: -14px -4px;
@@ -2100,7 +2104,7 @@ body,
   min-width: 0;
 }
 .prensa-renglon .etiqueta {
-  flex: none; text-transform: uppercase; color: var(--cdd-muted);
+  flex: none; color: var(--cdd-muted);
 }
 /* La nota del campo: la horquilla del año («2001 o posterior», «±2 años») o el
    «resuelto». En la cursiva de las apostillas, como la horquilla de la web. */
@@ -2108,7 +2112,7 @@ body,
   min-width: 0; text-overflow: ellipsis; font-style: italic;
   color: var(--cdd-muted);
 }
-.prensa-renglon .apunte.resuelta { font-style: normal; text-transform: uppercase;
+.prensa-renglon .apunte.resuelta { font-style: normal;
   color: var(--verde);
 }
 .prensa-renglon .cuerpo {
@@ -2565,7 +2569,6 @@ body,
   flex: none; margin: 12px 16px 16px; min-height: 52px; cursor: pointer;
   border: 0; border-radius: var(--radio-boton); background: var(--cdd-text); color: var(--bg);
   font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton);
-  letter-spacing: .08em; text-transform: uppercase;
 }
 .pm-ruleta-ok:active { transform: translateY(1px); }
 
@@ -2588,7 +2591,7 @@ body,
       Los componentes (Combo/YearField/GuessForm) usan estas clases prensa-*
       directamente. (Las primitivas v0 —input-flat, btn--mint— se borraron en
       la purga F5: ya no quedaba ninguna pantalla sin portar que las usara.) ── */
-.prensa-label { text-transform: uppercase; color: var(--cdd-muted);
+.prensa-label { color: var(--cdd-muted);
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
 /* «±2 años» es una regla del juego, no un adorno: tinta-2 (5,7:1 de día) y no
@@ -2633,7 +2636,6 @@ body,
   flex: none; pointer-events: none;
   display: inline-flex; align-items: center; gap: 5px;
   font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta);
-  letter-spacing: .1em; text-transform: uppercase;
 }
 .prensa-campo-marca.bien { color: var(--verde); font-size: var(--t-cuerpo); letter-spacing: 0; }
 /* (`.cerca` —la bandera del mismo país— y `.dir` —la flecha ↑/↓ del año— se
@@ -2689,7 +2691,7 @@ body,
      rotativa (ver `.is-trabajando` más abajo); sin partida en curso no pintan
      nada. */
   position: relative; overflow: hidden;
-  width: 100%; border: 0; cursor: pointer; text-transform: uppercase;
+  width: 100%; border: 0; cursor: pointer;
   transition: background var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce), transform var(--ms-pulso) var(--curva-roce);
 }
 /* LA FIRMA DEL BOTON DEL CUPON: se levanta y proyecta su propia tinta, como un
@@ -2773,7 +2775,7 @@ body,
 /* El sello: RESUELTO en rojo, SIN RESOLVER en tinta. Cae con overshoot un
    cuarto de segundo después de abrirse la crónica. */
 .prensa-sello {
-  position: absolute; top: 12px; right: 12px; z-index: 4; text-transform: uppercase;
+  position: absolute; top: 12px; right: 12px; z-index: 4;
   animation: prensaSellar var(--ms-escena) var(--curva-sello) both; animation-delay: var(--ms-sello);
 }
 .prensa-sello.tinta { border-color: var(--cdd-text); }
@@ -2820,12 +2822,12 @@ body,
 .modal-scrim, .scrim-flat { background: rgb(var(--velo-rgb) / .72); }
 
 /* Utilidades de contenido de modal (concretas, reutilizables en F3-F4) */
-.pm-kicker { font-size: var(--t-etiqueta); text-transform: uppercase; color: var(--rojo); }
+.pm-kicker { font-size: var(--t-etiqueta); color: var(--rojo); }
 .pm-title { font-size: var(--t-cabecera); line-height: 1.05; color: var(--cdd-text); }
 .pm-body { line-height: 1.55; color: var(--cdd-muted); }
 .pm-strong { color: var(--cdd-text); font-weight: 600; }
 .pm-btn { width: 100%; border: 0; cursor: pointer; padding: 14px 12px;
-  background: var(--cdd-text); color: var(--bg); text-transform: uppercase; transition: background var(--ms-roce) var(--curva-roce); }
+  background: var(--cdd-text); color: var(--bg); transition: background var(--ms-roce) var(--curva-roce); }
 .pm-btn:active:not(:disabled) { transform: translateY(1px); }
 .pm-btn:disabled { cursor: not-allowed; }
 .pm-btn--ghost { background: transparent; color: var(--cdd-text); }
@@ -2844,7 +2846,7 @@ body,
   display: inline-block; padding: 5px 10px;
   border: 3px double var(--rojo); color: var(--rojo);
   font-family: var(--font-mono); font-weight: 700; font-size: var(--t-etiqueta);
-  letter-spacing: .18em; text-transform: uppercase; white-space: nowrap;
+  white-space: nowrap;
   /* .88 en vez de 1: la tinta de un sello nunca cubre del todo el papel. */
   opacity: .88;
   /* Inclinación por defecto — un sello estampado a mano nunca sale recto.
@@ -2923,7 +2925,7 @@ body,
   transition: border-color var(--ms-roce) var(--curva-roce), color var(--ms-roce) var(--curva-roce);
 }
 .arch-hueco .num {
-  font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .14em;
+  font-family: var(--font-mono); font-size: var(--t-etiqueta);
   color: rgb(var(--tinta-rgb) / .45);
 }
 @media (hover: hover) {
@@ -2936,7 +2938,7 @@ body,
 .arch-especial {
   display: flex;
 }
-.arch-especial .kicker { text-transform: uppercase; color: var(--gold);
+.arch-especial .kicker { color: var(--gold);
 }
 .arch-especial .titulo { color: var(--cdd-text);
 }
@@ -3249,6 +3251,11 @@ body,
    Repesca) irá consolidando el resto en su sitio.
 
    Fuente de verdad visual: el lienzo de diseño «Coche del Día — Rediseño».
+
+   OJO, LA VOZ DE ESTA CAPA YA NO ES LA VIVA: las tres familias de arriba se
+   sustituyeron por una (Google Sans Flex) en oct-2026, y la capa «LA VOZ
+   INSIGNIA», al final del fichero, es la que manda en tipografía. Color, forma
+   y composición siguen siendo las de aquí.
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* SIN CURSIVAS, EN NINGÚN SITIO. El sistema no compone nada en cursiva —las
@@ -3262,7 +3269,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 
 /* ── LA CABECERA ──────────────────────────────────────────────────────────── */
 .prensa-topbar {
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
 }
 /* El botón del sumario: una tecla con canto, no un marco de lámina. Mismos
    34px de caja que fijan el alto de la barra. */
@@ -3311,7 +3318,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 }
 .prensa-cornisa .fecha {
   font-family: var(--font-mono); font-weight: 400; font-size: var(--t-etiqueta);
-  letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted); line-height: 1;
+  color: var(--cdd-muted); line-height: 1;
 }
 /* La barra, en una fila: identidad a la izquierda, acciones a la derecha. */
 .prensa-topbar { padding: 10px 0; border-bottom: 0; }
@@ -3338,7 +3345,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton); line-height: 1; color: var(--gold);
 }
 .prensa-topbar .prensa-clasif .pos--invita {
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em; color: var(--cdd-text);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); color: var(--cdd-text);
 }
 /* El subtítulo de la web: qué es esto, en una frase (ver Header.jsx). */
 .prensa-lema {
@@ -3373,7 +3380,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-ladillo::after { content: none; }
 .prensa-ladillo .aparte {
   font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
-  letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 
 /* LA PREGUNTA DEL JUEGO y, al margen derecho, EL CONTADOR: «Intento 2 de 5»
@@ -3407,50 +3414,15 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-ladillo .filete .seg.actual { background: var(--cdd-text); }
 
 /* ── LA FOTOGRAFÍA ─────────────────────────────────────────────────────────
-   Sin paspartú ni filete: la foto llena su marco y el marco tiene canto. Lo
-   que la prensa decía con la raya («esto es una ventana») lo dice ahora el
-   VISOR: las cuatro esquinas de cámara y la lectura del aumento (CarImage). */
+   Sin paspartú ni filete: la foto llena su marco y el marco tiene canto. Sin
+   visor encima: las cuatro esquinas de cámara y la píldora del aumento («3,9×»)
+   se retiraron en oct-2026 — eran adorno de pantalla con foto, y la cifra se
+   leía como un botón de zoom. Lo que sí hace la foto ahora es abrirse en
+   grande al tocarla (FotoAmpliada.jsx, más abajo «LA FOTO EN GRANDE»). */
 .prensa .cdd-stage-frame {
   border: 0; padding: 0; border-radius: var(--radio-foto); background: var(--surface2);
 }
 .cdd-marco-previo { border-radius: var(--radio-foto); }
-.cdd-visor {
-  position: absolute; inset: 0; z-index: 3; pointer-events: none;
-  transition: opacity var(--ms-sello) var(--curva-roce) var(--ms-sello);
-}
-.cdd-visor.fuera { opacity: 0; }
-/* Las esquinas van en blanco con una sombra de un píxel: viven ENCIMA de una
-   fotografía cualquiera (la misma excepción que el botón de vídeo), y así se
-   leen igual sobre una carrocería blanca que sobre un fondo negro. */
-.cdd-visor .esq {
-  position: absolute; width: 18px; height: 18px;
-  border: 0 solid rgb(255 255 255 / .92);
-  filter: drop-shadow(0 0 1px rgb(0 0 0 / .55));
-}
-.cdd-visor .arr-izq { left: 12px; top: 12px; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: var(--radio-sello); }
-.cdd-visor .arr-der { right: 12px; top: 12px; border-right-width: 2px; border-top-width: 2px; border-top-right-radius: var(--radio-sello); }
-.cdd-visor .aba-izq { left: 12px; bottom: 12px; border-left-width: 2px; border-bottom-width: 2px; border-bottom-left-radius: var(--radio-sello); }
-.cdd-visor .aba-der { right: 12px; bottom: 12px; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: var(--radio-sello); }
-/* La lectura del aumento. Se re-estampa (`.prensa-estampada`) cuando cambia
-   de intento, pero en el CUARTO tiempo del veredicto: la cifra nueva aparece
-   cuando la lente empieza a moverse, no cuando cae la tinta de las celdas.
-   ABAJO Y AL CENTRO, entre las dos esquinas, donde una cámara de móvil pone su
-   chip de zoom. Vivía abajo a la izquierda (20px del borde) y se montaba encima
-   de la esquina del visor, que está a 12: dos piezas del mismo instrumento
-   pisándose, justo lo que hace que un visor parezca un adorno pegado. Se centra
-   con márgenes automáticos y NO con `translateX(-50%)`, porque el estampado
-   anima `transform` y lo pisaría a mitad de animación. Píldora (la mitad del
-   alto) como el chip de una cámara; el fondo, el mismo velo fijo de siempre: va
-   encima de una fotografía cualquiera, no del tema. */
-.cdd-lente {
-  position: absolute; left: 0; right: 0; bottom: 14px; width: max-content; margin-inline: auto;
-  display: inline-flex; align-items: center;
-  height: 26px; padding: 0 10px; border-radius: var(--radio-pildora);
-  background: rgb(12 13 15 / .62); color: rgb(242 240 235);
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato);
-  letter-spacing: .02em; font-variant-numeric: tabular-nums;
-  animation-delay: var(--ms-sello);
-}
 .cdd-peek { border-radius: var(--radio-boton); border: 1px solid var(--line-strong); }
 
 /* ── EL HISTORIAL: celdas, no marcas de corrector ──────────────────────────
@@ -3565,14 +3537,14 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-renglones > .prensa-renglon.espera .vacio { color: var(--cdd-muted); font-size: var(--t-nota); line-height: 1.2; }
 .prensa-renglon .cabeza { display: contents; }
 .prensa-renglon .etiqueta {
-  order: 1; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .08em;
+  order: 1; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
 }
 .prensa-renglon .cuerpo { order: 2; min-height: 22px; gap: 4px; }
 .prensa-renglon .apunte {
   order: 3; white-space: normal; overflow: visible; line-height: 1.2;
   font-family: var(--font-body); font-weight: 500; font-size: var(--t-dato);
 }
-.prensa-renglon .apunte.resuelta { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em; }
+.prensa-renglon .apunte.resuelta { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); }
 .prensa-renglon .valor { font-family: var(--font-body); font-weight: 600; font-size: var(--t-campo); }
 /* EL NOMBRE PARTE EN DOS LÍNEAS antes que cortarse. En una casilla de ~105px de
    texto, «Giulia Quadrifoglio» salía «Giulia Quadrif…» y «Mercedes-Benz»,
@@ -3624,7 +3596,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    de la caja, a la derecha, en vez de colgar fuera. */
 /* 11 px, el suelo de la voz mono en mayúsculas (auditoría 7-oct): a 10 px con
    caja alta y tracción abierta se leía peor que su tamaño nominal. */
-.prensa-label { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .08em; }
+.prensa-label { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); }
 .prensa-label .pista-label { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; }
 .prensa-input {
   padding: 11px 11px; border: 1px solid var(--line-strong); border-radius: var(--radio-celda);
@@ -3665,7 +3637,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-listbox ul[role="group"] { margin: 0; padding: 0; list-style: none; }
 .prensa-opt-grupo {
   margin: 0; padding: 8px 12px 4px;
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); color: var(--cdd-muted);
 }
 .prensa-opt-resto { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
 
@@ -3677,7 +3649,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-submit {
   height: 60px; border-radius: var(--radio-boton);
   background: var(--cdd-text); color: var(--bg);
-  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); letter-spacing: .08em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta);
 }
 @media (hover: hover) {
   .prensa-submit:hover:not(:disabled):not(.is-incomplete) {
@@ -3705,7 +3677,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 /* El pie del juego, en la voz de los datos. */
 .prensa-cierre {
   border-top: 1px solid var(--line);
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .06em;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
 }
 
 /* ── LA HOJA DE SELECCIÓN (app) ────────────────────────────────────────────
@@ -3764,7 +3736,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa-sello {
   padding: 6px 12px; border: 0; border-radius: var(--radio-celda); transform: rotate(-4deg);
   background: var(--verde); color: var(--bg);
-  font-family: var(--font-display); font-weight: 700; font-size: var(--t-campo); letter-spacing: .08em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-campo);
   box-shadow: 0 10px 24px -8px rgb(var(--velo-rgb) / .5);
 }
 .prensa-sello.tinta { background: var(--surface); color: var(--cdd-text); border: 1px solid var(--line-strong); }
@@ -3773,7 +3745,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 /* El botón de compartir: el mismo bloque de tinta que ADIVINAR. */
 .prensa .cdd-submit {
   border-radius: var(--radio-boton); background: var(--cdd-text); color: var(--bg);
-  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta); letter-spacing: .08em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta);
 }
 @media (hover: hover) {
   .prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) { background: rgb(var(--tinta-rgb) / .86); }
@@ -3787,7 +3759,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 }
 .prensa .cdd-end-link {
   border-radius: var(--radio-boton); border-color: var(--line-strong);
-  font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em;
+  font-family: var(--font-mono); font-weight: 600;
 }
 
 /* La distribución del día: barras con canto, la tuya en tinta plena. */
@@ -3796,7 +3768,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .prensa .cdd-dist-bar { background: rgb(var(--tinta-rgb) / .22); border-radius: var(--radio-sello); }
 .prensa .cdd-dist-bar.me { background: var(--cdd-text); }
 .prensa .cdd-dist-n.me, .prensa .cdd-dist-pct.me { color: var(--cdd-text); }
-.cdd-unlock-kicker { font-family: var(--font-mono); font-weight: 600; letter-spacing: .06em; }
+.cdd-unlock-kicker { font-family: var(--font-mono); font-weight: 600; }
 .cdd-unlock-name { font-family: var(--font-body); font-weight: 600; }
 .pm-puesto .cifra { font-weight: 700; letter-spacing: 0; }
 .pm-puesto .de { font-family: var(--font-body); }
@@ -3821,12 +3793,12 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
   border: 1px solid var(--line-strong); border-radius: var(--radio-hoja);
   box-shadow: 0 30px 70px -24px rgb(var(--velo-rgb) / .6);
 }
-.pm-kicker { font-family: var(--font-mono); font-weight: 600; letter-spacing: .08em; }
+.pm-kicker { font-family: var(--font-mono); font-weight: 600; }
 .pm-title { font-family: var(--font-display); font-weight: 700; letter-spacing: .005em; }
 .pm-body { font-family: var(--font-body); font-size: var(--t-cuerpo); }
 .pm-btn {
   border-radius: var(--radio-boton);
-  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton); letter-spacing: .08em;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton);
 }
 .pm-btn--ghost { box-shadow: inset 0 0 0 1px var(--line-strong); }
 /* Deshabilitado = el mismo «aún no» que ADIVINAR incompleto (.is-incomplete):
@@ -3903,7 +3875,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
 .fin-titulo { display: flex; flex-direction: column; gap: 6px; padding: 8px 6px 4px; }
 .fin-kicker {
   font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
-  letter-spacing: .08em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 .fin-coche {
   margin: 0; font-family: var(--font-display); font-weight: 700;
@@ -3943,7 +3915,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin-marcador-cifra { display: flex; flex-direction: column; gap: 2px; }
 .fin-etiqueta {
   font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
-  letter-spacing: .08em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 .fin-puntos {
   font-family: var(--font-display); font-weight: 700; font-size: var(--t-heroe); line-height: .9;
@@ -3996,7 +3968,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .fin-cifras > div:first-child:nth-last-child(odd) { grid-column: 1 / -1; }
 .fin-cifras dt {
   font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
-  letter-spacing: .08em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 /* La unidad va DENTRO del dd para que un lector de pantalla diga «510 CV» de
    una vez; si no cabe al lado de la cifra (un «1500» en un móvil estrecho)
@@ -4291,7 +4263,7 @@ button.fin-tarjeta:active { transform: translateY(1px); }
 .clas-periodo-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .clas-kicker {
   font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
-  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 .clas-cierre {
   display: inline-flex; align-items: center; gap: 6px; flex: none;
@@ -4568,7 +4540,7 @@ div.arch-resumen.pm-esperando { height: 118px; box-sizing: border-box; border-co
    atención», y una portada recién ganada no es ninguna de las dos cosas. */
 .arch-chip-foto.nueva {
   left: 10px; background: rgb(242 240 235); color: rgb(12 13 15);
-  font-family: var(--font-body); font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  font-family: var(--font-body); font-weight: 700;
 }
 .arch-destacada-pie { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding: 12px 14px 14px; }
 .arch-destacada-datos { flex: none; display: inline-flex; align-items: center; gap: 8px; }
@@ -4596,11 +4568,11 @@ div.arch-ficha { cursor: default; }
 .arch-nuevo {
   height: 18px; padding: 0 6px; display: inline-flex; align-items: center; border-radius: var(--radio-sello);
   background: var(--cdd-text); color: var(--bg);
-  font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta); letter-spacing: .04em; text-transform: uppercase;
+  font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta);
 }
 .arch-ficha-nombre { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .arch-marca {
-  margin: 0; font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase;
+  margin: 0; font-family: var(--font-mono); font-size: var(--t-etiqueta);
   color: var(--cdd-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .arch-modelo {
@@ -4681,7 +4653,7 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 }
 .arch-especial-icono svg { fill: currentColor; }
 .arch-especial-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.arch-especial .kicker { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; }
+.arch-especial .kicker { font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); }
 .arch-especial .titulo { font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); line-height: 1.05; }
 .arch-especial .sub { font-family: var(--font-body); font-size: var(--t-nota); }
 
@@ -4728,7 +4700,7 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
   background: rgb(var(--bg-rgb) / .62); color: var(--cdd-text);
 }
 .arch-detalle-velo p {
-  margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato); letter-spacing: .1em; text-transform: uppercase;
+  margin: 0; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato);
 }
 .arch-detalle > .arch-marca { margin-top: 16px; }
 .arch-detalle-modelo {
@@ -4738,16 +4710,16 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 .arch-detalle-texto { margin: 6px 0 0; font-family: var(--font-body); font-size: var(--t-cuerpo); line-height: 1.5; color: var(--cdd-text); }
 .arch-detalle > .pm-btn { margin-top: 18px; }
 .arch-pista {
-  margin: 8px 0 0; text-align: center; font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .06em; color: var(--cdd-muted);
+  margin: 8px 0 0; text-align: center; font-family: var(--font-mono); font-size: var(--t-etiqueta); color: var(--cdd-muted);
 }
 .arch-dorso-cab {
   display: flex; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
-  font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .06em; text-transform: uppercase; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-size: var(--t-etiqueta); color: var(--cdd-muted);
 }
 .arch-dorso-cab .num { flex: none; color: var(--cdd-text); font-weight: 600; }
 .arch-etiqueta {
   margin: 16px 0 0; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
-  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 .arch-tirada { margin-top: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radio-boton); background: var(--surface2); }
 .arch-tirada .arch-etiqueta { margin-top: 0; }
@@ -4764,7 +4736,7 @@ span.arch-logo.pm-esperando { background: var(--surface2); box-shadow: none; }
 .arch-dialogo-fila { display: flex; align-items: flex-start; justify-content: space-between; }
 .arch-dialogo-cab { display: flex; flex-direction: column; gap: 6px; }
 .arch-kicker {
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); color: var(--cdd-muted);
 }
 .arch-kicker.ambar { color: var(--ambar); }
 .arch-dialogo-titulo { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--t-seccion); line-height: 1; color: var(--cdd-text); }
@@ -4857,7 +4829,7 @@ button.perf-cifra:active { transform: translateY(1px); }
 }
 .perf-cifra .k {
   display: flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   color: var(--cdd-muted);
 }
 .perf-cifra.clic .k { justify-content: space-between; }
@@ -4910,7 +4882,7 @@ button.perf-cifra:active { transform: translateY(1px); }
 .perf-ajustes { display: flex; flex-direction: column; margin-top: 8px; }
 .grupo-titulo {
   margin: 0 0 8px 4px; font-family: var(--font-mono); font-weight: 500; font-size: var(--t-etiqueta);
-  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 .grupo-lista { overflow: hidden; border-radius: var(--radio-tarjeta); background: var(--surface); border: 1px solid var(--line); }
 .grupo-fila {
@@ -4956,7 +4928,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
    ═══════════════════════════════════════════════════════════════════════ */
 .htp-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin: -6px -10px 4px 0; }
 .htp-kicker {
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   color: var(--cdd-muted);
 }
 .htp-saltar {
@@ -4992,25 +4964,6 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   80%, 95% { transform: scale(1); }
   100% { transform: scale(3); }
 }
-/* El chip del demo es el de la partida (`.cdd-lente`): abajo, al centro entre
-   las dos esquinas, en píldora. Ancho fijo porque las cinco cifras se apilan. */
-.htp-chip {
-  position: absolute; left: 0; right: 0; bottom: 14px; margin-inline: auto; z-index: 4;
-  width: 58px; height: 26px; border-radius: var(--radio-pildora);
-  background: rgb(12 13 15 / .62); color: rgb(242 240 235);
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-dato); font-variant-numeric: tabular-nums;
-}
-.htp-chip span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; }
-.htp-chip .l1 { opacity: 1; animation: htpL1 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
-.htp-chip .l2 { animation: htpL2 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
-.htp-chip .l3 { animation: htpL3 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
-.htp-chip .l4 { animation: htpL4 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
-.htp-chip .l5 { animation: htpL5 calc(var(--ms-latido) * 5) var(--curva-roce) infinite; }
-@keyframes htpL1 { 0%, 17% { opacity: 1; } 18%, 99% { opacity: 0; } 100% { opacity: 1; } }
-@keyframes htpL2 { 0%, 17% { opacity: 0; } 18%, 37% { opacity: 1; } 38%, 100% { opacity: 0; } }
-@keyframes htpL3 { 0%, 37% { opacity: 0; } 38%, 57% { opacity: 1; } 58%, 100% { opacity: 0; } }
-@keyframes htpL4 { 0%, 57% { opacity: 0; } 58%, 77% { opacity: 1; } 78%, 100% { opacity: 0; } }
-@keyframes htpL5 { 0%, 77% { opacity: 0; } 78%, 97% { opacity: 1; } 98%, 100% { opacity: 0; } }
 .htp-medidor { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding-top: 6px; }
 .htp-medidor > span { position: relative; height: 4px; border-radius: var(--radio-mini); overflow: hidden; background: var(--surface2); }
 .htp-medidor i { position: absolute; inset: 0; background: var(--rojo); opacity: 0; }
@@ -5072,7 +5025,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 }
 .pun-kicker {
   padding-bottom: 2px; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
-  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 .pun-fila { display: grid; grid-template-columns: 16px minmax(0, 1fr) 44px; gap: 10px; align-items: center; }
 .pun-k { font-family: var(--font-mono); font-size: var(--t-dato); color: var(--cdd-muted); }
@@ -5120,11 +5073,11 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .sorteo-columna { width: 100%; max-width: 358px; display: flex; flex-direction: column; gap: 12px; }
 .sorteo-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 2px; }
 .sorteo-kicker {
-  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta); letter-spacing: .1em; text-transform: uppercase;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--t-etiqueta);
   color: rgb(var(--sorteo-acento)); transition: color var(--ms-escena) var(--curva-roce);
 }
 .sorteo-pendientes {
-  font-family: var(--font-mono); font-size: var(--t-etiqueta); letter-spacing: .06em; text-transform: uppercase; color: rgb(125 131 140);
+  font-family: var(--font-mono); font-size: var(--t-etiqueta); color: rgb(125 131 140);
 }
 
 /* 1 · EL VISOR SE ABRE: el marco sube y las esquinas entran desde fuera. */
@@ -5167,7 +5120,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 .sorteo-ficha .rayas { display: flex; flex-direction: column; gap: 5px; width: 72px; }
 .sorteo-ficha .rayas i { display: block; height: 6px; border-radius: var(--radio-mini); background: rgb(229 64 42); }
 .sorteo-ficha .rayas i + i { height: 3px; }
-.sorteo-ficha .num { font-family: var(--font-mono); font-weight: 500; font-size: var(--t-dato); letter-spacing: .14em; }
+.sorteo-ficha .num { font-family: var(--font-mono); font-weight: 500; font-size: var(--t-dato); }
 @keyframes sorteoGira { to { transform: translateY(-93.75%); } }
 @keyframes sorteoBorra { 12% { filter: blur(2.6px); } 62% { filter: blur(1.2px); } 88%, 100% { filter: blur(0); } }
 .sorteo[data-fase="girar"] .sorteo-carrete,
@@ -5214,7 +5167,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
   position: absolute; right: 16px; top: 18px; z-index: 7;
   height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px;
   border-radius: var(--radio-celda); background: rgb(var(--sorteo-acento)); color: rgb(12 13 15);
-  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton); letter-spacing: .08em; text-transform: uppercase;
+  font-family: var(--font-display); font-weight: 700; font-size: var(--t-boton);
   box-shadow: 0 8px 20px rgb(0 0 0 / .45);
   animation: sorteoSello var(--ms-escena) var(--curva-sello) both;
 }
@@ -5223,7 +5176,7 @@ button.grupo-fila:active { background: rgb(var(--tinta-rgb) / .04); }
 @keyframes sorteoTexto { from { opacity: 0; } }
 .sorteo-texto { min-height: 112px; padding: 6px 2px 0; }
 .sorteo-estado {
-  margin: 0; font-family: var(--font-mono); font-size: var(--t-dato); letter-spacing: .12em; text-transform: uppercase;
+  margin: 0; font-family: var(--font-mono); font-size: var(--t-dato);
   color: rgb(167 172 180); animation: sorteoTexto var(--ms-sello) var(--curva-roce) both;
 }
 .sorteo-revelado { display: flex; flex-direction: column; gap: 8px; animation: sorteoTexto var(--ms-sello) var(--curva-roce) var(--ms-sello) both; }
@@ -5423,8 +5376,8 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .dlg-input:focus { border-color: var(--cdd-text); box-shadow: 0 0 0 1px var(--cdd-text); }
 .dlg-input[aria-invalid="true"] { border-color: var(--rojo); box-shadow: 0 0 0 1px var(--rojo); }
 .dlg-input:disabled { opacity: .5; }
-.dlg-codigo { height: 60px; text-align: center; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-cabecera); letter-spacing: .4em; padding-left: calc(14px + .4em); }
-.dlg-firma { height: 56px; font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); letter-spacing: .04em; text-transform: uppercase; }
+.dlg-codigo { height: 60px; text-align: center; font-family: var(--font-mono); font-weight: 600; font-size: var(--t-cabecera); padding-left: calc(14px + .4em); }
+.dlg-firma { height: 56px; font-family: var(--font-display); font-weight: 700; font-size: var(--t-titulo); }
 /* El ejemplo, a cuerpo de texto: en la letra de la firma, «P. EJ. MAX12» se
    leía como un apodo ya escrito, no como un ejemplo (P22). */
 .dlg-firma::placeholder { font-family: var(--font-body); font-weight: 500; font-size: var(--t-campo); letter-spacing: 0; text-transform: none; }
@@ -5480,7 +5433,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 .podios { display: flex; flex-direction: column; gap: 14px; }
 .podios-titulo {
   margin: 0 0 8px 4px; font-family: var(--font-mono); font-weight: 500; font-size: var(--t-etiqueta);
-  letter-spacing: .1em; text-transform: uppercase; color: var(--cdd-muted);
+  color: var(--cdd-muted);
 }
 .podios-fila { display: flex; flex-wrap: wrap; gap: 8px; }
 .prensa-medalla {
@@ -5627,3 +5580,199 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 }
 .legal-volver:focus-visible { outline: 2px solid var(--cdd-text); outline-offset: 2px; border-radius: var(--radio-sello); }
 @media (hover: hover) { .legal-volver:hover { text-decoration-color: currentColor; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LA VOZ «INSIGNIA» — una familia, dos anchuras
+   -----------------------------------------------------------------------
+   Asfalto vestía el juego con tres voces: Barlow Condensed para titular,
+   Barlow para leer e IBM Plex Mono, en versalitas espaciadas, para todo lo
+   que fuera un dato. Las tres juntas eran justo la plantilla de «interfaz
+   técnica» que sale igual en cualquier producto —la etiqueta en mono, el
+   botón condensado en mayúsculas, el visor con esquinas de cámara— y en un
+   juego de coches no decían nada de coches.
+
+   Ahora hay UNA familia, Google Sans Flex, y la jerarquía la hacen el peso y
+   la ANCHURA. La anchura normal compone la interfaz. La ensanchada es la de
+   las insignias de maletero —el rótulo que un fabricante estira de un piloto
+   a otro—, y por eso se gasta en muy poco: la pregunta del juego y la
+   palabra de los botones de tinta. Si aparece en más sitios deja de ser una
+   insignia y pasa a ser la letra de la app.
+
+   Todo va en minúscula inicial: sin versalitas, sin tracción y sin la mono
+   (las cifras salen tabulares de la misma familia, ver el `body`). Las reglas
+   de abajo solo cambian voz, color y forma; ninguna toca un alto que reparta
+   la pantalla de la app (regla 18), así que el pliego medido no se entera.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  /* La anchura de la insignia. 125 y no el tope (151): más ancha, «Adivinar»
+     a 21px se come el botón en un 320 y la pregunta deja de caber junto al
+     contador. */
+  --ancho-insignia: 125%;
+}
+
+/* ── LA CABECERA ── El nombre, en su peso; la fecha, una línea apagada en
+   minúscula inicial. 17 + 4 + 12 = 33px: sigue dentro de los 34 de la barra. */
+.prensa-cornisa .cabeza { font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; }
+.prensa-cornisa .fecha { font-family: var(--font-body); font-weight: 500; font-size: var(--t-dato); }
+
+/* «?» y el menú son TECLAS SIN CAJA. El cuadro tintado de reposo era el
+   botón-icono de cualquier plantilla, y aquí no distinguía nada: son las dos
+   únicas teclas de la barra. El círculo aparece al pasar o al pulsar, que es
+   cuando hace falta saber dónde acaba la tecla; el objetivo táctil de 44 lo
+   siguen poniendo sus `::after`. */
+.prensa-topbar > span > .prensa-ayuda,
+.prensa-topbar > span > .prensa-sumario-boton,
+:root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton {
+  border: 0; border-radius: 50%; background: transparent; color: var(--cdd-text);
+  transition: background-color var(--ms-roce) var(--curva-roce);
+}
+.prensa-topbar > span > .prensa-ayuda:active,
+.prensa-topbar > span > .prensa-sumario-boton:active { background: rgb(var(--tinta-rgb) / .1); }
+@media (hover: hover) {
+  .prensa-topbar > span > .prensa-ayuda:hover,
+  .prensa-topbar > span > .prensa-sumario-boton:hover,
+  :root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:hover {
+    background: rgb(var(--tinta-rgb) / .07); color: var(--cdd-text);
+  }
+}
+.prensa-topbar > span > .prensa-ayuda:focus-visible,
+.prensa-topbar > span > .prensa-sumario-boton:focus-visible,
+:root[data-plataforma="app"] .prensa-topbar > span > .prensa-sumario-boton:focus-visible {
+  outline: 2px solid var(--cdd-text); outline-offset: 1px; border-color: transparent; background: transparent;
+}
+.prensa-topbar .prensa-clasif .pos--invita { font-family: var(--font-body); font-weight: 600; font-size: var(--t-dato); }
+.prensa-racha { font-family: var(--font-body); font-weight: 700; }
+
+/* ── LOS TITULARES ── Peso y un punto de apriete: Google Sans abre mucho el
+   espaciado a partir de 20px y un titular suelto se deshilacha. */
+.prensa-ladillo { font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; }
+.prensa-ladillo .aparte { font-family: var(--font-body); font-weight: 500; font-size: var(--t-dato); }
+
+/* LA PREGUNTA ES LA INSIGNIA. Ensanchada y pesada, como el rótulo de una
+   trasera: es lo primero que se lee y lo único de la pantalla que anuncia. */
+.prensa-ladillo--pregunta .rotulo.insignia {
+  font-family: var(--font-display); font-stretch: var(--ancho-insignia); font-weight: 760;
+  letter-spacing: -.015em; line-height: 1.05;
+}
+/* «Intento 2 de 5» en voz de interfaz, y el medidor en cápsulas: cinco
+   segmentos de un mismo trazo, no cinco rayas de regla. */
+.prensa-contador .aparte { color: var(--cdd-muted); }
+.prensa-ladillo .filete.medidor { height: 4px; gap: 4px; }
+.prensa-ladillo .filete .seg { border-radius: var(--radio-pildora); }
+
+
+/* ── EL HISTORIAL ── El número del intento, un dígito tabular en su color. */
+.prensa-fila .num { font-family: var(--font-body); font-weight: 600; letter-spacing: 0; }
+
+/* ── EL CUPÓN ── Las etiquetas dicen qué va en cada casilla, en minúscula
+   inicial y apagadas; lo que importa es lo que se elige, en tinta. */
+.prensa-renglon .etiqueta,
+.prensa-label { font-family: var(--font-body); font-weight: 500; font-size: var(--t-dato); letter-spacing: 0; }
+.prensa-renglon .apunte,
+.prensa-renglon .apunte.resuelta { font-family: var(--font-body); font-weight: 500; letter-spacing: 0; }
+
+/* ── LOS BOTONES DE TINTA ── ADIVINAR y COMPARTIR son la otra insignia: la
+   misma anchura que la pregunta, en minúscula inicial. El secundario
+   (`pm-btn`) se queda en la anchura normal: una oferta, no la acción. */
+.prensa-submit,
+.prensa .cdd-submit {
+  font-family: var(--font-display); font-stretch: var(--ancho-insignia); font-weight: 720;
+  letter-spacing: -.005em;
+}
+.pm-btn { font-family: var(--font-body); font-weight: 650; letter-spacing: 0; }
+.prensa-sello { font-weight: 720; letter-spacing: 0; }
+
+/* ── LA BARRA DE PESTAÑAS ── */
+.barra-texto { font-weight: 600; letter-spacing: 0; }
+
+/* LA NOTA DEL VEREDICTO, UN PUNTO MÁS ESTRECHA. Google Sans es más ancha que
+   Barlow, y «Mismo país» con su bandera dejó de caber en la celda de la marca
+   (se cortaba en «Mismo paí…» ya en un 393). En vez de bajar el cuerpo por
+   debajo de lo legible, la nota usa el eje de anchura de la familia: el
+   estrechamiento de un pie de foto, no una letra distinta. */
+.prensa-apostilla { font-stretch: 88%; }
+/* Y si ni así cabe, sobra la BANDERA, no la palabra. En un 360 la celda de la
+   marca deja 74px y «Mismo país» con su bandera pide 84: se cortaba en
+   «Mismo p…» (ya pasaba con Barlow). Lo que dice el veredicto es el texto —el
+   color nunca va solo, §8 de DESIGN.md—; la bandera es un apoyo y es lo que
+   cede. Consulta de CONTENEDOR y no de pantalla porque lo que manda es el
+   ancho de la celda, que depende de la rejilla y no solo del móvil. */
+.prensa-dato.cerca { container-type: inline-size; }
+@container (max-width: 83px) {
+  .prensa-dato.cerca .prensa-apostilla .bandera { display: none; }
+}
+
+/* El secundario que comparte clase con COMPARTIR (`cdd-submit--ghost`,
+   «Guardar mi progreso» en el panel final) no es una insignia: es una oferta,
+   y en anchura normal deja que la tinta de al lado sea la única que anuncia. */
+.prensa .cdd-submit.cdd-submit--ghost { font-family: var(--font-body); font-stretch: 100%; font-weight: 650; }
+
+/* La cabecera de una tarjeta del panel final: si el título y su dato no caben
+   en una línea, el dato baja; el título no se parte. Con Barlow Condensed
+   cabían; Google Sans es más ancha y «Hoy en el mundo» se partía en dos
+   renglones al lado de un dato de dos. */
+.fin-tarjeta-cabeza { flex-wrap: wrap; row-gap: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LA FOTO EN GRANDE (FotoAmpliada.jsx) — app y web del móvil
+   -----------------------------------------------------------------------
+   Tocar la foto la abre a pantalla completa para acercarse con dos dedos o con
+   doble toque. El velo es NEGRO en los dos temas a propósito: es el fondo de un
+   visor de fotos, no una superficie del tema, y sobre negro cualquier pintura
+   de carrocería se lee igual. Por eso aquí los colores son literales.
+   ═══════════════════════════════════════════════════════════════════════ */
+/* El botón que la abre: toda la foto, invisible. Sin hundirse al tocar (lo
+   que acusa el toque es el visor abriéndose) y con su anillo de foco por
+   DENTRO del marco, que recorta lo de fuera. */
+.cdd-ampliar {
+  position: absolute; inset: 0; z-index: 2; display: block; width: 100%; height: 100%;
+  padding: 0; border: 0; background: transparent; cursor: zoom-in;
+}
+.cdd-ampliar:focus-visible { outline: 2px solid var(--cdd-text); outline-offset: -4px; border-radius: var(--radio-foto); }
+
+.foto-ampliada-velo { background: rgb(0 0 0 / .97); touch-action: none; }
+.foto-ampliada {
+  gap: 14px; box-sizing: border-box;
+  padding-top: calc(56px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
+  padding-bottom: calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+}
+/* El marco tiene la proporción del de la partida (`--foto-aspecto`, medida al
+   abrir) y el mayor tamaño que quepa: todo el ancho en un teléfono en
+   vertical; en horizontal, lo que deje el alto. `touch-action: none` porque
+   aquí los dedos son nuestros: sin eso, el pellizco ampliaría la página. */
+.foto-ampliada-marco {
+  position: relative; flex: none; overflow: hidden;
+  width: min(100vw, calc((100dvh - 150px
+    - var(--safe-area-inset-top, env(safe-area-inset-top, 0px))
+    - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) * var(--foto-aspecto)));
+  aspect-ratio: var(--foto-aspecto);
+  background: rgb(24 24 24); touch-action: none; cursor: zoom-in;
+  -webkit-user-select: none; user-select: none;
+}
+@media (min-width: 600px) {
+  .foto-ampliada-marco {
+    width: min(calc(100vw - 48px), calc((100dvh - 150px) * var(--foto-aspecto)));
+    border-radius: var(--radio-foto);
+  }
+}
+.foto-ampliada-capa { position: absolute; inset: 0; transform-origin: center center; }
+[data-acercada="si"] .foto-ampliada-marco { cursor: grab; }
+
+.foto-ampliada-cerrar {
+  position: fixed; top: calc(6px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))); right: 6px;
+  width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; border: 0; border-radius: 50%; background: transparent; color: rgb(255 255 255 / .92);
+  cursor: pointer; transition: background-color var(--ms-roce) var(--curva-roce);
+}
+.foto-ampliada-cerrar:active { background: rgb(255 255 255 / .14); }
+.foto-ampliada-cerrar:focus-visible { outline: 2px solid rgb(255 255 255); outline-offset: 1px; }
+@media (hover: hover) {
+  .foto-ampliada-cerrar:hover { background: rgb(255 255 255 / .1); }
+}
+/* La pista de los gestos se va en cuanto se ha usado uno: ya no hace falta. */
+.foto-ampliada-pista {
+  margin: 0; padding: 0 16px; text-align: center;
+  font-family: var(--font-body); font-weight: 500; font-size: var(--t-nota); color: rgb(255 255 255 / .7);
+  transition: opacity var(--ms-roce) var(--curva-roce);
+}
+[data-acercada="si"] .foto-ampliada-pista { opacity: 0; }

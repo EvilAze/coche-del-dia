@@ -5,7 +5,7 @@
 // ideas que de verdad hay que entender antes de jugar son visuales, así que
 // cada una va con su demostración en vez de con su frase:
 //
-//   1. CADA FALLO ABRE LA FOTO: una foto que se aleja de 3× a 1× con su lente y
+//   1. CADA FALLO ABRE LA FOTO: una foto que se aleja de 3× a 1× y
 //      el medidor de intentos gastándose en rojo, en bucle. Es la foto genérica
 //      del arranque (splash-car.jpg), nunca la del día: la ayuda no puede
 //      enseñar del coche de hoy más de lo que ve quien está jugando (regla 5).
@@ -19,7 +19,7 @@
 // las barras del tercero crecen desde la izquierda. Los bucles del primero
 // solo animan `transform` y `opacity` (regla 25), y con
 // `prefers-reduced-motion` todo se queda quieto en su primer fotograma, que
-// es coherente por sí solo (la lente a 3× con su «3,0×»).
+// es coherente por sí solo (la foto, a 3×).
 
 import { useEffect, useState } from "react";
 import { useEscape } from "../hooks/useEscape";
@@ -31,26 +31,16 @@ import { TablaPuntos, EscaleraRacha } from "./Puntuacion";
 import { Icon, I } from "./configurator/icons";
 
 const PASOS = 3;
-// Las cinco lecturas de la lente, en el formato del chip del juego (CarImage).
-const LENTES = ["3,0×", "2,5×", "2,0×", "1,5×", "1,0×"];
 
 function DemoFoto() {
   const { t } = useT();
   return (
     <>
       <div className="htp-foto">
+        {/* La foto que se aleja y, debajo, el medidor que se gasta: el demo
+            enseña lo mismo que la partida, sin el visor (esquinas de cámara y
+            píldora del aumento) que la partida ya no lleva. */}
         <img className="htp-lente" src="/splash-car.jpg" alt={t("howto.p1Alt")} draggable={false} />
-        <span className="cdd-visor" aria-hidden="true">
-          <span className="esq arr-izq" />
-          <span className="esq arr-der" />
-          <span className="esq aba-izq" />
-          <span className="esq aba-der" />
-        </span>
-        <span className="htp-chip" aria-hidden="true">
-          {LENTES.map((l, i) => (
-            <span key={l} className={`l${i + 1}`}>{l}</span>
-          ))}
-        </span>
       </div>
       <div className="htp-medidor" aria-hidden="true">
         {[1, 2, 3, 4, 5].map((n) => (
@@ -132,9 +122,10 @@ export default function HowToPlayModal({ open, onClose }) {
       panelWeb="modal-panel-flat w-full max-w-md max-h-full overflow-y-auto overscroll-contain p-5"
     >
       <div className="htp-cab">
-        <span className="htp-kicker">
-          {t("howto.title")} · {t("howto.paso", { n: paso + 1, total: PASOS })}
-        </span>
+        {/* Solo el nombre: en qué paso vas ya lo dicen los puntos y la barra
+            de abajo (y sus aria-label). «Cómo se juega · 1 de 3» era el rótulo
+            con punto medio de cualquier plantilla, y lo decía dos veces. */}
+        <span className="htp-kicker">{t("howto.title")}</span>
         <button type="button" className="htp-saltar" onClick={onClose}>
           {t("howto.saltar")}
         </button>
@@ -217,8 +208,8 @@ export default function HowToPlayModal({ open, onClose }) {
           ))}
         </div>
         <button type="button" className="pm-btn htp-siguiente" onClick={siguiente}>
+          {/* Sin flecha detrás: «Siguiente» ya dice hacia dónde va. */}
           {paso === PASOS - 1 ? t("howto.aJugar") : t("howto.siguiente")}
-          <Icon d={I.arrowR} size={18} strokeWidth="2.2" />
         </button>
       </div>
     </Superficie>

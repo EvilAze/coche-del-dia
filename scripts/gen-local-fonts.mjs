@@ -6,7 +6,7 @@
  *
  * Por qué auto-hospedarlas:
  *   La app Android empaqueta TODO el HTML/JS/CSS… y luego pedía la tipografía
- *   por red. Primer arranque sin cobertura = Barlow/Plex Mono caen a
+ *   por red. Primer arranque sin cobertura = Google Sans Flex cae a
  *   la serif del sistema y la identidad «Prensa del motor» desaparece justo en
  *   la primera impresión. En web tampoco salía gratis: dos conexiones extra
  *   (googleapis + gstatic) en la ruta crítica del render, y desde que Chrome
@@ -44,13 +44,15 @@ const CSS_SALIDA = resolve(ROOT, "src/fonts.css");
 // cámbiala aquí y vuelve a ejecutar el script.
 const URL_CSS =
   "https://fonts.googleapis.com/css2" +
-  // Sistema «Asfalto»: Barlow (texto e interfaz), Barlow Condensed (titulares
-  // y cifras grandes) e IBM Plex Mono (etiquetas, años, puntos y reloj). Las
-  // tres son ESTÁTICAS: cada peso es un fichero, así que se piden solo los que
-  // el CSS usa de verdad. Sin cursivas: el sistema no compone nada en cursiva.
-  "?family=Barlow:wght@400;500;600;700" +
-  "&family=Barlow+Condensed:wght@600;700" +
-  "&family=IBM+Plex+Mono:wght@400;600" +
+  // Una sola familia, VARIABLE: Google Sans Flex, con sus ejes de anchura
+  // (wdth) y peso (wght). Sustituye al trío de «Asfalto» (Barlow, Barlow
+  // Condensed e IBM Plex Mono): la jerarquía la hacen el peso y la anchura
+  // —la normal para leer, la ensanchada de las insignias de maletero para los
+  // titulares— y las cifras, que eran el trabajo de la mono, salen tabulares de
+  // la misma familia (`tnum`). Sin el eje `opsz`: triplica el fichero (360 KB
+  // el latin solo) para un ajuste óptico que en tamaños de interfaz no se ve.
+  // Sin cursivas: el sistema no compone nada en cursiva.
+  "?family=Google+Sans+Flex:wdth,wght@25..151,100..1000" +
   "&display=swap";
 
 // Sin esto Google sirve TTF. No es una preferencia: es la diferencia entre
@@ -89,7 +91,15 @@ for (const [, subset, cuerpo] of bloques) {
 
   const familia = campo(cuerpo, "font-family")?.replace(/['"]/g, "");
   const estilo = campo(cuerpo, "font-style") ?? "normal";
-  const peso = parseInt(campo(cuerpo, "font-weight") ?? "400", 10);
+  const pesoCrudo = campo(cuerpo, "font-weight") ?? "400";
+  const peso = parseInt(pesoCrudo, 10);
+  // Una variable declara su rango en un solo bloque («100 1000»): el máximo va
+  // en la segunda cifra, que el parseInt de arriba no ve.
+  const pesoTope = parseInt(pesoCrudo.split(/\s+/)[1] ?? pesoCrudo, 10);
+  // El eje de anchura viaja como `font-stretch: 25% 151%`. Sin declararlo en
+  // el @font-face, el navegador no sabe que el fichero cubre esas anchuras y
+  // un `font-stretch: 125%` caería en la normal.
+  const anchura = campo(cuerpo, "font-stretch");
   const url = cuerpo.match(/url\((https:[^)]+\.woff2)\)/)?.[1];
   const rango = campo(cuerpo, "unicode-range");
   if (!familia || !url) continue;
@@ -98,14 +108,15 @@ for (const [, subset, cuerpo] of bloques) {
   if (previo) {
     // Mismo fichero, otro peso declarado: ampliamos el rango.
     previo.pesoMin = Math.min(previo.pesoMin, peso);
-    previo.pesoMax = Math.max(previo.pesoMax, peso);
+    previo.pesoMax = Math.max(previo.pesoMax, pesoTope);
     continue;
   }
   porFichero.set(url, {
     familia,
     estilo,
     pesoMin: peso,
-    pesoMax: peso,
+    pesoMax: pesoTope,
+    anchura: anchura && anchura !== "normal" ? anchura : null,
     rango,
     subset,
   });
@@ -166,6 +177,7 @@ for (const [url, info] of porFichero) {
       `  font-family: '${info.familia}';`,
       `  font-style: ${info.estilo};`,
       `  font-weight: ${peso};`,
+      info.anchura ? `  font-stretch: ${info.anchura};` : null,
       `  font-display: swap;`,
       `  src: url('/fonts/${info.fichero}') format('woff2');`,
       info.rango ? `  unicode-range: ${info.rango};` : null,
@@ -190,7 +202,7 @@ writeFileSync(
     " * el primer arranque sin cobertura (el bundle es local, la fuente no lo era)",
     " * y metía dos conexiones a terceros en la ruta crítica del render.",
     " *",
-    " * Las tres familias son SIL Open Font License 1.1 (ver public/fonts/LICENSE.txt).",
+    " * Google Sans Flex es SIL Open Font License 1.1 (ver public/fonts/LICENSE.txt).",
     " * Para regenerar tras cambiar pesos o familias:",
     " *   node scripts/gen-local-fonts.mjs",
     " */",
@@ -206,13 +218,11 @@ writeFileSync(
     "Fuentes auto-hospedadas en este directorio",
     "==========================================",
     "",
-    "Las tres familias se distribuyen bajo la SIL Open Font License 1.1,",
+    "Google Sans Flex se distribuye bajo la SIL Open Font License 1.1,",
     "que permite expresamente el uso incrustado y la redistribución:",
     "",
-    "  Barlow            © The Barlow Project Authors",
-    "  Barlow Condensed  https://github.com/jpt/barlow",
-    "  IBM Plex Mono     © IBM Corp.",
-    "                    https://github.com/IBM/plex",
+    "  Google Sans Flex  © Google LLC",
+    "                    https://fonts.google.com/specimen/Google+Sans+Flex",
     "",
     "Texto completo de la licencia: https://openfontlicense.org",
     "",

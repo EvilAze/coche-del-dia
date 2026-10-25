@@ -168,9 +168,12 @@
     "eligeModelo": "Elige el modelo",
     "eligeAnio": "Elige el año",
     "volverPartida": "Volver a la partida",
-    "yaProbada": "{valor} · ya lo probaste",
+    "yaProbada": "{valor}, ya lo probaste",
     "carImageAltZoom": "Detalle del coche del día, ampliado {aumento}. Intento {n} de {max}.",
-    "grupoMismoPais": "Mismo país que {marca}"
+    "grupoMismoPais": "Mismo país que {marca}",
+    "fotoAmpliar": "Ver la foto en grande",
+    "fotoAmpliada": "Foto en grande",
+    "fotoGestos": "Pellizca o toca dos veces para acercar"
   },
   "sumario": {
     "garajeApunte": "Tu colección de portadas",
@@ -190,7 +193,7 @@
   "prensa": {
     "ladilloFoto": "La fotografía del día",
     "pregunta": "¿Qué coche es?",
-    "temporada": "Temporada · {tema}",
+    "temporada": "Temporada: {tema}",
     "pista": "Intento {n} de {max}",
     "edicionCerrada": "Partida terminada",
     "estadistica": "Hoy en el mundo",

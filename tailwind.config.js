@@ -1,4 +1,8 @@
 /** @type {import('tailwindcss').Config} */
+// Google Sans Flex y, si no ha cargado aún, la sans del sistema más parecida
+// (Roboto en Android, Segoe en Windows, San Francisco en Apple).
+const SANS = ["'Google Sans Flex'", "'Google Sans'", "system-ui", "-apple-system", "'Segoe UI'", "Roboto", "sans-serif"];
+
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   // EL HOVER NO EXISTE EN UN MÓVIL, PERO SE PEGA. Esta bandera hace que todas
@@ -46,17 +50,19 @@ module.exports = {
         aviso: "var(--capa-aviso)",
       },
       fontFamily: {
-        // Sistema «Asfalto»: display = Barlow Condensed (titulares y cifras
-        // grandes), body = Barlow (interfaz), mono = IBM Plex Mono (etiquetas,
-        // años, puntos, reloj). Autoalojadas en public/fonts (src/fonts.css).
-        display: ["'Barlow Condensed'", "'Arial Narrow'", "sans-serif"],
-        body: ["'Barlow'", "'Helvetica Neue'", "Arial", "sans-serif"],
-        mono: ["'IBM Plex Mono'", "ui-monospace", "monospace"],
+        // Una sola familia, Google Sans Flex (variable en peso y anchura),
+        // autoalojada en public/fonts (src/fonts.css). Las claves se conservan
+        // porque nombran el PAPEL —titular, interfaz, dato— y las consume medio
+        // proyecto; lo que distingue un papel de otro es el peso, la anchura y
+        // las cifras tabulares (activas en todo el body), no la familia.
+        display: SANS,
+        body: SANS,
+        mono: SANS,
         // Alias explícitos (usados por .prensa-*/.pm-* y disponibles como
         // utilidades font-serif/font-franklin/font-courier).
-        serif: ["'Barlow Condensed'", "'Arial Narrow'", "sans-serif"],
-        franklin: ["'Barlow'", "'Helvetica Neue'", "Arial", "sans-serif"],
-        courier: ["'IBM Plex Mono'", "ui-monospace", "monospace"],
+        serif: SANS,
+        franklin: SANS,
+        courier: SANS,
       },
       colors: {
         // ── Sistema «Prensa del motor» — canales RGB temáticos ──

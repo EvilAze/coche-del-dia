@@ -5,8 +5,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f3ef",
-  "theme_color": "#f4f3ef",
+  "background_color": "#f2f3f5",
+  "theme_color": "#f2f3f5",
   "related_applications": [
     {
       "platform": "play",

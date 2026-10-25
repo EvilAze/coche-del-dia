@@ -1,21 +1,21 @@
 // src/components/CarImage.jsx
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { haptic } from "../lib/haptics";
 import { useT } from "../i18n";
 import { apiUrl } from "../lib/apiUrl";
+import FotoAmpliada, { usePuedeAmpliar } from "./FotoAmpliada";
 
-// TAP-PARA-AMPLIAR RETIRADO. La foto fue tocable durante toda la vida del
-// diseño anterior, y con razón: el escenario era un recuadro modesto dentro de
-// una página con cabecera, formulario e historial, así que abrirlo a pantalla
-// completa (mismo `src` + mismo `scale(zoom)`, ni un píxel más de coche) era la
-// única forma de mirar de verdad la pista. Desde que la foto manda en el pliego
-// —marco a todo el ancho, con el escenario rompiendo el margen para tocar los
-// dos bordes— el lightbox enseñaba prácticamente lo mismo que ya había en
-// pantalla: un gesto que cobra un toque, un scrim y una animación para devolver
-// el sitio donde ya estabas. Con él se van su botón invisible a inset-0 (que se
-// comía cualquier intento de gesto sobre la foto), el icono de esquina, la copia
-// del <picture> a 1920 y la clase .cdd-lightbox-frame.
-// Si el escenario volviera a encoger, esto es lo que habría que resucitar.
+// TAP-PARA-AMPLIAR, DE VUELTA (oct-2026), y esta vez con algo que enseñar. Se
+// retiró porque el lightbox de entonces abría la foto al mismo tamaño que ya
+// tenía —el escenario ya iba a todo el ancho— y cobraba un toque por nada.
+// Lo que faltaba no era más ancho sino ACERCARSE: en un teléfono el marco se
+// queda en ~340px y un faro o una rejilla son veinte píxeles. FotoAmpliada abre
+// la misma imagen (caché, mismo recorte, misma escala) a pantalla completa con
+// pellizco y doble toque, acotado para no enseñar nada fuera del recorte del
+// intento (regla 5). Solo en la app y en la web del móvil (`usePuedeAmpliar`).
+// El botón que la abre es transparente y cubre la foto, pero no se come ningún
+// gesto que importe: la hoja del cupón se arrastra desde la hoja, no desde aquí.
 
 // Aspect ratio por defecto mientras la imagen aún no ha cargado.
 // Se reemplaza por el natural (img.naturalWidth/Height) al onLoad.
@@ -328,12 +328,42 @@ export default function CarImage({
   // animación arrancaría desde scale=1 y el "pop" no tendría amplitud.
   const zoomFrom = isWinReveal && prevZoom !== zoom ? prevZoom : zoom;
   const { t, locale } = useT();
-  // La lectura del visor: «3,7×» y bajando. Con una cifra decimal y en el
-  // formato del idioma (coma en español): es un instrumento, no un adorno.
+  // Cuánto se ve, «3,7×» y bajando, en el formato del idioma (coma en
+  // español). Ya no se pinta sobre la foto —la píldora se leía como un botón de
+  // zoom y era el último adorno del visor—: la cuenta solo el `alt`, para quien
+  // no ve la foto y no tiene otra forma de saber cuánto de coche hay en ella.
   const lecturaAumento =
     configurator && status === "playing" && Number.isFinite(aumento) && aumento > 0
       ? `${aumento.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}×`
       : null;
+
+  // LA FOTO EN GRANDE. Se mide el marco al abrir para que el visor tenga la
+  // MISMA proporción (4:3 jugando, la natural al revelar) y se le pasa la escala
+  // de destino, no la de una animación a medias.
+  const puedeAmpliar = usePuedeAmpliar();
+  const marcoJuegoRef = useRef(null);
+  // Se queda montada al cerrar (solo cambia `abierta`) para que ModalShell
+  // pueda hacer su salida con la foto todavía dentro.
+  const [ampliada, setAmpliada] = useState({ abierta: false, aspecto: DEFAULT_ASPECT, escala: 1 });
+  function abrirAmpliada() {
+    const r = marcoJuegoRef.current?.getBoundingClientRect();
+    if (!r || !r.height) return;
+    setAmpliada({ abierta: true, aspecto: r.width / r.height, escala: isWinReveal ? 1 : escalaVisible });
+  }
+  const fuentesAmpliada =
+    isApiProxy && !imgFailed
+      ? {
+          avif: srcsetDe(proxBase, "avif"),
+          webp: srcsetDe(proxBase, "webp"),
+          jpeg: srcsetDe(proxBase, "jpeg"),
+          src: `${proxBase}&f=jpeg&w=1280`,
+          sizes: TAMANOS,
+        }
+      : { src: isApiProxy ? `${proxBase}&f=jpeg&w=1280` : pintada.src };
+  const altFoto =
+    lecturaAumento && Number.isFinite(hintIndex)
+      ? t("cdd.carImageAltZoom", { aumento: lecturaAumento, n: hintIndex + 1, max: totalHints })
+      : t("cdd.carImageAlt");
 
   function handleImageLoad(e) {
     const img = e.currentTarget;
@@ -362,6 +392,7 @@ export default function CarImage({
 
   return (
     <div
+      ref={marcoJuegoRef}
       className={
         configurator
           ? `cdd-stage-frame${isRevealed && loaded ? " revealed" : ""}`
@@ -493,15 +524,10 @@ export default function CarImage({
           src={isApiProxy ? `${proxBase}&f=jpeg&w=1280` : pintada.src}
           srcSet={isApiProxy && !imgFailed ? srcsetDe(proxBase, "jpeg") : undefined}
           sizes={isApiProxy && !imgFailed ? TAMANOS : undefined}
-          // Durante la partida, el alt cuenta lo que cuenta la pastilla del
-          // visor: cuánto se ve y en qué intento. «Coche del día» a secas
+          // Durante la partida, el alt cuenta cuánto se ve y en qué intento. «Coche del día» a secas
           // dejaba fuera la mecánica entera para un lector de pantalla
           // (auditoría 7-oct). No dice nada del coche (regla 5).
-          alt={
-            lecturaAumento && Number.isFinite(hintIndex)
-              ? t("cdd.carImageAltZoom", { aumento: lecturaAumento, n: hintIndex + 1, max: totalHints })
-              : t("cdd.carImageAlt")
-          }
+          alt={altFoto}
           draggable={false}
           // Pistas al navegador para optimizar LCP: la foto del coche es el
           // hero element de la página y siempre está above-the-fold.
@@ -595,29 +621,16 @@ export default function CarImage({
         />
       )}
 
-      {/* EL VISOR (sistema «Asfalto»): cuatro esquinas de cámara y la lectura
-          del aumento. Dicen lo mismo que el filete de la prensa decía con una
-          raya —«esto es una ventana, no la foto»— y además CUÁNTO de ventana.
-          Solo mientras se juega: al revelar, las esquinas se apagan con la foto
-          abriéndose (mismo retardo que la lente) y la lectura desaparece, porque
-          ya no hay aumento que leer. La cifra se re-estampa al cambiar de intento
-          en el cuarto tiempo del veredicto, cuando la lente empieza a moverse.
-          LA CIFRA VA SOLA, SIN LUPA: «2,5×» es como lo escribe el chip de zoom
-          de cualquier cámara de móvil, y el «×» ya dice qué es. La lupa con su
-          menos convertía la lectura de un visor en un botón de «alejar» que no
-          se podía pulsar. */}
-      {configurator && (
-        <div className={"cdd-visor" + (status === "playing" ? "" : " fuera")} aria-hidden="true">
-          <span className="esq arr-izq" />
-          <span className="esq arr-der" />
-          <span className="esq aba-izq" />
-          <span className="esq aba-der" />
-          {lecturaAumento && (
-            <span key={lecturaAumento} className="cdd-lente prensa-estampada">
-              {lecturaAumento}
-            </span>
-          )}
-        </div>
+      {/* Toda la foto es el botón que la abre en grande. Va debajo del overlay
+          (el CTA de entrar al perder sigue siendo tocable) y solo existe donde
+          ampliar tiene sentido: la app y la web del móvil. */}
+      {configurator && loaded && puedeAmpliar && (
+        <button
+          type="button"
+          className="cdd-ampliar"
+          aria-label={t("cdd.fotoAmpliar")}
+          onClick={abrirAmpliada}
+        />
       )}
       {/* Viñeta decorativa: sólo cuando la imagen ya está visible. En modo
           configurador el diseño aporta su propio grano/HUD, así que se omite. */}
@@ -643,6 +656,22 @@ export default function CarImage({
 
       </div>
 
+      {/* En un portal y no aquí dentro: este marco lleva `transform` cuando la
+          hoja del cupón lo aparta, y un `position: fixed` dentro de un ancestro
+          transformado deja de ser de pantalla — el visor saldría recortado al
+          tamaño de la foto. */}
+      {configurator && puedeAmpliar &&
+        createPortal(
+          <FotoAmpliada
+            open={ampliada.abierta}
+            onClose={() => setAmpliada((a) => ({ ...a, abierta: false }))}
+            fuentes={fuentesAmpliada}
+            aspecto={ampliada.aspecto}
+            escala={ampliada.escala}
+            alt={altFoto}
+          />,
+          document.body
+        )}
     </div>
   );
 }

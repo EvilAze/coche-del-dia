@@ -65,11 +65,12 @@ export default function ZoomStage({
   // vez eran literalmente «¿pero qué es esto?». La pregunta cuesta el mismo
   // renglón y es la única frase que un recién llegado necesita leer.
   //
-  // En la misma voz que el resto de titulares (Barlow Condensed), no en
+  // En la voz de los titulares, ensanchada como una insignia, y no en
   // versalitas espaciadas: es la frase que se lee, no una etiqueta de sección.
   // Con la partida cerrada ya no hay nada que preguntar y vuelve el rótulo de
   // siempre.
   const rotulo = revealed ? t("prensa.ladilloFoto") : t("prensa.pregunta");
+  const claseRotulo = revealed ? "rotulo" : "rotulo insignia";
 
   // EL MEDIDOR VA DEBAJO DE SU RÓTULO, no en el hueco del filete. Vivió estirado
   // entre la pregunta y el «Intento 3 de 5» —ocupaba un elemento elástico que ya
@@ -110,7 +111,14 @@ export default function ZoomStage({
       <div className="prensa-ladillo prensa-ladillo--pregunta">
         {/* Un encabezado y no un span: la pregunta es lo primero que busca
             quien navega por encabezados. h1 en el juego diario. */}
-        {nivelPregunta === 1 ? <h1 className="rotulo">{rotulo}</h1> : <h2 className="rotulo">{rotulo}</h2>}
+        {/* `insignia` solo mientras es LA PREGUNTA: es la anchura ensanchada de
+            los titulares que anuncian (index.css, «LA VOZ INSIGNIA»). Con la
+            partida cerrada el rótulo es «La fotografía del día», un titular
+            más largo que comparte renglón con «Partida terminada», y
+            ensanchado se salía por el margen. */}
+        {nivelPregunta === 1
+          ? <h1 className={claseRotulo}>{rotulo}</h1>
+          : <h2 className={claseRotulo}>{rotulo}</h2>}
         {/* EL CONTADOR SE RE-ESTAMPA AL CAMBIAR DE INTENTO. Es el relevo
             tipográfico del lavado rojo que se tiraba sobre la fotografía (ver
             CarImage): en este sistema el aviso lo da la letra, no un tinte

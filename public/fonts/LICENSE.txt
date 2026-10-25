@@ -1,13 +1,11 @@
 Fuentes auto-hospedadas en este directorio
 ==========================================
 
-Las tres familias se distribuyen bajo la SIL Open Font License 1.1,
+Google Sans Flex se distribuye bajo la SIL Open Font License 1.1,
 que permite expresamente el uso incrustado y la redistribución:
 
-  Barlow            © The Barlow Project Authors
-  Barlow Condensed  https://github.com/jpt/barlow
-  IBM Plex Mono     © IBM Corp.
-                    https://github.com/IBM/plex
+  Google Sans Flex  © Google LLC
+                    https://fonts.google.com/specimen/Google+Sans+Flex
 
 Texto completo de la licencia: https://openfontlicense.org
 

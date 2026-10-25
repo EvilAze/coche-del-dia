@@ -66,11 +66,13 @@ function Dato({ estado, pending, value, apostilla, nota, tipo, hint, srStatus, f
 }
 
 // Exportada: el Configurator la reusa para la "fila viva" del último intento.
-// `num` es el ordinal 1-based del intento (para el 01… de la izquierda).
+// `num` es el ordinal 1-based del intento (el 1… de la izquierda). Sin cero
+// de relleno: «01» es la marca de un listado tecleado en mono, y aquí solo hay
+// cinco intentos — un dígito basta y se lee antes.
 export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
   const { t, locale } = useT();
   const d = (i) => (fresh ? i * STAGGER_MS + "ms" : undefined);
-  const numLabel = num ? String(num).padStart(2, "0") : "";
+  const numLabel = num ? String(num) : "";
 
   if (pending) {
     return (
@@ -289,7 +291,7 @@ function Tablero({ guesses, pendingGuess, justRevealedIndex, tolerance, maxAttem
             className={"prensa-fila prensa-fila-hueco" + (siguiente ? " siguiente" : "")}
             aria-hidden="true"
           >
-            <span className="num">{String(num).padStart(2, "0")}</span>
+            <span className="num">{num}</span>
             {/* Los textos van por posición a partir del primer hueco libre (ver
                 `huecoTextos` en Configurator): el 01 dice qué es la foto y qué
                 hacer, el 02 qué pasa si fallas. Con un intento entintándose no

@@ -256,7 +256,9 @@ export default function Header({
             aria-label={t("cdd.helpAria")}
             onClick={() => { haptic.impactLight(); onOpenHowTo?.(); }}
           >
-            <Icon d={I.help} size={20} />
+            {/* Con su círculo: la tecla ya no tiene caja, y un «?» suelto al lado
+                del menú se leía como un carácter perdido, no como un botón. */}
+            <Icon d={I.ayuda} size={22} />
           </button>
           {/* La clasificación: el trofeo y el puesto (o la invitación a
               competir). La palabra «Clasificación» va en el aria-label, no a la

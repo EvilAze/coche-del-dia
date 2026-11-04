@@ -430,10 +430,7 @@
   "errors": {
     "selectCar": "Pick a car from the list.",
     "network": "No connection. Check your network and try again.",
-    "invalidResponse": "We couldn't check your guess. Try again in a few seconds.",
-    "validationFailed": "We couldn't check your guess. Try again in a few seconds.",
-    "unexpectedResponse": "We couldn't check your guess. Try again in a few seconds.",
-    "processingResponse": "We couldn't check your guess. Try again in a few seconds.",
+    "checkFailed": "We couldn't check your guess. Try again.",
     "cocheCambiado": "Today's car has changed. Loading the new one…"
   },
   "repesca": {
@@ -442,10 +439,7 @@
     "errorStartFailed": "Couldn't start the rescue.",
     "errorSelectCar": "Pick a car from the list.",
     "errorNetworkConnection": "No connection. Check your network and try again.",
-    "errorInvalidResponse": "We couldn't check your guess. Try again in a few seconds.",
-    "errorValidationFailed": "We couldn't check your guess. Try again in a few seconds.",
-    "errorUnexpectedResponse": "We couldn't check your guess. Try again in a few seconds.",
-    "errorProcessingResponse": "We couldn't check your guess. Try again in a few seconds.",
+    "errorCheckFailed": "We couldn't check your guess. Try again.",
     "errorUnavailable": "Rescue unavailable",
     "errorMismatchTitle": "Something doesn't add up",
     "buttonBackToGame": "Back to game",

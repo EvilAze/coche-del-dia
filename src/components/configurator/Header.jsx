@@ -193,7 +193,7 @@ export default function Header({
           {/* Una sola flecha para los dos sentidos: bajar es esta misma
               volteada desde el CSS (`.mov--down svg`), así no hay dos trazos
               que mantener en sync. */}
-          <svg width="11" height="7" viewBox="0 0 11 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="11" height="7" viewBox="0 0 11 7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M1.4 5.6 5.5 1.4l4.1 4.2" />
           </svg>
           {salto.n}

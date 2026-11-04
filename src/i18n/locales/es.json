@@ -430,10 +430,7 @@
   "errors": {
     "selectCar": "Selecciona un coche del listado.",
     "network": "No hay conexión. Comprueba tu red y vuelve a probar.",
-    "invalidResponse": "No hemos podido comprobar el intento. Vuelve a probar en unos segundos.",
-    "validationFailed": "No hemos podido comprobar el intento. Vuelve a probar en unos segundos.",
-    "unexpectedResponse": "No hemos podido comprobar el intento. Vuelve a probar en unos segundos.",
-    "processingResponse": "No hemos podido comprobar el intento. Vuelve a probar en unos segundos.",
+    "checkFailed": "No se pudo comprobar tu intento. Prueba otra vez.",
     "cocheCambiado": "El coche de hoy ha cambiado. Cargando el nuevo…"
   },
   "repesca": {
@@ -442,10 +439,7 @@
     "errorStartFailed": "No se pudo iniciar la repesca.",
     "errorSelectCar": "Selecciona un coche del listado.",
     "errorNetworkConnection": "No hay conexión. Comprueba tu red y vuelve a probar.",
-    "errorInvalidResponse": "No hemos podido comprobar el intento. Vuelve a probar en unos segundos.",
-    "errorValidationFailed": "No hemos podido comprobar el intento. Vuelve a probar en unos segundos.",
-    "errorUnexpectedResponse": "No hemos podido comprobar el intento. Vuelve a probar en unos segundos.",
-    "errorProcessingResponse": "No hemos podido comprobar el intento. Vuelve a probar en unos segundos.",
+    "errorCheckFailed": "No se pudo comprobar tu intento. Prueba otra vez.",
     "errorUnavailable": "Repesca no disponible",
     "errorMismatchTitle": "Algo no encaja",
     "buttonBackToGame": "Volver al juego",

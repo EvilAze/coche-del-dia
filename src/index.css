@@ -265,6 +265,10 @@
   --font-display: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* VOZ EDITORIAL: serif de titulares (masthead y pregunta). Arranca en la serif
+     del sistema —contraste inmediato, cero descarga—; para fijar la identidad,
+     auto-hospeda Fraunces con scripts/gen-local-fonts.mjs y ponla al frente. */
+  --font-editorial: 'Fraunces', 'Iowan Old Style', Charter, 'Palatino Linotype', Georgia, 'Times New Roman', serif;
 
   --gold-ink: rgb(var(--bg-rgb)); --gold-glow: transparent;
   --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
@@ -991,6 +995,7 @@ body,
   --font-display: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-editorial: 'Fraunces', 'Iowan Old Style', Charter, 'Palatino Linotype', Georgia, 'Times New Roman', serif;
   --ambient: none;
   background: var(--bg); color: var(--cdd-text);
   font-family: var(--font-body);
@@ -3392,7 +3397,7 @@ html *, html *::before, html *::after, html *::placeholder { font-style: normal 
    segmento se gasta a la vez que la foto se aleja, no antes. */
 .prensa-ladillo--pregunta { align-items: center; }
 .prensa-ladillo--pregunta .rotulo {
-  font-family: var(--font-display); font-weight: 700; font-size: var(--t-pregunta);
+  font-family: var(--font-editorial); font-weight: 700; font-size: var(--t-pregunta);
   letter-spacing: .005em; line-height: 1.05;
 }
 .prensa-ladillo .filete { border-top: 1px solid var(--line); transform: none; align-self: center; }
@@ -5612,7 +5617,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 
 /* ── LA CABECERA ── El nombre, en su peso; la fecha, una línea apagada en
    minúscula inicial. 17 + 4 + 12 = 33px: sigue dentro de los 34 de la barra. */
-.prensa-cornisa .cabeza { font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; }
+.prensa-cornisa .cabeza { font-family: var(--font-editorial); font-weight: 700; letter-spacing: -.01em; }
 .prensa-cornisa .fecha { font-family: var(--font-body); font-weight: 500; font-size: var(--t-dato); }
 
 /* «?» y el menú son TECLAS SIN CAJA. El cuadro tintado de reposo era el
@@ -5651,7 +5656,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 /* LA PREGUNTA ES LA INSIGNIA. Ensanchada y pesada, como el rótulo de una
    trasera: es lo primero que se lee y lo único de la pantalla que anuncia. */
 .prensa-ladillo--pregunta .rotulo.insignia {
-  font-family: var(--font-display); font-stretch: var(--ancho-insignia); font-weight: 760;
+  font-family: var(--font-editorial); font-weight: 760;
   letter-spacing: -.015em; line-height: 1.05;
 }
 /* «Intento 2 de 5» en voz de interfaz, y el medidor en cápsulas: cinco

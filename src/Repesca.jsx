@@ -416,7 +416,7 @@ export default function Repesca() {
     } catch {
       console.error("[Repesca] non-JSON response", response.status);
       haptic.error();
-      toast.push(t("repesca.errorInvalidResponse"), { type: "error" });
+      toast.push(t("repesca.errorCheckFailed"), { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
       return;
@@ -427,7 +427,7 @@ export default function Repesca() {
       haptic.error();
       // El detalle del servidor va al console.error de arriba, no al jugador:
       // «Error: » + un mensaje en inglés técnico no le dice qué hacer.
-      toast.push(t("repesca.errorValidationFailed"), { type: "error" });
+      toast.push(t("repesca.errorCheckFailed"), { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
       return;
@@ -436,7 +436,7 @@ export default function Repesca() {
     try {
       const { result, reveal: nextReveal, score: scoreBreakdown } = data;
       if (!result) {
-        toast.push(t("repesca.errorUnexpectedResponse"), { type: "error" });
+        toast.push(t("repesca.errorCheckFailed"), { type: "error" });
         setPendingGuess(null);
         setIsSubmitting(false);
         return;
@@ -469,7 +469,7 @@ export default function Repesca() {
     } catch (err) {
       console.error("[Repesca] post-response error", err);
       haptic.error();
-      toast.push(t("repesca.errorProcessingResponse"), { type: "error" });
+      toast.push(t("repesca.errorCheckFailed"), { type: "error" });
     } finally {
       setPendingGuess(null);
       setIsSubmitting(false);

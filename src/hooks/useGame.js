@@ -558,7 +558,7 @@ export function useGame() {
         parseError: parseErr?.message,
       });
       haptic.error();
-      toast.push(t("errors.invalidResponse"), { type: "error" });
+      toast.push(t("errors.checkFailed"), { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
       return;
@@ -611,7 +611,7 @@ export function useGame() {
       // nosotros, no para el jugador. Antes se enseñaba con un «Error: » delante;
       // ahora el jugador lee qué hacer y el detalle se queda en el console.error
       // de arriba (y en Sentry, que lo recoge).
-      toast.push(t("errors.validationFailed"), { type: "error" });
+      toast.push(t("errors.checkFailed"), { type: "error" });
       setPendingGuess(null);
       setIsSubmitting(false);
       return;
@@ -626,7 +626,7 @@ export function useGame() {
       if (data.imgZ != null) setImgTicket(ticketDe(data));
       if (!result) {
         console.error("[submitGuess] respuesta sin `result`", data);
-        toast.push(t("errors.unexpectedResponse"), { type: "error" });
+        toast.push(t("errors.checkFailed"), { type: "error" });
         setPendingGuess(null);
         setIsSubmitting(false);
         return;
@@ -707,7 +707,7 @@ export function useGame() {
         data,
       });
       haptic.error();
-      toast.push(t("errors.processingResponse"), { type: "error" });
+      toast.push(t("errors.checkFailed"), { type: "error" });
       setPendingGuess(null);
     } finally {
       setIsSubmitting(false);

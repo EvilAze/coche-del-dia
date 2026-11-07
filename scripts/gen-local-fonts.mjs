@@ -52,7 +52,7 @@ const URL_CSS =
   // la misma familia (`tnum`). Sin el eje `opsz`: triplica el fichero (360 KB
   // el latin solo) para un ajuste óptico que en tamaños de interfaz no se ve.
   // Sin cursivas: el sistema no compone nada en cursiva.
-  "?family=Google+Sans+Flex:wdth,wght@25..151,100..1000" +
+  "?family=Mona+Sans:wght@400..700&family=Geist+Mono:wght@400..600" +
   "&display=swap";
 
 // Sin esto Google sirve TTF. No es una preferencia: es la diferencia entre

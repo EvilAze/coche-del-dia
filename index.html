@@ -14,7 +14,7 @@
          siendo escalable por la vía correcta —tamaño de fuente del sistema, que
          el WebView respeta— y las áreas táctiles no dependen del zoom. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f2f3f5" />
+    <meta name="theme-color" content="#18191b" />
 
     <!--
       Anti-FOUC del tema: fija data-tema en <html> ANTES del primer paint, para
@@ -34,7 +34,7 @@
           el.dataset.tema = noche ? "noche" : "dia";
           el.style.colorScheme = noche ? "dark" : "light";
           var m = document.querySelector('meta[name="theme-color"]');
-          if (m) m.setAttribute("content", noche ? "#131518" : "#f2f3f5");
+          if (m) m.setAttribute("content", noche ? "#18191b" : "#18191b");
         } catch (e) {}
       })();
     </script>
@@ -69,7 +69,7 @@
       rel="preload"
       as="font"
       type="font/woff2"
-      href="/fonts/google-sans-flex-normal-100-1000-latin.woff2"
+      href="/fonts/mona-sans-normal-400-700-latin.woff2"
       crossorigin
     />
 

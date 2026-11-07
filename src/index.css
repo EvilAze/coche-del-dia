@@ -113,7 +113,7 @@
        cubre gaps/overscroll para que no asome grafito. */
     background-color: var(--bg);
     color: var(--cdd-text);
-    font-family: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Mona Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     /* CIFRAS TABULARES EN TODA LA APP. Eran el trabajo de IBM Plex Mono —años,
        puntos, contadores, el reloj— y ahora salen de la misma familia con su
        `tnum`: un 1 ocupa lo que un 8, así que el reloj de cierre no tiembla cada
@@ -168,7 +168,7 @@
    dos rediseños, se borró en oct-2026.
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   /* Canales RGB (terna "R G B") = la fuente real del tema. Tailwind los consume
      como rgb(var(--x) / <alpha-value>) para que funcionen las opacidades
      (bg-accent/15, border-accent/40…). El modo noche SOLO cambia estas ternas;
@@ -181,37 +181,37 @@
      `--line-strong` deja de ser tinta plena y pasa a ser un filete claro: en
      este sistema separan el aire y las superficies, no las reglas. Los valores
      de texto están medidos sobre --bg (AA 4.5:1 o más). */
-  --bg-rgb: 242 243 245; --bg2-rgb: 235 237 240; --surface-rgb: 255 255 255;
-  --tinta-rgb: 21 23 26; --tinta2-rgb: 88 94 103;
-  --line-strong-rgb: 210 214 219;
+  --bg-rgb: 24 25 27; --bg2-rgb: 42 45 50; --surface-rgb: 34 36 39;
+  --tinta-rgb: 239 240 241; --tinta2-rgb: 154 158 166;
+  --line-strong-rgb: 56 59 66;
   /* El rojo de la marca (las dos rayas del logotipo): intento gastado, sección
      activa, aviso. Ya no es el color del botón principal — ese es la tinta. */
-  --rojo-rgb: 196 46 26; --rojo-dark-rgb: 160 36 20;
+  --rojo-rgb: 255 74 31; --rojo-dark-rgb: 224 58 18;
   /* ORO Y ÁMBAR, SEPARADOS EN TONO Y EN LUZ. Eran el mismo ocre (41° y 34°) a
      1,02:1 de luminancia: la racha dorada del panel y la fila ámbar de la
      Repesca parecían de la misma familia, y «cada acento significa una cosa»
      solo se cumplía en el papel. Ahora el oro tira a LATÓN (46°) y el ámbar a
      NARANJA TOSTADO (30°), con 1,29:1 entre ellos; los dos siguen en AA sobre
      --bg y --bg2 (oro 4,9 y 4,6; ámbar 6,4 y 5,9). Auditoría 7-oct, F2. */
-  --gold-rgb: 128 102 16; --gold-dark-rgb: 104 83 12;
+  --gold-rgb: 234 179 8; --gold-dark-rgb: 196 150 10;
   /* Veredicto de la clasificación: VERDE = acierto, ÁMBAR = "casi" (mismo país).
      El rojo queda para el FALLO — verde=correcto/rojo=incorrecto es la convención
      universal, la que promete el modal «Cómo se juega» y la que ya usa la rejilla
      del share (✅/❌). Verde: tinta de "visto bueno" (AA 5.4:1 sobre el crema).
      Ámbar: naranja tostado de "parcial", ni acierto ni fallo (AA 6.4:1). */
-  --verde-rgb: 17 117 72; --ambar-rgb: 138 70 4;
+  --verde-rgb: 52 211 153; --ambar-rgb: 245 158 11;
   /* EL ÁMBAR DE RELLENO, para los cuadros de la rejilla del final. El ámbar de
      texto (arriba) y el verde tienen la MISMA luminancia (1,01:1 entre ellos):
      como letra no importa, porque va con su palabra, pero como cuadro de color
      era indistinguible del verde con deuteranopía. El relleno se aclara hasta
      3,2:1 contra el verde y 3,1:1 contra el oro (auditoría 7-oct). */
-  --ambar-relleno-rgb: 242 185 85;
+  --ambar-relleno-rgb: 135 90 18;
   /* Podio: plata y bronce. Existen como token porque el oro ya lo era y sus dos
      hermanos se estaban pintando con paleta cruda de Tailwind (zinc-300 /
      amber-700), que NO sigue al tema: sobre el papel crema el zinc-300 quedaba
      en 1.4:1 — una medalla de plata invisible en modo día. Estas ternas son las
      del día (AA sobre crema: plata 5.0:1, bronce 5.6:1). */
-  --plata-rgb: 95 99 106; --bronce-rgb: 140 82 45;
+  --plata-rgb: 195 200 207; --bronce-rgb: 206 144 100;
   /* EL VELO y LA SOMBRA. Las dos únicas piezas del sistema que NO pueden
      derivarse de la tinta, porque un velo y una sombra son siempre OSCUROS y la
      tinta de la edición de noche es beige. La sombra del desplegable se derivaba
@@ -223,7 +223,7 @@
      panel de modal, portada al pasar): si algo despega del papel, despega igual.
      El alfa va aparte porque sobre papel basta un roce y sobre grafito hace
      falta peso. */
-  --velo-rgb: 12 13 15; --sombra-alfa: .16;
+  --velo-rgb: 0 0 0; --sombra-alfa: .5;
 
   /* Colores completos derivados (día y noche comparten estas fórmulas). */
   --bg: rgb(var(--bg-rgb)); --bg2: rgb(var(--bg2-rgb));
@@ -262,13 +262,13 @@
      colapsadas en una: el sistema tipográfico solo se veía en la pantalla de
      juego. Las familias se autoalojan en fonts.css, así que ya estaban cargadas —
      solo faltaba poder nombrarlas desde aquí. `.prensa` las repite (inofensivo). */
-  --font-display: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-body: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Mona Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Mona Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   /* VOZ EDITORIAL: serif de titulares (masthead y pregunta). Arranca en la serif
      del sistema —contraste inmediato, cero descarga—; para fijar la identidad,
      auto-hospeda Fraunces con scripts/gen-local-fonts.mjs y ponla al frente. */
-  --font-editorial: 'Fraunces', 'Iowan Old Style', Charter, 'Palatino Linotype', Georgia, 'Times New Roman', serif;
+  --font-editorial: 'Mona Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   --gold-ink: rgb(var(--bg-rgb)); --gold-glow: transparent;
   --accent-ink: rgb(var(--bg-rgb)); --good-ink: rgb(var(--bg-rgb));
@@ -365,11 +365,11 @@
      Tailwind sueltos. La forma vive aquí, como el color y el compás. */
   --radio-mini: 3px;
   --radio-sello: 6px;
-  --radio-celda: 10px;
-  --radio-boton: 12px;
-  --radio-tarjeta: 16px;
-  --radio-foto: 18px;
-  --radio-hoja: 24px;
+  --radio-celda: 8px;
+  --radio-boton: 8px;
+  --radio-tarjeta: 12px;
+  --radio-foto: 16px;
+  --radio-hoja: 16px;
   --radio-pildora: 999px;
 
   /* ── LA ESCALA TIPOGRÁFICA ────────────────────────────────────────────────
@@ -503,9 +503,9 @@
    ámbar y oro subidos para AA sobre el grafito. Solo ternas RGB. */
 :root[data-tema="noche"] {
   color-scheme: dark;
-  --bg-rgb: 19 21 24; --bg2-rgb: 36 40 45; --surface-rgb: 27 30 34;
-  --tinta-rgb: 240 241 243; --tinta2-rgb: 166 172 181;
-  --line-strong-rgb: 60 65 73;
+  --bg-rgb: 24 25 27; --bg2-rgb: 42 45 50; --surface-rgb: 34 36 39;
+  --tinta-rgb: 239 240 241; --tinta2-rgb: 154 158 166;
+  --line-strong-rgb: 56 59 66;
   /* EL ROJO SE MIDE SOBRE LA SUPERFICIE MÁS CLARA EN LA QUE ESCRIBE, no sobre el
      fondo. Era 229 64 42 y pasaba sobre --bg (4.7:1), que es donde se midió; pero
      donde de verdad se LEE el rojo es dentro de las celdas del historial («No
@@ -514,11 +514,11 @@
      escalón de luz con el mismo tono: 5.2:1 sobre la superficie, 4.8:1 sobre la
      elevada (--bg2) y 5.6:1 sobre el fondo. Las rayas del logotipo y el medidor
      lo heredan; a oscuras un rojo de marca siempre se sube un punto. */
-  --rojo-rgb: 248 104 82; --rojo-dark-rgb: 210 62 42;
+  --rojo-rgb: 255 74 31; --rojo-dark-rgb: 224 58 18;
   /* Latón claro y naranja, como de día (F2): 1,52:1 entre ellos. */
-  --gold-rgb: 232 200 110; --gold-dark-rgb: 196 168 92;
+  --gold-rgb: 234 179 8; --gold-dark-rgb: 196 150 10;
   /* Verde y ámbar del veredicto, subidos para contraste AA sobre el grafito. */
-  --verde-rgb: 63 207 142; --ambar-rgb: 240 140 40;
+  --verde-rgb: 52 211 153; --ambar-rgb: 245 158 11;
   /* De noche el relleno ámbar se OSCURECE: 3,0:1 contra el verde. */
   --ambar-relleno-rgb: 135 90 18;
   /* Plata y bronce del podio (AA sobre el grafito). */
@@ -992,10 +992,10 @@ body,
      (noche) — más abajo en este archivo. .prensa ya NO los fija localmente,
      para que el modo oscuro pueda sobreescribirlos por herencia. Aquí solo
      quedan la tipografía editorial y el lienzo (que consumen los tokens). */
-  --font-display: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-body: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Google Sans Flex', 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-editorial: 'Fraunces', 'Iowan Old Style', Charter, 'Palatino Linotype', Georgia, 'Times New Roman', serif;
+  --font-display: 'Mona Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Mona Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-editorial: 'Mona Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --ambient: none;
   background: var(--bg); color: var(--cdd-text);
   font-family: var(--font-body);
@@ -5781,3 +5781,335 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   transition: opacity var(--ms-roce) var(--curva-roce);
 }
 [data-acercada="si"] .foto-ampliada-pista { opacity: 0; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   REDISEÑO «GRAPHITE & SAFETY ORANGE» (Deal 1 · taste-skill + ui-ux-pro-max)
+   -----------------------------------------------------------------------
+   · Superficie: #18191b / #222427 / #ff4a1f (Safety Orange), data-radius="soft".
+   · Tipografía: Mona Sans (weight 500 en titulares/botones, -0.035em tracking,
+     400 en cuerpo) + Geist Mono (tabular-nums) para datos, fechas, años y orden.
+   · Fotografía 4:3 limpia: cero barras de pasos ni pies decorativos debajo;
+     cabecera «heading with grey run-on» (¿Qué coche es? Intento X de 5).
+   · Cupón ultra-natural: Marca y Modelo amplios, Año compacto (4 cifras).
+     En móvil (<640px): Marca ocupa el 100% arriba; Modelo (1fr) + Año (98px)
+     debajo. En escritorio (>=640px): 1.15fr | 1.35fr | 92px.
+   · Historial en filas abiertas (.rows): sin tarjetas anidadas, divisor 1px.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  --ancho-insignia: 100%;
+}
+
+/* ── CABECERA ── */
+.prensa-topbar {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+:root[data-plataforma="app"] .prensa-topbar {
+  border-bottom: 1px solid var(--line);
+}
+.prensa-cornisa .cabeza {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--t-cuerpo);
+  letter-spacing: -0.025em;
+  color: var(--cdd-text);
+}
+.prensa-cornisa .fecha {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--t-etiqueta);
+  letter-spacing: 0.01em;
+  color: var(--cdd-muted);
+}
+.prensa-racha {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--t-nota);
+  color: var(--cdd-text);
+}
+.prensa-racha svg {
+  color: var(--rojo);
+  fill: currentColor;
+}
+.prensa-topbar .prensa-clasif .pos {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--t-ui);
+  color: var(--gold);
+}
+.prensa-lema {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--t-nota);
+  color: var(--cdd-muted);
+}
+
+/* ── PREGUNTA DEL JUEGO (heading with grey run-on) Y FOTO 4:3 ── */
+.prensa-ladillo--pregunta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.prensa-ladillo--pregunta .rotulo,
+.prensa-ladillo--pregunta .rotulo.insignia {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--t-pregunta);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  color: var(--cdd-text);
+}
+.prensa-ladillo .filete,
+.prensa-ladillo .filete.medidor {
+  display: none;
+}
+.prensa-contador {
+  margin-left: auto;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0;
+}
+.prensa-ladillo .aparte,
+.prensa-contador .aparte {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--t-ui);
+  letter-spacing: -0.01em;
+  color: var(--cdd-muted);
+}
+.prensa .cdd-stage-frame {
+  border-radius: var(--radio-foto);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+.prensa-pie {
+  display: none;
+}
+
+/* ── CUPÓN ULTRA-NATURAL: MARCA Y MODELO GRANDES, AÑO PEQUEÑO ── */
+/* Móvil (<640px): Fila 1 = Marca (100% ancho), Fila 2 = Modelo (1fr) + Año (98px).
+   Desktop (>=640px): Marca (1.15fr) | Modelo (1.35fr) | Año (92px). */
+.prensa-renglones {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 98px;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+.prensa-renglones > .prensa-renglon:first-child {
+  grid-column: 1 / -1;
+}
+.prensa-renglones > .prensa-renglon {
+  min-height: 48px;
+  padding: 6px 12px;
+  gap: 2px;
+  border-radius: var(--radio-celda);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  transition: border-color var(--ms-roce) var(--curva-roce), background-color var(--ms-roce) var(--curva-roce);
+}
+.prensa-renglones > .prensa-renglon:active:not(:disabled) {
+  border-color: var(--rojo);
+  background: var(--surface2);
+}
+.prensa-renglones > .prensa-renglon.resuelto {
+  border: 1px solid rgb(var(--verde-rgb) / .45);
+  background: rgb(var(--verde-rgb) / .08);
+  box-shadow: none;
+}
+.prensa-renglones > .prensa-renglon.espera {
+  background: var(--bg);
+  border-color: var(--line);
+}
+.prensa-renglon .etiqueta,
+.prensa-label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--t-etiqueta);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cdd-muted);
+}
+.prensa-renglon .valor {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--t-cuerpo);
+  color: var(--cdd-text);
+}
+.prensa-renglones > .prensa-renglon:last-child .valor {
+  font-family: var(--font-mono);
+}
+.prensa-renglon .vacio {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--t-ui);
+  color: var(--cdd-muted);
+}
+
+/* Web (.prensa-casillas): misma jerarquía visual (Marca y Modelo grandes, Año 4 cifras) */
+.prensa-casillas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 98px;
+  gap: 8px;
+  align-items: start;
+}
+.prensa-casillas > :first-child {
+  grid-column: 1 / -1;
+}
+@media (min-width: 640px) {
+  .prensa-renglones {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 92px;
+    gap: 8px;
+  }
+  .prensa-renglones > .prensa-renglon:first-child {
+    grid-column: auto;
+  }
+  .prensa-casillas {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 92px;
+    gap: 8px;
+  }
+  .prensa-casillas > :first-child {
+    grid-column: auto;
+  }
+}
+.prensa-input {
+  height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radio-celda);
+  background: var(--surface);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--t-campo);
+  color: var(--cdd-text);
+}
+.prensa-casillas > :last-child .prensa-input {
+  font-family: var(--font-mono);
+}
+.prensa-input:focus {
+  border: 1px solid var(--rojo);
+  padding-bottom: 0;
+  box-shadow: 0 0 0 1px var(--rojo);
+}
+.prensa-input.veredicto-resuelto {
+  border: 1px solid rgb(var(--verde-rgb) / .45);
+  padding-bottom: 0;
+  padding-right: 30px;
+  background: rgb(var(--verde-rgb) / .08);
+}
+.prensa-casillas .prensa-listbox {
+  width: 100%;
+  min-width: min(280px, 88vw);
+  max-width: 92vw;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radio-tarjeta);
+}
+.prensa-opt {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radio-celda);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--t-cuerpo);
+}
+
+/* ── BOTÓN PRINCIPAL (Safety Orange · data-buttons="tonal") ── */
+.prensa-submit,
+.prensa .cdd-submit {
+  height: 50px;
+  border-radius: var(--radio-boton);
+  background: var(--rojo);
+  color: rgb(15 15 16);
+  font-family: var(--font-display);
+  font-stretch: 100%;
+  font-weight: 500;
+  font-size: var(--t-campo);
+  letter-spacing: -0.01em;
+}
+:root[data-plataforma="app"] .prensa-cupon .prensa-submit {
+  height: 48px;
+  margin-top: 8px;
+}
+@media (hover: hover) {
+  .prensa-submit:hover:not(:disabled):not(.is-incomplete),
+  .prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) {
+    background: var(--rojo-dark);
+    color: rgb(15 15 16);
+  }
+}
+.prensa-submit.is-incomplete,
+.prensa .cdd-submit.is-incomplete {
+  background: var(--surface);
+  color: var(--cdd-muted);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.prensa-submit.is-trabajando,
+.prensa-submit.is-trabajando:disabled {
+  background: var(--rojo);
+  color: rgb(15 15 16);
+}
+
+/* ── HISTORIAL: FILAS ABIERTAS (.rows · taste-skill) ── */
+.prensa-tablero {
+  border-top: 1px solid var(--line);
+}
+.prensa-fila {
+  grid-template-columns: 22px minmax(0, 1.1fr) minmax(0, 1.3fr) auto;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: center;
+}
+.prensa-fila .num {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--t-dato);
+  color: var(--cdd-muted);
+}
+.prensa-dato {
+  min-height: 34px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--t-ui);
+}
+.prensa-dato.bien {
+  background: transparent;
+  border: 0;
+  color: var(--verde);
+}
+.prensa-dato.cerca {
+  background: transparent;
+  border: 0;
+}
+.prensa-dato.anio {
+  text-align: right;
+  align-items: flex-end;
+}
+.prensa-dato.anio .palabra {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--t-nota);
+}
+.prensa-apostilla {
+  font-stretch: 100%;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--t-etiqueta);
+}
+
+/* ── BARRA DE NAVEGACIÓN INFERIOR ── */
+.barra-texto {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--t-etiqueta);
+}

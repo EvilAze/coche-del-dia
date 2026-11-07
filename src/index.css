@@ -5791,103 +5791,78 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
    · Tipografía: Mona Sans (weight 500 en titulares/botones, -0.035em tracking,
      400 en cuerpo) + Geist Mono (tabular-nums) para datos, fechas, años y orden.
    · Fotografía 4:3 limpia: cero barras de pasos ni pies decorativos debajo;
-     cabecera «heading with grey run-on» (¿Qué coche es? Intento X de 5).
-   · Cupón ultra-natural: Marca y Modelo amplios, Año compacto (4 cifras).
-     Tarjetas táctiles unificadas en web y app con etiqueta técnica dentro.
-     En móvil (<640px): Marca ocupa el 100% arriba; Modelo (1fr) + Año (98px)
-     debajo. En escritorio (>=640px): 1.15fr | 1.35fr | 96px.
-   · Historial en filas abiertas (.rows): sin tarjetas anidadas, divisor 1px.
+     cabecera «heading with grey run-on» (¿Qué coche se esconde en el recorte? Intento X de 5.).
+   · Escritorio (>=960px): pliego de 2 columnas (foto 4:3 pura a la izquierda,
+     pregunta + intentos + cupón + botón Safety Orange a la derecha) y barra
+     superior con navegación centrada (Jugar, Clasificación, Archivo, Perfil).
+   · Móvil (<960px): columna única con Marca y Modelo amplios y Año compacto.
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
   --ancho-insignia: 100%;
 }
 
-/* ── SHELL CENTRADO DE TELEMETRÍA (WEB Y APP) ── */
-.prensa-hoja {
-  max-width: 500px;
-}
-@media (min-width: 1100px) {
-  .prensa-hoja {
-    max-width: 500px;
-  }
-  .prensa-pliego,
-  .prensa-pliego:not(.app-pantalla) {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .prensa-area-clas {
-    display: contents;
-  }
-}
-
-/* ── CABECERA TÉCNICA ── */
+/* ── CABECERA (Header.jsx · .prensa-topbar) ── */
 .prensa-topbar {
+  height: 52px;
+  padding: 0;
   border-bottom: 1px solid var(--line);
-  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 :root[data-plataforma="app"] .prensa-topbar {
   border-bottom: 1px solid var(--line);
 }
-/* Monograma técnico [CD] en lugar del coche con rayas */
-.prensa-marca {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radio-celda);
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-}
-.prensa-marca .coche {
+.prensa-topbar > [hidden] {
   display: none;
 }
-.prensa-marca::after {
-  content: "CD";
-  border: 0;
-  height: auto;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: var(--t-etiqueta);
-  letter-spacing: -0.02em;
-  line-height: 1;
-  color: var(--cdd-text);
+/* Sin icono de marca cuadrado delante del título: wordmark directo como en Deal 1 */
+.prensa-marca {
+  display: none;
 }
 .prensa-cornisa {
   display: inline-flex;
   flex-direction: row;
   align-items: baseline;
-  gap: 6px;
+  gap: 10px;
 }
 .prensa-cornisa .cabeza {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: var(--t-cuerpo);
+  font-size: var(--t-boton);
   letter-spacing: -0.025em;
   color: var(--cdd-text);
 }
 .prensa-cornisa .fecha {
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: var(--t-etiqueta);
+  font-size: var(--t-nota);
   letter-spacing: 0.01em;
   color: var(--cdd-muted);
 }
-.prensa-cornisa .fecha::before {
-  content: "· ";
-  color: var(--line-strong);
+.prensa-nav-central {
+  display: none;
 }
 .prensa-racha {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--font-mono);
   font-weight: 500;
-  font-size: var(--t-nota);
+  font-size: var(--t-ui);
   color: var(--cdd-text);
 }
 .prensa-racha svg {
   color: var(--rojo);
   fill: currentColor;
+}
+.prensa-racha .racha-texto {
+  display: none;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--t-ui);
+  color: var(--cdd-muted);
 }
 .prensa-topbar .prensa-clasif .pos {
   font-family: var(--font-mono);
@@ -5900,11 +5875,16 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 }
 
 /* ── PREGUNTA DEL JUEGO (heading with grey run-on) Y FOTO 4:3 ── */
+.prensa-cabecera-escritorio {
+  display: none;
+}
 .prensa-ladillo--pregunta {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: flex-start;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 2px;
 }
 .prensa-ladillo--pregunta .rotulo,
 .prensa-ladillo--pregunta .rotulo.insignia {
@@ -5912,7 +5892,7 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   font-weight: 500;
   font-size: var(--t-pregunta);
   letter-spacing: -0.035em;
-  line-height: 1.1;
+  line-height: 1.12;
   color: var(--cdd-text);
 }
 .prensa-ladillo .filete,
@@ -5928,10 +5908,11 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
 }
 .prensa-ladillo .aparte,
 .prensa-contador .aparte {
-  font-family: var(--font-body);
-  font-weight: 400;
-  font-size: var(--t-ui);
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--t-pregunta);
+  letter-spacing: -0.035em;
+  line-height: 1.12;
   color: var(--cdd-muted);
 }
 .prensa .cdd-stage-frame {
@@ -5943,9 +5924,162 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   display: none;
 }
 
-/* ── CUPÓN ULTRA-NATURAL: MARCA Y MODELO GRANDES, AÑO PEQUEÑO ── */
-/* Móvil (<640px): Fila 1 = Marca (100% ancho), Fila 2 = Modelo (1fr) + Año (98px).
-   Desktop (>=640px): Marca (1.15fr) | Modelo (1.35fr) | Año (96px). */
+/* ── ESCRITORIO (>=960px): PLIEGO DE 2 COLUMNAS Y NAVEGACIÓN CENTRAL ── */
+@media (min-width: 960px) {
+  .barra-secciones {
+    display: none;
+  }
+  .cdd-peek {
+    display: none;
+  }
+  .prensa-hoja {
+    max-width: 1180px;
+    padding-left: 36px;
+    padding-right: 36px;
+    padding-bottom: 44px;
+  }
+  .prensa-topbar {
+    height: 60px;
+    padding: 0;
+  }
+  .prensa-nav-central {
+    display: inline-flex;
+    align-items: center;
+    gap: 24px;
+    height: 60px;
+  }
+  .prensa-nav-link {
+    position: relative;
+    height: 60px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--t-cuerpo);
+    letter-spacing: -0.005em;
+    color: var(--cdd-muted);
+    transition: color var(--ms-roce) var(--curva-roce);
+  }
+  @media (hover: hover) {
+    .prensa-nav-link:hover {
+      color: var(--cdd-text);
+    }
+  }
+  .prensa-nav-link[aria-current="page"] {
+    color: var(--cdd-text);
+  }
+  .prensa-nav-link[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--cdd-text);
+  }
+  .prensa-nav-link .cifra {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: var(--t-nota);
+    color: var(--gold);
+  }
+  .prensa-nav-link .aviso {
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radio-pildora);
+    background: var(--ambar);
+  }
+  /* Las secciones ya viven en .prensa-nav-central en escritorio */
+  .prensa-topbar > span.prensa-acciones > .prensa-seccion,
+  .prensa-topbar > span.prensa-acciones > .prensa-clasif {
+    display: none;
+  }
+  .prensa-racha .racha-texto {
+    display: inline;
+  }
+  .prensa-racha .racha-num {
+    display: none;
+  }
+
+  /* Grid 2 columnas: izquierda = foto 4:3 pura; derecha = pregunta + intentos + cupón */
+  .prensa-pliego,
+  .prensa-pliego:not(.app-pantalla) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      "cab cab"
+      "foto clas"
+      "foto jugar"
+      "pie pie";
+    column-gap: 44px;
+    row-gap: 0;
+    align-items: start;
+  }
+  .prensa-area-cab {
+    grid-area: cab;
+    margin-bottom: 36px;
+  }
+  .prensa-area-foto {
+    grid-area: foto;
+    min-width: 0;
+    padding-bottom: 0;
+  }
+  .prensa-area-foto > .prensa-ladillo--pregunta {
+    display: none;
+  }
+  .prensa-area-clas {
+    display: flex;
+    flex-direction: column;
+    grid-area: clas;
+    min-width: 0;
+    gap: 24px;
+    margin-bottom: 24px;
+    border: 0;
+    padding: 0;
+  }
+  .prensa-area-jugar {
+    grid-area: jugar;
+    min-width: 0;
+    align-self: start;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .prensa-area-pie {
+    grid-area: pie;
+    margin-top: 56px;
+  }
+  .prensa-cabecera-escritorio {
+    display: block;
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: var(--t-cabecera);
+    letter-spacing: -0.035em;
+    line-height: 1.12;
+    color: var(--cdd-text);
+    text-wrap: balance;
+  }
+  .prensa-cabecera-escritorio .aparte {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: var(--t-cabecera);
+    letter-spacing: -0.035em;
+    line-height: 1.12;
+    color: var(--cdd-muted);
+  }
+}
+
+/* ── CUPÓN APP (.prensa-renglones): MARCA Y MODELO GRANDES, AÑO PEQUEÑO ── */
 .prensa-renglones {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 98px;
@@ -5980,14 +6114,13 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   background: var(--bg);
   border-color: var(--line);
 }
-.prensa-renglon .etiqueta,
-.prensa-label {
-  font-family: var(--font-mono);
+.prensa-renglon .etiqueta {
+  font-family: var(--font-body);
   font-weight: 500;
-  font-size: var(--t-etiqueta);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--cdd-muted);
+  font-size: var(--t-dato);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--cdd-text);
 }
 .prensa-renglon .valor {
   font-family: var(--font-body);
@@ -6005,101 +6138,119 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   color: var(--cdd-muted);
 }
 
-/* Web (.prensa-casillas): tarjetas táctiles unificadas idénticas a Deal 1 */
+/* ── CUPÓN WEB (.prensa-casillas): ETIQUETA ARRIBA + CAJA DE 48PX DEBAJO (Deal 1) ── */
 .prensa-casillas {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 98px;
-  gap: 8px;
-  align-items: stretch;
+  gap: 10px;
+  align-items: end;
 }
 .prensa-casillas > :first-child {
   grid-column: 1 / -1;
 }
 @media (min-width: 640px) {
   .prensa-renglones {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 96px;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 92px;
+    gap: 10px;
   }
   .prensa-renglones > .prensa-renglon:first-child {
     grid-column: auto;
   }
   .prensa-casillas {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 96px;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 92px;
+    gap: 10px;
   }
   .prensa-casillas > :first-child {
     grid-column: auto;
   }
 }
 .prensa-casillas > div {
-  padding: 7px 12px 8px;
-  border-radius: var(--radio-celda);
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  gap: 2px;
-  transition: border-color var(--ms-roce) var(--curva-roce), box-shadow var(--ms-roce) var(--curva-roce), background-color var(--ms-roce) var(--curva-roce);
-}
-.prensa-casillas > div:focus-within {
-  border-color: var(--rojo);
-  box-shadow: 0 0 0 1px var(--rojo);
-}
-.prensa-casillas > div:has(.prensa-input:disabled:not(.veredicto-resuelto)) {
-  background: var(--bg);
-  border-color: var(--line);
-}
-.prensa-casillas > div:has(.prensa-input.invalida) {
-  border-color: var(--rojo);
-  box-shadow: 0 0 0 1px var(--rojo);
-}
-.prensa-casillas > div:has(.prensa-input.veredicto-resuelto) {
-  border-color: rgb(var(--verde-rgb) / .45);
-  background: rgb(var(--verde-rgb) / .08);
-  box-shadow: none;
-}
-.prensa-casillas .prensa-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  margin: 0;
-  line-height: 1.1;
-}
-.prensa-casillas .prensa-input,
-.prensa-input {
-  height: 24px;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  gap: 6px;
+}
+.prensa-casillas .prensa-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
   font-family: var(--font-body);
   font-weight: 500;
-  font-size: var(--t-cuerpo);
+  font-size: var(--t-dato);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  line-height: 1.15;
+  color: var(--cdd-text);
+}
+.prensa-casillas .prensa-label .pista-label,
+.prensa-casillas .prensa-label .pista-label.resuelta {
+  display: inline;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--t-etiqueta);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--cdd-muted);
+}
+.prensa-casillas .prensa-input {
+  height: 48px;
+  padding: 0 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radio-celda);
+  background: var(--bg);
+  box-shadow: none;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--t-campo);
   line-height: 1.2;
   color: var(--cdd-text);
 }
 .prensa-casillas > :last-child .prensa-input {
   font-family: var(--font-mono);
 }
-.prensa-casillas .prensa-input:focus,
-.prensa-input:focus,
-.prensa-casillas .prensa-input.invalida,
-.prensa-input.invalida {
-  border: 0;
+.prensa-casillas .prensa-input::placeholder {
+  font-style: normal;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--t-ui);
+  color: var(--placeholder);
+}
+.prensa-casillas > :last-child .prensa-input::placeholder {
+  font-family: var(--font-mono);
+}
+.prensa-casillas .prensa-input:focus {
+  border: 1px solid var(--cdd-text);
+  padding-bottom: 0;
+  box-shadow: none;
+}
+.prensa-casillas .prensa-input.invalida {
+  border: 1px solid var(--rojo);
   padding-bottom: 0;
   box-shadow: none;
 }
 .prensa-casillas .prensa-input:disabled:not(.veredicto-resuelto) {
-  background: transparent;
-  border-color: transparent;
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--cdd-muted);
 }
-.prensa-casillas .prensa-input.veredicto-resuelto,
-.prensa-input.veredicto-resuelto {
-  border: 0;
+.prensa-casillas .prensa-input.veredicto-resuelto {
+  background: var(--surface);
+  border: 1px solid var(--line);
   padding-bottom: 0;
-  padding-right: 22px;
-  background: transparent;
-  color: var(--verde);
+  padding-right: 13px;
+  font-weight: 500;
+  color: var(--cdd-text);
+  box-shadow: none;
+}
+.prensa-casillas .prensa-campo-marca {
+  display: none;
+}
+.prensa-casillas .prensa-horquilla {
+  display: none;
 }
 .prensa-casillas .prensa-listbox {
   width: 100%;
@@ -6118,17 +6269,20 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   font-size: var(--t-cuerpo);
 }
 
-/* ── BOTÓN PRINCIPAL (Safety Orange · data-buttons="tonal") ── */
+/* ── BOTÓN PRINCIPAL (Safety Orange · siempre encendido como en Deal 1) ── */
 .prensa-submit,
-.prensa .cdd-submit {
-  height: 50px;
+.prensa-submit.is-incomplete,
+.prensa .cdd-submit,
+.prensa .cdd-submit.is-incomplete {
+  height: 48px;
   border-radius: var(--radio-boton);
   background: var(--rojo);
   color: rgb(15 15 16);
-  font-family: var(--font-display);
+  box-shadow: none;
+  font-family: var(--font-body);
   font-stretch: 100%;
   font-weight: 500;
-  font-size: var(--t-campo);
+  font-size: var(--t-cuerpo);
   letter-spacing: -0.01em;
 }
 :root[data-plataforma="app"] .prensa-cupon .prensa-submit {
@@ -6136,32 +6290,53 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   margin-top: 8px;
 }
 @media (hover: hover) {
-  .prensa-submit:hover:not(:disabled):not(.is-incomplete),
-  .prensa .cdd-submit:hover:not(:disabled):not(.is-incomplete) {
+  .prensa-submit:hover:not(:disabled),
+  .prensa-submit.is-incomplete:hover:not(:disabled),
+  .prensa .cdd-submit:hover:not(:disabled),
+  .prensa .cdd-submit.is-incomplete:hover:not(:disabled) {
     background: var(--rojo-dark);
     color: rgb(15 15 16);
+    box-shadow: none;
+    transform: none;
   }
-}
-.prensa-submit.is-incomplete,
-.prensa .cdd-submit.is-incomplete {
-  background: var(--surface);
-  color: var(--cdd-muted);
-  box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 .prensa-submit.is-trabajando,
 .prensa-submit.is-trabajando:disabled {
   background: var(--rojo);
   color: rgb(15 15 16);
 }
-
-/* ── HISTORIAL: FILAS ABIERTAS (.rows · taste-skill) ── */
-.prensa-tablero {
-  border-top: 1px solid var(--line);
+.prensa .cdd-submit.cdd-submit--ghost {
+  background: transparent;
+  color: var(--cdd-text);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
 }
-.prensa-fila {
-  grid-template-columns: 22px minmax(0, 1.1fr) minmax(0, 1.3fr) auto;
-  gap: 8px;
-  padding: 7px 0;
+
+/* ── HISTORIAL DE INTENTOS (Filas abiertas + chips de telemetría en web) ── */
+.prensa-historial-titulo {
+  margin: 0 0 8px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--t-nota);
+  color: var(--cdd-muted);
+}
+:root[data-plataforma="app"] .prensa-historial-titulo,
+:root[data-plataforma="app"] .prensa-fila-coche,
+:root[data-plataforma="app"] .prensa-fila-chips {
+  display: none;
+}
+:root:not([data-plataforma="app"]) .prensa-tablero {
+  border-top: 0;
+}
+:root:not([data-plataforma="app"]) .prensa-fila > .prensa-dato {
+  display: none;
+}
+:root:not([data-plataforma="app"]) .prensa-fila-hueco {
+  display: none;
+}
+:root:not([data-plataforma="app"]) .prensa-fila {
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--line);
   align-items: center;
 }
@@ -6171,7 +6346,105 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   font-size: var(--t-dato);
   color: var(--cdd-muted);
 }
-.prensa-dato {
+.prensa-fila-coche {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  row-gap: 2px;
+  min-width: 0;
+}
+.prensa-fila-coche .palabra-marca {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--t-cuerpo);
+  color: var(--cdd-text);
+}
+.prensa-fila-coche .palabra-modelo {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--t-ui);
+  color: var(--cdd-muted);
+}
+.prensa-fila-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: var(--radio-pildora);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--cdd-muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-etiqueta);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.ui-chip .bandera {
+  width: 14px;
+  height: 10px;
+  border-radius: var(--radio-mini);
+  object-fit: cover;
+  flex: none;
+}
+.ui-chip--partial {
+  color: var(--cdd-text);
+  border-color: var(--line-strong);
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+.ui-chip--match {
+  color: var(--cdd-text);
+  border-color: var(--line-strong);
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+.ui-chip--match::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radio-pildora);
+  background: var(--rojo);
+  flex: none;
+}
+:root:not([data-plataforma="app"]) .prensa-nota {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+:root:not([data-plataforma="app"]) .prensa-nota .titulo {
+  display: none;
+}
+:root:not([data-plataforma="app"]) .prensa-nota .pistas {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--t-ui);
+  color: var(--cdd-muted);
+}
+:root:not([data-plataforma="app"]) .prensa-nota .sabes {
+  font-weight: 500;
+  color: var(--cdd-muted);
+}
+
+/* Historial en modo app (compacto para caber sin scroll en 100svh) */
+:root[data-plataforma="app"] .prensa-tablero {
+  border-top: 1px solid var(--line);
+}
+:root[data-plataforma="app"] .prensa-fila {
+  grid-template-columns: 22px minmax(0, 1.1fr) minmax(0, 1.3fr) auto;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: center;
+}
+:root[data-plataforma="app"] .prensa-dato {
   min-height: 28px;
   padding: 2px 4px;
   border: 0;
@@ -6181,35 +6454,35 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   font-weight: 500;
   font-size: var(--t-ui);
 }
-.prensa-dato.bien {
+:root[data-plataforma="app"] .prensa-dato.bien {
   background: transparent;
   border: 0;
   color: var(--verde);
 }
-.prensa-dato.cerca {
+:root[data-plataforma="app"] .prensa-dato.cerca {
   background: transparent;
   border: 0;
 }
-.prensa-dato.anio {
+:root[data-plataforma="app"] .prensa-dato.anio {
   text-align: right;
   align-items: flex-end;
 }
-.prensa-dato.anio .palabra {
+:root[data-plataforma="app"] .prensa-dato.anio .palabra {
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: var(--t-nota);
 }
-.prensa-apostilla {
+:root[data-plataforma="app"] .prensa-apostilla {
   font-stretch: 100%;
   font-family: var(--font-mono);
   font-weight: 400;
   font-size: var(--t-etiqueta);
 }
-.prensa-apostilla.nota {
+:root[data-plataforma="app"] .prensa-apostilla.nota {
   display: none;
 }
 
-/* ── BARRA DE NAVEGACIÓN INFERIOR ── */
+/* ── BARRA DE NAVEGACIÓN INFERIOR (móvil <960px) ── */
 .barra-texto {
   font-family: var(--font-body);
   font-weight: 500;

@@ -67,11 +67,11 @@ export default function YearField({
   return (
     <div className="relative flex flex-col gap-0.5">
       <label htmlFor={inputId} className="prensa-label">
-        {t("cdd.labelAnio")}
+        <span>{t("cdd.labelAnio")}</span>
         {resuelto ? (
           <span className="pista-label resuelta">{t("cdd.fieldSolved")}</span>
         ) : (
-          <span className="pista-label">{t("cdd.yearTolerance", { n: tolerance })}</span>
+          <span className="pista-label">{horquilla?.acotada ? (horquilla.min > MIN_YEAR && horquilla.max < MAX_YEAR ? `${horquilla.min}–${horquilla.max}` : horquilla.min > MIN_YEAR ? `≥ ${horquilla.min}` : `≤ ${horquilla.max}`) : t("cdd.yearTolerance", { n: tolerance })}</span>
         )}
       </label>
       <div className="prensa-campo">

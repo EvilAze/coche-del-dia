@@ -157,7 +157,7 @@ export default function Header({
   const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
   // Asfalto: la cornisa (nombre + fecha corta) es LA cabecera en las dos
   // plataformas; el masthead centrado de la web se retiró (ver el JSX).
-  const fechaCorta = ahora.toLocaleDateString(dateLocale, { day: "numeric", month: "long" });
+  const fechaCorta = ahora.toLocaleDateString(dateLocale, { day: "numeric", month: "short" }).replace(/\.$/, "");
 
   // El movimiento del día, solo en la app y solo cuando de verdad lo hay: con
   // `hold` (mantienes) o `new` (estrenas) no se pinta nada. `rankMovement`
@@ -238,6 +238,39 @@ export default function Header({
             <span className="fecha" aria-hidden="true">{fechaCorta}</span>
           </span>
         </span>
+        <div className="prensa-nav-central">
+          <button type="button" className="prensa-nav-link" aria-current="page">
+            {t("barra.jugar")}
+          </button>
+          <button
+            type="button"
+            className="prensa-nav-link"
+            aria-label={clasifAria}
+            onClick={() => { haptic.impactLight(); onOpenRanking?.("cabecera"); }}
+          >
+            <span>{t("prensa.clasificacion")}</span>
+            {cifra && <span className="cifra">{cifra}</span>}
+          </button>
+          <button
+            type="button"
+            className="prensa-nav-link"
+            aria-label={repescaAlert ? `${t("prensa.garaje")} · ${t("sumario.garajeRepesca")}` : undefined}
+            onClick={() => { haptic.impactLight(); onOpenGarage?.(); }}
+          >
+            {t("prensa.garaje")}
+            {repescaAlert && <span className="aviso" aria-hidden="true" />}
+          </button>
+          <button
+            type="button"
+            className="prensa-nav-link"
+            onClick={() => { haptic.impactLight(); onOpenProfile?.(); }}
+          >
+            {t("prensa.perfil")}
+          </button>
+        </div>
+        <span hidden><span hidden>
+          </span>
+        </span>
 
         <span className="prensa-acciones">
           {/* La racha, en oro: es lo que vale algo. Solo existe con racha viva;
@@ -245,7 +278,8 @@ export default function Header({
           {streak > 0 && (
             <span className="prensa-racha" role="img" aria-label={tn("sumario.perfilRacha", streak)}>
               <Icon d={I.flame} size={16} />
-              <span aria-hidden="true">{streak}</span>
+              <span className="racha-texto" aria-hidden="true">{tn("sumario.perfilRacha", streak)}</span>
+              <span className="racha-num" aria-hidden="true">{streak}d</span>
             </span>
           )}
           {/* Cómo se juega: el «?» del diseño. En el móvil sustituye a la ficha

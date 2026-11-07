@@ -60,7 +60,7 @@ function medirFranjaInferior() {
 const ALTO_MINIMO = 168;
 // A partir del pliego ancho la foto es la columna central y el cupón vive en su
 // propia columna, al lado: no hay nada que encajar.
-const PLIEGO = "(min-width: 1100px)";
+const PLIEGO = "(min-width: 960px)";
 
 // La aritmética, aparte del DOM para poder testearla: dado lo que mide cada
 // pieza, ¿qué ancho máximo le toca al escenario? Devuelve null = "cabe entero,

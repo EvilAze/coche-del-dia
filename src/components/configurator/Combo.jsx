@@ -237,8 +237,8 @@ export default function Combo({
   return (
     <div className="relative flex flex-col gap-0.5" ref={ref}>
       <label htmlFor={inputId} className="prensa-label">
-        {label}
-        {resuelto && <span className="pista-label resuelta">{t("cdd.fieldSolved")}</span>}
+        <span>{label}</span>
+        {resuelto && <span className="pista-label resuelta">{t("cdd.fieldSolved")} ✓</span>}
       </label>
       <div className="prensa-campo">
         <input

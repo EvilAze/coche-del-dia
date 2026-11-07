@@ -78,6 +78,34 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
     return (
       <div className="prensa-fila prensa-fila-pendiente">
         <span className="num">{numLabel}</span>
+      <div className="prensa-fila-coche" aria-hidden="true">
+        <span className="palabra-marca">{g.marca?.val || "—"}</span>
+        {g.modelo?.val && <span className="palabra-modelo">{g.modelo.val}</span>}
+      </div>
+      <div className="prensa-fila-chips" aria-hidden="true">
+        {pending ? (
+          <span className="ui-chip">{g.anio?.val}</span>
+        ) : moSt === "correct" ? (
+          <span className="ui-chip ui-chip--match">{g.modelo?.val} ✓</span>
+        ) : mSt === "correct" ? (
+          <span className="ui-chip ui-chip--match">{g.marca?.val} ✓</span>
+        ) : mSt === "partial" ? (
+          <span className="ui-chip ui-chip--partial">
+            {g.marca?.pais && <img className="bandera" src={flagImagePath(g.marca.pais)} alt="" draggable={false} />}
+            {enFrase(t("cdd.sameCountry"), locale)}
+          </span>
+        ) : (
+          <span className="ui-chip">{t("cdd.notaMal")}</span>
+        )}
+        {!pending && (aSt === "correct" ? (
+          <span className="ui-chip ui-chip--match">{g.anio?.val} ✓</span>
+        ) : (
+          <span className="ui-chip">
+            {g.anio?.val}
+            {g.anio?.direction ? (g.anio.direction === "up" ? " ↑" : " ↓") : ""}
+          </span>
+        ))}
+      </div>
         <Dato pending value={g.marca?.val} fitKey={g.marca?.val} />
         <Dato pending value={g.modelo?.val} fitKey={g.modelo?.val} />
         <Dato pending tipo="anio" value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} />
@@ -133,6 +161,34 @@ export function AttemptRow({ g, tolerance = 2, pending, fresh, num = null }) {
   return (
     <div className="prensa-fila">
       <span className="num">{numLabel}</span>
+      <div className="prensa-fila-coche" aria-hidden="true">
+        <span className="palabra-marca">{g.marca?.val || "—"}</span>
+        {g.modelo?.val && <span className="palabra-modelo">{g.modelo.val}</span>}
+      </div>
+      <div className="prensa-fila-chips" aria-hidden="true">
+        {pending ? (
+          <span className="ui-chip">{g.anio?.val}</span>
+        ) : moSt === "correct" ? (
+          <span className="ui-chip ui-chip--match">{g.modelo?.val} ✓</span>
+        ) : mSt === "correct" ? (
+          <span className="ui-chip ui-chip--match">{g.marca?.val} ✓</span>
+        ) : mSt === "partial" ? (
+          <span className="ui-chip ui-chip--partial">
+            {g.marca?.pais && <img className="bandera" src={flagImagePath(g.marca.pais)} alt="" draggable={false} />}
+            {enFrase(t("cdd.sameCountry"), locale)}
+          </span>
+        ) : (
+          <span className="ui-chip">{t("cdd.notaMal")}</span>
+        )}
+        {!pending && (aSt === "correct" ? (
+          <span className="ui-chip ui-chip--match">{g.anio?.val} ✓</span>
+        ) : (
+          <span className="ui-chip">
+            {g.anio?.val}
+            {g.anio?.direction ? (g.anio.direction === "up" ? " ↑" : " ↓") : ""}
+          </span>
+        ))}
+      </div>
       <Dato estado={marcaEstado} value={g.marca?.val} fitKey={g.marca?.val} apostilla={marcaApostilla} nota={marcaNota} srStatus={marcaSr} fresh={fresh} delay={d(0)} />
       <Dato estado={modeloEstado} value={g.modelo?.val} fitKey={g.modelo?.val} nota={modeloNota} srStatus={modeloSr} fresh={fresh} delay={d(1)} />
       <Dato estado={anioEstado} tipo="anio" value={g.anio?.val} fitKey={String(g.anio?.val ?? "")} apostilla={anioApostilla} nota={anioNota} hint={anioHint} srStatus={anioSr} fresh={fresh} delay={d(2)} />
@@ -270,6 +326,9 @@ function Tablero({ guesses, pendingGuess, justRevealedIndex, tolerance, maxAttem
     <section ref={ref} aria-label={t("guessLog.label")} className="prensa-tablero flex flex-col">
       {/* Los huecos son decorado para quien ve; quien escucha recibe la cuenta. */}
       <p className="sr-only">{t("app.attemptsRemainingAria", { count: restantes, max: maxAttempts })}</p>
+      {guesses.length > 0 && (
+        <p className="prensa-historial-titulo" aria-hidden="true">Intentos anteriores</p>
+      )}
       {/* Los huecos son `aria-hidden`, así que lo que explican se dice aquí. */}
       {huecoTextos?.length > 0 && <p className="sr-only">{huecoTextos.join(". ")}</p>}
       {guesses.map((g, i) => (

@@ -442,7 +442,23 @@ export default function Configurator({
               país», la flecha del año— el historial volvió a ser el único sitio
               donde vive el acuse de recibo de cada intento. Se pinta siempre que
               haya algo que recapitular. */}
-          {(guesses.length > 0 || reservaHistorial || verTablero) && (
+          <div className="prensa-cabecera-escritorio" aria-hidden="true">
+            <span className="rotulo">
+              {ended
+                ? t("prensa.ladilloFoto")
+                : locale === "es"
+                  ? "¿Qué coche se esconde en el recorte?"
+                  : t("prensa.pregunta")}
+            </span>{" "}
+            <span className="aparte">
+              {ended
+                ? t("prensa.edicionCerrada")
+                : hintIndex != null
+                  ? `${t("prensa.pista", { n: Math.min(hintIndex + 1, totalHints), max: totalHints })}.`
+                  : null}
+            </span>
+          </div>
+          {(guesses.length > 0 || Boolean(pendingGuess) || reservaHistorial) && (
             <div className="prensa-historial">
               <AttemptList
                 // Tablero mientras se juega (los cinco renglones, ver

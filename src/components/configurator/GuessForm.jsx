@@ -272,12 +272,6 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   const modeloValido = marcaValida && CARS.some((c) => c.marca === marca && c.modelo === modelo);
   const modeloInvalido = marcaValida && modelo.trim().length > 0 && !modeloValido;
 
-  useEffect(() => {
-    if (!modelo || !marcaValida) return;
-    if (!CARS.some((c) => c.marca === marca && c.modelo === modelo)) setModelo("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marca]);
-
   // ── Carry-forward TRAS RECARGA (cierre del punto #1 de la auditoría) ──
   // Los aciertos parciales viven en `guesses` (fuente de verdad del servidor),
   // pero el estado del formulario nace vacío en cada carga: el post-submit de
@@ -298,14 +292,37 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
     return s;
   }, [guesses]);
 
+  // El modelo resuelto solo bloquea el campo si la marca aún no se ha elegido o
+  // si la marca elegida tiene ese modelo en el catálogo (p. ej. Fiat 500 →
+  // Abarth 500). Si el jugador elige una marca sin ese modelo, el campo se abre
+  // para que nunca pueda quedarse encerrado con el modelo vacío y bloqueado.
+  const modeloResueltoEnMarca =
+    Boolean(solved.modelo) &&
+    (!marcaValida || CARS.some((c) => c.marca === marca && c.modelo === solved.modelo));
+
   // Campos ya resueltos → BLOQUEADOS el resto de la partida. El formulario
   // encoge de tres renglones a dos a uno según se acierta: el juego se vuelve
   // más fácil de operar según se vuelve más difícil de resolver.
   const bloqueo = {
     marca: Boolean(solved.marca),
-    modelo: Boolean(solved.modelo),
+    modelo: modeloResueltoEnMarca,
     anio: solved.anio != null,
   };
+
+  useEffect(() => {
+    if (!marcaValida) {
+      if (solved.modelo && modelo !== solved.modelo) setModelo(solved.modelo);
+      return;
+    }
+    if (solved.modelo && CARS.some((c) => c.marca === marca && c.modelo === solved.modelo)) {
+      if (modelo !== solved.modelo) setModelo(solved.modelo);
+      return;
+    }
+    if (modelo && !CARS.some((c) => c.marca === marca && c.modelo === modelo)) {
+      setModelo("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marca, CARS, solved.modelo]);
 
   // Año: la horquilla que acumulan todos los intentos previos.
   const horquilla = useMemo(
@@ -488,20 +505,29 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
   // pesado: si abres MARCA para corregirla y el resto ya está puesto, la hoja
   // se cierra al elegir y te devuelve al cupón. Es la misma regla que la cadena
   // de foco de la web, que solo avanza en selecciones reales del usuario.
-  function siguientePaso(modeloAhora, anioAhora) {
-    if (!modeloAhora && !bloqueo.modelo) return "modelo";
+  function siguientePaso(modeloAhora, anioAhora, marcaAhora = marca) {
+    const marcaOk = MARCAS.includes(marcaAhora);
+    const modeloBloqueado =
+      Boolean(solved.modelo) &&
+      (!marcaOk || CARS.some((c) => c.marca === marcaAhora && c.modelo === solved.modelo));
+    if (!modeloAhora && !modeloBloqueado) return "modelo";
     if (!anioAhora && !bloqueo.anio) return "anio";
     return null;
   }
 
   function elegirMarca(v) {
-    // Cambiar de marca invalida el modelo elegido: es de otra casa. Se calcula
-    // el valor RESULTANTE en vez de leer el estado, que en este mismo tick
-    // todavía tiene el anterior.
-    const modeloTrasCambio = v === marca ? modelo : "";
-    if (v !== marca) setModelo("");
+    // Cambiar de marca invalida el modelo elegido salvo que ya esté resuelto y
+    // exista también en la nueva marca (homónimos como Fiat 500 / Abarth 500).
+    // Se calcula el valor RESULTANTE en vez de leer el estado, que en este mismo
+    // tick todavía tiene el anterior.
+    const modeloResueltoValido =
+      solved.modelo && CARS.some((c) => c.marca === v && c.modelo === solved.modelo)
+        ? solved.modelo
+        : "";
+    const modeloTrasCambio = v === marca ? modelo || modeloResueltoValido : modeloResueltoValido;
+    if (modeloTrasCambio !== modelo) setModelo(modeloTrasCambio);
     setMarca(v);
-    setHoja(siguientePaso(modeloTrasCambio, anio));
+    setHoja(siguientePaso(modeloTrasCambio, anio, v));
   }
 
   function elegirModelo(v) {
@@ -624,8 +650,21 @@ export default function GuessForm({ onSubmit, isSubmitting = false, guesses = []
         <Combo
           label={t("cdd.labelMarca")}
           value={marca}
-          onChange={(v) => { setAviso(null); setMarca(v); if (!MARCAS.includes(v)) setModelo(""); }}
-          onCommit={() => focusSoon(modeloRef)}
+          onChange={(v) => {
+            setAviso(null);
+            setMarca(v);
+            if (!MARCAS.includes(v)) setModelo(solved.modelo || "");
+          }}
+          onCommit={(v) => {
+            const tieneModeloResuelto =
+              Boolean(solved.modelo) &&
+              CARS.some((c) => c.marca === v && c.modelo === solved.modelo);
+            if (tieneModeloResuelto) {
+              if (!bloqueo.anio) focusSoon(anioRef);
+            } else {
+              focusSoon(modeloRef);
+            }
+          }}
           inputRef={marcaRef}
           options={availableMarcas}
           probadas={marcasProbadas}

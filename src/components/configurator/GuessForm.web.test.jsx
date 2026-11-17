@@ -206,4 +206,37 @@ describe("Las sugerencias son un combobox de verdad", () => {
     expect(activa.getAttribute("aria-selected")).toBe("true");
     expect(activa.textContent).toContain("Seat");
   });
+
+  it("conserva el modelo resuelto al teclear otra marca homónima (Fiat 500 → Abarth 500)", async () => {
+    CATALOGO.cars.push(
+      { id: 10, marca: "Fiat", modelo: "500", pais: "it" },
+      { id: 11, marca: "Abarth", modelo: "500", pais: "it" }
+    );
+    CATALOGO.marcas = ["Abarth", "Citroën", "Fiat", "Seat"];
+    try {
+      const guesses = [
+        {
+          marca: { val: "Fiat", status: "partial" },
+          modelo: { val: "500", status: "correct" },
+          anio: { val: 2010, status: "correct" },
+        },
+      ];
+      await montar({ guesses });
+      const [marcaInput, modeloInput] = screen.getAllByRole("combobox");
+      expect(modeloInput.value).toBe("500");
+
+      // Al teclear "Ab" (aún no es marca válida) y confirmar "Abarth", el
+      // modelo "500" no se pierde en ningún momento.
+      fireEvent.focus(marcaInput);
+      fireEvent.change(marcaInput, { target: { value: "Ab" } });
+      expect(modeloInput.value).toBe("500");
+
+      fireEvent.keyDown(marcaInput, { key: "Enter" });
+      expect(marcaInput.value).toBe("Abarth");
+      expect(modeloInput.value).toBe("500");
+    } finally {
+      CATALOGO.cars.splice(-2, 2);
+      CATALOGO.marcas = ["Citroën", "Seat"];
+    }
+  });
 });

@@ -158,7 +158,7 @@ export default function Combo({
     setOpen(false);
     // Avanza la cadena de foco al siguiente campo (lo gestiona el padre, que
     // sabe cuál es y espera al frame siguiente por si acaba de habilitarse).
-    onCommit?.();
+    onCommit?.(o);
   }
 
   function onFocus() {

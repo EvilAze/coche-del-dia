@@ -668,3 +668,60 @@ describe("El país que ya sabes sube arriba (P11)", () => {
     expect(screen.getAllByRole("option", { name: /Cupra/ })).toHaveLength(1);
   });
 });
+
+describe("Modelo homónimo ya acertado con otra marca (Fiat 500 → Abarth 500)", () => {
+  const catalogoHomonimo = {
+    cars: [
+      { id: "fiat-500", marca: "Fiat", modelo: "500", pais: "Italia", anio: 1957 },
+      { id: "abarth-500", marca: "Abarth", modelo: "500", pais: "Italia", anio: 2008 },
+      { id: "ferrari-f40", marca: "Ferrari", modelo: "F40", pais: "Italia", anio: 1987 },
+    ],
+    marcas: ["Abarth", "Ferrari", "Fiat"],
+  };
+
+  it("al cambiar a la marca que comparte el modelo resuelto, conserva el modelo y permite enviar", async () => {
+    const guesses = [
+      {
+        marca: { val: "Fiat", status: "partial", pais: "Italia" },
+        modelo: { val: "500", status: "correct" },
+        anio: { val: "2010", status: "correct" },
+      },
+    ];
+    await montar({ guesses, catalogo: catalogoHomonimo });
+
+    // Antes de elegir marca, modelo y año están pre-rellenos y resueltos.
+    expect(renglon("cdd.labelModelo").textContent).toContain("500");
+    expect(renglon("cdd.labelModelo").disabled).toBe(true);
+
+    // El jugador abre Marca y elige Abarth.
+    fireEvent.click(renglon("cdd.labelMarca"));
+    fireEvent.click(screen.getByRole("option", { name: /Abarth/ }));
+
+    // El modelo NO se borra a vacío: sigue siendo "500" y la hoja se cierra
+    // porque tanto modelo como año ya están resueltos.
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(renglon("cdd.labelMarca").textContent).toContain("Abarth");
+    expect(renglon("cdd.labelModelo").textContent).toContain("500");
+    expect(renglon("cdd.labelModelo").disabled).toBe(true);
+  });
+
+  it("si elige una marca que NO tiene el modelo resuelto, desbloquea Modelo para no encerrar al jugador", async () => {
+    const guesses = [
+      {
+        marca: { val: "Fiat", status: "partial", pais: "Italia" },
+        modelo: { val: "500", status: "correct" },
+        anio: { val: "2010", status: "correct" },
+      },
+    ];
+    await montar({ guesses, catalogo: catalogoHomonimo });
+
+    fireEvent.click(renglon("cdd.labelMarca"));
+    fireEvent.click(screen.getByRole("option", { name: /Ferrari/ }));
+
+    // Ferrari no tiene "500": la hoja avanza al paso de modelo con "F40" y el
+    // renglón de modelo queda desbloqueado.
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("option", { name: /F40/ })).toBeTruthy();
+    expect(renglon("cdd.labelModelo").disabled).toBe(false);
+  });
+});

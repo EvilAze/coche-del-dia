@@ -201,10 +201,15 @@ export default function App() {
 
   // Al perder la sesión (logout desde otra pestaña, token caducado…),
   // cerramos cualquier modal abierto: la mayoría muestran datos del usuario
-  // que ya no existe. Antes esto vivía dentro del sync de auth; ahora la
-  // sesión es responsabilidad de useAuthSession y la UI reacciona aquí.
+  // que ya no existe. Solo se dispara en la TRANSICIÓN de logueado → sin
+  // sesión, nunca en el primer montaje con `user === null`: si corriera al
+  // montar, cerraría de golpe el `LoginModal` que el efecto de vuelta de OAuth
+  // (`leerErrorAuth`) acaba de abrir en ese mismo ciclo.
+  const prevUserRef = useRef(user);
   useEffect(() => {
-    if (!user) closeModal();
+    const teniaSesion = Boolean(prevUserRef.current);
+    prevUserRef.current = user;
+    if (teniaSesion && !user) closeModal();
   }, [user, closeModal]);
 
   // Al iniciar sesión, cerramos el modal de login y volvemos al juego. En web
@@ -671,6 +676,10 @@ export default function App() {
           closeModal();
         }}
         aviso={avisoLogin}
+        // Solo intentamos linkIdentity si el anónimo tiene racha real (> 0):
+        // sin racha que proteger, entrar directo por signInWithOAuth evita el
+        // doble login con Google a cualquier jugador que ya tenga cuenta.
+        vincularAnonimo={streak > 0}
       />
 
       {/* Modales lazy: solo se montan tras su primera apertura (mounted.*) y,

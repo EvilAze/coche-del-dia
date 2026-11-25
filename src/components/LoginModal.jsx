@@ -78,7 +78,15 @@ function GoogleGlyph() {
 // falló porque esa cuenta de Google ya es de otro usuario; cualquier otra
 // cadena para un fallo genérico de OAuth. Lo decide App.jsx leyendo la URL de
 // retorno (lib/authCallback.js).
-export default function LoginModal({ open, onClose, aviso = null }) {
+// `vincularAnonimo`: si false, entramos directo con signInWithOAuth sin pasar
+// por linkIdentity — evita un doble login innecesario a cuentas ya existentes
+// cuando la sesión anónima no tiene racha que conservar.
+export default function LoginModal({
+  open,
+  onClose,
+  aviso = null,
+  vincularAnonimo = true,
+}) {
   const { t } = useT();
   const toast = useToast();
   const conEmail = emailLoginDisponible();
@@ -371,10 +379,10 @@ export default function LoginModal({ open, onClose, aviso = null }) {
           )}
 
           <button
-            // Tras un fallo de vinculación entramos SIN vincular: ya sabemos
-            // que esa cuenta es de otro usuario, y reintentar vinculando sería
-            // mandarle a Google para volver con el mismo error.
-            onClick={() => entrarConGoogle(aviso !== "identidad-ocupada")}
+            // Solo vinculamos si hay progreso anónimo que conservar y no venimos
+            // ya de un rechazo de vinculación: si no, entramos directo con
+            // signInWithOAuth para evitar obligar al jugador a repetir Google.
+            onClick={() => entrarConGoogle(vincularAnonimo && aviso !== "identidad-ocupada")}
             disabled={entrando}
             aria-busy={entrando}
             // Blanco sobre negro es la CHAPA DE MARCA de Google (su logo va sobre

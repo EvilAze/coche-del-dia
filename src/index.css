@@ -6516,3 +6516,97 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   margin-right: auto;
   outline: none;
 }
+
+
+/* ── EL ARCHIVO: CROMO FÍSICO DE TAMAÑO FIJO + PULIDO ────────────────────────
+   Un cromo real no encoge ni se estira en el aire al darle la vuelta: cara y
+   dorso comparten exactamente el mismo rectángulo y SON la superficie que rota
+   en 3D sobre el velo, sin caja de modal doble alrededor. */
+.arch-chip--todos {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  box-shadow: -16px 0 0 0 var(--bg), 8px 0 12px -4px var(--bg);
+}
+.arch-logo {
+  background: rgb(236 238 241);
+}
+.arch-cromo-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.arch-cromo-barra {
+  display: flex;
+  justify-content: flex-end;
+}
+.arch-cromo-barra .arch-cromo-cerrar {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  box-shadow: var(--sombra-flota);
+}
+.arch-flip-inner,
+.arch-cromo-fijo {
+  height: min(510px, 74dvh);
+}
+.arch-flip-inner {
+  transition: transform var(--ms-escena) var(--curva-entra);
+}
+.arch-flip-inner.arrastrando {
+  transition: none;
+}
+.arch-cara,
+.arch-cromo-fijo {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radio-hoja);
+  box-shadow: var(--sombra-flota);
+  overflow: hidden;
+}
+.arch-cara {
+  inset: 0;
+}
+.arch-cara .arch-detalle-foto,
+.arch-cromo-fijo .arch-detalle-foto,
+.arch-cara .arch-dorso-cab {
+  flex: none;
+}
+.arch-cara-centro {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 0;
+}
+.arch-cara-centro > .arch-marca {
+  margin-top: 0;
+}
+.arch-dorso-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 2px 12px 0;
+  scrollbar-width: thin;
+}
+.arch-dorso-cuerpo > .arch-etiqueta:first-child {
+  margin-top: 10px;
+}
+.arch-cara-pie {
+  flex: none;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-2);
+}
+.arch-cara-pie > .pm-btn {
+  margin-top: 0;
+}

@@ -24,8 +24,8 @@
 // coches, dos taps hasta ver un solo cromo) y pasó a ser un chip de filtro:
 // se salta de país a país sin volver atrás.
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useDragControls } from "framer-motion";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { atraparTab } from "../lib/foco";
 import { supabase } from "../supabaseClient";
 import { useEscape } from "../hooks/useEscape";
@@ -574,23 +574,10 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
     }
   }
 
-  // Swipe-from-edge para retroceder (estilo iOS):
-  //   - El motion.div del panel acepta drag horizontal, pero `dragListener`
-  //     está desactivado: el drag SOLO se inicia desde el edge handle,
-  //     evitando interferir con scroll vertical, taps en cards o clicks en
-  //     el header.
-  //   - Threshold: 80 px de offset o 500 px/s de velocidad. El segundo es
-  //     un "fling" rápido — confirma intención aunque la distancia sea corta.
-  const dragControls = useDragControls();
-
-  function handleSwipeEnd(_event, info) {
-    const triggered = info.offset.x > 80 || info.velocity.x > 500;
-    if (!triggered) return;
-    // Mismo criterio que la cadena de ESC: si hay filtro, el swipe lo quita;
-    // si ya estamos en la vitrina, cierra el archivo.
-    if (filter) setFilter(null);
-    else onClose();
-  }
+  // (Aquí vivió un arrastre horizontal desde un borde invisible de 16 px a la
+  // izquierda del panel. En Android e iOS modernos ese borde choca directamente
+  // con el gesto nativo de «Atrás» del sistema, y `useHistoryChain` ya encadena
+  // el atrás nativo exactamente igual: detalle → filtro de país → cerrar.)
 
   return (
     // AnimatePresence externo: el backdrop hace fade in/out (200 ms) y el
@@ -628,30 +615,7 @@ export default function Garage({ open, onClose, user, onOpenLogin }) {
             // los 2,2 s que el Archivo se quedaba encima tras cerrarlo.
             exit={{ y: 24, opacity: 0, scale: 0.98, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } }}
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
-            // Drag horizontal armado pero NO autostart: el edge handle de
-            // abajo es quien dispara dragControls.start(). Así el resto del
-            // panel sigue siendo scrollable / clickable normal.
-            // dragSnapToOrigin: tras soltar, el panel vuelve a x=0 SIEMPRE.
-            drag="x"
-            dragListener={false}
-            dragControls={dragControls}
-            dragConstraints={{ left: 0, right: 200 }}
-            dragElastic={0.15}
-            dragSnapToOrigin
-            onDragEnd={handleSwipeEnd}
           >
-            {/*
-              Edge handle invisible. Cubre los 16 px más a la izquierda del
-              panel (coincide con el padding-x del body, por eso no solapa
-              con cards ni CloseButton). touchAction: pan-y permite que el
-              scroll vertical nativo siga funcionando dentro de la zona.
-            */}
-            <div
-              aria-hidden="true"
-              onPointerDown={(e) => dragControls.start(e)}
-              className="absolute inset-y-0 left-0 z-10 w-4"
-              style={{ touchAction: "pan-y" }}
-            />
 
             {/* La cabecera: el nombre de la sección en grande, como el de una
                 pantalla, el orden de la vitrina y cerrar. `safe-area-top` le
@@ -939,7 +903,7 @@ function FilterStrip({ countries, total, active, onSelect }) {
           type="button"
           onClick={() => onSelect(null)}
           aria-pressed={!active}
-          className={"arch-chip" + (!active ? " on" : "")}
+          className={"arch-chip arch-chip--todos" + (!active ? " on" : "")}
         >
           {t("garage.filterAll")}
           <span className="cifra">{total}</span>
@@ -1299,25 +1263,6 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
   const drag = useFlipDrag(angle, setAngle);
   const flipped = showsBack(drag.currentAngle);
 
-  // La carta mide lo que mide la cara VISIBLE (ver `.arch-flip-inner`).
-  const portadaRef = useRef(null);
-  const dorsoRef = useRef(null);
-  const [faceH, setFaceH] = useState(null);
-  useLayoutEffect(() => {
-    const portada = portadaRef.current;
-    const dorso = dorsoRef.current;
-    if (!portada || !dorso) return;
-    const measure = () => {
-      const h = (flipped ? dorso : portada).offsetHeight;
-      if (h) setFaceH(h);
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(portada);
-    ro.observe(dorso);
-    return () => ro.disconnect();
-  }, [flipped, displayCar]);
-
   // Las flechas del teclado también voltean: el swipe no es el único camino.
   useEffect(() => {
     if (!open || isLocked) return;
@@ -1335,22 +1280,29 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
       open={open}
       onClose={onClose}
       label={t("garage.headerTitle")}
-      backdropClassName="modal-scrim fixed inset-0 z-dialogo flex items-center justify-center p-4"
-      panelClassName="modal-panel-flat relative w-full max-w-sm max-h-[88vh] overflow-y-auto"
+      // Encaje seguro + contenedor transparente: la propia carta (.arch-cara /
+      // .arch-cromo-fijo) es el objeto físico que rota en 3D sobre el velo,
+      // con tamaño único e inmutable en cara y dorso.
+      backdropClassName="modal-scrim safe-area-pad fixed inset-0 z-dialogo flex items-center justify-center px-4"
+      panelClassName="arch-cromo-shell relative w-full max-w-sm"
     >
       {displayCar && (
         <>
-          {/* La X vive en su propia banda, FUERA del cromo: queda fuera del
-              contenedor que rota, así que no gira con la carta. */}
-          <div className="flex justify-end px-2 pt-2">
-            <CloseButton onClick={onClose} />
+          {/* La X flota FUERA del cromo, sobre el velo: nunca gira con la carta
+              y pulsar el aire a su izquierda también cierra. */}
+          <div className="arch-cromo-barra" onClick={onClose}>
+            <CloseButton
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="arch-cromo-cerrar"
+            />
           </div>
 
           {isLocked ? (
-            /* Hueco: aquí SÍ enseñamos la lona borrosa (una sola petición, y
-               solo cuando el usuario ha mostrado interés tocando el hueco).
-               Es el momento de intriga: "¿qué se esconde ahí?". */
-            <div className="arch-detalle">
+            /* Hueco: mismo tamaño de cromo físico que una portada ganada. */
+            <div className="arch-cromo-fijo arch-detalle">
               <div className="arch-detalle-foto">
                 {displayCar.img && (
                   <img
@@ -1368,36 +1320,37 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                 </div>
               </div>
 
-              <p className="arch-marca">{displayCar.marca}</p>
-              <p className="arch-detalle-modelo">{t("garage.modelHidden")}</p>
-              <p className="arch-detalle-texto">{t("garage.lockedCardDetailBody")}</p>
+              <div className="arch-cara-centro">
+                <p className="arch-marca">{displayCar.marca}</p>
+                <p className="arch-detalle-modelo">{t("garage.modelHidden")}</p>
+                <p className="arch-detalle-texto">{t("garage.lockedCardDetailBody")}</p>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onStartRepesca?.();
-                }}
-                className="pm-btn arch-boton-ambar"
-              >
-                {t("garage.lockedCardDetailCta")}
-              </button>
+              <div className="arch-cara-pie">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onStartRepesca?.();
+                  }}
+                  className="pm-btn arch-boton-ambar"
+                >
+                  {t("garage.lockedCardDetailCta")}
+                </button>
+              </div>
             </div>
           ) : (
-            /* Las dos caras están SIEMPRE montadas (si no, no hay volteo que
-               animar), así que la que mira hacia atrás se marca aria-hidden y
-               su botón sale del orden de tabulación. */
+            /* Las dos caras comparten el MISMO rectángulo fijo: un cromo real
+               no encoge ni se estira en el aire al darle la vuelta. */
             <div className="arch-flip" {...drag.handlers}>
               <div
                 className={`arch-flip-inner ${drag.dragging ? "arrastrando" : ""}`}
                 style={{
                   transform: `rotateY(${drag.currentAngle}deg)`,
-                  height: faceH ? `${faceH}px` : undefined,
                 }}
               >
                 {/* ── Cara: la portada ── */}
                 <div
-                  ref={portadaRef}
                   className="arch-cara arch-cara--portada arch-detalle"
                   aria-hidden={flipped}
                 >
@@ -1422,46 +1375,47 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                     )}
                   </div>
 
-                  <p className="arch-marca">{displayCar.marca}</p>
-                  <h3 className="arch-detalle-modelo">{displayCar.modelo}</h3>
-                  <p className="arch-detalle-chapas">
-                    {displayCar.pais && (
-                      <span className="fin-chapa">
-                        <img
-                          src={flagImagePath(displayCar.pais)}
-                          alt=""
-                          aria-hidden="true"
-                          draggable={false}
-                          className="bandera"
-                        />
-                        {getLocalizedCountry(displayCar.pais)}
-                      </span>
-                    )}
-                    {displayCar.anio && <span className="fin-chapa mono">{displayCar.anio}</span>}
-                  </p>
+                  <div className="arch-cara-centro">
+                    <p className="arch-marca">{displayCar.marca}</p>
+                    <h3 className="arch-detalle-modelo">{displayCar.modelo}</h3>
+                    <p className="arch-detalle-chapas">
+                      {displayCar.pais && (
+                        <span className="fin-chapa">
+                          <img
+                            src={flagImagePath(displayCar.pais)}
+                            alt=""
+                            aria-hidden="true"
+                            draggable={false}
+                            className="bandera"
+                          />
+                          {getLocalizedCountry(displayCar.pais)}
+                        </span>
+                      )}
+                      {displayCar.anio && <span className="fin-chapa mono">{displayCar.anio}</span>}
+                    </p>
+                  </div>
 
-                  {/* El click sintético que sigue a un swipe se descarta: si
-                      no, un swipe que empieza y acaba sobre este botón
-                      voltearía dos veces y la carta se quedaría igual. */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (drag.consumeDrag()) return;
-                      setAngle((a) => a + 180);
-                    }}
-                    tabIndex={flipped ? -1 : 0}
-                    className="pm-btn pm-btn--ghost"
-                  >
-                    {t("garage.flipToBack")}
-                  </button>
-                  {/* El swipe es un gesto nuevo y no se descubre solo: una
-                      línea de pie basta. Solo en la portada. */}
-                  <p className="arch-pista">{t("garage.flipHint")}</p>
+                  {/* El botón de volteo va anclado al pie en la MISMA
+                      coordenada exacta en ambas caras: puedes voltear ida y
+                      vuelta sin mover el pulgar. */}
+                  <div className="arch-cara-pie">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (drag.consumeDrag()) return;
+                        setAngle((a) => a + 180);
+                      }}
+                      tabIndex={flipped ? -1 : 0}
+                      className="pm-btn pm-btn--ghost"
+                    >
+                      {t("garage.flipToBack")}
+                    </button>
+                    <p className="arch-pista">{t("garage.flipHint")}</p>
+                  </div>
                 </div>
 
                 {/* ── Cara: el dorso ── */}
                 <div
-                  ref={dorsoRef}
                   className="arch-cara arch-cara--dorso arch-detalle"
                   aria-hidden={!flipped}
                 >
@@ -1474,86 +1428,91 @@ function CoverDetail({ open, car, collectors = 0, onClose, onStartRepesca }) {
                     </span>
                   </div>
 
-                  <p className="arch-etiqueta">{t("garage.carSpec")}</p>
-                  <p className="arch-detalle-texto">
-                    {getCarDescription(displayCar) || t("garage.carNoDescription")}
-                  </p>
+                  <div className="arch-dorso-cuerpo">
+                    <p className="arch-etiqueta">{t("garage.carSpec")}</p>
+                    <p className="arch-detalle-texto">
+                      {getCarDescription(displayCar) || t("garage.carNoDescription")}
+                    </p>
 
-                  {/* TIRADA: cuánta gente tiene esta portada. Va ANTES de "en
-                      tu archivo" porque es el dato que no depende de ti. Se
-                      omite entero si el servidor no publica rareza: mejor
-                      callar que inventar escasez. */}
-                  {rarity && rarityPct !== null && (
-                    <div className={`arch-tirada t-${rarityKind}`}>
-                      <p className="arch-etiqueta">{t("garage.rarityTitle")}</p>
-                      <p className="etiqueta">{t(`garage.rarity_${rarityKind}`)}</p>
-                      <p className="apoyo">
-                        {t("garage.rarityBody", {
-                          pct: rarityPct,
-                          collectors,
-                        })}
-                      </p>
-                    </div>
-                  )}
-
-                  <p className="arch-etiqueta">{t("garage.backTitle")}</p>
-                  <div className="arch-datos">
-                    {wonAt && (
-                      <div className="arch-dato">
-                        <span className="k">{t("garage.datoWonAt")}</span>
-                        <span className="v">{wonAt}</span>
+                    {/* TIRADA: cuánta gente tiene esta portada. Va ANTES de "en
+                        tu archivo" porque es el dato que no depende de ti. Se
+                        omite entero si el servidor no publica rareza: mejor
+                        callar que inventar escasez. */}
+                    {rarity && rarityPct !== null && (
+                      <div className={`arch-tirada t-${rarityKind}`}>
+                        <p className="arch-etiqueta">{t("garage.rarityTitle")}</p>
+                        <p className="etiqueta">{t(`garage.rarity_${rarityKind}`)}</p>
+                        <p className="apoyo">
+                          {t("garage.rarityBody", {
+                            pct: rarityPct,
+                            collectors,
+                          })}
+                        </p>
                       </div>
                     )}
-                    {/* Origen: un cromo rescatado de un número atrasado no se
-                        consiguió igual que uno del día. */}
-                    <div className="arch-dato">
-                      <span className="k">{t("garage.datoOrigin")}</span>
-                      <span className="v">
-                        {t(
-                          displayCar.viaRepesca
-                            ? "garage.originRepesca"
-                            : "garage.originDaily"
-                        )}
-                      </span>
-                    </div>
-                    {Number.isFinite(displayCar.attempts) && (
+
+                    <p className="arch-etiqueta">{t("garage.backTitle")}</p>
+                    <div className="arch-datos">
+                      {wonAt && (
+                        <div className="arch-dato">
+                          <span className="k">{t("garage.datoWonAt")}</span>
+                          <span className="v">{wonAt}</span>
+                        </div>
+                      )}
+                      {/* Origen: un cromo rescatado de un número atrasado no se
+                          consiguió igual que uno del día. */}
                       <div className="arch-dato">
-                        <span className="k">{t("garage.datoAttempts")}</span>
-                        {/* El oro marca el pleno, no el número: en la repesca
-                            veterana solo hay un intento, así que celebrarlo
-                            sería celebrar una hazaña que no es. */}
-                        <span
-                          className={`v ${
-                            displayCar.attempts === 1 && !displayCar.viaRepesca
-                              ? "oro"
-                              : ""
-                          }`}
-                        >
-                          {tn("garage.attemptsN", displayCar.attempts)}
+                        <span className="k">{t("garage.datoOrigin")}</span>
+                        <span className="v">
+                          {t(
+                            displayCar.viaRepesca
+                              ? "garage.originRepesca"
+                              : "garage.originDaily"
+                          )}
                         </span>
                       </div>
-                    )}
-                    <div className="arch-dato">
-                      <span className="k">{t("garage.datoMerit")}</span>
-                      <span className={`v ${merits.length ? "oro" : ""}`}>
-                        {merits.length
-                          ? merits.map((m) => t(`garage.merit_${m}`)).join(" · ")
-                          : t("garage.datoMeritNone")}
-                      </span>
+                      {Number.isFinite(displayCar.attempts) && (
+                        <div className="arch-dato">
+                          <span className="k">{t("garage.datoAttempts")}</span>
+                          {/* El oro marca el pleno, no el número: en la repesca
+                              veterana solo hay un intento, así que celebrarlo
+                              sería celebrar una hazaña que no es. */}
+                          <span
+                            className={`v ${
+                              displayCar.attempts === 1 && !displayCar.viaRepesca
+                                ? "oro"
+                                : ""
+                            }`}
+                          >
+                            {tn("garage.attemptsN", displayCar.attempts)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="arch-dato">
+                        <span className="k">{t("garage.datoMerit")}</span>
+                        <span className={`v ${merits.length ? "oro" : ""}`}>
+                          {merits.length
+                            ? merits.map((m) => t(`garage.merit_${m}`)).join(" · ")
+                            : t("garage.datoMeritNone")}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (drag.consumeDrag()) return;
-                      setAngle((a) => a - 180);
-                    }}
-                    tabIndex={flipped ? 0 : -1}
-                    className="pm-btn pm-btn--ghost"
-                  >
-                    {t("garage.flipToFront")}
-                  </button>
+                  <div className="arch-cara-pie">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (drag.consumeDrag()) return;
+                        setAngle((a) => a - 180);
+                      }}
+                      tabIndex={flipped ? 0 : -1}
+                      className="pm-btn pm-btn--ghost"
+                    >
+                      {t("garage.flipToFront")}
+                    </button>
+                    <p className="arch-pista">{t("garage.flipHint")}</p>
+                  </div>
                 </div>
               </div>
             </div>

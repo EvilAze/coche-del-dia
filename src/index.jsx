@@ -226,7 +226,13 @@ const isMainApp = !(
   isDeleteAccount
 );
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+const rootEl = document.getElementById("root");
+// Marca el contenedor raíz para que Vaul pueda aplicar la escala sutil de
+// profundidad al abrir una hoja de navegación, sin añadir ningún div intermedio
+// que altere la cadena de altos de `.app-pantalla`.
+if (rootEl) rootEl.setAttribute("data-vaul-drawer-wrapper", "");
+
+const root = ReactDOM.createRoot(rootEl);
 root.render(
   <React.StrictMode>
     <SentryErrorBoundary fallback={<ErrorFallback />}>

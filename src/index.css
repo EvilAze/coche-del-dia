@@ -6488,3 +6488,31 @@ button.grupo-fila .grupo-fila-texto { flex: 1 1 auto; }
   font-weight: 500;
   font-size: var(--t-etiqueta);
 }
+
+
+/* ── SONNER (avisos apilables) y VAUL (hojas de navegación) ──────────────────
+   Capa, safe-area y anclaje en los tokens de Asfalto. Sonner y Vaul inyectan
+   sus físicas; aquí solo atamos sus contenedores al compás y a las capas del
+   sistema sin valores literales. */
+.cdd-toaster[data-sonner-toaster] {
+  z-index: var(--capa-aviso);
+  --offset-bottom: max(1rem, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+}
+.cdd-sonner-item {
+  width: 100%;
+  max-width: 24rem;
+  display: flex;
+  justify-content: center;
+}
+.cdd-vaul-velo {
+  background-color: rgb(var(--velo-rgb) / .45);
+}
+.cdd-vaul-hoja {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  outline: none;
+}

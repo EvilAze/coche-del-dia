@@ -3942,13 +3942,13 @@ button.fin-tarjeta:active { transform: translateY(1px); }
   font-style: normal; font-family: var(--font-body); font-weight: 700; font-size: var(--t-etiqueta); line-height: 1;
   color: var(--cdd-muted);
 }
-.fin-rejilla i::after, .fin-partida .cuadros i::after { content: "âœ•"; }
+.fin-rejilla i svg, .fin-partida .cuadros i svg { width: 12px; height: 12px; display: block; }
 .fin-rejilla i.bien, .fin-partida .cuadros i.bien { background: var(--verde); box-shadow: none; color: var(--bg); }
-.fin-rejilla i.bien::after, .fin-partida .cuadros i.bien::after { content: "âœ“"; }
+
 .fin-rejilla i.cerca, .fin-partida .cuadros i.cerca {
   background: rgb(var(--ambar-relleno-rgb)); box-shadow: none; color: var(--cdd-text);
 }
-.fin-rejilla i.cerca::after, .fin-partida .cuadros i.cerca::after { content: "~"; font-size: var(--t-dato); }
+.fin-rejilla i.cerca, .fin-partida .cuadros i.cerca { font-size: var(--t-dato); }
 
 .fin-desglose { margin: 14px 0 0; display: flex; flex-direction: column; gap: 8px; }
 .fin-desglose div { display: flex; justify-content: space-between; gap: 12px; }

@@ -95,3 +95,26 @@ export const I = {
   calendario: ["M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z", "M4 9.5h16M8 3v4M16 3v4"],
   escudo: ["M12 3l7 2.6v5.2c0 4.5-3 7.6-7 9.2-4-1.6-7-4.7-7-9.2V5.6z", "M9 12l2 2 4-4.2"],
 };
+
+// Iconos micro 16x16 (Heroicons 16/solid, MIT) para contenedores pequeños como
+// los cuadros de la rejilla de resultado, donde un glifo Unicode en CSS ::after
+// depende de la fuente del sistema y se rompe con la codificación.
+export function MicroIcon({ d, size = 12, ...p }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+      {...p}
+    >
+      <path fillRule="evenodd" clipRule="evenodd" d={d} />
+    </svg>
+  );
+}
+
+export const MICRO = {
+  check: "M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z",
+  xMark: "M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z",
+};

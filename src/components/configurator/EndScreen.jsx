@@ -37,7 +37,7 @@ import { apiUrl } from "../../lib/apiUrl";
 import { puntuacionDelDia } from "../../lib/puntos";
 import { compartirEnApp } from "../../lib/compartir";
 import { useToast } from "../Toast";
-import { Icon, I } from "./icons";
+import { Icon, I, MicroIcon, MICRO } from "./icons";
 // `Percentile` se retiró de dailyStats: era una caja con el porcentaje y ahora ese
 // dato viaja como el remate del pie de la partida, en una línea.
 import { useDailyStats, Distribution } from "./dailyStats";
@@ -126,14 +126,29 @@ export function leerIntento(g, n, total, t) {
     .map((c) => `${c.val}, ${estado(c.status)}`);
   return `${t("prensa.pista", { n, max: total })}: ${partes.join("; ")}`;
 }
+function Cuadro({ status }) {
+  const tipo = cuadro(status);
+  return (
+    <i className={tipo}>
+      {tipo === "bien" ? (
+        <MicroIcon d={MICRO.check} />
+      ) : tipo === "cerca" ? (
+        "~"
+      ) : (
+        <MicroIcon d={MICRO.xMark} />
+      )}
+    </i>
+  );
+}
+
 export function Rejilla({ guesses }) {
   return (
     <span className="fin-rejilla" aria-hidden="true">
       {guesses.map((g, i) => (
         <span key={i} className="fila">
-          <i className={cuadro(g.marca?.status)} />
-          <i className={cuadro(g.modelo?.status)} />
-          <i className={cuadro(g.anio?.status)} />
+          <Cuadro status={g.marca?.status} />
+          <Cuadro status={g.modelo?.status} />
+          <Cuadro status={g.anio?.status} />
         </span>
       ))}
     </span>
@@ -446,9 +461,9 @@ export default function EndScreen({
               {guesses.map((g, i) => (
                 <li key={i} style={{ animationDelay: `calc(var(--ms-hoja) + ${i} * var(--ms-paso) * 2)` }}>
                   <span className="cuadros" aria-hidden="true">
-                    <i className={cuadro(g.marca?.status)} />
-                    <i className={cuadro(g.modelo?.status)} />
-                    <i className={cuadro(g.anio?.status)} />
+                    <Cuadro status={g.marca?.status} />
+                    <Cuadro status={g.modelo?.status} />
+                    <Cuadro status={g.anio?.status} />
                   </span>
                   <span className="texto" aria-hidden="true">{[g.marca?.val, g.modelo?.val, g.anio?.val].filter(Boolean).join(" · ")}</span>
                   <span className="sr-only">{leerIntento(g, i + 1, max, t)}</span>

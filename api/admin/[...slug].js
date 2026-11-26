@@ -65,7 +65,7 @@ const ROUTES = {
   "analyze-image": analyzeImage,
   "describe-car":  describeCar,
   "masters":       masters,
-  // «Sugerir cifras» de la ficha técnica: dos votos de IA (Groq + Mistral) y
+  // «Sugerir cifras» de la ficha técnica: dos votos de IA (GPT-OSS + Llama en Groq) y
   // solo se sugiere lo que coincide. No escribe nada.
   "suggest-specs": suggestSpecs,
   // Qué coches no tienen foto todavía. Salió del catálogo público porque dice
@@ -94,7 +94,7 @@ const PLAZO_MS = {
   "analyze-image": 55000,
   "describe-car": 55000,
   "translate": 55000,
-  // Dos modelos en paralelo, y Mistral con un reintento en serie si está
+  // Dos familias en paralelo en Groq, y Llama con respaldo Qwen si está
   // saturado: los plazos de cada voto (suggest-specs.js) caben aquí dentro.
   "suggest-specs": 55000,
   // Sube la foto al CDN además de escribir en la base.

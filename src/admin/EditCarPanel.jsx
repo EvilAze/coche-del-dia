@@ -946,7 +946,7 @@ export default function EditCarPanel({
                   !form.marca.trim() ||
                   !form.modelo.trim()
                 }
-                title="Pregunta a dos IA (Groq y Mistral) y rellena solo las cifras en las que coinciden. No guarda."
+                title="Pregunta a dos IA de familias distintas (GPT-OSS y Llama en Groq) y rellena solo las cifras en las que coinciden. No guarda."
                 className="self-start rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-accent transition hover:border-accent hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {cifrasIaCargando ? "Consultando a dos IA..." : "Sugerir cifras"}
@@ -1281,8 +1281,8 @@ function DetalleCifrasIa({ data }) {
         Sugeridas por IA, sin guardar: comprueba que la versión es la de la foto
       </p>
       <ul className="flex flex-col gap-0.5">
-        {filaVoto("Groq", votos.groq)}
-        {filaVoto("Mistral", votos.mistral)}
+        {filaVoto("GPT-OSS", votos.gptOss)}
+        {filaVoto("Llama", votos.llama)}
       </ul>
       {data?.aviso && <p className="text-white/80">{data.aviso}</p>}
       <ul className="flex flex-col gap-0.5">

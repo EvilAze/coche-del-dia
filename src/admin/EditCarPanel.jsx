@@ -1281,8 +1281,8 @@ function DetalleCifrasIa({ data }) {
         Sugeridas por IA, sin guardar: comprueba que la versión es la de la foto
       </p>
       <ul className="flex flex-col gap-0.5">
-        {filaVoto("GPT-OSS", votos.gptOss)}
-        {filaVoto("Llama", votos.llama)}
+        {filaVoto("Voto 1", votos.gptOss)}
+        {filaVoto("Voto 2", votos.segundo)}
       </ul>
       {data?.aviso && <p className="text-white/80">{data.aviso}</p>}
       <ul className="flex flex-col gap-0.5">
